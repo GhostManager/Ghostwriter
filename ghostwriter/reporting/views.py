@@ -31,7 +31,10 @@ from django.conf import settings
 
 # Import models and forms
 from django.db.models import Q
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 # from rolodex.models import Project, ProjectAssignment
 from .models import Finding, Severity, FindingType, Report, \
     ReportFindingLink, Evidence, Archive

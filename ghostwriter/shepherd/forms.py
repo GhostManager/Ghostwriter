@@ -6,7 +6,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from crispy_forms.helper import FormHelper
 
-# from rolodex.models import Project
 from .models import Domain, History, DomainNote, DomainServerConnection
 from .models import (StaticServer, TransientServer, ServerHistory,
                              ServerNote)
@@ -92,7 +91,6 @@ class ServerCheckoutForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
-        from rolodex.models import Project
         super(ServerCheckoutForm, self).__init__(*args, **kwargs)
         self.fields['client'].empty_label = '-- Select a Client --'
         self.fields['client'].label = ''

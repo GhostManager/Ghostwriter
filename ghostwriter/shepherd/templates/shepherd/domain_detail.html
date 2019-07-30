@@ -180,7 +180,7 @@
         <button class="collapsible"><i class="fas fa-server"></i> DNS Records</button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
-                <p><a href="{% url 'update_dns_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh DNS Records</a></p>
+                <p><a href="{% url 'shepherd:update_dns_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh DNS Records</a></p>
                 {% if domain.get_list %}
                     <table>
                         <tr>
@@ -246,7 +246,7 @@
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 <p>
-                    <a href="{% url 'domain_note_add' domain.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    <a href="{% url 'shepherd:domain_note_add' domain.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
                 </p>
                 {% if domain.domainnote_set.all %}
                     {% for note in domain.domainnote_set.all reversed %}

@@ -239,7 +239,7 @@ class Domain(models.Model):
 
     def get_absolute_url(self):
         """Returns the URL to access a particular instance of the model."""
-        return reverse('domain_detail', args=[str(self.id)])
+        return reverse('shepherd:domain_detail', args=[str(self.id)])
 
     def get_domain_age(self):
         """Calculate the domain's age based on the current date and the
@@ -321,7 +321,7 @@ class History(models.Model):
 
     def get_absolute_url(self):
         """Returns the URL to access a particular instance of the model."""
-        return reverse('history_update', args=[str(self.id)])
+        return reverse('shepherd:history_update', args=[str(self.id)])
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
@@ -438,7 +438,7 @@ class StaticServer(models.Model):
 
     def get_absolute_url(self):
         """Returns the URL to access a particular instance of the model."""
-        return reverse('server_detail', args=[str(self.id)])
+        return reverse('shepherd:server_detail', args=[str(self.id)])
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
@@ -529,7 +529,7 @@ class ServerHistory(models.Model):
 
     def get_absolute_url(self):
         """Returns the URL to access a particular instance of the model."""
-        return reverse('history_update', args=[str(self.id)])
+        return reverse('shepherd:history_update', args=[str(self.id)])
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""

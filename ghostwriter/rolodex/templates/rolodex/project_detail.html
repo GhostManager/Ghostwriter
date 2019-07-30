@@ -129,7 +129,7 @@
                         </tr>
                         {% for domain in project.history_set.all %}
                             <tr>
-                                <td><a class="clickable" href="{% url 'rolodex:domain_detail' domain.domain.id %}">{{ domain.domain.name }}</a></td>
+                                <td><a class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">{{ domain.domain.name }}</a></td>
                                 <td>{{ domain.activity_type }}</td>
                                 <td>{{ domain.start_date }} to {{ domain.end_date }}</td>
                                 <td style="text-align: justify;">{{ domain.note|linebreaksbr }}</td>
@@ -137,8 +137,8 @@
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                            <a href="{% url 'rolodex:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                            <a href="{% url 'shepherd:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                            <a href="{% url 'shepherd:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
                                         </div>
                                     </div>
                                 </td>
@@ -170,7 +170,7 @@
                         </tr>
                         {% for server in project.serverhistory_set.all %}
                             <tr>
-                                <td><a class="clickable" href="{% url 'rolodex:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
+                                <td><a class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
                                 <td>{{ server.activity_type }}</td>
                                 <td>{{ server.server_role }}</td>
                                 <td>{{ server.server.server_provider }}</td>
@@ -179,8 +179,8 @@
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                            <a href="{% url 'rolodex:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                            <a href="{% url 'shepherd:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                            <a href="{% url 'shepherd:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
                                         </div>
                                     </div>
                                 </td>
@@ -197,8 +197,8 @@
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
-                                            <a href="{% url 'rolodex:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
+                                            <a href="{% url 'shepherd:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
+                                            <a href="{% url 'shepherd:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
                                         </div>
                                     </div>
                                 </td>
@@ -221,7 +221,7 @@
                 <!-- Determine if at least one server and one domain -->
                 {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
                     <p>
-                        <a href="{% url 'rolodex:link_create' project.id %}"><i class="far fa-plus-square"></i> Add a Domain + Server Association</a>
+                        <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Add a Domain + Server Association</a>
                     </p>
                     {% if project.domainserverconnection_set.all %}
                         <table>
@@ -248,8 +248,8 @@
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
                                             <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                                <a href="{% url 'rolodex:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
-                                                <a href="{% url 'rolodex:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
+                                                <a href="{% url 'shepherd:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
+                                                <a href="{% url 'shepherd:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
                                             </div>
                                         </div>
                                     </td>
@@ -289,7 +289,7 @@
                                         {% else %}
                                             <td style="color: green;">{{ finding.severity }}</td>
                                         {% endif %}
-                                        <td class="clickable"><a href="{% url 'rolodex:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                        <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                         {% if finding.assigned_to == request.user %}
                                         {% if finding.complete %}
                                             <td style="color: #A8D08D;"><strong>You</strong></td>

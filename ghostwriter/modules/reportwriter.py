@@ -516,9 +516,8 @@ class Reportwriter():
                     if match:
                         match = match[0]
                         keyword = match.\
-                            replace('{', '').\
-                            replace('}', '').\
-                            replace('{.', '').strip()
+                            replace('{{.', '').\
+                            replace('}}', '').strip()
                         # line = line.replace(match, '')
                     # Check if the keyword references evidence
                     evidence = False
@@ -915,7 +914,7 @@ class Reportwriter():
             finding_table.rows[counter].cells[1]._tc.get_or_add_tcPr().\
                 append(shading)
             # Increase counter for the next row
-        counter += 1
+            counter += 1
 
         ########################################
         # Create the Individual Findings Pages #
