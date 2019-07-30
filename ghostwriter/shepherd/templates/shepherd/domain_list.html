@@ -1,0 +1,146 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Domain Catalog{% endblock %}
+
+{% block content %}
+    <!-- Filter Section -->
+    <div class="m-auto">
+        <form style="width: 35%; margin-left: 32.5%;" method="get">
+            <div class="form-row justify-content-center">
+                <div class="form-group col-md-6 mb-0">
+                    {{ filter.form.name|as_crispy_field }}
+                </div>
+                <div class="form-group col-md-6 mb-0">
+                    {{ filter.form.all_cat|as_crispy_field }}
+                </div>
+            </div>
+            <div class="form-row justify-content-center">
+                <div class="form-group col-md-6 mb-0">
+                    {% for choice in filter.form.health_status %}
+                        <label class="checkbox-inline">
+                            {{ choice.tag }} {{ choice.choice_label }}
+                        </label>
+                    {% endfor %}
+                </div>
+                <div class="form-group col-md-6 mb-0">
+                    {% for choice in filter.form.domain_status %}
+                        <label class="checkbox-inline">
+                            {{ choice.tag }} {{ choice.choice_label }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit" class="button">Filter</button>
+        </form>
+    </div>
+
+    {% if filter.qs|length == 0 %}
+        <p>There are no domains to see here.</p>
+    {% else %}
+        <!-- Domain Table Section -->
+        <div id="domains_table">
+            <table id="domainTable" class="tablesorter">
+                <thead>
+                    <tr>
+                        <th id="domain">Domain</th>
+                        <th>
+                            Status
+                            <div class="dropdown">
+                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                <div class="dropdown-content dropdown-content-info">
+                                    <p>If looking for a domain to use, filter for Available domains. Burned domains should not be used. Unavailable and Reserved domains are unavailable for check-out.</p>
+                                </div>
+                            </div>
+                        </th>
+                        <th>
+                            Health
+                            <div class="dropdown">
+                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                <div class="dropdown-content dropdown-content-info">
+                                    <p>The health of a domain is determined by categories and VirusTotal. If the domain is flagged with a bad category or in VirusTotal the domain is considered "Burned" here.</p>
+                                </div>
+                            </div>
+                        </th>
+                        <th>
+                            DNS Flags
+                            <div class="dropdown">
+                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                <div class="dropdown-content dropdown-content-info">
+                                    <p>DNS Flags are more abstract than Health. These are based on the domain's past and present DNS records and VirusTotal passive DNS hits. If the domain can be linked to a VirusTotal entry the VirusTotal results are recorded below as "flags" in the table.</p>
+                                </div>
+                            </div>
+                        </th>
+                        <th>Whois Privacy</th>
+                        <th>Domain Age</th>
+                        <th>Categories</th>
+                        <th class="sorter-false">Check-out</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for domain in filter.qs %}
+                    <tr>
+                        <td><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
+
+                        {% if domain.domain_status.domain_status == "Available" %}
+                            <td class="healthy">{{ domain.domain_status }}</td>
+                        {% else %}
+                            <td class="burned">{{ domain.domain_status }}</td>
+                        {% endif %}
+
+                        {% if domain.health_status.health_status == "Healthy" %}
+                            <td class="healthy">{{ domain.health_status }}</td>
+                        {% else %}
+                            <td class="burned">{{ domain.health_status }}</td>
+                        {% endif %}
+
+                        {% ifequal domain.health_dns "Healthy" %}
+                            <td class="healthy">{{ domain.health_dns }}</td>
+                        {% else %}
+                            <td class="burned">{{ domain.health_dns }}</td>
+                        {% endifequal %}
+
+                        {% ifequal domain.whois_status.whois_status "Enabled" %}
+                            <td class="healthy">{{ domain.whois_status }}</td>
+                        {% else %}
+                            <td class="burned">{{ domain.whois_status }}</td>
+                        {% endifequal %}
+
+                        <td>{{ domain.get_domain_age }}</td>
+
+                        <td>{{ domain.all_cat }}</td>
+
+                        {% if domain.domain_status.domain_status == "Available" %}
+                            <td>
+                                <a href="{% url 'shepherd:checkout' domain.id %}">
+                                    <i style="font-size: 25px" class="far fa-calendar-check"></i>
+                                </a>
+                            </td>
+                        {% else %}
+                            <td>
+                                <i style="font-size:25px" class="fas fa-ban"></i>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#domainTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+{% endblock %}

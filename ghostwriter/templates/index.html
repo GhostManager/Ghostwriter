@@ -1,0 +1,81 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Ghostwriter Dashboard{% endblock %}
+{% block navtitle %}Ghostwriter{% endblock %}
+
+{% block content %}
+    {% load static %}
+    <div style="margin: 35px;">
+        <img src="{% static 'images/ghost.png' %}" alt="Ghostwriter Logo" style="width: 25%; min-width: 450px;">
+    </div>
+
+    <div class="admin">
+        <main class="admin__main">
+            <div class="dashboard">
+                <div class="dashboard__item">
+                    <div class="card">
+                        <p>Your Assigned Projects</p>
+                        <table>
+                            {% if user_projects %}
+                                {% for project in user_projects %}
+                                    <tr>
+                                        <td style="text-align: center;"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} ({{ project.project.codename }}) :: {{ project.start_date }} to {{ project.end_date }}</a></td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td>You are not assigned to any projects.</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <div class="dashboard__item">
+                    <div class="card">
+                        <p>Your Top Reporting Tasks</p>
+                        <table>
+                            {% if user_tasks %}
+                                {% for finding in user_tasks %}
+                                    <tr>
+                                        <td><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                        <td style="text-align: right;"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.report.project.codename }}</a></td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td>No reporting tasks.</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <div class="dashboard__item">
+                    <div class="card">
+                        <p>Recent Background Tasks</p>
+                        <table>
+                            {% if recent_tasks %}
+                                {% for task in recent_tasks %}
+                                    <tr>
+                                        {% if task.success %}
+                                            <td style="text-align: center; color: #A8D08D; font-weight: 900;">SUCCESS</td>
+                                            <td style="text-align: center;">{{ task.group }}</td>
+                                        {% else %}
+                                            <td style="text-align: center; color: #FF7E79; font-weight: 900;">FAILED</td>
+                                            <td style="text-align: center;">{{ task.group }}</td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td>No completed tasks.</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+{% endblock %}

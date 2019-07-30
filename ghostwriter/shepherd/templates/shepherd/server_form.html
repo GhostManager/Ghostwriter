@@ -1,0 +1,69 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Server Entry{% endblock %}
+
+{% block content %}
+    <!-- Form Error Sections -->
+    {% if form.errors %}
+        {% for field in form %}
+            {% for error in field.errors %}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <strong>{{ error|escape }}</strong>
+                </div>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Form Section -->
+    <p>
+        Fill-out this form as completely as possible with information related to this server.<br>
+        Servers created/edited through this form should be servers that are <em>reused</em> and tracked (i.e. servers you own). Virtual private servers spun up for a single project are tracked from within the project with the <em>Add a Transient Server</em> button.
+    </p>
+    <form class="newitem" action="" method="post">
+        {% csrf_token %}
+
+        <!-- Server Info Section -->
+        <strong><i class="fas fa-server"></i> Server Information</strong>
+        <hr>
+
+        {{ form.ip_address|as_crispy_field }}
+        <div class="form-row justify-content-center">
+            <div class="form-group col-md-6 mb-0">
+                {{ form.server_status|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ form.server_provider|as_crispy_field }}
+            </div>
+        </div>
+
+        <!-- Spacer -->
+        <p style="margin: 40px;"></p>
+
+        <!-- Additional Information Section -->
+        <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+        <hr>
+
+        {{ form.note|as_crispy_field }}
+
+        <input type="submit" class="button" value="Submit">
+    </form>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for Datepicker -->
+    <script>
+        $(function() {
+            $("#id_creation").datepicker();
+            $("#id_expiration").datepicker();
+        });
+    </script>
+{% endblock %}

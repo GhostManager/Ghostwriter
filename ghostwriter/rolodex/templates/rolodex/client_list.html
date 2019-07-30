@@ -1,0 +1,44 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Client List{% endblock %}
+
+{% block content %}
+    {% if client_list %}
+        <table id="clientTable" class="tablesorter">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Short Name</th>
+                    <th>Codename</th>
+                    <th class="sorter-false">Description</th>
+                </tr>
+            </thead>
+            {% for client in client_list %}
+                <tr>
+                    <td class="clickable"><a href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
+                    <td>{{ client.short_name }}</td>
+                    <td>{{ client.codename }}</td>
+                    <td>{{ client.note }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>There are no active clients yet or your search returned no results.</p>
+    {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#clientTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+{% endblock %}

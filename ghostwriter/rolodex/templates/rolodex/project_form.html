@@ -1,0 +1,76 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Project Form{% endblock %}
+
+{% block content %}
+    <p>Fill-out this form with all necessary information for this project for {{ client_name }}:</p>
+
+    <!-- Form Error Sections -->
+    {% if form.errors %}
+        {% for field in form %}
+            {% for error in field.errors %}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <strong>{{ error|escape }}</strong>
+                </div>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Form Section -->
+    <form class="newitem" action="" method="post">
+        {% csrf_token %}
+
+        <!-- Project Info Section -->
+        <strong><i class="fas fa-tasks"></i> Project Information</td></strong>
+        <hr>
+
+        <div class="form-row">
+            <div class="form-group col-md-6 mb-0">
+                {{ form.start_date|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ form.end_date|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ form.project_type|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ form.slack_channel|as_crispy_field }}
+            </div>
+        </div>
+
+        <!-- Spacer -->
+        <p style="margin: 40px;"></p>
+
+        <!-- Additional Info Section -->
+        <strong><i class="far fa-comment-alt"></i> Additional Info</strong>
+        <hr>
+
+        {{ form.note|as_crispy_field }}
+
+        <!-- Hidden Inputs -->
+        {{ form.client }}
+        {{ form.codename }}
+
+        <input type="submit" class="button" value="Submit">
+    </form>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for Datepicker -->
+    <script>
+        $(function() {
+            $("#id_start_date").datepicker({dateformat: 'mm/dd/yyyy'});
+            $("#id_end_date").datepicker();
+        });
+    </script>
+{% endblock %}

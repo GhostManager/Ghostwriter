@@ -1,0 +1,35 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Archived Reports{% endblock %}
+
+{% block content %}
+    <!-- Filter Section -->
+    <div class="m-auto">
+        <form class="filterform" method="get">
+            <div class="form-group">
+                {{ filter.form.client|as_crispy_field }}
+            </div>
+            <button type="submit" class="button">Filter</button>
+        </form>
+    </div>
+    <!-- Archive Files Section -->
+    {% if filter.qs|length == 0 %}
+        <p>There are no archived reports to see here.</p>
+    {% else %}
+        <p>The following reports have been closed out, archived, and are now available below for download.</p>
+
+        <table class="roundedCorners">
+            <tr>
+                <th>Client</th>
+                <th>Zip Archive</th>
+            </tr>
+            {% for zip in filter.qs %}
+                <tr>
+                    <td>{{ zip.project.client.name }}</td>
+                    <td><a href="{% url 'reporting:download_archive' zip.pk %}" style="margin: 20px"><i class="fas fa-file-download"></i> {{ zip.filename }}</a></td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+{% endblock %} 

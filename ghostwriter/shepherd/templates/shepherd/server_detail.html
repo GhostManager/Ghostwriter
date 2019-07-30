@@ -1,0 +1,100 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}{{ staticserver.ip_address }}{% endblock %}
+
+{% block content %}
+    <h2>
+        {{ staticserver.ip_address }}
+        <div class="dropdown">
+            <button class="dropbtn far fa-caret-square-down"></button>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="{% url 'shepherd:server_update' staticserver.id %}"><i class="far fa-edit"></i> Edit</a>
+                {% if staticserver.server_status.server_status == "Available" %}
+                    <a href="{% url 'shepherd:server_checkout' staticserver.id %}"><i style="color: green" class="far fa-calendar-check"></i> Checkout Server</a>
+                {% else %}
+                    <a href="#"><i style="color: red" class="fas fa-ban"></i> Server Unavailable</a>
+                {% endif %}
+                <a href="{% url 'shepherd:server_delete' staticserver.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+            </div>
+        </div>
+    </h2>
+
+    <div style="margin-left: 20px; margin-top: 20px">
+        <!-- Description Section -->
+        <h3>Server Description</h3>
+        <hr>
+        {% if staticserver.note %}
+            <p>{{ staticserver.note }}</p>
+        {% else %}
+            <p>No information provided for this server.</p>
+        {% endif %}
+
+        <!-- Project Section -->
+        <h4><i class="fas fa-history"></i> Project History</h4>
+        {% if staticserver.serverhistory_set.all %}
+            <table>
+                <tr>
+                    <th>Project</th>
+                    <th>Activity Type</th>
+                    <th>Server Role</th>
+                    <th>Domain</th>
+                    <th>Date Range</th>
+                    <th>Notes</th>
+                    <th>Edit</th>
+                </tr>
+                {% for project in staticserver.serverhistory_set.all %}
+                    <tr>
+                        <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
+                        <td>{{ project.activity_type }}</td>
+                        <td>{{ project.server_role }}</td>
+                        {% if project.domain %}
+                            <td>{{ project.domain.name }}</td>
+                        {% else %}
+                            <td>No Assoc. Domain</td>
+                        {% endif %}
+                        <td>{{ project.start_date }} to {{ project.end_date }}</td>
+                        <td style="text-align: left;">{{ project.note }}</td>
+                        <td>
+                            <a href="{% url 'shepherd:server_history_update' project.id %}">
+                                <i style="font-size: 15px; color: black" class="far fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>This server has no history.</p>
+        {% endif %}
+
+        <!-- Additional Information Section -->
+        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ staticserver.servernote_set.all.count }} )</button>
+        <div class="collapsiblecontent">
+            <div class="collapsiblecontent_inner">
+                <p>
+                    <a href="{% url 'shepherd:server_note_add' staticserver.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                </p>
+                {% if staticserver.servernote_set.all %}
+                    {% for note in staticserver.servernote_set.all reversed %}
+                        <p>{{ note.timestamp }}</p>
+                        <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                            <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                            {% if request.user == note.operator or request.user.is_staff %}
+                                <div class="dropdown right">
+                                    <button class="dropbtn far fa-caret-square-down"></button>
+                                    <div id="myDropdown" class="dropdown-content">
+                                        <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                        <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <p>{{ note.note|linebreaksbr }}</p>
+                            <span class="time-right">{{ note.operator.username }}</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No notes for this server.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

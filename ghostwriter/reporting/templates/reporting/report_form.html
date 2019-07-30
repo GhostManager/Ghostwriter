@@ -1,0 +1,21 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Report Creation{% endblock %}
+
+{% block content %}
+    <p>Provide a name for this report below:</p>
+
+    <!-- Form Section -->
+    <form class="newitem" action="" method="post">
+        {% csrf_token %}
+
+        <!-- General Section -->
+        <strong><i class="fas fa-book"></i> Report Status</strong>
+        <hr>
+
+        {{ form.title|as_crispy_field }}
+
+        <input type="submit" class="button" value="Save">
+    </form>
+{% endblock %}

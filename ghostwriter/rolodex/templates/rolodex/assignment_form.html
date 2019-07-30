@@ -1,0 +1,85 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Operator Assignment Form{% endblock %}
+
+{% block content %}
+    <p>Complete this form to assign an operator to {{ project_name }}:</p>
+
+    <!-- Form Error Sections -->
+    {% if form.errors %}
+        {% for field in form %}
+            {% for error in field.errors %}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <strong>{{ error|escape }}</strong>
+                </div>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Form Section -->
+    <form class="newitem" action="" method="post">
+        {% csrf_token %}
+
+        <!-- Client Info Section -->
+        <strong><i class="far fa-user-circle"></i> Operator Information</th></strong>
+        <hr>
+
+        <div class="form-row">
+            <div class="form-group col-md-6 mb-0">
+                {{ form.operator|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ form.role|as_crispy_field }}
+            </div>
+        </div>
+
+        <!-- Spacer -->
+        <p style="margin: 40px;"></p>
+
+        <!-- Project Section -->
+        <strong><i class="far fa-calendar"></i> Assignment Dates</strong>
+        <hr>
+
+        <div class="form-row">
+            <div class="form-group col-md-6 mb-0">
+                {{ form.start_date|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ form.end_date|as_crispy_field }}
+            </div>
+        </div>
+
+        <!-- Spacer -->
+        <p style="margin: 40px;"></p>
+
+        <!-- Additional Information Section -->
+        <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+        <hr>
+
+        {{ form.note|as_crispy_field }}
+
+        <!-- Hidden Inputs -->
+        {{ form.project }}
+
+        <input type="submit" class="button" value="Save">
+    </form>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for Datepicker -->
+    <script>
+        $(function() {
+            $("#id_start_date").datepicker();
+            $("#id_end_date").datepicker();
+        });
+    </script>
+{% endblock %}

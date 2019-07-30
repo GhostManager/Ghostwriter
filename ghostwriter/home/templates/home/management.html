@@ -1,0 +1,85 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Manage API Access{% endblock %}
+
+{% block content %}
+    <style>
+        th, tr, td {
+            text-align: justify;
+        }
+
+        td {
+            border-bottom: 0;
+        }
+    </style>
+
+    <h2>API & Notification Configurations</h2>
+    <p>These settings are managed in settings.py and changing them will require restarting the application:</p>
+    <table style="width: 55%; border: none; margin-left: 22.5%; margin-top: 20px" align="center">
+        <!-- General Section -->
+        <tr>
+            <th class="form_th"><i class="fas fa-cogs"></i> General Settings</th>
+            <th class="form_th"></th>
+        </tr>
+        <tr>
+            <td><i class="far fa-clock"></i> Timezone Time</td>
+            <td>{{ timezone }}</td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr>
+            <td class="hidden-table">&nbsp;</th>
+        </tr>
+
+        <!-- Domain Health Section -->
+        <tr>
+            <th class="form_th"><i class="far fa-heart"></i> Domain Health Checks</th>
+            <th class="form_th"></th>
+        </tr>
+        <tr>
+            <td><i class="fab fa-google"></i> VirusTotal API Key</td>
+            <td>{{ virustotal_api_key }}</td>
+        </tr>
+        <tr>
+            <td><i class="fas fa-bed"></i> Sleep Time</td>
+            <td>{{ sleep_time }} seconds</td>
+        </tr>
+
+        <!-- Spacer -->
+        <tr>
+            <td class="hidden-table">&nbsp;</th>
+        </tr>
+
+        <!-- Notification Section -->
+        <tr>
+            <th class="form_th"><i class="far fa-bell"></i> Notifications</th>
+            <th class="form_th"></th>
+        </tr>
+        <tr>
+            <td><i class="fab fa-slack"></i> Slack Enabled</td>
+            <td>{{ enable_slack }}</td>
+        </tr>
+        {% if enable_slack %}
+        <tr>
+            <td><i class="fab fa-slack"></i> Slack WebHook</td>
+            <td>{{ slack_webhook_url }}</td>
+        </tr>
+        <tr>
+            <td><i class="fab fa-slack"></i> Slack Bot Name</td>
+            <td>{{ slack_username }}</td>
+        </tr>
+        <tr>
+            <td><i class="fab fa-slack"></i> Slack Bot Avatar</td>
+            <td>{{ slack_emoji }}</td>
+        </tr>
+        <tr>
+            <td><i class="fab fa-slack"></i> Global Slack Channel</td>
+            <td>{{ slack_channel }}</td>
+        </tr>
+        <tr>
+            <td><i class="fab fa-slack"></i> Slack Target</td>
+            <td>{{ slack_alert_target }}</td>
+        </tr>
+        {% endif %}
+    </table>
+{% endblock %}

@@ -1,0 +1,30 @@
+# General
+# ------------------------------------------------------------------------------
+USE_DOCKER=yes
+IPYTHONDIR=/app/.ipython
+DJANGO_ACCOUNT_ALLOW_REGISTRATION=False
+DJANGO_ACCOUNT_EMAIL_VERIFICATION=none
+
+# QCluster
+# ------------------------------------------------------------------------------
+QCLUSTER_NAME=soar
+# QCLUSTER_CONNECTION=
+
+# Virustotal
+# ------------------------------------------------------------------------------
+VIRUSTOTAL_API_KEY="XXXXXX"
+
+# Slack
+# ------------------------------------------------------------------------------
+SLACK_ENABLE=False
+SLACK_EMOJI=":ghost:"
+SLACK_CHANNEL="#ghostwriter"
+SLACK_ALERT_TARGET="#ghostwriter"
+SLACK_USERNAME="ghost"
+SLACK_URL="https://hooks.slack.com/services/<your_webhook_url>"
+
+# Company Info
+# ------------------------------------------------------------------------------
+COMPANY_NAME=Ghostwriter
+COMPANY_TWITTER=@ghostwriter
+COMPANY_EMAIL=info@ghostwriter.local

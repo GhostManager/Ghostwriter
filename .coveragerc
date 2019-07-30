@@ -1,0 +1,5 @@
+[run]
+include = ghostwriter/*
+omit = *migrations*, *tests*
+plugins =
+    django_coverage_plugin

@@ -1,0 +1,36 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}User Avatar{% endblock %}
+
+{% block content %}
+    <!-- Current Avatar -->
+    <img style="width: 200px; height: 200px; border-radius: 50%;" class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar">
+
+    <p style="padding-top: 20px">Your new avatar should be a square (equal height and width) for the best looking results.</p>
+
+    <!-- Avatar Upload Form -->
+    <strong><i class="far fa-images"></i> Avatar Upload</strong>
+    <hr>
+
+    <form class="newitem" action="" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="custom-file">
+            {{ form.avatar }}
+            <label class="custom-file-label" for="customFile">Choose image file...</label>
+        </div>
+        <p id="filename"></p>
+
+        <input type="submit" class="button" value="Submit">
+    </form>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for File Upload -->
+    <script>
+        $('input[type=file]').on('change', function() {
+            $("#filename").text($(this).val());
+        });
+    </script>
+{% endblock %}

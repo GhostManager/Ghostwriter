@@ -1,0 +1,46 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Project List{% endblock %}
+
+{% block content %}
+    {% if project_list %}
+        <table id="projectTable" class="tablesorter">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Codename</th>
+                    <th>Project Type</th>
+                    <th>Execution Window</th>
+                    <th class="sorter-false">Description</th>
+                </tr>
+            </thead>
+            {% for project in project_list %}
+                <tr>
+                    <td class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
+                    <td class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                    <td>{{ project.project_type }}</td>
+                    <td>{{ project.start_date }} - {{ project.end_date }}</td>
+                    <td>{{ project.note }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>There are no projects to display.</p>
+    {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#projectTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+{% endblock %}

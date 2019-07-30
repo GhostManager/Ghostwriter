@@ -1,0 +1,95 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Static Server Catalog{% endblock %}
+
+{% block content %}
+    <!-- Filter Section -->
+    <div class="m-auto">
+        <form class="filterform" method="get">
+            <div class="form-row justify-content-center">
+                <div class="form-group col-md-6 mb-0">
+                    {{ filter.form.ip_address|as_crispy_field }}
+                </div>
+            </div>
+            <div>
+                {% for choice in filter.form.server_status %}
+                    <label class="checkbox-inline">
+                        {{ choice.tag }} {{ choice.choice_label }}
+                    </label>
+                {% endfor %}
+            </div>
+            <button type="submit" class="button">Filter</button>
+        </form>
+    </div>
+    
+    {% if filter.qs|length == 0 %}
+        <p>There are no servers to see here.</p>
+    {% else %}
+        <!-- Server Table Section -->
+        <div id="servers_table">
+            <table id="serverTable" class="tablesorter">
+                <thead>
+                    <tr>
+                        <th id="server">IP Address</th>
+                        <th>
+                            Status
+                            <div class="dropdown">
+                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                <div class="dropdown-content dropdown-content-info">
+                                    <p>If looking for a server to use, filter for Available servers. Unavailable and Reserved domains are unavailable for check-out.</p>
+                                </div>
+                            </div>
+                        </th>
+                        <th>Provider</th>
+                        <th class="sorter-false">Notes</th>
+                        <th class="sorter-false nowrap">Check-out</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for server in filter.qs %}
+                    <tr>
+                        <td><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
+
+                        {% if server.server_status.server_status == "Available" %}
+                            <td class="healthy">{{ server.server_status }}</td>
+                        {% else %}
+                            <td class="burned">{{ server.server_status }}</td>
+                        {% endif %}
+
+                        <td>{{ server.server_provider }}</td>
+                        <td>{{ server.note }}</td>
+                        {% if server.server_status.server_status == "Available" %}
+                            <td>
+                                <a href="{% url 'shepherd:server_checkout' server.id %}">
+                                    <i style="font-size: 25px" class="far fa-calendar-check"></i>
+                                </a>
+                            </td>
+                        {% else %}
+                            <td>
+                                <i style="font-size: 25px" class="fas fa-ban"></i>
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#serverTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+{% endblock %}

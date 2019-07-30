@@ -1,0 +1,115 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}{{ finding.title }} Details{% endblock %}
+
+{% block content %}
+    <style>
+        p {
+            text-align: justify;
+        }
+    </style>
+
+    <h2>
+        {{ finding.title }}
+        <div class="dropdown">
+            <button class="dropbtn far fa-caret-square-down"></button>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="{% url 'reporting:finding_update' finding.id %}"><i class="far fa-edit"></i> Edit</a>
+                <a href="{% url 'reporting:assign_finding' finding.id %}"><i style="color: green" class="far fa-plus-square"></i> Add to Report</a>
+                <a href="{% url 'reporting:findings' %}"><i class="fas fa-arrow-left"></i> Return to Findings</a>
+                <a href="{% url 'reporting:finding_delete' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+            </div>
+        </div>
+    </h2>
+
+    <!-- Finding Severity Box -->
+    <div style="width: 15%; margin: 0 auto">
+        <strong>
+            {% if finding.severity.severity == "Critical" %}
+                <p class="severity-box critical">{{ finding.severity.severity }}</p>
+            {% elif finding.severity.severity == "High" %}
+                <p class="severity-box high">{{ finding.severity.severity }}</p>
+            {% elif finding.severity.severity == "Medium" %}
+                <p class="severity-box medium">{{ finding.severity.severity }}</p>
+            {% elif finding.severity.severity == "Low" %}
+                <p class="severity-box low">{{ finding.severity.severity }}</p>
+            {% else %}
+                <p class="severity-box info">{{ finding.severity.severity }}</p>
+            {% endif %}
+        </strong>
+    </div>
+
+    <!-- Description -->
+    <div style="margin-left: 20px; margin-top: 20px;">
+        <h4>Description</h4>
+        <hr>
+
+        {% if finding.description %}
+            <p>{{ finding.description|linebreaksbr }}</p>
+        {% else %}
+            <p>Description write-up is needed.</p>
+        {% endif %}
+
+        <!-- Impact -->
+        <h4>Impact</h4>
+        <hr>
+
+        {% if finding.impact %}
+            <p>{{ finding.impact|linebreaksbr }}</p>
+        {% else %}
+            <p>Impact write-up is needed.</p>
+        {% endif %}
+
+        <!-- Recommendations -->
+        <h4>Recommendations</h4>
+        <hr>
+
+        {% if finding.mitigation %}
+            <p>{{ finding.mitigation|linebreaksbr }}</p>
+        {% else %}
+            <p>Recommendations are needed.</p>
+        {% endif %}
+
+        <!-- Detection Techniques -->
+        {% if finding.host_detection_techniques %}
+            <h4>Host Detection</h4>
+            <hr>
+
+            <p>{{ finding.host_detection_techniques|linebreaksbr }}</p>
+        {% endif %}
+
+        {% if finding.network_detection_techniques %}
+            <h4>Network Detection</h4>
+            <hr>
+
+            <p>{{ finding.network_detection_techniques|linebreaksbr }}</p>
+        {% endif %}
+
+        <!-- Replication Steps & Walkthrough -->
+        <h4>Replication Steps</h4>
+        <hr>
+
+        {% if finding.replication_steps %}
+            <p>{{ finding.replication_steps|linebreaksbr }}</p>
+        {% else %}
+            <p>Replication steps are needed.</p>
+        {% endif %}
+
+        <!-- Reference Section -->
+        <h4>References</h4>
+        <hr>
+
+        {% if finding.references %}
+            <p>{{ finding.references|linebreaksbr }}</p>
+        {% else %}
+            <p>References are needed.</p>
+        {% endif %}
+
+        {% if finding.finding_guidance %}
+            <h4>Guidance</h4>
+            <hr>
+
+            <p>{{ finding.finding_guidance }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

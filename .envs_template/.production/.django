@@ -1,0 +1,61 @@
+# General
+# ------------------------------------------------------------------------------
+# DJANGO_READ_DOT_ENV_FILE=True
+DJANGO_SETTINGS_MODULE=config.settings.production
+DJANGO_SECRET_KEY=changeme
+DJANGO_ADMIN_URL=admin/
+# DJANGO_ALLOWED_HOSTS=.ghostwriter.local
+
+# Security
+# ------------------------------------------------------------------------------
+# TIP: better off using DNS, however, redirect is OK too
+DJANGO_SECURE_SSL_REDIRECT=False
+
+# Email
+# ------------------------------------------------------------------------------
+MAILGUN_API_KEY=
+DJANGO_SERVER_EMAIL=
+MAILGUN_DOMAIN=
+
+# django-allauth
+# ------------------------------------------------------------------------------
+DJANGO_ACCOUNT_ALLOW_REGISTRATION=False
+DJANGO_ACCOUNT_EMAIL_VERIFICATION=none
+
+# django-compressor
+# ------------------------------------------------------------------------------
+COMPRESS_ENABLED=
+
+# Gunicorn
+# ------------------------------------------------------------------------------
+WEB_CONCURRENCY=4
+
+
+# Redis
+# ------------------------------------------------------------------------------
+REDIS_URL=redis://redis:6379/0
+
+
+# QCluster
+# ------------------------------------------------------------------------------
+QCLUSTER_NAME=soar
+# QCLUSTER_CONNECTION=
+
+# Virustotal
+# ------------------------------------------------------------------------------
+VIRUSTOTAL_API_KEY="XXXXXX"
+
+# Slack
+# ------------------------------------------------------------------------------
+SLACK_ENABLE=False
+SLACK_EMOJI=":ghost:"
+SLACK_CHANNEL="#ghostwriter"
+SLACK_ALERT_TARGET="#ghostwriter"
+SLACK_USERNAME="ghost"
+SLACK_URL="https://hooks.slack.com/services/<your_webhook_url>"
+
+# Company Info
+# ------------------------------------------------------------------------------
+COMPANY_NAME=Ghostwriter
+COMPANY_TWITTER=@ghostwriter
+COMPANY_EMAIL=info@ghostwriter.local

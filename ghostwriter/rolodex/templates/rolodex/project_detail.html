@@ -1,0 +1,401 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
+
+{% block content %}
+    <h2>
+        {{ project.client }} {{ project.project_type }} ({{ project.start_date }})
+        <div class="dropdown">
+            <button class="dropbtn far fa-caret-square-down"></button>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="{% url 'rolodex:project_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
+                <a href="{% url 'rolodex:client_detail' project.client.id %}"><i class="far fa-user-circle"></i> Jump to Client</a>
+                <a href="{% url 'rolodex:project_codename' project.id %}"><i class="fas fa-redo-alt"></i> Re-roll codename</a>
+                <a href="{% url 'rolodex:project_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+            </div>
+        </div>
+    </h2>
+
+    <h6><em>{{ project.codename }}</em></h6>
+
+    <!-- Project Status & Toggles -->
+    <h6>
+        {% if project.complete %}
+            <em>Complete!</em>
+            <a title="Mark {{ project.name }} as incomplete" href="{% url 'rolodex:reopen_project' project.id %}"><i class="fas fa-toggle-on"></i></a>
+        {% else %}
+            <em>In Progress</em>
+            <a title="Mark {{ project.name }} as complete" href="{% url 'rolodex:complete_project' project.id %}"><i class="fas fa-toggle-off"></i></a>
+        {% endif %}
+
+        <!-- Spacer -->
+        <p></p>
+    </h6>
+
+    <div>
+        <!-- Description Section -->
+        <h3>Project Description</h3>
+        <hr>
+
+        <div>
+            <span style="margin-right: 40px;">
+                {{ project.start_date }} to {{ project.end_date }}
+            </span>
+            <span>
+                {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
+            </span>
+        </div>
+
+        <!-- Project Description -->
+        {% if project.note %}
+           <p>{{ project.note }}</p>
+        {% else %}
+            <p>No additional information provided for this project.</p>
+        {% endif %}
+
+        <!-- Operators Section -->
+        <button class="collapsible"><i class="fas fa-user-plus"></i> Operators ( {{ project.projectassignment_set.all.count }} )</button>
+        <div class="collapsiblecontent">
+            <div class="collapsiblecontent_inner">
+                <p><a href="{% url 'rolodex:assign_operator' project.id %}"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
+                {% if project.projectassignment_set.all %}
+                    <table>
+                        <tr>
+                            <th>Operator</th>
+                            <th>Role</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Note</th>
+                            <th style="text-align: center;">Options</th>
+                        </tr>
+                        {% for operator in project.projectassignment_set.all %}
+                            <tr>
+                                <td>{{ operator.operator.name }}</td>
+                                <td>{{ operator.role }}</td>
+                                {% if operator.start_date %}
+                                    <td>{{ operator.start_date }}</td>
+                                {% else %}
+                                    <td></td>
+                                {% endif %}
+                                {% if operator.end_date %}
+                                    <td>{{ operator.end_date }}</td>
+                                {% else %}
+                                    <td></td>
+                                {% endif %}
+
+                                <td style="text-align: justify">{{ operator.note|linebreaksbr }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'rolodex:assignment_edit' operator.id %}"><i class="far fa-edit"></i> Edit Assignment</a>
+                                            <a href="{% url 'rolodex:assignment_delete' operator.id %}"><i style="color: red;" class="far fa-minus-square"></i> Unassign</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>No operators have been assigned to this project yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Infrastructure Section -->
+        <button class="collapsible"><i class="fas fa-server"></i> Infrastructure Used</button>
+        <div class="collapsiblecontent">
+            <div class="collapsiblecontent_inner">
+                <!-- Domain Section -->
+                <h4>Domains</h4>
+
+                <!-- Search Section -->
+                <div class="search" style="width: 35%; margin-left: 32.5%;">
+                    <form action="{% url 'shepherd:domains' %}" method="GET">
+                        <span class="fa fa-search"></span>
+                        <input type="text" name="domain_search" placeholder="Search domains">
+                        <input type="submit" style="display: none;" /> 
+                    </form>
+                </div>
+
+                {% if project.history_set.all %}
+                    <table style="margin-top: 10px;">
+                        <tr>
+                            <th>Domain Name</th>
+                            <th>Purpose</th>
+                            <th>Date Range</th>
+                            <th>Note</th>
+                            <th>Options</th>
+                        </tr>
+                        {% for domain in project.history_set.all %}
+                            <tr>
+                                <td><a class="clickable" href="{% url 'rolodex:domain_detail' domain.domain.id %}">{{ domain.domain.name }}</a></td>
+                                <td>{{ domain.activity_type }}</td>
+                                <td>{{ domain.start_date }} to {{ domain.end_date }}</td>
+                                <td style="text-align: justify;">{{ domain.note|linebreaksbr }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'rolodex:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                            <a href="{% url 'rolodex:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>There are no domains tied to this project yet.</p>
+                {% endif %}
+
+                <!-- Server Section -->
+                <div class="dropdown">
+                    <h4 style="float: left; margin-right: 5px;">Servers</h4>
+                    <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
+                    <div class="dropdown-content dropdown-content-info">
+                        <p>Checked-out servers will appear here. Add transient servers (i.e. virtual private servers) here as they are spun up for the project so they can be easily tracked and associated with domains and activities.</p>
+                    </div>
+                </div>
+                <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Transient Server</a></p>
+                {% if project.serverhistory_set.all or project.transientserver_set.all %}
+                    <table>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Purpose</th>
+                            <th>Role</th>
+                            <th>Provider</th>
+                            <th>Note</th>
+                            <th>Options</th>
+                        </tr>
+                        {% for server in project.serverhistory_set.all %}
+                            <tr>
+                                <td><a class="clickable" href="{% url 'rolodex:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
+                                <td>{{ server.activity_type }}</td>
+                                <td>{{ server.server_role }}</td>
+                                <td>{{ server.server.server_provider }}</td>
+                                <td style="text-align: justify;">{{ server.note }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'rolodex:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                            <a href="{% url 'rolodex:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% for server in project.transientserver_set.all %}
+                            <tr>
+                                <td>{{ server.ip_address }}</td>
+                                <td>{{ server.activity_type }}</td>
+                                <td>{{ server.server_role }}</td>
+                                <td>{{ server.server_provider }}</td>
+                                <td style="text-align: justify;">{{ server.note|linebreaksbr }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'rolodex:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
+                                            <a href="{% url 'rolodex:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>There are no servers tied to this project yet.</p>
+                {% endif %}
+
+                <!-- DNS Section -->
+                <div class="dropdown">
+                    <h4 style="float: left; margin-right: 5px;">Domains and Servers</h4>
+                    <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
+                    <div class="dropdown-content dropdown-content-info">
+                        <p>Add an association to track which of this project's currently checked-out domains is being used with which project server.</p>
+                    </div>
+                </div>
+
+                <!-- Determine if at least one server and one domain -->
+                {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
+                    <p>
+                        <a href="{% url 'rolodex:link_create' project.id %}"><i class="far fa-plus-square"></i> Add a Domain + Server Association</a>
+                    </p>
+                    {% if project.domainserverconnection_set.all %}
+                        <table>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Server</th>
+                                <th>CDN Endpoint</th>
+                                <th>Options</th>
+                            </tr>
+                            {% for connection in project.domainserverconnection_set.all %}
+                                <tr>
+                                    <td>{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
+                                    {% if connection.static_server %}
+                                        <td>{{ connection.static_server.server.ip_address }}</td>
+                                    {% else %}
+                                        <td>{{ connection.transient_server.ip_address }}</td>
+                                    {% endif %}
+                                    {% if connection.endpoint %}
+                                        <td>{{ connection.endpoint }}</td>
+                                    {% else %}
+                                        <td>No Endpoint</td>
+                                    {% endif %}
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                <a href="{% url 'rolodex:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
+                                                <a href="{% url 'rolodex:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+                {% else %}
+                    <p>Check-out/add at least one domain and one server to create an association.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Findings Section -->
+        <button class="collapsible"><i class="fab fa-searchengin"></i> Findings</button>
+        <div class="collapsiblecontent">
+            <div class="collapsiblecontent_inner">
+                {% if project.report_set.all %}
+                    {% for report in project.report_set.all %}
+                        {% if report.reportfindinglink_set.all %}
+                            <p>{{ report.title }}</p>
+                            <table>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Finding</th>
+                                    <th>Owner</th>
+                                    <th>Status</th>
+                                </tr>
+                                {% for finding in report.reportfindinglink_set.all %}
+                                    <tr>
+                                        {% if finding.severity.severity == "High" %}
+                                            <td style="color: red;">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Medium" %}
+                                            <td style="color: orange;">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Low" %}
+                                            <td style="color: blue;">{{ finding.severity }}</td>
+                                        {% else %}
+                                            <td style="color: green;">{{ finding.severity }}</td>
+                                        {% endif %}
+                                        <td class="clickable"><a href="{% url 'rolodex:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                        {% if finding.assigned_to == request.user %}
+                                        {% if finding.complete %}
+                                            <td style="color: #A8D08D;"><strong>You</strong></td>
+                                        {% else %}
+                                            <td style="color: #FF7E79;"><strong>You</strong></td>
+                                        {% endif %} 
+                                        {% else %}
+                                            <td style="color: #7a7a7a;"><strong>{{ finding.assigned_to }}</strong></td>
+                                        {% endif %}
+                                        {% if finding.complete %}
+                                            <td style="color: #A8D08D;"><strong>Ready for Review</strong></td>
+                                        {% else %}
+                                            <td style="color: #FF7E79;"><strong>Needs Editing</strong></td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>No findings have been added to this project's reports yet.</p>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p>No reports have been created for this project yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <button class="collapsible"><i class="fas fa-book"></i> Reports ( {{ project.report_set.all.count }} )</button>
+        <div class="collapsiblecontent">
+            <div class="collapsiblecontent_inner">
+                {% if project.complete %}
+                    <p>The project is marked as complete so no additional reports may be created.</p>
+                {% else %}
+                    <p><a href="{% url 'reporting:report_create' project.id %}"><i class="far fa-plus-square"></i> Add a Report</a></p>
+                {% endif %}
+                {% if project.report_set.all %}
+                    <table>
+                        <tr>
+                            <th>Creation</th>
+                            <th>Title</th>
+                            <th>Last Update</th>
+                            <th>Status</th>
+                            <th>Created by</th>
+                            <th style="text-align: center;">Options</th>
+                        </tr>
+                        {% for report in project.report_set.all %}
+                            <tr>
+                                <td>{{ report.creation }}</td>
+                                <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                                <td>{{ report.last_update }}</td>
+                                {% if report.complete %}
+                                    <td>Complete</td>
+                                {% else %}
+                                    <td>In Progress</td>
+                                {% endif %}
+                                <td>{{ report.created_by }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'reporting:activate_report' report.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
+                                            <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
+                                            <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>No reports have been created for this project yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Additional Information Section -->
+        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ project.projectnote_set.all.count }} )</button>
+        <div class="collapsiblecontent">
+            <div class="collapsiblecontent_inner">
+                <p>
+                    <a href="{% url 'rolodex:project_note_add' project.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                </p>
+                {% if project.projectnote_set.all %}
+                    {% for note in project.projectnote_set.all reversed %}
+                        <p>{{ note.timestamp }}</p>
+                        <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                            <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                            {% if request.user == note.operator or request.user.is_staff %}
+                                <div class="dropdown right">
+                                    <button class="dropbtn far fa-caret-square-down"></button>
+                                    <div id="myDropdown" class="dropdown-content">
+                                        <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                        <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <p>{{ note.note|linebreaksbr }}</p>
+                            <span class="time-right">{{ note.operator.username }}</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No notes for this project.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

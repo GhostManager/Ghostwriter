@@ -1,0 +1,57 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <h2>
+        {{ evidence.friendly_name }}
+        <div class="dropdown">
+            <button onclick="dropdownFunc()" class="dropbtn far fa-caret-square-down"></button>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="{% url 'reporting:evidence_update' evidence.id %}"><i style="font-size:15px;color:black" class="far fa-edit"></i> Edit</a>
+                <a href="{% url 'reporting:evidence_delete' evidence.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                <a href="{% url 'reporting:report_detail' evidence.finding.report.id %}"><i style="font-size:15px;color:black" class="fas fa-arrow-left"></i> Return to Report</a>
+            </div>
+        </div>
+    </h2>
+    <em>{{ evidence.document }}</em>
+
+    <!-- File Information Section -->
+    <table style="width: 70%; margin-left: 15%;">
+        <tr class="hidden-table">
+            <th class="form_th"><i class="fas fa-info"></i> File Information</th>
+            <th class="form_th"></th>
+        </tr>
+        <tr>
+            <td style="border-bottom: 0">Uploaded by</td>
+            <td style="border-bottom: 0">{{ evidence.uploaded_by }}</td>
+        </tr>
+        <tr>
+            <td style="border-bottom: 0">Upload Date</td>
+            <td style="border-bottom: 0">{{ evidence.upload_date }}</td>
+        </tr>
+        <tr>
+            <td style="border-bottom: 0">Description</td>
+            <td style="border-bottom: 0">{{ evidence.description }}</td>
+        </tr>
+        <tr>
+            <td style="border-bottom: 0">Report Caption</td>
+            <td style="border-bottom: 0">{{ evidence.caption }}</td>
+        </tr>
+    </table>
+
+    <!-- File Content Section -->
+    <h4><i class="far fa-file-image"></i> File Contents</h4>
+    <hr>
+
+    {% load static %}
+    {% if filetype == 'image' %}
+        <img width=70% src="{{ evidence.document.url }}"/ >
+    {% elif filetype == 'text' %}
+        {% if file_content %}
+            {% for line in file_content %}
+                <p style="margin-left:15%; text-align: left">{{ line }}</p>
+            {% endfor %}
+        {% endif %}
+    {% else %}
+        <p>Evidence file type cannot be displayed.</p>
+    {% endif %}
+{% endblock %}

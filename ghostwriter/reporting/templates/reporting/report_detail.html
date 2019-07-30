@@ -1,0 +1,180 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}{{ report.title }}{% endblock %}
+
+{% block content %}
+    <h2>
+        {{ report.title }}
+        <div class="dropdown">
+            <button class="dropbtn far fa-caret-square-down"></button>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="{% url 'reporting:report_update' report.id %}"><i class="far fa-edit"></i> Edit</a>
+                <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
+                <a href="{% url 'rolodex:project_detail' report.project.id %}"><i class="far fa-file-alt"></i> Jump to Project</a>
+                <a href="{% url 'rolodex:client_detail' report.project.client.id %}"><i class="far fa-user-circle"></i> Jump to Client</a>
+                <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+            </div>
+        </div>
+    </h2>
+
+    <!-- Report Status & Toggles -->
+    <h6>
+        {% if report.complete %}
+            <em>Complete!</em>
+            <a title="Mark {{ report.name }} as incomplete" href="{% url 'reporting:report_status_toggle' report.id %}"><i class="fas fa-toggle-on"></i></i></a>
+        {% else %}
+            <em>In Progress</em>
+            <a title="Mark {{ report.name }} as complete" href="{% url 'reporting:report_status_toggle' report.id %}"><i class="fas fa-toggle-off"></i></i></a>
+        {% endif %}
+    </h6>
+
+    <!-- Findings Section -->
+    <div style="margin-left: 20px; margin-top: 40px">
+        <h4><i class="fab fa-searchengin"></i> Attached Findings</h4>
+        <hr>
+
+        <p>
+            Attach findings by searching and then clicking the <i class="far fa-plus-square"></i> button next to your desired finding.<br>
+            The finding will be added to your <em>active report</em> displayed at the top of every page
+        </p>
+
+        <!-- Search Section -->
+        <div class="search" style="width: 35%; margin-left: 32.5%;">
+            <form action="{% url 'reporting:findings' %}" method="GET">
+                <span class="fa fa-search"></span>
+                <input type="text" name="finding_search" placeholder="Search findings">
+                <input type="submit" style="display: none" />
+            </form>
+        </div>
+
+        <p><a href="{% url 'reporting:assign_blank_finding' report.id %}"><i class="far fa-plus-square"></i> Add a Blank Finding</a></p>
+
+        <!-- Finding Table Section -->
+        {% if report.reportfindinglink_set.all %}
+            <table class="roundedCorners">
+                <tr>
+                    <th>
+                        Weight
+                        <div class="dropdown">
+                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                            <div class="dropdown-content dropdown-content-info">
+                                <p><em>Report Weight</em> adjusts the order in which findings will appear in generated reports. Findings will always be grouped by severity in descending order (e.g. Critical, High, Medium, Low). Weight can be adjusted to tweak where individual findings are ranked within these severity buckets.</p>
+                            </div>
+                        </div>
+                    </th>
+                    <th>Severity</th>
+                    <th>Finding</th>
+                    <th>
+                        Evidence
+                        <div class="dropdown">
+                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                            <div class="dropdown-content dropdown-content-info">
+                                    <p>Attach evidence to findings - such as text files, log files, script snippets, and screenshots - to have them included with the finding in the generated reports.</p>
+                            </div>
+                        </div>
+                    </th>
+                    <th>
+                        Owner
+                        <div class="dropdown">
+                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                            <div class="dropdown-content dropdown-content-info">
+                                <p>The assigned user is the person responsible for writing this finding. The assigned individual will have a link to the finding on their dashboard.</p>
+                            </div>
+                        </div>
+                    </th>
+                    <th>
+                        Status
+                        <div class="dropdown">
+                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                            <div class="dropdown-content dropdown-content-info">
+                                <p>Mark a finding as ready or in need of editing. Findings marked as in need of editing will appear on the assigned user's dashboard.</p>
+                            </div>
+                        </div>
+                    </th>
+                    <th>Options</th>
+                </tr>
+
+                {% for finding in report.reportfindinglink_set.all %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'reporting:position_decrease' finding.id %}"><i class="fas fa-chevron-up"></i></a>
+                             {{ finding.position }} 
+                             <a href="{% url 'reporting:position_increase' finding.id %}"><i class="fas fa-chevron-down"></i></a>
+                        </td>
+                        {% if finding.severity.severity == "Critical" %}
+                            <td class="critical" id="cols"><strong>{{ finding.severity }}</strong></td>
+                        {% elif finding.severity.severity == "High" %}
+                            <td class="high" id="cols"><strong>{{ finding.severity }}</strong></td>
+                        {% elif finding.severity.severity == "Medium" %}
+                            <td class="medium" id="cols"><strong>{{ finding.severity }}</strong></td>
+                        {% elif finding.severity.severity == "Low" %}
+                            <td class="low" id="cols"><strong>{{ finding.severity }}</strong></td>
+                        {% else %}
+                            <td class="info" id="cols"><strong>{{ finding.severity }}</strong></td>
+                        {% endif %}
+                        <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                        {% if finding.evidence_set.all %}
+                            <td>
+                                {% for evidence_file in finding.evidence_set.all %}
+                                    <div class="dropdown">
+                                        <button class="dropbtn clickable">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button>
+                                        <div class="dropdown-content">
+                                            <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><i class="far fa-file-image"></i> View</a>
+                                            <a href="{% url 'reporting:evidence_update' evidence_file.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
+                                    </div>
+                                    {% if not forloop.last %}<hr>{% endif %}
+                                {% endfor %}
+                            </td>
+                        {% else %}
+                            <td>
+                                <em>No evidence</em>
+                            </td>
+                        {% endif %}
+                        {% if finding.assigned_to == request.user %}
+                            {% if finding.complete %}
+                                <td style="color: #A8D08D"><strong>You</strong></td>
+                            {% else %}
+                                <td style="color: #FF7E79"><strong>You</strong></td>
+                            {% endif %} 
+                        {% else %}
+                            <td style="color: #7a7a7a"><strong>{{ finding.assigned_to }}</strong></td>
+                        {% endif %}
+                        {% if finding.complete %}
+                            <td style="color: #A8D08D"><strong>Ready for Review</strong></td>
+                        {% else %}
+                            <td style="color: #FF7E79"><strong>Needs Editing</strong></td>
+                        {% endif %}
+                        <td>
+                            <div class="dropdown">
+                                <button class="dropbtn far fa-caret-square-down"></button>
+                                <div class="dropdown-content">
+                                    <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i> Attach Evidence</a>
+                                    <a href="{% url 'reporting:local_edit' finding.id %}"><i class="far fa-edit"></i> Edit</a>
+                                    <a href="{% url 'reporting:finding_status_toggle' finding.id %}">{% if finding.complete %}<i style="color: darkorange" class="fas fa-toggle-off"></i> Flag for Editing {% else %}<i style="color: green" class="fas fa-toggle-on"></i> Mark as Complete {% endif %}</a>
+                                    <a href="{% url 'reporting:local_remove' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Remove</a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>No findings have been added to this report yet.</p>
+        {% endif %}
+
+        <!-- Generate Report Sections -->
+        <h4 style="margin-top: 40px"><i class="fas fa-cog"></i> Generate Reports</h4>
+        <hr>
+
+        <div class="btn-group">
+            <a class="btn btn-default" href="{% url 'reporting:generate_docx' report.id %}"><i style="font-size: 35px; color: blue" class="far fa-file-word"></i><br />docx</a>
+            <a class="btn btn-default" href="{% url 'reporting:generate_xlsx' report.id %}"><i style="font-size: 35px; color: green" class="far fa-file-excel"></i><br />xlsx</a>
+            <a class="btn btn-default" href="{% url 'reporting:generate_pptx' report.id %}"><i style="font-size: 35px; color: darkorange" class="far fa-file-powerpoint"></i><br />pptx</a>
+            <a class="btn btn-default" href="{% url 'reporting:generate_json' report.id %}"><i style="font-size: 35px" class="far fa-file-code"></i><br />JSON</a>
+            <a class="btn btn-default" href="{% url 'reporting:generate_all' report.id %}"><i style="font-size: 35px; color: tan" class="far fa-file-archive"></i><br />All</a>
+        </div>
+    </div>
+{% endblock %}

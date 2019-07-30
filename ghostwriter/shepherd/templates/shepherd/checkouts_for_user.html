@@ -1,0 +1,143 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Your Checked-out Assets{% endblock %}
+
+{% block content %}
+<!-- Domain Section -->
+    <h2>Your Active Domains</h2>
+    {% if domains %}
+        <p>The following domains are currently checked-out for {{ request.user.get_username }}:</p>
+        <div id="domains_table">
+            <table id="domainTable" class="tablesorter">
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>Health</th>
+                        <th>Project</th>
+                        <th>Purpose</th>
+                        <th>
+                            Check-in Date
+                            <div class="dropdown">
+                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                <div class="dropdown-content dropdown-content-info">
+                                    <p>This is the date your domain will be automatically released back into the pool. Edit your check-out to extend the time.</p>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="sorter-false">Release</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in domains %}
+                        <tr>
+                            <td class="clickable"><a href="{{ entry.domain.get_absolute_url }}">{{ entry.domain.name }}</a></td>
+
+                            {% if entry.domain.health_status.health_status == "Healthy" %}
+                                <td class="healthy">{{ entry.domain.health_status }}</td>
+                            {% else %}
+                                <td class="burned">{{ entry.domain.health_status }}</td>
+                            {% endif %}
+
+                            <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
+
+                            <td>{{ entry.activity_type}}</td>
+
+                            <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
+
+                            <td>
+                                <div class="dropdown">
+                                    <button class="dropbtn far fa-caret-square-down"></button>
+                                    <div id="myDropdown" class="dropdown-content">
+                                        <a href="{% url 'shepherd:history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
+                                        <a href="{% url 'shepherd:domain_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>There are no domains currently checked-out for your account.</p>
+    {% endif %}
+
+    <!-- Server Section -->
+    <h2>Your Active Servers</h2>
+    {% if servers %}
+        <p>The following servers are currently checked-out for {{ request.user.get_username }}:</p>
+        <div id="servers_table">
+            <table id="serverTable" class="tablesorter">
+                <thead>
+                    <tr>
+                        <th>IP Address</th>
+                        <th>Project</th>
+                        <th>Purpose</th>
+                        <th>Role</th>
+                        <th>
+                            Check-in Date
+                            <div class="dropdown">
+                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                <div class="dropdown-content dropdown-content-info">
+                                    <p>This is the date your server will be automatically released back into the pool. Edit your check-out to extend the time.</p>
+                                </div>
+                            </div>
+                        </th>
+                        <th class="sorter-false">Release</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in servers %}
+                        <tr>
+                            <td class="clickable"><a href="{{ entry.server.get_absolute_url }}">{{ entry.server.ip_address }}</a></td>
+
+                            <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
+
+                            <td>{{ entry.activity_type}}</td>
+
+                            <td>{{ entry.server_role}}</td>
+
+                            <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
+
+                            <td>
+                                <div class="dropdown">
+                                    <button class="dropbtn far fa-caret-square-down"></button>
+                                    <div id="myDropdown" class="dropdown-content">
+                                        <a href="{% url 'shepherd:server_history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
+                                        <a href="{% url 'shepherd:server_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>There are no servers currently checked-out for your account.</p>
+    {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#domainTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+            $("#serverTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+{% endblock %}

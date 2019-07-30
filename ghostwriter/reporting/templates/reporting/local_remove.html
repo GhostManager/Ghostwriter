@@ -1,0 +1,14 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Remove Finding{% endblock %}
+
+{% block content %}
+    <p>Are you sure you want to remove this finding and delete all of the local edits and attached evidence?</p>
+
+    <p>{{ reportfindinglink }}</p>
+
+    <form action="" method="POST">
+        {% csrf_token %}
+        <input type="submit" class="button" value="I am Sure">
+    </form>
+{% endblock %}

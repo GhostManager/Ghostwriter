@@ -1,0 +1,57 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}User Profile{% endblock %}
+
+{% block content %}
+    <style>
+        th, tr, td {
+            text-align: justify;
+            border-bottom: 0;
+        }
+    
+        td {
+            border-bottom: 0;
+        }
+    </style>
+
+    <!-- User's Avatar -->
+    <a href="{% url 'home:upload_avatar' %}">
+        <img class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar">
+    </a>
+
+    <!-- Users Profile Section -->
+    <table style="width: 55%; border: none; margin-left: 23%; margin-top: 20px" align="center">
+        <tr class="hidden-table">
+            <th class="form_th"><i class="far fa-user"></i> Username</th>
+            <td>{{ user.username }}</td>
+        <tr class="hidden-table">
+            <th class="form_th"><i class="fas fa-signature"></i> Full Name</th>
+            <td>{{ user.name }}</td>
+        <tr class="hidden-table">
+            <th class="form_th"><i class="far fa-envelope"></i> Email</th>
+            <td>{{ user.email }}</td>
+        </tr>
+        <tr class="hidden-table">
+            <th class="form_th"><i class="fas fa-users"></i> Group Membership</th>
+            <td>
+                {% for g in user.groups.all %}
+                    {{ g.name|capfirst }}
+               {% endfor %}
+            </td>
+        </tr>
+    </table>
+
+    <!-- Account Information Update -->
+    <h4><i class="fas fa-user-edit"></i> Update Account Details</h4>
+    <hr>
+
+    <div class="buttons">
+        <div>
+            <a class="button secondaryAction" href="{% url 'account_change_password' %}">Change Password</a>
+        </div>
+        <div style="margin-top: 40px;">
+            <a class="button secondaryAction" href="{% url 'account_email' %}">Update Email Address</a>
+        </div>
+    </div>
+{% endblock %}

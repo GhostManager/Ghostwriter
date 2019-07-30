@@ -1,0 +1,30 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Note{% endblock %}
+
+{% block content %}
+    <p>
+        Notes include a timestamp and the username of the creator.<br>
+        Enter all text below and then click Submit:
+    </p>
+
+    <!-- Form Section -->
+    <form class="newitem" action="" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Note Section -->
+        {% for field in form.visible_fields %}
+            <div class="form-group">
+                {{ field|as_crispy_field }}
+            </div>
+        {% endfor %}
+
+        <!-- Hidden Fields -->
+        {% for hidden_field in form.hidden_fields %}
+            {{ hidden_field }}
+        {% endfor %}
+
+        <input type="submit" class="button" value="Submit">
+    </form>
+{% endblock %}

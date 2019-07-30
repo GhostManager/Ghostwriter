@@ -1,0 +1,51 @@
+[
+    {
+      "model": "rolodex.projecttype",
+      "pk": 1,
+      "fields": {
+          "project_type": "Red Team"
+      }
+    },
+    {
+      "model": "rolodex.projecttype",
+      "pk": 2,
+      "fields": {
+          "project_type": "Penetration Test"
+      }
+    },
+    {
+      "model": "rolodex.projecttype",
+      "pk": 3,
+      "fields": {
+          "project_type": "Phishing Assessment"
+      }
+    },
+    {
+      "model": "rolodex.projecttype",
+      "pk": 4,
+      "fields": {
+          "project_type": "Web Application Assessment"
+      }
+    },
+    {
+      "model": "rolodex.projectrole",
+      "pk": 1,
+      "fields": {
+          "project_role": "Assessment Lead"
+      }
+    },
+    {
+      "model": "rolodex.projectrole",
+      "pk": 2,
+      "fields": {
+          "project_role": "Assessment Oversight"
+      }
+    },
+    {
+      "model": "rolodex.projectrole",
+      "pk": 3,
+      "fields": {
+          "project_role": "Operator"
+      }
+    }
+  ]
