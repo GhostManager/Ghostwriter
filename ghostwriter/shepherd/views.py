@@ -454,7 +454,7 @@ def import_servers(request):
     try:
         # Process each csv row and commit it to the database
         for entry in csv_reader:
-            print(entry)
+            #print(entry)
             logging.getLogger('error_logger').info(
                 'Adding %s to the database',
                 entry['ip_address'])
@@ -499,8 +499,11 @@ def import_servers(request):
             # Try to pass the dict object to the `StaticServer` model
             try:
                 # First, check if a server with this address exists
-                instance = StaticServer.objects.get(
-                    ip_address=entry['ip_address'])
+                try:
+                    instance = StaticServer.objects.get(
+                        ip_address=entry['ip_address'])
+                except Exception:
+                    instance = False
                 if instance:
                     # This server already exists so update that entry
                     for attr, value in entry.items():
