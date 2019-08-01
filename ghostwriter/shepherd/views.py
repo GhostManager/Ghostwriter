@@ -372,7 +372,10 @@ def import_domains(request):
             # Try to pass the dict object to the `Domain` model
             try:
                 # First, check if a domain with this name exists
-                instance = Domain.objects.get(name=entry['name'])
+                try:
+                    instance = Domain.objects.get(name=entry['name'])
+                except Exception:
+                    instance = False
                 if instance:
                     # This domain already exists so update that entry
                     for attr, value in entry.items():
@@ -386,7 +389,7 @@ def import_domains(request):
             except Exception as e:
                 messages.error(
                     request,
-                    'Failed parsing %s: %s' % (entry['ip_address'], e),
+                    'Failed parsing %s: %s' % (entry['name'], e),
                     extra_tags='alert-danger')
                 logging.getLogger('error_logger').error(repr(e))
                 pass
