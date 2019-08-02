@@ -11,6 +11,9 @@
                 <div class="form-group col-md-6 mb-0">
                     {{ filter.form.ip_address|as_crispy_field }}
                 </div>
+                <div class="form-group col-md-6 mb-0">
+                    {{ filter.form.name|as_crispy_field }}
+                </div>
             </div>
             <div>
                 {% for choice in filter.form.server_status %}
@@ -22,7 +25,7 @@
             <button type="submit" class="button">Filter</button>
         </form>
     </div>
-    
+
     {% if filter.qs|length == 0 %}
         <p>There are no servers to see here.</p>
     {% else %}
@@ -32,6 +35,7 @@
                 <thead>
                     <tr>
                         <th id="server">IP Address</th>
+                        <th>Name</ht>
                         <th>
                             Status
                             <div class="dropdown">
@@ -50,6 +54,7 @@
                 {% for server in filter.qs %}
                     <tr>
                         <td><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
+                        <td>{{ server.name }}</td>
 
                         {% if server.server_status.server_status == "Available" %}
                             <td class="healthy">{{ server.server_status }}</td>

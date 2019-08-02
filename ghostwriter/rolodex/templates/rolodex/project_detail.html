@@ -114,7 +114,7 @@
                     <form action="{% url 'shepherd:domains' %}" method="GET">
                         <span class="fa fa-search"></span>
                         <input type="text" name="domain_search" placeholder="Search domains">
-                        <input type="submit" style="display: none;" /> 
+                        <input type="submit" style="display: none;" />
                     </form>
                 </div>
 
@@ -162,6 +162,7 @@
                     <table>
                         <tr>
                             <th>IP Address</th>
+                            <th>Name</th>
                             <th>Purpose</th>
                             <th>Role</th>
                             <th>Provider</th>
@@ -171,6 +172,7 @@
                         {% for server in project.serverhistory_set.all %}
                             <tr>
                                 <td><a class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
+                                <td>{{ server.server.name }}</td>
                                 <td>{{ server.activity_type }}</td>
                                 <td>{{ server.server_role }}</td>
                                 <td>{{ server.server.server_provider }}</td>
@@ -295,7 +297,7 @@
                                             <td style="color: #A8D08D;"><strong>You</strong></td>
                                         {% else %}
                                             <td style="color: #FF7E79;"><strong>You</strong></td>
-                                        {% endif %} 
+                                        {% endif %}
                                         {% else %}
                                             <td style="color: #7a7a7a;"><strong>{{ finding.assigned_to }}</strong></td>
                                         {% endif %}

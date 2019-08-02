@@ -412,6 +412,13 @@ class StaticServer(models.Model):
         blank=True,
         help_text='Use this area to provide server-related notes, such as '
                   'its designated use or how it can be used')
+    name = models.CharField(
+        'Name',
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text='Enter the server\'s name (typically hostname)')
+
     # Foreign Keys
     server_status = models.ForeignKey(
         ServerStatus,
@@ -442,7 +449,7 @@ class StaticServer(models.Model):
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
-        return f'{self.ip_address} ({self.server_provider})'
+        return f'{self.ip_address} ({self.name}) [{self.server_provider}]'
 
 
 class ServerRole(models.Model):
@@ -533,7 +540,7 @@ class ServerHistory(models.Model):
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
-        return f'{self.server.ip_address} ({self.activity_type.activity})'
+        return f'{self.server.ip_address} ({self.server.name}) [{self.activity_type.activity}]'
 
     @property
     def will_be_released(self):

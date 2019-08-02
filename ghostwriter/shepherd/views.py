@@ -462,6 +462,10 @@ def import_servers(request):
             # NULL if not
             if 'note' not in entry:
                 entry['note'] = None
+            # Check if the optional name field is in the csv and add it as
+            # NULL if not
+            if 'name' not in entry:
+                entry['name'] = None
             # Check if the server_status Foreign Key is in the csv and try to
             # resolve the status
             if 'server_status' in entry:
