@@ -22,6 +22,8 @@ urlpatterns = [
     path('user/active_assets', views.user_assets, name='user_assets'),
     path('ajax/load_projects/', views.ajax_load_projects,
          name='ajax_load_projects'),
+    path('ajax/load_project/', views.ajax_load_project,
+         name='ajax_load_project'),
 ]
 
 # URLs for domain status change functions
