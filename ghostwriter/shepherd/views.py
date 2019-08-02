@@ -372,7 +372,10 @@ def import_domains(request):
             # Try to pass the dict object to the `Domain` model
             try:
                 # First, check if a domain with this name exists
-                instance = Domain.objects.get(name=entry['name'])
+                try:
+                    instance = Domain.objects.get(name=entry['name'])
+                except Domain.DoesNotExist:
+                    instance = False
                 if instance:
                     # This domain already exists so update that entry
                     for attr, value in entry.items():
@@ -386,7 +389,7 @@ def import_domains(request):
             except Exception as e:
                 messages.error(
                     request,
-                    'Failed parsing %s: %s' % (entry['ip_address'], e),
+                    'Failed parsing %s: %s' % (entry['name'], e),
                     extra_tags='alert-danger')
                 logging.getLogger('error_logger').error(repr(e))
                 pass
@@ -451,7 +454,7 @@ def import_servers(request):
     try:
         # Process each csv row and commit it to the database
         for entry in csv_reader:
-            print(entry)
+            #print(entry)
             logging.getLogger('error_logger').info(
                 'Adding %s to the database',
                 entry['ip_address'])
@@ -496,8 +499,11 @@ def import_servers(request):
             # Try to pass the dict object to the `StaticServer` model
             try:
                 # First, check if a server with this address exists
-                instance = StaticServer.objects.get(
-                    ip_address=entry['ip_address'])
+                try:
+                    instance = StaticServer.objects.get(
+                        ip_address=entry['ip_address'])
+                except StaticServer.DoesNotExist:
+                    instance = False
                 if instance:
                     # This server already exists so update that entry
                     for attr, value in entry.items():
