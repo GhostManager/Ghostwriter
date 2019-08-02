@@ -374,7 +374,7 @@ def import_domains(request):
                 # First, check if a domain with this name exists
                 try:
                     instance = Domain.objects.get(name=entry['name'])
-                except Exception:
+                except Domain.DoesNotExist:
                     instance = False
                 if instance:
                     # This domain already exists so update that entry
@@ -502,7 +502,7 @@ def import_servers(request):
                 try:
                     instance = StaticServer.objects.get(
                         ip_address=entry['ip_address'])
-                except Exception:
+                except StaticServer.DoesNotExist:
                     instance = False
                 if instance:
                     # This server already exists so update that entry
