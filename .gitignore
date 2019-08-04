@@ -271,3 +271,8 @@ ghostwriter/media/
 .idea/
 .env
 .envs/*
+
+# SSL certificates
+ssl/*.crt
+ssl/*.key
+ssl/dhparam.pem
