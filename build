@@ -1,0 +1,31 @@
+#!/bin/bash
+#Build script
+# acd-ghostwriter/build
+
+func_rebuild(){
+	docker-compose -f $1 stop
+	docker-compose -f $1 rm -f
+	docker-compose -f $1 build
+	docker-compose -f $1 up -d
+}
+
+#Main
+# Select Function and Menu Statement
+if [ $USER = "root" ]; then
+	case ${1} in
+	-d)
+	func_rebuild "local.yml"
+	;;
+	-h)
+	echo " "
+	echo "[Usage]...: ${0} [OPTION]"
+	echo "[Options].: -h Help Menu"
+	echo "            -d = Build Dev (local) version"
+	exit
+	;;
+	*)
+	func_rebuild "production.yml" 
+	esac
+else
+	echo "Please run ${0} as root"
+fi
