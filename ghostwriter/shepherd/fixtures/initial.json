@@ -147,6 +147,13 @@
         }
     },
     {
+        "model": "shepherd.serverprovider",
+        "pk": 7,
+        "fields": {
+            "server_provider": "OPS"
+        }
+    },
+    {
         "model": "shepherd.serverrole",
         "pk": 1,
         "fields": {
