@@ -5,9 +5,10 @@
 #Run certbot renewal
 /usr/bin/certbot renew --quiet
 
+cd /opt/Ghostwriter
 #Copy renewed certs to correct location
-cp /etc/letsencrypt/live/mgmt.test.optumshadow.org/privkey.pem /opt/Ghostwriter/ssl/ghostwriter.key.pem
-cp /etc/letsencrypt/live/mgmt.test.optumshadow.org/fullchain.pem /opt/Ghostwriter/ssl/ghostwriter.crt.pem
+cp /etc/letsencrypt/live/mgmt.test.optumshadow.org/privkey.pem ssl/ghostwriter.key.pem
+cp /etc/letsencrypt/live/mgmt.test.optumshadow.org/fullchain.pem ssl/ghostwriter.crt.pem
 
 #Activate renewed certs
 docker-compose -f /opt/Ghostwriter/production.yml restart nginx
