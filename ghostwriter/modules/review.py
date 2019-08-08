@@ -49,7 +49,7 @@ class DomainReview(object):
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36'
     session = requests.Session()
 
-    def __init__(self):
+    def __init__(self, domain_queryset):
         """Everything that needs to be setup when a new DomainReview object is
         created goes here.
         """
