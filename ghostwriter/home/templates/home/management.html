@@ -38,7 +38,11 @@
         </tr>
         <tr>
             <td><i class="fab fa-google"></i> VirusTotal API Key</td>
-            <td>{{ virustotal_api_key }}</td>
+            {% if virustotal_api_key and virustotal_api_key != "None" %}
+                <td>{{ virustotal_api_key }}</td>
+            {% else %}
+                <td>Not Configured</td>
+            {% endif %}
         </tr>
         <tr>
             <td><i class="fas fa-bed"></i> Sleep Time</td>
@@ -60,26 +64,26 @@
             <td>{{ enable_slack }}</td>
         </tr>
         {% if enable_slack %}
-        <tr>
-            <td><i class="fab fa-slack"></i> Slack WebHook</td>
-            <td>{{ slack_webhook_url }}</td>
-        </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Slack Bot Name</td>
-            <td>{{ slack_username }}</td>
-        </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Slack Bot Avatar</td>
-            <td>{{ slack_emoji }}</td>
-        </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Global Slack Channel</td>
-            <td>{{ slack_channel }}</td>
-        </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Slack Target</td>
-            <td>{{ slack_alert_target }}</td>
-        </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack WebHook</td>
+                <td>{{ slack_webhook_url }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack Bot Name</td>
+                <td>{{ slack_username }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack Bot Avatar</td>
+                <td>{{ slack_emoji }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Global Slack Channel</td>
+                <td>{{ slack_channel }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack Target</td>
+                <td>{{ slack_alert_target }}</td>
+            </tr>
         {% endif %}
     </table>
 {% endblock %}

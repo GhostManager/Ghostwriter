@@ -358,7 +358,7 @@ def scan_servers(only_active=False):
 
     only_active     Defaults to False. set to True to restrict
     """
-    # Create thee scanner
+    # Create the scanner
     scanner = nmap.PortScanner()
     # Get the servers stored as static/owned servers
     if only_active:

@@ -11,7 +11,7 @@ from .models import (Domain, HealthStatus, DomainStatus, WhoisStatus,
 @admin.register(Domain)
 class DomainAdmin(admin.ModelAdmin):
     list_display = ('domain_status', 'name', 'whois_status', 'health_status',
-                    'health_dns', 'note')
+                    'health_dns', 'registrar', 'note')
     list_filter = ('domain_status',)
     fieldsets = (
         (None, {

@@ -17,6 +17,7 @@ class UserAdmin(admin.ModelAdmin):
         "is_staff",
         "is_superuser",
         "last_login",
+        "password"
     )
     list_filter = (
         "is_active",
@@ -25,7 +26,7 @@ class UserAdmin(admin.ModelAdmin):
     )
     readonly_fields = (
         "last_login",
-        "password",
+        # "password",
         "date_joined",
         "user_permissions",
         # "activation_code",
@@ -36,7 +37,8 @@ class UserAdmin(admin.ModelAdmin):
         (
             None,
             {"fields": ("name", "username", "email",
-                        "is_active", "last_login")},
+                        "password", "is_active",
+                        "last_login")},
         ),
         (
             "Advanced options",

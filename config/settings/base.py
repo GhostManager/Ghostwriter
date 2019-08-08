@@ -274,6 +274,16 @@ ACCOUNT_SIGNUP_FORM_CLASS = 'ghostwriter.home.forms.SignupForm'
 INSTALLED_APPS += ["compressor"]
 STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 
+# Message formatting
+
+from django.contrib.messages import constants as messages
+MESSAGE_TAGS = {
+    messages.INFO: 'alert alert-info',
+    messages.SUCCESS: 'alert alert-success',
+    messages.WARNING: 'alert alert-warning',
+    messages.ERROR: 'alert alert-danger'
+}
+
 # Django Q settings
 
 # Settings to be aware of:
@@ -299,7 +309,7 @@ Q_CLUSTER = {
 # DomainCheck configuration
 # Enter a VirusTotal API key (free or paid)
 DOMAINCHECK_CONFIG = {
-    'virustotal_api_key': env("VIRUSTOTAL_API_KEY", default=False),
+    'virustotal_api_key': env("VIRUSTOTAL_API_KEY", default=None),
     'sleep_time': 20,
 }
 

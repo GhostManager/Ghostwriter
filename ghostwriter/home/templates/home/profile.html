@@ -33,11 +33,15 @@
             <td>{{ user.email }}</td>
         </tr>
         <tr class="hidden-table">
-            <th class="form_th"><i class="fas fa-users"></i> Group Membership</th>
+            <th class="form_th"><i class="fas fa-users"></i> Access</th>
             <td>
-                {% for g in user.groups.all %}
-                    {{ g.name|capfirst }}
-               {% endfor %}
+                {% if user.is_superuser %}
+                    Superuser, Staff
+                {% elif user.is_staff %}
+                    Staff
+                {% else %}
+                    Normal User
+               {% endif %}
             </td>
         </tr>
     </table>
@@ -46,12 +50,8 @@
     <h4><i class="fas fa-user-edit"></i> Update Account Details</h4>
     <hr>
 
-    <div class="buttons">
-        <div>
-            <a class="button secondaryAction" href="{% url 'account_change_password' %}">Change Password</a>
-        </div>
-        <div style="margin-top: 40px;">
-            <a class="button secondaryAction" href="{% url 'account_email' %}">Update Email Address</a>
-        </div>
-    </div>
+    <div class="btn-group" role="group" aria-label="Basic example">
+        <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
+        <a class="btn btn-primary" href="{% url 'account_email' %}">Update Email Address</a>
+    </div> 
 {% endblock %}

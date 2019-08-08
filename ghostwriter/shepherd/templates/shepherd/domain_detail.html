@@ -32,17 +32,19 @@
             <p>No information provided for this domain.</p>
         {% endif %}
 
-        <!-- Domain Age Info Section -->
-        <button class="collapsible"><i class="fas fa-hourglass-half"></i> Domain Age Information ( {{ domain.get_domain_age }} days )</button>
+        <!-- General Domain Section -->
+        <button class="collapsible"><i class="fas fa-hourglass-half"></i> General Domain Information & Age ( {{ domain.get_domain_age }} days )</button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 <table>
                     <tr>
+                        <th>Registrar</th>
                         <th>Purchase Date</th>
                         <th>Expiration Date</th>
                         <th>Domain Age</th>
                     </tr>
                     <tr>
+                        <td>{{ domain.registrar }}</td>
                         <td>{{ domain.creation }}</td>
                         <td>{{ domain.expiration }}</td>
                         <td>{{ domain.get_domain_age }} days</td>

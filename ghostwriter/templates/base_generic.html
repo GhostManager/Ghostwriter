@@ -97,7 +97,7 @@
                         <ul class="collapse list-unstyled" id="findingsSubmenu">
                             <li><a href="{% url 'reporting:findings' %}">Finding Library</a></li>
                             <li><a href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
-                            <li><a href="{% url 'reporting:import_findings' %}">Import Findings</a></li>
+                            <li><a href="{% url 'reporting:import_findings' %}">Upload Bulk Findings</a></li>
                         </ul>
                         <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
                         <ul class="collapse list-unstyled" id="reportSubmenu">
@@ -125,19 +125,19 @@
                         <li><a href="{% url 'shepherd:user_assets' %}">My Active Assets</a></li>
                     {% endif %}
                     <li>
-                        <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Server Catalog</a>
+                        <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Server Library</a>
                         <ul class="collapse list-unstyled" id="serverSubmenu">
                             <li><a href="{% url 'shepherd:servers' %}">Server Library</a></li>
                             <li><a href="{% url 'shepherd:server_create' %}">Add New Server</a></li>
-                            <li><a href="{% url 'shepherd:server_import' %}">Upload New Servers</a></li>
+                            <li><a href="{% url 'shepherd:server_import' %}">Upload Bulk Servers</a></li>
                         </ul>
                     </li>
                     <li>
-                        <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domain Catalog</a>
+                        <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domain Library</a>
                         <ul class="collapse list-unstyled" id="shepSubmenu">
                             <li><a href="{% url 'shepherd:domains' %}">Domain Library</a></li>
                             <li><a href="{% url 'shepherd:domain_create' %}">Add New Domain</a></li>
-                            <li><a href="{% url 'shepherd:domain_import' %}">Upload New Domains</a></li>
+                            <li><a href="{% url 'shepherd:domain_import' %}">Upload Bulk Domains</a></li>
                         </ul>
                     </li>
                     <li><a href="{% url 'shepherd:update' %}">Domain Update Controls</a></li>
@@ -160,8 +160,9 @@
                     <li>
                         <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
                         <ul class="collapse list-unstyled" id="docsSubmenu">
-                            <li><a href="https://github.com/GhostManager/Ghostwriter/wiki">Documentation Wiki</a></li>
-                            <li><a href="https://github.com/GhostManager"><i class="fab fa-github-alt"></i> GhostManager Repos</a></li>
+                            <li><a href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
+                            <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
+                            <li><a href="https://github.com/GhostManager/DomainCheck"><i class="fab fa-github-alt"></i> DomainCheck on GitHub</a></li>
                         </ul>
                     </li>
                 </ul>

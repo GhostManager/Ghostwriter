@@ -36,7 +36,7 @@ OBJECTS = [
     # Animals
     'panther', 'wildcat', 'tiger', 'lion', 'cheetah', 'cougar', 'leopard',
     'dingo', 'pangolin', 'yak', 'ocelot', 'narwhal', 'koala', 'grizzly',
-    'falcon', 'raven', 'owl', 'wolf', 'boar'
+    'falcon', 'raven', 'owl', 'wolf', 'boar', 'gopher', 'bloodhound'
     # Reptiles
     'viper', 'cottonmouth', 'python', 'boa', 'sidewinder', 'cobra',
     # Sea life
