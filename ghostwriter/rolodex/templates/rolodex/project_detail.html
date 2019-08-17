@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Project {{ project.id }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ project.client }} {{ project.project_type }} ({{ project.start_date }})
@@ -54,7 +64,7 @@
         {% endif %}
 
         <!-- Operators Section -->
-        <button class="collapsible"><i class="fas fa-user-plus"></i> Operators ( {{ project.projectassignment_set.all.count }} )</button>
+        <button class="collapsible"><i class="fas fa-user-plus"></i> Operators <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span></button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 <p><a href="{% url 'rolodex:assign_operator' project.id %}"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
@@ -161,7 +171,15 @@
                 {% if project.serverhistory_set.all or project.transientserver_set.all %}
                     <table>
                         <tr>
-                            <th>IP Address</th>
+                            <th>
+                                IP Address
+                                <div class="dropdown-right">
+                                    <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                    <div class="dropdown-content dropdown-content-info">
+                                        <p>Only <em>static servers</em> will be links.</p>
+                                    </div>
+                                </div>
+                            </th>
                             <th>Purpose</th>
                             <th>Role</th>
                             <th>Provider</th>
@@ -178,7 +196,7 @@
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                        <div id="myDropdown" class="dropdown-content">
                                             <a href="{% url 'shepherd:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
                                             <a href="{% url 'shepherd:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
                                         </div>
@@ -264,7 +282,7 @@
         </div>
 
         <!-- Findings Section -->
-        <button class="collapsible"><i class="fab fa-searchengin"></i> Findings</button>
+        <button class="collapsible"><i class="fab fa-searchengin"></i> Findings <span class="badge badge-pill badge-light">{{ project.count_findings }}</span></button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 {% if project.report_set.all %}
@@ -280,22 +298,24 @@
                                 </tr>
                                 {% for finding in report.reportfindinglink_set.all %}
                                     <tr>
-                                        {% if finding.severity.severity == "High" %}
-                                            <td style="color: red;">{{ finding.severity }}</td>
+                                        {% if finding.severity.severity == "Critical" %}
+                                            <td class="critical"><strong>{{ finding.severity }}</strong></td>
+                                        {% elif finding.severity.severity == "High" %}
+                                            <td class="high"><strong>{{ finding.severity }}</strong></td>
                                         {% elif finding.severity.severity == "Medium" %}
-                                            <td style="color: orange;">{{ finding.severity }}</td>
+                                            <td class="medium"><strong>{{ finding.severity }}</strong></td>
                                         {% elif finding.severity.severity == "Low" %}
-                                            <td style="color: blue;">{{ finding.severity }}</td>
+                                            <td class="low"><strong>{{ finding.severity }}</strong></td>
                                         {% else %}
-                                            <td style="color: green;">{{ finding.severity }}</td>
+                                            <td class="info"><strong>{{ finding.severity }}</strong></td>
                                         {% endif %}
                                         <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                         {% if finding.assigned_to == request.user %}
-                                        {% if finding.complete %}
-                                            <td style="color: #A8D08D;"><strong>You</strong></td>
-                                        {% else %}
-                                            <td style="color: #FF7E79;"><strong>You</strong></td>
-                                        {% endif %} 
+                                            {% if finding.complete %}
+                                                <td style="color: #A8D08D;"><strong>You</strong></td>
+                                            {% else %}
+                                                <td style="color: #FF7E79;"><strong>You</strong></td>
+                                            {% endif %} 
                                         {% else %}
                                             <td style="color: #7a7a7a;"><strong>{{ finding.assigned_to }}</strong></td>
                                         {% endif %}
@@ -318,7 +338,7 @@
         </div>
 
         <!-- Reports Section -->
-        <button class="collapsible"><i class="fas fa-book"></i> Reports ( {{ project.report_set.all.count }} )</button>
+        <button class="collapsible"><i class="fas fa-book"></i> Reports <span class="badge badge-pill badge-light">{{ project.report_set.all.count }}</span></button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 {% if project.complete %}
@@ -368,7 +388,7 @@
         </div>
 
         <!-- Additional Information Section -->
-        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ project.projectnote_set.all.count }} )</button>
+        <button class="collapsible"><i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span></button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 <p>

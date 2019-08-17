@@ -46,8 +46,12 @@
         <strong><i class="far fa-comment-alt"></i> Additional Info</strong>
         <hr>
 
+        <!-- Hidden Inputs -->
+        {{ form.codename }}
+
         {{ form.note|as_crispy_field }}
 
-        <input type="submit" class="button" value="Submit">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}

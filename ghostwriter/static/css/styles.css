@@ -96,6 +96,17 @@ input[type="file"] {
     border-style: solid;
     border-width: 1px;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    
+    position:relative;
+    display:inline-block;
+}
+
+.notify-badge{
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    padding: 3px 8px;
+    z-index: 1;
 }
 
 .avatar_note {
@@ -131,6 +142,25 @@ input[type="file"] {
   height: 1px;
   border-bottom: 1px dashed #ddd;
   margin: 40px 0;
+}
+
+.breadcrumb > .active {
+    background-color: #e9ecef;
+    color: #7386D5;
+}
+
+.breadcrumb li {
+    display: inline;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.breadcrumb a {
+    background-color: #e9ecef;
+    color: #51b071;
+    text-decoration: underline;
 }
 
 /* ---------------------------------------------------
@@ -639,6 +669,11 @@ thead th.down {
     display: inline-block;
 }
 
+.dropdown-right {
+    position: relative;
+    display: inline-block;
+}
+
 .dropdown-content {
     border-radius: 5px;
     display: none;
@@ -666,6 +701,8 @@ thead th.down {
 .dropdown a:hover {background-color: #6d7fcc;}
 
 .dropdown:hover .dropdown-content {display: block; left: auto; right: 0px}
+
+.dropdown-right:hover .dropdown-content {display: block;}
 
 /* ---------------------------------------------------
     COLLAPSIBLE SECTION STYLES
@@ -782,6 +819,19 @@ thead th.down {
 .time-left {
     float: left;
     color: #999;
+}
+
+/* ---------------------------------------------------
+    NOTIFICATIONS
+----------------------------------------------------- */
+
+.fade {
+    opacity: 0;
+    -webkit-transition: opacity 0.5s linear !important;
+    -moz-transition: opacity 0.5s linear !important;
+    -ms-transition: opacity 0.5s linear !important;
+    -o-transition: opacity 0.5s linear !important;
+    transition: opacity 0.5s linear !important;
 }
 
 /* ---------------------------------------------------

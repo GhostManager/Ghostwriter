@@ -5,6 +5,8 @@ from django.urls import reverse
 # from django.contrib.auth.models import User
 from django.conf import settings
 
+from ghostwriter.reporting.models import ReportFindingLink
+
 
 class Client(models.Model):
     """Model representing the clients attached to project records. This model
@@ -184,6 +186,15 @@ class Project(models.Model):
         null=False,
         help_text='Select a category for this project that best describes '
                   'the work being performed')
+
+    def count_findings(self):
+        """Count and return the number of findings across all reports associated
+        with the `Project` model instance.
+        """
+        finding_queryset = ReportFindingLink.objects.select_related('report', 'report__project').filter(report__project=self.pk)
+        return finding_queryset.count()
+
+    count = property(count_findings)
 
     class Meta:
         """Metadata for the model."""

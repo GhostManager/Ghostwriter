@@ -12,13 +12,10 @@ app_name = "rolodex"
 # URLs for the basic views
 urlpatterns = [
                 path('', views.index, name='index'),
-                path('clients/', views.ClientListView.as_view(),
+                path('clients/', views.client_list,
                      name='clients'),
-                path('projects/', views.ProjectListView.as_view(),
+                path('projects/', views.project_list,
                      name='projects'),
-                path('projects/complete',
-                     views.CompleteProjectListView.as_view(),
-                     name='closed_projects'),
                 path('clients/<int:pk>', views.ClientDetailView.as_view(),
                      name='client_detail'),
                 path('projects/<int:pk>', views.ProjectDetailView.as_view(),

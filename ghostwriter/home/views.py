@@ -47,14 +47,20 @@ def dashboard(request):
     user_tasks = ReportFindingLink.objects.\
         select_related('report', 'report__project').\
         filter(Q(assigned_to=request.user) & Q(report__complete=False) &
-               Q(complete=False)).order_by('report__project__end_date')[:10]
+              Q(complete=False)).order_by('report__project__end_date')[:10]
     user_projects = ProjectAssignment.objects.\
         select_related('project', 'project__client', 'role').\
         filter(Q(operator=request.user) &
-               Q(end_date__gte=datetime.datetime.now()))
+              Q(start_date__lte=datetime.datetime.now()) &
+              Q(end_date__gte=datetime.datetime.now()))
+    upcoming_project = ProjectAssignment.objects.\
+        select_related('project', 'project__client', 'role').\
+        filter(Q(operator=request.user) &
+              Q(start_date__gt=datetime.datetime.now()))
     # Assemble the context dictionary to pas to the dashboard
     context = {
         'user_projects': user_projects,
+        'upcoming_project': upcoming_project,
         'recent_tasks': recent_tasks,
         'user_tasks': user_tasks
     }

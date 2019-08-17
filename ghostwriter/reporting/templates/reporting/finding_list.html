@@ -3,6 +3,15 @@
 
 {% block pagetitle %}Findings Library{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Findings</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Filter Section -->
     <div class="m-auto">
@@ -11,14 +20,14 @@
                 {{ filter.form.title|as_crispy_field }}
             </div>
             <div class="form-row">
-                <div class="form-group col-md-6 mb-0">
+                <div class="form-group col-md-12 mb-0">
                     {% for choice in filter.form.severity %}
                         <label class="checkbox-inline">
                             {{ choice.tag }} {{ choice.choice_label }}
                         </label>
                     {% endfor %}
                 </div>
-                <div class="form-group col-md-6 mb-0">
+                <div class="form-group col-md-12 mb-0">
                     {% for choice in filter.form.finding_type %}
                         <label class="checkbox-inline">
                             {{ choice.tag }} {{ choice.choice_label }}
@@ -26,7 +35,8 @@
                     {% endfor %}
                 </div>
             </div>
-            <button type="submit" class="button">Filter</button>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'reporting:findings' %}" class="btn btn-secondary">Reset</a>
         </form>
     </div>
 

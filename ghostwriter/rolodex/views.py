@@ -9,6 +9,7 @@ import logging
 from django.urls import reverse
 from django.views import generic
 from django.contrib import messages
+from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
@@ -31,6 +32,9 @@ from .forms import (ClientCreateForm, ProjectCreateForm,
 # Import additional modules
 from ghostwriter.modules import codenames
 
+# Import model filters for views
+from .filters import ClientFilter, ProjectFilter
+
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -45,6 +49,41 @@ logger = logging.getLogger(__name__)
 def index(request):
     """View function to redirect empty requests to the dashboard."""
     return HttpResponseRedirect(reverse('home:dashboard'))
+
+
+@login_required
+def client_list(request):
+    """View showing all clients. This view defaults to the client_list.html
+    template.
+    """
+    # Check if a search parameter is in the request
+    try:
+        search_term = request.GET.get('client_search')
+    except Exception:
+        search_term = ''
+    if search_term:
+        messages.success(request, 'Displaying search results for: %s' %
+                         search_term, extra_tags='alert-success')
+        client_list = Client.objects.\
+            filter(name__icontains=search_term).\
+            order_by('name')
+    else:
+        client_list = Client.objects.all().order_by('name')
+    client_filter = ClientFilter(request.GET, queryset=client_list)
+    return render(request, 'rolodex/client_list.html',
+                  {'filter': client_filter})
+
+
+@login_required
+def project_list(request):
+    """View showing all projects. This view defaults to the project_list.html
+    template and allows for filtering.
+    """
+    project_list = Project.objects.select_related('client').all().\
+        order_by('complete', 'client')
+    project_list = ProjectFilter(request.GET, queryset=project_list)
+    return render(request, 'rolodex/project_list.html',
+                    {'filter': project_list})
 
 
 @login_required
@@ -140,29 +179,6 @@ def reopen_project(request, pk):
 ################
 
 
-class ClientListView(LoginRequiredMixin, generic.ListView):
-    """View showing all clients. This view defaults to the client_list.html
-    template.
-    """
-    model = Client
-    paginate_by = 100
-
-    def get_queryset(self):
-        """Customize the queryset based on search."""
-        # Check if a search parameter is in the request
-        try:
-            search_term = self.request.GET.get('client_search')
-        except Exception:
-            search_term = ''
-        # If there is a search term, filter the query
-        if search_term:
-            queryset = super(ClientListView, self).get_queryset()
-            return queryset.filter(name__icontains=search_term).\
-                order_by('name')
-        else:
-            return Client.objects.all().order_by('name')
-
-
 class ClientDetailView(LoginRequiredMixin, generic.DetailView):
     """View showing the details for the specified client. This view defaults to the
     client_detail.html template.
@@ -228,7 +244,8 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
     client_form.html template.
     """
     model = Client
-    fields = '__all__'
+    # fields = '__all__'
+    form_class = ClientCreateForm
 
     def get_success_url(self):
         """Override the function to return to the new record after creation."""
@@ -259,43 +276,6 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
         ctx['object_type'] = 'client and all associated data'
         ctx['object_to_be_deleted'] = queryset.name
         return ctx
-
-
-class ProjectListView(LoginRequiredMixin, generic.ListView):
-    """View showing all projects. This view defaults to the client_list.html
-    template.
-    """
-    model = Project
-    paginate_by = 100
-
-    def get_queryset(self):
-        """Customize the queryset based on search."""
-        queryset = super(ProjectListView, self).get_queryset()
-        messages.success(
-            self.request,
-            'Displaying open projects',
-            extra_tags='alert-success')
-        return queryset.select_related('project_type', 'client').\
-            filter(complete=False).order_by('end_date')
-
-
-class CompleteProjectListView(LoginRequiredMixin, generic.ListView):
-    """View showing all projects. This view defaults to the project_list.html
-    template.
-    """
-    model = Project
-    paginate_by = 100
-    template_name = 'rolodex/project_list.html'
-
-    def get_queryset(self):
-        """Customize the queryset based on search."""
-        queryset = super(CompleteProjectListView, self).get_queryset()
-        messages.success(
-            self.request,
-            'Displaying all closed projects',
-            extra_tags='alert-success')
-        return queryset.select_related('project_type', 'client').\
-            filter(complete=True).order_by('end_date')
 
 
 class ProjectDetailView(LoginRequiredMixin, generic.DetailView):

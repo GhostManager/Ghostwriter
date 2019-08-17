@@ -26,7 +26,7 @@
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem"" action="" method="post" id="checkoutForm" data-projects-url="{% url 'shepherd:ajax_load_projects' %}">
+    <form class="newitem" action="" method="post" id="checkoutForm" data-projects-url="{% url 'shepherd:ajax_load_projects' %}">
         {% csrf_token %}
         <!-- Client Info Section -->
         <strong><i class="far fa-building"></i> Client Information</strong>
@@ -73,7 +73,8 @@
         {{ form.server }}
         {{ form.operator }}
 
-        <input type="submit" class="button" value="Save">
+        <input type="submit" class="btn btn-primary" value="Save">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 

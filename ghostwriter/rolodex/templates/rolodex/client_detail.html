@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ client.name }} Details{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ client.name }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ client.name }} (<em>{{ client.codename }}</em>)
@@ -26,7 +36,7 @@
         {% endif %}
 
         <!-- POC Section -->
-        <button class="collapsible"><i class="far fa-user-circle"></i> Points of Contact ( {{ client.clientcontact_set.all.count }} )</button>
+        <button class="collapsible"><i class="far fa-user-circle"></i> Points of Contact <span class="badge badge-pill badge-light">{{ client.clientcontact_set.all.count }}</span></button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 <p><a href="{% url 'rolodex:client_poc_add' client.id %}"><i class="far fa-plus-square"></i> Add a Point of Contact</a></p>
@@ -68,13 +78,42 @@
         </div>
 
         <!-- Project History Section -->
-        <button class="collapsible"><i class="fas fa-history"></i> Project History ( {{ client.project_set.all.count }} )</button>
+        <button class="collapsible"><i class="fas fa-history"></i> Project History <span class="badge badge-pill badge-light">{{ client.project_set.all.count }}</span></button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 <p><a href="{% url 'rolodex:project_create' client.id %}"><i class="far fa-plus-square"></i> Add a Project</a></p>
                 {% if client.project_set.all %}
+                    <h4>{{ client.name }} Projects</h4>
+                    <table>
+                        <tr>
+                            <th>Project Codename</th>
+                            <th>Project Type</th>
+                            <th>Start</th>
+                            <th>End</th>
+                            <th>Note</th>
+                            <th>Options</th>
+                        </tr>
+                        {% for project in client.project_set.all %}
+                            <tr>
+                                <td><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                                <td>{{ project.project_type }}</td>
+                                <td>{{ project.start_date }}</td>
+                                <td>{{ project.end_date }}</td>
+                                <td style="text-align: justify">{{ project.note|linebreaksbr }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'rolodex:project_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'rolodex:project_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
                     {% if domains %}
-                    <h4>Domains Used with {{ client.name }}</h4>
+                        <h4>Domains Used with {{ client.name }}</h4>
                         <table>
                             <tr>
                                 <th>Project</th>
@@ -121,36 +160,6 @@
                             {% endfor %}
                         </table>
                     {% endif %}
-
-                    <h4>{{ client.name }} Projects</h4>
-                    <table>
-                        <tr>
-                            <th>Project Codename</th>
-                            <th>Project Type</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Note</th>
-                            <th>Options</th>
-                        </tr>
-                        {% for project in client.project_set.all %}
-                            <tr>
-                                <td><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
-                                <td>{{ project.project_type }}</td>
-                                <td>{{ project.start_date }}</td>
-                                <td>{{ project.end_date }}</td>
-                                <td style="text-align: justify">{{ project.note|linebreaksbr }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:project_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'rolodex:project_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
                 {% else %}
                     <p>This client has no project history.</p>
                 {% endif %}
@@ -158,7 +167,7 @@
         </div>
 
         <!-- Additional Information Section -->
-        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ client.clientnote_set.all.count }} )</button>
+        <button class="collapsible"><i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span></button>
         <div class="collapsiblecontent">
             <div class="collapsiblecontent_inner">
                 <p>

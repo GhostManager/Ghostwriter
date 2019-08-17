@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ staticserver.ip_address }}{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item truncate"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item truncate"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
+            <li class="breadcrumb-item active truncate" aria-current="page">{{ staticserver.ip_address }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ staticserver.ip_address }}

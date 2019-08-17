@@ -687,7 +687,7 @@ def update_dns(request):
                 hook='ghostwriter.shepherd.tasks.send_slack_complete_msg')
             messages.success(
                 request,
-                'DNS update task (Task ID) has been successfully queued.'.
+                'DNS update task (Task ID {}) has been successfully queued.'.
                 format(task_id),
                 extra_tags='alert-success')
         except Exception:
@@ -715,7 +715,7 @@ def update_dns_single(request, pk):
                 hook='ghostwriter.shepherd.tasks.send_slack_complete_msg')
             messages.success(
                 request,
-                'DNS update task (Task ID) has been successfully queued. '
+                'DNS update task (Task ID {}) has been successfully queued. '
                 'Refresh this page in a minute or two.'.format(task_id),
                 extra_tags='alert-success')
         except Exception:

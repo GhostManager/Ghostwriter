@@ -17,9 +17,11 @@ class ClientCreateForm(forms.ModelForm):
     class Meta:
         """Metadata for the model form."""
         model = Client
-        exclude = ('codename',)
+        # exclude = ('codename',)
+        fields = ('__all__')
         widgets = {
                     'name': forms.TextInput(attrs={'size': 55}),
+                    'codename': forms.HiddenInput(),
                     'short_name': forms.TextInput(attrs={'size': 55}),
                     'note': forms.Textarea(attrs={'cols': 55})
                    }
