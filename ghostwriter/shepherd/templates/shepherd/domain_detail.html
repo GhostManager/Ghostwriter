@@ -269,8 +269,8 @@
                                 <div class="dropdown right">
                                     <button class="dropbtn far fa-caret-square-down"></button>
                                     <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        <a href="{% url 'shepherd:domain_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                        <a href="{% url 'shepherd:domain_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
                                     </div>
                                 </div>
                             {% endif %}
