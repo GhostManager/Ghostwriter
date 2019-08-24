@@ -121,6 +121,7 @@ def management(request):
     # Get the *_CONFIG dictionaries from settings.py
     config = {}
     config.update(settings.SLACK_CONFIG)
+    config.update(settings.NAMECHEAP_CONFIG)
     config.update(settings.DOMAINCHECK_CONFIG)
     # Pass the relevant settings to management.html
     context = {
@@ -132,6 +133,12 @@ def management(request):
         'slack_username': config['slack_username'],
         'slack_webhook_url': config['slack_webhook_url'],
         'virustotal_api_key': config['virustotal_api_key'],
-        'slack_alert_target': config['slack_alert_target']
+        'slack_alert_target': config['slack_alert_target'],
+        'namecheap_client_ip': config['client_ip'],
+        'enable_namecheap': config['enable_namecheap'],
+        'namecheap_api_key': config['namecheap_api_key'],
+        'namecheap_username': config['namecheap_username'],
+        'namecheap_page_size': config['namecheap_page_size'],
+        'namecheap_api_username': config['namecheap_api_username']
     }
     return render(request, 'home/management.html', context=context)

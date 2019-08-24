@@ -28,3 +28,12 @@ SLACK_URL=https://hooks.slack.com/services/<your_webhook_url>
 COMPANY_NAME=Ghostwriter
 COMPANY_TWITTER=@ghostwriter
 COMPANY_EMAIL=info@ghostwriter.local
+
+# Namecheap
+# ------------------------------------------------------------------------------
+NAMECHEAP_ENABLE=False
+NAMECHEAP_API_KEY=
+NAMECHEAP_USERNAME=
+NAMECHEAP_API_USERNAME=
+CLIENT_IP=
+NAMECHEAP_PAGE_SIZE=100

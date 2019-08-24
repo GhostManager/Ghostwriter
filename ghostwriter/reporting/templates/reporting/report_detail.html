@@ -7,7 +7,7 @@
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' report.project.id %}">Project {{ report.project.id }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">Report {{ report.id }}</li>
         </ul>
     </nav>

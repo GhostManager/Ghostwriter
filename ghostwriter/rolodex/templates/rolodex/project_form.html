@@ -3,6 +3,16 @@
 
 {% block pagetitle %}Project Form{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' form.client.value %}">Client {{ form.client.value }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Add Project</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <p>Fill-out this form with all necessary information for this project for {{ client_name }}:</p>
 

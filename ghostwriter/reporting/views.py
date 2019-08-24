@@ -36,10 +36,14 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 # from rolodex.models import Project, ProjectAssignment
-from .models import Finding, Severity, FindingType, Report, \
-    ReportFindingLink, Evidence, Archive
-from .forms import FindingCreateForm, ReportCreateForm, \
-    ReportFindingLinkUpdateForm, EvidenceForm
+from .models import (
+    Finding, Severity, FindingType, Report,
+    ReportFindingLink, Evidence, Archive,
+    FindingNote, LocalFindingNote)
+from .forms import (
+    FindingCreateForm, ReportCreateForm,
+    ReportFindingLinkUpdateForm, EvidenceForm,
+    FindingNoteCreateForm, LocalFindingNoteCreateForm)
 
 # Import model filters for views
 from .filters import FindingFilter, ReportFilter, ArchiveFilter
@@ -1019,4 +1023,144 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs['object']
         ctx['object_type'] = 'evidence file'
         ctx['object_to_be_deleted'] = queryset.friendly_name
+        return ctx
+
+
+class FindingNoteCreate(LoginRequiredMixin, CreateView):
+    """View for creating new note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = FindingNote
+    form_class = FindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully added to this finding.',
+            extra_tags='alert-success')
+        return reverse('reporting:finding_detail', kwargs={'pk': self.object.finding.id})
+
+    def get_initial(self):
+        """Set the initial values for the form."""
+        finding_instance = get_object_or_404(
+            Finding, pk=self.kwargs.get('pk'))
+        finding = finding_instance
+        return {
+                'finding': finding,
+                'operator': self.request.user
+               }
+
+
+class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
+    """View for updating existing note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = FindingNote
+    form_class = FindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully updated.',
+            extra_tags='alert-success')
+        return reverse('reporting:finding_detail', kwargs={'pk': self.object.finding.pk})
+
+
+class FindingNoteDelete(LoginRequiredMixin, DeleteView):
+    """View for deleting existing note entries. This view defaults to the
+    confirm_delete.html template.
+    """
+    model = FindingNote
+    template_name = 'confirm_delete.html'
+
+    def get_success_url(self):
+        """Override the function to return to the server after deletion."""
+        messages.warning(
+            self.request,
+            'Note successfully deleted.',
+            extra_tags='alert-warning')
+        return reverse('reporting:finding_detail', kwargs={'pk': self.object.finding.pk})
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(FindingNoteDelete, self).get_context_data(**kwargs)
+        queryset = kwargs['object']
+        ctx['object_type'] = 'note'
+        ctx['object_to_be_deleted'] = queryset.note
+        return ctx
+
+
+class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
+    """View for creating new note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = LocalFindingNote
+    form_class = LocalFindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully added to this finding.',
+            extra_tags='alert-success')
+        return reverse('reporting:local_edit', kwargs={'pk': self.object.finding.id})
+
+    def get_initial(self):
+        """Set the initial values for the form."""
+        finding_instance = get_object_or_404(
+            ReportFindingLink, pk=self.kwargs.get('pk'))
+        finding = finding_instance
+        return {
+                'finding': finding,
+                'operator': self.request.user
+               }
+
+
+class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
+    """View for updating existing note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = LocalFindingNote
+    form_class = LocalFindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully updated.',
+            extra_tags='alert-success')
+        return reverse('reporting:local_edit', kwargs={'pk': self.object.finding.pk})
+
+
+class LocalFindingNoteDelete(LoginRequiredMixin, DeleteView):
+    """View for deleting existing note entries. This view defaults to the
+    confirm_delete.html template.
+    """
+    model = LocalFindingNote
+    template_name = 'confirm_delete.html'
+
+    def get_success_url(self):
+        """Override the function to return to the server after deletion."""
+        messages.warning(
+            self.request,
+            'Note successfully deleted.',
+            extra_tags='alert-warning')
+        return reverse('reporting:local_edit', kwargs={'pk': self.object.finding.pk})
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(LocalFindingNoteDelete, self).get_context_data(**kwargs)
+        queryset = kwargs['object']
+        ctx['object_type'] = 'note'
+        ctx['object_to_be_deleted'] = queryset.note
         return ctx

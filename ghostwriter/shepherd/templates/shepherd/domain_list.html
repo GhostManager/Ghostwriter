@@ -118,7 +118,11 @@
 
                         <td>{{ domain.get_domain_age }}</td>
 
-                        <td>{{ domain.all_cat }}</td>
+                        {% if domain.all_cat %}
+                            <td>{{ domain.all_cat }}</td>
+                        {% else %}
+                            <td>No Results</td>
+                        {% endif %}
 
                         {% if domain.domain_status.domain_status == "Available" %}
                             <td>
