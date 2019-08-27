@@ -65,10 +65,10 @@
             </thead>
             {% for project in filter.qs %}
                 <tr>
-                    <td class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
-                    <td class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
-                    <td>{{ project.project_type }}</td>
-                    <td>{{ project.start_date }} - {{ project.end_date }}</td>
+                    <td nowrap class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
+                    <td nowrap class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                    <td nowrap>{{ project.project_type }}</td>
+                    <td nowrap>{{ project.start_date }} - {{ project.end_date }}</td>
                     <td>{{ project.note }}</td>
                 </tr>
             {% endfor %}

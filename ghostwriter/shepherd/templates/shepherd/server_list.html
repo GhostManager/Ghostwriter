@@ -59,25 +59,25 @@
                 <tbody>
                 {% for server in filter.qs %}
                     <tr>
-                        <td><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
+                        <td nowrap><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
 
                         {% if server.server_status.server_status == "Available" %}
-                            <td class="healthy">{{ server.server_status }}</td>
+                            <td nowrap class="healthy">{{ server.server_status }}</td>
                         {% else %}
-                            <td class="burned">{{ server.server_status }}</td>
+                            <td nowrap class="burned">{{ server.server_status }}</td>
                         {% endif %}
 
-                        <td>{{ server.server_provider }}</td>
+                        <td nowrap>{{ server.server_provider }}</td>
                         <td>{{ server.note }}</td>
                         {% if server.server_status.server_status == "Available" %}
                             <td>
                                 <a href="{% url 'shepherd:server_checkout' server.id %}">
-                                    <i style="font-size: 25px" class="far fa-calendar-check"></i>
+                                    <i style="font-size: 15px;" class="far fa-calendar-check"></i>
                                 </a>
                             </td>
                         {% else %}
-                            <td>
-                                <i style="font-size: 25px" class="fas fa-ban"></i>
+                            <td class="burned">
+                                <i style="font-size: 15px" class="fas fa-ban"></i>
                             </td>
                         {% endif %}
                     </tr>

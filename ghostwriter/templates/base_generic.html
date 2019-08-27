@@ -39,9 +39,11 @@
             {% if user.is_authenticated %}
                 <nav id="sidebar">
                     <!-- Sidebar Top Section -->
-                    <div class="sidebar-header">
-                        <h3><a href="{% url 'home:dashboard' %}"><img src="{% static 'images/font_ghost.png' %}" alt="SpecterOps" style="width:10%"> Ghostwriter</a></h3>
-                    </div>
+                    <a href="{% url 'home:dashboard' %}">
+                        <div class="sidebar-header">
+                            <h3><img src="{% static 'images/font_ghost.png' %}" alt="SpecterOps" style="width:10%"> Ghostwriter</h3>
+                        </div>
+                    </a>
 
                     <!-- Rolodex Section -->
                     <ul class="list-unstyled components">

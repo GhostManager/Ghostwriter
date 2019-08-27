@@ -87,15 +87,15 @@
                                 </tr>
                                 {% for operator in project.projectassignment_set.all %}
                                     <tr>
-                                        <td>{{ operator.operator.name }}</td>
-                                        <td>{{ operator.role }}</td>
+                                        <td nowrap>{{ operator.operator.name }}</td>
+                                        <td nowrap>{{ operator.role }}</td>
                                         {% if operator.start_date %}
-                                            <td>{{ operator.start_date }}</td>
+                                            <td nowrap>{{ operator.start_date }}</td>
                                         {% else %}
                                             <td></td>
                                         {% endif %}
                                         {% if operator.end_date %}
-                                            <td>{{ operator.end_date }}</td>
+                                            <td nowrap>{{ operator.end_date }}</td>
                                         {% else %}
                                             <td></td>
                                         {% endif %}

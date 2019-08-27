@@ -90,7 +90,7 @@
                 <tbody>
                 {% for domain in filter.qs %}
                     <tr>
-                        <td><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
+                        <td nowrap><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
 
                         {% if domain.domain_status.domain_status == "Available" %}
                             <td class="healthy">{{ domain.domain_status }}</td>
@@ -116,7 +116,7 @@
                             <td class="burned">{{ domain.whois_status }}</td>
                         {% endifequal %}
 
-                        <td>{{ domain.get_domain_age }}</td>
+                        <td nowrap>{{ domain.get_domain_age }}</td>
 
                         {% if domain.all_cat %}
                             <td>{{ domain.all_cat }}</td>
@@ -127,12 +127,12 @@
                         {% if domain.domain_status.domain_status == "Available" %}
                             <td>
                                 <a href="{% url 'shepherd:checkout' domain.id %}">
-                                    <i style="font-size: 25px" class="far fa-calendar-check"></i>
+                                    <i style="font-size: 15px" class="far fa-calendar-check"></i>
                                 </a>
                             </td>
                         {% else %}
-                            <td>
-                                <i style="font-size:25px" class="fas fa-ban"></i>
+                            <td class="burned">
+                                <i style="font-size: 15px" class="fas fa-ban"></i>
                             </td>
                         {% endif %}
                     </tr>

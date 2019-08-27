@@ -37,8 +37,8 @@
             </thead>
             {% for client in filter.qs %}
                 <tr>
-                    <td class="clickable"><a href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
-                    <td>{{ client.codename }}</td>
+                    <td nowrap class="clickable"><a href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
+                    <td nowrap>{{ client.codename }}</td>
                     <td>{{ client.note }}</td>
                 </tr>
             {% endfor %}

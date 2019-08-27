@@ -128,7 +128,7 @@
                             <td>
                                 {% for evidence_file in finding.evidence_set.all %}
                                     <div class="dropdown">
-                                        <button class="dropbtn clickable">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button>
+                                        <button class="dropbtn clickable" style="font-size: 1.1em; font-weight: 300; line-height: 1.7em;">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button>
                                         <div class="dropdown-content">
                                             <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><i class="far fa-file-image"></i> View</a>
                                             <a href="{% url 'reporting:evidence_update' evidence_file.id %}"><i class="far fa-edit"></i> Edit</a>
@@ -140,7 +140,7 @@
                             </td>
                         {% else %}
                             <td>
-                                <em>No evidence</em>
+                                <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i></a>
                             </td>
                         {% endif %}
                         {% if finding.assigned_to == request.user %}
