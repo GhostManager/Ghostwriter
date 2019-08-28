@@ -193,6 +193,10 @@ class Report(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True)
+    delivered = models.BooleanField(
+        'Delivered',
+        default=False,
+        help_text='Delivery status of the report')
 
     class Meta:
         """Metadata for the model."""
@@ -273,6 +277,13 @@ class ReportFindingLink(models.Model):
         blank=True,
         help_text='Provide solid references for this finding, such as links '
         'to reference materials, tooling, and white papers')
+    finding_guidance = models.TextField(
+        'Finding Guidance',
+        null=True,
+        blank=True,
+        help_text='Provide notes for your team that describes how the finding '
+        'is intended to be used and any details that should be provided '
+        'during editing')
     complete = models.BooleanField(
         'Completed',
         default=False,

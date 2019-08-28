@@ -284,6 +284,67 @@ class ProjectAssignment(models.Model):
         return f'{self.operator} - {self.project} {self.end_date})'
 
 
+class ObjectiveStatus(models.Model):
+    """Model representing the available objective statuses used for projects.
+
+    There are no foreign keys.
+    """
+    objective_status = models.CharField(
+        'Objective Status',
+        max_length=100,
+        unique=True,
+        help_text='Enter an objective status (e.g. Active, On Hold)')
+
+    class Meta:
+        """Metadata for the model."""
+        ordering = ['objective_status']
+        verbose_name = 'Objective status'
+        verbose_name_plural = 'Objective statuses'
+
+    def __str__(self):
+        """String for representing the model object (in Admin site etc.)."""
+        return self.objective_status
+
+
+class ProjectObjective(models.Model):
+    """Model representing objectives for projects.
+
+    There are foreign keys for the `Project` and `ObjectiveStatus` models.
+    """
+    objective = models.TextField(
+        'Objective',
+        null=True,
+        blank=True,
+        help_text='Provide a concise objective')
+    complete = models.BooleanField(
+        'Completed',
+        default=False,
+        help_text='Mark the objective as complete')
+    deadline = models.DateField(
+        'Due Date',
+        max_length=100,
+        help_text='Provide a deadline for this objective')
+    # Foreign Keys
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        null=False)
+    status = models.ForeignKey(
+        ObjectiveStatus,
+        on_delete=models.PROTECT,
+        null=False,
+        help_text='Set the initial status for this objective')
+
+    class Meta:
+        """Metadata for the model."""
+        ordering = ['project', 'complete', 'deadline', 'status', 'objective']
+        verbose_name = 'Project objective'
+        verbose_name_plural = 'Project objectives'
+
+    def __str__(self):
+        """String for representing the model object (in Admin site etc.)."""
+        return f'{self.project} - {self.objective} {self.status})'
+
 class ClientNote(models.Model):
     """Model representing notes for clients.
 

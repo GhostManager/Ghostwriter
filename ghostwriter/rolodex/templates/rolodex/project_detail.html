@@ -72,7 +72,7 @@
                     <i class="fas fa-user-plus"></i> Operators <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
                 </a>
             </div>
-            <div id="collapseOperators" class="collapse" aria-labelledby="description" data-parent="#accordion">
+            <div id="collapseOperators" class="collapse" aria-labelledby="operators" data-parent="#accordion">
                 <div class="card-body">
                     <p><a href="{% url 'rolodex:assign_operator' project.id %}"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
                         {% if project.projectassignment_set.all %}
@@ -120,6 +120,63 @@
                 </div>
             </div>
 
+        <!-- Objectives Section -->
+        <div class="card">
+            <div class="card-header" id="objectives" data-toggle="collapse" data-target="#collapseObjectives">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseObjectives" aria-expanded="false" aria-controls="collapseObjectives">
+                    <i class="fas fa-crosshairs"></i> Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseObjectives" class="collapse" aria-labelledby="objectives" data-parent="#accordion">
+                <div class="card-body">
+                    <p><a href="{% url 'rolodex:project_objective_create' project.id %}"><i class="far fa-plus-square"></i> Add an Objective</a></p>
+                        {% if project.projectobjective_set.all %}
+                            <table>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Objective</th>
+                                    <th>Deadline</th>
+                                    <th style="text-align: center;">Options</th>
+                                </tr>
+                                {% for objective in project.projectobjective_set.all %}
+                                    <tr>
+                                        <td nowrap>
+                                            <span class="badge badge-pill badge-dark
+                                                {% if objective.status.objective_status == "Active" %}
+                                                    low-background
+                                                {% elif objective.status.objective_status == "On Hold" %}
+                                                    medium-background
+                                                {% elif objective.status.objective_status == "Complete" %}
+                                                    info-background
+                                                {% endif %}
+                                                ">
+                                                {{ objective.status }}
+                                            </span>
+                                        </td>
+                                        <td nowrap>{{ objective.objective }}</td>
+                                        <td nowrap>{{ objective.deadline }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
+                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='active' %}"><i class="low fas fa-running"></i> Set Active</a>
+                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='onhold' %}"><i class="medium far fa-pause-circle"></i> Set On Hold</a>
+                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='complete' %}"><i class="info fas fa-check"></i> Set Complete</a>
+                                                    <a href="{% url 'rolodex:project_objective_update' objective.id %}"><i class="far fa-edit"></i> Edit Objective</a>
+                                                    <a href="{% url 'rolodex:project_objective_delete' objective.id %}"><i style="color: red;" class="far fa-minus-square"></i> Remove</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>No objectives have been set for this project yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Infrastructure Section -->
             <div class="card">
                 <div class="card-header" id="infra" data-toggle="collapse" data-target="#collapseInfra">
@@ -127,7 +184,7 @@
                         <i class="fas fa-server"></i> Infrastructure Used
                     </a>
                 </div>
-                <div id="collapseInfra" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                <div id="collapseInfra" class="collapse" aria-labelledby="infra" data-parent="#accordion">
                     <div class="card-body">
                         <!-- Domain Section -->
                         <h4 style="margin-bottom: 40px;">Domains</h4>
@@ -306,7 +363,7 @@
                     <i class="fab fa-searchengin"></i> Findings <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
                 </a>
             </div>
-            <div id="collapseFindings" class="collapse" aria-labelledby="description" data-parent="#accordion">
+            <div id="collapseFindings" class="collapse" aria-labelledby="findings" data-parent="#accordion">
                 <div class="card-body">
                     {% if project.report_set.all %}
                         {% for report in project.report_set.all %}
@@ -368,7 +425,7 @@
                     <i class="fas fa-book"></i> Reports <span class="badge badge-pill badge-light">{{ project.report_set.all.count }}</span>
                 </a>
             </div>
-            <div id="collapseReports" class="collapse" aria-labelledby="description" data-parent="#accordion">
+            <div id="collapseReports" class="collapse" aria-labelledby="reports" data-parent="#accordion">
                 <div class="card-body">
                     {% if project.complete %}
                         <p>The project is marked as complete so no additional reports may be created.</p>
@@ -391,7 +448,11 @@
                                     <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
                                     <td>{{ report.last_update }}</td>
                                     {% if report.complete %}
-                                        <td>Complete</td>
+                                        {% if report.delivered %}
+                                            <td>Delivered</td>
+                                        {% else %}
+                                            <td>Complete, Awaiting Delivery</td>
+                                        {% endif %}
                                     {% else %}
                                         <td>In Progress</td>
                                     {% endif %}
@@ -399,7 +460,7 @@
                                     <td>
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
-                                            <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
                                                 <a href="{% url 'reporting:activate_report' report.id %}"><i class="far fa-edit"></i> Edit</a>
                                                 <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
                                                 <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
@@ -419,12 +480,12 @@
 
         <!-- Additional Information Section -->
         <div class="card">
-            <div class="card-header" id="XXX" data-toggle="collapse" data-target="#collapseXXX">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseXXX" aria-expanded="false" aria-controls="collapseXXX">
+            <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
                     <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
                 </a>
             </div>
-            <div id="collapseXXX" class="collapse" aria-labelledby="description" data-parent="#accordion">
+            <div id="collapseNotes" class="collapse" aria-labelledby="notes" data-parent="#accordion">
                 <div class="card-body">
                     <p>
                         <a href="{% url 'rolodex:project_note_add' project.id %}"><i class="far fa-plus-square"></i> Add a Note</a>

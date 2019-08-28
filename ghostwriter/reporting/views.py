@@ -284,6 +284,7 @@ def assign_finding(request, pk):
                                         references=finding.references,
                                         severity=finding.severity,
                                         finding_type=finding.finding_type,
+                                        finding_guidance=finding.finding_guidance,
                                         report=report,
                                         assigned_to=request.user,
                                         position=get_position(
@@ -380,7 +381,7 @@ def report_status_toggle(request, pk):
             else:
                 report_instance.complete = True
                 report_instance.save()
-                messages.success(request, '%s is now marked as incomplete.' %
+                messages.success(request, '%s is now marked as complete.' %
                                  report_instance.title,
                                  extra_tags='alert-success')
                 return HttpResponseRedirect(reverse('reporting:report_detail',
@@ -390,8 +391,39 @@ def report_status_toggle(request, pk):
                            extra_tags='alert-danger')
             return HttpResponseRedirect(reverse('reporting:reports'))
     except Exception:
-        messages.error(request, 'Could not set the requested report as '
-                       'incomplete.',
+        messages.error(request, "Could not update the report's status!",
+                       extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('reporting:reports'))
+
+
+@login_required
+def report_delivery_toggle(request, pk):
+    """View function to toggle the delivery status for the specified report."""
+    try:
+        report_instance = Report.objects.get(pk=pk)
+        if report_instance:
+            if report_instance.delivered:
+                report_instance.delivered = False
+                report_instance.save()
+                messages.success(request, '%s is now marked as not delivered.' %
+                                 report_instance.title,
+                                 extra_tags='alert-success')
+                return HttpResponseRedirect(reverse('reporting:report_detail',
+                                            args=(pk, )))
+            else:
+                report_instance.delivered = True
+                report_instance.save()
+                messages.success(request, '%s is now marked as delivered.' %
+                                 report_instance.title,
+                                 extra_tags='alert-success')
+                return HttpResponseRedirect(reverse('reporting:report_detail',
+                                            args=(pk, )))
+        else:
+            messages.error(request, 'The specified report does not exist!',
+                           extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('reporting:reports'))
+    except Exception:
+        messages.error(request, "Could not update the report's status!",
                        extra_tags='alert-danger')
         return HttpResponseRedirect(reverse('reporting:reports'))
 
@@ -745,6 +777,31 @@ def clone_report(request, pk):
     return HttpResponseRedirect(reverse(
         'reporting:report_detail',
         kwargs={'pk': new_report_pk}))
+
+
+@login_required
+def convert_finding(request, pk):
+    """View function to convert a finding in a report to a master finding
+    for the library.
+    """
+    finding_instance = ReportFindingLink.objects.get(pk=pk)
+    new_finding = Finding(
+        title=finding_instance.title,
+        description=finding_instance.description,
+        impact=finding_instance.impact,
+        mitigation=finding_instance.mitigation,
+        replication_steps=finding_instance.replication_steps,
+        host_detection_techniques=finding_instance.host_detection_techniques,
+        network_detection_techniques=finding_instance.network_detection_techniques,
+        references=finding_instance.references,
+        severity=finding_instance.severity,
+        finding_type=finding_instance.finding_type
+    )
+    new_finding.save()
+    new_finding_pk = new_finding.pk
+    return HttpResponseRedirect(reverse(
+        'reporting:finding_detail',
+        kwargs={'pk': new_finding_pk}))
 
 
 ################

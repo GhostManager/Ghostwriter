@@ -91,3 +91,19 @@ urlpatterns += [
                      views.reopen_project,
                      name='reopen_project'),
                ]
+
+# URLs for project objectives
+urlpatterns += [
+                path('projects/objective/<int:pk>/create/',
+                     views.ProjectObjectiveCreate.as_view(),
+                     name='project_objective_create'),
+                path('projects/objective/<int:pk>/update/',
+                     views.ProjectObjectiveUpdate.as_view(),
+                     name='project_objective_update'),
+                path('projects/objective/<int:pk>/delete/',
+                     views.ProjectObjectiveDelete.as_view(),
+                     name='project_objective_delete'),
+                path('projects/objective/<int:pk>/<str:status>/',
+                     views.set_objective_status,
+                     name='set_objective_status'),
+              ]
