@@ -61,9 +61,13 @@
                     <td class="clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
                     <td nowrap>{{ report.last_update }}</td>
                     {% if report.complete %}
-                        <td>Complete</td>
+                        {% if report.delivered %}
+                            <td>Delivered</td>
+                        {% else %}
+                            <td>Complete, Awaiting Delivery</td>
+                        {% endif %}
                     {% else %}
-                        <td>Incomplete</td>
+                        <td>In Progress</td>
                     {% endif %}
                     <td >{{ report.created_by }}</td>
                     <td><a href="{% url 'reporting:activate_report' report.id %}"><i style="font-size: 15px" class="far fa-edit"></i></button></td>

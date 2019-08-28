@@ -139,7 +139,7 @@
 
                     <!-- Admin Section -->
                     <ul class="list-unstyled components">
-                        <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Manage Site</p>
+                        <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Management</p>
                         <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
                         <li>
                             <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
@@ -250,13 +250,11 @@
                                         </li>
                                         <li class="nav-item">
                                             {% count_assignments request as assignment_count %}
-                                            <a href="{% url 'home:dashboard' %}">
-                                                {% if assignment_count > 0 %}
-                                                    <span class="notify-badge badge badge-warning">{{ assignment_count }}</span>
-                                                {% elif assignment_count > 5 %}
-                                                    <span class="notify-badge badge badge-danger">{{ assignment_count }}</span>
-                                                {% endif %}
-                                            </a>
+                                            {% if assignment_count > 0 %}
+                                                <a href="{% url 'home:dashboard' %}" class="notify-badge badge badge-warning">{{ assignment_count }}</a>
+                                            {% elif assignment_count > 5 %}
+                                                <a href="{% url 'home:dashboard' %}" class="notify-badge badge badge-danger">{{ assignment_count }}</a>
+                                            {% endif %}
                                             <a class="nav-link" href="{% url 'home:profile' %}"><img style="width: 40px; height: 40px; border-radius: 50%; margin-top: -10px;" class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar"></a>
                                         </li>
                                     {% else %}

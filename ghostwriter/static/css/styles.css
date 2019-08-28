@@ -108,8 +108,7 @@ input[type="file"] {
 .notify-badge{
     position: absolute;
     right: 20px;
-    top: 10px;
-    padding: 3px 8px;
+    padding: 6px 8px;
     z-index: 1;
 }
 
@@ -795,10 +794,6 @@ thead th.down {
     max-width: 800px;
     padding: 0 20px;
 }
-
-
-
-
 
 .myaccordion {
     max-width: 100%;
