@@ -36,10 +36,14 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 # from rolodex.models import Project, ProjectAssignment
-from .models import Finding, Severity, FindingType, Report, \
-    ReportFindingLink, Evidence, Archive
-from .forms import FindingCreateForm, ReportCreateForm, \
-    ReportFindingLinkUpdateForm, EvidenceForm
+from .models import (
+    Finding, Severity, FindingType, Report,
+    ReportFindingLink, Evidence, Archive,
+    FindingNote, LocalFindingNote)
+from .forms import (
+    FindingCreateForm, ReportCreateForm,
+    ReportFindingLinkUpdateForm, EvidenceForm,
+    FindingNoteCreateForm, LocalFindingNoteCreateForm)
 
 # Import model filters for views
 from .filters import FindingFilter, ReportFilter, ArchiveFilter
@@ -280,6 +284,7 @@ def assign_finding(request, pk):
                                         references=finding.references,
                                         severity=finding.severity,
                                         finding_type=finding.finding_type,
+                                        finding_guidance=finding.finding_guidance,
                                         report=report,
                                         assigned_to=request.user,
                                         position=get_position(
@@ -376,7 +381,7 @@ def report_status_toggle(request, pk):
             else:
                 report_instance.complete = True
                 report_instance.save()
-                messages.success(request, '%s is now marked as incomplete.' %
+                messages.success(request, '%s is now marked as complete.' %
                                  report_instance.title,
                                  extra_tags='alert-success')
                 return HttpResponseRedirect(reverse('reporting:report_detail',
@@ -386,8 +391,39 @@ def report_status_toggle(request, pk):
                            extra_tags='alert-danger')
             return HttpResponseRedirect(reverse('reporting:reports'))
     except Exception:
-        messages.error(request, 'Could not set the requested report as '
-                       'incomplete.',
+        messages.error(request, "Could not update the report's status!",
+                       extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('reporting:reports'))
+
+
+@login_required
+def report_delivery_toggle(request, pk):
+    """View function to toggle the delivery status for the specified report."""
+    try:
+        report_instance = Report.objects.get(pk=pk)
+        if report_instance:
+            if report_instance.delivered:
+                report_instance.delivered = False
+                report_instance.save()
+                messages.success(request, '%s is now marked as not delivered.' %
+                                 report_instance.title,
+                                 extra_tags='alert-success')
+                return HttpResponseRedirect(reverse('reporting:report_detail',
+                                            args=(pk, )))
+            else:
+                report_instance.delivered = True
+                report_instance.save()
+                messages.success(request, '%s is now marked as delivered.' %
+                                 report_instance.title,
+                                 extra_tags='alert-success')
+                return HttpResponseRedirect(reverse('reporting:report_detail',
+                                            args=(pk, )))
+        else:
+            messages.error(request, 'The specified report does not exist!',
+                           extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('reporting:reports'))
+    except Exception:
+        messages.error(request, "Could not update the report's status!",
                        extra_tags='alert-danger')
         return HttpResponseRedirect(reverse('reporting:reports'))
 
@@ -743,6 +779,31 @@ def clone_report(request, pk):
         kwargs={'pk': new_report_pk}))
 
 
+@login_required
+def convert_finding(request, pk):
+    """View function to convert a finding in a report to a master finding
+    for the library.
+    """
+    finding_instance = ReportFindingLink.objects.get(pk=pk)
+    new_finding = Finding(
+        title=finding_instance.title,
+        description=finding_instance.description,
+        impact=finding_instance.impact,
+        mitigation=finding_instance.mitigation,
+        replication_steps=finding_instance.replication_steps,
+        host_detection_techniques=finding_instance.host_detection_techniques,
+        network_detection_techniques=finding_instance.network_detection_techniques,
+        references=finding_instance.references,
+        severity=finding_instance.severity,
+        finding_type=finding_instance.finding_type
+    )
+    new_finding.save()
+    new_finding_pk = new_finding.pk
+    return HttpResponseRedirect(reverse(
+        'reporting:finding_detail',
+        kwargs={'pk': new_finding_pk}))
+
+
 ################
 # View Classes #
 ################
@@ -1019,4 +1080,144 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs['object']
         ctx['object_type'] = 'evidence file'
         ctx['object_to_be_deleted'] = queryset.friendly_name
+        return ctx
+
+
+class FindingNoteCreate(LoginRequiredMixin, CreateView):
+    """View for creating new note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = FindingNote
+    form_class = FindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully added to this finding.',
+            extra_tags='alert-success')
+        return reverse('reporting:finding_detail', kwargs={'pk': self.object.finding.id})
+
+    def get_initial(self):
+        """Set the initial values for the form."""
+        finding_instance = get_object_or_404(
+            Finding, pk=self.kwargs.get('pk'))
+        finding = finding_instance
+        return {
+                'finding': finding,
+                'operator': self.request.user
+               }
+
+
+class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
+    """View for updating existing note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = FindingNote
+    form_class = FindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully updated.',
+            extra_tags='alert-success')
+        return reverse('reporting:finding_detail', kwargs={'pk': self.object.finding.pk})
+
+
+class FindingNoteDelete(LoginRequiredMixin, DeleteView):
+    """View for deleting existing note entries. This view defaults to the
+    confirm_delete.html template.
+    """
+    model = FindingNote
+    template_name = 'confirm_delete.html'
+
+    def get_success_url(self):
+        """Override the function to return to the server after deletion."""
+        messages.warning(
+            self.request,
+            'Note successfully deleted.',
+            extra_tags='alert-warning')
+        return reverse('reporting:finding_detail', kwargs={'pk': self.object.finding.pk})
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(FindingNoteDelete, self).get_context_data(**kwargs)
+        queryset = kwargs['object']
+        ctx['object_type'] = 'note'
+        ctx['object_to_be_deleted'] = queryset.note
+        return ctx
+
+
+class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
+    """View for creating new note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = LocalFindingNote
+    form_class = LocalFindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully added to this finding.',
+            extra_tags='alert-success')
+        return reverse('reporting:local_edit', kwargs={'pk': self.object.finding.id})
+
+    def get_initial(self):
+        """Set the initial values for the form."""
+        finding_instance = get_object_or_404(
+            ReportFindingLink, pk=self.kwargs.get('pk'))
+        finding = finding_instance
+        return {
+                'finding': finding,
+                'operator': self.request.user
+               }
+
+
+class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
+    """View for updating existing note entries. This view defaults to the
+    note_form.html template.
+    """
+    model = LocalFindingNote
+    form_class = LocalFindingNoteCreateForm
+    template_name = 'note_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Note successfully updated.',
+            extra_tags='alert-success')
+        return reverse('reporting:local_edit', kwargs={'pk': self.object.finding.pk})
+
+
+class LocalFindingNoteDelete(LoginRequiredMixin, DeleteView):
+    """View for deleting existing note entries. This view defaults to the
+    confirm_delete.html template.
+    """
+    model = LocalFindingNote
+    template_name = 'confirm_delete.html'
+
+    def get_success_url(self):
+        """Override the function to return to the server after deletion."""
+        messages.warning(
+            self.request,
+            'Note successfully deleted.',
+            extra_tags='alert-warning')
+        return reverse('reporting:local_edit', kwargs={'pk': self.object.finding.pk})
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(LocalFindingNoteDelete, self).get_context_data(**kwargs)
+        queryset = kwargs['object']
+        ctx['object_type'] = 'note'
+        ctx['object_to_be_deleted'] = queryset.note
         return ctx

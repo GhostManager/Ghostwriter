@@ -3,6 +3,17 @@
 
 {% block pagetitle %}Server Check-out{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Servers</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:domain_detail' form.server.value %}">{{ server_name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <p>Complete this form and then click Save to checkout {{ server_name }}:</p>
 
@@ -26,7 +37,7 @@
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem"" action="" method="post" id="checkoutForm" data-projects-url="{% url 'shepherd:ajax_load_projects' %}">
+    <form class="newitem" action="" method="post" id="checkoutForm" data-projects-url="{% url 'shepherd:ajax_load_projects' %}">
         {% csrf_token %}
         <!-- Client Info Section -->
         <strong><i class="far fa-building"></i> Client Information</strong>
@@ -73,7 +84,8 @@
         {{ form.server }}
         {{ form.operator }}
 
-        <input type="submit" class="button" value="Save">
+        <input type="submit" class="btn btn-primary" value="Save">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 

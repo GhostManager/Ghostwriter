@@ -3,6 +3,17 @@
 
 {% block pagetitle %}Domain Check-out{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:domain_detail' form.domain.value %}">{{ domain_name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <p>Complete this form and then click Save to checkout {{ domain_name }}:</p>
 
@@ -69,7 +80,8 @@
         {{ form.domain }}
         {{ form.operator }}
 
-        <input type="submit" class="button" value="Save">
+        <input type="submit" class="btn btn-primary" value="Save">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 

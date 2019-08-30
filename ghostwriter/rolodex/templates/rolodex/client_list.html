@@ -1,29 +1,48 @@
 {% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
 
 {% block pagetitle %}Client List{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Clients</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
-    {% if client_list %}
+    <!-- Filter Section -->
+    <div class="m-auto">
+        <form class="filterform" method="get">
+            <div class="form-group">
+                {{ filter.form.name|as_crispy_field }}
+            </div>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'rolodex:clients' %}" class="btn btn-secondary">Reset</a>
+        </form>
+    </div>
+
+    {% if filter.qs|length == 0 %} 
+        <p>There are no active clients yet or your search returned no results.</p>
+    {% else %}
         <table id="clientTable" class="tablesorter">
             <thead>
                 <tr>
                     <th>Client</th>
-                    <th>Short Name</th>
-                    <th>Codename</th>
+                    <th><div style="margin-right: 10px;">Codename</div></th>
                     <th class="sorter-false">Description</th>
                 </tr>
             </thead>
-            {% for client in client_list %}
+            {% for client in filter.qs %}
                 <tr>
-                    <td class="clickable"><a href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
-                    <td>{{ client.short_name }}</td>
-                    <td>{{ client.codename }}</td>
+                    <td nowrap class="clickable"><a href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
+                    <td nowrap>{{ client.codename }}</td>
                     <td>{{ client.note }}</td>
                 </tr>
             {% endfor %}
         </table>
-    {% else %}
-        <p>There are no active clients yet or your search returned no results.</p>
     {% endif %}
 {% endblock %}
 

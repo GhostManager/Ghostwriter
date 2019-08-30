@@ -1,9 +1,58 @@
 {% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
 
 {% block pagetitle %}Project List{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Projects</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
-    {% if project_list %}
+    <!-- Filter Section -->
+    <div class="m-auto">
+        <form autocomplete="off" class="filterform" method="get" style="width: 60%; margin-left: 20%">
+            <div class="row">
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {{ filter.form.start_date_range|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {{ filter.form.start_date|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {{ filter.form.complete|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class='col-sm-4'>
+                    <div class="form-group">
+                        {{ filter.form.end_date_range|as_crispy_field }}
+                    </div>
+                </div>
+                <div class='col-sm-4'>
+                    <div class="form-group">
+                        {{ filter.form.end_date|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'rolodex:projects' %}" class="btn btn-secondary">Reset</a>
+        </form>
+    </div>
+
+    {% if filter.qs|length == 0 %} 
+        <p>There are no projects to display.</p>
+    {% else %}
         <table id="projectTable" class="tablesorter">
             <thead>
                 <tr>
@@ -14,18 +63,16 @@
                     <th class="sorter-false">Description</th>
                 </tr>
             </thead>
-            {% for project in project_list %}
+            {% for project in filter.qs %}
                 <tr>
-                    <td class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
-                    <td class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
-                    <td>{{ project.project_type }}</td>
-                    <td>{{ project.start_date }} - {{ project.end_date }}</td>
+                    <td nowrap class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
+                    <td nowrap class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                    <td nowrap>{{ project.project_type }}</td>
+                    <td nowrap>{{ project.start_date }} - {{ project.end_date }}</td>
                     <td>{{ project.note }}</td>
                 </tr>
             {% endfor %}
         </table>
-    {% else %}
-        <p>There are no projects to display.</p>
     {% endif %}
 {% endblock %}
 
@@ -41,6 +88,14 @@
                             }
                         );
             $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    <!-- Script for Datepicker -->
+    <script>
+        $(function() {
+            $("#id_start_date").datepicker({dateformat: 'mm/dd/yyyy'});
+            $("#id_end_date").datepicker();
         });
     </script>
 {% endblock %}

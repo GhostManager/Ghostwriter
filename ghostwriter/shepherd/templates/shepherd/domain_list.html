@@ -3,10 +3,19 @@
 
 {% block pagetitle %}Domain Catalog{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Domains</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Filter Section -->
     <div class="m-auto">
-        <form style="width: 35%; margin-left: 32.5%;" method="get">
+        <form class="filterform" method="get">
             <div class="form-row justify-content-center">
                 <div class="form-group col-md-6 mb-0">
                     {{ filter.form.name|as_crispy_field }}
@@ -15,23 +24,34 @@
                     {{ filter.form.all_cat|as_crispy_field }}
                 </div>
             </div>
-            <div class="form-row justify-content-center">
-                <div class="form-group col-md-6 mb-0">
-                    {% for choice in filter.form.health_status %}
-                        <label class="checkbox-inline">
-                            {{ choice.tag }} {{ choice.choice_label }}
-                        </label>
-                    {% endfor %}
-                </div>
-                <div class="form-group col-md-6 mb-0">
-                    {% for choice in filter.form.domain_status %}
-                        <label class="checkbox-inline">
-                            {{ choice.tag }} {{ choice.choice_label }}
-                        </label>
-                    {% endfor %}
+
+            <div class="form-row" style="margin-bottom: 20px;">
+                <div class="form-group col-md-12 mb-0">
+                    <div class="dropdown">
+                        <button class="dropbtn" style="font-family: 'Poppins', sans-serif; margin-right: 20px;"><i class="far fa-caret-square-down"></i> Health</button>
+                        <div class="dropdown-content dropdown-content-info">
+                            {% for choice in filter.form.health_status %}
+                                <label class="checkbox-inline">
+                                    {{ choice.tag }} {{ choice.choice_label }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="dropbtn" style="font-family: 'Poppins', sans-serif;"><i class="far fa-caret-square-down"></i> Status</button>
+                        <div class="dropdown-content dropdown-content-info">
+                            {% for choice in filter.form.domain_status %}
+                                <label class="checkbox-inline">
+                                    {{ choice.tag }} {{ choice.choice_label }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="button">Filter</button>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'shepherd:domains' %}" class="btn btn-secondary">Reset</a>
         </form>
     </div>
 
@@ -80,7 +100,7 @@
                 <tbody>
                 {% for domain in filter.qs %}
                     <tr>
-                        <td><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
+                        <td nowrap><a href="{{ domain.get_absolute_url }}" class="clickable">{{ domain.name }}</a></td>
 
                         {% if domain.domain_status.domain_status == "Available" %}
                             <td class="healthy">{{ domain.domain_status }}</td>
@@ -106,19 +126,23 @@
                             <td class="burned">{{ domain.whois_status }}</td>
                         {% endifequal %}
 
-                        <td>{{ domain.get_domain_age }}</td>
+                        <td nowrap>{{ domain.get_domain_age }}</td>
 
-                        <td>{{ domain.all_cat }}</td>
+                        {% if domain.all_cat %}
+                            <td>{{ domain.all_cat }}</td>
+                        {% else %}
+                            <td>No Results</td>
+                        {% endif %}
 
                         {% if domain.domain_status.domain_status == "Available" %}
                             <td>
                                 <a href="{% url 'shepherd:checkout' domain.id %}">
-                                    <i style="font-size: 25px" class="far fa-calendar-check"></i>
+                                    <i style="font-size: 15px" class="far fa-calendar-check"></i>
                                 </a>
                             </td>
                         {% else %}
-                            <td>
-                                <i style="font-size:25px" class="fas fa-ban"></i>
+                            <td class="burned">
+                                <i style="font-size: 15px" class="fas fa-ban"></i>
                             </td>
                         {% endif %}
                     </tr>

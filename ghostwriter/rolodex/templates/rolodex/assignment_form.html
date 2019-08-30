@@ -3,6 +3,16 @@
 
 {% block pagetitle %}Operator Assignment Form{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' form.project.value %}">Project {{ form.project.value }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Assign User</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <p>Complete this form to assign an operator to {{ project_name }}:</p>
 
@@ -70,7 +80,8 @@
         <!-- Hidden Inputs -->
         {{ form.project }}
 
-        <input type="submit" class="button" value="Save">
+        <input type="submit" class="btn btn-primary" value="Save">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 

@@ -3,6 +3,16 @@
 
 {% block pagetitle %}Domain Form{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
+            <li class="breadcrumb-item active" aria-current="page">New Domain</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Instruction -->
     <p>Fill-out this form as completely as possible with information related to this domain:</p>
@@ -107,7 +117,8 @@
     
         {{ form.note|as_crispy_field }}
 
-        <input type="submit" class="button" value="Submit">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 

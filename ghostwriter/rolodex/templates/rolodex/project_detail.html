@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Project {{ project.id }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ project.client }} {{ project.project_type }} ({{ project.start_date }})
@@ -53,348 +63,455 @@
             <p>No additional information provided for this project.</p>
         {% endif %}
 
-        <!-- Operators Section -->
-        <button class="collapsible"><i class="fas fa-user-plus"></i> Operators ( {{ project.projectassignment_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p><a href="{% url 'rolodex:assign_operator' project.id %}"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
-                {% if project.projectassignment_set.all %}
-                    <table>
-                        <tr>
-                            <th>Operator</th>
-                            <th>Role</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Note</th>
-                            <th style="text-align: center;">Options</th>
-                        </tr>
-                        {% for operator in project.projectassignment_set.all %}
-                            <tr>
-                                <td>{{ operator.operator.name }}</td>
-                                <td>{{ operator.role }}</td>
-                                {% if operator.start_date %}
-                                    <td>{{ operator.start_date }}</td>
-                                {% else %}
-                                    <td></td>
-                                {% endif %}
-                                {% if operator.end_date %}
-                                    <td>{{ operator.end_date }}</td>
-                                {% else %}
-                                    <td></td>
-                                {% endif %}
 
-                                <td style="text-align: justify">{{ operator.note|linebreaksbr }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:assignment_edit' operator.id %}"><i class="far fa-edit"></i> Edit Assignment</a>
-                                            <a href="{% url 'rolodex:assignment_delete' operator.id %}"><i style="color: red;" class="far fa-minus-square"></i> Unassign</a>
+    <div id="accordion" class="myaccordion">
+        <!-- Operators Section -->
+        <div class="card">
+            <div class="card-header" id="operators" data-toggle="collapse" data-target="#collapseOperators">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseOperators" aria-expanded="false" aria-controls="collapseOperators">
+                    <i class="fas fa-user-plus"></i> Operators <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseOperators" class="collapse" aria-labelledby="operators" data-parent="#accordion">
+                <div class="card-body">
+                    <p><a href="{% url 'rolodex:assign_operator' project.id %}"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
+                        {% if project.projectassignment_set.all %}
+                            <table>
+                                <tr>
+                                    <th>Operator</th>
+                                    <th>Role</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Note</th>
+                                    <th style="text-align: center;">Options</th>
+                                </tr>
+                                {% for operator in project.projectassignment_set.all %}
+                                    <tr>
+                                        <td nowrap>{{ operator.operator.name }}</td>
+                                        <td nowrap>{{ operator.role }}</td>
+                                        {% if operator.start_date %}
+                                            <td nowrap>{{ operator.start_date }}</td>
+                                        {% else %}
+                                            <td></td>
+                                        {% endif %}
+                                        {% if operator.end_date %}
+                                            <td nowrap>{{ operator.end_date }}</td>
+                                        {% else %}
+                                            <td></td>
+                                        {% endif %}
+
+                                        <td style="text-align: justify">{{ operator.note|linebreaksbr }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                    <a href="{% url 'rolodex:assignment_edit' operator.id %}"><i class="far fa-edit"></i> Edit Assignment</a>
+                                                    <a href="{% url 'rolodex:assignment_delete' operator.id %}"><i style="color: red;" class="far fa-minus-square"></i> Unassign</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>No operators have been assigned to this project yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        <!-- Objectives Section -->
+        <div class="card">
+            <div class="card-header" id="objectives" data-toggle="collapse" data-target="#collapseObjectives">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseObjectives" aria-expanded="false" aria-controls="collapseObjectives">
+                    <i class="fas fa-crosshairs"></i> Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseObjectives" class="collapse" aria-labelledby="objectives" data-parent="#accordion">
+                <div class="card-body">
+                    <p><a href="{% url 'rolodex:project_objective_create' project.id %}"><i class="far fa-plus-square"></i> Add an Objective</a></p>
+                        {% if project.projectobjective_set.all %}
+                            <table>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Objective</th>
+                                    <th>Deadline</th>
+                                    <th style="text-align: center;">Options</th>
+                                </tr>
+                                {% for objective in project.projectobjective_set.all %}
+                                    <tr>
+                                        <td nowrap>
+                                            <span class="badge badge-pill badge-dark
+                                                {% if objective.status.objective_status == "Active" %}
+                                                    low-background
+                                                {% elif objective.status.objective_status == "On Hold" %}
+                                                    medium-background
+                                                {% elif objective.status.objective_status == "Complete" %}
+                                                    info-background
+                                                {% endif %}
+                                                ">
+                                                {{ objective.status }}
+                                            </span>
+                                        </td>
+                                        <td nowrap>{{ objective.objective }}</td>
+                                        <td nowrap>{{ objective.deadline }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
+                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='active' %}"><i class="low fas fa-running"></i> Set Active</a>
+                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='onhold' %}"><i class="medium far fa-pause-circle"></i> Set On Hold</a>
+                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='complete' %}"><i class="info fas fa-check"></i> Set Complete</a>
+                                                    <a href="{% url 'rolodex:project_objective_update' objective.id %}"><i class="far fa-edit"></i> Edit Objective</a>
+                                                    <a href="{% url 'rolodex:project_objective_delete' objective.id %}"><i style="color: red;" class="far fa-minus-square"></i> Remove</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>No objectives have been set for this project yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Infrastructure Section -->
+            <div class="card">
+                <div class="card-header" id="infra" data-toggle="collapse" data-target="#collapseInfra">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseInfra" aria-expanded="false" aria-controls="collapseInfra">
+                        <i class="fas fa-server"></i> Infrastructure Used
+                    </a>
+                </div>
+                <div id="collapseInfra" class="collapse" aria-labelledby="infra" data-parent="#accordion">
+                    <div class="card-body">
+                        <!-- Domain Section -->
+                        <h4 style="margin-bottom: 40px;">Domains</h4>
+
+                        <!-- Search Section -->
+                        <div class="search" style="width: 35%; margin-left: 32.5%;">
+                            <form action="{% url 'shepherd:domains' %}" method="GET">
+                                <span class="fa fa-search"></span>
+                                <input type="text" name="domain_search" placeholder="Search domains">
+                                <input type="submit" style="display: none;" /> 
+                            </form>
+                        </div>
+
+                        {% if project.history_set.all %}
+                            <table style="margin-top: 10px;">
+                                <tr>
+                                    <th>Domain Name</th>
+                                    <th>Purpose</th>
+                                    <th>Date Range</th>
+                                    <th>Note</th>
+                                    <th>Options</th>
+                                </tr>
+                                {% for domain in project.history_set.all %}
+                                    <tr>
+                                        <td><a class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">{{ domain.domain.name }}</a></td>
+                                        <td>{{ domain.activity_type }}</td>
+                                        <td>{{ domain.start_date }} to {{ domain.end_date }}</td>
+                                        <td style="text-align: justify;">{{ domain.note|linebreaksbr }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                    <a href="{% url 'shepherd:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                                    <a href="{% url 'shepherd:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>There are no domains tied to this project yet.</p>
+                        {% endif %}
+
+                        <!-- Server Section -->
+                        <div class="dropdown">
+                            <h4 style="float: left; margin-right: 5px; margin-top: 50px;">
+                                Servers
+                                <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
+                            </h4>
+                            <div class="dropdown-content dropdown-content-info">
+                                <p>Checked-out servers will appear here. Add transient servers (i.e. virtual private servers) here as they are spun up for the project so they can be easily tracked and associated with domains and activities.</p>
+                            </div>
+                        </div>
+                        <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Transient Server</a></p>
+                        {% if project.serverhistory_set.all or project.transientserver_set.all %}
+                            <table>
+                                <tr>
+                                    <th>
+                                        IP Address
+                                        <div class="dropdown-right">
+                                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                            <div class="dropdown-content dropdown-content-info">
+                                                <p>Only <em>static servers</em> will be links.</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>No operators have been assigned to this project yet.</p>
-                {% endif %}
+                                    </th>
+                                    <th>Purpose</th>
+                                    <th>Role</th>
+                                    <th>Provider</th>
+                                    <th>Note</th>
+                                    <th>Options</th>
+                                </tr>
+                                {% for server in project.serverhistory_set.all %}
+                                    <tr>
+                                        <td><a class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
+                                        <td>{{ server.activity_type }}</td>
+                                        <td>{{ server.server_role }}</td>
+                                        <td>{{ server.server.server_provider }}</td>
+                                        <td style="text-align: justify;">{{ server.note }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content">
+                                                    <a href="{% url 'shepherd:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                                    <a href="{% url 'shepherd:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                {% for server in project.transientserver_set.all %}
+                                    <tr>
+                                        <td>{{ server.ip_address }}</td>
+                                        <td>{{ server.activity_type }}</td>
+                                        <td>{{ server.server_role }}</td>
+                                        <td>{{ server.server_provider }}</td>
+                                        <td style="text-align: justify;">{{ server.note|linebreaksbr }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                    <a href="{% url 'shepherd:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
+                                                    <a href="{% url 'shepherd:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>There are no servers tied to this project yet.</p>
+                        {% endif %}
+
+                        <!-- DNS Section -->
+                        <div class="dropdown">
+                            <h4 style="float: left; margin-right: 5px; margin-top: 40px;">
+                                Domains and Servers
+                                <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
+                            </h4>
+                            <div class="dropdown-content dropdown-content-info">
+                                <p>Add an association to track which of this project's currently checked-out domains is being used with which project server.</p>
+                            </div>
+                        </div>
+
+                        <!-- Determine if at least one server and one domain -->
+                        {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
+                            <p>
+                                <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Add a Domain + Server Association</a>
+                            </p>
+                            {% if project.domainserverconnection_set.all %}
+                                <table>
+                                    <tr>
+                                        <th>Domain</th>
+                                        <th>Server</th>
+                                        <th>CDN Endpoint</th>
+                                        <th>Options</th>
+                                    </tr>
+                                    {% for connection in project.domainserverconnection_set.all %}
+                                        <tr>
+                                            <td>{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
+                                            {% if connection.static_server %}
+                                                <td>{{ connection.static_server.server.ip_address }}</td>
+                                            {% else %}
+                                                <td>{{ connection.transient_server.ip_address }}</td>
+                                            {% endif %}
+                                            {% if connection.endpoint %}
+                                                <td>{{ connection.endpoint }}</td>
+                                            {% else %}
+                                                <td>No Endpoint</td>
+                                            {% endif %}
+                                            <td>
+                                                <div class="dropdown">
+                                                    <button class="dropbtn far fa-caret-square-down"></button>
+                                                    <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                        <a href="{% url 'shepherd:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
+                                                        <a href="{% url 'shepherd:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            {% endif %}
+                        {% else %}
+                            <p>Check-out/add at least one domain and one server to create an association.</p>
+                        {% endif %}
+                </div>
             </div>
         </div>
 
-        <!-- Infrastructure Section -->
-        <button class="collapsible"><i class="fas fa-server"></i> Infrastructure Used</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <!-- Domain Section -->
-                <h4>Domains</h4>
-
-                <!-- Search Section -->
-                <div class="search" style="width: 35%; margin-left: 32.5%;">
-                    <form action="{% url 'shepherd:domains' %}" method="GET">
-                        <span class="fa fa-search"></span>
-                        <input type="text" name="domain_search" placeholder="Search domains">
-                        <input type="submit" style="display: none;" /> 
-                    </form>
-                </div>
-
-                {% if project.history_set.all %}
-                    <table style="margin-top: 10px;">
-                        <tr>
-                            <th>Domain Name</th>
-                            <th>Purpose</th>
-                            <th>Date Range</th>
-                            <th>Note</th>
-                            <th>Options</th>
-                        </tr>
-                        {% for domain in project.history_set.all %}
-                            <tr>
-                                <td><a class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">{{ domain.domain.name }}</a></td>
-                                <td>{{ domain.activity_type }}</td>
-                                <td>{{ domain.start_date }} to {{ domain.end_date }}</td>
-                                <td style="text-align: justify;">{{ domain.note|linebreaksbr }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'shepherd:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                            <a href="{% url 'shepherd:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
+        <!-- Findings Section -->
+        <div class="card">
+            <div class="card-header" id="findings" data-toggle="collapse" data-target="#collapseFindings">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseFindings" aria-expanded="false" aria-controls="collapseFindings">
+                    <i class="fab fa-searchengin"></i> Findings <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
+                </a>
+            </div>
+            <div id="collapseFindings" class="collapse" aria-labelledby="findings" data-parent="#accordion">
+                <div class="card-body">
+                    {% if project.report_set.all %}
+                        {% for report in project.report_set.all %}
+                            {% if report.reportfindinglink_set.all %}
+                                <h4 style="margin-top: 40px; margin-bottom: 40px;">{{ report.title }}</h4>
+                                <table>
+                                    <tr>
+                                        <th>Severity</th>
+                                        <th>Finding</th>
+                                        <th>Owner</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    {% for finding in report.reportfindinglink_set.all %}
+                                        <tr>
+                                            {% if finding.severity.severity == "Critical" %}
+                                                <td class="critical">{{ finding.severity }}</td>
+                                            {% elif finding.severity.severity == "High" %}
+                                                <td class="high">{{ finding.severity }}</td>
+                                            {% elif finding.severity.severity == "Medium" %}
+                                                <td class="medium">{{ finding.severity }}</td>
+                                            {% elif finding.severity.severity == "Low" %}
+                                                <td class="low">{{ finding.severity }}</td>
+                                            {% else %}
+                                                <td class="info">{{ finding.severity }}</td>
+                                            {% endif %}
+                                            <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                            {% if finding.assigned_to == request.user %}
+                                                {% if finding.complete %}
+                                                    <td class="low">You</td>
+                                                {% else %}
+                                                    <td class="high">You</td>
+                                                {% endif %} 
+                                            {% else %}
+                                                <td class="neutral">{{ finding.assigned_to }}</td>
+                                            {% endif %}
+                                            {% if finding.complete %}
+                                                <td class="low">Ready for Review</td>
+                                            {% else %}
+                                                <td class="high">Needs Editing</td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            {% else %}
+                                <p>No findings have been added to this project's reports yet.</p>
+                            {% endif %}
                         {% endfor %}
-                    </table>
-                {% else %}
-                    <p>There are no domains tied to this project yet.</p>
-                {% endif %}
-
-                <!-- Server Section -->
-                <div class="dropdown">
-                    <h4 style="float: left; margin-right: 5px;">Servers</h4>
-                    <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
-                    <div class="dropdown-content dropdown-content-info">
-                        <p>Checked-out servers will appear here. Add transient servers (i.e. virtual private servers) here as they are spun up for the project so they can be easily tracked and associated with domains and activities.</p>
-                    </div>
+                    {% else %}
+                        <p>No reports have been created for this project yet.</p>
+                    {% endif %}
                 </div>
-                <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Transient Server</a></p>
-                {% if project.serverhistory_set.all or project.transientserver_set.all %}
-                    <table>
-                        <tr>
-                            <th>IP Address</th>
-                            <th>Purpose</th>
-                            <th>Role</th>
-                            <th>Provider</th>
-                            <th>Note</th>
-                            <th>Options</th>
-                        </tr>
-                        {% for server in project.serverhistory_set.all %}
-                            <tr>
-                                <td><a class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
-                                <td>{{ server.activity_type }}</td>
-                                <td>{{ server.server_role }}</td>
-                                <td>{{ server.server.server_provider }}</td>
-                                <td style="text-align: justify;">{{ server.note }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'shepherd:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                            <a href="{% url 'shepherd:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        {% for server in project.transientserver_set.all %}
-                            <tr>
-                                <td>{{ server.ip_address }}</td>
-                                <td>{{ server.activity_type }}</td>
-                                <td>{{ server.server_role }}</td>
-                                <td>{{ server.server_provider }}</td>
-                                <td style="text-align: justify;">{{ server.note|linebreaksbr }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'shepherd:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
-                                            <a href="{% url 'shepherd:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>There are no servers tied to this project yet.</p>
-                {% endif %}
+            </div>
+        </div>
 
-                <!-- DNS Section -->
-                <div class="dropdown">
-                    <h4 style="float: left; margin-right: 5px;">Domains and Servers</h4>
-                    <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
-                    <div class="dropdown-content dropdown-content-info">
-                        <p>Add an association to track which of this project's currently checked-out domains is being used with which project server.</p>
-                    </div>
-                </div>
-
-                <!-- Determine if at least one server and one domain -->
-                {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
-                    <p>
-                        <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Add a Domain + Server Association</a>
-                    </p>
-                    {% if project.domainserverconnection_set.all %}
+        <!-- Reports Section -->
+        <div class="card">
+            <div class="card-header" id="reports" data-toggle="collapse" data-target="#collapseReports">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseReports" aria-expanded="false" aria-controls="collapseReports">
+                    <i class="fas fa-book"></i> Reports <span class="badge badge-pill badge-light">{{ project.report_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseReports" class="collapse" aria-labelledby="reports" data-parent="#accordion">
+                <div class="card-body">
+                    {% if project.complete %}
+                        <p>The project is marked as complete so no additional reports may be created.</p>
+                    {% else %}
+                        <p><a href="{% url 'reporting:report_create' project.id %}"><i class="far fa-plus-square"></i> Add a Report</a></p>
+                    {% endif %}
+                    {% if project.report_set.all %}
                         <table>
                             <tr>
-                                <th>Domain</th>
-                                <th>Server</th>
-                                <th>CDN Endpoint</th>
-                                <th>Options</th>
+                                <th>Creation</th>
+                                <th>Title</th>
+                                <th>Last Update</th>
+                                <th>Status</th>
+                                <th>Created by</th>
+                                <th style="text-align: center;">Options</th>
                             </tr>
-                            {% for connection in project.domainserverconnection_set.all %}
+                            {% for report in project.report_set.all %}
                                 <tr>
-                                    <td>{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
-                                    {% if connection.static_server %}
-                                        <td>{{ connection.static_server.server.ip_address }}</td>
+                                    <td>{{ report.creation }}</td>
+                                    <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                                    <td>{{ report.last_update }}</td>
+                                    {% if report.complete %}
+                                        {% if report.delivered %}
+                                            <td>Delivered</td>
+                                        {% else %}
+                                            <td>Complete, Awaiting Delivery</td>
+                                        {% endif %}
                                     {% else %}
-                                        <td>{{ connection.transient_server.ip_address }}</td>
+                                        <td>In Progress</td>
                                     {% endif %}
-                                    {% if connection.endpoint %}
-                                        <td>{{ connection.endpoint }}</td>
-                                    {% else %}
-                                        <td>No Endpoint</td>
-                                    {% endif %}
+                                    <td>{{ report.created_by }}</td>
                                     <td>
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
-                                            <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                                <a href="{% url 'shepherd:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
-                                                <a href="{% url 'shepherd:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
+                                            <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
+                                                <a href="{% url 'reporting:activate_report' report.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
+                                                <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
+                                                <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
                                             </div>
                                         </div>
                                     </td>
                                 </tr>
                             {% endfor %}
                         </table>
+                    {% else %}
+                        <p>No reports have been created for this project yet.</p>
                     {% endif %}
-                {% else %}
-                    <p>Check-out/add at least one domain and one server to create an association.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Findings Section -->
-        <button class="collapsible"><i class="fab fa-searchengin"></i> Findings</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                {% if project.report_set.all %}
-                    {% for report in project.report_set.all %}
-                        {% if report.reportfindinglink_set.all %}
-                            <p>{{ report.title }}</p>
-                            <table>
-                                <tr>
-                                    <th>Severity</th>
-                                    <th>Finding</th>
-                                    <th>Owner</th>
-                                    <th>Status</th>
-                                </tr>
-                                {% for finding in report.reportfindinglink_set.all %}
-                                    <tr>
-                                        {% if finding.severity.severity == "High" %}
-                                            <td style="color: red;">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "Medium" %}
-                                            <td style="color: orange;">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "Low" %}
-                                            <td style="color: blue;">{{ finding.severity }}</td>
-                                        {% else %}
-                                            <td style="color: green;">{{ finding.severity }}</td>
-                                        {% endif %}
-                                        <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
-                                        {% if finding.assigned_to == request.user %}
-                                        {% if finding.complete %}
-                                            <td style="color: #A8D08D;"><strong>You</strong></td>
-                                        {% else %}
-                                            <td style="color: #FF7E79;"><strong>You</strong></td>
-                                        {% endif %} 
-                                        {% else %}
-                                            <td style="color: #7a7a7a;"><strong>{{ finding.assigned_to }}</strong></td>
-                                        {% endif %}
-                                        {% if finding.complete %}
-                                            <td style="color: #A8D08D;"><strong>Ready for Review</strong></td>
-                                        {% else %}
-                                            <td style="color: #FF7E79;"><strong>Needs Editing</strong></td>
-                                        {% endif %}
-                                    </tr>
-                                {% endfor %}
-                            </table>
-                        {% else %}
-                            <p>No findings have been added to this project's reports yet.</p>
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <p>No reports have been created for this project yet.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Reports Section -->
-        <button class="collapsible"><i class="fas fa-book"></i> Reports ( {{ project.report_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                {% if project.complete %}
-                    <p>The project is marked as complete so no additional reports may be created.</p>
-                {% else %}
-                    <p><a href="{% url 'reporting:report_create' project.id %}"><i class="far fa-plus-square"></i> Add a Report</a></p>
-                {% endif %}
-                {% if project.report_set.all %}
-                    <table>
-                        <tr>
-                            <th>Creation</th>
-                            <th>Title</th>
-                            <th>Last Update</th>
-                            <th>Status</th>
-                            <th>Created by</th>
-                            <th style="text-align: center;">Options</th>
-                        </tr>
-                        {% for report in project.report_set.all %}
-                            <tr>
-                                <td>{{ report.creation }}</td>
-                                <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                                <td>{{ report.last_update }}</td>
-                                {% if report.complete %}
-                                    <td>Complete</td>
-                                {% else %}
-                                    <td>In Progress</td>
-                                {% endif %}
-                                <td>{{ report.created_by }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'reporting:activate_report' report.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
-                                            <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
-                                            <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>No reports have been created for this project yet.</p>
-                {% endif %}
+                </div>
             </div>
         </div>
 
         <!-- Additional Information Section -->
-        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ project.projectnote_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p>
-                    <a href="{% url 'rolodex:project_note_add' project.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
-                </p>
-                {% if project.projectnote_set.all %}
-                    {% for note in project.projectnote_set.all reversed %}
-                        <p>{{ note.timestamp }}</p>
-                        <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                            <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                            {% if request.user == note.operator or request.user.is_staff %}
-                                <div class="dropdown right">
-                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                    <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+        <div class="card">
+            <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
+                    <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseNotes" class="collapse" aria-labelledby="notes" data-parent="#accordion">
+                <div class="card-body">
+                    <p>
+                        <a href="{% url 'rolodex:project_note_add' project.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    </p>
+                    {% if project.projectnote_set.all %}
+                        {% for note in project.projectnote_set.all reversed %}
+                            <p>{{ note.timestamp }}</p>
+                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                {% if request.user == note.operator or request.user.is_staff %}
+                                    <div class="dropdown right">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
                                     </div>
-                                </div>
-                            {% endif %}
-                            <p>{{ note.note|linebreaksbr }}</p>
-                            <span class="time-right">{{ note.operator.username }}</span>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No notes for this project.</p>
-                {% endif %}
+                                {% endif %}
+                                <p>{{ note.note|linebreaksbr }}</p>
+                                <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No notes for this project.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

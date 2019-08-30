@@ -118,4 +118,6 @@ urlpatterns += [
     path('update_dns/', views.update_dns, name='update_dns'),
     path('update_dns/<int:pk>/', views.update_dns_single,
          name='update_dns_single'),
+    path('update_namecheap/', views.pull_domains_namecheap,
+         name='update_namecheap'),
 ]

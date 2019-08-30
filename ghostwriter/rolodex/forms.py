@@ -7,19 +7,21 @@ from django.utils.translation import ugettext_lazy as _
 from crispy_forms.helper import FormHelper
 
 from .models import (Client, Project, ClientContact, ProjectAssignment,
-    ClientNote, ProjectNote)
+    ClientNote, ProjectNote, ProjectObjective)
 
 
 class ClientCreateForm(forms.ModelForm):
-    """Form used with the ClientCreate CreateView in models.py to allow
+    """Form used with the ClientCreate CreateView in views.py to allow
     excluding fields.
     """
     class Meta:
         """Metadata for the model form."""
         model = Client
-        exclude = ('codename',)
+        # exclude = ('codename',)
+        fields = ('__all__')
         widgets = {
                     'name': forms.TextInput(attrs={'size': 55}),
+                    'codename': forms.HiddenInput(),
                     'short_name': forms.TextInput(attrs={'size': 55}),
                     'note': forms.Textarea(attrs={'cols': 55})
                    }
@@ -39,7 +41,7 @@ class ClientCreateForm(forms.ModelForm):
 
 
 class ProjectCreateForm(forms.ModelForm):
-    """Form used with the ProjectCreate CreateView in models.py to allow
+    """Form used with the ProjectCreate CreateView in views.py to allow
     excluding fields.
     """
     class Meta:
@@ -121,7 +123,7 @@ class ClientContactCreateForm(forms.ModelForm):
 
 
 class AssignmentCreateForm(forms.ModelForm):
-    """Form used with the AssignmentCreate CreateView in models.py."""
+    """Form used with the AssignmentCreate CreateView in views.py."""
     class Meta:
         """Metadata for the model form."""
         model = ProjectAssignment
@@ -178,7 +180,7 @@ class AssignmentCreateForm(forms.ModelForm):
 
 
 class ClientNoteCreateForm(forms.ModelForm):
-    """Form used with the ClientNote CreateView in models.py."""
+    """Form used with the ClientNote CreateView in views.py."""
     class Meta:
         """Metadata for the model form."""
         model = ClientNote
@@ -201,7 +203,7 @@ class ClientNoteCreateForm(forms.ModelForm):
 
 
 class ProjectNoteCreateForm(forms.ModelForm):
-    """Form used with the ProjectNote CreateView in models.py."""
+    """Form used with the ProjectNote CreateView in views.py."""
     class Meta:
         """Metadata for the model form."""
         model = ProjectNote
@@ -215,6 +217,30 @@ class ProjectNoteCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
         super(ProjectNoteCreateForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_class = 'form-inline'
+        self.helper.form_method = 'post'
+        self.helper.field_class = \
+            'h-100 justify-content-center align-items-center'
+        self.helper.form_show_labels = False
+
+
+class ProjectObjectiveCreateForm(forms.ModelForm):
+    """Form used with the ProjectObjectiveCreate CreateView in views.py."""
+    class Meta:
+        """Metadata for the model form."""
+        model = ProjectObjective
+        fields = ('__all__')
+        widgets = {
+                    'project': forms.HiddenInput()
+                  }
+
+    def __init__(self, *args, **kwargs):
+        """Override the `init()` function to set some attributes."""
+        super(ProjectObjectiveCreateForm, self).__init__(*args, **kwargs)
+        self.fields['deadline'].widget.attrs['placeholder'] = 'mm/dd/yyyy'
+        self.fields['deadline'].widget.attrs['autocomplete'] = 'off'
+        self.fields['objective'].widget.attrs['placeholder'] = 'Obtain commit privileges to git'
         self.helper = FormHelper()
         self.helper.form_class = 'form-inline'
         self.helper.form_method = 'post'

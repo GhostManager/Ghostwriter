@@ -5,6 +5,8 @@ from django.urls import reverse
 # from django.contrib.auth.models import User
 from django.conf import settings
 
+from ghostwriter.reporting.models import ReportFindingLink
+
 
 class Client(models.Model):
     """Model representing the clients attached to project records. This model
@@ -185,6 +187,15 @@ class Project(models.Model):
         help_text='Select a category for this project that best describes '
                   'the work being performed')
 
+    def count_findings(self):
+        """Count and return the number of findings across all reports associated
+        with the `Project` model instance.
+        """
+        finding_queryset = ReportFindingLink.objects.select_related('report', 'report__project').filter(report__project=self.pk)
+        return finding_queryset.count()
+
+    count = property(count_findings)
+
     class Meta:
         """Metadata for the model."""
         ordering = ['client', 'start_date', 'project_type', 'codename']
@@ -272,6 +283,67 @@ class ProjectAssignment(models.Model):
         """String for representing the model object (in Admin site etc.)."""
         return f'{self.operator} - {self.project} {self.end_date})'
 
+
+class ObjectiveStatus(models.Model):
+    """Model representing the available objective statuses used for projects.
+
+    There are no foreign keys.
+    """
+    objective_status = models.CharField(
+        'Objective Status',
+        max_length=100,
+        unique=True,
+        help_text='Enter an objective status (e.g. Active, On Hold)')
+
+    class Meta:
+        """Metadata for the model."""
+        ordering = ['objective_status']
+        verbose_name = 'Objective status'
+        verbose_name_plural = 'Objective statuses'
+
+    def __str__(self):
+        """String for representing the model object (in Admin site etc.)."""
+        return self.objective_status
+
+
+class ProjectObjective(models.Model):
+    """Model representing objectives for projects.
+
+    There are foreign keys for the `Project` and `ObjectiveStatus` models.
+    """
+    objective = models.TextField(
+        'Objective',
+        null=True,
+        blank=True,
+        help_text='Provide a concise objective')
+    complete = models.BooleanField(
+        'Completed',
+        default=False,
+        help_text='Mark the objective as complete')
+    deadline = models.DateField(
+        'Due Date',
+        max_length=100,
+        help_text='Provide a deadline for this objective')
+    # Foreign Keys
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        null=False)
+    status = models.ForeignKey(
+        ObjectiveStatus,
+        on_delete=models.PROTECT,
+        null=False,
+        help_text='Set the initial status for this objective')
+
+    class Meta:
+        """Metadata for the model."""
+        ordering = ['project', 'complete', 'deadline', 'status', 'objective']
+        verbose_name = 'Project objective'
+        verbose_name_plural = 'Project objectives'
+
+    def __str__(self):
+        """String for representing the model object (in Admin site etc.)."""
+        return f'{self.project} - {self.objective} {self.status})'
 
 class ClientNote(models.Model):
     """Model representing notes for clients.

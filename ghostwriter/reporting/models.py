@@ -193,6 +193,10 @@ class Report(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True)
+    delivered = models.BooleanField(
+        'Delivered',
+        default=False,
+        help_text='Delivery status of the report')
 
     class Meta:
         """Metadata for the model."""
@@ -273,6 +277,13 @@ class ReportFindingLink(models.Model):
         blank=True,
         help_text='Provide solid references for this finding, such as links '
         'to reference materials, tooling, and white papers')
+    finding_guidance = models.TextField(
+        'Finding Guidance',
+        null=True,
+        blank=True,
+        help_text='Provide notes for your team that describes how the finding '
+        'is intended to be used and any details that should be provided '
+        'during editing')
     complete = models.BooleanField(
         'Completed',
         default=False,
@@ -419,3 +430,71 @@ class Archive(models.Model):
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
         return self.report_archive.name
+
+
+class FindingNote(models.Model):
+    """Model representing notes for findings added to a report.
+
+    There are foreign keys for the `Finding` and `User` models.
+    """
+    # This field is automatically filled with the current date
+    timestamp = models.DateField(
+        'Timestamp',
+        auto_now_add=True,
+        max_length=100,
+        help_text='Creation timestamp')
+    note = models.TextField(
+        'Notes',
+        null=True,
+        blank=True,
+        help_text='Use this area to add a note to this finding - it can be '
+                  'anything you want others to see/know about the finding')
+    # Foreign Keys
+    finding = models.ForeignKey(
+        'Finding', on_delete=models.CASCADE, null=False)
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        """Metadata for the model."""
+        ordering = ['finding', '-timestamp']
+        verbose_name = 'Local finding note'
+        verbose_name_plural = 'Local finding notes'
+
+    def __str__(self):
+        """String for representing the model object (in Admin site etc.)."""
+        return f'{self.finding} {self.timestamp}: {self.note}'
+
+
+class LocalFindingNote(models.Model):
+    """Model representing notes for findings added to a report.
+
+    There are foreign keys for the `ReportFindingLink` and `User` models.
+    """
+    # This field is automatically filled with the current date
+    timestamp = models.DateField(
+        'Timestamp',
+        auto_now_add=True,
+        max_length=100,
+        help_text='Creation timestamp')
+    note = models.TextField(
+        'Notes',
+        null=True,
+        blank=True,
+        help_text='Use this area to add a note to this finding - it can be '
+                  'anything you want others to see/know about the finding')
+    # Foreign Keys
+    finding = models.ForeignKey(
+        'ReportFindingLink', on_delete=models.CASCADE, null=False)
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        """Metadata for the model."""
+        ordering = ['finding', '-timestamp']
+        verbose_name = 'Local finding note'
+        verbose_name_plural = 'Local finding notes'
+
+    def __str__(self):
+        """String for representing the model object (in Admin site etc.)."""
+        return f'{self.finding} {self.timestamp}: {self.note}'

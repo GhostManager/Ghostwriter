@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ client.name }} Details{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ client.name }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ client.name }} (<em>{{ client.codename }}</em>)
@@ -24,168 +34,189 @@
         {% else %}
             <p>No information provided for this client.</p>
         {% endif %}
+    </div>
 
+    <div id="accordion" class="myaccordion">
         <!-- POC Section -->
-        <button class="collapsible"><i class="far fa-user-circle"></i> Points of Contact ( {{ client.clientcontact_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p><a href="{% url 'rolodex:client_poc_add' client.id %}"><i class="far fa-plus-square"></i> Add a Point of Contact</a></p>
+        <div class="card">
+            <div class="card-header" id="poc" data-toggle="collapse" data-target="#collapsePOC">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapsePOC" aria-expanded="false" aria-controls="collapsePOC">
+                    <i class="far fa-user-circle"></i> Points of Contact <span class="badge badge-pill badge-light">{{ client.clientcontact_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapsePOC" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                <div class="card-body">
+                    <p><a href="{% url 'rolodex:client_poc_add' client.id %}"><i class="far fa-plus-square"></i> Add a Point of Contact</a></p>
 
-                <!-- POC Information Rows -->
-                {% if client.clientcontact_set.all %}
-                    <table>
-                        <tr>
-                            <th>Name</th>
-                            <th>Title/Role</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Note</th>
-                            <th>Options</th>
-                        </tr>
-                        {% for poc in client.clientcontact_set.all %}
+                    <!-- POC Information Rows -->
+                    {% if client.clientcontact_set.all %}
+                        <table>
                             <tr>
-                                <td>{{ poc.name }}</td>
-                                <td>{{ poc.job_title }}</td>
-                                <td>{{ poc.email }}</td>
-                                <td>{{ poc.phone }}</td>
-                                <td style="text-align: justify;">{{ poc.note|linebreaksbr }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:client_poc_edit' poc.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'rolodex:client_poc_delete' poc.id %} "><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
+                                <th>Name</th>
+                                <th>Title/Role</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Note</th>
+                                <th>Options</th>
                             </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>There is nothing to see here yet.</p>
-                {% endif %}
+                            {% for poc in client.clientcontact_set.all %}
+                                <tr>
+                                    <td>{{ poc.name }}</td>
+                                    <td>{{ poc.job_title }}</td>
+                                    <td>{{ poc.email }}</td>
+                                    <td>{{ poc.phone }}</td>
+                                    <td style="text-align: justify;">{{ poc.note|linebreaksbr }}</td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                <a href="{% url 'rolodex:client_poc_edit' poc.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a href="{% url 'rolodex:client_poc_delete' poc.id %} "><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% else %}
+                        <p>There is nothing to see here yet.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
         <!-- Project History Section -->
-        <button class="collapsible"><i class="fas fa-history"></i> Project History ( {{ client.project_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p><a href="{% url 'rolodex:project_create' client.id %}"><i class="far fa-plus-square"></i> Add a Project</a></p>
-                {% if client.project_set.all %}
-                    {% if domains %}
-                    <h4>Domains Used with {{ client.name }}</h4>
+        <div class="card">
+            <div class="card-header" id="history" data-toggle="collapse" data-target="#collapseHistory">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseHistory" aria-expanded="false" aria-controls="collapseHistory">
+                    <i class="fas fa-history"></i> Project History <span class="badge badge-pill badge-light">{{ client.project_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseHistory" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                <div class="card-body">
+                    <p><a href="{% url 'rolodex:project_create' client.id %}"><i class="far fa-plus-square"></i> Add a Project</a></p>
+                    {% if client.project_set.all %}
+                        <h4>{{ client.name }} Projects</h4>
                         <table>
                             <tr>
-                                <th>Project</th>
-                                <th>Domain</th>
-                                <th>Activity Type</th>
-                                <th>End Date</th>
+                                <th>Project Codename</th>
+                                <th>Project Type</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Note</th>
+                                <th>Options</th>
                             </tr>
-                            {% for domain in domains %}
+                            {% for project in client.project_set.all %}
                                 <tr>
-                                    <td>{{ domain.project }}</td>
-                                    <td>{{ domain.domain.name }}</td>
-                                    <td>{{ domain.activity_type }}</td>
-                                    <td>{{ domain.end_date }}</td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    {% endif %}
-
-                    {% if servers or vps %}
-                        <h4>Servers Used with {{ client.name }}</h4>
-                        <table>
-                            <tr>
-                                <th>Project</th>
-                                <th>Server</th>
-                                <th>Activity Type</th>
-                                <th>End Date</th>
-                            </tr>
-                            {% for server in servers %}
-                                <tr>
-                                    <td>{{ server.project }}</td>
-                                    <td>{{ server.server.ip_address }}</td>
-                                    <td>{{ server.activity_type }}</td>
-                                    <td>{{ server.end_date }}</td>
-                                </tr>
-                            {% endfor %}
-
-                            {% for server in vps %}
-                                <tr>
-                                    <td> {{ server.project }}</td>
-                                    <td>{{ server.ip_address }}</td>
-                                    <td>{{ server.activity_type }}</td>
-                                    <td> {{ server.project.end_date }}</td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    {% endif %}
-
-                    <h4>{{ client.name }} Projects</h4>
-                    <table>
-                        <tr>
-                            <th>Project Codename</th>
-                            <th>Project Type</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Note</th>
-                            <th>Options</th>
-                        </tr>
-                        {% for project in client.project_set.all %}
-                            <tr>
-                                <td><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
-                                <td>{{ project.project_type }}</td>
-                                <td>{{ project.start_date }}</td>
-                                <td>{{ project.end_date }}</td>
-                                <td style="text-align: justify">{{ project.note|linebreaksbr }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:project_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'rolodex:project_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                    <td><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                                    <td>{{ project.project_type }}</td>
+                                    <td>{{ project.start_date }}</td>
+                                    <td>{{ project.end_date }}</td>
+                                    <td style="text-align: justify">{{ project.note|linebreaksbr }}</td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                <a href="{% url 'rolodex:project_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a href="{% url 'rolodex:project_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                            </div>
                                         </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>This client has no project history.</p>
-                {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+
+                        {% if domains %}
+                            <h4 style="margin-top: 50px;">Domains Used with {{ client.name }}</h4>
+                            <table>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Domain</th>
+                                    <th>Activity Type</th>
+                                    <th>End Date</th>
+                                </tr>
+                                {% for domain in domains %}
+                                    <tr>
+                                        <td>{{ domain.project }}</td>
+                                        <td>{{ domain.domain.name }}</td>
+                                        <td>{{ domain.activity_type }}</td>
+                                        <td>{{ domain.end_date }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+
+                        {% if servers or vps %}
+                            <h4 style="margin-top: 50px;">Servers Used with {{ client.name }}</h4>
+                            <table>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Server</th>
+                                    <th>Activity Type</th>
+                                    <th>End Date</th>
+                                </tr>
+                                {% for server in servers %}
+                                    <tr>
+                                        <td>{{ server.project }}</td>
+                                        <td>{{ server.server.ip_address }}</td>
+                                        <td>{{ server.activity_type }}</td>
+                                        <td>{{ server.end_date }}</td>
+                                    </tr>
+                                {% endfor %}
+
+                                {% for server in vps %}
+                                    <tr>
+                                        <td> {{ server.project }}</td>
+                                        <td>{{ server.ip_address }}</td>
+                                        <td>{{ server.activity_type }}</td>
+                                        <td> {{ server.project.end_date }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+                    {% else %}
+                        <p>This client has no project history.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
         <!-- Additional Information Section -->
-        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ client.clientnote_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p>
-                    <a href="{% url 'rolodex:client_note_add' client.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
-                </p>
-                {% if client.clientnote_set.all %}
-                    {% for note in client.clientnote_set.all reversed %}
-                        <p>{{ note.timestamp }}</p>
-                        <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                            <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                            {% if request.user == note.operator or request.user.is_staff %}
-                                <div class="dropdown right">
-                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                    <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'rolodex:client_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'rolodex:client_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+        <div class="card">
+            <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
+                    <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseNotes" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                <div class="card-body">
+                    <p>
+                        <a href="{% url 'rolodex:client_note_add' client.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    </p>
+                    {% if client.clientnote_set.all %}
+                        {% for note in client.clientnote_set.all reversed %}
+                            <p>{{ note.timestamp }}</p>
+                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                {% if request.user == note.operator or request.user.is_staff %}
+                                    <div class="dropdown right">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'rolodex:client_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'rolodex:client_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
                                     </div>
-                                </div>
-                            {% endif %}
-                            <p>{{ note.note|linebreaksbr }}</p>
-                            <span class="time-right">{{ note.operator.username }}</span>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No notes for this domain.</p>
-                {% endif %}
+                                {% endif %}
+                                <p>{{ note.note|linebreaksbr }}</p>
+                                <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No notes for this domain.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
+
     </div>
 {% endblock %}

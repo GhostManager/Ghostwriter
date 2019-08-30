@@ -3,6 +3,16 @@
 
 {% block pagetitle %}Server Entry{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
+            <li class="breadcrumb-item active" aria-current="page">New Server</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Form Error Sections -->
     {% if form.errors %}
@@ -54,7 +64,8 @@
 
         {{ form.note|as_crispy_field }}
 
-        <input type="submit" class="button" value="Submit">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 

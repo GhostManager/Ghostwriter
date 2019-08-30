@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ staticserver.ip_address }}{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item truncate"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item truncate"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
+            <li class="breadcrumb-item active truncate" aria-current="page">{{ staticserver.ip_address }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ staticserver.ip_address }}
@@ -67,33 +77,42 @@
         {% endif %}
 
         <!-- Additional Information Section -->
-        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ staticserver.servernote_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p>
-                    <a href="{% url 'shepherd:server_note_add' staticserver.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
-                </p>
-                {% if staticserver.servernote_set.all %}
-                    {% for note in staticserver.servernote_set.all reversed %}
-                        <p>{{ note.timestamp }}</p>
-                        <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                            <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                            {% if request.user == note.operator or request.user.is_staff %}
-                                <div class="dropdown right">
-                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                    <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
-                                    </div>
+        <div id="accordion" class="myaccordion">
+            <!-- Description -->
+            <div class="card">
+                <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
+                        <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ staticserver.servernote_set.all.count }}</span>
+                    </a>
+                </div>
+                <div id="collapseNotes" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                    <div class="card-body">
+                        <p>
+                            <a href="{% url 'shepherd:server_note_add' staticserver.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                        </p>
+                        {% if staticserver.servernote_set.all %}
+                            {% for note in staticserver.servernote_set.all reversed %}
+                                <p>{{ note.timestamp }}</p>
+                                <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                    <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                    {% if request.user == note.operator or request.user.is_staff %}
+                                        <div class="dropdown right">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div id="myDropdown" class="dropdown-content">
+                                                <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    <p>{{ note.note|linebreaksbr }}</p>
+                                    <span class="time-right">{{ note.operator.username }}</span>
                                 </div>
-                            {% endif %}
-                            <p>{{ note.note|linebreaksbr }}</p>
-                            <span class="time-right">{{ note.operator.username }}</span>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No notes for this server.</p>
-                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <p>No notes for this server.</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>

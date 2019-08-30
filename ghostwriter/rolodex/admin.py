@@ -2,7 +2,8 @@
 
 from django.contrib import admin
 from .models import (Client, Project, ProjectType, ClientContact,
-    ProjectAssignment, ProjectRole, ClientNote, ProjectNote)
+    ProjectAssignment, ProjectRole, ClientNote, ProjectNote,
+    ProjectObjective, ObjectiveStatus)
 
 
 # Define the admin classes and register models
@@ -74,4 +75,14 @@ class ClientNoteAdmin(admin.ModelAdmin):
 
 @admin.register(ProjectNote)
 class ProjectNoteAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ObjectiveStatus)
+class ObjectiveStatusAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ProjectObjective)
+class ProjectObjectiveAdmin(admin.ModelAdmin):
     pass

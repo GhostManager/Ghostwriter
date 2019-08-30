@@ -1,20 +1,12 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Project Form{% endblock %}
-
-{% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' form.client.value %}">Client {{ form.client.value }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Add Project</li>
-        </ul>
-    </nav>
-{% endblock %}
+{% block pagetitle %}Objective Form{% endblock %}
 
 {% block content %}
-    <p>Fill-out this form with all necessary information for this project for {{ client_name }}:</p>
+    <p>
+        Provide a concise objective for the {{ project_name }} project.
+    </p>
 
     <!-- Form Error Sections -->
     {% if form.errors %}
@@ -39,37 +31,26 @@
     <form class="newitem" action="" method="post">
         {% csrf_token %}
 
-        <!-- Project Info Section -->
-        <strong><i class="fas fa-tasks"></i> Project Information</td></strong>
+        <!-- Objective Section -->
+        <strong><i class="fas fa-crosshairs"></i> Set Your Objective</strong>
         <hr>
 
         <div class="form-row">
             <div class="form-group col-md-6 mb-0">
-                {{ form.start_date|as_crispy_field }}
+                {{ form.status|as_crispy_field }}
             </div>
             <div class="form-group col-md-6 mb-0">
-                {{ form.end_date|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.project_type|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.slack_channel|as_crispy_field }}
+                {{ form.deadline|as_crispy_field }}
             </div>
         </div>
+
+        {{ form.objective|as_crispy_field }}
 
         <!-- Spacer -->
         <p style="margin: 40px;"></p>
 
-        <!-- Additional Info Section -->
-        <strong><i class="far fa-comment-alt"></i> Additional Info</strong>
-        <hr>
-
-        {{ form.note|as_crispy_field }}
-
         <!-- Hidden Inputs -->
-        {{ form.client }}
-        {{ form.codename }}
+        {{ form.project }}
 
         <input type="submit" class="btn btn-primary" value="Submit">
         <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
@@ -80,8 +61,7 @@
     <!-- Script for Datepicker -->
     <script>
         $(function() {
-            $("#id_start_date").datepicker({dateformat: 'mm/dd/yyyy'});
-            $("#id_end_date").datepicker();
+            $("#id_deadline").datepicker();
         });
     </script>
 {% endblock %}

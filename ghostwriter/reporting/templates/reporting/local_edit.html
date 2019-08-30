@@ -3,47 +3,129 @@
 
 {% block pagetitle %}Finding Entry{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' reportfindinglink.report.project.client.id %}">{{ reportfindinglink.report.project.client.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' reportfindinglink.report.project.id %}">{{ reportfindinglink.report.project }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' reportfindinglink.report.id %}">{{ reportfindinglink.report }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Local Edit</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
-    <!-- Keyword Cheatsheet -->
-    <button class="collapsible"><i class="fas fa-comments"></i> Keyword Reference</button>
-    <div class="collapsiblecontent" style="margin-bottom: 40px;">
-        <p>Ghostwriter supports various template keywords you may utilize to format text and insert various pieces of information:</p>
-        {% verbatim %}
-            <table style="width: 50%; margin-left: 25%;">
-                <tr>
-                    <th class="smallCell">Keyword</th>
-                    <th>Usage</th>
-                </tr>
-                <tr>
-                    <td>{{.client}}</td>
-                    <td style="text-align: left">This keyword will be replaced with the client's short name. The full name will be used if a short name has not been set for the client.</td>
-                </tr>
-                <tr>
-                    <td>{{.evidence}}</td>
-                    <td style="text-align: left">On a new line, reference an evidence file by its "Friendly Name" to place it in the finding's text - e.g. <em>{{.BloodHound Graph 1}}</em>.</td>
-                </tr>
-                <tr>
-                    <td>{{.code_block}} & {{.end_code_block}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to transform the text into a code block within the finding text (alternative to attaching a text file as evidence). Place the <em>{{.end_code_block}}</em> keyword on a new line.</td>
-                </tr>
-                <tr>
-                    <td>{{.caption}}</td>
-                    <td style="text-align: left">Start a line of text with this keyword to make it a caption. This is intended to follow a code block.</td>
-                </tr>
-                <tr>
-                    <td>{{.inline_code}} & {{.end_inline_code}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to format the text using the template's "Code (inline)" style. This is useful for highlighting code/commands without creating a figure.</td>
-                </tr>
-                <tr>
-                    <td>{{.bulleted_list}} & {{.end_bulleted_list}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to transform the text into a bulleted list. Each new line between the keywords will be a bullet. Place the <em>{{.end_bulleted_list}}</em> keyword on a new line.</td>
-                </tr>
-                <tr>
-                    <td>{{.numbered_list}} & {{.end_numbered_list}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to transform the text into a numbered list. Each new line between the keywords will be a sequentially numbered line. Place the <em>{{.end_numbered_list}}</em> keyword on a new line.</td>
-                </tr>
-            </table>
-        {% endverbatim %}
+    <div id="accordion" class="myaccordion">
+        <!-- Keyword Cheatsheet -->
+        <div class="card">
+            <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseKeyword" aria-expanded="false" aria-controls="collapseKeyword">
+                    <i class="fas fa-code"></i> Keyword Reference
+                </a>
+            </div>
+            <div id="collapseKeyword" class="collapse" aria-labelledby="keyword" data-parent="#accordion">
+                <div class="card-body">
+                    <p>Ghostwriter supports various template keywords you may utilize to format text and insert various pieces of information:</p>
+                    {% verbatim %}
+                        <table style="width: 50%; margin-left: 25%;">
+                            <tr>
+                                <th class="smallCell">Keyword</th>
+                                <th>Usage</th>
+                            </tr>
+                            <tr>
+                                <td>{{.client}}</td>
+                                <td style="text-align: left">This keyword will be replaced with the client's short name. The full name will be used if a short name has not been set for the client.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.code_block}} & {{.end_code_block}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to transform the text into a code block within the finding text (alternative to attaching a text file as evidence). Place the <em>{{.end_code_block}}</em> keyword on a new line.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.caption}}</td>
+                                <td style="text-align: left">Start a line of text with this keyword to make it a caption. This is intended to follow a code block.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.inline_code}} & {{.end_inline_code}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to format the text using the template's "Code (inline)" style. This is useful for highlighting code/commands without creating a figure.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.bulleted_list}} & {{.end_bulleted_list}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to transform the text into a bulleted list. Each new line between the keywords will be a bullet. Place the <em>{{.end_bulleted_list}}</em> keyword on a new line.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.numbered_list}} & {{.end_numbered_list}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to transform the text into a numbered list. Each new line between the keywords will be a sequentially numbered line. Place the <em>{{.end_numbered_list}}</em> keyword on a new line.</td>
+                            </tr>                        
+                        {% endverbatim %}
+                        {% if reportfindinglink.evidence_set.all  %}
+                            {% for finding in reportfindinglink.evidence_set.all %}
+                                <tr>
+                                    <td>
+                                        {% templatetag openvariable %}.{{ finding.friendly_name }}{% templatetag closevariable %}
+                                    </td>
+                                    <td style="text-align: left">On a new line, reference this evidence file, <em>{{ finding.document.name }}</em>, by its "Friendly Name" to place it in the finding's text - e.g. <em>{% templatetag openvariable %}.{{ finding.friendly_name }}{% templatetag closevariable %}</em>.</td>
+                                </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finding Guidance Section -->
+        <div class="card">
+            <div class="card-header" id="guidance" data-toggle="collapse" data-target="#collapseGuidance">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseGuidance" aria-expanded="false" aria-controls="collapseGuidance">
+                    <i class="fas fa-map-signs"></i> Finding Guidance
+                </a>
+            </div>
+            <div id="collapseGuidance" class="collapse" aria-labelledby="guidance" data-parent="#accordion">
+                <div class="card-body">
+                    {% if reportfindinglink.finding_guidance %}
+                        <p>{{ reportfindinglink.finding_guidance }}</p>
+                    {% else %}
+                        <p>No guidance was provided for this finding in the library.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Information Section -->
+        <div class="card">
+            <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
+                    <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ reportfindinglink.localfindingnote_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseNotes" class="collapse" aria-labelledby="notes" data-parent="#accordion">
+                <div class="card-body">
+                    <p>
+                        <a href="{% url 'reporting:local_finding_note_add' reportfindinglink.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    </p>
+                    {% if reportfindinglink.localfindingnote_set.all %}
+                        {% for note in reportfindinglink.localfindingnote_set.all reversed %}
+                            <p>{{ note.timestamp }}</p>
+                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                {% if request.user == note.operator or request.user.is_staff %}
+                                    <div class="dropdown right">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'reporting:local_finding_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'reporting:local_finding_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <p>{{ note.note|linebreaksbr }}</p>
+                                <span class="time-right">{{ note.operator.username }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No notes for this finding.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Instructions Section -->
@@ -147,6 +229,7 @@
         {{ form.references|as_crispy_field }}
         {{ form.complete|as_crispy_field }}
 
-        <input type="submit" class="button" value="Save">
+        <input type="submit" class="btn btn-primary" value="Save">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}

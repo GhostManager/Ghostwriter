@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ finding.title }} Details{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ finding.title }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <style>
         p {
@@ -22,94 +32,191 @@
         </div>
     </h2>
 
-    <!-- Finding Severity Box -->
+    <!-- Finding Severity Badge -->
     <div style="width: 15%; margin: 0 auto">
-        <strong>
+        <span style="font-size: 18px;" class="badge badge-pill badge-dark
             {% if finding.severity.severity == "Critical" %}
-                <p class="severity-box critical">{{ finding.severity.severity }}</p>
+                critical-background
             {% elif finding.severity.severity == "High" %}
-                <p class="severity-box high">{{ finding.severity.severity }}</p>
+                high-background
             {% elif finding.severity.severity == "Medium" %}
-                <p class="severity-box medium">{{ finding.severity.severity }}</p>
+                medium-background
             {% elif finding.severity.severity == "Low" %}
-                <p class="severity-box low">{{ finding.severity.severity }}</p>
-            {% else %}
-                <p class="severity-box info">{{ finding.severity.severity }}</p>
+                low-background
             {% endif %}
-        </strong>
+        ">
+            {{ finding.severity.severity }}
+        </span>
     </div>
 
-    <!-- Description -->
-    <div style="margin-left: 20px; margin-top: 20px;">
-        <h4>Description</h4>
-        <hr>
-
-        {% if finding.description %}
-            <p>{{ finding.description|linebreaksbr }}</p>
-        {% else %}
-            <p>Description write-up is needed.</p>
-        {% endif %}
+    <div id="accordion" class="myaccordion">
+        <!-- Description -->
+        <div class="card">
+            <div class="card-header" id="description" data-toggle="collapse" data-target="#collapseDescription">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseDescription" aria-expanded="false" aria-controls="collapseDescription">
+                    Description
+                </a>
+            </div>
+            <div id="collapseDescription" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                <div class="card-body">
+                    {% if finding.description %}
+                        <p>{{ finding.description|linebreaksbr }}</p>
+                    {% else %}
+                        <p>Description write-up is needed.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
         <!-- Impact -->
-        <h4>Impact</h4>
-        <hr>
-
-        {% if finding.impact %}
-            <p>{{ finding.impact|linebreaksbr }}</p>
-        {% else %}
-            <p>Impact write-up is needed.</p>
-        {% endif %}
+        <div class="card">
+            <div class="card-header" id="impact" data-toggle="collapse" data-target="#collapseImpact">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseImpact" aria-expanded="false" aria-controls="collapseImpact">
+                    Impact
+                </a>
+            </div>
+            <div id="collapseImpact" class="collapse" aria-labelledby="impact" data-parent="#accordion">
+                <div class="card-body">
+                    {% if finding.impact %}
+                        <p>{{ finding.impact|linebreaksbr }}</p>
+                    {% else %}
+                        <p>Impact write-up is needed.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
         <!-- Recommendations -->
-        <h4>Recommendations</h4>
-        <hr>
+        <div class="card">
+            <div class="card-header" id="recommendations" data-toggle="collapse" data-target="#collapseRecommendations">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseRecommendations" aria-expanded="false" aria-controls="collapseRecommendations">
+                    Recommendations
+                </a>
+            </div>
+            <div id="collapseRecommendations" class="collapse" aria-labelledby="recommendations" data-parent="#accordion">
+                <div class="card-body">
+                    {% if finding.mitigation %}
+                        <p>{{ finding.mitigation|linebreaksbr }}</p>
+                    {% else %}
+                        <p>Recommendations are needed.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-        {% if finding.mitigation %}
-            <p>{{ finding.mitigation|linebreaksbr }}</p>
-        {% else %}
-            <p>Recommendations are needed.</p>
-        {% endif %}
+        <!-- Detections -->
+        <div class="card">
+            <div class="card-header" id="hostdetection" data-toggle="collapse" data-target="#collapseHDetect">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseHDetect" aria-expanded="false" aria-controls="collapseHDetect">
+                    Detections
+                </a>
+            </div>
+            <div id="collapseHDetect" class="collapse" aria-labelledby="hostdetection" data-parent="#accordion">
+                <div class="card-body">
+                    {% if finding.host_detection_techniques %}
+                        <h4>Host Detection</h4>
+                        <hr>
 
-        <!-- Detection Techniques -->
-        {% if finding.host_detection_techniques %}
-            <h4>Host Detection</h4>
-            <hr>
+                        <p>{{ finding.host_detection_techniques|linebreaksbr }}</p>
+                    {% endif %}
 
-            <p>{{ finding.host_detection_techniques|linebreaksbr }}</p>
-        {% endif %}
+                    {% if finding.network_detection_techniques %}
+                        <h4>Network Detection</h4>
+                        <hr>
 
-        {% if finding.network_detection_techniques %}
-            <h4>Network Detection</h4>
-            <hr>
+                        <p>{{ finding.network_detection_techniques|linebreaksbr }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-            <p>{{ finding.network_detection_techniques|linebreaksbr }}</p>
-        {% endif %}
+        <!-- Replication Steps -->
+        <div class="card">
+            <div class="card-header" id="replication" data-toggle="collapse" data-target="#collapseReplication">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseReplication" aria-expanded="false" aria-controls="collapseReplication">
+                    Replication Steps
+                </a>
+            </div>
+            <div id="collapseReplication" class="collapse" aria-labelledby="replication" data-parent="#accordion">
+                <div class="card-body">
+                    {% if finding.replication_steps %}
+                        <p>{{ finding.replication_steps|linebreaksbr }}</p>
+                    {% else %}
+                        <p>Replication steps are needed.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-        <!-- Replication Steps & Walkthrough -->
-        <h4>Replication Steps</h4>
-        <hr>
+        <!-- References -->
+        <div class="card">
+            <div class="card-header" id="reference" data-toggle="collapse" data-target="#collapseReference">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseReference" aria-expanded="false" aria-controls="collapseReference">
+                    References
+                </a>
+            </div>
+            <div id="collapseReference" class="collapse" aria-labelledby="reference" data-parent="#accordion">
+                <div class="card-body">
+                    {% if finding.references %}
+                        <p>{{ finding.references|linebreaksbr }}</p>
+                    {% else %}
+                        <p>References are needed.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
-        {% if finding.replication_steps %}
-            <p>{{ finding.replication_steps|linebreaksbr }}</p>
-        {% else %}
-            <p>Replication steps are needed.</p>
-        {% endif %}
-
-        <!-- Reference Section -->
-        <h4>References</h4>
-        <hr>
-
-        {% if finding.references %}
-            <p>{{ finding.references|linebreaksbr }}</p>
-        {% else %}
-            <p>References are needed.</p>
-        {% endif %}
-
+        <!-- Optional Finding Guidance -->
         {% if finding.finding_guidance %}
-            <h4>Guidance</h4>
-            <hr>
-
-            <p>{{ finding.finding_guidance }}</p>
+            <div class="card">
+                <div class="card-header" id="guidance" data-toggle="collapse" data-target="#collapseGuidance">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseGuidance" aria-expanded="false" aria-controls="collapseGuidance">
+                        Finding Guidance
+                    </a>
+                </div>
+                <div id="collapseGuidance" class="collapse" aria-labelledby="guidance" data-parent="#accordion">
+                    <div class="card-body">
+                        <p>{{ finding.finding_guidance }}</p>
+                    </div>
+                </div>
+            </div>
         {% endif %}
+
+        <!-- Notes -->
+        <div class="card">
+            <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
+                    Notes <span class="badge badge-pill badge-light" style="margin-right: auto; margin-left: 10px;">{{ finding.findingnote_set.all.count }}</span>
+                </a>
+            </div>
+            <div id="collapseNotes" class="collapse" aria-labelledby="notes" data-parent="#accordion">
+                <div class="card-body">
+                    <p style="text-align: center;">
+                        <a href="{% url 'reporting:finding_note_add' finding.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    </p>
+                    {% if finding.findingnote_set.all %}
+                        {% for note in finding.findingnote_set.all reversed %}
+                            <p style="text-align: center;">{{ note.timestamp }}</p>
+                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                {% if request.user == note.operator or request.user.is_staff %}
+                                    <div class="dropdown right">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'reporting:finding_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'reporting:finding_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                <p>{{ note.note|linebreaksbr }}</p>
+                                <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p style="text-align: center;">No notes for this finding.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock %}

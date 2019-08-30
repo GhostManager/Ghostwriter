@@ -2,6 +2,16 @@
 
 {% block pagetitle %}Domain Import{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Import</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- File Upload -->
     <h2>Upload Domain CSV</h2>
@@ -32,7 +42,7 @@
         <div style="width: 50%; margin: 0 auto">
             <p>
                 <em>
-                    name, registrar, health_status, health_dns, dns_record, whois, creation, expiration, all_cat, ibm_xforce_cat, talos_cat, bluecoat_cat, fortiguard_cat, opendns_cat, trendmicro_cat, mx_toolbox_status, note
+                    name, registrar, health_status, health_dns, dns_record, whois_status, creation, expiration, all_cat, ibm_xforce_cat, talos_cat, bluecoat_cat, fortiguard_cat, opendns_cat, trendmicro_cat, mx_toolbox_status, note
                 </em>
             </p>
         </div>

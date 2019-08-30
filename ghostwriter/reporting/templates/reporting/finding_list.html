@@ -3,6 +3,15 @@
 
 {% block pagetitle %}Findings Library{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Findings</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Filter Section -->
     <div class="m-auto">
@@ -10,23 +19,33 @@
             <div class="form-group">
                 {{ filter.form.title|as_crispy_field }}
             </div>
-            <div class="form-row">
-                <div class="form-group col-md-6 mb-0">
-                    {% for choice in filter.form.severity %}
-                        <label class="checkbox-inline">
-                            {{ choice.tag }} {{ choice.choice_label }}
-                        </label>
-                    {% endfor %}
-                </div>
-                <div class="form-group col-md-6 mb-0">
-                    {% for choice in filter.form.finding_type %}
-                        <label class="checkbox-inline">
-                            {{ choice.tag }} {{ choice.choice_label }}
-                        </label>
-                    {% endfor %}
+            <div class="form-row" style="margin-bottom: 20px;">
+                <div class="form-group col-md-12 mb-0">
+                    <div class="dropdown">
+                        <button class="dropbtn" style="font-family: 'Poppins', sans-serif; margin-right: 20px;"><i class="far fa-caret-square-down"></i> Severity</button>
+                        <div class="dropdown-content dropdown-content-info">
+                            {% for choice in filter.form.severity %}
+                                <label class="checkbox-inline">
+                                    {{ choice.tag }} {{ choice.choice_label }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="dropbtn" style="font-family: 'Poppins', sans-serif;"><i class="far fa-caret-square-down"></i> Type</button>
+                        <div class="dropdown-content dropdown-content-info">
+                            {% for choice in filter.form.finding_type %}
+                                <label class="checkbox-inline">
+                                    {{ choice.tag }} {{ choice.choice_label }}
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button type="submit" class="button">Filter</button>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'reporting:findings' %}" class="btn btn-secondary">Reset</a>
         </form>
     </div>
 
@@ -82,23 +101,27 @@
 
                             <!-- Finding Type (e.g. Network) -->
                             {% if finding.finding_type.finding_type == "Network" %}
-                                <td style="font-size:15px" title="Network Finding">Network <i class="fas fa-network-wired"></i></td>
+                                <td style="font-size: 15px" title="Network Finding"><i class="fas fa-network-wired"></i> Network</td>
                             {% elif finding.finding_type.finding_type == "Wireless" %}
-                                <td style="font-size:15px" title="Wireless Finding">Wireless <i class="fas fa-wifi"></i></td>
+                                <td style="font-size: 15px" title="Wireless Finding"><i class="fas fa-wifi"></i> Wireless</td>
                             {% elif finding.finding_type.finding_type == "Physical" %}
-                                <td style="font-size:15px" title="Physical Finding">Physical <i class="fas fa-user-secret"></i></td>
-                            {% elif finding.finding_type.finding_type == "Web" %}
-                                <td style="font-size:15px" title="Web App Finding">Web App <i class="fas fa-code"></i></td>
-                            {% elif finding.finding_type.finding_type == "Mobile" %}
-                                <td style="font-size:15px" title="Mobile Finding">Mobile <i class="fas fa-mobile-alt"></i></td>
+                                <td style="font-size: 15px" title="Physical Finding"><i class="fas fa-user-secret"></i> Physical</td>
+                            {% elif finding.finding_type.finding_type == "Web Application" %}
+                                <td style="font-size: 15px" title="Web App Finding"><i class="fas fa-code"></i> Web App</td>
+                            {% elif finding.finding_type.finding_type == "Mobile Application" %}
+                                <td style="font-size: 15px" title="Mobile Finding"><i class="fas fa-mobile-alt"></i> Mobile App</td>
+                            {% elif finding.finding_type.finding_type == "Cloud" %}
+                                <td style="font-size: 15px" title="Cloud Finding"><i class="fas fa-cloud"></i> Cloud</td>
+                            {% elif finding.finding_type.finding_type == "Host" %}
+                                <td style="font-size: 15px" title="Local Host Finding"><i class="fas fa-laptop"></i> Host</td>
                             {% else %}
                                 <td id="cols" class="severity">{{ finding.finding_type.finding_type }}</td>
                             {% endif %}
 
                             <!-- Other Information -->
                             <td id="cols" class="title clickable"><a href="{{ finding.get_absolute_url }}">{{ finding.title }}</a></td>
-                            <td><a href="{% url 'reporting:assign_finding' finding.id %}"><i style="font-size:25px" class="far fa-plus-square"></i></button></td>
-                            <td><a href="{% url 'reporting:finding_update' finding.id %}"><i style="font-size:25px" class="far fa-edit"></i></button></td>
+                            <td><a href="{% url 'reporting:assign_finding' finding.id %}"><i style="font-size: 15px" class="far fa-plus-square"></i></button></td>
+                            <td><a href="{% url 'reporting:finding_update' finding.id %}"><i style="font-size: 15px" class="far fa-edit"></i></button></td>
                         </tr>
                     {% endfor %}
                 </tbody>
