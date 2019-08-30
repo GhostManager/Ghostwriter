@@ -68,7 +68,7 @@
                         {% elif assignment_count > 5 %}
                             <span class="notify-badge badge badge-danger">{{ assignment_count }}</span>
                         {% else %}
-                            <span class="notify-badge badge badge-success"><i class="far fa-laugh-beam"></i></span>
+                            <span class="notify-badge badge badge-success"><i class="far fa-laugh-beam" style="padding-left: 5px;"></i></span>
                         {% endif %}
                         <table>
                             {% if user_tasks %}
@@ -80,7 +80,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td style="text-align: center;">No reporting tasks.</td>
+                                    <td style="text-align: center;">You have no reporting tasks. Nice!</td>
                                 </tr>
                             {% endif %}
                         </table>
