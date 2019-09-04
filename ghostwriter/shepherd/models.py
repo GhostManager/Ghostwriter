@@ -576,6 +576,12 @@ class TransientServer(models.Model):
         max_length=100,
         unique=True,
         help_text='Enter the server IP address')
+    name = models.CharField(
+        'Name',
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text='Enter the server\'s name (typically hostname)')
     note = models.TextField(
         'Notes',
         null=True,
@@ -614,13 +620,13 @@ class TransientServer(models.Model):
 
     class Meta:
         """Metadata for the model."""
-        ordering = ['project', 'server_provider', 'ip_address', 'server_role']
+        ordering = ['project', 'server_provider', 'ip_address', 'server_role', 'name']
         verbose_name = 'Virtual private server'
         verbose_name_plural = 'Virtual private servers'
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
-        return f'{self.ip_address} ({self.server_provider})'
+        return f'{self.ip_address} ({self.name}) [{self.server_provider}]'
 
 
 class DomainServerConnection(models.Model):
