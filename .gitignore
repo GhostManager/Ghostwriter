@@ -266,13 +266,15 @@ ghostwriter/media/
 
 .pytest_cache/
 
-
 .ipython/
 .idea/
 .env
 .envs/*
+migrations
 
 # SSL certificates
 ssl/*.crt
 ssl/*.key
 ssl/dhparam.pem
+
+.vscode/settings.json

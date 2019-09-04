@@ -33,12 +33,16 @@
 
         <!-- Domain Health Section -->
         <tr>
-            <th class="form_th"><i class="far fa-heart"></i> Domain Health Checks</th>
+            <th class="form_th"><i class="fas fa-heart"></i> Domain Health Checks</th>
             <th class="form_th"></th>
         </tr>
         <tr>
             <td><i class="fab fa-google"></i> VirusTotal API Key</td>
-            <td>{{ virustotal_api_key }}</td>
+            {% if virustotal_api_key and virustotal_api_key != "None" %}
+                <td>{{ virustotal_api_key }}</td>
+            {% else %}
+                <td>Not Configured</td>
+            {% endif %}
         </tr>
         <tr>
             <td><i class="fas fa-bed"></i> Sleep Time</td>
@@ -52,7 +56,7 @@
 
         <!-- Notification Section -->
         <tr>
-            <th class="form_th"><i class="far fa-bell"></i> Notifications</th>
+            <th class="form_th"><i class="fas fa-bell"></i> Notifications</th>
             <th class="form_th"></th>
         </tr>
         <tr>
@@ -60,26 +64,63 @@
             <td>{{ enable_slack }}</td>
         </tr>
         {% if enable_slack %}
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack WebHook</td>
+                <td>{{ slack_webhook_url }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack Bot Name</td>
+                <td>{{ slack_username }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack Bot Avatar</td>
+                <td>{{ slack_emoji }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Global Slack Channel</td>
+                <td>{{ slack_channel }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-slack"></i> Slack Target</td>
+                <td>{{ slack_alert_target }}</td>
+            </tr>
+        {% endif %}
+
+        <!-- Spacer -->
         <tr>
-            <td><i class="fab fa-slack"></i> Slack WebHook</td>
-            <td>{{ slack_webhook_url }}</td>
+            <td class="hidden-table">&nbsp;</th>
+        </tr>
+
+        <!-- Registrar Section -->
+        <tr>
+            <th class="form_th"><i class="fas fa-cloud-download-alt"></i> Domain Registar API</th>
+            <th class="form_th"></th>
         </tr>
         <tr>
-            <td><i class="fab fa-slack"></i> Slack Bot Name</td>
-            <td>{{ slack_username }}</td>
+            <td><i class="fas fa-code"></i> Namecheap API Enabled</td>
+            <td>{{ enable_namecheap }}</td>
         </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Slack Bot Avatar</td>
-            <td>{{ slack_emoji }}</td>
-        </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Global Slack Channel</td>
-            <td>{{ slack_channel }}</td>
-        </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Slack Target</td>
-            <td>{{ slack_alert_target }}</td>
-        </tr>
+        {% if enable_namecheap %}
+            <tr>
+                <td><i class="fas fa-laptop-code"></i> Namecheap Whitelisted IP</td>
+                <td>{{ namecheap_client_ip }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-key"></i> Namecheap API Key</td>
+                <td>{{ namecheap_api_key }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-user"></i> Namecheap Username</td>
+                <td>{{ namecheap_username }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-users-cog"></i> Namecheap API Username</td>
+                <td>{{ namecheap_api_username }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-hashtag"></i> Namecheap Page Size</td>
+                <td>{{ namecheap_page_size }}</td>
+            </tr>
         {% endif %}
     </table>
 {% endblock %}

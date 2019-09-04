@@ -9,6 +9,7 @@ import logging
 from django.urls import reverse
 from django.views import generic
 from django.contrib import messages
+from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
@@ -22,14 +23,18 @@ from django.shortcuts import get_object_or_404
 
 # Import additional models
 from .models import (Client, Project, ClientContact, ProjectAssignment,
-                     ClientNote, ProjectNote)
+                     ClientNote, ProjectNote, ProjectObjective, ObjectiveStatus)
 from .forms import (ClientCreateForm, ProjectCreateForm,
                     ClientContactCreateForm, AssignmentCreateForm,
-                    ClientNoteCreateForm, ProjectNoteCreateForm)
+                    ClientNoteCreateForm, ProjectNoteCreateForm,
+                    ProjectObjectiveCreateForm)
 # from shepherd.models import History, ServerHistory, TransientServer
 
 # Import additional modules
 from ghostwriter.modules import codenames
+
+# Import model filters for views
+from .filters import ClientFilter, ProjectFilter
 
 
 # Setup logger
@@ -45,6 +50,41 @@ logger = logging.getLogger(__name__)
 def index(request):
     """View function to redirect empty requests to the dashboard."""
     return HttpResponseRedirect(reverse('home:dashboard'))
+
+
+@login_required
+def client_list(request):
+    """View showing all clients. This view defaults to the client_list.html
+    template.
+    """
+    # Check if a search parameter is in the request
+    try:
+        search_term = request.GET.get('client_search')
+    except Exception:
+        search_term = ''
+    if search_term:
+        messages.success(request, 'Displaying search results for: %s' %
+                         search_term, extra_tags='alert-success')
+        client_list = Client.objects.\
+            filter(name__icontains=search_term).\
+            order_by('name')
+    else:
+        client_list = Client.objects.all().order_by('name')
+    client_filter = ClientFilter(request.GET, queryset=client_list)
+    return render(request, 'rolodex/client_list.html',
+                  {'filter': client_filter})
+
+
+@login_required
+def project_list(request):
+    """View showing all projects. This view defaults to the project_list.html
+    template and allows for filtering.
+    """
+    project_list = Project.objects.select_related('client').all().\
+        order_by('complete', 'client')
+    project_list = ProjectFilter(request.GET, queryset=project_list)
+    return render(request, 'rolodex/project_list.html',
+                    {'filter': project_list})
 
 
 @login_required
@@ -135,32 +175,57 @@ def reopen_project(request, pk):
         return HttpResponseRedirect(reverse('rolodex:projects'))
 
 
+@login_required
+def set_objective_status(request, pk, status):
+    """View function to update the status for the specified objective."""
+    try:
+        project_objective = ProjectObjective.objects.get(pk=pk)
+        if project_objective:
+            if status == "active":
+                project_objective.status = ObjectiveStatus.objects.get(pk=1)
+                project_objective.save()
+                messages.success(request, '"%s" is now Active.' %
+                                    project_objective.objective,
+                                    extra_tags='alert-success')
+                return HttpResponseRedirect(reverse('rolodex:project_detail',
+                                            args=(project_objective.project.pk, )))
+            elif status == "onhold":
+                project_objective.status = ObjectiveStatus.objects.get(pk=2)
+                project_objective.save()
+                messages.success(request, '"%s" is now On Hold.' %
+                                    project_objective.objective,
+                                    extra_tags='alert-success')
+                return HttpResponseRedirect(reverse('rolodex:project_detail',
+                                            args=(project_objective.project.pk, )))
+            if status == "complete":
+                project_objective.status = ObjectiveStatus.objects.get(pk=3)
+                project_objective.save()
+                messages.success(request, '"%s" is now Complete.' %
+                                    project_objective.objective,
+                                    extra_tags='alert-success')
+                return HttpResponseRedirect(reverse('rolodex:project_detail',
+                                            args=(project_objective.project.pk, )))
+            else:
+                messages.error(
+                    request,
+                    'You provided an invalid objective status ¯\_(ツ)_/¯',
+                    extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('rolodex:project_detail',
+                                            args=(project_objective.project.pk, )))
+        else:
+            messages.error(request, 'The specified report does not exist!',
+                            extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('reporting:reports'))
+    except Exception:
+        messages.error(request, "Could not update the objective's status!",
+                       extra_tags='alert-danger')
+        return HttpResponseRedirect(reverse('rolodex:project',
+                                    args=(project_objective.project.pk, )))
+
+
 ################
 # View Classes #
 ################
-
-
-class ClientListView(LoginRequiredMixin, generic.ListView):
-    """View showing all clients. This view defaults to the client_list.html
-    template.
-    """
-    model = Client
-    paginate_by = 100
-
-    def get_queryset(self):
-        """Customize the queryset based on search."""
-        # Check if a search parameter is in the request
-        try:
-            search_term = self.request.GET.get('client_search')
-        except Exception:
-            search_term = ''
-        # If there is a search term, filter the query
-        if search_term:
-            queryset = super(ClientListView, self).get_queryset()
-            return queryset.filter(name__icontains=search_term).\
-                order_by('name')
-        else:
-            return Client.objects.all().order_by('name')
 
 
 class ClientDetailView(LoginRequiredMixin, generic.DetailView):
@@ -228,7 +293,8 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
     client_form.html template.
     """
     model = Client
-    fields = '__all__'
+    # fields = '__all__'
+    form_class = ClientCreateForm
 
     def get_success_url(self):
         """Override the function to return to the new record after creation."""
@@ -259,43 +325,6 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
         ctx['object_type'] = 'client and all associated data'
         ctx['object_to_be_deleted'] = queryset.name
         return ctx
-
-
-class ProjectListView(LoginRequiredMixin, generic.ListView):
-    """View showing all projects. This view defaults to the client_list.html
-    template.
-    """
-    model = Project
-    paginate_by = 100
-
-    def get_queryset(self):
-        """Customize the queryset based on search."""
-        queryset = super(ProjectListView, self).get_queryset()
-        messages.success(
-            self.request,
-            'Displaying open projects',
-            extra_tags='alert-success')
-        return queryset.select_related('project_type', 'client').\
-            filter(complete=False).order_by('end_date')
-
-
-class CompleteProjectListView(LoginRequiredMixin, generic.ListView):
-    """View showing all projects. This view defaults to the project_list.html
-    template.
-    """
-    model = Project
-    paginate_by = 100
-    template_name = 'rolodex/project_list.html'
-
-    def get_queryset(self):
-        """Customize the queryset based on search."""
-        queryset = super(CompleteProjectListView, self).get_queryset()
-        messages.success(
-            self.request,
-            'Displaying all closed projects',
-            extra_tags='alert-success')
-        return queryset.select_related('project_type', 'client').\
-            filter(complete=True).order_by('end_date')
 
 
 class ProjectDetailView(LoginRequiredMixin, generic.DetailView):
@@ -436,7 +465,7 @@ class ClientContactDelete(LoginRequiredMixin, DeleteView):
     template_name = 'confirm_delete.html'
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
+        """Override the function to return to the parent record after deletion."""
         return reverse('rolodex:client_detail', kwargs={'pk': self.object.client.pk})
 
     def get_context_data(self, **kwargs):
@@ -501,7 +530,7 @@ class AssignmentDelete(LoginRequiredMixin, DeleteView):
     template_name = 'confirm_delete.html'
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
+        """Override the function to return to the parent record after deletion."""
         return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.id})
 
     def get_context_data(self, **kwargs):
@@ -578,7 +607,7 @@ class ClientNoteDelete(LoginRequiredMixin, DeleteView):
     template_name = 'confirm_delete.html'
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
+        """Override the function to return to the parent record after deletion."""
         messages.warning(
             self.request,
             'Note successfully deleted.',
@@ -598,7 +627,7 @@ class ClientNoteDelete(LoginRequiredMixin, DeleteView):
 
 class ProjectNoteCreate(LoginRequiredMixin, CreateView):
     """View for creating new note entries. This view defaults to the
-    project_note_form.html template.
+    note_form.html template.
     """
     model = ProjectNote
     form_class = ProjectNoteCreateForm
@@ -656,7 +685,7 @@ class ProjectNoteDelete(LoginRequiredMixin, DeleteView):
     template_name = 'confirm_delete.html'
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
+        """Override the function to return to the parent record after deletion."""
         messages.warning(
             self.request,
             'Note successfully deleted.',
@@ -671,4 +700,78 @@ class ProjectNoteDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs['object']
         ctx['object_type'] = 'project note'
         ctx['object_to_be_deleted'] = queryset.note
+        return ctx
+
+
+class ProjectObjectiveCreate(LoginRequiredMixin, CreateView):
+    model = ProjectObjective
+    form_class = ProjectObjectiveCreateForm
+    template_name = 'rolodex/objective_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Objective successfully added to this project.',
+            extra_tags='alert-success')
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.id})
+
+    def get_initial(self):
+        """Set the initial values for the form."""
+        project_instance = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+        project = project_instance
+        return {
+            'project': project
+        }
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(ProjectObjectiveCreate, self).get_context_data(**kwargs)
+        project_instance = get_object_or_404(Project, pk=self.kwargs.get('pk'))
+        ctx['project_name'] = project_instance
+        return ctx
+
+
+class ProjectObjectiveUpdate(LoginRequiredMixin, UpdateView):
+    """View for updating existing objectives. This view defaults to the
+    objective_form.html template.
+    """
+    model = ProjectObjective
+    form_class = ProjectObjectiveCreateForm
+    template_name = 'rolodex/objective_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Objective successfully updated.',
+            extra_tags='alert-success')
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.id})
+
+
+class ProjectObjectiveDelete(LoginRequiredMixin, DeleteView):
+    """View for deleting existing objectives. This view defaults to the
+    confirm_delete.html template.
+    """
+    model = ProjectObjective
+    template_name = 'confirm_delete.html'
+
+    def get_success_url(self):
+        """Override the function to return to the parent record after deletion."""
+        messages.warning(
+            self.request,
+            'Note successfully deleted.',
+            extra_tags='alert-warning')
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.id})
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(ProjectObjectiveDelete, self).get_context_data(**kwargs)
+        queryset = kwargs['object']
+        ctx['object_type'] = 'project objective'
+        ctx['object_to_be_deleted'] = queryset.objective
         return ctx

@@ -2,6 +2,16 @@
 
 {% block pagetitle %}Domain Entry{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Findings Import</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- File Upload -->
     <h2>Upload Findings CSV</h2>

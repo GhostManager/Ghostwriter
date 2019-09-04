@@ -15,14 +15,14 @@
 
     <form class="newitem" action="" method="post" enctype="multipart/form-data">
         {% csrf_token %}
-
         <div class="custom-file">
             {{ form.avatar }}
-            <label class="custom-file-label" for="customFile">Choose image file...</label>
+            <label class="custom-file-label" for="customFile">Choose an image file...</label>
         </div>
         <p id="filename"></p>
 
-        <input type="submit" class="button" value="Submit">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 

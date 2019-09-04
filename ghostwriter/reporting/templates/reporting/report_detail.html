@@ -2,6 +2,17 @@
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Report {{ report.id }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ report.title }}
@@ -19,6 +30,7 @@
 
     <!-- Report Status & Toggles -->
     <h6>
+        Report Status: 
         {% if report.complete %}
             <em>Complete!</em>
             <a title="Mark {{ report.name }} as incomplete" href="{% url 'reporting:report_status_toggle' report.id %}"><i class="fas fa-toggle-on"></i></i></a>
@@ -27,6 +39,19 @@
             <a title="Mark {{ report.name }} as complete" href="{% url 'reporting:report_status_toggle' report.id %}"><i class="fas fa-toggle-off"></i></i></a>
         {% endif %}
     </h6>
+
+    {% if report.complete %}
+        <h6>
+            Delivery Status: 
+            {% if report.delivered %}
+                <em>Delivered!</em>
+                <a title="Mark {{ report.name }} as incomplete" href="{% url 'reporting:report_delivery_toggle' report.id %}"><i class="fas fa-toggle-on"></i></i></a>
+            {% else %}
+                <em>Not Delivered</em>
+                <a title="Mark {{ report.name }} as complete" href="{% url 'reporting:report_delivery_toggle' report.id %}"><i class="fas fa-toggle-off"></i></i></a>
+            {% endif %}
+        </h6>
+    {% endif %}
 
     <!-- Findings Section -->
     <div style="margin-left: 20px; margin-top: 40px">
@@ -117,7 +142,7 @@
                             <td>
                                 {% for evidence_file in finding.evidence_set.all %}
                                     <div class="dropdown">
-                                        <button class="dropbtn clickable">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button>
+                                        <button class="dropbtn clickable" style="font-size: 1.1em; font-weight: 300; line-height: 1.7em;">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button>
                                         <div class="dropdown-content">
                                             <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><i class="far fa-file-image"></i> View</a>
                                             <a href="{% url 'reporting:evidence_update' evidence_file.id %}"><i class="far fa-edit"></i> Edit</a>
@@ -129,7 +154,7 @@
                             </td>
                         {% else %}
                             <td>
-                                <em>No evidence</em>
+                                <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i></a>
                             </td>
                         {% endif %}
                         {% if finding.assigned_to == request.user %}
@@ -154,6 +179,7 @@
                                     <a href="{% url 'reporting:local_edit' finding.id %}"><i class="far fa-edit"></i> Edit</a>
                                     <a href="{% url 'reporting:finding_status_toggle' finding.id %}">{% if finding.complete %}<i style="color: darkorange" class="fas fa-toggle-off"></i> Flag for Editing {% else %}<i style="color: green" class="fas fa-toggle-on"></i> Mark as Complete {% endif %}</a>
                                     <a href="{% url 'reporting:local_remove' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Remove</a>
+                                    <a href="{% url 'reporting:convert_finding' finding.id %}"><i class="far fa-copy"></i> Clone to Library</a>
                                 </div>
                             </div>
                         </td>

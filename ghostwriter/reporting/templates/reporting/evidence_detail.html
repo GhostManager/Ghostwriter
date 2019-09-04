@@ -1,5 +1,18 @@
 {% extends 'base_generic.html' %}
 
+{% block pagetitle %}Evidence Detail{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' evidence.finding.report.project.client.id %}">{{ evidence.finding.report.project.client.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' evidence.finding.report.project.id %}">{{ evidence.finding.report.project }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Evidence</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ evidence.friendly_name }}
@@ -48,7 +61,9 @@
     {% elif filetype == 'text' %}
         {% if file_content %}
             {% for line in file_content %}
-                <p style="margin-left:15%; text-align: left">{{ line }}</p>
+                <p style="margin-left:15%; text-align: left; max-width: 800px; word-wrap: break-word;">
+                    {{ line|linebreaksbr }}
+                </p>
             {% endfor %}
         {% endif %}
     {% else %}

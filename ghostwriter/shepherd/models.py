@@ -210,12 +210,14 @@ class Domain(models.Model):
         'WhoisStatus',
         on_delete=models.PROTECT,
         null=True,
+        default=1,
         help_text='The domain\'s WHOIS privacy status - you want this to be '
                   'Enabled with your registrar')
     health_status = models.ForeignKey(
         'HealthStatus',
         on_delete=models.PROTECT,
         null=True,
+        default=1,
         help_text='The domain\'s current health status - set to Healthy if '
                   'you are not sure and assumed the domain is ready to be '
                   'used')
@@ -223,12 +225,14 @@ class Domain(models.Model):
         'DomainStatus',
         on_delete=models.PROTECT,
         null=True,
+        default=1,
         help_text='The domain\'s current status - set to Available in most '
                   'cases, or set to Reserved if it should not be used yet')
     last_used_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text='The last user to checkout this domain')
 
     class Meta:
@@ -247,6 +251,13 @@ class Domain(models.Model):
         """
         time_delta = datetime.date.today() - self.creation
         return '{} days'.format(time_delta.days)
+
+    def is_expired(self):
+        """Check if the domain's expiration date is in the past."""
+        expired = False
+        if datetime.date.today() > self.expiration:
+            expired = True
+        return expired
 
     @property
     def get_list(self):

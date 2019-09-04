@@ -5,8 +5,8 @@ from django.db.models import Q
 from django.conf import settings
 from django.core.files import File
 # from reporting.models import Report, Archive
-from .models import Domain, History, DomainStatus, HealthStatus, \
-    StaticServer, ServerStatus, ServerHistory
+from .models import (Domain, History, DomainStatus, HealthStatus,
+    StaticServer, ServerStatus, ServerHistory, WhoisStatus)
 
 # Import Python libraries for various things
 import io
@@ -17,6 +17,7 @@ import zipfile
 import requests
 import datetime
 from datetime import date
+from lxml import objectify
 
 # Import custom modules
 from ghostwriter.modules.dns import DNSCollector
@@ -358,7 +359,7 @@ def scan_servers(only_active=False):
 
     only_active     Defaults to False. set to True to restrict
     """
-    # Create thee scanner
+    # Create the scanner
     scanner = nmap.PortScanner()
     # Get the servers stored as static/owned servers
     if only_active:
@@ -388,3 +389,99 @@ def scan_servers(only_active=False):
                                            latest.project.slack_channel)
                         else:
                             send_slack_msg(message)
+
+
+def fetch_namecheap_domains():
+    """Fetch a list of registered domains for the specified Namecheap account. A valid API key, 
+    username, and whitelisted IP address must be used. The returned XML contains entries for
+    domains like this:
+    
+    <RequestedCommand>namecheap.domains.getList</RequestedCommand>
+    <CommandResponse Type="namecheap.domains.getList">
+        <DomainGetListResult>
+            <Domain ID="127"
+            Name="domain1.com"
+            User="owner"
+            Created="02/15/2016"
+            Expires="02/15/2022"
+            IsExpired='False'
+            IsLocked='False'
+            AutoRenew='False'
+            WhoisGuard="ENABLED"
+            IsPremium="true"
+            IsOurDNS="true"/>
+        </DomainGetListResult>
+    """
+    domains_list = []
+    session = requests.Session()
+    get_domain_list_endpoint = 'https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}'
+
+    client_ip = settings.NAMECHEAP_CONFIG['client_ip']
+    enable_namecheap = settings.NAMECHEAP_CONFIG['enable_namecheap']
+    namecheap_api_key = settings.NAMECHEAP_CONFIG['namecheap_api_key']
+    namecheap_username = settings.NAMECHEAP_CONFIG['namecheap_username']
+    namecheap_page_size = settings.NAMECHEAP_CONFIG['namecheap_page_size']
+    namecheap_api_username = settings.NAMECHEAP_CONFIG['namecheap_api_username']
+
+    try:
+        # The Namecheap API call requires both usernames, a key, and a whitelisted IP
+        req = session.get(
+            get_domain_list_endpoint.format(
+                namecheap_api_username, namecheap_api_key, namecheap_username,
+                client_ip,namecheap_page_size))
+        # Check if request returned a 200 OK
+        if req.ok:
+            # Convert Namecheap XML into an easy to use object for iteration
+            root = objectify.fromstring(req.content)
+            # Check the status to make sure it says "OK"
+            namecheap_api_result = root.attrib['Status']
+            if namecheap_api_result == 'OK':
+                # Get all "Domain" node attributes from the XML response
+                print('[+] Namecheap returned status "{}"'.format(namecheap_api_result))
+                for domain in root.CommandResponse.DomainGetListResult.Domain:
+                    domains_list.append(domain.attrib)
+            elif namecheap_api_result == 'ERROR':
+                print('[!] Namecheap returned an "ERROR" response, so no domains were returned.')
+                if 'Invalid request IP' in req.text:
+                    print('L.. You are not connecting to Namecheap using your whitelisted IP address.')
+                print('Full Response:\n{}'.format(req.text))
+            else:
+                print('[!] Namecheap did not return an "OK" response, so no domains were returned.')
+                print('Full Response:\n{}'.format(req.text))
+        else:
+            print('[!] Namecheap API request failed. Namecheap did not return a 200 response.')
+            print('L.. API request returned status "{}"'.format(req.status_code))
+    except Exception as error:
+        print('[!] Namecheap API request failed with error: {}'.format(error))
+    # There's a chance no domains are returned if the provided usernames don't have any domains
+    if domains_list:
+        for domain in domains_list:
+            entry = {}
+            # Set the WHOIS status based on WhoisGuard
+            if domain['IsExpired'] == 'true':
+                print("GOT EM")
+                entry['whois_status'] = WhoisStatus.objects.get(pk=2)
+            else:
+                try:
+                    entry['whois_status'] = WhoisStatus.objects.get(
+                        whois_status__iexact=domain['WhoisGuard'].capitalize())
+                # Anytying no `Enabled` or `Disabled`, set to `Unknown`
+                except:
+                    entry['whois_status'] = WhoisStatus.objects.get(pk=3)
+            # Convert Namecheap dates to Django
+            entry['creation'] = datetime.datetime.strptime(
+                domain['Created'], "%m/%d/%Y").strftime("%Y-%m-%d")
+            entry['expiration'] = datetime.datetime.strptime(
+                domain['Expires'], "%m/%d/%Y").strftime("%Y-%m-%d")
+            try:
+                instance, created = Domain.objects.update_or_create(
+                    name=domain.get('Name')
+                )
+                # TODO: something with IsExpired & AutoRenew
+                for attr, value in entry.items():
+                    setattr(instance, attr, value)
+                instance.save()
+            except Exception as e:
+                pass
+    else:
+        print('[!] No domains were returned for the provided account!')

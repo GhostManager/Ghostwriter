@@ -160,6 +160,8 @@ class Reportwriter():
         report_dict['infrastructure'] = {}
         report_dict['infrastructure']['domains'] = {}
         report_dict['infrastructure']['servers'] = {}
+        report_dict['infrastructure']['servers']['static'] = {}
+        report_dict['infrastructure']['servers']['cloud'] = {}
         report_dict['infrastructure']['domains_and_servers'] = {}
         for domain in self.report_queryset.project.history_set.all():
             report_dict['infrastructure']['domains'][domain.domain.id] = {}
@@ -178,43 +180,50 @@ class Reportwriter():
             report_dict['infrastructure']['domains'][domain.domain.id][
                 'note'] = domain.note
         for server in self.report_queryset.project.serverhistory_set.all():
-            report_dict['infrastructure']['servers'][server.server.id] = {}
-            report_dict['infrastructure']['servers'][server.server.id][
-                'id'] = server.server.id
-            report_dict['infrastructure']['servers'][server.server.id][
-                'ip_address'] = server.server.ip_address
-            report_dict['infrastructure']['servers'][server.server.id][
-                'activity'] = server.activity_type.activity
-            report_dict['infrastructure']['servers'][server.server.id][
-                'role'] = server.server_role.server_role
-            report_dict['infrastructure']['servers'][server.server.id][
-                'operator'] = server.operator.username
-            report_dict['infrastructure']['servers'][server.server.id][
-                'start_date'] = server.start_date
-            report_dict['infrastructure']['servers'][server.server.id][
-                'end_date'] = server.end_date
-            report_dict['infrastructure']['servers'][server.server.id][
-                'note'] = server.note
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id] = {}
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['id'] = server.server.id
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['ip_address'] = server.server.ip_address
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['activity'] = server.activity_type.activity
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['role'] = server.server_role.server_role
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['operator'] = server.operator.username
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['start_date'] = server.start_date
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['end_date'] = server.end_date
+            report_dict['infrastructure']['servers']['static'][
+                server.server.id]['note'] = server.note
         for server in self.report_queryset.project.transientserver_set.all():
-            report_dict['infrastructure']['servers'][server.id] = {}
-            report_dict['infrastructure']['servers'][server.id][
+            report_dict['infrastructure']['servers']['cloud'][server.id] = {}
+            report_dict['infrastructure']['servers']['cloud'][server.id][
                 'id'] = server.id
-            report_dict['infrastructure']['servers'][server.id][
+            report_dict['infrastructure']['servers']['cloud'][server.id][
                 'ip_address'] = server.ip_address
-            report_dict['infrastructure']['servers'][server.id][
+            report_dict['infrastructure']['servers']['cloud'][server.id][
                 'activity'] = server.activity_type.activity
-            report_dict['infrastructure']['servers'][server.id][
+            report_dict['infrastructure']['servers']['cloud'][server.id][
                 'role'] = server.server_role.server_role
-            report_dict['infrastructure']['servers'][server.id][
+            report_dict['infrastructure']['servers']['cloud'][server.id][
                 'operator'] = server.operator.username
-            report_dict['infrastructure']['servers'][server.id][
+            report_dict['infrastructure']['servers']['cloud'][server.id][
                 'note'] = server.note
         # Hold all domain/server associations in a temporary dictionary
         temp = {}
         for connection in self.report_queryset.project.domainserverconnection_set.all():
             # Handle one-to-many relationships by combining everything into
             # a domain and list of servers
-            domain_name = connection.domain.domain.name
+            if connection.subdomain is not "*":
+                domain_name = connection.subdomain + "." + connection.domain.domain.name
+            else:
+                domain_name = connection.domain.domain.name
+            report_dict['infrastructure']['domains_and_servers'][connection.id] = {}
+            report_dict['infrastructure']['domains_and_servers'][
+                connection.id]['domain'] = domain_name
             if connection.static_server:
                 server = connection.static_server.server.ip_address
             else:
@@ -224,17 +233,16 @@ class Reportwriter():
                 for val in temp[domain_name]:
                     server_list.append(val)
                 # Remove any duplicates from server_list
-                temp[domain_name] = list(set(server_list))
+                server = list(set(server_list))
+            # Now add the temporary dictionary's data to the report JSON
+            report_dict['infrastructure']['domains_and_servers'][
+                connection.id]['servers'] = server
+            if connection.endpoint:
+                report_dict['infrastructure']['domains_and_servers'][
+                    connection.id]['cdn_endpoint'] = connection.endpoint
             else:
-                if connection.static_server:
-                    temp[domain_name] = [server]
-                else:
-                    temp[domain_name] = [server]
-        # Now add the temporary dictionary's data to the report JSON
-        for key, value in temp.items():
-            report_dict['infrastructure']['domains_and_servers'][key] = {}
-            report_dict['infrastructure']['domains_and_servers'][key][
-                'servers'] = value
+                report_dict['infrastructure']['domains_and_servers'][
+                    connection.id]['cdn_endpoint'] = "None"
         # Operator assignments
         report_dict['team'] = {}
         for operator in self.report_queryset.project.projectassignment_set.all():
@@ -801,7 +809,7 @@ class Reportwriter():
         role_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         # Loop through the domains to create rows
         counter = 1
-        for server in report_json['infrastructure']['servers'].values():
+        for server in report_json['infrastructure']['servers']['static'].values():
             server_table.add_row()
             name_cell = server_table.cell(counter, 0)
             name_cell.text = "{}".format(server['ip_address'])
@@ -814,12 +822,25 @@ class Reportwriter():
             role_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             # Increase counter for the next row
             counter += 1
+        for server in report_json['infrastructure']['servers']['cloud'].values():
+            server_table.add_row()
+            name_cell = server_table.cell(counter, 0)
+            name_cell.text = "{}".format(server['ip_address'])
+            name_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            activity_cell = server_table.cell(counter, 1)
+            activity_cell.text = "{}".format(server['activity'])
+            activity_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            role_cell = server_table.cell(counter, 2)
+            role_cell.text = "{}".format(server['role'])
+            role_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            # Increase counter for the next row
+            counter += 1            
         self.create_newline()
 
         # If the style needs to be updated, update it in template.docx
         connection_table = self.spenny_doc.add_table(
             rows=1,
-            cols=2,
+            cols=3,
             style='Ghostwriter Table')
         connection_table.allow_autofit = True
         connection_table.autofit = True
@@ -831,16 +852,23 @@ class Reportwriter():
         domain_header.text = ""
         domain_header.paragraphs[0].add_run("Server").bold = True
         domain_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        domain_header = connection_table.cell(0, 2)
+        domain_header.text = ""
+        domain_header.paragraphs[0].add_run("CDN Endpoint").bold = True
+        domain_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
         # Loop through the domains to create rows
         counter = 1
-        for domain, server_list in report_json[
-          'infrastructure']['domains_and_servers'].items():
+        for connection in report_json[
+          'infrastructure']['domains_and_servers'].values():
             connection_table.add_row()
             server_cell = connection_table.cell(counter, 0)
-            server_cell.text = "{}".format(domain)
+            server_cell.text = "{}".format(connection['domain'])
             server_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             domain_cell = connection_table.cell(counter, 1)
-            domain_cell.text = "{}".format('\r'.join(server_list['servers']))
+            domain_cell.text = "{}".format(connection['servers'])
+            domain_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            domain_cell = connection_table.cell(counter, 2)
+            domain_cell.text = "{}".format(connection['cdn_endpoint'])
             domain_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             # Increase counter for the next row
             counter += 1

@@ -2,6 +2,16 @@
 
 {% block pagetitle %}Server Import{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Import</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- File Upload -->
     <h2>Upload Server CSV</h2>

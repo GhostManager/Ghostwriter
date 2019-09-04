@@ -3,6 +3,16 @@
 
 {% block pagetitle %}Archived Reports{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Archives</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Filter Section -->
     <div class="m-auto">
@@ -10,7 +20,7 @@
             <div class="form-group">
                 {{ filter.form.client|as_crispy_field }}
             </div>
-            <button type="submit" class="button">Filter</button>
+            <button type="submit" class="btn btn-primary">Filter</button>
         </form>
     </div>
     <!-- Archive Files Section -->

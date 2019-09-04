@@ -2,8 +2,55 @@
 
 {% block pagetitle %}Domain Update Control Panel{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Control Panel</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
+    <style>
+        .badge {
+            font-size: 14px;
+        }
+    </style>
+
     <h2>Domain Update Control Panel</h2>
+
+    <!-- Domain Library Update Section -->
+    <h6><i class="fas fa-cloud-download-alt"></i> Pull Domains from Namecheap</h6>
+    <hr>
+
+    <p>Update the domain library by pulling the latest list of domain's from the configured Namecheap account.</p>
+
+    {% if enable_namecheap %}
+        <form action="{% url 'shepherd:update_namecheap' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
+            <button class="button">Pull from Namecheap</button>
+        </form>
+    {% endif %}
+
+    {% if namecheap_last_update_completed %}
+        {% if namecheap_last_update_completed == 'Failed' %}
+            <p>Request Status: <span class="badge badge-pill badge-danger">{{ namecheap_last_update_completed }}</span></p>
+            {% if cat_last_result %}
+                <div style="border: 1px solid black;width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
+                    <strong>Error: </strong>
+                    <em style="color: red">
+                        {{ namecheap_last_result }}
+                    </em>
+                </div>
+            {% endif %}
+        {% else %}
+            {% if namecheap_last_update_completed %}
+                <p>Request Status: <span class="badge badge-pill badge-success">Completed on {{ namecheap_last_update_completed }} in {{ namecheap_last_update_time }} minutes</span></p>
+            {% endif %}
+        {% endif %}
+    {% endif %}
 
     <!-- Domain Categories Section -->
     <h6><i class="fas fa-heartbeat"></i> Domain Categories</h6>
@@ -16,9 +63,9 @@
 
     {% if cat_last_update_completed %}
         {% if cat_last_update_completed == 'Failed' %}
-            <p>Request Status: <strong style="color: red">{{ cat_last_update_completed }}</strong></p>
+            <p>Request Status: <span class="badge badge-pill badge-danger">{{ cat_last_update_completed }}</span></p>
             {% if cat_last_result %}
-                <div style="border: 1px solid black;width: 50%; margin: 0 auto; border-radius: 5px">
+                <div style="border: 1px solid black;width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
                     <strong>Error: </strong>
                     <em style="color: red">
                         {{ cat_last_result }}
@@ -27,7 +74,7 @@
             {% endif %}
         {% else %}
             {% if cat_last_update_completed %}
-                <p>Request Status: <strong style="color: green"> Completed on {{ cat_last_update_completed }} in {{ cat_last_update_time }} minutes</strong></p>
+                <p>Request Status: <span class="badge badge-pill badge-success">Completed on {{ cat_last_update_completed }} in {{ cat_last_update_time }} minutes</span></p>
             {% endif %}
         {% endif %}
     {% endif %}
@@ -39,9 +86,6 @@
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
         <button class="button">Start Update</button>
     </form>
-
-    <!-- Spacer -->
-    <p style="margin: 40px;"></p>
 
     <!-- DNS Section -->
     <h6><i class="fas fa-server"></i> DNS Records</h6>
@@ -55,9 +99,9 @@
 
     {% if dns_last_update_completed %}
         {% if dns_last_update_completed == 'Failed' %}
-            <p>Request Status: <strong style="color: red">{{ dns_last_update_completed }}</strong></p>
-            {% if last_result %}
-                <div style="border: 1px solid black; width: 50%; margin: 0 auto; border-radius: 5px">
+            <p>Request Status: <span class="badge badge-pill badge-danger">{{ dns_last_update_completed }}</span></p>
+            {% if dns_last_result %}
+                <div style="border: 1px solid black; width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
                     <strong>Error: </strong>
                     <em style="color: red">
                         {{ dns_last_result }}
@@ -66,7 +110,7 @@
             {% endif %}
         {% else %}
             {% if dns_last_update_completed %}
-                <p>Request Status: <strong style="color: green"> Completed on {{ dns_last_update_completed }} in {{ dns_last_update_time }} minutes</strong></p>
+                <p>Request Status: <span class="badge badge-pill badge-success"><span class="badge badge-pill badge-success">Completed on {{ dns_last_update_completed }} in {{ dns_last_update_time }} minutes</span></p>
             {% endif %}
         {% endif %}
     {% endif %}

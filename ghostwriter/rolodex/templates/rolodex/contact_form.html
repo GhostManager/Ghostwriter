@@ -3,6 +3,16 @@
 
 {% block pagetitle %}Point of Contact Form{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' form.client.value %}">Client {{ form.client.value }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Add POC</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <p>Fill-out this form with as much as information as possible about this contact at {{ client_name }}:</p>
 
@@ -60,6 +70,7 @@
         <!-- Hidden Inputs -->
         {{ form.client }}
 
-        <input type="submit" class="button" value="Submit">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}

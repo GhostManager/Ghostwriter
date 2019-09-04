@@ -3,6 +3,16 @@
 
 {% block pagetitle %}Client Form{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' client.id %}">{{ client }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <p>
         Fill-out this form with basic information pertaining to the client.<br>
@@ -46,8 +56,12 @@
         <strong><i class="far fa-comment-alt"></i> Additional Info</strong>
         <hr>
 
+        <!-- Hidden Inputs -->
+        {{ form.codename }}
+
         {{ form.note|as_crispy_field }}
 
-        <input type="submit" class="button" value="Submit">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}

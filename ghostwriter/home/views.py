@@ -47,14 +47,20 @@ def dashboard(request):
     user_tasks = ReportFindingLink.objects.\
         select_related('report', 'report__project').\
         filter(Q(assigned_to=request.user) & Q(report__complete=False) &
-               Q(complete=False)).order_by('report__project__end_date')[:10]
+              Q(complete=False)).order_by('report__project__end_date')[:10]
     user_projects = ProjectAssignment.objects.\
         select_related('project', 'project__client', 'role').\
         filter(Q(operator=request.user) &
-               Q(end_date__gte=datetime.datetime.now()))
+              Q(start_date__lte=datetime.datetime.now()) &
+              Q(end_date__gte=datetime.datetime.now()))
+    upcoming_project = ProjectAssignment.objects.\
+        select_related('project', 'project__client', 'role').\
+        filter(Q(operator=request.user) &
+              Q(start_date__gt=datetime.datetime.now()))
     # Assemble the context dictionary to pas to the dashboard
     context = {
         'user_projects': user_projects,
+        'upcoming_project': upcoming_project,
         'recent_tasks': recent_tasks,
         'user_tasks': user_tasks
     }
@@ -115,6 +121,7 @@ def management(request):
     # Get the *_CONFIG dictionaries from settings.py
     config = {}
     config.update(settings.SLACK_CONFIG)
+    config.update(settings.NAMECHEAP_CONFIG)
     config.update(settings.DOMAINCHECK_CONFIG)
     # Pass the relevant settings to management.html
     context = {
@@ -126,6 +133,12 @@ def management(request):
         'slack_username': config['slack_username'],
         'slack_webhook_url': config['slack_webhook_url'],
         'virustotal_api_key': config['virustotal_api_key'],
-        'slack_alert_target': config['slack_alert_target']
+        'slack_alert_target': config['slack_alert_target'],
+        'namecheap_client_ip': config['client_ip'],
+        'enable_namecheap': config['enable_namecheap'],
+        'namecheap_api_key': config['namecheap_api_key'],
+        'namecheap_username': config['namecheap_username'],
+        'namecheap_page_size': config['namecheap_page_size'],
+        'namecheap_api_username': config['namecheap_api_username']
     }
     return render(request, 'home/management.html', context=context)

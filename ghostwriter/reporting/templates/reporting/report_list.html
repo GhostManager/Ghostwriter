@@ -3,6 +3,15 @@
 
 {% block pagetitle %}Report List{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Reports</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Filter Section -->
     <div class="m-auto">
@@ -15,11 +24,12 @@
                     {{ filter.form.complete|as_crispy_field }}
                 </div>
             </div>
-            <button type="submit" class="button">Filter</button>
+            <button type="submit" class="btn btn-primary">Filter</button>
+            <a href="{% url 'reporting:reports' %}" class="btn btn-secondary">Reset</a>
         </form>
     </div>
 
-    {% if filter.qs|length == 0 %}
+    {% if filter.qs|length == 0 %} 
         <p>There are no reports to see here.</p>
     {% else %}
         <!-- Instructions -->
@@ -47,16 +57,20 @@
             </thead>
             {% for report in filter.qs %}
                 <tr>
-                    <td>{{ report.creation }}</td>
+                    <td nowrap>{{ report.creation }}</td>
                     <td class="clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                    <td>{{ report.last_update }}</td>
+                    <td nowrap>{{ report.last_update }}</td>
                     {% if report.complete %}
-                        <td>Complete</td>
+                        {% if report.delivered %}
+                            <td>Delivered</td>
+                        {% else %}
+                            <td>Complete, Awaiting Delivery</td>
+                        {% endif %}
                     {% else %}
-                        <td>Incomplete</td>
+                        <td>In Progress</td>
                     {% endif %}
-                    <td>{{ report.created_by }}</td>
-                    <td><a href="{% url 'reporting:activate_report' report.id %}"><i style="font-size:25px" class="far fa-edit"></i></button></td>
+                    <td >{{ report.created_by }}</td>
+                    <td><a href="{% url 'reporting:activate_report' report.id %}"><i style="font-size: 15px" class="far fa-edit"></i></button></td>
                 </tr>
             {% endfor %}
         </table>

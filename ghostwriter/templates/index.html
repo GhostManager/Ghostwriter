@@ -1,7 +1,16 @@
 {% extends "base_generic.html" %}
+{% load custom_tags %}
 
 {% block pagetitle %}Ghostwriter Dashboard{% endblock %}
 {% block navtitle %}Ghostwriter{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item active" aria-current="page">Hi, {{ user }}!</li>
+        </ul>
+    </nav>
+{% endblock %}
 
 {% block content %}
     {% load static %}
@@ -14,17 +23,36 @@
             <div class="dashboard">
                 <div class="dashboard__item">
                     <div class="card">
-                        <p>Your Assigned Projects</p>
+                        <p>Your Current Projects</p>
                         <table>
                             {% if user_projects %}
                                 {% for project in user_projects %}
                                     <tr>
-                                        <td style="text-align: center;"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} ({{ project.project.codename }}) :: {{ project.start_date }} to {{ project.end_date }}</a></td>
+                                        <td style="text-align: center;"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
                                     </tr>
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td>You are not assigned to any projects.</td>
+                                    <td style="text-align: center;">You are not assigned to any active projects.</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <div class="dashboard__item">
+                    <div class="card">
+                        <p>Your Future Projects</p>
+                        <table>
+                            {% if upcoming_project %}
+                                {% for project in upcoming_project %}
+                                    <tr>
+                                        <td style="text-align: center;"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td style="text-align: center;">You are not currently assigned to any projects in the next week.</td>
                                 </tr>
                             {% endif %}
                         </table>
@@ -34,6 +62,14 @@
                 <div class="dashboard__item">
                     <div class="card">
                         <p>Your Top Reporting Tasks</p>
+                        {% count_assignments request as assignment_count %}
+                        {% if assignment_count > 0 %}
+                            <span class="notify-badge badge badge-warning">{{ assignment_count }}</span>
+                        {% elif assignment_count > 5 %}
+                            <span class="notify-badge badge badge-danger">{{ assignment_count }}</span>
+                        {% else %}
+                            <span class="notify-badge badge badge-success"><i class="far fa-laugh-beam" style="padding-left: 5px;"></i></span>
+                        {% endif %}
                         <table>
                             {% if user_tasks %}
                                 {% for finding in user_tasks %}
@@ -44,7 +80,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td>No reporting tasks.</td>
+                                    <td style="text-align: center;">You have no reporting tasks. Nice!</td>
                                 </tr>
                             {% endif %}
                         </table>
@@ -62,7 +98,17 @@
                                             <td style="text-align: center; color: #A8D08D; font-weight: 900;">SUCCESS</td>
                                             <td style="text-align: center;">{{ task.group }}</td>
                                         {% else %}
-                                            <td style="text-align: center; color: #FF7E79; font-weight: 900;">FAILED</td>
+                                            <td style="text-align: center; color: #FF7E79; font-weight: 900;">
+                                                {% if task.result %}
+                                                    FAILED
+                                                    <div class="dropdown">
+                                                        <button class="dropbtn dropbtn-info far fa-question-circle" style="background-color: #fff; color: #FF7E79;"></button>
+                                                        <div class="dropdown-content dropdown-content-info" style="bottom: 100%;">
+                                                            <p>{{ task.result }}</p>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            </td>
                                             <td style="text-align: center;">{{ task.group }}</td>
                                         {% endif %}
                                     </tr>

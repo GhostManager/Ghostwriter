@@ -47,5 +47,26 @@
       "fields": {
           "project_role": "Operator"
       }
-    }
+    },
+    {
+        "model": "rolodex.objectivestatus",
+        "pk": 1,
+        "fields": {
+            "objective_status": "Active"
+        }
+      },
+      {
+        "model": "rolodex.objectivestatus",
+        "pk": 2,
+        "fields": {
+            "objective_status": "On Hold"
+        }
+      },
+      {
+        "model": "rolodex.objectivestatus",
+        "pk": 3,
+        "fields": {
+            "objective_status": "Complete"
+        }
+      }
   ]

@@ -2,6 +2,16 @@
 
 {% block pagetitle %}{{ domain.name }} Details{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ domain.name }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <h2>
         {{ domain.name }}
@@ -32,243 +42,290 @@
             <p>No information provided for this domain.</p>
         {% endif %}
 
-        <!-- Domain Age Info Section -->
-        <button class="collapsible"><i class="fas fa-hourglass-half"></i> Domain Age Information ( {{ domain.get_domain_age }} days )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <table>
-                    <tr>
-                        <th>Purchase Date</th>
-                        <th>Expiration Date</th>
-                        <th>Domain Age</th>
-                    </tr>
-                    <tr>
-                        <td>{{ domain.creation }}</td>
-                        <td>{{ domain.expiration }}</td>
-                        <td>{{ domain.get_domain_age }} days</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <!-- Current Status/Health Section -->
-        <button class="collapsible"><i class="fas fa-heartbeat"></i> Health and Categories ( {{ domain.health_status }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p>
-                    <a href="{% url 'shepherd:update_cat_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh Categories</a>
-                </p>
-                <p>
-                    The health of a domain is determined by categories and VirusTotal. If the domain is flagged with a bad category or in VirusTotal the domain is considered "Burned" here.<br>
-                    DNS Flags are more abstract. These are based on the domain's past and present DNS records and VirusTotal passive DNS hits. If the domain can be linked to a VirusTotal entry the VirusTotal results are recorded below as "flags" in the table.
-                </p>
-                <table>
-                    <tr>
-                        <th>Status</th>
-                        <th>Health</th>
-                        <th>DNS Flags</th>
-                        <th>Whois Privacy</th>
-                    </tr>
-                    <tr>
-                        {% if domain.domain_status.domain_status == "Available" %}
-                            <td class="healthy">{{ domain.domain_status }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.domain_status }}</td>
+        <div id="accordion" class="myaccordion">
+            <!-- General Domain Section -->
+            <div class="card">
+                <div class="card-header" id="general" data-toggle="collapse" data-target="#collapseGeneral">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseGeneral" aria-expanded="false" aria-controls="collapseGeneral">
+                        <i class="fas fa-hourglass-half"></i> General Domain Information & Age <span class="badge badge-pill badge-light">{{ domain.get_domain_age }}</span>
+                        {% if domain.is_expired %}
+                            <span class="badge badge-pill badge-danger">EXPIRED</span>
                         {% endif %}
-
-                        {% if domain.health_status.health_status == "Healthy" %}
-                            <td class="healthy">{{ domain.health_status }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.health_status }}</td>
-                        {% endif %}
-
-                        {% ifequal domain.health_dns "Healthy" %}
-                            <td class="healthy">{{ domain.health_dns }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.health_dns }}</td>
-                        {% endifequal %}
-
-                        {% ifequal domain.whois_status.whois_status "Enabled" %}
-                            <td class="healthy">{{ domain.whois_status }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.whois_status }}</td>
-                        {% endifequal %}
-                    </tr>
-                </table>
-
-                <!-- Categories Section -->
-                <p>
-                    Categories affect the trustworthiness of the domain and how web proxies may react to observing the domain. Bad categories are categories like <em>Spam</em>, <em>Suspicious</em>, and <em>Phishing</em>.<br>
-                    Any <em>No Results</em> entries indicate a reCAPTCHA or connection issue prevented information collection during the last update.
-                </p>
-                <table>
-                    <tr>
-                        <th>IBM X-Force</th>
-                        <th>Cisco Talos</th>
-                        <th>Bluecoat</th>
-                        <th>Fortiguard</th>
-                        <th>OpenDNS</th>
-                        <th>TrendMicro</th>
-                        <th>MX Toolbox</th>
-                    </tr>
-                    <tr>
-                        {% if domain.ibm_xforce_cat %}
-                            <td>{{ domain.ibm_xforce_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://exchange.xforce.ibmcloud.com/url/{{ domain.name }}">X-Force</a></td>
-                        {% endif %}
-
-
-                        {% if domain.talos_cat %}
-                            <td>{{ domain.talos_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://www.talosintelligence.com/reputation_center">Talos</a></td>
-                        {% endif %}
-
-                        {% if domain.bluecoat_cat %}
-                            <td>{{ domain.bluecoat_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://sitereview.bluecoat.com/resource/lookup">Bluecoat</a></td>
-                        {% endif %}
-
-                        {% if domain.fortiguard_cat %}
-                            <td>{{ domain.fortiguard_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://fortiguard.com/webfilter?q={{ domain.name }}">Fortiguard</a></td>
-                        {% endif %}
-
-                        {% if domain.opendns_cat %}
-                            <td>{{ domain.opendns_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://domain.opendns.com/{{ domain.name }}">OpenDNS</a></td>
-                        {% endif %}
-
-                        {% if domain.trendmicro_cat %}
-                            <td>{{ domain.trendmicro_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://global.sitesafety.trendmicro.com/">TrendMicro</a></td>
-                        {% endif %}
-
-                        {% if domain.mx_toolbox_status %}
-                            <td>{{ domain.mx_toolbox_status }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://mxtoolbox.com/Public/Tools/BrandReputation.aspx">MX Toolbox</a></td>
-                        {% endif %}
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <!-- Burned Explanation Section -->
-        {% if domain.health_status.health_status == "Burned"%}
-            <button class="collapsible"><i class="fas fa-biohazard"></i> Health Explanation</button>
-            <div class="collapsiblecontent">
-                <div class="collapsiblecontent_inner">
-                    {% if domain.burned_explanation %}
-                        <p>
-                            This domain has been flagged as "Burned" for the following reason(s):<br>
-                            {{ domain.burned_explanation }}
-                        </p>
-                    {% else %}
-                        <p>This domain has been flagged as "Burned" with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
-                    {% endif %}
+                    </a>
+                </div>
+                <div id="collapseGeneral" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                    <div class="card-body">
+                        <table>
+                            <tr>
+                                <th>Registrar</th>
+                                <th>Purchase Date</th>
+                                <th>Expiration Date</th>
+                                <th>Domain Age</th>
+                            </tr>
+                            <tr>
+                                <td>{{ domain.registrar }}</td>
+                                <td>{{ domain.creation }}</td>
+                                {% if domain.is_expired %}
+                                    <td class="high">{{ domain.expiration }}</td>
+                                {% else %}
+                                    <td>{{ domain.expiration }}</td>
+                                {% endif %}
+                                <td>{{ domain.get_domain_age }} days</td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
             </div>
-        {% endif %}
 
-        <!-- DNS Section -->
-        <button class="collapsible"><i class="fas fa-server"></i> DNS Records</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p><a href="{% url 'shepherd:update_dns_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh DNS Records</a></p>
-                {% if domain.get_list %}
-                    <table>
-                        <tr>
-                            <th>Records</th>
-                        </tr>
-                        {% for record in domain.get_list %}
-                            {% if record %}
-                                <tr>
-                                    <td style="text-align: left">{{ record }}</td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>Refresh DNS records to populate this area.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Project Section -->
-        <button class="collapsible"><i class="fas fa-history"></i> Project History ( {{ domain.history_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                {% if domain.history_set.all %}
-                    <table>
-                        <tr>
-                            <th>Client</th>
-                            <th>Activity Type</th>
-                            <th>Project Type</th>
-                            <th>Start</th>
-                            <th>End</th>
-                            <th>Notes</th>
-                            <th>Options</th>
-                        </tr>
-                        {% for project in domain.history_set.all %}
+            <!-- Description -->
+            <div class="card">
+                <div class="card-header" id="health" data-toggle="collapse" data-target="#collapseHealth">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseHealth" aria-expanded="false" aria-controls="collapseHealth">
+                        <i class="fas fa-heartbeat"></i> Health and Categories <span class="badge badge-pill badge-light">{{ domain.health_status }}</span>
+                    </a>
+                </div>
+                <div id="collapseHealth" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                    <div class="card-body">
+                        <p>
+                            <a href="{% url 'shepherd:update_cat_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh Categories</a>
+                        </p>
+                        <p>
+                            The health of a domain is determined by categories and VirusTotal. If the domain is flagged with a bad category or in VirusTotal the domain is considered "Burned" here.<br>
+                            DNS Flags are more abstract. These are based on the domain's past and present DNS records and VirusTotal passive DNS hits. If the domain can be linked to a VirusTotal entry the VirusTotal results are recorded below as "flags" in the table.
+                        </p>
+                        <table>
                             <tr>
-                                <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
-                                <td>{{ project.activity_type }}</td>
-                                <td>{{ project.project.project_type }}</td>
-                                <td>{{ project.start_date }}</td>
-                                <td>{{ project.end_date }}</td>
-                                <td style="text-align: justify">{{ project.note }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last or forloop.revcounter0 == 1 %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'shepherd:history_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'shepherd:history_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
+                                <th>Status</th>
+                                <th>Health</th>
+                                <th>DNS Flags</th>
+                                <th>Whois Privacy</th>
                             </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>This domain has no history.</p>
-                {% endif %}
-            </div>
-        </div>
+                            <tr>
+                                {% if domain.domain_status.domain_status == "Available" %}
+                                    <td class="healthy">{{ domain.domain_status }}</td>
+                                {% else %}
+                                    <td class="burned">{{ domain.domain_status }}</td>
+                                {% endif %}
 
-        <!-- Additional Information Section -->
-        <button class="collapsible"><i class="fas fa-comments"></i> Notes ( {{ domain.domainnote_set.all.count }} )</button>
-        <div class="collapsiblecontent">
-            <div class="collapsiblecontent_inner">
-                <p>
-                    <a href="{% url 'shepherd:domain_note_add' domain.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
-                </p>
-                {% if domain.domainnote_set.all %}
-                    {% for note in domain.domainnote_set.all reversed %}
-                        <p>{{ note.timestamp }}</p>
-                        <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                            <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                            {% if request.user == note.operator or request.user.is_staff %}
-                                <div class="dropdown right">
-                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                    <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
-                                    </div>
-                                </div>
+                                {% if domain.health_status.health_status == "Healthy" %}
+                                    <td class="healthy">{{ domain.health_status }}</td>
+                                {% else %}
+                                    <td class="burned">{{ domain.health_status }}</td>
+                                {% endif %}
+
+                                {% ifequal domain.health_dns "Healthy" %}
+                                    <td class="healthy">{{ domain.health_dns }}</td>
+                                {% else %}
+                                    <td class="burned">{{ domain.health_dns }}</td>
+                                {% endifequal %}
+
+                                {% ifequal domain.whois_status.whois_status "Enabled" %}
+                                    <td class="healthy">{{ domain.whois_status }}</td>
+                                {% else %}
+                                    <td class="burned">{{ domain.whois_status }}</td>
+                                {% endifequal %}
+                            </tr>
+                        </table>
+
+                        <!-- Categories Section -->
+                        <p>
+                            Categories affect the trustworthiness of the domain and how web proxies may react to observing the domain. Bad categories are categories like <em>Spam</em>, <em>Suspicious</em>, and <em>Phishing</em>.<br>
+                            Any <em>No Results</em> entries indicate a reCAPTCHA or connection issue prevented information collection during the last update.
+                        </p>
+                        <table>
+                            <tr>
+                                <th>IBM X-Force</th>
+                                <th>Cisco Talos</th>
+                                <th>Bluecoat</th>
+                                <th>Fortiguard</th>
+                                <th>OpenDNS</th>
+                                <th>TrendMicro</th>
+                                <th>MX Toolbox</th>
+                            </tr>
+                            <tr>
+                                {% if domain.ibm_xforce_cat %}
+                                    <td>{{ domain.ibm_xforce_cat }}</td>
+                                {% else %}
+                                    <td>No Results - check <a class="clickable" href="https://exchange.xforce.ibmcloud.com/url/{{ domain.name }}">X-Force</a></td>
+                                {% endif %}
+
+
+                                {% if domain.talos_cat %}
+                                    <td>{{ domain.talos_cat }}</td>
+                                {% else %}
+                                    <td>No Results - check <a class="clickable" href="https://www.talosintelligence.com/reputation_center">Talos</a></td>
+                                {% endif %}
+
+                                {% if domain.bluecoat_cat %}
+                                    <td>{{ domain.bluecoat_cat }}</td>
+                                {% else %}
+                                    <td>No Results - check <a class="clickable" href="https://sitereview.bluecoat.com/resource/lookup">Bluecoat</a></td>
+                                {% endif %}
+
+                                {% if domain.fortiguard_cat %}
+                                    <td>{{ domain.fortiguard_cat }}</td>
+                                {% else %}
+                                    <td>No Results - check <a class="clickable" href="https://fortiguard.com/webfilter?q={{ domain.name }}">Fortiguard</a></td>
+                                {% endif %}
+
+                                {% if domain.opendns_cat %}
+                                    <td>{{ domain.opendns_cat }}</td>
+                                {% else %}
+                                    <td>No Results - check <a class="clickable" href="https://domain.opendns.com/{{ domain.name }}">OpenDNS</a></td>
+                                {% endif %}
+
+                                {% if domain.trendmicro_cat %}
+                                    <td>{{ domain.trendmicro_cat }}</td>
+                                {% else %}
+                                    <td>No Results - check <a class="clickable" href="https://global.sitesafety.trendmicro.com/">TrendMicro</a></td>
+                                {% endif %}
+
+                                {% if domain.mx_toolbox_status %}
+                                    <td>{{ domain.mx_toolbox_status }}</td>
+                                {% else %}
+                                    <td>No Results - check <a class="clickable" href="https://mxtoolbox.com/Public/Tools/BrandReputation.aspx">MX Toolbox</a></td>
+                                {% endif %}
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Burned Explanation Section -->
+            {% if domain.health_status.health_status == "Burned"%}
+                <div class="card">
+                    <div class="card-header" id="burned" data-toggle="collapse" data-target="#collapseBurned">
+                        <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseBurned" aria-expanded="false" aria-controls="collapseBurned">
+                            <i class="fas fa-biohazard"></i> Health Explanation
+                        </a>
+                    </div>
+                    <div id="collapseBurned" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                        <div class="card-body">
+                            {% if domain.burned_explanation %}
+                                <p>
+                                    This domain has been flagged as "Burned" for the following reason(s):<br>
+                                    {{ domain.burned_explanation }}
+                                </p>
+                            {% else %}
+                                <p>This domain has been flagged as "Burned" with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
                             {% endif %}
-                            <p>{{ note.note|linebreaksbr }}</p>
-                            <span class="time-right">{{ note.operator.username }}</span>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No notes for this domain.</p>
-                {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- DNS Section -->
+            <div class="card">
+                <div class="card-header" id="dns" data-toggle="collapse" data-target="#collapseDNS">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseDNS" aria-expanded="false" aria-controls="collapseDNS">
+                        <i class="fas fa-server"></i> DNS Records
+                    </a>
+                </div>
+                <div id="collapseDNS" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                    <div class="card-body">
+                        <p><a href="{% url 'shepherd:update_dns_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh DNS Records</a></p>
+                        {% if domain.get_list %}
+                            <table>
+                                <tr>
+                                    <th>Records</th>
+                                </tr>
+                                {% for record in domain.get_list %}
+                                    {% if record %}
+                                        <tr>
+                                            <td style="text-align: left">{{ record }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>Refresh DNS records to populate this area.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Section -->
+            <div class="card">
+                <div class="card-header" id="project" data-toggle="collapse" data-target="#collapseProject">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseProject" aria-expanded="false" aria-controls="collapseProject">
+                        <i class="fas fa-history"></i> Project History <span class="badge badge-pill badge-light">{{ domain.history_set.all.count }}</span>
+                    </a>
+                </div>
+                <div id="collapseProject" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                    <div class="card-body">
+                        {% if domain.history_set.all %}
+                            <table>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Activity Type</th>
+                                    <th>Project Type</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Notes</th>
+                                    <th>Options</th>
+                                </tr>
+                                {% for project in domain.history_set.all %}
+                                    <tr>
+                                        <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
+                                        <td>{{ project.activity_type }}</td>
+                                        <td>{{ project.project.project_type }}</td>
+                                        <td>{{ project.start_date }}</td>
+                                        <td>{{ project.end_date }}</td>
+                                        <td style="text-align: justify">{{ project.note }}</td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content" {% if forloop.last or forloop.revcounter0 == 1 %} style="bottom: 100%;"{% endif %}>
+                                                    <a href="{% url 'shepherd:history_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                    <a href="{% url 'shepherd:history_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>This domain has no history.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information Section -->
+            <div class="card">
+                <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
+                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
+                        <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ domain.domainnote_set.all.count }}</span>
+                    </a>
+                </div>
+                <div id="collapseNotes" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                    <div class="card-body">
+                        <p>
+                            <a href="{% url 'shepherd:domain_note_add' domain.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                        </p>
+                        {% if domain.domainnote_set.all %}
+                            {% for note in domain.domainnote_set.all reversed %}
+                                <p>{{ note.timestamp }}</p>
+                                <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                    <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                    {% if request.user == note.operator or request.user.is_staff %}
+                                        <div class="dropdown right">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div id="myDropdown" class="dropdown-content">
+                                                <a href="{% url 'shepherd:domain_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a href="{% url 'shepherd:domain_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    <p>{{ note.note|linebreaksbr }}</p>
+                                    <span class="time-right">{{ note.operator.username }}</span>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p>No notes for this domain.</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>

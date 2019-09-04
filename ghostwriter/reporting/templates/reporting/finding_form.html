@@ -3,43 +3,63 @@
 
 {% block pagetitle %}Finding Form{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">New Finding</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
-    <!-- Keyword Cheatsheet -->
-    <button class="collapsible"><i class="fas fa-comments"></i> Keyword Reference</button>
-    <div class="collapsiblecontent" style="margin-bottom: 40px;">
-        <p>Ghostwriter supports various template keywords you may utilize to format text and insert various pieces of information:</p>
-        {% verbatim %}
-            <table style="width: 50%; margin-left: 25%;">
-                <tr>
-                    <th class="smallCell">Keyword</th>
-                    <th>Usage</th>
-                </tr>
-                <tr>
-                    <td>{{.client}}</td>
-                    <td style="text-align: left">This keyword will be replaced with the client's short name. The full name will be used if a short name has not been set for the client.</td>
-                </tr>
-                <tr>
-                    <td>{{.code_block}} & {{.end_code_block}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to transform the text into a code block within the finding text (alternative to attaching a text file as evidence). Place the <em>{{.end_code_block}}</em> keyword on a new line.</td>
-                </tr>
-                <tr>
-                    <td>{{.caption}}</td>
-                    <td style="text-align: left">Start a line of text with this keyword to make it a caption. This is intended to follow a code block.</td>
-                </tr>
-                <tr>
-                    <td>{{.inline_code}} & {{.end_inline_code}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to format the text using the template's "Code (inline)" style. This is useful for highlighting code/commands without creating a figure.</td>
-                </tr>
-                <tr>
-                    <td>{{.bulleted_list}} & {{.end_bulleted_list}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to transform the text into a bulleted list. Each new line between the keywords will be a bullet. Place the <em>{{.end_bulleted_list}}</em> keyword on a new line.</td>
-                </tr>
-                <tr>
-                    <td>{{.numbered_list}} & {{.end_numbered_list}}</td>
-                    <td style="text-align: left">Wrap text with these keywords to transform the text into a numbered list. Each new line between the keywords will be a sequentially numbered line. Place the <em>{{.end_numbered_list}}</em> keyword on a new line.</td>
-                </tr>
-            </table>
-        {% endverbatim %}
+    <div id="accordion" class="myaccordion">
+        <!-- Keyword Cheatsheet -->
+        <div class="card">
+            <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
+                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseKeyword" aria-expanded="false" aria-controls="collapseKeyword">
+                    <i class="fas fa-code"></i> Keyword Reference
+                </a>
+            </div>
+            <div id="collapseKeyword" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                <div class="card-body">
+                    <p>Ghostwriter supports various template keywords you may utilize to format text and insert various pieces of information:</p>
+                    {% verbatim %}
+                        <table style="width: 50%; margin-left: 25%;">
+                            <tr>
+                                <th class="smallCell">Keyword</th>
+                                <th>Usage</th>
+                            </tr>
+                            <tr>
+                                <td>{{.client}}</td>
+                                <td style="text-align: left">This keyword will be replaced with the client's short name. The full name will be used if a short name has not been set for the client.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.code_block}} & {{.end_code_block}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to transform the text into a code block within the finding text (alternative to attaching a text file as evidence). Place the <em>{{.end_code_block}}</em> keyword on a new line.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.caption}}</td>
+                                <td style="text-align: left">Start a line of text with this keyword to make it a caption. This is intended to follow a code block.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.inline_code}} & {{.end_inline_code}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to format the text using the template's "Code (inline)" style. This is useful for highlighting code/commands without creating a figure.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.bulleted_list}} & {{.end_bulleted_list}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to transform the text into a bulleted list. Each new line between the keywords will be a bullet. Place the <em>{{.end_bulleted_list}}</em> keyword on a new line.</td>
+                            </tr>
+                            <tr>
+                                <td>{{.numbered_list}} & {{.end_numbered_list}}</td>
+                                <td style="text-align: left">Wrap text with these keywords to transform the text into a numbered list. Each new line between the keywords will be a sequentially numbered line. Place the <em>{{.end_numbered_list}}</em> keyword on a new line.</td>
+                            </tr>                        
+                        {% endverbatim %}
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Instructions Section -->
@@ -115,6 +135,7 @@
         {{ form.references|as_crispy_field }}
         {{ form.finding_guidance|as_crispy_field }}
 
-        <input type="submit" class="button" value="Submit">
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}

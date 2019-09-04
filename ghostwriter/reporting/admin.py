@@ -2,7 +2,8 @@
 
 from django.contrib import admin
 from .models import (Finding, Report, Severity, FindingType,
-    ReportFindingLink, Evidence, Archive) 
+    ReportFindingLink, Evidence, Archive, FindingNote,
+    LocalFindingNote)
 
 
 # Define the admin classes and register models
@@ -59,4 +60,14 @@ class FindingTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Archive)
 class ArchiveAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(FindingNote)
+class FindingNoteAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(LocalFindingNote)
+class LocalFindingNoteAdmin(admin.ModelAdmin):
     pass

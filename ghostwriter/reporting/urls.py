@@ -37,10 +37,18 @@ from .views import (
     position_decrease,
     position_increase,
     report_status_toggle,
+    report_delivery_toggle,
     reports_list,
     upload_evidence,
-    view_evidence
-)
+    view_evidence,
+    FindingNoteCreate,
+    FindingNoteUpdate,
+    FindingNoteDelete,
+    LocalFindingNoteCreate,
+    LocalFindingNoteUpdate,
+    LocalFindingNoteDelete,
+    convert_finding
+) 
 
 app_name = "reporting"
 
@@ -67,6 +75,12 @@ urlpatterns += [
                      FindingDelete.as_view(), name='finding_delete'),
                 path('findings/<int:pk>/assign/', assign_finding,
                      name='assign_finding'),
+                path('findings/<int:pk>/add_note/', FindingNoteCreate.as_view(),
+                    name='finding_note_add'),
+                path('findings/<int:pk>/edit_note/', FindingNoteUpdate.as_view(),
+                    name='finding_note_edit'),
+                path('findings/<int:pk>/delete_note/', FindingNoteDelete.as_view(),
+                    name='finding_note_delete'),
                ]
 
 # URLs for creating, updating, and deleting reports
@@ -109,6 +123,16 @@ urlpatterns += [
                      name='position_increase'),
                 path('reports/<int:pk>/down/', position_decrease,
                      name='position_decrease'),
+                path('reports/<int:pk>/add_note/', LocalFindingNoteCreate.as_view(),
+                    name='local_finding_note_add'),
+                path('reports/<int:pk>/edit_note/', LocalFindingNoteUpdate.as_view(),
+                    name='local_finding_note_edit'),
+                path('reports/<int:pk>/delete_note/', LocalFindingNoteDelete.as_view(),
+                    name='local_finding_note_delete'),
+                path('reports/<int:pk>/up/', position_increase,
+                     name='position_increase'),
+                path('reports/<int:pk>/convert_finding/', convert_finding,
+                     name='convert_finding'),
                ]
 
 # URLs for status toggles
@@ -118,6 +142,8 @@ urlpatterns += [
                 path('reports/<int:pk>/finding_status/',
                      finding_status_toggle,
                      name='finding_status_toggle'),
+                path('reports/<int:pk>/delivery_status/',
+                     report_delivery_toggle, name='report_delivery_toggle'),
                ]
 
 # URLs for generating reports

@@ -73,5 +73,19 @@
         "fields": {
             "finding_type": "Mobile"
         }
+    },
+    {
+        "model": "reporting.findingtype",
+        "pk": 6,
+        "fields": {
+            "finding_type": "Cloud"
+        }
+    },
+    {
+        "model": "reporting.findingtype",
+        "pk": 7,
+        "fields": {
+            "finding_type": "Host"
+        }
     }
   ]

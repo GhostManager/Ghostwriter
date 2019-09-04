@@ -25,6 +25,10 @@ a, a:hover, a:focus {
     transition: all 0.3s;
 }
 
+i {
+    margin-right: 5px;
+}
+
 hr {
     width: 70%;
 }
@@ -96,6 +100,16 @@ input[type="file"] {
     border-style: solid;
     border-width: 1px;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    
+    position:relative;
+    display:inline-block;
+}
+
+.notify-badge{
+    position: absolute;
+    right: 20px;
+    padding: 6px 8px;
+    z-index: 1;
 }
 
 .avatar_note {
@@ -131,6 +145,25 @@ input[type="file"] {
   height: 1px;
   border-bottom: 1px dashed #ddd;
   margin: 40px 0;
+}
+
+.breadcrumb > .active {
+    background-color: #e9ecef;
+    color: #7386D5;
+}
+
+.breadcrumb li {
+    display: inline;
+    max-width: 125px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.breadcrumb a {
+    background-color: #e9ecef;
+    color: #51b071;
+    text-decoration: underline;
 }
 
 /* ---------------------------------------------------
@@ -222,7 +255,7 @@ input[type="file"] {
     background: #fff;
 }
 
-#sidebar ul li.active > a, a[aria-expanded="true"] {
+#sidebar ul li.active > #sidebar a, #sidebar a[aria-expanded="true"] {
     color: #fff;
     background: #51B071;
 }
@@ -429,6 +462,36 @@ p.severity-box.info {
 
 .info {
     color: #8EAADB;
+    font-weight: 900;
+}
+
+.neutral {
+    color: #7a7a7a;
+    font-weight: 900;
+}
+
+.critical-background {
+    background-color: #7030A0;
+    font-weight: 900;
+}
+
+.high-background{
+    background-color: #FF7E79;
+    font-weight: 900;
+}
+
+.medium-background {
+    background-color: #F4B083;
+    font-weight: 900;
+}
+
+.low-background {
+    background-color: #A8D08D;
+    font-weight: 900;
+}
+
+.info-background {
+    background-color: #8EAADB;
     font-weight: 900;
 }
 
@@ -639,6 +702,11 @@ thead th.down {
     display: inline-block;
 }
 
+.dropdown-right {
+    position: relative;
+    display: inline-block;
+}
+
 .dropdown-content {
     border-radius: 5px;
     display: none;
@@ -666,6 +734,8 @@ thead th.down {
 .dropdown a:hover {background-color: #6d7fcc;}
 
 .dropdown:hover .dropdown-content {display: block; left: auto; right: 0px}
+
+.dropdown-right:hover .dropdown-content {display: block;}
 
 /* ---------------------------------------------------
     COLLAPSIBLE SECTION STYLES
@@ -725,6 +795,83 @@ thead th.down {
     padding: 0 20px;
 }
 
+.myaccordion {
+    max-width: 100%;
+    margin: 50px auto;
+    box-shadow: 0 0 1px rgba(0,0,0,0.1);
+}
+
+.myaccordion .card,
+.myaccordion .card:last-child .card-header {
+    border: none;
+}
+
+.myaccordion .card {
+    padding: 0 0 0 0;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #f1f1f1;
+}
+
+.myaccordion .card td {
+    text-align: center;
+}
+
+.myaccordion .card-header {
+    background: transparent;
+    border-radius: 5px;
+    background-color: #2B2C66;
+    border: none;
+    border-bottom: 1px solid;
+    border-color: #f5f5f5;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    position: relative;
+}
+
+.myaccordion .fa-stack {
+    font-size: 18px;
+}
+
+.myaccordion span {
+    font-size: 14px;
+}
+
+.myaccordion .btn {
+    font-weight: bold;
+    color: white;
+    padding: 0;
+}
+
+.myaccordion .btn-link:hover,
+.myaccordion .btn-link:focus {
+    text-decoration: none;
+}
+
+.myaccordion .card-header:hover,
+.card-header[aria-expanded=true] {
+    background-color: #51B071;
+}
+
+.myaccordion p {
+    font-size: 18px;
+}
+
+.card-header:after {
+    content: "\002B";
+    color: white;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+}
+.card-header[aria-expanded=true]:after {
+    content: "\2212";
+}
+
 /* ---------------------------------------------------
     NOTE STYLES
 ----------------------------------------------------- */
@@ -782,6 +929,23 @@ thead th.down {
 .time-left {
     float: left;
     color: #999;
+}
+
+/* ---------------------------------------------------
+    NOTIFICATIONS
+----------------------------------------------------- */
+
+.fade {
+    opacity: 0;
+    -webkit-transition: opacity 0.5s linear !important;
+    -moz-transition: opacity 0.5s linear !important;
+    -ms-transition: opacity 0.5s linear !important;
+    -o-transition: opacity 0.5s linear !important;
+    transition: opacity 0.5s linear !important;
+}
+
+.badge {
+    margin-left: 5px;
 }
 
 /* ---------------------------------------------------

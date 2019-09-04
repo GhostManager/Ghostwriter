@@ -4,7 +4,9 @@ from django import forms
 
 from crispy_forms.helper import FormHelper
 
-from .models import Finding, Report, ReportFindingLink, Evidence
+from .models import (
+    Finding, Report, ReportFindingLink, Evidence, LocalFindingNote,
+    FindingNote)
 
 
 class FindingCreateForm(forms.ModelForm):
@@ -119,3 +121,49 @@ class EvidenceForm(forms.ModelForm):
         self.helper.form_method = 'post'
         self.helper.field_class = \
             'h-100 justify-content-center align-items-center'
+
+
+class FindingNoteCreateForm(forms.ModelForm):
+    """Form used with the FindingNote CreateView in views.py."""
+    class Meta:
+        """Modify the attributes of the form."""
+        model = FindingNote
+        fields = ('__all__')
+        widgets = {
+                    'timestamp': forms.HiddenInput(),
+                    'operator': forms.HiddenInput(),
+                    'finding': forms.HiddenInput(),
+                  }
+
+    def __init__(self, *args, **kwargs):
+        """Override the `init()` function to set some attributes."""
+        super(FindingNoteCreateForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_class = 'form-inline'
+        self.helper.form_method = 'post'
+        self.helper.field_class = \
+            'h-100 justify-content-center align-items-center'
+        self.helper.form_show_labels = False
+
+
+class LocalFindingNoteCreateForm(forms.ModelForm):
+    """Form used with the LocalFindingNote CreateView in views.py."""
+    class Meta:
+        """Modify the attributes of the form."""
+        model = LocalFindingNote
+        fields = ('__all__')
+        widgets = {
+                    'timestamp': forms.HiddenInput(),
+                    'operator': forms.HiddenInput(),
+                    'finding': forms.HiddenInput(),
+                  }
+
+    def __init__(self, *args, **kwargs):
+        """Override the `init()` function to set some attributes."""
+        super(LocalFindingNoteCreateForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_class = 'form-inline'
+        self.helper.form_method = 'post'
+        self.helper.field_class = \
+            'h-100 justify-content-center align-items-center'
+        self.helper.form_show_labels = False

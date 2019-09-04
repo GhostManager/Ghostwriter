@@ -22,8 +22,6 @@ from time import sleep
 from django.conf import settings
 
 import requests
-import pytesseract
-from PIL import Image
 from lxml import etree
 from bs4 import BeautifulSoup
 
@@ -43,12 +41,12 @@ class DomainReview(object):
     # Categories we don't want to see
     # These are lowercase to avoid inconsistencies with how each service might
     # return the categories
-    blacklisted = ['phishing', 'web ads/analytics', 'suspicious', 'shopping',
+    blacklisted = ['phishing', 'web ads/analytics', 'suspicious',
                    'placeholders', 'pornography', 'spam', 'gambling',
                    'scam/questionable/illegal', 'malicious sources/malnets']
     # Variables for web browsing
-    useragent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) '
-    'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36'
+    useragent = \
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36'
     session = requests.Session()
 
     def __init__(self, domain_queryset):
@@ -98,28 +96,25 @@ class DomainReview(object):
         Cisco Talos.
         """
         categories = []
-        cisco_talos_uri = 'https://talosintelligence.com/sb_api/query_lookup?'
-        'query=%2Fapi%2Fv2%2Fdetails%2Fdomain%2F&query_entry={}&offset=0&'
-        'order=ip+asc'
+        cisco_talos_uri = 'https://talosintelligence.com/sb_api/query_lookup?query=%2Fapi%2Fv2%2Fdetails%2Fdomain%2F&query_entry={}&offset=0&order=ip+asc'
         headers = {'User-Agent': self.useragent,
-                   'Referer': 'https://www.talosintelligence.com/reputation_'
-                   'center/lookup?search=' + domain}
+                   'Referer': 'https://www.talosintelligence.com/reputation_center/lookup?search=' + domain}
         try:
             req = self.session.get(
                 cisco_talos_uri.format(domain),
                 headers=headers)
             if req.ok:
                 json_data = req.json()
-                category = json_data['category']
-                if category:
+                print(req.text)
+                if 'category' in json_data:
                     categories.append(json_data['category']['description'])
                 else:
                     categories.append('Uncategorized')
             else:
                 print('[!] Cisco Talos check request failed. Talos did not '
-                      'return a 200 response.')
+                        'return a 200 response.')
                 print('L.. Request returned status "{}"'.
-                      format(req.status_code))
+                        format(req.status_code))
         except Exception as error:
             print('[!] Cisco Talos request failed: {}'.format(error))
         return categories
@@ -202,100 +197,41 @@ class DomainReview(object):
         Symantec Bluecoat.
         """
         categories = []
-        bluecoart_uri = 'https://sitereview.bluecoat.com/resource/lookup'
-        post_data = {'url': domain, 'captcha': ''}
-        headers = {'User-Agent': self.useragent,
-                   'Content-Type': 'application/json; charset=UTF-8',
-                   'Referer': 'https://sitereview.bluecoat.com/lookup'}
+        bluecoat_uri = 'https://sitereview.bluecoat.com/#/'
+        bluecoat_captcha = 'https://sitereview.bluecoat.com/resource/captcha-request'
+        bluecoat_lookup = 'https://sitereview.bluecoat.com/resource/lookup'
+        post_data_1 = {'check': 'captcha'}
+        post_data_2 = {'url': domain, 'captcha': ''}
+        headers = {'User-Agent': self.useragent}
         try:
-            response = self.session.post(
-                bluecoart_uri,
+            response = self.session.get(
+                bluecoat_uri,
                 headers=headers,
-                json=post_data,
+                verify=False)
+            response = self.session.post(
+                bluecoat_captcha,
+                headers=headers,
+                json=post_data_1,
+                verify=False)
+            # Update headers with CSRF token
+            headers = {'User-Agent': self.useragent,
+                    'Content-Type': 'application/json; charset=UTF-8',
+                    'Referer': 'https://sitereview.bluecoat.com/lookup',
+                    'X-XSRF-TOKEN': self.session.cookies['XSRF-TOKEN']}
+            response = self.session.post(
+                bluecoat_lookup,
+                headers=headers,
+                json=post_data_2,
                 verify=False)
             root = etree.fromstring(response.text)
             for node in root.xpath(
                 '//CategorizationResult//categorization//categorization//name'
-              ):
+                ):
                 categories.append(node.text)
-            if 'captcha' in categories:
-                if ocr:
-                    # This request is also performed by a browser, but is not
-                    # needed for our purposes
-                    print('[*] Received a CAPTCHA challenge from Bluecoat...')
-                    captcha = self.solve_captcha(
-                        'https://sitereview.bluecoat.com/resource/captcha.jpg',
-                        self.session)
-                    if captcha:
-                        b64captcha = base64.urlsafe_b64encode(
-                            captcha.encode('utf-8')).decode('utf-8')
-                        # Send CAPTCHA solution via GET
-                        print('[*] Submitting an CAPTCHA text to Bluecoat...')
-                        captcha_solution_url = \
-                            'https://sitereview.bluecoat.com/resource/'
-                        'captcha-request/{0}'.format(b64captcha)
-                        response = self.session.get(
-                            url=captcha_solution_url,
-                            headers=headers,
-                            verify=False)
-                        # Try the categorization request again
-                        response = self.session.post(
-                            bluecoart_uri,
-                            headers=headers,
-                            json=post_data,
-                            verify=False)
-                        response_json = json.loads(response.text)
-                        if 'errorType' in response_json:
-                            print('[!] CAPTCHA submission was apparently '
-                                  'incorrect!')
-                            categories = response_json['errorType']
-                        else:
-                            print('[!] CAPTCHA submission was accepted!')
-                            categories = \
-                                response_json['categorization'][0]['name']
-                    else:
-                        print('[!] Failed to solve BlueCoat CAPTCHA with OCR.'
-                              ' Manually solve at: "https://sitereview.'
-                              'bluecoat.com/sitereview.jsp"')
-                else:
-                    print('[!] Failed to solve BlueCoat CAPTCHA with OCR.'
-                          ' Manually solve at: "https://sitereview.'
-                          'bluecoat.com/sitereview.jsp"')
         except Exception as error:
             print('[!] Bluecoat request failed: {0}'.format(error))
         return categories
 
-    def solve_captcha(self, url, session):
-        """Solve a Bluecoat CAPTCHA for the provided session."""
-        # Downloads CAPTCHA image and saves to current directory for OCR with
-        # pyTesseract. Returns CAPTCHA string or False if error occurred
-        jpeg = 'captcha.jpg'
-        headers = {'User-Agent': self.useragent}
-        try:
-            response = session.get(
-                url=url,
-                headers=headers,
-                verify=False,
-                stream=True)
-            if response.status_code == 200:
-                with open(jpeg, 'wb') as f:
-                    response.raw.decode_content = True
-                    shutil.copyfileobj(response.raw, f)
-            else:
-                print('[!] Failed to download the Bluecoat CAPTCHA.')
-                return False
-            # Perform basic OCR without additional image enhancement
-            text = pytesseract.image_to_string(Image.open(jpeg))
-            text = text.replace(" ", "").replace("[", "l").replace("'", "")
-            # Remove CAPTCHA file
-            try:
-                os.remove(jpeg)
-            except OSError:
-                pass
-            return text
-        except Exception as error:
-            print('[!] Error processing the Bluecoat CAPTCHA.'.format(error))
-            return False
 
     def check_mxtoolbox(self, domain):
         """Check if the provided domain is blacklisted as spam as determined
