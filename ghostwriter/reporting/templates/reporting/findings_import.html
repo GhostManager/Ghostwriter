@@ -21,15 +21,15 @@
         <div class="form-group">
             <label for="csv_file" class="csvlabel">
                 <div class="csvdiv">Click or drop your csv file here</div>
-                <input type="file" id="csv_file" name="csv_file" required="True" 
-                accept="text/csv"> 
+                <input type="file" id="csv_file" name="csv_file" required="True"
+                accept="text/csv">
             </label>
             <p id="filename"></p>
         </div>
         <div class="form-group">
             <div style="text-align: center"></div>
-                <button class="button"><i class="fas fa-file-upload"></i> Upload</button> 
-            </div> 
+                <button class="button"><i class="fas fa-file-upload"></i> Upload</button>
+            </div>
         </div>
     </form>
 
@@ -54,7 +54,7 @@
         </p>
 
         {% load static %}
-        <a href="{% static 'files/template.csv' %}" style="margin: 20px" class="button"><i class="fas fa-file-download"></i> Download Template</a>
+        <a href="{% static 'files/template_findings.csv' %}" style="margin: 20px" class="button"><i class="fas fa-file-download"></i> Download Template</a>
     </div>
 {% endblock %}
 

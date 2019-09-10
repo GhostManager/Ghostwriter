@@ -9,12 +9,14 @@
     <!-- Form Section -->
     <form class="newitem" action="" method="post" enctype="multipart/form-data">
         {% csrf_token %}
-    
+
         <!-- Server Info Section -->
         <strong><i class="fas fa-server"></i> Server Information</strong>
         <hr>
 
         {{ form.ip_address|as_crispy_field }}
+
+        {{ form.name|as_crispy_field }}
 
         <!-- Note Section -->
         <div class="form-row justify-content-center">
