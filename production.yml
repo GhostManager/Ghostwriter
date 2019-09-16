@@ -12,6 +12,7 @@ services:
       context: .
       dockerfile: ./compose/production/django/Dockerfile
     image: ghostwriter_production_django
+    restart: unless-stopped
     depends_on:
       - postgres
       - redis
@@ -28,6 +29,7 @@ services:
       context: .
       dockerfile: ./compose/production/postgres/Dockerfile
     image: ghostwriter_production_postgres
+    restart: unless-stopped
     volumes:
       - production_postgres_data:/var/lib/postgresql/data
       - production_postgres_data_backups:/backups
@@ -50,10 +52,12 @@ services:
 
   redis:
     image: redis:5-alpine
-
+    restart: unless-stopped
+    
   queue:
     <<: *django
     image: ghostwriter_production_queue
+    restart: unless-stopped
     depends_on:
       - redis
       - postgres
