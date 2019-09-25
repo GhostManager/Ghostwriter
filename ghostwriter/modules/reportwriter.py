@@ -592,9 +592,13 @@ class Reportwriter():
                         # Handle keywords that require managing runs
                         p = self.spenny_doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        all_words = line.split(' ')
+                        # Split line on spaces and curly brackets
+                        all_words = re.split('{{|}}| ', line)
                         for word in all_words:
                             prepared_text = word.strip() + ' '
+                            # Check if word is blank
+                            if not word:
+                                continue
                             # Determine styling
                             if (
                                 'inline_code' in word and
