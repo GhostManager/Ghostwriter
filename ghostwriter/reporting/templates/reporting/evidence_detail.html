@@ -61,9 +61,13 @@
     {% elif filetype == 'text' %}
         {% if file_content %}
             {% for line in file_content %}
-                <p style="margin-left:15%; text-align: left; max-width: 800px; word-wrap: break-word;">
-                    {{ line|linebreaksbr }}
-                </p>
+                {% ifequal line "FILE NOT FOUND"%}
+                    <p style="text-align: center;">{{ line }}</p>
+                {% else %}
+                    <p style="margin-left:15%; text-align: left; max-width: 1000px; word-wrap: break-word; line-height: 20px;">
+                        {{ line|linebreaksbr }}
+                    </p>
+                {% endifequal %}
             {% endfor %}
         {% endif %}
     {% else %}

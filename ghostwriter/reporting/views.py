@@ -469,15 +469,17 @@ def upload_evidence(request, pk):
     if request.method == 'POST':
         form = EvidenceForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
-            active_report = request.session.get('active_report', None)
-            messages.success(request, 'Evidence uploaded successfully',
-                             extra_tags='alert-success')
-            if 'id' in active_report:
+            new_evidence = form.save()
+            if os.path.isfile(new_evidence.document.path):
+                messages.success(request, 'Evidence uploaded successfully',
+                                extra_tags='alert-success')
                 return HttpResponseRedirect(reverse('reporting:report_detail',
-                                            args=(active_report['id'],)))
+                                            args=(new_evidence.finding.report.id,)))
             else:
-                return HttpResponseRedirect(reverse('reporting:reports'))
+                messages.success(request, 'Evidence file failed to upload',
+                                extra_tags='alert-danger')
+                return HttpResponseRedirect(reverse('reporting:report_detail',
+                                            args=(new_evidence.finding.report.id,)))
     else:
         form = EvidenceForm(initial={
             'finding': pk,
@@ -491,23 +493,35 @@ def view_evidence(request, pk):
     """View function for viewing evidence file uploads."""
     evidence_instance = Evidence.objects.get(pk=pk)
     file_content = None
-    if (
-            evidence_instance.document.name.endswith('.txt') or
-            evidence_instance.document.name.endswith('.log') or
-            evidence_instance.document.name.endswith('.ps1') or
-            evidence_instance.document.name.endswith('.py') or
-            evidence_instance.document.name.endswith('.md')
-      ):
-        filetype = 'text'
-        file_content = evidence_instance.document.read().splitlines()
-    elif (
-        evidence_instance.document.name.endswith('.jpg') or
-        evidence_instance.document.name.endswith('.png') or
-        evidence_instance.document.name.endswith('.jpeg')
-      ):
-        filetype = 'image'
+    if os.path.isfile(evidence_instance.document.path):
+        if (
+                evidence_instance.document.name.endswith('.txt') or
+                evidence_instance.document.name.endswith('.log') or
+                evidence_instance.document.name.endswith('.ps1') or
+                evidence_instance.document.name.endswith('.py') or
+                evidence_instance.document.name.endswith('.md')
+        ):
+            filetype = 'text'
+            file_content = []
+            temp = evidence_instance.document.read().splitlines()
+            for line in temp:
+                try:
+                    file_content.append(line.decode())
+                except:
+                    file_content.append(line)
+
+        elif (
+            evidence_instance.document.name.endswith('.jpg') or
+            evidence_instance.document.name.endswith('.png') or
+            evidence_instance.document.name.endswith('.jpeg')
+        ):
+            filetype = 'image'
+        else:
+            filetype = 'unknown'
     else:
-        filetype = 'unknown'
+        filetype = 'text'
+        file_content = []
+        file_content.append("FILE NOT FOUND")
     context = {
                 'filetype': filetype,
                 'evidence': evidence_instance,
@@ -1051,7 +1065,7 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
         messages.warning(self.request, '%s was removed from this report and '
                          'the associated file has been deleted.' %
                          self.get_object().friendly_name,
-                         extra_tags='alert-warning')
+                         extra_tags='alert-success')
         return reverse(
             'reporting:report_detail',
             kwargs={'pk': self.object.finding.report.pk})
@@ -1064,7 +1078,8 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
             settings.MEDIA_ROOT,
             self.get_object().document.name)
         directory = os.path.dirname(full_path)
-        os.remove(full_path)
+        if os.path.isfile(full_path):
+            os.remove(full_path)
         # Try to delete the directory tree if this was the last/only file
         try:
             os.removedirs(directory)
