@@ -194,7 +194,7 @@
                             <form action="{% url 'shepherd:domains' %}" method="GET">
                                 <span class="fa fa-search"></span>
                                 <input type="text" name="domain_search" placeholder="Search domains">
-                                <input type="submit" style="display: none;" /> 
+                                <input type="submit" style="display: none;" />
                             </form>
                         </div>
 
@@ -252,6 +252,7 @@
                                             </div>
                                         </div>
                                     </th>
+                                    <th>Name</th>
                                     <th>Purpose</th>
                                     <th>Role</th>
                                     <th>Provider</th>
@@ -261,6 +262,7 @@
                                 {% for server in project.serverhistory_set.all %}
                                     <tr>
                                         <td><a class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
+                                        <td>{{ server.server.name }}</td>
                                         <td>{{ server.activity_type }}</td>
                                         <td>{{ server.server_role }}</td>
                                         <td>{{ server.server.server_provider }}</td>
@@ -279,6 +281,7 @@
                                 {% for server in project.transientserver_set.all %}
                                     <tr>
                                         <td>{{ server.ip_address }}</td>
+                                        <td>{{ server.name }}</td>
                                         <td>{{ server.activity_type }}</td>
                                         <td>{{ server.server_role }}</td>
                                         <td>{{ server.server_provider }}</td>
@@ -319,7 +322,8 @@
                                 <table>
                                     <tr>
                                         <th>Domain</th>
-                                        <th>Server</th>
+                                        <th>Server IP</th>
+                                        <th>Server name</ht>
                                         <th>CDN Endpoint</th>
                                         <th>Options</th>
                                     </tr>
@@ -328,8 +332,10 @@
                                             <td>{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
                                             {% if connection.static_server %}
                                                 <td>{{ connection.static_server.server.ip_address }}</td>
+                                                <td>{{ connection.static_server.server.name }}</td>
                                             {% else %}
                                                 <td>{{ connection.transient_server.ip_address }}</td>
+                                                <td>{{ connection.transient_server.name }}</td>
                                             {% endif %}
                                             {% if connection.endpoint %}
                                                 <td>{{ connection.endpoint }}</td>
@@ -395,7 +401,7 @@
                                                     <td class="low">You</td>
                                                 {% else %}
                                                     <td class="high">You</td>
-                                                {% endif %} 
+                                                {% endif %}
                                             {% else %}
                                                 <td class="neutral">{{ finding.assigned_to }}</td>
                                             {% endif %}

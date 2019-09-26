@@ -25,10 +25,11 @@ class DomainFilter(django_filters.FilterSet):
 class ServerFilter(django_filters.FilterSet):
     """Filter used to search the `StaticServer` model."""
     ip_address = django_filters.CharFilter(lookup_expr='icontains')
+    name = django_filters.CharFilter(lookup_expr='icontains')
     server_status = django_filters.ModelMultipleChoiceFilter(
         queryset=ServerStatus.objects.all(),
         widget=forms.CheckboxSelectMultiple)
 
     class Meta:
         model = Domain
-        fields = ['ip_address', 'server_status']
+        fields = ['ip_address', 'name', 'server_status']

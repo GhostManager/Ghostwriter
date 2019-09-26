@@ -37,7 +37,10 @@
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post" id="checkoutForm" data-projects-url="{% url 'shepherd:ajax_load_projects' %}">
+    <form class="newitem" action="" method="post" id="checkoutForm"
+      data-projects-url="{% url 'shepherd:ajax_load_projects' %}"
+      data-project-url="{% url 'shepherd:ajax_load_project' %}"
+    >
         {% csrf_token %}
 
         <!-- Client Info Section -->
@@ -49,7 +52,7 @@
         <!-- Spacer -->
         <p style="margin: 40px;"></p>
 
-        <!-- Project Section -->            
+        <!-- Project Section -->
         <strong><i class="fas fa-tasks"></i> Usage Information</strong>
         <hr>
 
@@ -109,5 +112,26 @@
                 }
             });
         });
+    </script>
+
+    <!-- Script to set the default dates -->
+    <script>
+      $("#id_project").change(function () {
+        var url = $("#checkoutForm").attr("data-project-url");
+        var projectId = $(this).val();
+        $.ajax({
+            url: url,
+            data: {
+                'project': projectId
+            },
+            success: function (data) {
+                if(data.length > 0) {
+                  project = data[0]['fields'];
+                  $("#id_start_date")[0].value = project['start_date'];
+                  $("#id_end_date")[0].value = project['end_date'];
+                }
+            }
+        });
+      });
     </script>
 {% endblock %}

@@ -1,0 +1,2 @@
+title,description,severity,impact,mitigation,replication_steps,host_detection_techniques,network_detection_techniques,references,finding_type,finding_guidance
+Test finding,aze,Low,qsdq,azae,aze,daqd,qsd,dqsdq,Mobile,qsd
