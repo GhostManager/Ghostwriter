@@ -209,6 +209,7 @@ class ServerCreateForm(forms.ModelForm):
         """Override the `init()` function to set some attributes."""
         super(ServerCreateForm, self).__init__(*args, **kwargs)
         self.fields['ip_address'].widget.attrs['placeholder'] = '172.10.10.236'
+        self.fields['name'].widget.attrs['placeholder'] = 'hostname'
         self.fields['server_status'].empty_label = '-- Select Status --'
         self.fields['server_provider'].empty_label = '-- Select Provider --'
         self.fields['note'].widget.attrs[
@@ -235,6 +236,8 @@ class TransientServerCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
         super(TransientServerCreateForm, self).__init__(*args, **kwargs)
+        self.fields['ip_address'].widget.attrs['placeholder'] = '172.10.10.236'
+        self.fields['name'].widget.attrs['placeholder'] = 'hostname'
         self.fields['activity_type'].empty_label = '-- Select Activity --'
         self.fields['server_role'].empty_label = '-- Select Role --'
         self.fields['server_provider'].empty_label = '-- Select Provider --'

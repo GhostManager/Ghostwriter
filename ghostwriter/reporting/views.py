@@ -4,6 +4,7 @@ various webpages.
 
 # Import logging functionality
 import logging
+from pprint import pprint
 
 # Django imports for generic views and template rendering
 from django.urls import reverse
@@ -196,7 +197,7 @@ def import_findings(request):
         for entry in csv_reader:
             if error_count > 5:
                 raise Exception("Too many errors.  Discontinuing import.")
-            
+            pprint(entry)
             title = entry.get('title', None)
             if title is None:
                 messages.error(request, 'Missing title field', extra_tags='alert-danger')
@@ -207,7 +208,7 @@ def import_findings(request):
             logging.getLogger('error_logger').info('Adding %s to the database',
                                                    entry['title'])
             # Create a Severity object for the provided rating (e.g. High)
-            severity_entry = entry.get('severity', "Informational")
+            severity_entry = entry.get('severity', 'Informational')
             try:
                 severity = Severity.objects.get(severity__iexact=severity_entry)
             except Severity.DoesNotExist:
@@ -241,7 +242,7 @@ def import_findings(request):
 
         messages.success(request, 'Your csv file has been imported '
                          'successfully =)', extra_tags='alert-success')
-    
+
     except Exception as e:
         messages.error(request, str(e), extra_tags='alert-danger')
         logging.getLogger('error_logger').error(repr(e))

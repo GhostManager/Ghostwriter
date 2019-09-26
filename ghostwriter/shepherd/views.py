@@ -11,13 +11,14 @@ from django.shortcuts import render
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.core import serializers
 
 # Django imports for verifying a user is logged-in to access a view
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 # Django imports for forms
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
 # Django Q imports for task management
@@ -125,6 +126,15 @@ def ajax_load_projects(request):
         'shepherd/project_dropdown_list.html',
         {'projects': projects})
 
+@login_required
+def ajax_load_project(request):
+    """View function used with AJAX for retrieving project details.
+    Used in checkout forms to set the default checkout date.
+    """
+    project_id = request.GET.get('project')
+    project = Project.objects.filter(id=project_id)
+    data = serializers.serialize('json', project)
+    return HttpResponse(data, content_type='application/json')
 
 @login_required
 def domain_release(request, pk):
@@ -462,6 +472,10 @@ def import_servers(request):
             # NULL if not
             if 'note' not in entry:
                 entry['note'] = None
+            # Check if the optional name field is in the csv and add it as
+            # NULL if not
+            if 'name' not in entry:
+                entry['name'] = None
             # Check if the server_status Foreign Key is in the csv and try to
             # resolve the status
             if 'server_status' in entry:

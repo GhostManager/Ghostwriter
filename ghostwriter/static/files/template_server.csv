@@ -1,2 +1,2 @@
-ip_address,server_status,server_provider,note
-127.0.0.1,Available,Microsoft Azure,Test server
+ip_address,name,server_status,server_provider,note
+127.0.0.1,localhost,Available,Microsoft Azure,Test server

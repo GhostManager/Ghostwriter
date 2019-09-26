@@ -14,7 +14,7 @@
 
 {% block content %}
     <h2>
-        {{ staticserver.ip_address }}
+        {{ staticserver.ip_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}
         <div class="dropdown">
             <button class="dropbtn far fa-caret-square-down"></button>
             <div id="myDropdown" class="dropdown-content">
