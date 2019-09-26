@@ -6,9 +6,10 @@ from django.utils.translation import ugettext_lazy as _
 
 from crispy_forms.helper import FormHelper
 
-from .models import Domain, History, DomainNote, DomainServerConnection
+from .models import (Domain, History, DomainNote, DomainServerConnection, 
+                     DomainStatus)
 from .models import (StaticServer, TransientServer, ServerHistory,
-                             ServerNote)
+                     ServerNote, ServerStatus)
 from ghostwriter.rolodex.models import Project
 
 
@@ -75,6 +76,15 @@ class CheckoutForm(forms.ModelForm):
         # Return the cleaned data
         return end_date
 
+    def clean_domain(self):
+        domain = self.cleaned_data['domain']
+        unavailable = DomainStatus.objects.get(domain_status='Unavailable')
+        if domain.domain_status == unavailable:
+            raise ValidationError('Someone beat you to it. This domain has '
+                                  'already been checked out!')
+        # Return the cleaned data
+        return domain
+
 
 class ServerCheckoutForm(forms.ModelForm):
     """Form used for server checkout. Updates the server (status) and creates
@@ -136,6 +146,15 @@ class ServerCheckoutForm(forms.ModelForm):
                                     'comes before the start date.'))
         # Return the cleaned data
         return end_date
+
+    def clean_server(self):
+        server = self.cleaned_data['server']
+        unavailable = ServerStatus.objects.get(server_status='Unavailable')
+        if server.server_status == unavailable:
+            raise ValidationError('Someone beat you to it. This server has '
+                                  'already been checked out!')
+        # Return the cleaned data
+        return server
 
 
 class DomainCreateForm(forms.ModelForm):
