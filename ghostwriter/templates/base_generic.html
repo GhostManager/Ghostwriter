@@ -138,28 +138,30 @@
                     </ul>
 
                     <!-- Admin Section -->
-                    <ul class="list-unstyled components">
-                        <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Management</p>
-                        <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
-                        <li>
-                            <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
-                            <ul class="collapse list-unstyled" id="pageSubmenu">
-                                <li><a href="{% url 'admin:users_user_changelist' %}">Users</a></li>
-                                <li><a href="{% url 'admin:app_list' 'django_q' %}">Q Tasks</a></li>
-                                <li><a href="{% url 'admin:index' %}">Admin Panel</a></li>
-                            </ul>
-                        </li>
+                    {% if request.user.is_staff %}
+                        <ul class="list-unstyled components">
+                            <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Management</p>
+                            <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
+                            <li>
+                                <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
+                                <ul class="collapse list-unstyled" id="pageSubmenu">
+                                    <li><a href="{% url 'admin:users_user_changelist' %}">Users</a></li>
+                                    <li><a href="{% url 'admin:app_list' 'django_q' %}">Q Tasks</a></li>
+                                    <li><a href="{% url 'admin:index' %}">Admin Panel</a></li>
+                                </ul>
+                            </li>
 
-                        <!-- Documentation Section -->
-                        <li>
-                            <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
-                            <ul class="collapse list-unstyled" id="docsSubmenu">
-                                <li><a href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
-                                <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
-                                <li><a href="https://github.com/GhostManager/DomainCheck"><i class="fab fa-github-alt"></i> DomainCheck on GitHub</a></li>
-                            </ul>
-                        </li>
-                    </ul>
+                            <!-- Documentation Section -->
+                            <li>
+                                <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
+                                <ul class="collapse list-unstyled" id="docsSubmenu">
+                                    <li><a href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
+                                    <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
+                                    <li><a href="https://github.com/GhostManager/DomainCheck"><i class="fab fa-github-alt"></i> DomainCheck on GitHub</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    {% endif %}
 
                     <!-- Sidebar Buttons -->
                     {% if user.is_authenticated %}

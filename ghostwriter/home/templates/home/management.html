@@ -15,7 +15,7 @@
 
     <h2>API & Notification Configurations</h2>
     <p>These settings are managed in settings.py and changing them will require restarting the application:</p>
-    <table style="width: 55%; border: none; margin-left: 22.5%; margin-top: 20px" align="center">
+    <table style="width: 75%; border: none; margin-left: 12.5%; margin-top: 20px" align="center">
         <!-- General Section -->
         <tr>
             <th class="form_th"><i class="fas fa-cogs"></i> General Settings</th>
@@ -123,4 +123,15 @@
             </tr>
         {% endif %}
     </table>
+
+    {% if enable_slack %}
+        <strong><i class="fas fa-check-double"></i> Test Configuration</strong>
+        <hr>
+
+        <form action="{% url 'home:send_slack_test_msg' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
+            <button class="btn btn-primary">Send a Slack Test</button>
+        </form>
+    {% endif %}
 {% endblock %}
