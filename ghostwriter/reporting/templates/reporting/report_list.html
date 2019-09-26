@@ -62,12 +62,12 @@
                     <td nowrap>{{ report.last_update }}</td>
                     {% if report.complete %}
                         {% if report.delivered %}
-                            <td>Delivered</td>
+                            <td><span class="badge badge-success">Delivered</span></td>
                         {% else %}
-                            <td>Complete, Awaiting Delivery</td>
+                            <td><span class="badge badge-warning">Awaiting Delivery</span></td>
                         {% endif %}
                     {% else %}
-                        <td>In Progress</td>
+                        <td><span class="badge badge-primary">In Progress</span></td>
                     {% endif %}
                     <td >{{ report.created_by }}</td>
                     <td><a href="{% url 'reporting:activate_report' report.id %}"><i style="font-size: 15px" class="far fa-edit"></i></button></td>

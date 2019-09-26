@@ -24,15 +24,10 @@
     <h6><i class="fas fa-cloud-download-alt"></i> Pull Domains from Namecheap</h6>
     <hr>
 
-    <p>Update the domain library by pulling the latest list of domain's from the configured Namecheap account.</p>
-
-    {% if enable_namecheap %}
-        <form action="{% url 'shepherd:update_namecheap' %}" method="POST">
-            {% csrf_token %}
-            <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
-            <button class="button">Pull from Namecheap</button>
-        </form>
-    {% endif %}
+    <p>The domain library sync with Mamecheap was last requested on:</p>
+    <p style="font-size: 20px; padding: 10 10 10 10">
+        <strong>{{ namecheap_last_update_requested }}</strong>
+    </p>
 
     {% if namecheap_last_update_completed %}
         {% if namecheap_last_update_completed == 'Failed' %}
@@ -50,6 +45,14 @@
                 <p>Request Status: <span class="badge badge-pill badge-success">Completed on {{ namecheap_last_update_completed }} in {{ namecheap_last_update_time }} minutes</span></p>
             {% endif %}
         {% endif %}
+    {% endif %}
+
+    {% if enable_namecheap %}
+        <form action="{% url 'shepherd:update_namecheap' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
+            <button class="btn btn-primary">Pull from Namecheap</button>
+        </form>
     {% endif %}
 
     <!-- Domain Categories Section -->
@@ -84,7 +87,7 @@
     <form action="{% url 'shepherd:update_cat' %}" method="POST">
         {% csrf_token %}
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
-        <button class="button">Start Update</button>
+        <button class="btn btn-primary">Start Update</button>
     </form>
 
     <!-- DNS Section -->
@@ -120,6 +123,6 @@
     <form action="{% url 'shepherd:update_dns' %}" method="POST">
         {% csrf_token %}
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
-        <button class="button">Start Update</button>
+        <button class="btn btn-primary">Start Update</button>
     </form>
 {% endblock %}
