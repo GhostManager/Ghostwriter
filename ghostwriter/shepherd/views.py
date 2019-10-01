@@ -282,13 +282,13 @@ def burn(request, pk):
     # If this is a GET (or any other method) create the default form
     else:
         form = BurnForm()
-    # Prepare the context for the checkout form
+    # Prepare the context for the burn form
     context = {
                 'form': form,
                 'domain_instance': domain_instance,
                 'domain_name': domain_instance.name
                }
-    # Render the checkout form page
+    # Render the burn form page
     return render(request, 'shepherd/burn.html', context)
 
 
@@ -393,6 +393,10 @@ def import_domains(request):
                     # This is a new domain so create it
                     new_domain = Domain(**entry)
                     new_domain.save()
+                messages.success(
+                    request,
+                    'Successfully parsed %s' % entry['name'],
+                    extra_tags='alert-success')
             # If there is an error, store as string and then display
             except Exception as e:
                 messages.error(
@@ -525,6 +529,10 @@ def import_servers(request):
                     # This is a new server so create it
                     new_server = StaticServer(**entry)
                     new_server.save()
+                messages.success(
+                    request,
+                    'Successfully parsed %s' % entry['ip_address'],
+                    extra_tags='alert-success')
             # If there is an error, store as string and then display
             except Exception as e:
                 messages.error(
