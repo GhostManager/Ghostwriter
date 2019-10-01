@@ -1041,8 +1041,17 @@ class Reportwriter():
                     finding,
                     report_json)
             # Create References section
-            self.spenny_doc.add_heading('References', 4)
-            self.process_text(finding['references'], finding, report_json)
+            # self.spenny_doc.add_heading('References', 4)
+            # self.process_text(finding['references'], finding, report_json)
+            if finding['references']:
+                self.spenny_doc.add_heading('References', 4)
+                all_refs = finding['references'].split('\n')
+                for entity in all_refs:
+                    entity = entity.strip()
+                    p = self.spenny_doc.add_paragraph(entity, style='Normal')
+                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    self.list_number(p, level=0, num=False)
+                    p.paragraph_format.left_indent = Inches(0.5)
             # On to the next finding
             self.spenny_doc.add_page_break()
         # Finalize document and return it for an HTTP response

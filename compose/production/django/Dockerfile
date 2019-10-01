@@ -2,6 +2,8 @@ FROM python:3.7-alpine
 
 ENV PYTHONUNBUFFERED 1
 
+ENV PYTHONPATH="$PYTHONPATH:/app/config"
+
 RUN apk update \
   # psycopg2 dependencies
   && apk add --virtual build-deps gcc python3-dev musl-dev \
