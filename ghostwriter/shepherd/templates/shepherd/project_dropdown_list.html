@@ -1,4 +1,4 @@
 <option value="">-- Select a Project --</option>
 {% for project in projects %}
-    <option value="{{ project.pk }}">{{ project }}</option>
+    <option value="{{ project.pk }}">{{ project.codename }} {{ project.project_type }} ({{project.start_date}} - {{project.end_date}})</option>
 {% endfor %}
