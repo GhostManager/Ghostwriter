@@ -321,7 +321,6 @@ class History(models.Model):
         'ActivityType',
         on_delete=models.PROTECT,
         null=False,
-        blank=True,
         help_text='Select the intended use of this domain')
 
     class Meta:
@@ -530,13 +529,11 @@ class ServerHistory(models.Model):
         'ServerRole',
         on_delete=models.PROTECT,
         null=False,
-        blank=True,
         help_text='Select the intended role the server will play')
     activity_type = models.ForeignKey(
         'ActivityType',
         on_delete=models.PROTECT,
         null=False,
-        blank=True,
         help_text='Select the intended activity to be performed by the server')
 
     class Meta:
