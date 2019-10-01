@@ -135,6 +135,8 @@ class AssignmentCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
         super(AssignmentCreateForm, self).__init__(*args, **kwargs)
+        self.fields['operator'].queryset = self.fields['operator'].queryset.order_by('name')
+        self.fields['operator'].label_from_instance = lambda obj: "%s (%s)" % (obj.name, obj.username)
         self.fields['start_date'].widget.attrs['placeholder'] = 'mm/dd/yyyy'
         self.fields['start_date'].widget.attrs['autocomplete'] = 'off'
         self.fields['end_date'].widget.attrs['placeholder'] = 'mm/dd/yyyy'

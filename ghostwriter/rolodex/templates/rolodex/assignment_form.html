@@ -36,7 +36,9 @@
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post">
+    <form class="newitem" action="" method="post" id="assignmentForm"
+      data-project-url="{% url 'rolodex:ajax_load_project' %}"
+    >
         {% csrf_token %}
 
         <!-- Client Info Section -->
@@ -91,6 +93,48 @@
         $(function() {
             $("#id_start_date").datepicker();
             $("#id_end_date").datepicker();
+        });
+    </script>
+
+    <!-- Script to set the default dates after project change -->
+    <script>
+        $("#id_project").change(function () {
+            var url = $("#assignmentForm").attr("data-project-url");
+            var projectId = $(this).val();
+            $.ajax({
+                url: url,
+                data: {
+                    'project': projectId
+                },
+                success: function (data) {
+                    if(data.length > 0) {
+                        project = data[0]['fields'];
+                        $("#id_start_date")[0].value = project['start_date'];
+                        $("#id_end_date")[0].value = project['end_date'];
+                    }
+                }
+            });
+        });
+    </script>
+
+    <!-- Script to set the default dates on page load -->
+    <script>
+        $(document).ready(function(){
+            var url = $("#assignmentForm").attr("data-project-url");
+            var project = $("#id_project").val();
+            $.ajax({
+                url: url,
+                data: {
+                    'project': project
+                },
+                success: function(data){
+                    if(data.length > 0) {
+                        project = data[0]['fields'];
+                        $("#id_start_date")[0].value = project['start_date'];
+                        $("#id_end_date")[0].value = project['end_date'];
+                    }
+                }
+            });
         });
     </script>
 {% endblock %}
