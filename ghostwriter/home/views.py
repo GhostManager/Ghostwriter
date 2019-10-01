@@ -6,11 +6,19 @@ import logging
 import datetime
 
 # Django imports for generic views and template rendering
+from django.urls import reverse
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.admin.views.decorators import staff_member_required
 
 # Django imports for verifying a user is logged-in to access a view
 from django.contrib.auth.decorators import login_required
+
+# Django imports for forms
+from django.http import HttpResponseRedirect
+
+# Django Q imports for task management
+from django_q.tasks import async_task
 
 # Django imports for updating passwords
 from django.contrib.auth import update_session_auth_hash, get_user_model
@@ -114,6 +122,7 @@ def upload_avatar(request):
 
 
 @login_required
+@staff_member_required
 def management(request):
     """View function to display the current settings configured for
     Ghostwriter.
@@ -142,3 +151,29 @@ def management(request):
         'namecheap_api_username': config['namecheap_api_username']
     }
     return render(request, 'home/management.html', context=context)
+
+
+@login_required
+@staff_member_required
+def send_slack_test_msg(request):
+    """View function to schedule a background task to send a test Slack
+    message.
+    """
+    # Check if the request is a POST and proceed with the task
+    if request.method == 'POST':
+        # Add an async task grouped as `Test Slack Message`
+        try:
+            task_id = async_task(
+                'ghostwriter.shepherd.tasks.send_slack_test_msg',
+                group='Test Slack Message')
+            messages.success(
+                request,
+                'Test Slack message has been successfully queued.',
+                extra_tags='alert-success')
+        except Exception:
+            messages.error(
+                request,
+                'Test Slack message task could not be queued. '
+                'Is the AMQP server running?',
+                extra_tags='alert-danger')
+    return HttpResponseRedirect(reverse('home:management'))

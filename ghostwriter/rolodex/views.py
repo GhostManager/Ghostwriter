@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.views import generic
 from django.contrib import messages
 from django.shortcuts import render
+from django.core import serializers
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
@@ -18,7 +19,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 # Django imports for forms
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
 # Import additional models
@@ -44,6 +45,17 @@ logger = logging.getLogger(__name__)
 ##################
 # View Functions #
 ##################
+
+
+@login_required
+def ajax_load_project(request):
+    """View function used with AJAX for retrieving project details.
+    Used in assignment forms to set the default assignment dates.
+    """
+    project_id = request.GET.get('project')
+    project = Project.objects.filter(id=project_id)
+    data = serializers.serialize('json', project)
+    return HttpResponse(data, content_type='application/json')
 
 
 @login_required

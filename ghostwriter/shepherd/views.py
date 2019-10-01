@@ -126,6 +126,7 @@ def ajax_load_projects(request):
         'shepherd/project_dropdown_list.html',
         {'projects': projects})
 
+
 @login_required
 def ajax_load_project(request):
     """View function used with AJAX for retrieving project details.
@@ -135,6 +136,7 @@ def ajax_load_project(request):
     project = Project.objects.filter(id=project_id)
     data = serializers.serialize('json', project)
     return HttpResponse(data, content_type='application/json')
+
 
 @login_required
 def domain_release(request, pk):
@@ -230,18 +232,14 @@ def user_assets(request):
                     'activity_type'
                 ).filter(
                     operator=request.user,
-                    domain__domain_status__domain_status='Unavailable',
-                    end_date__gte=datetime.datetime.now() -
-                    datetime.timedelta(days=1)
+                    domain__domain_status__domain_status='Unavailable'
                 ).order_by('end_date')
     servers = ServerHistory.objects.select_related(
                     'server', 'server__server_status', 'project',
                     'server_role', 'activity_type'
                 ).filter(
                     operator=request.user,
-                    server__server_status__server_status='Unavailable',
-                    end_date__gte=datetime.datetime.now() -
-                    datetime.timedelta(days=1)
+                    server__server_status__server_status='Unavailable'
                 ).order_by('end_date')
     # Pass the context on to the custom HTML
     context = {

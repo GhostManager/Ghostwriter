@@ -68,6 +68,12 @@ def send_slack_msg(message, slack_channel=None):
                                             response.text))
 
 
+def send_slack_test_msg(slack_channel=None):
+    """Use `send_slack_msg` to send a test message using the configured Slack webhook."""
+    message = "This is a test of your notification system."
+    send_slack_msg(message, slack_channel)
+
+
 def send_slack_complete_msg(task):
     """Function to send a Slack message for a task. Meant to be used as a hook
     for an async_task().
