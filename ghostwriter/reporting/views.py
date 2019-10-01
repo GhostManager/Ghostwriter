@@ -59,7 +59,7 @@ import zipfile
 from xlsxwriter.workbook import Workbook
 
 # Import custom modules
-from modules import reportwriter
+from ghostwriter.modules import reportwriter
 
 
 # Setup logger
