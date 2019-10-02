@@ -107,42 +107,41 @@ def release_domains(no_action=False):
     # Go through each `Unavailable` domain and check it against projects
     for domain in queryset:
         # Get all projects for the domain
-        project_queryset = History.objects.filter(domain__name=domain.name)
+        project_queryset = History.objects.filter(domain__name=domain.name).latest('end_date')
         release_me = True
         # Check each project's end date to determine if all are in the past
-        for project in project_queryset:
-            release_date = project.end_date
-            warning_date = release_date - datetime.timedelta(days=1)
-            # Check if date is before or is the end date
-            if date.today() <= release_date:
-                release_me = False
-            # Check if tomorrow is the end date
-            if date.today() == warning_date:
-                release_me = False
-                message = "Your domain, {}, will be released tomorrow! " \
-                          "Modify the project's end date as needed.".\
-                          format(domain.name)
-                if project.project.slack_channel:
-                    send_slack_msg(message, project.project.slack_channel)
-                else:
-                    send_slack_msg(message)
+        # for project in project_queryset:
+        release_date = project_queryset.end_date
+        warning_date = release_date - datetime.timedelta(1)
+        # Check if date is before or is the end date
+        if date.today() <= release_date:
+            release_me = False
+        # Check if tomorrow is the end date
+        if date.today() == warning_date:
+            release_me = False
+            message = "Your domain, {}, will be released tomorrow! " \
+                    "Modify the project's end date as needed.".\
+                    format(domain.name)
+            if project_queryset.project.slack_channel:
+                send_slack_msg(message, project_queryset.project.slack_channel)
+            else:
+                send_slack_msg(message)
         # If release_me is still true, release the domain
         if release_me:
             domains_to_be_released.append(domain)
-    # Check no_action and just return list if it is set to True
-    if no_action:
-        return domains_to_be_released
-    else:
-        for domain in domains_to_be_released:
-            message = 'Your domain, {}, has been released.'.format(domain.name)
-            print('Releasing {} back into the pool.'.format(domain.name))
-            if project.project.slack_channel:
-                send_slack_msg(message, domain.project.slack_channel)
+            # Check no_action and just return list if it is set to True
+            if no_action:
+                return domains_to_be_released
             else:
-                send_slack_msg(message)
-            domain.domain_status = DomainStatus.objects.\
-                get(domain_status='Available')
-            domain.save()
+                message = 'Your domain, {}, has been released.'.format(domain.name)
+                print('Releasing {} back into the pool.'.format(domain.name))
+                if project_queryset.project.slack_channel:
+                    send_slack_msg(message, project_queryset.project.slack_channel)
+                else:
+                    send_slack_msg(message)
+                domain.domain_status = DomainStatus.objects.\
+                    get(domain_status='Available')
+                domain.save()
         return domains_to_be_released
 
 
@@ -163,43 +162,42 @@ def release_servers(no_action=False):
     for server in queryset:
         # Get all projects for the server
         project_queryset = ServerHistory.objects.\
-            filter(server__ip_address=server.ip_address)
+            filter(server__ip_address=server.ip_address).latest('end_date')
         release_me = True
         # Check each project's end date to determine if all are in the past
-        for project in project_queryset:
-            release_date = project.end_date
-            warning_date = release_date - datetime.timedelta(days=1)
-            # Check if date is before or is the end date
-            if date.today() <= release_date:
-                release_me = False
-            # Check if tomorrow is the end date
-            if date.today() == warning_date:
-                release_me = False
-                message = "Your server, {}, will be released tomorrow! " \
-                          "Modify the project's end date as needed.".\
-                          format(server.ip_address)
-                if project.project.slack_channel:
-                    send_slack_msg(message, project.project.slack_channel)
-                else:
-                    send_slack_msg(message)
+        release_date = project_queryset.end_date
+        warning_date = release_date - datetime.timedelta(1)
+        # Check if date is before or is the end date
+        if date.today() <= release_date:
+            release_me = False
+        # Check if tomorrow is the end date
+        if date.today() == warning_date:
+            release_me = False
+            message = "Your server, {}, will be released tomorrow! " \
+                        "Modify the project's end date as needed.".\
+                        format(server.ip_address)
+            if project_queryset.project.slack_channel:
+                send_slack_msg(message, project_queryset.project.slack_channel)
+            else:
+                send_slack_msg(message)
         # If release_me is still true, release the server
         if release_me:
             servers_to_be_released.append(server)
-    # Check no_action and just return list if it is set to True
-    if no_action:
-        return servers_to_be_released
-    else:
-        for server in servers_to_be_released:
-            message = "Your server, {}, has been released.".\
-                format(server.ip_address)
-            print('Releasing {} back into the pool.'.format(server.ip_address))
-            if project.project.slack_channel:
-                send_slack_msg(message, project.project.slack_channel)
+            # Check no_action and just return list if it is set to True
+            if no_action:
+                return servers_to_be_released
             else:
-                send_slack_msg(message)
-            server.server_status = ServerStatus.objects.\
-                get(server_status='Available')
-            server.save()
+                message = "Your server, {}, has been released.".\
+                    format(server.ip_address)
+                print('Releasing {} back into the pool.'.format(server.ip_address))
+                if project_queryset.project.slack_channel:
+                    # send_slack_msg(message, project_queryset.project.slack_channel)
+                    print(message, project_queryset.project.slack_channel)
+                else:
+                    send_slack_msg(message)
+                server.server_status = ServerStatus.objects.\
+                    get(server_status='Available')
+                server.save()
         return servers_to_be_released
 
 
