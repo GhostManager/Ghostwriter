@@ -40,7 +40,9 @@ urlpatterns += [
     path('servers/<int:pk>/checkout', views.ServerHistoryCreate.as_view(),
          name='server_checkout'),
     path('servers/<int:pk>/release', views.server_release,
-         name='server_release')
+         name='server_release'),
+    path('servers/search', views.server_search,
+         name='server_search')
 ]
 
 # URLs for creating, updating, and deleting domains

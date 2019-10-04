@@ -235,11 +235,24 @@
                                 Servers
                                 <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
                             </h4>
+
                             <div class="dropdown-content dropdown-content-info">
                                 <p>Checked-out servers will appear here. Add transient servers (i.e. virtual private servers) here as they are spun up for the project so they can be easily tracked and associated with domains and activities.</p>
                             </div>
                         </div>
-                        <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Transient Server</a></p>
+
+                        <!-- Search Section -->
+                        <div class="search" style="width: 35%; margin-left: 32.5%;">
+                            <form action="{% url 'shepherd:server_search' %}" method="POST">
+                                {% csrf_token %}
+                                <span class="fa fa-search"></span>
+                                <input type="text" name="server_search" placeholder="Enter server IP to checkout">
+                                <input type="hidden" name="project_id" value="{{ project.id }}"
+                                <input type="submit" style="display: none;" />
+                            </form>
+                        </div>
+
+                        <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Cloud Server</a></p>
                         {% if project.serverhistory_set.all or project.transientserver_set.all %}
                             <table>
                                 <tr>
@@ -316,7 +329,7 @@
                         <!-- Determine if at least one server and one domain -->
                         {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
                             <p>
-                                <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Add a Domain + Server Association</a>
+                                <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Associate a Domain + Server</a>
                             </p>
                             {% if project.domainserverconnection_set.all %}
                                 <table>
