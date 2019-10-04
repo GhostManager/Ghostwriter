@@ -1107,7 +1107,7 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
             self.request,
             'Server history successfully updated.',
             extra_tags='alert-success')
-        return reverse('shepherd:project_detail', kwargs={'pk': self.object.project.pk})
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional

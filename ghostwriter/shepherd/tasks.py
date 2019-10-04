@@ -79,16 +79,16 @@ def send_slack_complete_msg(task):
     for an async_task().
     """
     if task.success:
-        send_slack_msg('Task {} has completed its run. It completed '
+        send_slack_msg('{} task has completed its run. It completed '
                        'successfully with no additional result data.'.
-                       format(task.name))
+                       format(task.group))
     else:
         if task.result:
-            send_slack_msg('Task {} failed with this result: {}'.
-                           format(task.name, task.result))
+            send_slack_msg('{} task failed with this result: {}'.
+                           format(task.group, task.result))
         else:
-            send_slack_msg('Task {} failed with no result/error data. Check '
-                           'the Django Q admin panel.'.format(task.name))
+            send_slack_msg('{} task failed with no result/error data. Check '
+                           'the Django Q admin panel.'.format(task.group))
 
 
 def release_domains(no_action=False):
@@ -142,7 +142,7 @@ def release_domains(no_action=False):
                 domain.domain_status = DomainStatus.objects.\
                     get(domain_status='Available')
                 domain.save()
-        return domains_to_be_released
+    return domains_to_be_released
 
 
 def release_servers(no_action=False):
@@ -198,7 +198,7 @@ def release_servers(no_action=False):
                 server.server_status = ServerStatus.objects.\
                     get(server_status='Available')
                 server.save()
-        return servers_to_be_released
+    return servers_to_be_released
 
 
 def check_domains(domain=None):
@@ -463,7 +463,6 @@ def fetch_namecheap_domains():
             entry = {}
             # Set the WHOIS status based on WhoisGuard
             if domain['IsExpired'] == 'true':
-                print("GOT EM")
                 entry['whois_status'] = WhoisStatus.objects.get(pk=2)
             else:
                 try:
