@@ -6,6 +6,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from crispy_forms.helper import FormHelper
 
+from datetime import date
+
 from .models import (Domain, History, DomainNote, DomainServerConnection, 
                      DomainStatus)
 from .models import (StaticServer, TransientServer, ServerHistory,
@@ -77,11 +79,16 @@ class CheckoutForm(forms.ModelForm):
         return end_date
 
     def clean_domain(self):
+        insert = self.instance.pk == None
         domain = self.cleaned_data['domain']
-        unavailable = DomainStatus.objects.get(domain_status='Unavailable')
-        if domain.domain_status == unavailable:
-            raise ValidationError('Someone beat you to it. This domain has '
-                                  'already been checked out!')
+        if insert:
+            unavailable = DomainStatus.objects.get(domain_status='Unavailable')
+            expired = domain.expiration < date.today()
+            if expired:
+                raise ValidationError("This domain's registration has expired!")
+            if domain.domain_status == unavailable:
+                raise ValidationError('Someone beat you to it. This domain has '
+                                      'already been checked out!')
         # Return the cleaned data
         return domain
 
@@ -148,11 +155,13 @@ class ServerCheckoutForm(forms.ModelForm):
         return end_date
 
     def clean_server(self):
+        insert = self.instance.pk == None
         server = self.cleaned_data['server']
-        unavailable = ServerStatus.objects.get(server_status='Unavailable')
-        if server.server_status == unavailable:
-            raise ValidationError('Someone beat you to it. This server has '
-                                  'already been checked out!')
+        if insert:
+            unavailable = ServerStatus.objects.get(server_status='Unavailable')
+            if server.server_status == unavailable:
+                raise ValidationError('Someone beat you to it. This server has '
+                                      'already been checked out!')
         # Return the cleaned data
         return server
 

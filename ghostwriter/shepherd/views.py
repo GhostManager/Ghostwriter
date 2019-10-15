@@ -115,6 +115,50 @@ def server_list(request):
 
 
 @login_required
+def server_search(request):
+    """View that takes POST data for a server IP address and a project ID
+    to redirect to the server checkout page.
+    """
+    if request.method == 'POST':
+        ip_address = request.POST.get('server_search').strip()
+        project_id = request.POST.get('project_id')
+        try:
+            server_instance = StaticServer.objects.get(ip_address=ip_address)
+        except Exception:
+            messages.success(
+                request,
+                'No server was found matching %s' %
+                ip_address, extra_tags='alert-success')
+            return HttpResponseRedirect(reverse(
+                    'rolodex:project_detail',
+                    kwargs={'pk': project_id}))
+        if server_instance:
+            unavailable = ServerStatus.objects.get(server_status='Unavailable')
+            if server_instance.server_status == unavailable:
+                messages.warning(
+                    request,
+                    'The server matching "%s" is currently marked as unavailable' %
+                    ip_address, extra_tags='alert-warning')
+                return HttpResponseRedirect(reverse(
+                        'rolodex:project_detail',
+                        kwargs={'pk': project_id}))
+            else:
+                return HttpResponseRedirect(reverse(
+                        'shepherd:server_checkout',
+                        kwargs={'pk': server_instance.id}))
+        else:
+            messages.success(
+                request,
+                'No server was found matching %s' %
+                ip_address, extra_tags='alert-success')
+            return HttpResponseRedirect(reverse(
+                    'rolodex:project_detail',
+                    kwargs={'pk': project_id}))
+    else:
+        return HttpResponseRedirect(reverse('rolodex:index'))
+
+
+@login_required
 def ajax_load_projects(request):
     """View function used with AJAX for filtering project dropdown lists based
     on changes to a client dropdown list.
@@ -1107,7 +1151,7 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
             self.request,
             'Server history successfully updated.',
             extra_tags='alert-success')
-        return reverse('shepherd:project_detail', kwargs={'pk': self.object.project.pk})
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional

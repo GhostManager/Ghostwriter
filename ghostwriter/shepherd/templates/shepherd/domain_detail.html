@@ -19,10 +19,14 @@
             <button class="dropbtn far fa-caret-square-down"></button>
             <div id="myDropdown" class="dropdown-content">
                 <a href="{% url 'shepherd:domain_update' domain.id %}"><i class="far fa-edit"></i> Edit</a>
-                {% if domain.domain_status.domain_status == "Available" %}
-                    <a href="{% url 'shepherd:checkout' domain.id %}"><i style="color: green" class="far fa-calendar-check"></i> Checkout Domain</a>
+                {% if domain.is_expired %}
+                    <a href="#"><i style="color: red" class="fas fa-skull"></i> Domain Expired</a>
                 {% else %}
-                    <a href="#"><i style="color: red" class="fas fa-ban"></i> Domain Unavailable</a>
+                    {% if domain.domain_status.domain_status == "Available" %}
+                        <a href="{% url 'shepherd:checkout' domain.id %}"><i style="color: green" class="far fa-calendar-check"></i> Checkout Domain</a>
+                    {% else %}
+                        <a href="#"><i style="color: red" class="fas fa-ban"></i> Domain Unavailable</a>
+                    {% endif %}
                 {% endif %}
                 {% if domain.health_status.health_status == "Healthy" %}
                     <a href="{% url 'shepherd:burn' domain.id %}"><i style="color: orange" class="fas fa-fire-alt"></i> Mark Burned</a>
