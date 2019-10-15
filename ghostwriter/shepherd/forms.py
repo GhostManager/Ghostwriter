@@ -6,6 +6,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from crispy_forms.helper import FormHelper
 
+from datetime import date
+
 from .models import (Domain, History, DomainNote, DomainServerConnection, 
                      DomainStatus)
 from .models import (StaticServer, TransientServer, ServerHistory,
@@ -81,6 +83,9 @@ class CheckoutForm(forms.ModelForm):
         domain = self.cleaned_data['domain']
         if insert:
             unavailable = DomainStatus.objects.get(domain_status='Unavailable')
+            expired = domain.expiration < date.today()
+            if expired:
+                raise ValidationError("This domain's registration has expired!")
             if domain.domain_status == unavailable:
                 raise ValidationError('Someone beat you to it. This domain has '
                                       'already been checked out!')
