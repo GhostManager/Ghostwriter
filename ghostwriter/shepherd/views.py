@@ -125,10 +125,10 @@ def server_search(request):
         try:
             server_instance = StaticServer.objects.get(ip_address=ip_address)
         except Exception:
-            messages.success(
+            messages.warning(
                 request,
                 'No server was found matching %s' %
-                ip_address, extra_tags='alert-success')
+                ip_address, extra_tags='alert-warning')
             return HttpResponseRedirect(reverse(
                     'rolodex:project_detail',
                     kwargs={'pk': project_id}))
@@ -270,21 +270,32 @@ def user_assets(request):
     """View function for displaying domains and servers checked-out for the
     current user.
     """
-    # Fetch the domain and server history for the current user
-    domains = History.objects.select_related(
-                    'domain', 'domain__domain_status', 'project',
-                    'activity_type'
-                ).filter(
-                    operator=request.user,
-                    domain__domain_status__domain_status='Unavailable'
-                ).order_by('end_date')
-    servers = ServerHistory.objects.select_related(
-                    'server', 'server__server_status', 'project',
-                    'server_role', 'activity_type'
-                ).filter(
-                    operator=request.user,
-                    server__server_status__server_status='Unavailable'
-                ).order_by('end_date')
+    # Fetch the domain history for the current user
+    domains = []
+    unavailable_domains = Domain.objects.select_related(
+                            'domain_status'
+                        ).filter(
+                            domain_status__domain_status='Unavailable'
+                        )
+    for domain in unavailable_domains:
+        domain_history = History.objects.filter(
+                            operator=request.user,
+                            domain=domain
+                        ).order_by('end_date').last()
+        domains.append(domain_history)
+    # Fetch the server history for the current user
+    servers = []
+    unavailable_servers = StaticServer.objects.select_related(
+                            'server_status'
+                        ).filter(
+                            server_status__server_status='Unavailable'
+                        )
+    for server in unavailable_servers:
+        server_history = ServerHistory.objects.filter(
+                            operator=request.user,
+                            server=server
+                        ).order_by('end_date').last()
+        servers.append(server_history)
     # Pass the context on to the custom HTML
     context = {
                 'domains': domains,
@@ -1126,7 +1137,8 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
             self.request,
             'Server successfully checked-out.',
             extra_tags='alert-success')
-        return reverse('shepherd:user_assets')
+        # return reverse('shepherd:user_assets')
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
