@@ -66,6 +66,20 @@ class Reportwriter():
         self.evidence_path = evidence_path
         self.report_queryset = report_queryset
 
+    def valid_xml_char_ordinal(self, c):
+        """Clean string to make all characters XML compatible for Word documents.
+
+        https://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+        """
+        codepoint = ord(c)
+        # Conditions ordered by presumed frequency
+        return (
+            0x20 <= codepoint <= 0xD7FF or
+            codepoint in (0x9, 0xA, 0xD) or
+            0xE000 <= codepoint <= 0xFFFD or
+            0x10000 <= codepoint <= 0x10FFFF
+            )
+
     def generate_json(self):
         """Export report as a JSON dictionary."""
         project_name = str(self.report_queryset.project)
@@ -404,6 +418,8 @@ class Reportwriter():
         p = None
         prev_p = None
         regex = r'\{\{\.(.*?)\}\}'
+        # Clean text to make it XML compatible
+        text = ''.join(c for c in text if self.valid_xml_char_ordinal(c))
         for line in text.split('\n'):
             line = line.strip()
             # Perform static replacements
