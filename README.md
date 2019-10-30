@@ -1,6 +1,7 @@
 # Ghostwriter
 
-[![Python Version](https://img.shields.io/badge/Python-3.7-brightgreen.svg)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](.)
+[![Python Version](https://img.shields.io/badge/Python-3.7-brightgreen.svg)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](.) [![Slack Status](https://img.shields.io/badge/Slack-%23reporting-E01563)](https://bloodhoundgang.herokuapp.com)
+
 
 ![ghostwriter](https://github.com/GhostManager/Ghostwriter/raw/master/DOCS/images/logo.png)
 
