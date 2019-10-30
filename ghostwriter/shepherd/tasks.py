@@ -461,8 +461,10 @@ def fetch_namecheap_domains():
     if domains_list:
         for domain in domains_list:
             entry = {}
+            entry['registrar'] = 'Namecheap'
             # Set the WHOIS status based on WhoisGuard
             if domain['IsExpired'] == 'true':
+                entry['expired'] = True
                 entry['whois_status'] = WhoisStatus.objects.get(pk=2)
             else:
                 try:
@@ -471,6 +473,9 @@ def fetch_namecheap_domains():
                 # Anytying no `Enabled` or `Disabled`, set to `Unknown`
                 except:
                     entry['whois_status'] = WhoisStatus.objects.get(pk=3)
+            # Set AutoRenew status
+            if domain['AutoRenew'] == 'false':
+                entry['auto_renew'] = False
             # Convert Namecheap dates to Django
             entry['creation'] = datetime.datetime.strptime(
                 domain['Created'], "%m/%d/%Y").strftime("%Y-%m-%d")
@@ -480,7 +485,6 @@ def fetch_namecheap_domains():
                 instance, created = Domain.objects.update_or_create(
                     name=domain.get('Name')
                 )
-                # TODO: something with IsExpired & AutoRenew
                 for attr, value in entry.items():
                     setattr(instance, attr, value)
                 instance.save()

@@ -427,6 +427,9 @@ def import_domains(request):
                 domain_status = DomainStatus.objects.get(
                     domain_status='Available')
                 entry['domain_status'] = domain_status
+            # Accept any auto_renew value (True, X, Yes, ...) to mean True
+            if 'auto_renew' in entry:
+                entry['auto_renew'] = True
             # The last_used_by field will only be set by Shepherd at check-out
             if 'last_used_by' in entry:
                 entry['last_used_by'] = None
