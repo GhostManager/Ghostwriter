@@ -187,7 +187,8 @@ class Report(models.Model):
     project = models.ForeignKey(
         'rolodex.Project',
         on_delete=models.CASCADE,
-        null=True)
+        null=True,
+        help_text='Select the project tied to this report')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
