@@ -405,16 +405,62 @@ class Reportwriter():
         par._p.get_or_add_pPr().get_or_add_numPr().\
             get_or_add_ilvl().val = level
 
+    def process_inline_text(self, line, p):
+        """Process the provided line for the provided paragraph to handle
+        nested inline text formatting.
+        """
+        # Split line on spaces and curly brackets
+        all_words = re.split('{{|}}| ', line)
+        for word in all_words:
+            prepared_text = word.strip() + ' '
+            # Check if word is blank
+            if not word:
+                continue
+            # Determine styling
+            if (
+                'inline_code' in word and
+                'end_inline_code' not in word
+                ):
+                self.inline_code = True
+                continue
+            if 'end_inline_code' in word:
+                self.inline_code = False
+                continue
+            if 'italic' in word and 'end_italic' not in word:
+                self.italic_text = True
+                continue
+            if 'end_italic' in word:
+                self.italic_text = False
+                continue
+            if 'bold' in word and 'end_bold' not in word:
+                self.bold_text = True
+                continue
+            if 'end_bold' in word:
+                self.bold_text = False
+                continue
+            # Write the content
+            if self.inline_code:
+                run = p.add_run(prepared_text)
+                run.style = 'Code (inline)'
+            else:
+                run = p.add_run(prepared_text)
+            if self.italic_text:
+                font = run.font
+                font.italic = True
+            if self.bold_text:
+                font = run.font
+                font.bold = True
+
     def process_text(self, text, finding, report_json):
         """Process the provided text from the specified finding to parse
         keywords for evidence placement and formatting.
         """
-        numbered_list = False
-        bulleted_list = False
-        code_block = False
-        inline_code = False
-        italic_text = False
-        bold_text = False
+        self.numbered_list = False
+        self.bulleted_list = False
+        self.code_block = False
+        self.inline_code = False
+        self.italic_text = False
+        self.bold_text = False
         p = None
         prev_p = None
         regex = r'\{\{\.(.*?)\}\}'
@@ -463,7 +509,7 @@ class Reportwriter():
                     line = line.replace(match, '')
                     # Handle code blocks
                     if keyword == 'code_block':
-                        code_block = True
+                        self.code_block = True
                         if line:
                             p = self.spenny_doc.add_paragraph(line)
                             p.style = 'CodeBlock'
@@ -473,63 +519,62 @@ class Reportwriter():
                             p = self.spenny_doc.add_paragraph(line)
                             p.style = 'CodeBlock'
                             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        code_block = False
+                        self.code_block = False
                         continue
                     # Handle captions - intended to follow code blocks
                     if keyword == 'caption':
-                        numbered_list = False
-                        bulleted_list = False
+                        self.numbered_list = False
+                        self.bulleted_list = False
                         p = self.spenny_doc.add_paragraph(
                             'Figure ',
                             style='Caption')
                         self.make_figure(p)
-                        run = p.add_run(' - ' + line)
+                        run = p.add_run(' – ' + line)
                     # Handle lists
                     if keyword == 'numbered_list':
                         if line:
-                            p = self.spenny_doc.add_paragraph(
-                                line,
-                                style='Normal')
+                            p = self.spenny_doc.add_paragraph(style='Normal')
+                            self.process_inline_text(line, p)
                             self.list_number(p, level=0, num=True)
                             p.paragraph_format.left_indent = Inches(0.5)
-                        numbered_list = True
+                        self.numbered_list = True
                     if keyword == 'end_numbered_list':
                         if line:
-                            p = self.spenny_doc.add_paragraph(
-                                line,
-                                style='Normal')
+                            p = self.spenny_doc.add_paragraph(style='Normal')
+                            self.process_inline_text(line, p)
                             self.list_number(p, level=0, num=True)
                             p.paragraph_format.left_indent = Inches(0.5)
-                        numbered_list = False
+                        self.numbered_list = False
                         continue
                     if keyword == 'bulleted_list':
                         if line:
-                            p = self.spenny_doc.add_paragraph(
-                                line,
-                                style='Normal')
+                            p = self.spenny_doc.add_paragraph(style='Normal')
+                            self.process_inline_text(line, p)
                             self.list_number(p, level=0, num=False)
                             p.paragraph_format.left_indent = Inches(0.5)
-                        bulleted_list = True
+                        self.bulleted_list = True
                     if keyword == 'end_bulleted_list':
                         if line:
-                            p = self.spenny_doc.add_paragraph(
-                                line,
-                                style='Normal')
+                            p = self.spenny_doc.add_paragraph(style='Normal')
+                            self.process_inline_text(line, p)
                             self.list_number(p, level=0, num=False)
                             p.paragraph_format.left_indent = Inches(0.5)
-                        bulleted_list = False
+                        self.bulleted_list = False
                         continue
             # Continue handling paragraph formatting if active
-            elif code_block:
-                p = self.spenny_doc.add_paragraph(line)
+            elif self.code_block:
+                p = self.spenny_doc.add_paragraph()
                 p.style = 'CodeBlock'
+                self.process_inline_text(line, p)
                 p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            elif numbered_list:
-                p = self.spenny_doc.add_paragraph(line, style='Normal')
+            elif self.numbered_list:
+                p = self.spenny_doc.add_paragraph(style='Normal')
+                self.process_inline_text(line, p)
                 self.list_number(p, prev=prev_p, level=0, num=True)
                 p.paragraph_format.left_indent = Inches(0.5)
-            elif bulleted_list:
-                p = self.spenny_doc.add_paragraph(line, style='Normal')
+            elif self.bulleted_list:
+                p = self.spenny_doc.add_paragraph(style='Normal')
+                self.process_inline_text(line, p)
                 self.list_number(p, level=0, num=False)
                 p.paragraph_format.left_indent = Inches(0.5)
             # Handle keywords wrapped around runs of text inside paragraphs
@@ -542,7 +587,6 @@ class Reportwriter():
                         keyword = match.\
                             replace('{{.', '').\
                             replace('}}', '').strip()
-                        # line = line.replace(match, '')
                     # Check if the keyword references evidence
                     evidence = False
                     if 'evidence' in finding:
@@ -608,47 +652,7 @@ class Reportwriter():
                         # Handle keywords that require managing runs
                         p = self.spenny_doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        # Split line on spaces and curly brackets
-                        all_words = re.split('{{|}}| ', line)
-                        for word in all_words:
-                            prepared_text = word.strip() + ' '
-                            # Check if word is blank
-                            if not word:
-                                continue
-                            # Determine styling
-                            if (
-                                'inline_code' in word and
-                                'end_inline_code' not in word
-                              ):
-                                inline_code = True
-                                continue
-                            if 'end_inline_code' in word:
-                                inline_code = False
-                                continue
-                            if 'italic' in word and 'end_italic' not in word:
-                                italic_text = True
-                                continue
-                            if 'end_italic' in word:
-                                italic_text = False
-                                continue
-                            if 'bold' in word and 'end_bold' not in word:
-                                bold_text = True
-                                continue
-                            if 'end_bold' in word:
-                                bold_text = False
-                                continue
-                            # Write the content
-                            if inline_code:
-                                run = p.add_run(prepared_text)
-                                run.style = 'Code (inline)'
-                            else:
-                                run = p.add_run(prepared_text)
-                            if italic_text:
-                                font = run.font
-                                font.italic = True
-                            if bold_text:
-                                font = run.font
-                                font.bold = True
+                        self.process_inline_text(line, p)
                 else:
                     p = self.spenny_doc.add_paragraph(line, style='Normal')
             # Save the current paragraph for next iteration - needed for lists
