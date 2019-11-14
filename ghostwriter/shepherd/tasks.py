@@ -6,22 +6,36 @@ from django.conf import settings
 from django.core.files import File
 # from reporting.models import Report, Archive
 from .models import (Domain, History, DomainStatus, HealthStatus,
-    StaticServer, ServerStatus, ServerHistory, WhoisStatus)
+    StaticServer, ServerStatus, ServerHistory, WhoisStatus, TransientServer)
 
 # Import Python libraries for various things
 import io
 import os
 import json
+import pytz
 import nmap
+import boto3
 import zipfile
 import requests
 import datetime
 from datetime import date
 from lxml import objectify
+from collections import defaultdict
+from botocore.exceptions import ClientError
 
 # Import custom modules
 from ghostwriter.modules.dns import DNSCollector
 from ghostwriter.modules.review import DomainReview
+
+
+class BearerAuth(requests.auth.AuthBase):
+    """Helper class for providing the Authorization header with Requests."""
+    token = None
+    def __init__(self, token):
+        self.token = token
+    def __call__(self, r):
+        r.headers["Authorization"] = "Bearer " + self.token
+        return r
 
 
 def send_slack_msg(message, slack_channel=None):
@@ -396,7 +410,7 @@ def scan_servers(only_active=False):
 
 
 def fetch_namecheap_domains():
-    """Fetch a list of registered domains for the specified Namecheap account. A valid API key, 
+    """Fetch a list of registered domains for the specified Namecheap account. A valid API key,
     username, and whitelisted IP address must be used. The returned XML contains entries for
     domains like this:
     
@@ -492,3 +506,162 @@ def fetch_namecheap_domains():
                 pass
     else:
         print('[!] No domains were returned for the provided account!')
+
+
+def months_between(date1, date2):
+    """Compare two dates and return the number of months beetween them."""
+    if date1 > date2:
+        date1, date2 = date2, date1
+    m1 = date1.year * 12 + date1.month
+    m2 = date2.year * 12 + date2.month
+    months = m2 - m1
+    if date1.day > date2.day:
+        months -= 1
+    elif date1.day == date2.day:
+        seconds1 = date1.hour * 3600 + date1.minute + date1.second
+        seconds2 = date2.hour * 3600 + date2.minute + date2.second
+        if seconds1 > seconds2:
+            months -= 1
+    return months
+
+def review_cloud_infrastructure():
+    """Fetch active virtual machines/instances in Digital Ocean, Azure, and AWS and
+    compare IP addresses to project infrastructure. Send a report to Slack if any
+    instances are still alive after project end date or if an IP address is not found
+    for a project.
+    """
+    DIGITAL_OCEAN_ENDPOINT = 'https://api.digitalocean.com/v2/droplets?page=1&per_page=1'
+
+    aws_key = settings.CLOUD_SERVICE_CONFIG['aws_key']
+    aws_secret = settings.CLOUD_SERVICE_CONFIG['aws_secret']
+    do_api_key = settings.CLOUD_SERVICE_CONFIG['do_api_key']
+
+    # Set timezone for dates to UTC
+    utc = pytz.UTC
+    # Create info dict
+    vps_info = defaultdict()
+    # Create AWS client for EC2 using a default region and get a list of all regions
+    aws_capable = True
+    try:
+        client = boto3.client('ec2', region_name='us-west-2', aws_access_key_id=aws_key, aws_secret_access_key=aws_secret)
+        regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
+    except ClientError as e:
+        aws_capable = False
+        print('[!] AWS could not validate the provided credentials.')
+    if aws_capable:
+        # Loop over the regions to check each one for EC2 instances
+        for region in regions:
+            # Create an EC2 resource for the region
+            ec2 = boto3.resource('ec2', region_name=region, aws_access_key_id=aws_key, aws_secret_access_key=aws_secret)
+            # Get all EC2 instances that are running
+            running_instances = ec2.instances.filter(
+                Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+            # Loop over running instances to generate info dict
+            for instance in running_instances:
+                # Calculate how long the instance has been running in UTC
+                time_up = months_between(instance.launch_time.replace(tzinfo=utc), datetime.datetime.today().replace(tzinfo=utc))
+                tags = []
+                if instance.tags:
+                    for tag in instance.tags:
+                        if 'Name' in tag['Key']:
+                            name = tag['Value']
+                        else:
+                            tags.append(tag)
+                else:
+                    name = "Blank"
+                pub_addresses = []
+                pub_addresses.append(instance.private_ip_address)
+                priv_addresses = []
+                priv_addresses.append(instance.public_ip_address)
+                # Add instance info to a dictionary         
+                vps_info[instance.id] = {
+                    'Provider': 'Amazon Web Services',
+                    'Name': name,
+                    'Type': instance.instance_type,
+                    'Monthly Cost': None,   # AWS cost is different and not easily calculated
+                    'Cost to Date': None,   # AWS cost is different and not easily calculated
+                    'State': instance.state['Name'],
+                    'Private IP': priv_addresses,
+                    'Public IP': pub_addresses,
+                    'Launch Time': instance.launch_time.replace(tzinfo=utc),
+                    'Time Up': '{} months'.format(time_up),
+                    'Tags': tags
+                }
+
+    # Get all Digital Ocean droplets for the account
+    do_capable = True
+    try:
+        active_droplets = requests.get(DIGITAL_OCEAN_ENDPOINT, auth=BearerAuth(do_api_key)).json()
+    except:
+        do_capable = False
+        print('[!] Could not retrieve content from Digital Ocean with the provided API key.')
+    # Loop over the droplets to generate the info dict
+    if do_capable:
+        for droplet in active_droplets['droplets']:
+            # Get the networking info
+            if 'v4' in droplet['networks']:
+                ipv4 = droplet['networks']['v4']
+            else:
+                ipv4 = []
+            if 'v6' in droplet['networks']:
+                ipv6 = droplet['networks']['v6']
+            else:
+                ipv6 = []
+            # Create lists of public and private addresses
+            pub_addresses = []
+            priv_addresses = []
+            for address in ipv4:
+                if address['type'] == 'private':
+                    priv_addresses.append(address['ip_address'])
+                else:
+                    pub_addresses.append(address['ip_address'])
+            for address in ipv6:
+                if address['type'] == 'private':
+                    priv_addresses.append(address['ip_address'])
+                else:
+                    pub_addresses.append(address['ip_address'])
+            # Calculate how long the instance has been running in UTC and cost to date
+            time_up = months_between(
+                datetime.datetime.strptime(droplet['created_at'].split('T')[0], '%Y-%m-%d').replace(tzinfo=utc),
+                datetime.datetime.today().replace(tzinfo=utc)
+                )
+            cost_to_date = months_between(
+                datetime.datetime.strptime(droplet['created_at'].split('T')[0], '%Y-%m-%d'),
+                datetime.datetime.today()
+                ) * droplet['size']['price_monthly']
+            # Add an entry to th dict for the droplet
+            vps_info[droplet['id']] = {
+                'Provider': 'Digital Ocean',
+                'Name': droplet['name'],
+                'Type': droplet['image']['distribution'] + " " + droplet['image']['name'],
+                'Monthly Cost': droplet['size']['price_monthly'],
+                'Cost to Date': cost_to_date,
+                'State': droplet['status'],
+                'Private IP': priv_addresses,
+                'Public IP': pub_addresses,
+                'Launch Time': datetime.datetime.strptime(droplet['created_at'].split('T')[0], '%Y-%m-%d').replace(tzinfo=utc),
+                'Time Up': '{} months'.format(time_up),
+                'Tags': ', '.join(droplet['tags'])
+            }
+    # Examine results to identify potentially unneeded/unused machines
+    for instance_id, instance in vps_info.items():
+        all_ip_addresses = []
+        for address in instance['Public IP']:
+            all_ip_addresses.append(address)
+        for address in instance['Private IP']:
+            all_ip_addresses.append(address)
+        queryset = TransientServer.objects.select_related('project').filter(ip_address__in=all_ip_addresses)
+        if queryset:
+            for result in queryset:
+                if result.project.end_date < instance['Launch Time'].date():
+                    message = 'Assessment ended on {} and this server on {} is still running:\n\n {} ({}) Tags: {}'.format(
+                        result.project.end_date, instance['Provider'], instance['Name'],
+                        ', '.join(instance['Public IP']), instance['Tags'])
+                    if result.project.slack_channel:
+                        send_slack_msg(message, slack_channel=result.project.slack_channel)
+                    else:
+                        send_slack_msg(message)
+                else:
+                    print('[+] Server is still being used: {}'.format(instance))
+        else:
+            print('[+] Server not found in Ghostwriter: {}'.format(instance))

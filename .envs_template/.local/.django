@@ -37,3 +37,9 @@ NAMECHEAP_USERNAME=
 NAMECHEAP_API_USERNAME=
 CLIENT_IP=
 NAMECHEAP_PAGE_SIZE=100
+
+# Cloud Services
+# ------------------------------------------------------------------------------
+AWS_KEY=
+AWS_SECRET=
+DO_API_KEY=
