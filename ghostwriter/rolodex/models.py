@@ -174,7 +174,8 @@ class Project(models.Model):
     client = models.ForeignKey(
         'Client',
         on_delete=models.CASCADE,
-        null=False)
+        null=False,
+        help_text='Select the client this project should be attached to')
     operator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

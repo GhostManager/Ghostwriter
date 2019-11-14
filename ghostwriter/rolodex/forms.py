@@ -49,7 +49,6 @@ class ProjectCreateForm(forms.ModelForm):
         model = Project
         exclude = ('operator', 'codename')
         widgets = {
-                    'client': forms.HiddenInput(),
                     'slack_channel': forms.TextInput(attrs={'size': 55}),
                     'note': forms.Textarea(attrs={'cols': 55}),
                   }

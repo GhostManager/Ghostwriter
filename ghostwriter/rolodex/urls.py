@@ -59,6 +59,9 @@ urlpatterns += [
 
 # URLs for creating, updating, and deleting projects
 urlpatterns += [
+                path('projects/create',
+                     views.ProjectCreateWithoutClient.as_view(),
+                     name='project_create_no_client'),
                 path('projects/<int:pk>/create',
                      views.ProjectCreate.as_view(),
                      name='project_create'),
