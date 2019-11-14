@@ -187,7 +187,7 @@
                 <div id="collapseInfra" class="collapse" aria-labelledby="infra" data-parent="#accordion">
                     <div class="card-body">
                         <!-- Domain Section -->
-                        <h4 style="margin-bottom: 40px;">Domains</h4>
+                        <h4 style="margin-bottom: 30px;">Domains</h4>
 
                         <!-- Search Section -->
                         <div class="search" style="width: 35%; margin-left: 32.5%;">
@@ -213,7 +213,7 @@
                                             <a id="domain_{{ domain.domain.id }}" class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">
                                                 {{ domain.domain.name }}
                                             </a>
-                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ domain.domain.name }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')">
+                                            <button type="button" class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ domain.domain.name }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')">
                                                 <i class="far fa-copy"></i>
                                             </button>
                                         </td>
@@ -238,7 +238,7 @@
 
                         <!-- Server Section -->
                         <div class="dropdown">
-                            <h4 style="float: left; margin-right: 5px; margin-top: 50px;">
+                            <h4 style="float: left; margin-right: 5px; margin-top: 40px;">
                                 Servers
                                 <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
                             </h4>
@@ -306,8 +306,8 @@
                                 {% for server in project.transientserver_set.all %}
                                     <tr>
                                         <td>
-                                            <span id="server_{{ server.server.id }}">{{ server.ip_address }}</span>
-                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#server_{{ server.server.id }}')">
+                                            <span id="vps_{{ server.id }}">{{ server.ip_address }}</span>
+                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#vps_{{ server.id }}')">
                                                 <i class="far fa-copy"></i>
                                             </button>
                                         </td>
@@ -597,9 +597,12 @@
             $temp.val($(element).text()).select();
             document.execCommand("copy");
             $temp.remove();
-
-            var tooltip = document.getElementById("<input>_tooltip");
-            tooltip.innerHTML = "Copied: " + copyText.value;
         }
+    </script>
+
+    <script>
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').tooltip();
+        });
     </script>
 {% endblock %}
