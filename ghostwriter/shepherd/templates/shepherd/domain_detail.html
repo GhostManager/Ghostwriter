@@ -43,7 +43,7 @@
         {% if domain.note %}
             <p>{{ domain.note }}</p>
         {% else %}
-            <p>No information provided for this domain.</p>
+            <p>No additional information provided for this domain.</p>
         {% endif %}
 
         <div id="accordion" class="myaccordion">
@@ -64,6 +64,7 @@
                                 <th>Registrar</th>
                                 <th>Purchase Date</th>
                                 <th>Expiration Date</th>
+                                <th>Auto Renew Status</th>
                                 <th>Domain Age</th>
                             </tr>
                             <tr>
@@ -73,6 +74,11 @@
                                     <td class="high">{{ domain.expiration }}</td>
                                 {% else %}
                                     <td>{{ domain.expiration }}</td>
+                                {% endif %}
+                                {% if domain.auto_renew %}
+                                    <td class="healthy"><i class="fas fa-check"></i></td>
+                                {% else %}
+                                    <td class="burned"><i style="color: red" class="fas fa-times"></i></td>
                                 {% endif %}
                                 <td>{{ domain.get_domain_age }} days</td>
                             </tr>

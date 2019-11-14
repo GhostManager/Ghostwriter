@@ -26,3 +26,5 @@ python-docx==0.8.10
 python-pptx==0.6.18
 redis==3.2.1
 requests==2.22.0
+boto3==1.10.8
+botocore==1.13.8

@@ -919,7 +919,33 @@ class ReportCreate(LoginRequiredMixin, CreateView):
             project.start_date)
         return {
                 'title': title,
+                'project': project
                }
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        self.request.session['active_report']['id'] = self.object.pk
+        self.request.session.modified = True
+        messages.success(self.request, 'New report was successfully created '
+                         'and is now your active report.',
+                         extra_tags='alert-success')
+        return reverse('reporting:report_detail', kwargs={'pk': self.object.pk})
+
+
+class ReportCreateWithoutProject(LoginRequiredMixin, CreateView):
+    """View for creating new reports. This view defaults to the
+    report_form.html template. This version applies no default values.
+    """
+    model = Report
+    form_class = ReportCreateForm
+
+    def form_valid(self, form):
+        """Override form_valid to perform additional actions on new entries."""
+        from ghostwriter.rolodex.models import Project
+        form.instance.created_by = self.request.user
+        self.request.session['active_report'] = {}
+        self.request.session['active_report']['title'] = form.instance.title
+        return super().form_valid(form)
 
     def get_success_url(self):
         """Override the function to return to the new record after creation."""

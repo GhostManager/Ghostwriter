@@ -7,7 +7,6 @@
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' form.client.value %}">Client {{ form.client.value }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">Add Project</li>
         </ul>
     </nav>
@@ -40,6 +39,12 @@
         {% csrf_token %}
 
         <!-- Project Info Section -->
+        <strong><i class="fas fa-tasks"></i> Client Information</td></strong>
+        <hr>
+
+        {{ form.client|as_crispy_field }}
+
+        <!-- Project Info Section -->
         <strong><i class="fas fa-tasks"></i> Project Information</td></strong>
         <hr>
 
@@ -68,7 +73,6 @@
         {{ form.note|as_crispy_field }}
 
         <!-- Hidden Inputs -->
-        {{ form.client }}
         {{ form.codename }}
 
         <input type="submit" class="btn btn-primary" value="Submit">

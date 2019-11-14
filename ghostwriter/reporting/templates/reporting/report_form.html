@@ -11,10 +11,11 @@
         {% csrf_token %}
 
         <!-- General Section -->
-        <strong><i class="fas fa-book"></i> Report Status</strong>
+        <strong><i class="fas fa-book"></i> Report Details</strong>
         <hr>
 
         {{ form.title|as_crispy_field }}
+        {{ form.project|as_crispy_field }}
 
         <input type="submit" class="btn btn-primary" value="Save">
         <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
