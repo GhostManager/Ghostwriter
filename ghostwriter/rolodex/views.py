@@ -387,6 +387,31 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         return ctx
 
 
+class ProjectCreateWithoutClient(LoginRequiredMixin, CreateView):
+    """View for creating new projects. This view defaults to the
+    project_form.html template. This version applies no default values.
+    """
+    model = Project
+    form_class = ProjectCreateForm
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.pk})
+
+    def form_valid(self, form):
+        """Override form_valid to perform additional actions on new entries."""
+        # Generate and assign a unique codename to the project
+        codename_verified = False
+        while not codename_verified:
+            new_codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=new_codename)
+            except Exception:
+                codename_verified = True
+        form.instance.codename = new_codename
+        return super().form_valid(form)
+
+
 class ProjectUpdate(LoginRequiredMixin, UpdateView):
     """View for updating existing project entries. This view defaults to the
     project_form.html template.

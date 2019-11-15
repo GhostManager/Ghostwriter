@@ -131,13 +131,13 @@
                 <div class="card-body">
                     <p><a href="{% url 'rolodex:project_objective_create' project.id %}"><i class="far fa-plus-square"></i> Add an Objective</a></p>
                         {% if project.projectobjective_set.all %}
-                            <table>
-                                <tr>
+                            <table id="objectiveTable" class="tablesorter">
+                                <thead>
                                     <th>Status</th>
                                     <th>Objective</th>
                                     <th>Deadline</th>
-                                    <th style="text-align: center;">Options</th>
-                                </tr>
+                                    <th class="sorter-false" style="text-align: center;">Options</th>
+                                </thead>
                                 {% for objective in project.projectobjective_set.all %}
                                     <tr>
                                         <td nowrap>
@@ -187,7 +187,7 @@
                 <div id="collapseInfra" class="collapse" aria-labelledby="infra" data-parent="#accordion">
                     <div class="card-body">
                         <!-- Domain Section -->
-                        <h4 style="margin-bottom: 40px;">Domains</h4>
+                        <h4 style="margin-bottom: 30px;">Domains</h4>
 
                         <!-- Search Section -->
                         <div class="search" style="width: 35%; margin-left: 32.5%;">
@@ -199,17 +199,24 @@
                         </div>
 
                         {% if project.history_set.all %}
-                            <table style="margin-top: 10px;">
-                                <tr>
+                            <table id="domainTable" class="tablesorter" style="margin-top: 10px;">
+                                <thead>
                                     <th>Domain Name</th>
                                     <th>Purpose</th>
                                     <th>Date Range</th>
-                                    <th>Note</th>
-                                    <th>Options</th>
-                                </tr>
+                                    <th class="sorter-false">Note</th>
+                                    <th class="sorter-false">Options</th>
+                                </thead>
                                 {% for domain in project.history_set.all %}
                                     <tr>
-                                        <td><a class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">{{ domain.domain.name }}</a></td>
+                                        <td>
+                                            <a id="domain_{{ domain.domain.id }}" class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">
+                                                {{ domain.domain.name }}
+                                            </a>
+                                            <button type="button" class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ domain.domain.name }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')">
+                                                <i class="far fa-copy"></i>
+                                            </button>
+                                        </td>
                                         <td>{{ domain.activity_type }}</td>
                                         <td>{{ domain.start_date }} to {{ domain.end_date }}</td>
                                         <td style="text-align: justify;">{{ domain.note|linebreaksbr }}</td>
@@ -231,7 +238,7 @@
 
                         <!-- Server Section -->
                         <div class="dropdown">
-                            <h4 style="float: left; margin-right: 5px; margin-top: 50px;">
+                            <h4 style="float: left; margin-right: 5px; margin-top: 40px;">
                                 Servers
                                 <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
                             </h4>
@@ -254,8 +261,8 @@
 
                         <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Cloud Server</a></p>
                         {% if project.serverhistory_set.all or project.transientserver_set.all %}
-                            <table>
-                                <tr>
+                            <table id="serverTable" class="tablesorter">
+                                <thead>
                                     <th>
                                         IP Address
                                         <div class="dropdown-right">
@@ -269,12 +276,17 @@
                                     <th>Purpose</th>
                                     <th>Role</th>
                                     <th>Provider</th>
-                                    <th>Note</th>
-                                    <th>Options</th>
-                                </tr>
+                                    <th class="sorter-false">Note</th>
+                                    <th class="sorter-false">Options</th>
+                                </thead>
                                 {% for server in project.serverhistory_set.all %}
                                     <tr>
-                                        <td><a class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ server.server.ip_address }}</a></td>
+                                        <td>
+                                            <a id="server_{{ server.server.id }}" class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ server.server.ip_address }}</a>
+                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#server_{{ server.server.id }}')">
+                                                <i class="far fa-copy"></i>
+                                            </button>
+                                        </td>
                                         <td>{{ server.server.name }}</td>
                                         <td>{{ server.activity_type }}</td>
                                         <td>{{ server.server_role }}</td>
@@ -293,7 +305,12 @@
                                 {% endfor %}
                                 {% for server in project.transientserver_set.all %}
                                     <tr>
-                                        <td>{{ server.ip_address }}</td>
+                                        <td>
+                                            <span id="vps_{{ server.id }}">{{ server.ip_address }}</span>
+                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#vps_{{ server.id }}')">
+                                                <i class="far fa-copy"></i>
+                                            </button>
+                                        </td>
                                         <td>{{ server.name }}</td>
                                         <td>{{ server.activity_type }}</td>
                                         <td>{{ server.server_role }}</td>
@@ -452,15 +469,15 @@
                         <p><a href="{% url 'reporting:report_create' project.id %}"><i class="far fa-plus-square"></i> Add a Report</a></p>
                     {% endif %}
                     {% if project.report_set.all %}
-                        <table>
-                            <tr>
+                        <table id="reportTable" class="tablesorter">
+                            <thead>
                                 <th>Creation</th>
                                 <th>Title</th>
                                 <th>Last Update</th>
                                 <th>Status</th>
                                 <th>Created by</th>
-                                <th style="text-align: center;">Options</th>
-                            </tr>
+                                <th class="sorter-false" style="text-align: center;">Options</th>
+                            </thead>
                             {% for report in project.report_set.all %}
                                 <tr>
                                     <td>{{ report.creation }}</td>
@@ -534,4 +551,58 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#serverTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $("#domainTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $("#objectiveTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $("#reportTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    <!-- Script for Copying Text to Clipboard-->
+    <script>
+        function copyToClipboard(element) {
+            var $temp = $("<input>");
+            $("body").append($temp);
+            $temp.val($(element).text()).select();
+            document.execCommand("copy");
+            $temp.remove();
+        }
+    </script>
+
+    <script>
+        $(document).ready(function(){
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
 {% endblock %}

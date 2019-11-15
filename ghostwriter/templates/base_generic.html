@@ -69,7 +69,13 @@
                                 <li><a href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
                             </ul>
                         </li>
-                        <li><a href="{% url 'rolodex:projects' %}">Projects List</a></li>
+                        <li>
+                            <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Projects</a>
+                            <ul class="collapse list-unstyled" id="projectSubmenu">
+                                <li><a href="{% url 'rolodex:projects' %}">Projects List</a></li>
+                                <li><a href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
+                            </ul>
+                        </li>
                     </ul>
 
                     <!-- Ghostwriter Section -->
@@ -96,6 +102,7 @@
                             <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
                             <ul class="collapse list-unstyled" id="reportSubmenu">
                                 <li><a href="{% url 'reporting:reports' %}">Report Library</a></li>
+                                <li><a href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
                                 <li><a href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
                             </ul>
                         </li>

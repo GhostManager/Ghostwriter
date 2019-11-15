@@ -174,7 +174,8 @@ class Project(models.Model):
     client = models.ForeignKey(
         'Client',
         on_delete=models.CASCADE,
-        null=False)
+        null=False,
+        help_text='Select the client this project should be attached to')
     operator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -208,7 +209,7 @@ class Project(models.Model):
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
-        return f'{self.client} {self.project_type} ({self.codename})'
+        return f'{self.start_date} {self.client} {self.project_type} ({self.codename})'
 
 
 class ProjectRole(models.Model):

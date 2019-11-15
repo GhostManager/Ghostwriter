@@ -54,8 +54,7 @@ class ReportCreateForm(forms.ModelForm):
         """Metadata for the model form."""
         model = Report
         exclude = ('creation', 'last_update',
-                   'created_by', 'project',
-                   'complete')
+                   'created_by', 'complete')
 
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""

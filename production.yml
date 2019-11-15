@@ -44,6 +44,8 @@ services:
       - django
     volumes:
       - production_staticfiles:/app/staticfiles
+    volumes:
+      - production_staticfiles:/app/staticfiles
       - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./ssl:/ssl
     ports:

@@ -339,3 +339,10 @@ NAMECHEAP_CONFIG = {
     'client_ip': env("CLIENT_IP", default=None),
     'namecheap_page_size': env("NAMECHEAP_PAGE_SIZE", default="100")
 }
+
+# Cloud service configuration
+CLOUD_SERVICE_CONFIG = {
+    'aws_key': env("AWS_KEY", default=None),
+    'aws_secret': env("AWS_SECRET", default=None),
+    'do_api_key': env("DO_API_KEY", default=None)
+}

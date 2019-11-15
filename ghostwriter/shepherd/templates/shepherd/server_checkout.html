@@ -37,7 +37,10 @@
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post" id="checkoutForm" data-projects-url="{% url 'shepherd:ajax_load_projects' %}">
+    <form class="newitem" action="" method="post" id="checkoutForm"
+      data-projects-url="{% url 'shepherd:ajax_load_projects' %}"
+      data-project-url="{% url 'shepherd:ajax_load_project' %}"
+    >
         {% csrf_token %}
         <!-- Client Info Section -->
         <strong><i class="far fa-building"></i> Client Information</strong>

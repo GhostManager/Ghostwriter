@@ -172,7 +172,7 @@ class DomainCreateForm(forms.ModelForm):
         """Modify the attributes of the form."""
         model = Domain
         exclude = ('last_used_by', 'burned_explanation', 'all_cat',
-                   'dns_record', 'health_dns')
+                   'dns_record', 'health_dns', 'expired')
 
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
