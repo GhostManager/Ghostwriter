@@ -49,11 +49,15 @@ from .forms import (
 # Import model filters for views
 from .filters import FindingFilter, ReportFilter, ArchiveFilter
 
+# Import model resources for views
+from .resources import FindingResource
+
 # Import Python libraries for various things
 import io
 import os
 import csv
 import zipfile
+from datetime import datetime
 
 # Import for generating the xlsx reports in memory
 from xlsxwriter.workbook import Workbook
@@ -817,6 +821,17 @@ def convert_finding(request, pk):
     return HttpResponseRedirect(reverse(
         'reporting:finding_detail',
         kwargs={'pk': new_finding_pk}))
+
+
+def export_findings_to_csv(request):
+    """View function to export the current findings table to a csv file."""
+    timestamp = datetime.now().isoformat()
+    fiinding_resource = FindingResource()
+    dataset = fiinding_resource.export()
+    response = HttpResponse(dataset.csv, content_type='text/csv')
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+
+    return response
 
 
 ################

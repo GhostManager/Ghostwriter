@@ -73,6 +73,7 @@ THIRD_PARTY_APPS = [
     # "rest_framework",
     'django_q',
     'django_filters',
+    'import_export',
 ]
 
 LOCAL_APPS = [

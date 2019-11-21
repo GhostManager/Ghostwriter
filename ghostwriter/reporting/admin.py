@@ -5,10 +5,12 @@ from .models import (Finding, Report, Severity, FindingType,
     ReportFindingLink, Evidence, Archive, FindingNote,
     LocalFindingNote)
 
+from import_export.admin import ImportExportModelAdmin
+
 
 # Define the admin classes and register models
 @admin.register(Finding)
-class FindingAdmin(admin.ModelAdmin):
+class FindingAdmin(ImportExportModelAdmin):
     list_display = ('severity', 'title', 'finding_type')
     list_filter = ('severity', 'title', 'finding_type')
     fieldsets = (
