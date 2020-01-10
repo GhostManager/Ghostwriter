@@ -20,15 +20,15 @@
         <div class="card">
             <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
                 <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseKeyword" aria-expanded="false" aria-controls="collapseKeyword">
-                    <i class="fas fa-code"></i> Keyword Reference
+                    <i class="fas fa-code"></i> Keyword Reference & Instuctions
                 </a>
             </div>
             <div id="collapseKeyword" class="collapse" aria-labelledby="keyword" data-parent="#accordion">
                 <div class="card-body">
-                    <p>Ghostwriter supports various template keywords you may utilize to format text and insert various pieces of information:</p>
+                    <p>Ghostwriter supports several template keywords you may utilize to format text and insert various pieces of information. Begin typing <strong>@</strong> to open the autocomplete dialog for keywords.</p>
                         <table style="width: 70%; margin-left: 15%;">
                             <tr>
-                                <th class="smallCell">Keyword</th>
+                                <th class="smallCell" style="width: 33%">Keyword</th>
                                 <th>Usage</th>
                             </tr>
                             <tr>
@@ -43,33 +43,9 @@
                             </tr>
                         {% verbatim %}
                             <tr>
-                                <td>{{.code_block}} & {{.end_code_block}}</td>
-                                <td style="text-align: left">Wrap text with these keywords to transform the text into a code block within the finding text (alternative to attaching a text file as evidence). Place the <em>{{.end_code_block}}</em> keyword on a new line.</td>
-                            </tr>
-                            <tr>
                                 <td>{{.caption}}</td>
                                 <td style="text-align: left">Start a line of text with this keyword to make it a caption. This is intended to follow a code block.</td>
-                            </tr>
-                            <tr>
-                                <td>{{.italic}} & {{.end_italic}}</td>
-                                <td style="text-align: left">Wrap text with these keywords to italicize.</td>
-                            </tr>
-                            <tr>
-                                <td>{{.bold}} & {{.end_bold}}</td>
-                                <td style="text-align: left">Wrap text with these keywords to set font weight to bold.</td>
-                            </tr>
-                            <tr>
-                                <td>{{.inline_code}} & {{.end_inline_code}}</td>
-                                <td style="text-align: left">Wrap text with these keywords to format the text using the template's "Code (inline)" style. This is useful for highlighting code/commands without creating a figure.</td>
-                            </tr>
-                            <tr>
-                                <td>{{.bulleted_list}} & {{.end_bulleted_list}}</td>
-                                <td style="text-align: left">Wrap text with these keywords to transform the text into a bulleted list. Each new line between the keywords will be a bullet. Place the <em>{{.end_bulleted_list}}</em> keyword on a new line.</td>
-                            </tr>
-                            <tr>
-                                <td>{{.numbered_list}} & {{.end_numbered_list}}</td>
-                                <td style="text-align: left">Wrap text with these keywords to transform the text into a numbered list. Each new line between the keywords will be a sequentially numbered line. Place the <em>{{.end_numbered_list}}</em> keyword on a new line.</td>
-                            </tr>                        
+                            </tr>                       
                         {% endverbatim %}
                         {% if reportfindinglink.evidence_set.all  %}
                             {% for finding in reportfindinglink.evidence_set.all %}
@@ -77,11 +53,19 @@
                                     <td>
                                         {% templatetag openvariable %}.{{ finding.friendly_name }}{% templatetag closevariable %}
                                     </td>
-                                    <td style="text-align: left">On a new line, reference this evidence file, <em>{{ finding.document.name }}</em>, by its "Friendly Name" to place it in the finding's text - e.g. <em>{% templatetag openvariable %}.{{ finding.friendly_name }}{% templatetag closevariable %}</em>.</td>
+                                    <td style="text-align: left">On a new line, reference this evidence file, <em>{{ finding.document.name }}</em>, to insert it into the finding.</td>
                                 </tr>
                             {% endfor %}
                         {% endif %}
                     </table>
+                    <p>
+                        Insert evidence by using the above keywords. Image evidence may be inserted and previewed inline by clicking the WYSIWIG editor's image button and entering the evidence image's Ghostwriter URL (e.g., <em>https://ghosttwriter.local/media/evidence/2/ghostwriter.png</em>).
+                        Inserting an external image's URL will work but these images <strong><em><u>will not be</u></em></strong> carried over to the report outputs. 
+                    </p>
+                    <p>
+                        For additional formatting, utilize the WYSIWIG HTML formatting to apply bold, italic, code, and inline code text styles.<br />
+                        These styles will carry over to the Word report output as bold, italic, "CodeBlock," and "Code (Inline)" styles respectively.
+                    </p>
                 </div>
             </div>
         </div>
@@ -246,4 +230,18 @@
         <input type="submit" class="btn btn-primary" value="Save">
         <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
+{% endblock %}
+
+{% block morescripts %}
+    <script>
+        var evidenceFiles = [
+            { text: '\{\{.client\}\}', value: '\{\{.client\}\}' },
+            { text: '\{\{.caption\}\}', value: '\{\{.caption\}\}' },
+            {% if reportfindinglink.evidence_set.all  %}
+                {% for finding in reportfindinglink.evidence_set.all %}
+                    { text: '\{\{.{{ finding.friendly_name }}\}\}', value: '\{\{.{{ finding.friendly_name }}\}\}' },
+                {% endfor %}
+            {% endif %}
+        ];
+    </script>
 {% endblock %}
