@@ -357,7 +357,8 @@ def activate_report(request, pk):
             request.session['active_report']['title'] = report_instance.title
             messages.success(request, '%s is now your active report.' %
                              report_instance.title, extra_tags='alert-success')
-            return HttpResponseRedirect(reverse('reporting:report_detail', args=(pk, )))
+            # return HttpResponseRedirect(reverse('reporting:report_detail', args=(pk, )))
+            return HttpResponseRedirect(reverse('reporting:reports'))
         else:
             messages.error(request, 'The specified report does not exist!',
                            extra_tags='alert-danger')
@@ -481,7 +482,7 @@ def upload_evidence(request, pk):
                 return HttpResponseRedirect(reverse('reporting:report_detail',
                                             args=(new_evidence.finding.report.id,)))
             else:
-                messages.success(request, 'Evidence file failed to upload',
+                messages.error(request, 'Evidence file failed to upload',
                                 extra_tags='alert-danger')
                 return HttpResponseRedirect(reverse('reporting:report_detail',
                                             args=(new_evidence.finding.report.id,)))
@@ -572,61 +573,76 @@ def generate_docx(request, pk):
         output_path,
         evidence_path,
         template_loc)
-    docx = spenny.generate_word_docx()
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.'
-        'wordprocessingml.document')
-    response['Content-Disposition'] = 'attachment; filename=report.docx'
-    docx.save(response)
-    return response
+    try:
+        docx = spenny.generate_word_docx()
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.'
+            'wordprocessingml.document')
+        response['Content-Disposition'] = 'attachment; filename=report.docx'
+        docx.save(response)
+        return response
+    except Exception as e:
+        messages.error(request, 'Failed to generate the Word report',
+                extra_tags='alert-danger')
+        return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
 @login_required
 def generate_xlsx(request, pk):
     """View function to generate a xlsx report for the specified report."""
-    report_instance = Report.objects.get(pk=pk)
-    # Ask Spenny to make us a report with these findings
-    output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
-    evidence_path = os.path.join(settings.MEDIA_ROOT)
-    template_loc = None
-    spenny = reportwriter.Reportwriter(
-        report_instance,
-        output_path,
-        evidence_path,
-        template_loc)
-    output = io.BytesIO()
-    workbook = Workbook(output, {'in_memory': True})
-    spenny.generate_excel_xlsx(workbook)
-    output.seek(0)
-    response = HttpResponse(
-        output.read(),
-        content_type='application/application/vnd.openxmlformats-'
-        'officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=report.xlsx'
-    output.close()
-    return response
+    try:
+        report_instance = Report.objects.get(pk=pk)
+        # Ask Spenny to make us a report with these findings
+        output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
+        evidence_path = os.path.join(settings.MEDIA_ROOT)
+        template_loc = None
+        spenny = reportwriter.Reportwriter(
+            report_instance,
+            output_path,
+            evidence_path,
+            template_loc)
+        output = io.BytesIO()
+        workbook = Workbook(output, {'in_memory': True})
+        spenny.generate_excel_xlsx(workbook)
+        output.seek(0)
+        response = HttpResponse(
+            output.read(),
+            content_type='application/application/vnd.openxmlformats-'
+            'officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=report.xlsx'
+        output.close()
+        return response
+    except:
+        messages.error(request, 'Failed to generate the Xlsx report',
+                extra_tags='alert-danger')
+        return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
 @login_required
 def generate_pptx(request, pk):
     """View function to generate a pptx report for the specified report."""
-    report_instance = Report.objects.get(pk=pk)
-    # Ask Spenny to make us a report with these findings
-    output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
-    evidence_path = os.path.join(settings.MEDIA_ROOT)
-    template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.pptx')
-    spenny = reportwriter.Reportwriter(
-        report_instance,
-        output_path,
-        evidence_path,
-        template_loc)
-    pptx = spenny.generate_powerpoint_pptx()
-    response = HttpResponse(
-        content_type='application/application/vnd.openxmlformats-'
-        'officedocument.presentationml.presentation')
-    response['Content-Disposition'] = 'attachment; filename=report.pptx'
-    pptx.save(response)
-    return response
+    try:
+        report_instance = Report.objects.get(pk=pk)
+        # Ask Spenny to make us a report with these findings
+        output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
+        evidence_path = os.path.join(settings.MEDIA_ROOT)
+        template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.pptx')
+        spenny = reportwriter.Reportwriter(
+            report_instance,
+            output_path,
+            evidence_path,
+            template_loc)
+        pptx = spenny.generate_powerpoint_pptx()
+        response = HttpResponse(
+            content_type='application/application/vnd.openxmlformats-'
+            'officedocument.presentationml.presentation')
+        response['Content-Disposition'] = 'attachment; filename=report.pptx'
+        pptx.save(response)
+        return response
+    except:
+        messages.error(request, 'Failed to generate the slide deck',
+                extra_tags='alert-danger')
+        return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
 @login_required
@@ -649,38 +665,43 @@ def generate_json(request, pk):
 @login_required
 def generate_all(request, pk):
     """View function to generate all report types for the specified report."""
-    report_instance = Report.objects.get(pk=pk)
-    docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.docx')
-    pptx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.pptx')
-    # Ask Spenny to make us reports with these findings
-    output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
-    evidence_path = os.path.join(settings.MEDIA_ROOT)
-    template_loc = os.path.join(
-        settings.MEDIA_ROOT,
-        'templates',
-        'template.docx')
-    spenny = reportwriter.Reportwriter(
-        report_instance,
-        output_path,
-        evidence_path,
-        template_loc)
-    json_doc, word_doc, excel_doc, ppt_doc = spenny.generate_all_reports(
-        docx_template_loc,
-        pptx_template_loc)
-    # Create a zip file in memory and add the reports to it
-    zip_buffer = io.BytesIO()
-    zf = zipfile.ZipFile(zip_buffer, 'a')
-    zf.writestr('report.json', json_doc)
-    zf.writestr('report.docx', word_doc.getvalue())
-    zf.writestr('report.xlsx', excel_doc.getvalue())
-    zf.writestr('report.pptx', ppt_doc.getvalue())
-    zf.close()
-    zip_buffer.seek(0)
-    # Return the buffer in the HTTP response
-    response = HttpResponse(content_type='application/x-zip-compressed')
-    response['Content-Disposition'] = 'attachment; filename=reports.zip'
-    response.write(zip_buffer.read())
-    return response
+    try:
+        report_instance = Report.objects.get(pk=pk)
+        docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.docx')
+        pptx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.pptx')
+        # Ask Spenny to make us reports with these findings
+        output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
+        evidence_path = os.path.join(settings.MEDIA_ROOT)
+        template_loc = os.path.join(
+            settings.MEDIA_ROOT,
+            'templates',
+            'template.docx')
+        spenny = reportwriter.Reportwriter(
+            report_instance,
+            output_path,
+            evidence_path,
+            template_loc)
+        json_doc, word_doc, excel_doc, ppt_doc = spenny.generate_all_reports(
+            docx_template_loc,
+            pptx_template_loc)
+        # Create a zip file in memory and add the reports to it
+        zip_buffer = io.BytesIO()
+        zf = zipfile.ZipFile(zip_buffer, 'a')
+        zf.writestr('report.json', json_doc)
+        zf.writestr('report.docx', word_doc.getvalue())
+        zf.writestr('report.xlsx', excel_doc.getvalue())
+        zf.writestr('report.pptx', ppt_doc.getvalue())
+        zf.close()
+        zip_buffer.seek(0)
+        # Return the buffer in the HTTP response
+        response = HttpResponse(content_type='application/x-zip-compressed')
+        response['Content-Disposition'] = 'attachment; filename=reports.zip'
+        response.write(zip_buffer.read())
+        return response
+    except:
+        messages.error(request, 'Failed to generate one or more documents for the archive',
+                extra_tags='alert-danger')
+        return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
 @login_required
