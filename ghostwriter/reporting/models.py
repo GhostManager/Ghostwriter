@@ -8,6 +8,9 @@ from django.conf import settings
 # from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
+# Import for Tiny MCE fields
+from tinymce.models import HTMLField
+
 
 class Severity(models.Model):
     """Model representing the various severity ratings for findings."""
@@ -81,41 +84,41 @@ class Finding(models.Model):
         unique=True,
         help_text='Enter a title for this finding that will appear in the '
         'reports')
-    description = models.TextField(
+    description = HTMLField(
         'Description',
         null=True,
         blank=True,
         help_text='Provide a description for this finding that introduces it')
-    impact = models.TextField(
+    impact = HTMLField(
         'Impact',
         help_text='Describe the impact of this finding on the affected '
         'entities',
         null=True,
         blank=True)
-    mitigation = models.TextField(
+    mitigation = HTMLField(
         'Mitigation',
         null=True,
         blank=True,
         help_text='Describe how this finding can be resolved or addressed')
-    replication_steps = models.TextField(
+    replication_steps = HTMLField(
         'Replication Steps',
         null=True,
         blank=True,
         help_text='Provide an explanation for how the reader may reproduce '
         'this finding')
-    host_detection_techniques = models.TextField(
+    host_detection_techniques = HTMLField(
         'Host Detection Techniques',
         null=True,
         blank=True,
         help_text='Describe how this finding can be detected on an endpoint '
         '- leave blank if this does not apply')
-    network_detection_techniques = models.TextField(
+    network_detection_techniques = HTMLField(
         'Network Detection Techniques',
         null=True,
         blank=True,
         help_text='Describe how this finding can be detected on a network '
         '- leave blank if this does not apply')
-    references = models.TextField(
+    references = HTMLField(
         'References',
         null=True,
         blank=True,
@@ -272,7 +275,7 @@ class ReportFindingLink(models.Model):
         blank=True,
         help_text='Describe how this finding can be detected on a network '
         '- leave blank if this does not apply')
-    references = models.TextField(
+    references = HTMLField(
         'References',
         null=True,
         blank=True,

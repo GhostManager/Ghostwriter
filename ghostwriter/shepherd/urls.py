@@ -92,6 +92,12 @@ urlpatterns += [
          views.DomainServerConnectionDelete.as_view(),
          name='link_delete'),
     path('servers/import/', views.import_servers, name='server_import'),
+    path('servers/<int:pk>/add_address/', views.AuxServerAddressCreate.as_view(),
+         name='server_address_add'),
+    path('servers/<int:pk>/edit_address/', views.AuxServerAddressUpdate.as_view(),
+         name='server_address_edit'),
+    path('servers/<int:pk>/delete_address/', views.AuxServerAddressDelete.as_view(),
+         name='server_address_delete'),
 ]
 
 # URLs for creating, updating, and deleting project histories

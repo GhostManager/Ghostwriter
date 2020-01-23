@@ -65,7 +65,7 @@
                     <p style="text-align: center;">{{ line }}</p>
                 {% else %}
                     <p style="margin-left:15%; text-align: left; max-width: 1000px; word-wrap: break-word; line-height: 20px;">
-                        {{ line|linebreaksbr }}
+                        {{ line|safe }}
                     </p>
                 {% endifequal %}
             {% endfor %}

@@ -1,0 +1,62 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Auxiliary IP Address Entry{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'shepherd:server_detail' server_id %}">{{ server_name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Address Form</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <!-- Form Error Sections -->
+    {% if form.errors %}
+        {% for field in form %}
+            {% for error in field.errors %}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <strong>{{ error|escape }}</strong>
+                </div>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <p>
+        This is an auxiliary address for {{ server_name }}. Enter an address below and then click Submit.
+    </p>
+
+    <!-- Form Section -->
+    <form class="newitem" action="" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Address Section -->
+        <div class="form-row justify-content-center">
+            <div class="form-group col-md-4 mb-0">
+                {{ form.ip_address|as_crispy_field }}
+            </div>
+        </div>
+
+        {{ form.primary|as_crispy_field }}
+
+        <!-- Hidden Fields -->
+        {% for hidden_field in form.hidden_fields %}
+            {{ hidden_field }}
+        {% endfor %}
+
+        <input type="submit" class="btn btn-primary" value="Submit">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
+    </form>
+{% endblock %}

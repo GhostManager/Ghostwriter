@@ -48,7 +48,8 @@ from .views import (
     LocalFindingNoteCreate,
     LocalFindingNoteUpdate,
     LocalFindingNoteDelete,
-    convert_finding
+    convert_finding,
+    export_findings_to_csv
 ) 
 
 app_name = "reporting"
@@ -167,4 +168,6 @@ urlpatterns += [
 urlpatterns += [
                 path('import/csv/', import_findings,
                      name='import_findings'),
+                path('export/csv/', export_findings_to_csv,
+                     name='export_findings_to_csv'),
                ]

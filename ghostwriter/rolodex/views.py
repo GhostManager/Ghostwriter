@@ -355,6 +355,10 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Project successfully created for this client.',
+            extra_tags='alert-success')
         return reverse('rolodex:project_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
@@ -396,6 +400,10 @@ class ProjectCreateWithoutClient(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Project successfully created for the selected client.',
+            extra_tags='alert-success')
         return reverse('rolodex:project_detail', kwargs={'pk': self.object.pk})
 
     def form_valid(self, form):
@@ -421,6 +429,10 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Project successfully updated.',
+            extra_tags='alert-success')
         return reverse('rolodex:project_detail', kwargs={'pk': self.object.pk})
 
     def get_initial(self):
