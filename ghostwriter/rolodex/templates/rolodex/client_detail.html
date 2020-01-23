@@ -30,7 +30,7 @@
         <h3>Client Description</h3>
         <hr>
         {% if client.note %}
-            <p>{{ client.note|linebreaksbr }}</p>
+            {{ client.note|safe }}
         {% else %}
             <p>No information provided for this client.</p>
         {% endif %}
@@ -65,7 +65,7 @@
                                     <td>{{ poc.job_title }}</td>
                                     <td>{{ poc.email }}</td>
                                     <td>{{ poc.phone }}</td>
-                                    <td style="text-align: justify;">{{ poc.note|linebreaksbr }}</td>
+                                    <td style="text-align: justify;">{{ poc.note|safe }}</td>
                                     <td>
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
@@ -112,7 +112,7 @@
                                     <td>{{ project.project_type }}</td>
                                     <td>{{ project.start_date }}</td>
                                     <td>{{ project.end_date }}</td>
-                                    <td style="text-align: justify">{{ project.note|linebreaksbr }}</td>
+                                    <td style="text-align: justify">{{ project.note|safe }}</td>
                                     <td>
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
@@ -207,7 +207,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <p>{{ note.note|linebreaksbr }}</p>
+                                <p>{{ note.note|safe }}</p>
                                 <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
                             </div>
                         {% endfor %}

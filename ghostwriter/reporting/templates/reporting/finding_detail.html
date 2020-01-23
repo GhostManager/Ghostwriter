@@ -208,7 +208,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <p>{{ note.note|linebreaksbr }}</p>
+                                <p>{{ note.note|safe }}</p>
                                 <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
                             </div>
                         {% endfor %}
