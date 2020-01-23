@@ -582,7 +582,7 @@ def generate_docx(request, pk):
         docx.save(response)
         return response
     except Exception as e:
-        messages.error(request, 'Failed to generate the Word report',
+        messages.error(request, 'Failed to generate the Word report: {}'.format(e),
                 extra_tags='alert-danger')
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
@@ -612,8 +612,8 @@ def generate_xlsx(request, pk):
         response['Content-Disposition'] = 'attachment; filename=report.xlsx'
         output.close()
         return response
-    except:
-        messages.error(request, 'Failed to generate the Xlsx report',
+    except Exception as e:
+        messages.error(request, 'Failed to generate the Xlsx report: {}'.format(e),
                 extra_tags='alert-danger')
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
@@ -639,8 +639,8 @@ def generate_pptx(request, pk):
         response['Content-Disposition'] = 'attachment; filename=report.pptx'
         pptx.save(response)
         return response
-    except:
-        messages.error(request, 'Failed to generate the slide deck',
+    except Exception as e:
+        messages.error(request, 'Failed to generate the slide deck: {}'.format(e),
                 extra_tags='alert-danger')
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
