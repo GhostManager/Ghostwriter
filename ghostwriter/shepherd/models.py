@@ -759,3 +759,34 @@ class ServerNote(models.Model):
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
         return f'{self.server} {self.timestamp}: {self.note}'
+
+
+class AuxServerAddress(models.Model):
+    """Model representing auxiliary IP addresses for servers.
+
+    There are foreign keys for the `StaticServer` model.
+    """
+    ip_address = models.GenericIPAddressField(
+        'IP Address',
+        max_length=100,
+        unique=True,
+        help_text='Enter the auxiliary IP address for the server')
+    primary = models.BooleanField(
+        'Primary Address',
+        default=False,
+        help_text='Mark the address as the server\'s primary address')
+    # Foreign Keys
+    static_server = models.ForeignKey(
+        StaticServer,
+        on_delete=models.CASCADE,
+        null=False)
+
+    class Meta:
+        """Metadata for the model."""
+        ordering = ['static_server', 'ip_address']
+        verbose_name = 'Auxiliary IP address'
+        verbose_name_plural = 'Auxiliary IP addresses'
+
+    def __str__(self):
+        """String for representing the model object (in Admin site etc.)."""
+        return f'{self.ip_address}'

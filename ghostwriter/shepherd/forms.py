@@ -5,13 +5,14 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
 from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Submit, Row, Column
 
 from datetime import date
 
 from .models import (Domain, History, DomainNote, DomainServerConnection, 
                      DomainStatus)
 from .models import (StaticServer, TransientServer, ServerHistory,
-                     ServerNote, ServerStatus)
+                     ServerNote, ServerStatus, AuxServerAddress)
 from ghostwriter.rolodex.models import Project
 
 
@@ -388,3 +389,25 @@ class BurnForm(forms.ModelForm):
         self.helper.field_class = \
             'h-100 justify-content-center align-items-center'
         self.helper.form_show_labels = False
+
+
+class AuxServerAddressCreateForm(forms.ModelForm):
+    """Form used with the AuxAddress CreateView in views.py."""
+    class Meta:
+        """Modify the attributes of the form."""
+        model = AuxServerAddress
+        fields = ('__all__')
+        widgets = {
+                    'static_server': forms.HiddenInput(),
+                  }
+
+    def __init__(self, *args, **kwargs):
+        """Override the `init()` function to set some attributes."""
+        super(AuxServerAddressCreateForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_class = 'form-inline'
+        self.helper.form_method = 'post'
+        self.helper.field_class = \
+            'h-100 justify-content-center align-items-center'
+        self.fields['primary'].label = 'Make Primary Address'
+        self.fields['ip_address'].label = ''
