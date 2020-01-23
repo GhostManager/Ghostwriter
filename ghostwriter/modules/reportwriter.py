@@ -51,8 +51,8 @@ class Reportwriter():
     high_color = 'ff7e79'
     high_color_hex = [0xff, 0x7e, 0x79]
     # Purple
-    critical_color = '7030a0'
-    critical_color_hex = [0x70, 0x30, 0xa0]
+    critical_color = '966FD6'
+    critical_color_hex = [0x96, 0x6f, 0xd6]
     # Picture border color - this one needs the # in front
     border_color = '#2d2b6b'
     border_color_hex = [0x45, 0x43, 0x107]
@@ -425,8 +425,6 @@ class Reportwriter():
         """Process the provided line for the provided paragraph to handle
         nested inline text formatting.
         """
-        # Track bullets for pptx slides
-        self.first_bullet = True
         # Split line on spaces and curly brackets
         all_words = re.split('<', line)
         all_words = [all_words[0]] + ['<' + l for l in all_words[1:]]
@@ -485,9 +483,8 @@ class Reportwriter():
                         self.first_bullet = False
                     else:
                         text_frame = self.finding_body_shape.text_frame
-                        p = text_frame.add_paragraph()
-                        p.text = prepared_text
-                        p.level = 0
+                        run = p.add_run()
+                        run.text = prepared_text
                 else:
                     run = p.add_run()
                     run.text = prepared_text
@@ -495,18 +492,16 @@ class Reportwriter():
             else:
                 if report_type == 'pptx':
                     if self.first_bullet:
-                        text_frame = self.finding_body_shape.text_frame
-                        p = text_frame.add_paragraph()
                         run = p.add_run()
                         run.text = prepared_text
                         self.first_bullet = False
                     else:
                         text_frame = self.finding_body_shape.text_frame
-                        p = text_frame.add_paragraph()
-                        p.text = prepared_text
-                        p.level = 0
+                        run = p.add_run()
+                        run.text = prepared_text
                 else:
-                    run = p.add_run(prepared_text)
+                    run = p.add_run()
+                    run.text = prepared_text
             if self.italic_text:
                     font = run.font
                     font.italic = True
@@ -600,10 +595,20 @@ class Reportwriter():
             p = None
             pass
 
+    def delete_paragraph(self, paragraph):
+        """Function to delete the specified paragraph."""
+        p = paragraph._p
+        parent_element = p.getparent()
+        parent_element.remove(p)
+
     def process_text_xml(self, text, finding, report_json, report_type=None):
         """Process the provided text from the specified finding to parse
         keywords for evidence placement and formatting for Office XML.
         """
+        if report_type == 'pptx':
+            if self.finding_body_shape.has_text_frame:
+                self.finding_body_shape.text_frame.clear()
+                self.delete_paragraph(self.finding_body_shape.text_frame.paragraphs[0])
         # Track paragraphs for docx lists
         p = None
         prev_p = None
@@ -614,6 +619,8 @@ class Reportwriter():
         self.italic_text = False
         self.numbered_list = False
         self.bulleted_list = False
+        # Track bullets for pptx slides
+        self.first_bullet = True
         # Regex for searching for bracketed template placeholders, e.g. {{.client}}
         keyword_regex = r'\{\{\.(.*?)\}\}'
         # Clean text to make it XML compatible for Office XML
@@ -1399,7 +1406,7 @@ class Reportwriter():
             severity_format = spenny_doc.add_format({'bold': True})
             severity_format.set_align('vcenter')
             severity_format.set_align('center')
-            severity_format.set_font_color('white')
+            severity_format.set_font_color('black')
             # Color the cell based on corresponding severity color
             if finding['severity'].lower() == 'informational':
                 severity_format.set_bg_color(self.informational_color)
@@ -1523,7 +1530,7 @@ class Reportwriter():
         # Generate the JSON for the report
         report_json = json.loads(self.generate_json())
         # Create document writer using the specified template
-        if not self.template_loc:
+        if self.template_loc:
             try:
                 self.spenny_ppt = Presentation(self.template_loc)
             except Exception:
@@ -1687,11 +1694,6 @@ class Reportwriter():
                     risk_cell.fill.fore_color.rgb = self.ppt_color_high
                 elif finding['severity'].lower() == "critical":
                     risk_cell.fill.fore_color.rgb = self.ppt_color_critical
-                    # Set cell's font color to white for better contrast with
-                    # dark background
-                    paragraph = risk_cell.text_frame.paragraphs[0]
-                    paragraph.font.color.rgb = pptx.dml.color.\
-                        RGBColor(0xFF, 0xFF, 0xFF)
                 row_iter += 1
             # Set all cells alignment to center and vertical center
             for cell in table.iter_cells():
