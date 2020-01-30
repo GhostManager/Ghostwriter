@@ -4,7 +4,8 @@ from django.contrib import admin
 from .models import (Domain, HealthStatus, DomainStatus, WhoisStatus,
                              ActivityType, History, ServerRole, ServerStatus,
                              ServerProvider, ServerHistory, StaticServer,
-                             TransientServer, DomainServerConnection)
+                             TransientServer, DomainServerConnection,
+                             AuxServerAddress)
 
 
 # Define the admin classes and register models
@@ -93,4 +94,9 @@ class ServerHistoryRoleAdmin(admin.ModelAdmin):
 
 @admin.register(DomainServerConnection)
 class DomainServerConnectionAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(AuxServerAddress)
+class AuxServerAddressAdmin(admin.ModelAdmin):
     pass

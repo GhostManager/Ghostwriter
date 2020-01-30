@@ -1,24 +1,25 @@
 {% extends "base_generic.html" %}
 
-{% block pagetitle %}{{ staticserver.ip_address }}{% endblock %}
+{% block pagetitle %}{{ primary_address }}{% endblock %}
 
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item truncate"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item truncate"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
-            <li class="breadcrumb-item active truncate" aria-current="page">{{ staticserver.ip_address }}</li>
+            <li class="breadcrumb-item active truncate" aria-current="page">{{ primary_address }}</li>
         </ul>
     </nav>
 {% endblock %}
 
 {% block content %}
     <h2>
-        {{ staticserver.ip_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}
+        {{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}
         <div class="dropdown">
             <button class="dropbtn far fa-caret-square-down"></button>
             <div id="myDropdown" class="dropdown-content">
                 <a href="{% url 'shepherd:server_update' staticserver.id %}"><i class="far fa-edit"></i> Edit</a>
+                <a href="{% url 'shepherd:server_address_add' staticserver.id %}"><i class="far fa-plus-square"></i> Add Aux IP Address</a>
                 {% if staticserver.server_status.server_status == "Available" %}
                     <a href="{% url 'shepherd:server_checkout' staticserver.id %}"><i style="color: green" class="far fa-calendar-check"></i> Checkout Server</a>
                 {% else %}
@@ -29,8 +30,33 @@
         </div>
     </h2>
 
+    <h6>
+        All Addresses: <em>{{ staticserver.ip_address }}</em>
+        {% if staticserver.auxserveraddress_set %}
+            {% for addy in staticserver.auxserveraddress_set.all %}
+                <div class="dropdown">
+                    <em>
+                        {% if forloop.first and forloop.last %} 
+                            and {{ addy }}
+                        {% elif forloop.first %} 
+                            , {{ addy }}
+                        {% elif forloop.last %} 
+                            , and {{ addy }}
+                        {% else %}
+                            , {{ addy }}
+                        {% endif %}
+                    </em>
+                    <div id="myDropdown" class="dropdown-content">
+                        <a href="{% url 'shepherd:server_address_edit' addy.id %}"><i class="far fa-edit"></i> Edit Address</a>
+                        <a href="{% url 'shepherd:server_address_delete' addy.id %}"><i style="color: red" class="far fa-trash-alt"></i> Remove Address</a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </h6>
+
     <div style="margin-left: 20px; margin-top: 20px">
-        <!-- Description Section -->
+        <!-- Note Section -->
         <h3>Server Description</h3>
         <hr>
         {% if staticserver.note %}
@@ -39,7 +65,7 @@
             <p>No information provided for this server.</p>
         {% endif %}
 
-        <!-- Project Section -->
+        <!-- Server History Section -->
         <h4><i class="fas fa-history"></i> Project History</h4>
         {% if staticserver.serverhistory_set.all %}
             <table>
@@ -104,7 +130,7 @@
                                             </div>
                                         </div>
                                     {% endif %}
-                                    <p>{{ note.note|linebreaksbr }}</p>
+                                    <p>{{ note.note|safe }}</p>
                                     <span class="time-right">{{ note.operator.username }}</span>
                                 </div>
                             {% endfor %}

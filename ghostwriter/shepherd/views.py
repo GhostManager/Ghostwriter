@@ -36,11 +36,12 @@ from .forms import (CheckoutForm, DomainCreateForm,
                             DomainNoteCreateForm, BurnForm,
                             ServerNoteCreateForm, ServerCreateForm,
                             ServerCheckoutForm, TransientServerCreateForm,
-                            DomainLinkForm)
+                            DomainLinkForm, AuxServerAddressCreateForm)
 from .models import (Domain, HealthStatus, DomainStatus, WhoisStatus,
                              History, DomainServerConnection, DomainNote)
 from .models import (ServerNote, ServerHistory, ServerProvider,
-                             ServerStatus, StaticServer, TransientServer)
+                             ServerStatus, StaticServer, TransientServer,
+                             AuxServerAddress)
 from ghostwriter.rolodex.models import Project
 
 # Import model filters for views
@@ -124,33 +125,60 @@ def server_search(request):
         project_id = request.POST.get('project_id')
         try:
             server_instance = StaticServer.objects.get(ip_address=ip_address)
+            if server_instance:
+                unavailable = ServerStatus.objects.get(server_status='Unavailable')
+                if server_instance.server_status == unavailable:
+                    messages.warning(
+                        request,
+                        'The server matching "%s" is currently marked as unavailable' %
+                        ip_address, extra_tags='alert-warning')
+                    return HttpResponseRedirect(reverse(
+                            'rolodex:project_detail',
+                            kwargs={'pk': project_id}))
+                else:
+                    return HttpResponseRedirect(reverse(
+                            'shepherd:server_checkout',
+                            kwargs={'pk': server_instance.id}))
+            else:
+                messages.success(
+                    request,
+                    'No server was found matching %s' %
+                    ip_address, extra_tags='alert-success')
+                return HttpResponseRedirect(reverse(
+                        'rolodex:project_detail',
+                        kwargs={'pk': project_id}))
+        except Exception:
+            # Pass here to move on to try auxiliary address search
+            pass
+        try:
+            server_instance = AuxServerAddress.objects.select_related('static_server').get(ip_address=ip_address)
+            if server_instance:
+                unavailable = ServerStatus.objects.get(server_status='Unavailable')
+                if server_instance.static_server.server_status == unavailable:
+                    messages.warning(
+                        request,
+                        'The server matching "%s" is currently marked as unavailable' %
+                        ip_address, extra_tags='alert-warning')
+                    return HttpResponseRedirect(reverse(
+                            'rolodex:project_detail',
+                            kwargs={'pk': project_id}))
+                else:
+                    return HttpResponseRedirect(reverse(
+                            'shepherd:server_checkout',
+                            kwargs={'pk': server_instance.static_server.id}))
+            else:
+                messages.success(
+                    request,
+                    'No server was found matching %s' %
+                    ip_address, extra_tags='alert-success')
+                return HttpResponseRedirect(reverse(
+                        'rolodex:project_detail',
+                        kwargs={'pk': project_id}))
         except Exception:
             messages.warning(
                 request,
                 'No server was found matching %s' %
                 ip_address, extra_tags='alert-warning')
-            return HttpResponseRedirect(reverse(
-                    'rolodex:project_detail',
-                    kwargs={'pk': project_id}))
-        if server_instance:
-            unavailable = ServerStatus.objects.get(server_status='Unavailable')
-            if server_instance.server_status == unavailable:
-                messages.warning(
-                    request,
-                    'The server matching "%s" is currently marked as unavailable' %
-                    ip_address, extra_tags='alert-warning')
-                return HttpResponseRedirect(reverse(
-                        'rolodex:project_detail',
-                        kwargs={'pk': project_id}))
-            else:
-                return HttpResponseRedirect(reverse(
-                        'shepherd:server_checkout',
-                        kwargs={'pk': server_instance.id}))
-        else:
-            messages.success(
-                request,
-                'No server was found matching %s' %
-                ip_address, extra_tags='alert-success')
             return HttpResponseRedirect(reverse(
                     'rolodex:project_detail',
                     kwargs={'pk': project_id}))
@@ -1044,6 +1072,19 @@ class ServerDetailView(LoginRequiredMixin, generic.DetailView):
     model = StaticServer
     template_name = 'shepherd/server_detail.html'
 
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(ServerDetailView, self).get_context_data(**kwargs)
+        queryset = kwargs['object']
+        ctx['primary_address'] = queryset.ip_address
+        aux_addresses = AuxServerAddress.objects.filter(static_server=queryset)
+        for address in aux_addresses:
+            if address.primary:
+                ctx['primary_address'] = address.ip_address
+        return ctx
+
 
 class ServerCreate(LoginRequiredMixin, CreateView):
     """View for creating new server entries. This view defaults to the
@@ -1453,7 +1494,7 @@ class DomainNoteDelete(LoginRequiredMixin, DeleteView):
 
 class ServerNoteCreate(LoginRequiredMixin, CreateView):
     """View for creating new note entries. This view defaults to the
-    server_note_form.html template.
+    note_form.html template.
     """
     model = ServerNote
     form_class = ServerNoteCreateForm
@@ -1528,4 +1569,116 @@ class ServerNoteDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs['object']
         ctx['object_type'] = 'note'
         ctx['object_to_be_deleted'] = queryset.note
+        return ctx
+
+
+class AuxServerAddressCreate(LoginRequiredMixin, CreateView):
+    """View for creating new auxiliary addresses for a server. This view
+    defaults to the address_form.html template.
+    """
+    model = AuxServerAddress
+    form_class = AuxServerAddressCreateForm
+    template_name = 'shepherd/address_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Auxiliary address successfully added to this server.',
+            extra_tags='alert-success')
+        return reverse('shepherd:server_detail', kwargs={'pk': self.object.static_server.id})
+
+    def get_initial(self):
+        """Set the initial values for the form."""
+        server_instance = get_object_or_404(
+            StaticServer, pk=self.kwargs.get('pk'))
+        server = server_instance
+        return {
+                'static_server': server
+               }
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(AuxServerAddressCreate, self).get_context_data(**kwargs)
+        server_instance = get_object_or_404(
+            StaticServer, pk=self.kwargs.get('pk'))
+        ctx['server_id'] = server_instance.id
+        ctx['server_name'] = server_instance.ip_address
+        return ctx
+
+    def form_valid(self, form):
+        """Override form_valid to perform additional actions on new entries."""
+        if form.cleaned_data['primary']:
+            aux_addresses = AuxServerAddress.objects.filter(static_server=form.cleaned_data['static_server'])
+            for address in aux_addresses:
+                if address.primary:
+                    address.primary = False
+                    address.save()
+        self.object = form.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class AuxServerAddressUpdate(LoginRequiredMixin, UpdateView):
+    """View for updating existing auxiliary addresses. This view defaults to the
+    address_form.html template.
+    """
+    model = AuxServerAddress
+    form_class = AuxServerAddressCreateForm
+    template_name = 'shepherd/address_form.html'
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'Auxiliary address successfully updated.',
+            extra_tags='alert-success')
+        return reverse('shepherd:server_detail', kwargs={'pk': self.object.static_server.pk})
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(AuxServerAddressUpdate, self).get_context_data(**kwargs)
+        server_instance = get_object_or_404(
+            StaticServer, pk=self.kwargs.get('pk'))
+        ctx['server_id'] = server_instance.id
+        return ctx
+
+    def form_valid(self, form):
+        """Override form_valid to perform additional actions on new entries."""
+        if form.cleaned_data['primary']:
+            aux_addresses = AuxServerAddress.objects.filter(static_server=form.cleaned_data['static_server'])
+            for address in aux_addresses:
+                if address.primary:
+                    address.primary = False
+                    address.save()
+        self.object = form.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+
+class AuxServerAddressDelete(LoginRequiredMixin, DeleteView):
+    """View for deleting existing auxiliary addresses. This view defaults to the
+    confirm_delete.html template.
+    """
+    model = AuxServerAddress
+    template_name = 'confirm_delete.html'
+
+    def get_success_url(self):
+        """Override the function to return to the server after deletion."""
+        messages.warning(
+            self.request,
+            'Auxiliary address successfully deleted.',
+            extra_tags='alert-warning')
+        return reverse('shepherd:server_detail', kwargs={'pk': self.object.static_server.pk})
+
+    def get_context_data(self, **kwargs):
+        """Override the `get_context_data()` function to provide additional
+        information.
+        """
+        ctx = super(AuxServerAddressDelete, self).get_context_data(**kwargs)
+        queryset = kwargs['object']
+        ctx['object_type'] = 'auxiliary address'
+        ctx['object_to_be_deleted'] = queryset.ip_address
         return ctx

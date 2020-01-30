@@ -60,7 +60,7 @@
             <div id="collapseDescription" class="collapse" aria-labelledby="description" data-parent="#accordion">
                 <div class="card-body">
                     {% if finding.description %}
-                        <p>{{ finding.description|linebreaksbr }}</p>
+                        {{ finding.description|safe }}
                     {% else %}
                         <p>Description write-up is needed.</p>
                     {% endif %}
@@ -78,7 +78,7 @@
             <div id="collapseImpact" class="collapse" aria-labelledby="impact" data-parent="#accordion">
                 <div class="card-body">
                     {% if finding.impact %}
-                        <p>{{ finding.impact|linebreaksbr }}</p>
+                        {{ finding.impact|safe }}
                     {% else %}
                         <p>Impact write-up is needed.</p>
                     {% endif %}
@@ -96,7 +96,7 @@
             <div id="collapseRecommendations" class="collapse" aria-labelledby="recommendations" data-parent="#accordion">
                 <div class="card-body">
                     {% if finding.mitigation %}
-                        <p>{{ finding.mitigation|linebreaksbr }}</p>
+                        {{ finding.mitigation|safe }}
                     {% else %}
                         <p>Recommendations are needed.</p>
                     {% endif %}
@@ -117,14 +117,14 @@
                         <h4>Host Detection</h4>
                         <hr>
 
-                        <p>{{ finding.host_detection_techniques|linebreaksbr }}</p>
+                        {{ finding.host_detection_techniques|safe }}
                     {% endif %}
 
                     {% if finding.network_detection_techniques %}
                         <h4>Network Detection</h4>
                         <hr>
 
-                        <p>{{ finding.network_detection_techniques|linebreaksbr }}</p>
+                        {{ finding.network_detection_techniques|safe }}
                     {% endif %}
                 </div>
             </div>
@@ -140,7 +140,7 @@
             <div id="collapseReplication" class="collapse" aria-labelledby="replication" data-parent="#accordion">
                 <div class="card-body">
                     {% if finding.replication_steps %}
-                        <p>{{ finding.replication_steps|linebreaksbr }}</p>
+                        {{ finding.replication_steps|safe }}
                     {% else %}
                         <p>Replication steps are needed.</p>
                     {% endif %}
@@ -158,7 +158,7 @@
             <div id="collapseReference" class="collapse" aria-labelledby="reference" data-parent="#accordion">
                 <div class="card-body">
                     {% if finding.references %}
-                        <p>{{ finding.references|linebreaksbr }}</p>
+                        {{ finding.references|safe }}
                     {% else %}
                         <p>References are needed.</p>
                     {% endif %}
@@ -176,7 +176,7 @@
                 </div>
                 <div id="collapseGuidance" class="collapse" aria-labelledby="guidance" data-parent="#accordion">
                     <div class="card-body">
-                        <p>{{ finding.finding_guidance }}</p>
+                        {{ finding.finding_guidance|safe }}
                     </div>
                 </div>
             </div>
@@ -208,7 +208,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                <p>{{ note.note|linebreaksbr }}</p>
+                                <p>{{ note.note|safe }}</p>
                                 <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
                             </div>
                         {% endfor %}

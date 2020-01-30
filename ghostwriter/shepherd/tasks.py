@@ -524,6 +524,7 @@ def months_between(date1, date2):
             months -= 1
     return months
 
+
 def review_cloud_infrastructure():
     """Fetch active virtual machines/instances in Digital Ocean, Azure, and AWS and
     compare IP addresses to project infrastructure. Send a report to Slack if any
@@ -665,3 +666,23 @@ def review_cloud_infrastructure():
                     print('[+] Server is still being used: {}'.format(instance))
         else:
             print('[+] Server not found in Ghostwriter: {}'.format(instance))
+
+
+def check_expiration():
+    """Fetch all domains from the library and check the expiration dates. If
+    the expiration date is less than or equal to the current date, check the
+    auto-renew status. Then either expire the domain or add one year to the
+    expiration date.
+    """
+    domain_queryset = Domain.objects.all()
+    for domain in domain_queryset:
+        if domain.expiration <= date.today():
+            if domain.auto_renew:
+                print('Adding one year to {}\'s expiration date.'.format(domain.name))
+                domain.expiration = domain.expiration + datetime.timedelta(days=365)
+                domain.expired = False
+                domain.save()
+            else:
+                print('Expiring domain {} due to expiration date, {}.'.format(domain.name, domain.expiration))
+                domain.expired = True
+                domain.save()

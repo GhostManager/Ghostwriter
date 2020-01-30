@@ -24,8 +24,14 @@
                     {{ filter.form.complete|as_crispy_field }}
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'reporting:reports' %}" class="btn btn-secondary">Reset</a>
+            <div class="form-row">
+                <div class="form-group col-md-6 mb-0">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </div>
+                <div class="form-group col-md-6 mb-0">
+                    <a href="{% url 'reporting:reports' %}" class="btn btn-secondary">Reset</a>
+                </div>
+            </div>
         </form>
     </div>
 
@@ -70,7 +76,15 @@
                         <td><span class="badge badge-primary">In Progress</span></td>
                     {% endif %}
                     <td >{{ report.created_by }}</td>
-                    <td><a href="{% url 'reporting:activate_report' report.id %}"><i style="font-size: 15px" class="far fa-edit"></i></button></td>
+                    {% if request.session.active_report.id and request.session.active_report.title %}
+                        {% if report.id == request.session.active_report.id %}
+                            <td><span class="badge">Current Report</span></td>
+                        {% else %}
+                            <td><a href="{% url 'reporting:activate_report' report.id %}"><span class="badge badge-primary">Select Report</span></button></td>
+                        {% endif %}
+                    {% else %}
+                        <td><a href="{% url 'reporting:activate_report' report.id %}"><span class="badge badge-primary">Select Report</span></button></td>
+                    {% endif %}
                 </tr>
             {% endfor %}
         </table>
