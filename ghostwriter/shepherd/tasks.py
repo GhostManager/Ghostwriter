@@ -497,7 +497,7 @@ def fetch_namecheap_domains():
                 domain['Expires'], "%m/%d/%Y").strftime("%Y-%m-%d")
             try:
                 instance, created = Domain.objects.update_or_create(
-                    name=domain.get('Name')
+                    name=domain.get('Name'), creation=entry['creation'], expiration=entry['expiration']
                 )
                 for attr, value in entry.items():
                     setattr(instance, attr, value)
