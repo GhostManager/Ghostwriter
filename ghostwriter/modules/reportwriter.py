@@ -907,7 +907,14 @@ class Reportwriter():
                         self.process_inline_text(line, p, report_type)
                 else:
                     if line:
-                        self.process_inline_text(line, p, report_type)
+                        if report_type == 'pptx':
+                            if p is None:
+                                p = self.finding_body_shape.text_frame.add_paragraph()
+                            self.process_inline_text(line, p, report_type)
+                        else:
+                            if p is None:
+                                p = self.spenny_doc.add_paragraph()
+                            self.process_inline_text(line, p, report_type)
             # Save the current paragraph for next iteration - needed for lists
             prev_p = p
 
