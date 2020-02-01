@@ -4,7 +4,7 @@
 from django.db.models import Q
 from django.conf import settings
 from django.core.files import File
-# from reporting.models import Report, Archive
+
 from .models import (Domain, History, DomainStatus, HealthStatus,
     StaticServer, ServerStatus, ServerHistory, WhoisStatus, TransientServer)
 
@@ -123,8 +123,6 @@ def release_domains(no_action=False):
         # Get all projects for the domain
         project_queryset = History.objects.filter(domain__name=domain.name).latest('end_date')
         release_me = True
-        # Check each project's end date to determine if all are in the past
-        # for project in project_queryset:
         release_date = project_queryset.end_date
         warning_date = release_date - datetime.timedelta(1)
         # Check if date is before or is the end date
