@@ -38,14 +38,14 @@ class ClientContactAdmin(admin.ModelAdmin):
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('client', 'codename', 'project_type', 'start_date',
-                    'end_date')
+                    'end_date', 'complete')
     list_filter = ('client',)
     fieldsets = (
         (None, {
             'fields': ('client', 'codename', 'project_type')
         }),
-        ('Execution Dates', {
-            'fields': ('start_date', 'end_date')
+        ('Execution Dates and Status', {
+            'fields': ('start_date', 'end_date', 'complete')
         }),
         ('Misc', {
             'fields': ('slack_channel', 'note')
