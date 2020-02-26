@@ -445,7 +445,7 @@ class Reportwriter():
             if '</code' in word:
                 self.inline_code = False
                 continue
-            if '<span' in word and '</span' not in word:
+            if '<span' in word and '</span' not in word and 'class=' in word:
                 # When two or more styles are applied, TinyMCE uses a span:
                 # e.g., <span class="bold italic">
                 regex = r'(?<=class=").*?(?=">)'
