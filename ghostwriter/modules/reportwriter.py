@@ -723,9 +723,12 @@ class Reportwriter():
                 if line.startswith('</pre>'):
                     self.code_block = False
                     continue
-                if line.startswith('<code>'):
+                if line.startswith('<code>') or line.startswith('<p><code>'):
                     if self.code_block:
-                        line = line.strip('<code>')
+                        if line.startswith('<p><code>'):
+                            line = line.strip('<p><code>')
+                        else:
+                            line = line.strip('<code>')
                         if report_type == 'pptx':
                             # Place new textbox to the mid-right
                             if line:
@@ -754,6 +757,8 @@ class Reportwriter():
                                 for code in line.split('\n'):
                                     p.add_run(code)
                     else:
+                        if p is None:
+                            p = self.spenny_doc.add_paragraph()
                         self.process_inline_text(line, p)
                 if line.startswith('</code>'):
                     line = line.lstrip('</code>')
