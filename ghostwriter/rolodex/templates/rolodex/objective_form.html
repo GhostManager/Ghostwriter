@@ -28,7 +28,9 @@
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post">
+    <form class="newitem" action="" method="post" id="objectiveForm"
+      data-project-url="{% url 'shepherd:ajax_load_project' %}" 
+    >
         {% csrf_token %}
 
         <!-- Objective Section -->
@@ -62,6 +64,27 @@
     <script>
         $(function() {
             $("#id_deadline").datepicker();
+        });
+    </script>
+
+    <!-- Script to set the default dates on page load -->
+    <script>
+        $(document).ready(function(){
+            var url = $("#objectiveForm").attr("data-project-url");
+            var project = $("#id_project").val();
+            $.ajax({
+                url: url,
+                data: {
+                    'project': project
+                },
+                success: function(data){
+                    if(data.length > 0) {
+                        project = data[0]['fields'];
+                        $("#id_deadline")[0].value = project['end_date'];
+                        $("#id_status")[0].value = "1";
+                    }
+                }
+            });
         });
     </script>
 {% endblock %}
