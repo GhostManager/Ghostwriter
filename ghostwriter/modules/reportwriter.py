@@ -563,11 +563,21 @@ class Reportwriter():
         # Add a new run to the paragraph
         run = p.add_run()
         run.text = text
-        if inline_code:
-            run.style = 'Code (inline)'
-        run.bold = bold
-        run.italic = italic
-        run.underline = underline
+        if report_type == 'pptx':
+            # For pptx, formatting is applied via the font instead of on the run object
+            font = run.font
+            if inline_code:
+                font.name = 'Courier New'
+                # font.size = Pt(11)
+            font.bold = bold
+            font.italic = italic
+            font.underline = underline
+        else:
+            if inline_code:
+                run.style = 'Code (inline)'
+            run.bold = bold
+            run.italic = italic
+            run.underline = underline
 
     def process_nested_tags(self, contents, p, finding, report_json, prev_p=None, num=True, report_type=None):
         # Iterate over the provided list
@@ -732,7 +742,7 @@ class Reportwriter():
                                     for code_line in parts:
                                         # Create paragraph and apply 'CodeBlock' style
                                         # Style is managed in the docx template
-                                        p = text_frame.paragraphs[0]
+                                        p = text_frame.add_paragraph()
                                         run = p.add_run()
                                         # Insert code block and apply formatting
                                         run.text = code_line
