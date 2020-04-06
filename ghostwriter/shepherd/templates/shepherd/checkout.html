@@ -83,6 +83,7 @@
         {{ form.domain }}
         {{ form.operator }}
 
+        <input type="hidden" name="next" value="{{ origin }}">
         <input type="submit" class="btn btn-primary" value="Save">
         <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>

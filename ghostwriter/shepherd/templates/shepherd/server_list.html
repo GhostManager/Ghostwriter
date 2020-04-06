@@ -74,7 +74,7 @@
                         {% endif %}
 
                         <td nowrap>{{ server.server_provider }}</td>
-                        <td>{{ server.note }}</td>
+                        <td>{{ server.note|safe }}</td>
                         {% if server.server_status.server_status == "Available" %}
                             <td>
                                 <a href="{% url 'shepherd:server_checkout' server.id %}">

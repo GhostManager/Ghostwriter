@@ -41,7 +41,7 @@
         <h3>Domain Description</h3>
         <hr>
         {% if domain.note %}
-            <p>{{ domain.note }}</p>
+            <p>{{ domain.note|safe }}</p>
         {% else %}
             <p>No additional information provided for this domain.</p>
         {% endif %}
@@ -281,7 +281,7 @@
                                         <td>{{ project.project.project_type }}</td>
                                         <td>{{ project.start_date }}</td>
                                         <td>{{ project.end_date }}</td>
-                                        <td style="text-align: justify">{{ project.note }}</td>
+                                        <td style="text-align: justify">{{ project.note|safe}}</td>
                                         <td>
                                             <div class="dropdown">
                                                 <button class="dropbtn far fa-caret-square-down"></button>
@@ -339,4 +339,8 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block collapse_js %}
+{{ block.super }}
 {% endblock %}

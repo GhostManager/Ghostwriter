@@ -39,7 +39,7 @@
                 <tr>
                     <td nowrap class="clickable"><a href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
                     <td nowrap>{{ client.codename }}</td>
-                    <td>{{ client.note }}</td>
+                    <td>{{ client.note|safe }}</td>
                 </tr>
             {% endfor %}
         </table>

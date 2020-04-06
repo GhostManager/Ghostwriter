@@ -71,7 +71,7 @@
                     <td nowrap class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                     <td nowrap>{{ project.project_type }}</td>
                     <td nowrap>{{ project.start_date }} - {{ project.end_date }}</td>
-                    <td>{{ project.note }}</td>
+                    <td>{{ project.note|safe }}</td>
                 </tr>
             {% endfor %}
         </table>
