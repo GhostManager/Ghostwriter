@@ -3,6 +3,144 @@
 
 {% block pagetitle %}Finding Entry{% endblock %}
 
+{% block tinymcejs %}
+    <script>
+        tinymce.init({
+            selector:'textarea',
+            height: '300',
+            width: '100%',
+            plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace paste',
+            toolbar: 'bold italic bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
+            menubar: 'file edit tools',
+            paste_data_images: false,
+            paste_as_text: true,
+            browser_spellcheck: true,
+            setup: function (editor) {
+                editor.ui.registry.addButton('codeInline', {
+                    icon: 'sourcecode',
+                    text: 'Inline Code',
+                    tooltip: 'Format selected text as inline code',
+                    onAction: function (_) {
+                        tinymce.activeEditor.formatter.toggle('code')
+                    },
+                });
+
+                // https://www.martyfriedel.com/blog/tinymce-5-url-dialog-component-and-window-messaging
+                editor.ui.registry.addButton('evidenceUpload', {
+                    icon: 'upload',
+                    text: 'Upload Evidence',
+                    tooltip: 'Attach an evidence file to this finding to reference in the editor',
+                    onAction: function () {
+                        _dialog = editor.windowManager.openUrl({
+                            title: 'Upload Evidence',
+                            url: '{% url "reporting:upload_evidence_modal" reportfindinglink.id %}',
+                            height: 1100,
+                            width: 1000,
+                            buttons: [
+                                {
+                                    type: 'custom',
+                                    name: 'action',
+                                    text: 'Upload & Insert Evidence',
+                                    primary: true,
+                                },
+                                {
+                                    type: 'cancel',
+                                    name: 'cancel',
+                                    text: 'Close'
+                                }
+                            ],
+                            onAction: function (instance, trigger) {
+                                instance.sendMessage({
+                                    mceAction: 'evidence_upload'
+                                });
+                            }
+                        });
+                    },
+                });
+
+                editor.addCommand('upload_and_insert', function(ui, value) {
+                    if (value.friendly_name == '' || value.evidence_file == '' || value.caption == '')
+                    {
+                        // editor.windowManager.alert('The form is incomplete. You need a file, friendly name, and a caption.');
+                    }
+                    else
+                    {
+                        if (value.used_friendly_names.includes(value.friendly_name)) {
+                            // Do nothing – this is client-side validation that the same friendly name
+                            // is not being used for two uploads
+                            // This is NOT the primary validation, so client-side isn't a concern
+                            // This just prevents the JS code from proceeding in the event the form
+                            // submission is kicked back for name reuse
+                        } else {
+                            var evidence_placeholder = `\{\{.${value.friendly_name}\}\}`;
+                            editor.insertContent(`\n<p>\{\{.${value.friendly_name}\}\}</p>`);
+                            // A brief block to prevent users from jamming the close button immediately
+                            _dialog.block('Uploading...');
+                            setTimeout(() => {
+                                _dialog.unblock();
+                            }, 1000);
+                            // Push the new evidence into the AutoComplete dict
+                            evidenceFiles.push({ text: evidence_placeholder, value: evidence_placeholder })
+                        }
+                    }
+                });
+
+                editor.ui.registry.addAutocompleter('evidence', {
+                    ch: '@',
+                    minChars: 1,
+                    columns: 1,
+                    fetch: function (pattern) {
+                        var matchedChars = evidenceFiles.filter(function (quote) {
+                            return quote.text.indexOf(pattern) !== -1;
+                        });
+                        return new tinymce.util.Promise(function (resolve) {
+                            var results = matchedChars.map(function (quote) {
+                                return {
+                                    value: quote.value,
+                                    text: quote.text
+                                }
+                            });
+                            resolve(results);
+                        });
+                    },
+                    onAction: function (autocompleteApi, rng, value) {
+                        editor.selection.setRng(rng);
+                        editor.insertContent(value);
+                        autocompleteApi.hide();
+                    }
+                });
+            },
+            content_style: '.left { text-align: left; }' +
+                'img.left { float: left; }' +
+                'table.left { float: left; }' +
+                '.right { text-align: right; }' +
+                'img.right { float: right; }' +
+                'table.right { float: right; }' +
+                '.center { text-align: center; }' +
+                'img.center { display: block; margin: 0 auto; }' +
+                'table.center { display: block; margin: 0 auto; }' +
+                '.full { text-align: justify; }' +
+                'img.full { display: block; margin: 0 auto; }' +
+                'table.full { display: block; margin: 0 auto; }' +
+                '.bold { font-weight: bold; }' +
+                '.italic { font-style: italic; }' +
+                '.underline { text-decoration: underline; }' +
+                '.example1 {}' +
+                '.tablerow1 { background-color: #D3D3D3; }',
+            formats: {
+                alignleft: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'left' },
+                aligncenter: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'center' },
+                alignright: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'right' },
+                alignfull: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'full' },
+                bold: { inline: 'span', classes: 'bold' },
+                italic: { inline: 'span', classes: 'italic' },
+                underline: { inline: 'span', classes: 'underline', exact: true },
+                strikethrough: { inline: 'del' }
+            },
+        });
+    </script>
+{% endblock %}
+
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
@@ -233,6 +371,7 @@
 {% endblock %}
 
 {% block morescripts %}
+    <!-- Script for the WYSIWYG editors' AutoComplete -->
     <script>
         var evidenceFiles = [
             { text: '\{\{.client\}\}', value: '\{\{.client\}\}' },
