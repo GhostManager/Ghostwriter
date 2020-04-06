@@ -255,7 +255,7 @@
                             <form action="{% url 'shepherd:server_search' %}" method="POST">
                                 {% csrf_token %}
                                 <span class="fa fa-search"></span>
-                                <input type="text" name="server_search" placeholder="Enter server IP to checkout">
+                                <input type="text" name="server_search" placeholder="Search for an IP address to checkout">
                                 <input type="hidden" name="project_id" value="{{ project.id }}"
                                 <input type="submit" style="display: none;" />
                             </form>
