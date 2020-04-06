@@ -132,9 +132,14 @@ def server_search(request):
                         request,
                         'The server matching "%s" is currently marked as unavailable' %
                         ip_address, extra_tags='alert-warning')
-                    return HttpResponseRedirect(reverse(
-                            'rolodex:project_detail',
-                            kwargs={'pk': project_id}))
+                    return HttpResponseRedirect(
+                        '{}#collapseInfra'.format(
+                            reverse(
+                                'rolodex:project_detail',
+                                kwargs={'pk': project_id}
+                            )
+                        )
+                    )
                 else:
                     return HttpResponseRedirect(reverse(
                             'shepherd:server_checkout',
@@ -144,9 +149,14 @@ def server_search(request):
                     request,
                     'No server was found matching %s' %
                     ip_address, extra_tags='alert-success')
-                return HttpResponseRedirect(reverse(
-                        'rolodex:project_detail',
-                        kwargs={'pk': project_id}))
+                return HttpResponseRedirect(
+                    '{}#collapseInfra'.format(
+                        reverse(
+                            'rolodex:project_detail',
+                            kwargs={'pk': project_id}
+                        )
+                    )
+                )
         except Exception:
             # Pass here to move on to try auxiliary address search
             pass
@@ -159,9 +169,14 @@ def server_search(request):
                         request,
                         'The server matching "%s" is currently marked as unavailable' %
                         ip_address, extra_tags='alert-warning')
-                    return HttpResponseRedirect(reverse(
-                            'rolodex:project_detail',
-                            kwargs={'pk': project_id}))
+                    return HttpResponseRedirect(
+                        '{}#collapseInfra'.format(
+                            reverse(
+                                'rolodex:project_detail',
+                                kwargs={'pk': project_id}
+                            )
+                        )
+                    )
                 else:
                     return HttpResponseRedirect(reverse(
                             'shepherd:server_checkout',
@@ -171,17 +186,27 @@ def server_search(request):
                     request,
                     'No server was found matching %s' %
                     ip_address, extra_tags='alert-success')
-                return HttpResponseRedirect(reverse(
-                        'rolodex:project_detail',
-                        kwargs={'pk': project_id}))
+                return HttpResponseRedirect(
+                    '{}#collapseInfra'.format(
+                        reverse(
+                            'rolodex:project_detail',
+                            kwargs={'pk': project_id}
+                        )
+                    )
+                )
         except Exception:
             messages.warning(
                 request,
                 'No server was found matching %s' %
                 ip_address, extra_tags='alert-warning')
-            return HttpResponseRedirect(reverse(
-                    'rolodex:project_detail',
-                    kwargs={'pk': project_id}))
+            return HttpResponseRedirect(
+                '{}#collapseInfra'.format(
+                    reverse(
+                        'rolodex:project_detail',
+                        kwargs={'pk': project_id}
+                    )
+                )
+            )
     else:
         return HttpResponseRedirect(reverse('rolodex:index'))
 
@@ -307,10 +332,11 @@ def user_assets(request):
                         )
     for domain in unavailable_domains:
         domain_history = History.objects.filter(
-                            operator=request.user,
                             domain=domain
                         ).order_by('end_date').last()
-        domains.append(domain_history)
+        if domain_history:
+            if domain_history.operator == request.user:
+                domains.append(domain_history)
     # Fetch the server history for the current user
     servers = []
     unavailable_servers = StaticServer.objects.select_related(
@@ -320,10 +346,11 @@ def user_assets(request):
                         )
     for server in unavailable_servers:
         server_history = ServerHistory.objects.filter(
-                            operator=request.user,
                             server=server
                         ).order_by('end_date').last()
-        servers.append(server_history)
+        if server_history:
+            if server_history.operator == request.user:
+                servers.append(server_history)
     # Pass the context on to the custom HTML
     context = {
                 'domains': domains,
@@ -357,8 +384,15 @@ def burn(request, pk):
             # Redirect to the user's checked-out domains
             messages.warning(
                 request,
-                'Domain successfully marked as burned.',
+                'Domain has been marked as burned.',
                 extra_tags='alert-warning')
+            return HttpResponseRedirect(
+                '{}#collapseBurned'.format(
+                    reverse('shepherd:domain_detail',
+                        kwargs={'pk': pk}
+                    )
+                )
+            )
             return HttpResponseRedirect(reverse(
                 'shepherd:domain_detail',
                 kwargs={'pk': pk}))
@@ -797,7 +831,7 @@ def update_cat_single(request, pk):
                 'Domain category update task could not be queued. '
                 'Is the AMQP server running?',
                 extra_tags='alert-danger')
-    return HttpResponseRedirect(reverse('shepherd:domain_detail', kwargs={'pk': pk}))
+    return HttpResponseRedirect('{}#collapseHealth'.format(reverse('shepherd:domain_detail', kwargs={'pk': pk})))
 
 
 @login_required
@@ -852,7 +886,7 @@ def update_dns_single(request, pk):
                 'DNS update task could not be queued. Is the AMQP server '
                 'running?',
                 extra_tags='alert-danger')
-    return HttpResponseRedirect(reverse('shepherd:domain_detail', kwargs={'pk': pk}))
+    return HttpResponseRedirect('{}#collapseDNS'.format(reverse('shepherd:domain_detail', kwargs={'pk': pk})))
 
 
 @login_required
@@ -942,7 +976,7 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
             self.request,
             'Domain successfully checked-out.',
             extra_tags='alert-success')
-        return reverse('shepherd:user_assets')
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -962,12 +996,21 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'shepherd/checkout.html'
 
     def get_success_url(self):
-        """Override the function to return to the domain after update."""
+        """Override the function to return to the parent record after updating."""
         messages.success(
             self.request,
             'Domain history successfully updated.',
             extra_tags='alert-success')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        next_url = self.request.POST.get('next', '/')
+        if next_url:
+            if '/domains/' in next_url:
+                return '{}#collapseProject'.format(next_url)
+            elif '/projects/' in next_url:
+                return '{}#collapseInfra'.format(next_url)
+            else:
+                return '{}#collapseProject'.format(reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id}))
+        else:
+            return '{}#collapseProject'.format(reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -975,6 +1018,7 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
         """
         ctx = super(HistoryUpdate, self).get_context_data(**kwargs)
         ctx['domain_name'] = self.object.domain.name.upper()
+        ctx['origin'] = self.request.META.get('HTTP_REFERER')
         return ctx
 
 
@@ -984,7 +1028,6 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
     """
     model = History
     template_name = 'confirm_delete.html'
-    success_url = reverse_lazy('shepherd:domains')
 
     def get_success_url(self):
         """Override the function to return to the domain after deletion."""
@@ -992,7 +1035,16 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
             self.request,
             'Project history successfully deleted.',
             extra_tags='alert-warning')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        next_url = self.request.POST.get('next', '/')
+        if next_url:
+            if '/domains/' in next_url:
+                return '{}#collapseProject'.format(next_url)
+            elif '/projects/' in next_url:
+                return '{}#collapseInfra'.format(next_url)
+            else:
+                return '{}#collapseProject'.format(reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id}))
+        else:
+            return '{}#collapseProject'.format(reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1002,7 +1054,22 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs['object']
         ctx['object_type'] = 'domain checkout'
         ctx['object_to_be_deleted'] = queryset
+        ctx['origin'] = self.request.META.get('HTTP_REFERER')
         return ctx
+
+    def delete(self, request, *args, **kwargs):
+        """Override function to update domain status after deleting the
+        history entry.
+        """
+        self.object = self.get_object()
+        latest_history_entry = History.objects.filter(domain=self.object.domain).latest('id')
+        if self.object == latest_history_entry:
+            domain_instance = Domain.objects.\
+                get(pk=self.object.domain.id)
+            domain_instance.domain_status = DomainStatus.objects.\
+                get(domain_status='Available')
+            domain_instance.save()
+        return super(HistoryDelete, self).delete(request, *args, **kwargs)
 
 
 class DomainCreate(LoginRequiredMixin, CreateView):
@@ -1029,7 +1096,7 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
     fields = '__all__'
 
     def get_success_url(self):
-        """Override the function to return to the domain after update."""
+        """Override the function to return to the domain after updating."""
         messages.success(
             self.request,
             'Domain successfully updated.',
@@ -1045,9 +1112,7 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
     template_name = 'confirm_delete.html'
 
     def get_success_url(self):
-        """Override the function to return to the domain list after
-        deletion.
-        """
+        """Override the function to return to the domain list after deletion."""
         messages.warning(
             self.request,
             'Domain successfully deleted.',
@@ -1112,7 +1177,7 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
     fields = '__all__'
 
     def get_success_url(self):
-        """Override the function to return to the server after update."""
+        """Override the function to return to the server after updating."""
         messages.success(
             self.request,
             'Server successfully updated.',
@@ -1182,7 +1247,7 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
             'Server successfully checked-out.',
             extra_tags='alert-success')
         # return reverse('shepherd:user_assets')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1202,12 +1267,12 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'shepherd/server_checkout.html'
 
     def get_success_url(self):
-        """Override the function to return to the domain after update."""
+        """Override the function to return to the domain after updating."""
         messages.success(
             self.request,
             'Server history successfully updated.',
             extra_tags='alert-success')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1232,7 +1297,7 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
             self.request,
             'Server history successfully deleted.',
             extra_tags='alert-warning')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1259,7 +1324,7 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
             self.request,
             'Server successfully added to the project.',
             extra_tags='alert-success')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_initial(self):
         """Set the initial values for the form."""
@@ -1288,12 +1353,12 @@ class TransientServerUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'shepherd/vps_form.html'
 
     def get_success_url(self):
-        """Override the function to show the project after server creation."""
+        """Override the function to show the project after server updates."""
         messages.success(
             self.request,
             'Server information successfully updated.',
             extra_tags='alert-success')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
 
 class TransientServerDelete(LoginRequiredMixin, DeleteView):
@@ -1304,12 +1369,12 @@ class TransientServerDelete(LoginRequiredMixin, DeleteView):
     template_name = 'confirm_delete.html'
 
     def get_success_url(self):
-        """Override the function to show the project after server creation."""
+        """Override the function to show the project after server deletion."""
         messages.success(
             self.request,
             'Server successfully deleted.',
             extra_tags='alert-warning')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1336,7 +1401,7 @@ class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
             self.request,
             'Server successfully associated with domain.',
             extra_tags='alert-success')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_form_kwargs(self, **kwargs):
         """Set the kwarg for the form so querysets can be filtered."""
@@ -1363,12 +1428,12 @@ class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'shepherd/connect_form.html'
 
     def get_success_url(self):
-        """Override the function to show the project after server creation."""
+        """Override the function to show the project after server updates."""
         messages.success(
             self.request,
             'Connection information successfully updated.',
             extra_tags='alert-success')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_form_kwargs(self, **kwargs):
         """Set the kwarg for the form so querysets can be filtered."""
@@ -1386,12 +1451,12 @@ class DomainServerConnectionDelete(LoginRequiredMixin, DeleteView):
     template_name = 'confirm_delete.html'
 
     def get_success_url(self):
-        """Override the function to show the project after server creation."""
+        """Override the function to show the project after server deletion."""
         messages.success(
             self.request,
             'Domain and server connection successfully deleted.',
             extra_tags='alert-warning')
-        return reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk})
+        return '{}#collapseInfra'.format(reverse('rolodex:project_detail', kwargs={'pk': self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1428,7 +1493,7 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
             self.request,
             'Note successfully added to this domain.',
             extra_tags='alert-success')
-        return reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id})
+        return '{}#collapseNotes'.format(reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id}))
 
     def get_initial(self):
         """Set the initial values for the form."""
@@ -1458,12 +1523,12 @@ class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'note_form.html'
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
+        """Override the function to return to the new record after updating."""
         messages.success(
             self.request,
             'Note successfully updated.',
             extra_tags='alert-success')
-        return reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.pk})
+        return '{}#collapseNotes'.format(reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id}))
 
 
 class DomainNoteDelete(LoginRequiredMixin, DeleteView):
@@ -1479,7 +1544,7 @@ class DomainNoteDelete(LoginRequiredMixin, DeleteView):
             self.request,
             'Note successfully deleted.',
             extra_tags='alert-warning')
-        return reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.pk})
+        return '{}#collapseNotes'.format(reverse('shepherd:domain_detail', kwargs={'pk': self.object.domain.id}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1506,7 +1571,7 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
             self.request,
             'Note successfully added to this server.',
             extra_tags='alert-success')
-        return reverse('shepherd:server_detail', kwargs={'pk': self.object.server.id})
+        return '{}#collapseNotes'.format(reverse('shepherd:server_detail', kwargs={'pk': self.object.server.id}))
 
     def get_initial(self):
         """Set the initial values for the form."""
@@ -1538,12 +1603,12 @@ class ServerNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'note_form.html'
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
+        """Override the function to return to the new record after updating."""
         messages.success(
             self.request,
             'Note successfully updated.',
             extra_tags='alert-success')
-        return reverse('shepherd:server_detail', kwargs={'pk': self.object.server.pk})
+        return '{}#collapseNotes'.format(reverse('shepherd:server_detail', kwargs={'pk': self.object.server.id}))
 
 
 class ServerNoteDelete(LoginRequiredMixin, DeleteView):
@@ -1559,7 +1624,7 @@ class ServerNoteDelete(LoginRequiredMixin, DeleteView):
             self.request,
             'Note successfully deleted.',
             extra_tags='alert-warning')
-        return reverse('shepherd:server_detail', kwargs={'pk': self.object.server.pk})
+        return '{}#collapseNotes'.format(reverse('shepherd:server_detail', kwargs={'pk': self.object.server.id}))
 
     def get_context_data(self, **kwargs):
         """Override the `get_context_data()` function to provide additional
@@ -1629,7 +1694,7 @@ class AuxServerAddressUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'shepherd/address_form.html'
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
+        """Override the function to return to the new record after updating."""
         messages.success(
             self.request,
             'Auxiliary address successfully updated.',
@@ -1647,7 +1712,7 @@ class AuxServerAddressUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        """Override form_valid to perform additional actions on new entries."""
+        """Override form_valid to perform additional actions on updated entries."""
         if form.cleaned_data['primary']:
             aux_addresses = AuxServerAddress.objects.filter(static_server=form.cleaned_data['static_server'])
             for address in aux_addresses:
