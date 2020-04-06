@@ -8,8 +8,8 @@
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Project {{ project.id }}</li>
+            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date }} {{ project.project_type }}</li>
         </ul>
     </nav>
 {% endblock %}
@@ -155,7 +155,7 @@
                                                 {{ objective.status }}
                                             </span>
                                         </td>
-                                        <td nowrap>{{ objective.objective }}</td>
+                                        <td nowrap>{{ objective.objective|safe }}</td>
                                         <td nowrap>{{ objective.deadline }}</td>
                                         <td>
                                             <div class="dropdown">
@@ -211,7 +211,7 @@
                                 </thead>
                                 {% for domain in project.history_set.all %}
                                     <tr>
-                                        <td style="text-align: left;">
+                                        <td nowrap style="text-align: left;">
                                             <button type="button" class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ domain.domain.name }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')">
                                                 <i class="far fa-copy"></i>
                                             </button>
@@ -255,7 +255,7 @@
                             <form action="{% url 'shepherd:server_search' %}" method="POST">
                                 {% csrf_token %}
                                 <span class="fa fa-search"></span>
-                                <input type="text" name="server_search" placeholder="Enter server IP to checkout">
+                                <input type="text" name="server_search" placeholder="Search for an IP address to checkout">
                                 <input type="hidden" name="project_id" value="{{ project.id }}"
                                 <input type="submit" style="display: none;" />
                             </form>
@@ -286,13 +286,13 @@
                                 {% for server in project.serverhistory_set.all %}
                                     {% get_primary_address server.server as primary_address%}
                                     <tr>
-                                        <td style="text-align: left;">
+                                        <td nowrap style="text-align: left;">
                                             <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ primary_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#server_{{ server.server.id }}')">
                                                 <i class="far fa-copy"></i>
                                             </button>
                                             <a id="server_{{ server.server.id }}" class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ primary_address }}</a>
                                         </td>
-                                        <td style="text-align: left;">
+                                        <td nowrap style="text-align: left;">
                                             <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ server.server.id }}')">
                                                 <i class="far fa-copy"></i>
                                             </button>
@@ -325,7 +325,7 @@
                                         <td>{{ server.activity_type }}</td>
                                         <td>{{ server.server_role }}</td>
                                         <td>{{ server.server.server_provider }}</td>
-                                        <td style="text-align: justify;">{{ server.note }}</td>
+                                        <td style="text-align: justify;">{{ server.note|safe }}</td>
                                         <td>
                                             <div class="dropdown">
                                                 <button class="dropbtn far fa-caret-square-down"></button>
@@ -588,6 +588,10 @@
     </div>
 {% endblock %}
 
+{% block collapse_js %}
+{{ block.super }}
+{% endblock %}
+
 {% block morescripts %}
     <!-- jQuery Tablesorter Script -->
     <script>
@@ -633,11 +637,5 @@
             document.execCommand("copy");
             $temp.remove();
         }
-    </script>
-
-    <script>
-        $(document).ready(function(){
-            $('[data-toggle="tooltip"]').tooltip();
-        });
     </script>
 {% endblock %}

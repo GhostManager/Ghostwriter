@@ -62,6 +62,9 @@ from datetime import datetime
 # Import for generating the xlsx reports in memory
 from xlsxwriter.workbook import Workbook
 
+import jinja2
+from docx.opc.exceptions import PackageNotFoundError
+
 # Import custom modules
 from ghostwriter.modules import reportwriter
 
@@ -258,12 +261,21 @@ def import_findings(request):
 def assign_finding(request, pk):
     """View function for adding a finding to the user's active report."""
     def get_position(report_pk):
-        position = ReportFindingLink.objects.\
-            filter(report__pk=report_pk).count()
-        if position:
-            return position + 1
+        finding_count = ReportFindingLink.objects.\
+            filter(Q(report__pk=report_pk) & Q(severity=finding.severity)).count()
+        if finding_count:
+            try:
+                # Get all other findings of the same severity with last position first
+                finding_positions = ReportFindingLink.objects.filter(
+                    Q(report__pk=report_pk) & Q(severity=finding.severity)).order_by('-position')
+                # Set new position to be one above the last/largest position
+                last_position = finding_positions[0].position
+                return last_position + 1
+            except:
+                return finding_count + 1
         else:
             return 1
+
     # The user must have the `active_report` session variable
     # Get the variable and default to `None` if it does not exist
     active_report = request.session.get('active_report', None)
@@ -297,6 +309,7 @@ def assign_finding(request, pk):
         report_link.save()
         messages.success(request, '%s successfully added to report.' %
                          finding.title, extra_tags='alert-success')
+        return HttpResponseRedirect('{}#collapseFinding'.format(reverse('reporting:report_detail', args=(report.id,))))
         return HttpResponseRedirect(reverse('reporting:findings'))
     else:
         messages.error(request, 'You have no active report! Select a report '
@@ -308,17 +321,28 @@ def assign_finding(request, pk):
 @login_required
 def assign_blank_finding(request, pk):
     """View function for adding a blank finding to the specified report."""
+    info_sev = Severity.objects.get(severity='Informational')
+
     def get_position(report_pk):
-        position = ReportFindingLink.objects.filter(report=report).count()
-        if position:
-            return position + 1
+        finding_count = ReportFindingLink.objects.filter(Q(report__pk=pk) & Q(severity=info_sev)).count()
+        if finding_count:
+            try:
+                # Get all other findings of the same severity with last position first
+                finding_positions = ReportFindingLink.objects.filter(
+                    Q(report__pk=pk) & Q(severity=info_sev)).order_by('-position')
+                # Set new position to be one above the last/largest position
+                last_position = finding_positions[0].position
+                return last_position + 1
+            except:
+                return finding_count + 1
         else:
             return 1
+
     try:
         report = Report.objects.get(pk=pk)
     except Exception:
-        messages.error(request, 'A valid report could not be found for this '
-                       'blank finding.',
+        messages.error(request,
+                       'A valid report could not be found for this blank finding.',
                        extra_tags='alert-danger')
         return HttpResponseRedirect(reverse('reporting:reports'))
     report_link = ReportFindingLink(title='Blank Template',
@@ -329,8 +353,7 @@ def assign_blank_finding(request, pk):
                                     host_detection_techniques='',
                                     network_detection_techniques='',
                                     references='',
-                                    severity=Severity.objects.
-                                    get(severity='Informational'),
+                                    severity=info_sev,
                                     finding_type=FindingType.objects.
                                     get(finding_type='Network'),
                                     report=report,
@@ -341,6 +364,55 @@ def assign_blank_finding(request, pk):
                      'report.',
                      extra_tags='alert-success')
     return HttpResponseRedirect(reverse('reporting:report_detail', args=(report.id,)))
+
+
+@login_required
+def position_increase(request, pk):
+    """View function to increase a finding's position which moves it down the
+    list.
+    """
+    finding_instance = ReportFindingLink.objects.get(pk=pk)
+    finding_instance.position = finding_instance.position + 1
+    # Get all other findings of the same severity
+    finding_positions = ReportFindingLink.objects.filter(
+        Q(report=finding_instance.report.pk) & Q(severity=finding_instance.severity)).order_by('position')
+    # Check all of the findings against new position
+    for finding in finding_positions:
+        # Check if new position value matches another finding
+        if finding_instance.position == finding.position:
+            # Decrement the position so the findings swap places
+            finding.position = finding.position - 1
+            finding.save(update_fields=['position'])
+    # Save the updated position
+    finding_instance.save(update_fields=['position'])
+    return HttpResponseRedirect(reverse('reporting:report_detail',
+                                args=(finding_instance.report.id,)))
+
+
+@login_required
+def position_decrease(request, pk):
+    """View function to decrease a finding's position which moves it up the
+    list.
+    """
+    finding_instance = ReportFindingLink.objects.get(pk=pk)
+    finding_instance.position = finding_instance.position - 1
+    # Avoid negatives
+    if finding_instance.position < 0:
+        finding_instance.position = 0
+    # Get all other findings of the same severity
+    finding_positions = ReportFindingLink.objects.filter(
+        Q(report=finding_instance.report.pk) & Q(severity=finding_instance.severity)).order_by('position')
+    # Check all of the findings against new position
+    for finding in finding_positions:
+        # Check if new position value matches another finding
+        if finding_instance.position == finding.position:
+            # Decrement the position so the findings swap places
+            finding.position = finding.position + 1
+            finding.save(update_fields=['position'])
+    # Save the updated position
+    finding_instance.save(update_fields=['position'])
+    return HttpResponseRedirect(reverse('reporting:report_detail',
+                                args=(finding_instance.report.id,)))
 
 
 @login_required
@@ -495,6 +567,46 @@ def upload_evidence(request, pk):
 
 
 @login_required
+def upload_evidence_modal(request, pk):
+    """View function for handling evidence file uploads via TinyMCE URLDialog."""
+    # Get a list of previously used friendly names for this finding
+    report_queryset = Evidence.objects.filter(finding=pk).values_list('friendly_name', flat=True)
+    used_friendly_names = []
+    # Convert the queryset into a list to pass to JavaScript later
+    for name in report_queryset:
+        used_friendly_names.append(name)
+    # If request is a POST, validate the form and move to success page
+    if request.method == 'POST':
+        form = EvidenceForm(request.POST, request.FILES)
+        if form.is_valid():
+            new_evidence = form.save()
+            if os.path.isfile(new_evidence.document.path):
+                messages.success(request, 'Evidence uploaded successfully',
+                                extra_tags='alert-success')
+            else:
+                messages.error(request, 'Evidence file failed to upload',
+                                extra_tags='alert-danger')
+            return HttpResponseRedirect(reverse('reporting:upload_evidence_modal_success'))
+    # Other requests (GETs) are shown the form
+    else:
+        form = EvidenceForm(initial={
+            'finding': pk,
+            'uploaded_by': request.user
+            })
+    context = {
+        'form': form,
+        'used_friendly_names': used_friendly_names
+        }
+    return render(request, 'reporting/evidence_form_modal.html', context=context)
+
+
+@login_required
+def upload_evidence_modal_success(request):
+    """View function for displaying a simple success page for the TinyMCE URLDialog."""
+    return render(request, 'reporting/evidence_modal_success.html')
+
+
+@login_required
 def view_evidence(request, pk):
     """View function for viewing evidence file uploads."""
     evidence_instance = Evidence.objects.get(pk=pk)
@@ -537,30 +649,6 @@ def view_evidence(request, pk):
 
 
 @login_required
-def position_increase(request, pk):
-    """View function to increase a finding's position which moves it down the
-    list.
-    """
-    finding_instance = ReportFindingLink.objects.get(pk=pk)
-    finding_instance.position = finding_instance.position + 1
-    finding_instance.save(update_fields=['position'])
-    return HttpResponseRedirect(reverse('reporting:report_detail',
-                                args=(finding_instance.report.id,)))
-
-
-@login_required
-def position_decrease(request, pk):
-    """View function to decrease a finding's position which moves it up the
-    list.
-    """
-    finding_instance = ReportFindingLink.objects.get(pk=pk)
-    finding_instance.position = finding_instance.position - 1
-    finding_instance.save(update_fields=['position'])
-    return HttpResponseRedirect(reverse('reporting:report_detail',
-                                args=(finding_instance.report.id,)))
-
-
-@login_required
 def generate_docx(request, pk):
     """View function to generate a docx report for the specified report."""
     report_instance = Report.objects.get(pk=pk)
@@ -581,10 +669,19 @@ def generate_docx(request, pk):
         response['Content-Disposition'] = 'attachment; filename=report.docx'
         docx.save(response)
         return response
-    except Exception as e:
-        messages.error(request, 'Failed to generate the Word report: {}'.format(e),
+    except jinja2.exceptions.TemplateError as e:
+        messages.error(request, 'Failed to generate the Word report because the docx template contains invalid Jinja2 code:\n{}'.format(e),
                 extra_tags='alert-danger')
-        return HttpResponseRedirect(request.META['HTTP_REFERER'])
+    except jinja2.exceptions.Undefined as e:
+        messages.error(request, 'Failed to generate the Word report because the docx template contains an undefined Jinja2 variable:\n{}'.format(e),
+                extra_tags='alert-danger')
+    except PackageNotFoundError:
+        messages.error(request, 'Failed to generate the Word report because the docx template could not be found!',
+                extra_tags='alert-danger')
+    except Exception as e:
+        messages.error(request, 'Failed to generate the Word report for an unknown reason: {}'.format(e),
+                extra_tags='alert-danger')
+    return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
 
 @login_required
@@ -667,7 +764,7 @@ def generate_all(request, pk):
     """View function to generate all report types for the specified report."""
     try:
         report_instance = Report.objects.get(pk=pk)
-        docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.docx')
+        docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template2.docx')
         pptx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.pptx')
         # Ask Spenny to make us reports with these findings
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)

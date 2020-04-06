@@ -406,7 +406,7 @@ class Evidence(models.Model):
     def clean(self, *args, **kwargs):
         super(Evidence, self).clean(*args, **kwargs)
         if not self.document:
-            raise ValidationError('Please provide an evidence file')
+            raise ValidationError('Please provide an evidence file.')
 
 
 class Archive(models.Model):

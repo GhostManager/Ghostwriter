@@ -60,7 +60,7 @@
         <h3>Server Description</h3>
         <hr>
         {% if staticserver.note %}
-            <p>{{ staticserver.note }}</p>
+            <p>{{ staticserver.note|safe }}</p>
         {% else %}
             <p>No information provided for this server.</p>
         {% endif %}
@@ -89,7 +89,7 @@
                             <td>No Assoc. Domain</td>
                         {% endif %}
                         <td>{{ project.start_date }} to {{ project.end_date }}</td>
-                        <td style="text-align: left;">{{ project.note }}</td>
+                        <td style="text-align: left;">{{ project.note|safe }}</td>
                         <td>
                             <a href="{% url 'shepherd:server_history_update' project.id %}">
                                 <i style="font-size: 15px; color: black" class="far fa-edit"></i>
@@ -111,7 +111,7 @@
                         <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ staticserver.servernote_set.all.count }}</span>
                     </a>
                 </div>
-                <div id="collapseNotes" class="collapse" aria-labelledby="description" data-parent="#accordion">
+                <div id="collapseNotes" class="collapse show" aria-labelledby="description" data-parent="#accordion">
                     <div class="card-body">
                         <p>
                             <a href="{% url 'shepherd:server_note_add' staticserver.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
@@ -142,4 +142,8 @@
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block collapse_js %}
+{{ block.super }}
 {% endblock %}

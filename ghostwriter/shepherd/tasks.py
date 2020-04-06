@@ -121,7 +121,10 @@ def release_domains(no_action=False):
     # Go through each `Unavailable` domain and check it against projects
     for domain in queryset:
         # Get all projects for the domain
-        project_queryset = History.objects.filter(domain__name=domain.name).latest('end_date')
+        try:
+            project_queryset = History.objects.filter(domain__name=domain.name).latest('end_date')
+        except History.DoesNotExist:
+            continue
         release_me = True
         release_date = project_queryset.end_date
         warning_date = release_date - datetime.timedelta(1)
@@ -173,8 +176,11 @@ def release_servers(no_action=False):
     # Go through each `Unavailable` server and check it against projects
     for server in queryset:
         # Get all projects for the server
-        project_queryset = ServerHistory.objects.\
-            filter(server__ip_address=server.ip_address).latest('end_date')
+        try:
+            project_queryset = ServerHistory.objects.\
+                filter(server__ip_address=server.ip_address).latest('end_date')
+        except ServerHistory.DoesNotExist:
+            continue
         release_me = True
         # Check each project's end date to determine if all are in the past
         release_date = project_queryset.end_date
@@ -529,7 +535,7 @@ def review_cloud_infrastructure():
     instances are still alive after project end date or if an IP address is not found
     for a project.
     """
-    DIGITAL_OCEAN_ENDPOINT = 'https://api.digitalocean.com/v2/droplets?page=1&per_page=1'
+    DIGITAL_OCEAN_ENDPOINT = 'https://api.digitalocean.com/v2/droplets'
 
     aws_key = settings.CLOUD_SERVICE_CONFIG['aws_key']
     aws_secret = settings.CLOUD_SERVICE_CONFIG['aws_secret']

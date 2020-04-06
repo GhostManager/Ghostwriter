@@ -76,6 +76,15 @@ p {
     font-size: var(--main-font-size);
     font-weight: 300;
     line-height: 1.7em;
+    color: var(--main-txt-color);
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+pre {
+    font-size: var(--main-font-size);
+    font-weight: 300;
+    line-height: 1.7em;
     color: var(--main-txt-color);;
     margin-top: 20px;
     margin-bottom: 20px;
@@ -85,6 +94,7 @@ a, a:hover, a:focus {
     color: inherit;
     text-decoration: none;
     transition: all 0.3s;
+    font-size: var(--main-font-size);
 }
 
 i {
@@ -715,7 +725,7 @@ th, td {
     padding: 8px;
     text-align: center;
     border-bottom: 1px solid #ddd;
-    font-size:10pt;
+    font-size: var(--main-font-size);
     word-wrap: break-word;
 }
 
@@ -771,6 +781,11 @@ thead th.down {
 
 .tablesorter .tablesorter-header.sorter-false {
     background-image: url();
+}
+
+td p {
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 /* ---------------------------------------------------
@@ -931,7 +946,7 @@ thead th.down {
 }
 
 .myaccordion span {
-    font-size: 14px;
+    font-size: var(--main-font-size);
 }
 
 .myaccordion .btn {
@@ -950,8 +965,6 @@ thead th.down {
     background-color: var(--accordion-expanded-color);
 }
 
-
-
 .card-header:after {
     content: "\002B";
     color: white;
@@ -961,6 +974,22 @@ thead th.down {
 }
 .card-header[aria-expanded=true]:after {
     content: "\2212";
+}
+
+.finding-card ul, ol {
+    text-align: justify;
+    font-family: 'Poppins', sans-serif;
+    font-size: var(--main-font-size);
+    font-weight: 300;
+    line-height: 1.7em;
+    color: var(--main-txt-color);;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.finding-card pre {
+    text-align: justify;
+    padding-left: 20px;
 }
 
 /* ---------------------------------------------------

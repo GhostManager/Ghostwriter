@@ -1,0 +1,102 @@
+{% extends "base_generic_empty.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Evidence Form{% endblock %}
+
+{% block content %}
+    {% verbatim %}
+        <p>
+            Use this form to attach text evidence (*.txt, *.log, *.md, *.ps1, or *.py) or image evidence (*.png, *.jpg, or *.jpeg).<br>
+            Provide some information about the evidence file. Text fields are optional but all are encouraged. The friendly name is used for placement in the reports (e.g. <em>{{ friendly_name }}</em>) and the cation is used to generate captions below the figures in the generated reports.
+        </p>
+    {% endverbatim %}
+
+    <!-- Form Error Sections -->
+    {% if form.errors %}
+        {% for field in form %}
+            {% for error in field.errors %}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <strong>{{ error|escape }}</strong>
+                </div>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <div class="alert alert-danger">
+                <strong>{{ error|escape }}</strong>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Form Section -->
+    <form class="newitem" action="" method="post" enctype="multipart/form-data" id="evidence_upload_form">
+        {% csrf_token %}
+
+        <!-- File Info Section -->
+        <i class="far fa-file"></i> Evidence Details
+        <hr>
+
+        <div class="form-row">
+            <div class="form-group col-md-6 mb-0">
+                {{ form.friendly_name|as_crispy_field }}
+            </div>
+            <div class="form-group col-md-6 mb-0">
+                {{ form.caption|as_crispy_field }}
+            </div>
+        </div>
+
+        {{ form.description|as_crispy_field }}
+
+        <!-- Spacer -->
+        <p style="margin: 40px;"></p>
+
+        <!-- Document Upload Section -->
+        <i class="far fa-images"></i> Document Upload
+        <hr>
+
+        <div class="custom-file">
+            {{ form.document }}
+            <label class="custom-file-label" for="customFile">Choose evidence file...</label>
+        </div>
+        <p id="filename"></p>
+
+        <!-- Hidden Values -->
+        {{ form.uploaded_by }}
+        {{ form.finding }}
+    </form>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for File Upload -->
+    <script>
+        $('input[type=file]').on('change', function() {
+            $("#filename").text($(this).val());
+        });
+    </script>
+
+    <!-- Event for TinyMCE URLDialog -->
+    <script>
+        // https://www.martyfriedel.com/blog/tinymce-5-url-dialog-component-and-window-messaging
+        window.addEventListener('message', function (event) {
+            if (event.data.mceAction ==='evidence_upload'){
+                var used_friendly_names = {{ used_friendly_names|safe }}
+                var value = {
+                    friendly_name: document.getElementById('id_friendly_name').value,
+                    evidence_file: document.getElementById('id_document').value,
+                    caption: document.getElementById('id_caption').value,
+                    used_friendly_names: used_friendly_names
+                };
+
+                document.getElementById('evidence_upload_form').submit();
+
+                window.parent.postMessage({
+                    mceAction: 'execCommand',
+                    cmd: 'upload_and_insert',
+                    value 
+                }, origin);
+            }
+        });
+    </script>
+{% endblock %}

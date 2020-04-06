@@ -29,10 +29,13 @@ from pptx import Presentation
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.text import MSO_ANCHOR
 
+from docxtpl import DocxTemplate
+
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 
 from bs4 import BeautifulSoup
+from bs4 import NavigableString, Tag
 
 
 class Reportwriter():
@@ -300,7 +303,6 @@ class Reportwriter():
         styling = par.style._element.xpath("//w:pPr")[0]
         contextual_spacing = OxmlElement('w:contextualSpacing')
         styling.append(contextual_spacing)
-        print(par.style._element.xml)
         return par
 
     def make_figure(self, paragraph):
@@ -421,102 +423,7 @@ class Reportwriter():
         par._p.get_or_add_pPr().get_or_add_numPr().\
             get_or_add_ilvl().val = level
 
-    def process_inline_text(self, line, p, report_type=None):
-        """Process the provided line for the provided paragraph to handle
-        nested inline text formatting.
-        """
-        # Split line on spaces and curly brackets
-        all_words = re.split('<', line)
-        all_words = [all_words[0]] + ['<' + l for l in all_words[1:]]
-        for word in all_words:
-            write_line = True
-            prepared_text = word.replace('&nbsp;', '').strip() + ' '
-            # Check if word is blank
-            if not word:
-                continue
-            # Determine styling
-            if (
-                '<code' in word and
-                '</code' not in word and
-                not self.code_block
-                ):
-                self.inline_code = True
-                prepared_text = prepared_text.replace('<code>', '')
-            if '</code' in word:
-                self.inline_code = False
-                continue
-            if '<span' in word and '</span' not in word:
-                # When two or more styles are applied, TinyMCE uses a span:
-                # e.g., <span class="bold italic">
-                regex = r'(?<=class=").*?(?=">)'
-                match = re.search(regex, word)
-                self.span_classes = match[0].split(' ')
-                if 'italic' in self.span_classes:
-                    self.italic_text = True
-                if 'bold' in self.span_classes:
-                    self.bold_text = True
-                prepared_text = prepared_text.replace('<span class="{}">'.format(' '.join(self.span_classes)), '')
-            if '</span' in word:
-                prepared_text = prepared_text.replace('</span>', '')
-                if 'italic' in self.span_classes:
-                    self.italic_text = False
-                if 'bold' in self.span_classes:
-                    self.bold_text = False
-            if '<em' in word and '</em' not in word:
-                prepared_text = prepared_text.replace('<em>', '')
-                self.italic_text = True
-            if '</em' in word:
-                prepared_text = prepared_text.replace('</em>', '')
-                self.italic_text = False
-            if '<strong' in word and '</strong' not in word:
-                prepared_text = prepared_text.replace('<strong>', '')
-                self.bold_text = True
-            if '</strong' in word:
-                prepared_text = prepared_text.replace('</strong>', '')
-                self.bold_text = False
-            # Write the content
-            if self.inline_code:
-                if report_type == 'pptx':
-                    if self.first_bullet:
-                        run = p.add_run()
-                        run.text = prepared_text
-                        self.first_bullet = False
-                    else:
-                        text_frame = self.finding_body_shape.text_frame
-                        run = p.add_run()
-                        run.text = prepared_text
-                else:
-                    run = p.add_run()
-                    run.text = prepared_text
-                    run.style = 'Code (inline)'
-            else:
-                if report_type == 'pptx':
-                    if self.first_bullet:
-                        run = p.add_run()
-                        run.text = prepared_text
-                        self.first_bullet = False
-                    else:
-                        text_frame = self.finding_body_shape.text_frame
-                        run = p.add_run()
-                        run.text = prepared_text
-                else:
-                    run = p.add_run()
-                    run.text = prepared_text
-            if self.italic_text:
-                    font = run.font
-                    font.italic = True
-            if self.bold_text:
-                    font = run.font
-                    font.bold = True
-
-    def search_evidence(self, finding, search):
-        """Search the provided finding JSON for the specified search term."""
-        for key, value in finding.items():
-            if search in finding[key]['url']:
-                return key
-        return None
-
-    def process_evidence(self, finding, keyword, file_path, extension, report_type=None):
+    def process_evidence(self, finding, keyword, file_path, extension, p, report_type=None):
         """Process the specified evidence file for the named finding to
         add it to the Word document.
         """
@@ -544,8 +451,7 @@ class Reportwriter():
                 else:
                     # Drop in text evidence using the
                     # Code Block style
-                    p = self.spenny_doc.add_paragraph(
-                        evidence_text)
+                    p.text = evidence_text
                     p.style = 'CodeBlock'
                     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                     p = self.spenny_doc.add_paragraph(
@@ -580,7 +486,6 @@ class Reportwriter():
                 width = Inches(4.5)
                 image = self.finding_slide.shapes.add_picture(new_file, left, top, width=width)
             else:
-                p = self.spenny_doc.add_paragraph()
                 run = p.add_run()
                 run.add_picture(new_file, width=Inches(6.5))
                 p = self.spenny_doc.add_paragraph(
@@ -601,644 +506,386 @@ class Reportwriter():
         parent_element = p.getparent()
         parent_element.remove(p)
 
+    def replace_and_write(self, text, p, finding, report_json, italic=False, underline=False, bold=False, inline_code=False, report_type=None):
+        """Function to find and replace template keywords."""
+        # Regex for searching for bracketed template placeholders, e.g. {{.client}}
+        keyword_regex = r'\{\{\.(.*?)\}\}'
+        # Search for {{. }} keywords
+        match = re.search(keyword_regex, text)
+        if match:
+            # Get just the first match, set it as the "keyword," and  
+            # remove it from the line
+            # There should never be - or need to be - multiple matches
+            match = match[0]
+            keyword = match.\
+                replace('{', '').\
+                replace('}', '').\
+                replace('.', '').\
+                strip()
+        else:
+            keyword = ''
+        # Perform static client name replacement
+        if '{{.client}}' in text:
+            if report_json['client']['short_name']:
+                text = text.replace(
+                    '{{.client}}',
+                    report_json['client']['short_name'])
+            else:
+                text = text.replace(
+                    '{{.client}}',
+                    report_json['client']['full_name'])
+
+        # Transform caption placeholders into figures
+        if '{{.caption}}' in text:
+            text = text.replace('{{.caption}}', '')
+            if report_type == 'pptx':
+                # Only option would be to make the caption a slide
+                # bullet and that would be weird - so just pass
+                pass
+            else:
+                p.style = 'Caption'
+                p.text = 'Figure '
+                self.make_figure(p)
+                run = p.add_run(u' \u2013 ' + text)
+            return
+
+        # Handle evidence keywords
+        if 'evidence' in finding:
+            if keyword and keyword in finding['evidence'].keys():
+                file_path = settings.MEDIA_ROOT + \
+                            '/' + \
+                            finding['evidence'][keyword]['file_path']
+                extension = finding['evidence'][keyword]['url'].\
+                    split('.')[-1]
+                self.process_evidence(finding, keyword, file_path, extension, p, report_type)
+                return
+
+        # Add a new run to the paragraph
+        run = p.add_run()
+        run.text = text
+        if report_type == 'pptx':
+            # For pptx, formatting is applied via the font instead of on the run object
+            font = run.font
+            if inline_code:
+                font.name = 'Courier New'
+                # font.size = Pt(11)
+            font.bold = bold
+            font.italic = italic
+            font.underline = underline
+        else:
+            if inline_code:
+                run.style = 'Code (inline)'
+            run.bold = bold
+            run.italic = italic
+            run.underline = underline
+
+    def process_nested_tags(self, contents, p, finding, report_json, prev_p=None, num=True, report_type=None):
+        # Iterate over the provided list
+        for part in contents:
+            # Track temporary styles for text runs
+            bold_font = False
+            underline = False
+            italic_font = False
+            inline_code = False
+            # Track "global" styles for the whole object
+            nested_bold_font = False
+            nested_underline = False
+            nested_italic_font = False
+            nested_inline_code = False
+            # Get each parts' name to check if it's a tag object
+            # A plain string will return `None` - no tag
+            part_name = part.name
+            if part_name:
+                # Split part into list of plain text and tag objects
+                part_contents = part.contents
+                # Run `find_all()` to make a list of all tags within this part
+                # The tag obj, contents list, and `find_all()` results look like this:
+                #   Tag: <span class="italic">italic <span class="underline">and</span>
+                #        <span class="bold">bold</span></span>
+                #   Contents: ['italic ', <span class="underline">and</span>,
+                #              ' ', <span class="bold">bold</span>]
+                #   Find_all: [<span class="underline">and</span>,
+                #              <span class="bold">bold</span>]
+                # Get all of the nested tags
+                all_nested_tags = part.find_all()
+                # Append the first tag to the start of the list
+                all_nested_tags = [part] + all_nested_tags
+                # Count all of the tags for the next step
+                tag_count = len(all_nested_tags)
+                # A list length > 1 means nested formatting
+                # Get the parent object's style info first as it 
+                # applies to all future runs
+                # if tag_count > 1:
+                # A code tag here is inline code inside of a p tag
+                if part_name == 'code':
+                    nested_inline_code = True
+                # An em tag designates italics and appears rarely
+                elif part_name == 'em':
+                    nested_italic_font = True
+                # A span tag will contain one or more classes for formatting
+                elif part_name == 'span':
+                    part_attrs = part.attrs['class']
+                    # Check existence of supported classes
+                    if 'italic' in part_attrs:
+                        nested_italic_font = True
+                    if 'bold' in part_attrs:
+                        nested_bold_font = True
+                    if 'underline' in part_attrs:
+                        nested_underline = True
+                # Any other tags are unexpected and ignored
+                else:
+                    print('Unknown nested tag - {}'.format(part_name))
+                # Loop over all items in the contents list
+                for tag in part_contents:
+                    # Same as above with the nested tags
+                    tag_name = tag.name
+                    if tag_name:
+                        tag_contents = tag.contents
+                        content_text = ' '.join(tag_contents)
+                        if tag_name == 'code':
+                            inline_code = True
+                        elif tag_name == 'em':
+                            italic_font = True
+                        elif tag_name == 'span':
+                            tag_attrs = tag.attrs['class']
+                            if 'italic' in tag_attrs:
+                                italic_font = True
+                            if 'bold' in tag_attrs:
+                                bold_font = True
+                            if 'underline' in tag_attrs:
+                                underline = True
+                        else:
+                            print('Unknown nested tag - {}'.format(tag_name))
+                    else:
+                        content_text = tag
+                    # Conditionally apply text styles
+                    if inline_code or nested_inline_code:
+                        inline_code = True
+                    if underline or nested_underline:
+                        underline = True
+                    if bold_font or nested_bold_font:
+                        bold_font = True
+                    if italic_font or nested_italic_font:
+                        italic_font = True
+                    # Write the text for this run
+                    self.replace_and_write(content_text, p, finding, report_json, italic_font, underline, bold_font, inline_code, report_type=report_type)
+                    # Reset temporary run styles
+                    bold_font = False
+                    underline = False
+                    italic_font = False
+                    inline_code = False
+            # There are no tags to process, so write the string
+            else:
+                if isinstance(part, NavigableString):
+                    self.replace_and_write(part, p, finding, report_json, report_type=report_type)
+                else:
+                    self.replace_and_write(part.text, p, finding, report_json, report_type=report_type)
+
     def process_text_xml(self, text, finding, report_json, report_type=None):
         """Process the provided text from the specified finding to parse
         keywords for evidence placement and formatting for Office XML.
         """
+        prev_p = None
+        # Setup the first text frame for the PowerPoint slide
         if report_type == 'pptx':
             if self.finding_body_shape.has_text_frame:
                 self.finding_body_shape.text_frame.clear()
                 self.delete_paragraph(self.finding_body_shape.text_frame.paragraphs[0])
-        # Track paragraphs for docx lists
-        p = None
-        prev_p = None
-        # Track formatting options
-        self.bold_text = False
-        self.code_block = False
-        self.inline_code = False
-        self.italic_text = False
-        self.numbered_list = False
-        self.bulleted_list = False
-        # Track bullets for pptx slides
-        self.first_bullet = True
-        # Regex for searching for bracketed template placeholders, e.g. {{.client}}
-        keyword_regex = r'\{\{\.(.*?)\}\}'
         # Clean text to make it XML compatible for Office XML
         text = ''.join(c for c in text if self.valid_xml_char_ordinal(c))
-        # Split the text by HTML tags
-        # We do not use BS4 here because we don't need searchable strings
-        # We want to be able to manipulate the HTML as basic strings
-        html = text.split('<')
-        # Now make a list and restore the removed '<' characters
-        html = [html[0]] + ['<' + l for l in html[1:]]
-        # Go line by line to strip and process each piece of the text
-        for line in html:
-            line = line.strip()
-            # Perform static replacements
-            if '{{.client}}' in line:
-                if report_json['client']['short_name']:
-                    line = line.replace(
-                        '{{.client}}',
-                        report_json['client']['short_name'])
-                else:
-                    line = line.replace(
-                        '{{.client}}',
-                        report_json['client']['full_name'])
-            # Handle keywords that affect whole paragraphs
-            if (
-                line.startswith('<pre class="language-') or
-                line.startswith('</pre>') or
-                line.startswith('<code>') or
-                line.startswith('</code>') or
-                line.startswith('<ol>') or
-                line.startswith('</ol>') or
-                line.startswith('<ul>') or
-                line.startswith('</ul>') or
-                line.startswith('<li>') or
-                line.startswith('</li>') or
-                line.startswith('<p>') or
-                line.startswith('</p>') or
-                line.startswith('<img')
-              ):
-                if line.startswith('<p>'):
-                    line = line.lstrip('<p>')
-                    # Check for any template keywords in need of processing
-                    match = re.search(keyword_regex, line)
-                    if match:
-                        # Get just the first match, set it as the "keyword," and  
-                        # remove it from the line
-                        # There should never be - or need to be - multiple matches
-                        match = match[0]
-                        keyword = match.\
-                            replace('{', '').\
-                            replace('}', '').\
-                            replace('.', '').\
-                            strip()
-                        line = line.replace(match, '')
-                    else:
-                        keyword = ''
-                    # Handle caption keywords following <p>
-                    if keyword == 'caption':
-                        if report_type == 'pptx':
-                            # Only option would be to make the caption a slide
-                            # bullet and that would be weird - so just pass
-                            pass
-                        else:
-                            # This is a caption so turn off any list formatting
-                            self.numbered_list = False
-                            self.bulleted_list = False
-                            p = self.spenny_doc.add_paragraph(
-                                'Figure ',
-                                style='Caption')
-                            self.make_figure(p)
-                            run = p.add_run(u' \u2013 ' + line)
-                    # Handle evidence keywords following <p>
-                    elif keyword in finding['evidence'].keys():
-                        file_path = settings.MEDIA_ROOT + \
-                                   '/' + \
-                                   finding['evidence'][keyword]['file_path']
-                        extension = finding['evidence'][keyword]['url'].\
-                            split('.')[-1]
-                        self.process_evidence(finding, keyword, file_path, extension, report_type)
-                    else:
-                        if line:
-                            if report_type == 'pptx':
-                                p = self.finding_body_shape.text_frame.add_paragraph()
-                                self.process_inline_text(line, p, 'pptx')
-                            else:
-                                p = self.spenny_doc.add_paragraph()
-                                self.process_inline_text(line, p)
-                # Lines starting with a closing </p> are usually just that
-                # tag and nothing else so strip and move on
-                if line.startswith('</p>'):
-                    line = line.lstrip('</p>')
-                    if line:
-                        if report_type == 'pptx':
-                            self.process_inline_text(line, p, 'pptx')
-                        else:
-                            self.process_inline_text(line, p)
-                # Handle code blocks
-                if line.startswith('<pre class="language-'):
-                    self.code_block = True
-                if line.startswith('</pre>'):
-                    self.code_block = False
-                    continue
-                if line.startswith('<code>'):
-                    if self.code_block:
-                        line = line.strip('<code>')
-                        if report_type == 'pptx':
-                            # Place new textbox to the mid-right
-                            if line:
-                                top = Inches(1.65)
-                                left = Inches(6)
-                                width = Inches(4.5)
-                                height = Inches(3)
-                                # Create new textbox, textframe, paragraph, and run
-                                textbox = self.finding_slide.shapes.add_textbox(
-                                    left, top, width, height)
-                                text_frame = textbox.text_frame
-                                p = text_frame.paragraphs[0]
-                                run = p.add_run()
-                                # Insert code block and apply formatting
-                                run.text = line.replace('\x0D', '')
-                                font = run.font
-                                font.size = Pt(11)
-                                font.name = 'Courier New'
-                        else:
-                            # Create paragraph and apply 'CodeBlock' style
-                            # Style is managed in the docx template
-                            p = self.spenny_doc.add_paragraph()
-                            p.style = 'CodeBlock'
-                            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                            if line:
-                                for code in line.split('\n'):
-                                    p.add_run(code)
-                    else:
-                        self.process_inline_text(line, p)
-                if line.startswith('</code>'):
-                    line = line.lstrip('</code>')
-                    if self.inline_code:
-                        self.inline_code = False
-                    if line:
-                        if report_type == 'pptx':
-                            self.process_inline_text(line, p, 'pptx')
-                        else:
-                            self.process_inline_text(line, p)
-                # Check for ordered lists (numbered)
-                if line.startswith('<ol>'):
-                    self.numbered_list = True
-                    line = line.replace('<ol>', '')
-                    if line:
-                        if report_type == 'pptx':
-                            # Nothing to do here (for now) for pptx
-                            pass
-                        else:
-                            p = self.spenny_doc.add_paragraph(style='Normal')
-                            p = self.set_contextual_spacing(p)
-                            self.process_inline_text(line, p)
-                            self.list_number(p, level=0, num=True)
-                            p.paragraph_format.left_indent = Inches(0.5)
-                if line.startswith('</ol>'):
-                    self.numbered_list = False
-                    line = line.replace('</ol>', '')
-                    if line:
-                        if report_type == 'pptx':
-                            # Nothing to do here (for now) for pptx
-                            pass
-                        else:
-                            p = self.spenny_doc.add_paragraph(style='Normal')
-                            self.process_inline_text(line, p)
-                            self.list_number(p, level=0, num=True)
-                            p.paragraph_format.left_indent = Inches(0.5)
-                    continue
-                # Check for unordered lists (bulleted)
-                if line.startswith('<ul>'):
-                    self.bulleted_list = True
-                    line = line.replace('<ul>', '')
-                    if line:
-                        if report_type == 'pptx':
-                            # Nothing to do here (for now) for pptx
-                            pass
-                        else:
-                            p = self.spenny_doc.add_paragraph(style='Normal')
-                            p = self.set_contextual_spacing(p)
-                            self.process_inline_text(line, p)
-                            self.list_number(p, level=0, num=False)
-                            p.paragraph_format.left_indent = Inches(0.5)
-                if line.startswith('</ul>'):
-                    self.bulleted_list = False
-                    line = line.replace('</ul>', '')
-                    if line:
-                        if report_type == 'pptx':
-                            # Nothing to do here (for now) for pptx
-                            pass
-                        else:
-                            p = self.spenny_doc.add_paragraph(style='Normal')
-                            p = self.set_contextual_spacing(p)
-                            self.process_inline_text(line, p)
-                            self.list_number(p, level=0, num=False)
-                            p.paragraph_format.left_indent = Inches(0.5)
-                    continue
-                # Handle list items
-                if line.startswith('<li>'):
-                    line = line.replace('<li>', '')
+        # Parse the HTML into a BS4 soup object
+        if text:
+            soup = BeautifulSoup(text, 'lxml')
+            # Each WYSIWYG field begins with `<html><body>` so get the contents of body
+            body = soup.find('body')
+            contents_list = body.contents
+            # Loop over all bs4.element.Tag objects in the body 
+            for tag in contents_list:
+                # If it came from Ghostwriter, tag names will be p, pre, ul, or ol
+                # Anything else is logged and ignored b/c all other tags should appear within these tags
+                tag_name = tag.name
+                # P – Paragraphs
+                if tag_name == 'p':
+                    # Get the tag's contents to check for additional formatting
+                    # Result will be a list with strings and more tags:
+                    # ['Some words with ', <em>italic text</em>, ' and then more words.']
+                    contents = tag.contents
                     if report_type == 'pptx':
-                        # Move to new paragraph/line and indent bullets one tab
                         p = self.finding_body_shape.text_frame.add_paragraph()
-                        p.level = 1
-                        self.process_inline_text(line, p, 'pptx')
                     else:
-                        if self.numbered_list:
-                            p = self.spenny_doc.add_paragraph(style='Normal')
-                            p = self.set_contextual_spacing(p)
-                            self.process_inline_text(line, p)
-                            self.list_number(p, prev=prev_p, level=0, num=True)
-                            p.paragraph_format.left_indent = Inches(0.5)
-                        elif self.bulleted_list:
-                            p = self.spenny_doc.add_paragraph(style='Normal')
-                            p = self.set_contextual_spacing(p)
-                            self.process_inline_text(line, p)
-                            self.list_number(p, level=0, num=False)
-                            p.paragraph_format.left_indent = Inches(0.5)
-                        else:
-                            continue
-                if line.startswith('</li>'):
-                    continue
-                # Handle inserted evidence images
-                if line.startswith('<img'):
-                    # Check if the img src references evidence
-                    evidence = False
-                    if 'evidence' in finding:
-                        # Check if the src attribute is in evidence
-                        try:
-                            regex = r'(?<=src="..\/..\/..\/..)(.*?)(?=")'
-                            match = re.search(regex, line)
-                            keyword = self.search_evidence(finding['evidence'], match[0])
-                            if keyword:
-                                evidence = True
-                        except:
-                            print("[!] No match for image source in evidence: {}".format(line))
-                        if evidence:
-                            file_path = settings.MEDIA_ROOT + \
-                                    '/' + \
-                                    finding['evidence'][keyword]['file_path']
-                            extension = finding['evidence'][keyword]['url'].\
-                                split('.')[-1]
-                            self.process_evidence(finding, keyword, file_path, extension, report_type)
-            # Continue handling paragraph formatting if active
-            elif self.code_block:
-                self.process_inline_text(line, p, report_type)
-            elif self.numbered_list:
-                self.process_inline_text(line, p, report_type)
-                if report_type == 'pptx':
-                    pass
-                else:
-                    self.list_number(p, prev=prev_p, level=0, num=True)
-                    p.paragraph_format.left_indent = Inches(0.5)
-            elif self.bulleted_list:
-                self.process_inline_text(line, p, report_type)
-                if report_type == 'pptx':
-                    pass
-                else:
-                    self.list_number(p, level=0, num=False)
-                    p.paragraph_format.left_indent = Inches(0.5)
-            # Handle keywords wrapped around runs of text inside paragraphs
-            # and evidence files
-            else:
-                if '<img' in line:
-                    # Check if the keyword references evidence
-                    evidence = False
-                    if 'evidence' in finding:
-                        regex = r'src="..\/..\/..\/..(.*?)"'
-                        match = re.search(regex, line)
-                        if match[0] in finding['evidence'].values():
-                            evidence = True
-                    if evidence:
-                        file_path = settings.MEDIA_ROOT + \
-                                   '/' + \
-                                   finding['evidence'][keyword]['file_path']
-                        extension = finding['evidence'][keyword]['url'].\
-                            split('.')[-1]
-                        self.process_evidence(finding, keyword, file_path, extension, report_type)
-                    else:
-                        # Handle keywords that require managing runs
                         p = self.spenny_doc.add_paragraph()
-                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        self.process_inline_text(line, p, report_type)
-                else:
-                    if line:
-                        if report_type == 'pptx':
-                            if p is None:
+                    self.process_nested_tags(contents, p, finding, report_json, report_type=report_type)
+                # PRE – Code Blocks
+                elif tag_name == 'pre':
+                    # The WYSIWYG editor doesn't allow users to format text
+                    # inside of a code block because it's all treated as code
+                    # So, just insert the text without any further processing
+                    contents = tag.contents
+                    if report_type == 'pptx':
+                        # Place new textbox to the mid-right
+                        if contents:
+                            top = Inches(1.65)
+                            left = Inches(6)
+                            width = Inches(4.5)
+                            height = Inches(3)
+                            # Create new textbox, textframe, paragraph, and run
+                            textbox = self.finding_slide.shapes.add_textbox(
+                                left, top, width, height)
+                            text_frame = textbox.text_frame
+                            # There should be just the one code tag inside any Ghostwriter code block
+                            for content in contents:
+                                # The only content should be a long line of text with `\r\n`
+                                for code in content:
+                                    # Split at the newlines to make a new list
+                                    parts = code.split('\r\n')
+                                    # Iterate over the list of code lines to make paragraphs
+                                    for code_line in parts:
+                                        # Create paragraph and apply 'CodeBlock' style
+                                        # Style is managed in the docx template
+                                        p = text_frame.add_paragraph()
+                                        run = p.add_run()
+                                        # Insert code block and apply formatting
+                                        run.text = code_line
+                                        font = run.font
+                                        font.size = Pt(11)
+                                        font.name = 'Courier New'
+                    else:
+                        if contents:
+                            # There should be just the one code tag inside any Ghostwriter code block
+                            for content in contents:
+                                # The only content should be a long line of text with `\r\n`
+                                for code in content:
+                                    # Split at the newlines to make a new list
+                                    parts = code.split('\r\n')
+                                    # Iterate over the list of code lines to make paragraphs
+                                    for code_line in parts:
+                                        # Create paragraph and apply 'CodeBlock' style
+                                        # Style is managed in the docx template
+                                        p = self.spenny_doc.add_paragraph(code_line)
+                                        p.style = 'CodeBlock'
+                                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                # UL – Unordered/Bulleted Lists
+                elif tag_name == 'ul':
+                    # Unordered/bulleted lists don't need numbers or paragraph tracking
+                    num = False
+                    prev_p = None
+                    # Get the ul tag's contents and check each item
+                    # A ul tag should only contain li tags
+                    contents = tag.contents
+                    for part in contents:
+                        # Check if the tag is a list item, <li>
+                        if part.name == 'li':
+                            # Get the contents of li
+                            li_contents = part.contents
+                            if report_type == 'pptx':
+                                # Move to new paragraph/line and indent bullets one tab
                                 p = self.finding_body_shape.text_frame.add_paragraph()
-                            self.process_inline_text(line, p, report_type)
+                                p.level = 1
+                            else:
+                                # Create the paragraph for this list item
+                                p = self.spenny_doc.add_paragraph(style='List Bulleted')
+                                p = self.set_contextual_spacing(p)
+                                self.list_number(p, prev=prev_p, level=0, num=num)
+                                p.paragraph_format.left_indent = Inches(0.5)
+                                # A length of `1` means no other tags to process
+                            if len(li_contents) == 1:
+                                self.replace_and_write(part.text, p, finding, report_json, report_type=report_type)
+                            # Bigger lists mean more tags, so process nested tags
+                            else:
+                                self.process_nested_tags(part, p, finding, report_json, prev_p, num, report_type)
                         else:
-                            if p is None:
-                                p = self.spenny_doc.add_paragraph()
-                            self.process_inline_text(line, p, report_type)
-            # Save the current paragraph for next iteration - needed for lists
-            prev_p = p
+                            if not isinstance(part, NavigableString):
+                                print('Unknown tag for ul - {}'.format(part.name))
+                # OL – Ordered/Numbered Lists
+                elif tag_name == 'ol':
+                    # Ordered/numbered lists need numbers and linked paragraphs
+                    num = True
+                    prev_p = None
+                    # Get the ul tag's contents and check each item
+                    # A ul tag should only contain li tags
+                    contents = tag.contents
+                    for part in contents:
+                        # Check if the tag is a list item, <li>
+                        if part.name == 'li':
+                            # Get the contents of li
+                            li_contents = part.contents
+                            # Create the paragraph for this list item
+                            p = self.spenny_doc.add_paragraph(style='List Numbered')
+                            p = self.set_contextual_spacing(p)
+                            self.list_number(p, prev=prev_p, level=0, num=num)
+                            p.paragraph_format.left_indent = Inches(0.5)
+                            # A length of `1` means no other tags to process
+                            if len(li_contents) == 1:
+                                # run = p.add_run(part)
+                                self.replace_and_write(part.text, p, finding, report_json, report_type=report_type)
+                            # Bigger lists mean more tags, so process nested tags
+                            else:
+                                self.process_nested_tags(part, p, finding, report_json, prev_p, num, report_type)
+                            # Track the paragraph used for this list item
+                            prev_p = p
+                        else:
+                            if not isinstance(part, NavigableString):
+                                print('Unknown tag for ol - {}'.format(part.name))
+                else:
+                    if not isinstance(tag, NavigableString):
+                        print('Unknown tag in body - {}'.format(tag_name))
 
     def generate_word_docx(self):
         """Generate a Word document for the current report."""
         # Generate the JSON for the report
         report_json = json.loads(self.generate_json())
-        # Create Word document writer using the specified template file and
-        # a style editor
+        # Create Word document writer using the specified template file
         if self.template_loc:
             try:
-                self.spenny_doc = Document(self.template_loc)
+                self.main_spenny_doc = DocxTemplate(self.template_loc)
             except Exception:
                 raise
         else:
             raise
-        # Create a custom style for table cells named 'Headers'
-        # The following makes the header cell text white, bold, and
-        # 12pt Calibri
-        styles = self.spenny_doc.styles
-        styles.add_style('Headers', WD_STYLE_TYPE.CHARACTER)
-        cell_text = self.spenny_doc.styles['Headers']
-        cell_text_font = cell_text.font
-        cell_text_font.name = 'Calibri'
-        cell_text_font.size = Pt(12)
-        cell_text_font.bold = True
-        cell_text_font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-
-        ################################################
-        # Create the Team and Points of Contact Tables #
-        ################################################
-
-        if report_json['client']['poc'].values():
-            # If the style needs to be updated, update it in template.docx
-            poc_table = self.spenny_doc.add_table(
-                rows=1,
-                cols=3,
-                style='Ghostwriter Table')
-            name_header = poc_table.cell(0, 0)
-            name_header.text = ""
-            name_header.paragraphs[0].add_run('Name').bold = True
-            name_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            role_header = poc_table.cell(0, 1)
-            role_header.text = ''
-            role_header.paragraphs[0].add_run('Role').bold = True
-            role_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            email_header = poc_table.cell(0, 2)
-            email_header.text = ''
-            email_header.paragraphs[0].add_run('Email').bold = True
-            email_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            # Re-size table headers
-            widths = (Inches(5.4), Inches(1.1))
-            for row in poc_table.rows:
-                for idx, width in enumerate(widths):
-                    row.cells[idx].width = width
-            poc_table.allow_autofit = True
-            poc_table.autofit = True
-            # Loop through the individuals to create rows
-            counter = 1
-            for contact in report_json['client']['poc'].values():
-                poc_table.add_row()
-                name_cell = poc_table.cell(counter, 0)
-                name_cell.text = "{}".format(contact['name'])
-                name_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                role_cell = poc_table.cell(counter, 1)
-                role_cell.text = "{}".format(contact['job_title'])
-                role_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                email_cell = poc_table.cell(counter, 2)
-                email_cell.text = "{}".format(contact['email'])
-                email_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                # Increase counter for the next row
-                counter += 1
-            self.create_newline()
-
-        if report_json['team'].values():
-            # If the style needs to be updated, update it in template.docx
-            team_table = self.spenny_doc.add_table(
-                rows=1,
-                cols=3,
-                style='Ghostwriter Table')
-            name_header = team_table.cell(0, 0)
-            name_header.text = ''
-            name_header.paragraphs[0].add_run('Name').bold = True
-            name_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            role_header = team_table.cell(0, 1)
-            role_header.text = ''
-            role_header.paragraphs[0].add_run('Role').bold = True
-            role_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            email_header = team_table.cell(0, 2)
-            email_header.text = ''
-            email_header.paragraphs[0].add_run('Email').bold = True
-            email_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            # Re-size table headers
-            widths = (Inches(5.4), Inches(1.1))
-            for row in team_table.rows:
-                for idx, width in enumerate(widths):
-                    row.cells[idx].width = width
-            team_table.allow_autofit = True
-            team_table.autofit = True
-            # Loop through the team members to create rows
-            counter = 1
-            for operator in report_json['team'].values():
-                team_table.add_row()
-                name_cell = team_table.cell(counter, 0)
-                name_cell.text = '{}'.format(operator['name'])
-                name_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                role_cell = team_table.cell(counter, 1)
-                role_cell.text = '{}'.format(operator['project_role'])
-                role_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                email_cell = team_table.cell(counter, 2)
-                email_cell.text = '{}'.format(operator['email'])
-                email_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                # Increase counter for the next row
-                counter += 1
-
-        if report_json['team'].values() or report_json['client']['poc'].values():
-            self.spenny_doc.add_page_break()
-
-        ################################################
-        # Create the Infrastructure Information Tables #
-        ################################################
-
-        if report_json['infrastructure']['domains'].values():
-            # If the style needs to be updated, update it in template.docx
-            domain_table = self.spenny_doc.add_table(
-                rows=1,
-                cols=3,
-                style='Ghostwriter Table')
-            domain_table.allow_autofit = True
-            domain_table.autofit = True
-            domain_header = domain_table.cell(0, 0)
-            domain_header.text = ''
-            domain_header.paragraphs[0].add_run("Domain").bold = True
-            domain_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            role_header = domain_table.cell(0, 1)
-            role_header.text = ''
-            role_header.paragraphs[0].add_run("Purpose").bold = True
-            role_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            note_header = domain_table.cell(0, 2)
-            note_header.text = ''
-            note_header.paragraphs[0].add_run("Note").bold = True
-            note_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            # Loop through the domains to create rows
-            counter = 1
-            for domain in report_json['infrastructure']['domains'].values():
-                domain_table.add_row()
-                name_cell = domain_table.cell(counter, 0)
-                name_cell.text = '{}'.format(domain['name'])
-                name_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                role_cell = domain_table.cell(counter, 1)
-                role_cell.text = '{}'.format(domain['activity'])
-                role_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                note_cell = domain_table.cell(counter, 2)
-                note_cell.text = '{}'.format(domain['note'])
-                note_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                # Increase counter for the next row
-                counter += 1
-            self.create_newline()
-
-        if report_json['infrastructure']['servers']['static'].values() or report_json['infrastructure']['servers']['cloud'].values():
-            # If the style needs to be updated, update it in template.docx
-            server_table = self.spenny_doc.add_table(
-                rows=1,
-                cols=3,
-                style='Ghostwriter Table')
-            server_table.allow_autofit = True
-            server_table.autofit = True
-            server_header = server_table.cell(0, 0)
-            server_header.text = ''
-            server_header.paragraphs[0].add_run("IP Address").bold = True
-            server_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            activity_header = server_table.cell(0, 1)
-            activity_header.text = ''
-            activity_header.paragraphs[0].add_run("Purpose").bold = True
-            activity_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            role_header = server_table.cell(0, 2)
-            role_header.text = ''
-            role_header.paragraphs[0].add_run("Role").bold = True
-            role_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            # Loop through the domains to create rows
-            counter = 1
-            for server in report_json['infrastructure']['servers']['static'].values():
-                server_table.add_row()
-                name_cell = server_table.cell(counter, 0)
-                name_cell.text = "{}".format(server['ip_address'])
-                name_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                activity_cell = server_table.cell(counter, 1)
-                activity_cell.text = "{}".format(server['activity'])
-                activity_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                role_cell = server_table.cell(counter, 2)
-                role_cell.text = "{}".format(server['role'])
-                role_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                # Increase counter for the next row
-                counter += 1
-            for server in report_json['infrastructure']['servers']['cloud'].values():
-                server_table.add_row()
-                name_cell = server_table.cell(counter, 0)
-                name_cell.text = "{}".format(server['ip_address'])
-                name_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                activity_cell = server_table.cell(counter, 1)
-                activity_cell.text = "{}".format(server['activity'])
-                activity_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                role_cell = server_table.cell(counter, 2)
-                role_cell.text = "{}".format(server['role'])
-                role_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                # Increase counter for the next row
-                counter += 1            
-            self.create_newline()
-
-        if report_json['infrastructure']['domains_and_servers'].values():
-            # If the style needs to be updated, update it in template.docx
-            connection_table = self.spenny_doc.add_table(
-                rows=1,
-                cols=3,
-                style='Ghostwriter Table')
-            connection_table.allow_autofit = True
-            connection_table.autofit = True
-            server_header = connection_table.cell(0, 0)
-            server_header.text = ""
-            server_header.paragraphs[0].add_run("Domain").bold = True
-            server_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            domain_header = connection_table.cell(0, 1)
-            domain_header.text = ""
-            domain_header.paragraphs[0].add_run("Server").bold = True
-            domain_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            domain_header = connection_table.cell(0, 2)
-            domain_header.text = ""
-            domain_header.paragraphs[0].add_run("CDN Endpoint").bold = True
-            domain_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            # Loop through the domains to create rows
-            counter = 1
-            for connection in report_json[
-            'infrastructure']['domains_and_servers'].values():
-                connection_table.add_row()
-                server_cell = connection_table.cell(counter, 0)
-                server_cell.text = "{}".format(connection['domain'])
-                server_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                domain_cell = connection_table.cell(counter, 1)
-                domain_cell.text = "{}".format(connection['servers'])
-                domain_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                domain_cell = connection_table.cell(counter, 2)
-                domain_cell.text = "{}".format(connection['cdn_endpoint'])
-                domain_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                # Increase counter for the next row
-                counter += 1
-
-        if report_json['infrastructure']['domains'].values() or report_json['infrastructure']['servers']['static'].values() or report_json['infrastructure']['servers']['cloud'].values() or report_json['infrastructure']['domains_and_servers'].values():
-            self.spenny_doc.add_page_break()
-
-        #####################################
-        # Create the Findings Summary Table #
-        #####################################
-
-        # If the style needs to be updated, update it in template.docx
-        finding_table = self.spenny_doc.add_table(
-            rows=1,
-            cols=2,
-            style='Ghostwriter Table')
-        finding_header = finding_table.cell(0, 0)
-        finding_header.text = ""
-        finding_header.paragraphs[0].add_run("Finding").bold = True
-        finding_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        severity_header = finding_table.cell(0, 1)
-        severity_header.text = ""
-        severity_header.paragraphs[0].add_run("Severity").bold = True
-        severity_header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        # Re-size table headers to provide space for finding name
-        widths = (Inches(5.4), Inches(1.1))
-        for row in finding_table.rows:
-            for idx, width in enumerate(widths):
-                row.cells[idx].width = width
-        finding_table.allow_autofit = True
-        finding_table.autofit = True
-        # Loop through the findings to create rows
-        counter = 1
-        for finding in report_json['findings'].values():
-            finding_table.add_row()
-            finding_cell = finding_table.cell(counter, 0)
-            finding_cell.text = "{}".format(finding['title'])
-            finding_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            severity_cell = finding_table.cell(counter, 1)
-            severity_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = severity_cell.paragraphs[0].add_run(
-                '{}'.format(finding['severity']))
-            font = run.font
-            font.color.rgb = RGBColor(0x00, 0x00, 0x00)
-            run.bold = False
-            severity_cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            # Shading a table cell requires parsing some XML and then editing
-            # the cell to be shaded
+        # Prepare the `context` dict for the Word template rendering
+        context = {}
+        # Client information
+        context['client'] = report_json['client']['full_name']
+        context['client_short'] = report_json['client']['short_name']
+        context['client_pocs'] = report_json['client']['poc'].values()
+        # Assessment information
+        context['assessment_name'] = report_json['project']['name']
+        context['project_type'] = report_json['project']['project_type']
+        context['company'] = settings.COMPANY_NAME
+        context['company_pocs'] = report_json['team'].values()
+        # Infrastructure information
+        context['domains'] = report_json['infrastructure']['domains'].values()
+        context['static_servers'] = report_json['infrastructure']['servers']['static'].values()
+        context['cloud_servers'] = report_json['infrastructure']['servers']['cloud'].values()
+        context['domains_and_servers'] = report_json['infrastructure']['domains_and_servers'].values()
+        # Findings information
+        context['findings'] = report_json['findings'].values()
+        for finding in context['findings']:
+            finding_color = self.informational_color
             if finding['severity'].lower() == 'informational':
-                shading = parse_xml(r'<w:shd {} w:fill="{}"/>'.
-                                    format(nsdecls('w'),
-                                           self.informational_color))
+                finding_color = self.informational_color
             elif finding['severity'].lower() == 'low':
-                shading = parse_xml(r'<w:shd {} w:fill="{}"/>'.
-                                    format(nsdecls('w'),
-                                           self.low_color))
+                finding_color = self.low_color
             elif finding['severity'].lower() == 'medium':
-                shading = parse_xml(r'<w:shd {} w:fill="{}"/>'.
-                                    format(nsdecls('w'),
-                                           self.medium_color))
+                finding_color = self.medium_color
             elif finding['severity'].lower() == 'high':
-                shading = parse_xml(r'<w:shd {} w:fill="{}"/>'.
-                                    format(nsdecls('w'),
-                                           self.high_color))
-            else:
-                shading = parse_xml(r'<w:shd {} w:fill="{}"/>'.
-                                    format(nsdecls('w'),
-                                           self.critical_color))
-            # Modify font to white so it contrasts better against dark cell
-            font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-            # Manually append the appropriate shading to the risk rating cell
-            finding_table.rows[counter].cells[1]._tc.get_or_add_tcPr().\
-                append(shading)
-            # Increase counter for the next row
-            counter += 1
+                finding_color = self.high_color
+            elif finding['severity'].lower() == 'critical':
+                finding_color = self.critcal_color
+            finding['color'] = finding_color
+        # Generate the subdocument for findings
+        self.spenny_doc = self.main_spenny_doc.new_subdoc()
+        self.generate_finding_subdoc(report_json)
+        context['findings_subdoc'] = self.spenny_doc
+        # Render the Word document + auto-escape any unsafe XML/HTML
+        self.main_spenny_doc.render(context, autoescape=True)
+        # Return the final rendered document
+        return self.main_spenny_doc
 
-        ########################################
-        # Create the Individual Findings Pages #
-        ########################################
-
-        # Add a page break and create each finding's page
-        self.spenny_doc.add_page_break()
+    def generate_finding_subdoc(self, report_json):
+        """Generate a Word document for the current report."""
+        counter = 0
+        total_findings = len(report_json['findings'].values())
         for finding in report_json['findings'].values():
             # There's a special Heading 3 for the finding title so we don't
             # use `add_heading()` here
@@ -1324,10 +971,10 @@ class Reportwriter():
             if finding['references']:
                 self.spenny_doc.add_heading('References', 4)
                 self.process_text_xml(finding['references'], finding, report_json)
-            # On to the next finding
-            self.spenny_doc.add_page_break()
-        # Finalize document and return it for an HTTP response
-        return self.spenny_doc
+            counter += 1
+            # Check if this is the last finding to avoid an extra blank page
+            if not counter == total_findings:
+                self.spenny_doc.add_page_break()
 
     def process_text_xlsx(self, html, text_format, finding, report_json):
         """Process the provided text from the specified finding to parse

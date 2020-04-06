@@ -5,10 +5,11 @@
 {% block content %}
     <p>Are you sure you want to delete this {{ object_type }}? This action cannot be undone.</p>
 
-    <p><em>{{ object_to_be_deleted }}</em></p>
+    <p><em>{{ object_to_be_deleted|safe }}</em></p>
 
     <form action="" method="POST">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ origin }}">
         <input type="submit" class="btn btn-danger" value="Delete">
         <button onclick="window.history.back();" class="btn btn-primary" type="button">Cancel</button>
     </form>

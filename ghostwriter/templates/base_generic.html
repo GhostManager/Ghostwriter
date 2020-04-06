@@ -35,77 +35,59 @@
         <!-- TinyMCE -->
         <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/tinymce/custom.js' %}" ></script>
-        <script>
-            tinymce.init({
-                selector:'textarea',
-                height: '300',
-                width: '100%',
-                plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace',
-                toolbar: 'bold italic bullist numlist codesample codeBlock codeInline image removeformat searchreplace',
-                menubar: 'file edit tools',
-                setup: function (editor) {
-                    editor.ui.registry.addButton('codeInline', {
-                        icon: 'sourcecode',
-                        text: 'Inline Code',
-                        tooltip: 'Format selected text as inline code',
-                        onAction: function (_) {
-                            tinymce.activeEditor.formatter.toggle('code')
-                        },
-                    });
-                    editor.ui.registry.addAutocompleter('evidence', {
-                        ch: '@',
-                        minChars: 1,
-                        columns: 1,
-                        fetch: function (pattern) {
-                            var matchedChars = evidenceFiles.filter(function (quote) {
-                                return quote.text.indexOf(pattern) !== -1;
-                            });
-                            return new tinymce.util.Promise(function (resolve) {
-                                var results = matchedChars.map(function (quote) {
-                                    return {
-                                        value: quote.value,
-                                        text: quote.text
-                                    }
-                                });
-                                resolve(results);
-                            });
-                        },
-                        onAction: function (autocompleteApi, rng, value) {
-                            editor.selection.setRng(rng);
-                            editor.insertContent(value);
-                            autocompleteApi.hide();
-                        }
-                    });
-                },
-                content_style: '.left { text-align: left; }' +
-                    'img.left { float: left; }' +
-                    'table.left { float: left; }' +
-                    '.right { text-align: right; }' +
-                    'img.right { float: right; }' +
-                    'table.right { float: right; }' +
-                    '.center { text-align: center; }' +
-                    'img.center { display: block; margin: 0 auto; }' +
-                    'table.center { display: block; margin: 0 auto; }' +
-                    '.full { text-align: justify; }' +
-                    'img.full { display: block; margin: 0 auto; }' +
-                    'table.full { display: block; margin: 0 auto; }' +
-                    '.bold { font-weight: bold; }' +
-                    '.italic { font-style: italic; }' +
-                    '.underline { text-decoration: underline; }' +
-                    '.example1 {}' +
-                    '.tablerow1 { background-color: #D3D3D3; }',
-                formats: {
-                    alignleft: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'left' },
-                    aligncenter: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'center' },
-                    alignright: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'right' },
-                    alignfull: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'full' },
-                    bold: { inline: 'span', classes: 'bold' },
-                    italic: { inline: 'span', classes: 'italic' },
-                    underline: { inline: 'span', classes: 'underline', exact: true },
-                    strikethrough: { inline: 'del' }
-                },
-            });
-        </script>
+
+        {% block tinymcejs %}
+            <script>
+                tinymce.init({
+                    selector:'textarea',
+                    height: '300',
+                    width: '100%',
+                    plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace paste',
+                    toolbar: 'bold italic bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
+                    menubar: 'file edit tools',
+                    paste_data_images: false,
+                    paste_as_text: true,
+                    browser_spellcheck: true,
+                    setup: function (editor) {
+                        editor.ui.registry.addButton('codeInline', {
+                            icon: 'sourcecode',
+                            text: 'Inline Code',
+                            tooltip: 'Format selected text as inline code',
+                            onAction: function (_) {
+                                tinymce.activeEditor.formatter.toggle('code')
+                            },
+                        });
+                    },
+                    content_style: '.left { text-align: left; }' +
+                        'img.left { float: left; }' +
+                        'table.left { float: left; }' +
+                        '.right { text-align: right; }' +
+                        'img.right { float: right; }' +
+                        'table.right { float: right; }' +
+                        '.center { text-align: center; }' +
+                        'img.center { display: block; margin: 0 auto; }' +
+                        'table.center { display: block; margin: 0 auto; }' +
+                        '.full { text-align: justify; }' +
+                        'img.full { display: block; margin: 0 auto; }' +
+                        'table.full { display: block; margin: 0 auto; }' +
+                        '.bold { font-weight: bold; }' +
+                        '.italic { font-style: italic; }' +
+                        '.underline { text-decoration: underline; }' +
+                        '.example1 {}' +
+                        '.tablerow1 { background-color: #D3D3D3; }',
+                    formats: {
+                        alignleft: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'left' },
+                        aligncenter: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'center' },
+                        alignright: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'right' },
+                        alignfull: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'full' },
+                        bold: { inline: 'span', classes: 'bold' },
+                        italic: { inline: 'span', classes: 'italic' },
+                        underline: { inline: 'span', classes: 'underline', exact: true },
+                        strikethrough: { inline: 'del' }
+                    },
+                });
+            </script>
+        {% endblock %}
     </head>
 
     <body>
@@ -321,7 +303,7 @@
                                                 {% if request.session.active_report.id and request.session.active_report.title %}
                                                     <a class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">Report: {{ request.session.active_report.title }}</a>
                                                     <div class="dropdown-content dropdown-content-info">
-                                                        <p style="margin-bottom: 5px">This is your active report. Any findings you add will be added to this report.</p>
+                                                        <p style="margin: 10px">This is your active report. Any findings you add will be added to this report.</p>
                                                         <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo"class="fas fa-exchange-alt"></i> Switch Reports</a>
                                                     </div>
                                                 {% else %}
@@ -388,29 +370,55 @@
         <!-- Script for opening and closing the sidebar -->
         <script>
             $(document).ready(function() {
-                $("#sidebarCollapse").on("click", function() {
-                    $("#sidebar").toggleClass("active");
-                    $(this).toggleClass("active");
+                $('#sidebarCollapse').on('click', function() {
+                    $('#sidebar').toggleClass('active');
+                    $(this).toggleClass('active');
                 });
             });
         </script>
 
         <!-- Scripts for Collapsibles -->
         <script>
-            var coll = document.getElementsByClassName("collapsible");
+            var coll = document.getElementsByClassName('collapsible');
             var i;
-            
             for (i = 0; i < coll.length; i++) {
-                coll[i].addEventListener("click", function() {
-                this.classList.toggle("active");
-                var content = this.nextElementSibling;
-                if (content.style.maxHeight){
-                    content.style.maxHeight = null;
-                } else {
-                    content.style.maxHeight = content.scrollHeight + "px";
-                } 
+                coll[i].addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    var content = this.nextElementSibling;
+                    if (content.style.maxHeight){
+                        content.style.maxHeight = null;
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    } 
                 });
             }
+        </script>
+
+        <!-- Script for Bootstrap Hover Tooltip -->
+        <script>
+            $(document).ready(function(){
+                $('[data-toggle="tooltip"]').tooltip();
+            });
+        </script>
+
+        <!-- Script to Open Accordions on Link -->
+        <script>
+            // Modification of https://gist.github.com/raddevon/8958486
+            function openAnchorAccordion() {
+                if (window.location.hash) {
+                    var jQuerytarget = jQuery('body').find(window.location.hash);
+                    // console.log( jQuerytarget );
+                    if (jQuerytarget.hasClass('collapse')) {
+                        var jQuerytargetAccordion = jQuerytarget.find('.collapse');
+                        // console.log( jQuerytargetAccordion );
+                        jQuerytarget.collapse('show');
+                    }
+                }
+            }
+
+            openAnchorAccordion();
+
+            jQuery('body').on('click', 'a', openAnchorAccordion);
         </script>
 
         {% block morescripts %}{% endblock %}

@@ -38,31 +38,33 @@
                 </thead>
                 <tbody>
                     {% for entry in domains %}
-                        <tr>
-                            <td class="clickable"><a href="{{ entry.domain.get_absolute_url }}">{{ entry.domain.name }}</a></td>
+                        {% if entry %}
+                            <tr>
+                                <td class="clickable"><a href="{{ entry.domain.get_absolute_url }}">{{ entry.domain.name }}</a></td>
 
-                            {% if entry.domain.health_status.health_status == "Healthy" %}
-                                <td class="healthy">{{ entry.domain.health_status }}</td>
-                            {% else %}
-                                <td class="burned">{{ entry.domain.health_status }}</td>
-                            {% endif %}
+                                {% if entry.domain.health_status.health_status == "Healthy" %}
+                                    <td class="healthy">{{ entry.domain.health_status }}</td>
+                                {% else %}
+                                    <td class="burned">{{ entry.domain.health_status }}</td>
+                                {% endif %}
 
-                            <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
+                                <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
 
-                            <td>{{ entry.activity_type}}</td>
+                                <td>{{ entry.activity_type}}</td>
 
-                            <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
+                                <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
 
-                            <td>
-                                <div class="dropdown">
-                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                    <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'shepherd:history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'shepherd:domain_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'shepherd:history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'shepherd:domain_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
+                        {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
@@ -97,27 +99,29 @@
                 </thead>
                 <tbody>
                     {% for entry in servers %}
-                        <tr>
-                            <td class="clickable"><a href="{{ entry.server.get_absolute_url }}">{{ entry.server.ip_address }}</a></td>
+                        {% if entry %}
+                            <tr>
+                                <td class="clickable"><a href="{{ entry.server.get_absolute_url }}">{{ entry.server.ip_address }}</a></td>
 
-                            <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
+                                <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
 
-                            <td>{{ entry.activity_type}}</td>
+                                <td>{{ entry.activity_type}}</td>
 
-                            <td>{{ entry.server_role}}</td>
+                                <td>{{ entry.server_role}}</td>
 
-                            <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
+                                <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
 
-                            <td>
-                                <div class="dropdown">
-                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                    <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'shepherd:server_history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'shepherd:server_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'shepherd:server_history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'shepherd:server_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
+                        {% endif %}
                     {% endfor %}
                 </tbody>
             </table>

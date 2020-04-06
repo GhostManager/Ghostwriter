@@ -7,7 +7,7 @@
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Add Project</li>
+            <li class="breadcrumb-item active" aria-current="page">Project Form</li>
         </ul>
     </nav>
 {% endblock %}
@@ -75,6 +75,7 @@
         <!-- Hidden Inputs -->
         {{ form.codename }}
 
+        <input type="hidden" name="next" value="{{ origin }}">
         <input type="submit" class="btn btn-primary" value="Submit">
         <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>

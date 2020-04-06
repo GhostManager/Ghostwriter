@@ -6,9 +6,9 @@
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Report {{ report.id }}</li>
+            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ report.project.client }}" href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a></li>
+            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ report.project.start_date }} {{ report.project.project_type }}" href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project.start_date }} {{ report.project.project_type }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ report }}</li>
         </ul>
     </nav>
 {% endblock %}
@@ -203,4 +203,8 @@
             <a class="btn btn-default" href="{% url 'reporting:generate_all' report.id %}"><i style="font-size: 35px; color: tan" class="far fa-file-archive"></i><br />All</a>
         </div>
     </div>
+{% endblock %}
+
+{% block collapse_js %}
+{{ block.super }}
 {% endblock %}
