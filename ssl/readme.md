@@ -21,7 +21,7 @@ openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -keyout ghostwriter.key
 ### Without Prompts
 
 ```
-openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/C=/ST=/L=/O=Ghostwriter/CN=ghostwriter.local" -keyout ghostwriter.key -out ghostwriter.crt
+openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 -subj "/O=Ghostwriter/CN=ghostwriter.local" -keyout ghostwriter.key -out ghostwriter.crt
 ```
 
 ### Creating the dhparam.pem
