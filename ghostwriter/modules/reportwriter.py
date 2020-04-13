@@ -16,6 +16,7 @@ from PIL import ImageOps
 
 from xlsxwriter.workbook import Workbook
 
+import docx
 from docx import Document
 from docx.oxml import parse_xml
 from docx.oxml.shared import OxmlElement, qn
@@ -23,6 +24,7 @@ from docx.oxml.ns import nsdecls
 from docx.shared import RGBColor, Inches, Pt
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.dml import MSO_THEME_COLOR_INDEX
 
 import pptx
 from pptx import Presentation
@@ -506,7 +508,7 @@ class Reportwriter():
         parent_element = p.getparent()
         parent_element.remove(p)
 
-    def replace_and_write(self, text, p, finding, report_json, italic=False, underline=False, bold=False, inline_code=False, report_type=None):
+    def replace_and_write(self, text, p, finding, report_json, italic=False, underline=False, bold=False, inline_code=False, link_run=False, link_url=None, report_type=None):
         """Function to find and replace template keywords."""
         # Regex for searching for bracketed template placeholders, e.g. {{.client}}
         keyword_regex = r'\{\{\.(.*?)\}\}'
@@ -561,9 +563,9 @@ class Reportwriter():
                 return
 
         # Add a new run to the paragraph
-        run = p.add_run()
-        run.text = text
         if report_type == 'pptx':
+            run = p.add_run()
+            run.text = text
             # For pptx, formatting is applied via the font instead of on the run object
             font = run.font
             if inline_code:
@@ -573,6 +575,36 @@ class Reportwriter():
             font.italic = italic
             font.underline = underline
         else:
+            # Make this section a hyperlink
+            # Modified from this issue:
+            #   https://github.com/python-openxml/python-docx/issues/384
+            if link_run and link_url:
+                # This gets access to the document.xml.rels file and gets a new relation id value
+                part = p.part
+                r_id = part.relate_to(link_url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+                # Create the w:hyperlink tag and add needed values
+                hyperlink = docx.oxml.shared.OxmlElement('w:hyperlink')
+                hyperlink.set(docx.oxml.shared.qn('r:id'), r_id, )
+                # Create a w:r element and a new w:rPr element
+                new_run = docx.oxml.shared.OxmlElement('w:r')
+                rPr = docx.oxml.shared.OxmlElement('w:rPr')
+                # Join all the xml elements together add add the required text to the w:r element
+                new_run.append(rPr)
+                new_run.text = text
+                hyperlink.append(new_run)
+                # Create a new Run object and add the hyperlink into it
+                run = p.add_run()
+                run._r.append(hyperlink)
+                # A workaround for the lack of a hyperlink style (doesn't go purple after using the link)
+                # Delete this if using a template that has the hyperlink style in it
+                if 'Hyperlink' in self.spenny_doc.styles:
+                    run.style = 'Hyperlink'
+                else:
+                    run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
+                    run.font.underline = True
+            else:
+                run = p.add_run()
+                run.text = text
             if inline_code:
                 run.style = 'Code (inline)'
             run.bold = bold
@@ -583,11 +615,14 @@ class Reportwriter():
         # Iterate over the provided list
         for part in contents:
             # Track temporary styles for text runs
+            link_url = None
+            link_run = False
             bold_font = False
             underline = False
             italic_font = False
             inline_code = False
             # Track "global" styles for the whole object
+            nested_link_run = False
             nested_bold_font = False
             nested_underline = False
             nested_italic_font = False
@@ -632,6 +667,9 @@ class Reportwriter():
                         nested_bold_font = True
                     if 'underline' in part_attrs:
                         nested_underline = True
+                elif part_name == 'a':
+                    nested_link_run = True
+                    link_url = part['href']
                 # Any other tags are unexpected and ignored
                 else:
                     print('Unknown nested tag - {}'.format(part_name))
@@ -641,7 +679,15 @@ class Reportwriter():
                     tag_name = tag.name
                     if tag_name:
                         tag_contents = tag.contents
-                        content_text = ' '.join(tag_contents)
+                        # Check for an additional tags in the contents
+                        # This happens when a hyperlink is formatted with a font style
+                        if tag_contents[0].name:
+                            if tag_contents[0].name == 'a':
+                                link_run = True
+                                link_url = tag_contents[0]['href']
+                                content_text = tag_contents[0].text
+                        else:
+                            content_text = ' '.join(tag_contents)
                         if tag_name == 'code':
                             inline_code = True
                         elif tag_name == 'em':
@@ -654,6 +700,9 @@ class Reportwriter():
                                 bold_font = True
                             if 'underline' in tag_attrs:
                                 underline = True
+                        elif tag_name == 'a':
+                            link_run = True
+                            link_url = tag['href']
                         else:
                             print('Unknown nested tag - {}'.format(tag_name))
                     else:
@@ -667,8 +716,10 @@ class Reportwriter():
                         bold_font = True
                     if italic_font or nested_italic_font:
                         italic_font = True
+                    if link_run or nested_link_run:
+                        link_run = True
                     # Write the text for this run
-                    self.replace_and_write(content_text, p, finding, report_json, italic_font, underline, bold_font, inline_code, report_type=report_type)
+                    self.replace_and_write(content_text, p, finding, report_json, italic_font, underline, bold_font, inline_code, link_run, link_url, report_type=report_type)
                     # Reset temporary run styles
                     bold_font = False
                     underline = False
