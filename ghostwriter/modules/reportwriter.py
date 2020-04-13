@@ -1182,54 +1182,6 @@ class Reportwriter():
         spenny_doc.close()
         return(spenny_doc)
 
-    def process_text_pptx(self, html, text_frame, finding, report_json):
-        """Process the provided text from the specified finding to parse
-        keywords for evidence placement and formatting in pptx decks.
-        """
-        # Regex for searching for bracketed template placeholders, e.g. {{.client}}
-        keyword_regex = r'\{\{\.(.*?)\}\}'
-        # Strip out all HTML tags
-        # This _could_ impact HTML strings a user has included as part of a finding
-        # but we can revsit this later
-        text = BeautifulSoup(html, 'lxml').text
-        # Perform the necessary replacements
-        if '{{.client}}' in text:
-            if report_json['client']['short_name']:
-                text = text.replace(
-                    '{{.client}}',
-                    report_json['client']['short_name'])
-            else:
-                text = text.replace(
-                    '{{.client}}',
-                    report_json['client']['full_name'])
-        text = text.replace('{{.caption}}', u'Caption \u2013 ')
-        # Find/replace evidence keywords because they're ugly and don't make sense when read
-        match = re.findall(keyword_regex, text)
-        if match:
-            for keyword in match:
-                if keyword in finding['evidence'].keys():
-                    # \u2013 is an em-dash
-                    text = text.replace(
-                        "{{." + keyword + "}}",
-                        u'\n<See Report for Evidence File: {}>\nCaption \u2013 {}'.format(
-                            finding['evidence'][keyword]['friendly_name'],
-                            finding['evidence'][keyword]['caption'])
-                            )
-                else:
-                    # Some unrecognized strring inside braces so ignore it
-                    pass
-        bullets = text.splitlines()
-        first_bullet = True
-        for bullet in bullets:
-            if bullet:
-                if first_bullet:
-                    text_frame.text = bullet
-                    first_bullet = False
-                else:
-                    p = text_frame.add_paragraph()
-                    p.text = bullet
-                    p.level = 0
-
     def generate_powerpoint_pptx(self):
         """Generate the tables and save the PowerPoint presentation."""
         # Generate the JSON for the report
