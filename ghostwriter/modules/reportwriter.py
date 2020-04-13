@@ -1371,7 +1371,10 @@ class Reportwriter():
             title_shape.text = "{} [{}]".format(
                 finding['title'],
                 finding['severity'])
-            self.process_text_xml(finding['description'], finding, report_json, 'pptx')
+            if finding['description']:
+                self.process_text_xml(finding['description'], finding, report_json, 'pptx')
+            else:
+                self.process_text_xml('<p>No description provided</p>', finding, report_json, 'pptx')
             # Add some detailed notes
             # Strip all HTML tags and replace any \x0D characters for pptx
             entities = BeautifulSoup(finding['affected_entities'], 'lxml').text.replace('\x0D', '')
