@@ -922,7 +922,7 @@ class Reportwriter():
             elif finding['severity'].lower() == 'high':
                 finding_color = self.high_color
             elif finding['severity'].lower() == 'critical':
-                finding_color = self.critcal_color
+                finding_color = self.critical_color
             finding['color'] = finding_color
         # Generate the subdocument for findings
         self.spenny_doc = self.main_spenny_doc.new_subdoc()
