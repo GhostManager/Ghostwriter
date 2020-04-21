@@ -835,7 +835,6 @@ class Reportwriter():
                             else:
                                 # Create the paragraph for this list item
                                 p = self.spenny_doc.add_paragraph(style='List Bulleted')
-                                p = self.set_contextual_spacing(p)
                                 self.list_number(p, prev=prev_p, level=0, num=num)
                                 p.paragraph_format.left_indent = Inches(0.5)
                                 # A length of `1` means no other tags to process
@@ -862,7 +861,6 @@ class Reportwriter():
                             li_contents = part.contents
                             # Create the paragraph for this list item
                             p = self.spenny_doc.add_paragraph(style='List Numbered')
-                            p = self.set_contextual_spacing(p)
                             self.list_number(p, prev=prev_p, level=0, num=num)
                             p.paragraph_format.left_indent = Inches(0.5)
                             # A length of `1` means no other tags to process
