@@ -214,7 +214,8 @@
                             {% if domain.burned_explanation %}
                                 <p>
                                     This domain has been flagged as "Burned" for the following reason(s):<br>
-                                    {{ domain.burned_explanation }}
+                                    <hr>
+                                    {{ domain.burned_explanation|safe }}
                                 </p>
                             {% else %}
                                 <p>This domain has been flagged as "Burned" with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
