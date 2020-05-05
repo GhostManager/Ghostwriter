@@ -837,6 +837,7 @@ class Reportwriter():
                                 p = self.spenny_doc.add_paragraph(style='List Bulleted')
                                 self.list_number(p, prev=prev_p, level=0, num=num)
                                 p.paragraph_format.left_indent = Inches(0.5)
+                                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                                 # A length of `1` means no other tags to process
                             if len(li_contents) == 1:
                                 self.replace_and_write(part.text, p, finding, report_json, report_type=report_type)
@@ -863,6 +864,7 @@ class Reportwriter():
                             p = self.spenny_doc.add_paragraph(style='List Numbered')
                             self.list_number(p, prev=prev_p, level=0, num=num)
                             p.paragraph_format.left_indent = Inches(0.5)
+                            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                             # A length of `1` means no other tags to process
                             if len(li_contents) == 1:
                                 # run = p.add_run(part)
