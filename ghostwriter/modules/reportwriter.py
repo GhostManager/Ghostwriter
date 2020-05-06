@@ -526,9 +526,8 @@ class Reportwriter():
             # There should never be - or need to be - multiple matches
             match = match[0]
             keyword = match.\
-                replace('{', '').\
-                replace('}', '').\
-                replace('.', '').\
+                replace('}}', '').\
+                replace('{{.', '').\
                 strip()
         else:
             keyword = ''
