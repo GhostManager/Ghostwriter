@@ -488,6 +488,7 @@ class Reportwriter():
                 width = Inches(4.5)
                 image = self.finding_slide.shapes.add_picture(new_file, left, top, width=width)
             else:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = p.add_run()
                 run.add_picture(new_file, width=Inches(6.5))
                 p = self.spenny_doc.add_paragraph(
