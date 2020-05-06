@@ -131,9 +131,10 @@ class EvidenceForm(forms.ModelForm):
         friendly_name = cleaned_data.get('friendly_name')
         finding = cleaned_data.get('finding')
         # Check if provided name has already been used for another file for this report
-        report_queryset = Evidence.objects.filter(finding=finding.id).values_list('friendly_name', flat=True)
-        if friendly_name in report_queryset:
-            raise ValidationError(_('This friendly name has already been used for a file attached to this finding.'))
+        report_queryset = Evidence.objects.filter(finding=finding.id).values_list('id', 'friendly_name')
+        for evidence in report_queryset:
+            if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
+                raise ValidationError(_('This friendly name has already been used for a file attached to this finding.'))
         # Return the cleaned data
         return cleaned_data
 
