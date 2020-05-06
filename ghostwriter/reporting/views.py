@@ -89,7 +89,7 @@ def backup_evidence_path(sender, instance, **kwargs):
 def delete_old_evidence(sender, instance, **kwargs):
     """Delete the old evidence file when it is replaced."""
     if hasattr(instance, '_current_evidence'):
-        if instance._current_evidence != instance.document.path:
+        if not instance._current_evidence.path in instance.document.path:
             try:
                 os.remove(instance._current_evidence.path)
             except Exception:
@@ -429,8 +429,7 @@ def activate_report(request, pk):
             request.session['active_report']['title'] = report_instance.title
             messages.success(request, '%s is now your active report.' %
                              report_instance.title, extra_tags='alert-success')
-            # return HttpResponseRedirect(reverse('reporting:report_detail', args=(pk, )))
-            return HttpResponseRedirect(reverse('reporting:reports'))
+            return HttpResponseRedirect(reverse('reporting:report_detail', args=(pk, )))
         else:
             messages.error(request, 'The specified report does not exist!',
                            extra_tags='alert-danger')
