@@ -564,8 +564,11 @@ class Reportwriter():
                             finding['evidence'][keyword]['file_path']
                 extension = finding['evidence'][keyword]['url'].\
                     split('.')[-1]
-                self.process_evidence(finding, keyword, file_path, extension, p, report_type)
-                return
+                if os.path.exists(file_path):
+                    self.process_evidence(finding, keyword, file_path, extension, p, report_type)
+                    return
+                else:
+                    raise FileNotFoundError(file_path)
 
         # Add a new run to the paragraph
         if report_type == 'pptx':

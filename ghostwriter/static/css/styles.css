@@ -1225,3 +1225,11 @@ img {
     border-bottom: 0;
     text-align: left;
 }
+
+/* ---------------------------------------------------
+    TOAST MESSAGE STYLES
+----------------------------------------------------- */
+
+.toast-body {
+    word-wrap: break-word;
+}
