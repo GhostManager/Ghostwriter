@@ -11,9 +11,6 @@ import io
 import os
 import json
 
-from PIL import Image
-from PIL import ImageOps
-
 from xlsxwriter.workbook import Workbook
 
 import docx
@@ -58,9 +55,11 @@ class Reportwriter():
     # Purple
     critical_color = '966FD6'
     critical_color_hex = [0x96, 0x6f, 0xd6]
-    # Picture border color - this one needs the # in front
-    border_color = '#2d2b6b'
+    # Picture border color
+    border_color = '2d2b6b'
     border_color_hex = [0x45, 0x43, 0x107]
+    # Picture border weight – 12700 is equal to the 1pt weight in Word
+    border_weight = '12700'
     # Extensions allowed for evidence
     image_extensions = ['png', 'jpeg', 'jpg']
     text_extensions = ['txt', 'ps1', 'py', 'md', 'log']
@@ -464,33 +463,39 @@ class Reportwriter():
                         u' \u2013 ' +
                         finding['evidence'][keyword]['caption'])
         elif extension in self.image_extensions:
-            # Add a border to the image - this is not ideal
-            img = Image.open(file_path)
-            file_path_parts = os.path.split(file_path)
-            image_directory = file_path_parts[0]
-            image_name = file_path_parts[1]
-            new_file = os.path.join(
-                image_directory,
-                'border_' + image_name)
-            img_with_border = ImageOps.expand(
-                img,
-                border=1,
-                fill=self.border_color)
-            img_with_border = img_with_border.convert('RGB')
-            # Save the new copy to the evidence folder with
-            # a`border_` prefix
-            img_with_border.save(new_file)
-            # Drop in the image at the full 6.5" width and add
-            # the caption
+            # Drop in the image at the full 6.5" width and add the caption
             if report_type == 'pptx':
                 top = Inches(1.65)
                 left = Inches(8)
                 width = Inches(4.5)
-                image = self.finding_slide.shapes.add_picture(new_file, left, top, width=width)
+                image = self.finding_slide.shapes.add_picture(file_path, left, top, width=width)
             else:
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = p.add_run()
-                run.add_picture(new_file, width=Inches(6.5))
+                # Add the picture to the document
+                inline_shape = run.add_picture(file_path, width=Inches(6.5))
+                # Find inline shape properties (pic:spPr) and get the last one
+                pic_data = run._r.xpath("//pic:spPr")[-1]
+                # Create the Open XML elements for the border:
+                # <a:ln w="12700">
+                #     <a:solidFill>
+                #     <a:srgbClr val="7030A0"/>
+                #     </a:solidFill>
+                # </a:ln>
+                # Create an line element `a:ln` and set width
+                ln_xml = OxmlElement('a:ln')
+                ln_xml.set('w', self.border_weight)
+                # Make it a solid line with `a:solidFill`
+                solidfill_xml = OxmlElement('a:solidFill')
+                # Add `a:srgbClr` to control color and set hex value
+                color_xml = OxmlElement('a:srgbClr')
+                color_xml.set('val', self.border_color)
+                # Append each element in reverse order to construct `a:ln`
+                solidfill_xml.append(color_xml)
+                ln_xml.append(solidfill_xml)
+                # Append the new `a:ln` attribute to the shape properties
+                pic_data.append(ln_xml)
+                # Create the caption
                 p = self.spenny_doc.add_paragraph(
                     'Figure ',
                     style='Caption')
