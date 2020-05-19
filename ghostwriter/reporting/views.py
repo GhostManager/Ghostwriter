@@ -56,6 +56,7 @@ from .resources import FindingResource
 import io
 import os
 import csv
+import json
 import zipfile
 from datetime import datetime
 
@@ -89,11 +90,12 @@ def backup_evidence_path(sender, instance, **kwargs):
 def delete_old_evidence(sender, instance, **kwargs):
     """Delete the old evidence file when it is replaced."""
     if hasattr(instance, '_current_evidence'):
-        if not instance._current_evidence.path in instance.document.path:
-            try:
-                os.remove(instance._current_evidence.path)
-            except Exception:
-                pass
+        if instance._current_evidence:
+            if not instance._current_evidence.path in instance.document.path:
+                try:
+                    os.remove(instance._current_evidence.path)
+                except Exception:
+                    pass
 
 
 ##################
@@ -671,11 +673,14 @@ def generate_docx(request, pk):
     except jinja2.exceptions.TemplateError as e:
         messages.error(request, 'Failed to generate the Word report because the docx template contains invalid Jinja2 code:\n{}'.format(e),
                 extra_tags='alert-danger')
-    except jinja2.exceptions.Undefined as e:
+    except jinja2.exceptions.UndefinedError as e:
         messages.error(request, 'Failed to generate the Word report because the docx template contains an undefined Jinja2 variable:\n{}'.format(e),
                 extra_tags='alert-danger')
     except PackageNotFoundError:
         messages.error(request, 'Failed to generate the Word report because the docx template could not be found!',
+                extra_tags='alert-danger')
+    except FileNotFoundError as e:
+        messages.error(request, 'Failed to generate the Word report because the an evidence file is missing: {}'.format(e),
                 extra_tags='alert-danger')
     except Exception as e:
         messages.error(request, 'Failed to generate the Word report for an unknown reason: {}'.format(e),
@@ -763,7 +768,7 @@ def generate_all(request, pk):
     """View function to generate all report types for the specified report."""
     try:
         report_instance = Report.objects.get(pk=pk)
-        docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template2.docx')
+        docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.docx')
         pptx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.pptx')
         # Ask Spenny to make us reports with these findings
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
@@ -780,10 +785,12 @@ def generate_all(request, pk):
         json_doc, word_doc, excel_doc, ppt_doc = spenny.generate_all_reports(
             docx_template_loc,
             pptx_template_loc)
+        # Convert the dict to pretty JSON output for the file
+        pretty_json = json.dumps(json_doc, indent=4)
         # Create a zip file in memory and add the reports to it
         zip_buffer = io.BytesIO()
         zf = zipfile.ZipFile(zip_buffer, 'a')
-        zf.writestr('report.json', json_doc)
+        zf.writestr('report.json', pretty_json)
         zf.writestr('report.docx', word_doc.getvalue())
         zf.writestr('report.xlsx', excel_doc.getvalue())
         zf.writestr('report.pptx', ppt_doc.getvalue())
