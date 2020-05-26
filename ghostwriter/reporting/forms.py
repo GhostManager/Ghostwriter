@@ -81,6 +81,9 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
         super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
+        # Set a min position of `1`
+        self.fields['position'].widget.attrs['min'] = '1'
+        # Set placeholder text and other form settings
         self.fields['affected_entities'].widget.attrs['placeholder'] = \
             'DC01.TEXTLAB.LOCAL'
         self.helper = FormHelper()
