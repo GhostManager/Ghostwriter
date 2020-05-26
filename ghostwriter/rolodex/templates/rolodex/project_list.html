@@ -61,7 +61,7 @@
                     <th>Client</th>
                     <th>Codename</th>
                     <th>Project Type</th>
-                    <th>Execution Window</th>
+                    <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
                     <th class="sorter-false">Description</th>
                 </tr>
             </thead>
@@ -70,7 +70,7 @@
                     <td nowrap class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
                     <td nowrap class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                     <td nowrap>{{ project.project_type }}</td>
-                    <td nowrap>{{ project.start_date }} - {{ project.end_date }}</td>
+                    <td nowrap>{{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</td>
                     <td>{{ project.note|safe }}</td>
                 </tr>
             {% endfor %}
