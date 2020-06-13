@@ -10,6 +10,10 @@ from .models import (
     Finding, Report, ReportFindingLink, Evidence, LocalFindingNote,
     FindingNote)
 
+from ghostwriter.rolodex.models import Project
+
+from datetime import datetime
+
 
 class FindingCreateForm(forms.ModelForm):
     """Form used with the FindingCreate CreateView in views.py to allow
@@ -61,6 +65,33 @@ class ReportCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
         super(ReportCreateForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_class = 'form-inline'
+        self.helper.form_method = 'post'
+        self.helper.field_class = \
+            'h-100 justify-content-center align-items-center'
+        self.helper.form_show_labels = False
+
+
+class ReportCreateFormStandalone(forms.ModelForm):
+    """Form used with the ReportCreateWithoutProject CreateView in views.py
+    to allow excluding fields.
+    """
+    class Meta:
+        """Metadata for the model form."""
+        model = Report
+        exclude = ('creation', 'last_update',
+                   'created_by', 'complete')
+
+    def __init__(self, *args, **kwargs):
+        """Override the `init()` function to set some attributes."""
+        super(ReportCreateFormStandalone, self).__init__(*args, **kwargs)
+        active_projects = Project.objects.filter(end_date__gte=datetime.today())
+        if active_projects:
+            self.fields['project'].empty_label = '-- Select an Active Project --'
+        else:
+            self.fields['project'].empty_label = '-- No Active Projects --'
+        self.fields['project'].queryset = active_projects
         self.helper = FormHelper()
         self.helper.form_class = 'form-inline'
         self.helper.form_method = 'post'
