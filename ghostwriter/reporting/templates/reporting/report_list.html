@@ -41,6 +41,10 @@
         <!-- Instructions -->
         <p>Click <i class="far fa-edit"></i> to begin editing a report and enable adding findings to it.</p>
 
+        <p>
+            <a href="{% url 'reporting:report_create_no_project' %}"><i class="far fa-plus-square"></i> Create a Report</a>
+        </p>
+
         <!-- Reports Table Section -->
         <table id="reportTable" class="tablesorter">
             <thead>
@@ -63,9 +67,9 @@
             </thead>
             {% for report in filter.qs %}
                 <tr>
-                    <td nowrap>{{ report.creation }}</td>
+                    <td nowrap>{{ report.creation|date:"d M Y" }}</td>
                     <td class="clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                    <td nowrap>{{ report.last_update }}</td>
+                    <td nowrap>{{ report.last_update|date:"d M Y" }}</td>
                     {% if report.complete %}
                         {% if report.delivered %}
                             <td><span class="badge badge-success">Delivered</span></td>

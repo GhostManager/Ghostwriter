@@ -265,23 +265,23 @@
                 <div id="collapseProject" class="collapse" aria-labelledby="description" data-parent="#accordion">
                     <div class="card-body">
                         {% if domain.history_set.all %}
-                            <table>
-                                <tr>
-                                    <th>Client</th>
-                                    <th>Activity Type</th>
-                                    <th>Project Type</th>
-                                    <th>Start</th>
-                                    <th>End</th>
-                                    <th>Notes</th>
-                                    <th>Options</th>
-                                </tr>
+                            <table id="projectTable" class="tablesorter" style="margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Activity Type</th>
+                                        <th>Project Type</th>
+                                        <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                                        <th class="sorter-false">Notes</th>
+                                        <th class="sorter-false">Options</th>
+                                    </tr>
+                                </thead>
                                 {% for project in domain.history_set.all %}
                                     <tr>
                                         <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
                                         <td>{{ project.activity_type }}</td>
                                         <td>{{ project.project.project_type }}</td>
-                                        <td>{{ project.start_date }}</td>
-                                        <td>{{ project.end_date }}</td>
+                                        <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
                                         <td style="text-align: justify">{{ project.note|safe}}</td>
                                         <td>
                                             <div class="dropdown">
@@ -344,4 +344,20 @@
 
 {% block collapse_js %}
 {{ block.super }}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#projectTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
 {% endblock %}

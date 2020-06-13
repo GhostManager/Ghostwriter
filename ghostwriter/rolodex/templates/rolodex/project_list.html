@@ -50,7 +50,9 @@
         </form>
     </div>
 
-    <p><strong>Note:</strong> New projects are added under a client! <i class="far fa-smile-wink"></i></p>
+    <p>
+        <a href="{% url 'rolodex:project_create_no_client' %}"><i class="far fa-plus-square"></i> Create a Project</a>
+    </p>
 
     {% if filter.qs|length == 0 %} 
         <p>There are no projects to display.</p>
