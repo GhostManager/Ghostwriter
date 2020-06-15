@@ -83,6 +83,7 @@ LOCAL_APPS = [
     'ghostwriter.rolodex.apps.RolodexConfig',
     'ghostwriter.shepherd.apps.ShepherdConfig',
     'ghostwriter.reporting.apps.ReportingConfig',
+	'ghostwriter.oplog.apps.OplogConfig',
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

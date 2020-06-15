@@ -1,0 +1,48 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Report List{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Operation Logs</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <!-- Reports Table Section -->
+    <table id="oplogTable" class="tablesorter">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Project</th>
+            </tr>
+        </thead>
+        {% for log in op_logs %}
+            <tr>
+                <td class='clickable'><a href={% url 'oplog:oplog_entries' log.pk %}>{{ log.name }}</a></td>
+                <td nowrap>{{ log.project }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+    <p><a href="{% url 'oplog:oplog_create' %}"><i class="far fa-plus-square"></i> Create new oplog</a></p>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#oplogTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+{% endblock %}

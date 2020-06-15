@@ -1,0 +1,60 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}{{ name }} Entries{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}"">Operational Logs</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ name }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <!-- Reports Table Section -->
+    <table id="oplogTable" class="tablesorter">
+        <thead>
+            <tr>
+                <th>Start Date</th>
+                <th>Tool Name</th>
+                <th>User Context</th>
+                <th>Command</th>
+                <th>Output</th>
+                <th>View/Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        {% for entry in entries %}
+            <tr>
+                <td nowrap>{{ entry.start_date }}</td>
+                <td nowrap>{{ entry.tool }}</td>
+                <td nowrap>{{ entry.user_context }}</td>
+                <td nowrap>{{ entry.command }}</td>
+                <td nowrap>{{ entry.output }}</td>
+                <td class="clickable"><a href="{% url 'oplog:oplog_entry_update' pk=entry.id %}">View/Edit</a></td>
+                <td class="clickable"><a href="{% url 'oplog:oplog_entry_delete' pk=entry.id %}">Delete</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+    <p><a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a></p>
+{% endblock %}
+
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#oplogTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+{% endblock %}

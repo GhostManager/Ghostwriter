@@ -1,0 +1,23 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Oplog Creation{% endblock %}
+
+{% block content %}
+    <p>Provide a name for oplog:</p>
+
+    <!-- Form Section -->
+    <form class="newitem" action="" method="post">
+        {% csrf_token %}
+
+        <!-- General Section -->
+        <strong><i class="fas fa-book"></i> Oplog Details</strong>
+        <hr>
+
+        {{ form.name|as_crispy_field }}
+        {{ form.project|as_crispy_field }}
+
+        <input type="submit" class="btn btn-primary" value="Save">
+        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
+    </form>
+{% endblock %}

@@ -18,6 +18,7 @@ urlpatterns = [
     path("reporting/", include("ghostwriter.reporting.urls", namespace="reporting")),
     path("", RedirectView.as_view(pattern_name="home:dashboard"), name="home"),
     path("tinymce/", include("tinymce.urls")),
+	path("oplog/", include("ghostwriter.oplog.urls", namespace="oplog")),
 
     # Your stuff: custom urls includes go here
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
