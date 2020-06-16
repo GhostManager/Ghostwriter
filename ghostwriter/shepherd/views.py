@@ -2,9 +2,6 @@
 webpages.
 """
 
-# Import logging functionality
-import logging
-
 # Django imports for generic views and template rendering
 from django.views import generic
 from django.shortcuts import render
@@ -52,9 +49,35 @@ import csv
 import datetime
 from io import StringIO
 
-
 # Setup logger
+import logging
+import logging.config
+
+# Using __name__ resolves to ghostwriter.shepherd.tasks
 logger = logging.getLogger(__name__)
+LOGGING_CONFIG = None
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            # Format: timestamp + name + 12 spaces + info level + 8 spaces + message
+            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+        },
+    },
+    'loggers': {
+        '': {
+            'level': 'INFO',
+            'handlers': ['console'],
+        },
+    },
+})
 
 
 ##################
@@ -437,37 +460,40 @@ def import_domains(request):
                 (csv_file.size/(1000*1000)),
                 extra_tags='alert-danger')
             return HttpResponseRedirect(reverse('shepherd:domain_import'))
-    except Exception as e:
+    except Exception as error:
         messages.error(
             request, 'Unable to upload/read file: ' + repr(e),
             extra_tags='alert-danger')
-        logging.getLogger('error_logger').error(
-            'Unable to upload/read file. ' + repr(e))
+        logger.error(
+            'Unable to upload/read file – %s', error)
     # Loop over the lines and save the domains to the Domains model
     try:
         # Try to read the file data
         csv_file_wrapper = StringIO(csv_file.read().decode('utf-8'))
         csv_reader = csv.DictReader(csv_file_wrapper, delimiter=',')
-    except Exception as e:
+    except Exception as error:
         messages.error(
             request,
-            'Unable to parse file: ' + repr(e),
+            'Unable to parse file: {}'.format(e),
             extra_tags='alert-danger')
-        logging.getLogger('error_logger').error(
-            'Unable to parse file. ' + repr(e))
+        logger.error(
+            'Unable to parse file – %s', error)
         return HttpResponseRedirect(reverse('shepherd:domain_import'))
     try:
         # Process each csv row and commit it to the database
         for entry in csv_reader:
-            logging.getLogger('error_logger').info(
-                'Adding %s to the database', entry['name'])
-            # Format dates into the format Django expects them, YYYY-MM-DD
-            health_status = HealthStatus.objects.get(
-                health_status__iexact=entry['health_status'])
+            logger.info(
+                'Reviewing %s for entry into the database', entry['name'])
+            try:
+                health_status = HealthStatus.objects.get(
+                    health_status__iexact=entry['health_status'].strip())
+            except Exception:
+                health_status = HealthStatus.objects.get(
+                    health_status__iexact='Healthy')
             entry['health_status'] = health_status
             try:
                 whois_status = WhoisStatus.objects.get(
-                    whois_status__iexact=entry['whois_status'])
+                    whois_status__iexact=entry['whois_status'].strip())
             except Exception:
                 whois_status = WhoisStatus.objects.get(whois_status='Enabled')
             entry['whois_status'] = whois_status
@@ -480,7 +506,7 @@ def import_domains(request):
             if 'domain_status' in entry:
                 try:
                     domain_status = DomainStatus.objects.get(
-                        domain_status__iexact=entry['domain_status'])
+                        domain_status__iexact=entry['domain_status'].strip())
                 except Exception:
                     domain_status = DomainStatus.objects.get(
                         domain_status='Available')
@@ -489,9 +515,14 @@ def import_domains(request):
                 domain_status = DomainStatus.objects.get(
                     domain_status='Available')
                 entry['domain_status'] = domain_status
-            # Accept any auto_renew value (True, X, Yes, ...) to mean True
+            # Accept a variety of "True" values to mean True
+            # Thanks to @lez0sec for fixing this logic:
+            #   https://github.com/GhostManager/Ghostwriter/issues/73
             if 'auto_renew' in entry:
-                entry['auto_renew'] = True
+                if any(yes_option in entry['auto_renew'].lower().strip() for yes_option in ['yes', 'enabled', 'true', 'x', 'enable']):
+                    entry['auto_renew'] = True
+                else:
+                    entry['auto_renew'] = False
             # The last_used_by field will only be set by Shepherd at check-out
             if 'last_used_by' in entry:
                 entry['last_used_by'] = None
@@ -500,12 +531,17 @@ def import_domains(request):
             # Try to pass the dict object to the `Domain` model
             try:
                 # First, check if a domain with this name exists
+                domain_name = entry['name'].strip()
                 try:
-                    instance = Domain.objects.get(name=entry['name'])
+                    instance = Domain.objects.get(name=domain_name)
                 except Domain.DoesNotExist:
                     instance = False
                 if instance:
                     # This domain already exists so update that entry
+                    logger.info(
+                         'Domain %s already in the database, so updating existing record',
+                         entry['name']
+                        )
                     for attr, value in entry.items():
                         setattr(instance, attr, value)
                     instance.save()
@@ -515,23 +551,23 @@ def import_domains(request):
                     new_domain.save()
                 messages.success(
                     request,
-                    'Successfully parsed %s' % entry['name'],
+                    'Successfully parsed {}'.format(entry['name']),
                     extra_tags='alert-success')
             # If there is an error, store as string and then display
-            except Exception as e:
+            except Exception as error:
                 messages.error(
                     request,
-                    'Failed parsing %s: %s' % (entry['name'], e),
+                    'Failed parsing {}: {}'.format(entry['name'], error),
                     extra_tags='alert-danger')
-                logging.getLogger('error_logger').error(repr(e))
+                logger.error('Failed parsing %s: %s', entry['name'], error)
                 pass
-    except Exception as e:
+    except Exception as error:
         messages.error(
             request,
-            'Unable to read rows: ' + repr(e),
+            'Unable to read rows: {}'.format(error),
             extra_tags='alert-danger')
-        logging.getLogger('error_logger').error(
-            'Unable to read rows. ' + repr(e))
+        logger.error(
+            'Unable to read rows – %s', error)
     return HttpResponseRedirect(reverse('shepherd:domain_import'))
 
 
@@ -563,33 +599,32 @@ def import_servers(request):
                 (csv_file.size/(1000*1000)),
                 extra_tags='alert-danger')
             return HttpResponseRedirect(reverse('shepherd:server_import'))
-    except Exception as e:
+    except Exception as error:
         messages.error(
             request,
-            'Unable to upload/read file: ' + repr(e),
+            'Unable to upload/read file: {}'.format(error),
             extra_tags='alert-danger')
-        logging.getLogger('error_logger').error(
-            'Unable to upload/read file. ' + repr(e))
+        logger.error(
+            'Unable to upload/read file – %s', error)
     # Loop over the lines and save the servers to the `StaticServer` model
     try:
         # Try to read the file data
         csv_file_wrapper = StringIO(csv_file.read().decode('utf-8'))
         csv_reader = csv.DictReader(csv_file_wrapper, delimiter=',')
-    except Exception as e:
+    except Exception as error:
         messages.error(
             request,
-            'Unable to parse file: ' + repr(e),
+            'Unable to parse file: {}',format(error),
             extra_tags='alert-danger')
-        logging.getLogger('error_logger').error(
-            'Unable to parse file. ' + repr(e))
+        logger.error(
+            'Unable to parse file – %s', error)
         return HttpResponseRedirect(reverse('shepherd:server_import'))
     try:
         # Process each csv row and commit it to the database
         for entry in csv_reader:
             #print(entry)
-            logging.getLogger('error_logger').info(
-                'Adding %s to the database',
-                entry['ip_address'])
+            logger.info(
+                'Adding %s to the database', entry['ip_address'])
             # Check if the optional note field is in the csv and add it as
             # NULL if not
             if 'note' not in entry:
@@ -654,20 +689,20 @@ def import_servers(request):
                     'Successfully parsed %s' % entry['ip_address'],
                     extra_tags='alert-success')
             # If there is an error, store as string and then display
-            except Exception as e:
+            except Exception as error:
                 messages.error(
                     request,
-                    'Failed parsing %s: %s' % (entry['ip_address'], e),
+                    'Failed parsing {}: {}'.format(entry['ip_address'], error),
                     extra_tags='alert-danger')
-                logging.getLogger('error_logger').error(repr(e))
+                logger.error('Failed parsing %s: %s', entry['ip_address'], error)
                 pass
-    except Exception as e:
+    except Exception as error:
         messages.error(
             request,
-            'Unable to read rows: ' + repr(e),
+            'Unable to read rows: {}'.format(e),
             extra_tags='alert-danger')
-        logging.getLogger('error_logger').error(
-            'Unable to read rows. ' + repr(e))
+        logger.error(
+            'Unable to read rows – ', error)
     return HttpResponseRedirect(reverse('shepherd:server_import'))
 
 
@@ -738,6 +773,23 @@ def update(request):
             namecheap_last_update_completed = ''
             namecheap_last_update_time = ''
             namecheap_last_result = ''
+        # Collect data for cloud monitoring
+        enable_cloud_monitor = settings.CLOUD_SERVICE_CONFIG['enable_cloud_monitor']
+        try:
+            queryset = Task.objects.filter(group='Cloud Infrastructure Review')[0]
+            cloud_last_update_requested = queryset.started
+            cloud_last_result = queryset.result
+            if queryset.success:
+                cloud_last_update_completed = queryset.stopped
+                cloud_last_update_time = round(queryset.time_taken() / 60, 2)
+            else:
+                cloud_last_update_completed = 'Failed'
+                cloud_last_update_time = ''
+        except Exception:
+            cloud_last_update_requested = 'A Namecheap Update Has Not Been Run Yet'
+            cloud_last_update_completed = ''
+            cloud_last_update_time = ''
+            cloud_last_result = ''
         # Assemble context for the page
         context = {
                     'total_domains': total_domains,
@@ -755,7 +807,12 @@ def update(request):
                     'namecheap_last_update_requested': namecheap_last_update_requested,
                     'namecheap_last_update_completed': namecheap_last_update_completed,
                     'namecheap_last_update_time': namecheap_last_update_time,
-                    'namecheap_last_result': namecheap_last_result
+                    'namecheap_last_result': namecheap_last_result,
+                    'enable_cloud_monitor': enable_cloud_monitor,
+                    'cloud_last_update_requested': cloud_last_update_requested,
+                    'cloud_last_update_completed': cloud_last_update_completed,
+                    'cloud_last_update_time': cloud_last_update_time,
+                    'cloud_last_result': cloud_last_result
                 }
         return render(request, 'shepherd/update.html', context=context)
     else:
@@ -873,7 +930,7 @@ def update_dns_single(request, pk):
             task_id = async_task(
                 'ghostwriter.shepherd.tasks.update_dns',
                 domain=pk,
-                group='DNS Updates',
+                group='Individual DNS Update',
                 hook='ghostwriter.shepherd.tasks.send_slack_complete_msg')
             messages.success(
                 request,
@@ -910,6 +967,32 @@ def pull_domains_namecheap(request):
             messages.error(
                 request,
                 'Namecheap update task could not be queued. '
+                'Is the AMQP server running?',
+                extra_tags='alert-danger')
+    return HttpResponseRedirect(reverse('shepherd:update'))
+
+
+@login_required
+def check_cloud_infrastructure(request):
+    """View function to schedule a background task to perform a cloud
+    infrastructure review.
+    """
+    # Check if the request is a POST and proceed with the task
+    if request.method == 'POST':
+        # Add an async task grouped as `Cloud Infrastructure Review`
+        try:
+            task_id = async_task(
+                'ghostwriter.shepherd.tasks.review_cloud_infrastructure',
+                group='Cloud Infrastructure Review')
+            messages.success(
+                request,
+                'Cloud monitor task (Task ID {}) has been successfully queued.'.
+                format(task_id),
+                extra_tags='alert-success')
+        except Exception:
+            messages.error(
+                request,
+                'Cloud monitor task could not be queued. '
                 'Is the AMQP server running?',
                 extra_tags='alert-danger')
     return HttpResponseRedirect(reverse('shepherd:update'))
