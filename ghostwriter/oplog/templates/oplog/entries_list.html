@@ -22,7 +22,7 @@
                 <th>Tool Name</th>
                 <th>User Context</th>
                 <th>Command</th>
-                <th>Output</th>
+                <th>Operator</th>
                 <th>View/Edit</th>
                 <th>Delete</th>
             </tr>
@@ -33,7 +33,7 @@
                 <td nowrap>{{ entry.tool }}</td>
                 <td nowrap>{{ entry.user_context }}</td>
                 <td nowrap>{{ entry.command }}</td>
-                <td nowrap>{{ entry.output }}</td>
+                <td nowrap>{{ entry.operator_name }}</td>
                 <td class="clickable"><a href="{% url 'oplog:oplog_entry_update' pk=entry.id %}">View/Edit</a></td>
                 <td class="clickable"><a href="{% url 'oplog:oplog_entry_delete' pk=entry.id %}">Delete</a></td>
             </tr>

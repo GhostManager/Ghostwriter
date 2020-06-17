@@ -70,7 +70,7 @@ THIRD_PARTY_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    # "rest_framework",
+    "rest_framework",
     'django_q',
     'django_filters',
     'import_export',
@@ -348,6 +348,13 @@ CLOUD_SERVICE_CONFIG = {
     'aws_key': env("AWS_KEY", default=None),
     'aws_secret': env("AWS_SECRET", default=None),
     'do_api_key': env("DO_API_KEY", default=None)
+}
+
+# Django REST configurations
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+#        'rest_framework.permissions.IsAuthenticated'
+    ],
 }
 
 TINYMCE_JS_ROOT = os.path.join(STATIC_ROOT, "js/tiny_mce")
