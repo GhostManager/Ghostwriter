@@ -1080,7 +1080,7 @@ class Reportwriter():
             # so we don't use `add_heading()` here
             p = self.spenny_doc.add_paragraph()
             p.style = 'Heading 4'
-            run = p.add_run('Severity – ')
+            run = p.add_run('Risico score – ')
             run = p.add_run('{}'.format(finding['severity']))
             font = run.font
             if finding['severity'].lower() == 'informational':
@@ -1109,10 +1109,10 @@ class Reportwriter():
                     self.critical_color_hex[1],
                     self.critical_color_hex[2])
             # Add an Affected Entities section
-            self.spenny_doc.add_heading('Affected Entities', 4)
+            self.spenny_doc.add_heading('Getroffen systemen', 4)
             self.process_text_xml(finding['affected_entities'], finding)
             # Add a Description section that may also include evidence figures
-            self.spenny_doc.add_heading('Description', 4)
+            self.spenny_doc.add_heading('Omschrijving', 4)
             self.process_text_xml(finding['description'], finding)
             # Create Impact section
             self.spenny_doc.add_heading('Impact', 4)
@@ -1120,12 +1120,12 @@ class Reportwriter():
                 finding['impact'],
                 finding)
             # Create Recommendations section
-            self.spenny_doc.add_heading('Recommendation', 4)
+            self.spenny_doc.add_heading('Advies', 4)
             self.process_text_xml(
                 finding['recommendation'],
                 finding)
             # Create Replication section
-            self.spenny_doc.add_heading('Replication Steps', 4)
+            self.spenny_doc.add_heading('Proof of concept', 4)
             self.process_text_xml(
                 finding['replication_steps'],
                 finding)
@@ -1149,7 +1149,7 @@ class Reportwriter():
                     finding)
             # Create References section
             if finding['references']:
-                self.spenny_doc.add_heading('References', 4)
+                self.spenny_doc.add_heading('Referenties', 4)
                 self.process_text_xml(finding['references'], finding)
             counter += 1
             # Check if this is the last finding to avoid an extra blank page
