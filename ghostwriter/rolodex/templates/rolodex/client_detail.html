@@ -64,7 +64,13 @@
                                     <td>{{ poc.name }}</td>
                                     <td>{{ poc.job_title }}</td>
                                     <td>{{ poc.email }}</td>
-                                    <td>{{ poc.phone }}</td>
+                                    <td>
+                                        {% if poc.phone %}
+                                            {{ poc.phone }}
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
                                     <td style="text-align: justify;">{{ poc.note|safe }}</td>
                                     <td>
                                         <div class="dropdown">
@@ -97,21 +103,21 @@
                     <p><a href="{% url 'rolodex:project_create' client.id %}"><i class="far fa-plus-square"></i> Add a Project</a></p>
                     {% if client.project_set.all %}
                         <h4>{{ client.name }} Projects</h4>
-                        <table>
-                            <tr>
-                                <th>Project Codename</th>
-                                <th>Project Type</th>
-                                <th>Start</th>
-                                <th>End</th>
-                                <th>Note</th>
-                                <th>Options</th>
-                            </tr>
+                        <table id="projectTable" class="tablesorter">
+                            <thead>
+                                <tr>
+                                    <th nowrap>Project Codename</th>
+                                    <th>Project Type</th>
+                                    <th nowrap class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                                    <th class="sorter-false">Note</th>
+                                    <th class="sorter-false">Options</th>
+                                </tr>
+                            </thead>
                             {% for project in client.project_set.all %}
                                 <tr>
                                     <td><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                                     <td>{{ project.project_type }}</td>
-                                    <td>{{ project.start_date }}</td>
-                                    <td>{{ project.end_date }}</td>
+                                    <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
                                     <td style="text-align: justify">{{ project.note|safe }}</td>
                                     <td>
                                         <div class="dropdown">
@@ -128,19 +134,21 @@
 
                         {% if domains %}
                             <h4 style="margin-top: 50px;">Domains Used with {{ client.name }}</h4>
-                            <table>
-                                <tr>
-                                    <th>Project</th>
-                                    <th>Domain</th>
-                                    <th>Activity Type</th>
-                                    <th>End Date</th>
-                                </tr>
+                            <table id="domainTable" class="tablesorter">
+                                <thead>
+                                    <tr>
+                                        <th>Project</th>
+                                        <th>Domain</th>
+                                        <th>Activity Type</th>
+                                        <th>End Date</th>
+                                    </tr>
+                                </thead>
                                 {% for domain in domains %}
                                     <tr>
-                                        <td>{{ domain.project }}</td>
-                                        <td>{{ domain.domain.name }}</td>
+                                        <td><a class="clickable" href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a></td>
+                                        <td><a class="clickable" href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a></td>
                                         <td>{{ domain.activity_type }}</td>
-                                        <td>{{ domain.end_date }}</td>
+                                        <td>{{ domain.end_date|date:"d M Y" }}</td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -148,28 +156,30 @@
 
                         {% if servers or vps %}
                             <h4 style="margin-top: 50px;">Servers Used with {{ client.name }}</h4>
-                            <table>
-                                <tr>
-                                    <th>Project</th>
-                                    <th>Server</th>
-                                    <th>Activity Type</th>
-                                    <th>End Date</th>
-                                </tr>
+                            <table id="serverTable" class="tablesorter">
+                                <thead>
+                                    <tr>
+                                        <th>Project</th>
+                                        <th>Server</th>
+                                        <th>Activity Type</th>
+                                        <th>End Date</th>
+                                    </tr>
+                                </thead>
                                 {% for server in servers %}
                                     <tr>
-                                        <td>{{ server.project }}</td>
-                                        <td>{{ server.server.ip_address }}</td>
+                                        <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
+                                        <td><a class="clickable" href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a></td>
                                         <td>{{ server.activity_type }}</td>
-                                        <td>{{ server.end_date }}</td>
+                                        <td>{{ server.end_date|date:"d M Y" }}</td>
                                     </tr>
                                 {% endfor %}
 
                                 {% for server in vps %}
                                     <tr>
-                                        <td> {{ server.project }}</td>
+                                        <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
                                         <td>{{ server.ip_address }}</td>
                                         <td>{{ server.activity_type }}</td>
-                                        <td> {{ server.project.end_date }}</td>
+                                        <td> {{ server.project.end_date|date:"d M Y" }}</td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -223,5 +233,35 @@
 
 {% block collapse_js %}
 {{ block.super }}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#projectTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $("#domainTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $("#serverTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
 {% endblock %}
 

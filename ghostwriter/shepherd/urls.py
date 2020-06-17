@@ -130,4 +130,6 @@ urlpatterns += [
          name='update_dns_single'),
     path('update_namecheap/', views.pull_domains_namecheap,
          name='update_namecheap'),
+    path('cloud_monitor/', views.check_cloud_infrastructure,
+         name='cloud_monitor'),
 ]

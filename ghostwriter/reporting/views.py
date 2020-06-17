@@ -2,9 +2,6 @@
 various webpages.
 """
 
-# Import logging functionality
-import logging
-from pprint import pprint
 
 # Django imports for generic views and template rendering
 from django.urls import reverse
@@ -44,7 +41,8 @@ from .models import (
 from .forms import (
     FindingCreateForm, ReportCreateForm,
     ReportFindingLinkUpdateForm, EvidenceForm,
-    FindingNoteCreateForm, LocalFindingNoteCreateForm)
+    FindingNoteCreateForm, LocalFindingNoteCreateForm,
+    ReportCreateFormStandalone)
 
 # Import model filters for views
 from .filters import FindingFilter, ReportFilter, ArchiveFilter
@@ -56,6 +54,7 @@ from .resources import FindingResource
 import io
 import os
 import csv
+import json
 import zipfile
 from datetime import datetime
 
@@ -70,7 +69,34 @@ from ghostwriter.modules import reportwriter
 
 
 # Setup logger
+import logging
+import logging.config
+
+# Using __name__ resolves to ghostwriter.reporting.views
 logger = logging.getLogger(__name__)
+LOGGING_CONFIG = None
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            # Format: timestamp + name + 12 spaces + info level + 8 spaces + message
+            'format': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+        },
+    },
+    'loggers': {
+        '': {
+            'level': 'INFO',
+            'handlers': ['console'],
+        },
+    },
+})
 
 
 #####################
@@ -89,11 +115,13 @@ def backup_evidence_path(sender, instance, **kwargs):
 def delete_old_evidence(sender, instance, **kwargs):
     """Delete the old evidence file when it is replaced."""
     if hasattr(instance, '_current_evidence'):
-        if instance._current_evidence != instance.document.path:
-            try:
-                os.remove(instance._current_evidence.path)
-            except Exception:
-                pass
+        if instance._current_evidence:
+            if not instance._current_evidence.path in instance.document.path:
+                try:
+                    os.remove(instance._current_evidence.path)
+                    logger.info('Deleted old evidence file %s', instance._current_evidence.path)
+                except Exception:
+                    pass
 
 
 ##################
@@ -182,38 +210,35 @@ def import_findings(request):
                            extra_tags='alert-danger')
             return HttpResponseRedirect(reverse('reporting:import_findings'))
     # General catch-all if something goes terribly wrong
-    except Exception as e:
-        messages.error(request, 'Unable to upload/read file: ' + repr(e),
+    except Exception as error:
+        messages.error(request, 'Unable to upload/read file: {}'.format(error),
                        extra_tags='alert-danger')
-        logging.getLogger('error_logger').\
-            error('Unable to upload/read file. ' + repr(e))
+        logger.error('Unable to upload/read file – %s', error)
     # Loop over the lines and save the domains to the Finding model
     try:
         # Try to read the file data from memory
         csv_file_wrapper = io.StringIO(csv_file.read().decode())
         csv_reader = csv.DictReader(csv_file_wrapper, delimiter=',')
-    except Exception as e:
-        messages.error(request, 'Unable to parse file: ' + repr(e),
+    except Exception as error:
+        messages.error(request, 'Unable to parse file: {}'.format(error),
                        extra_tags='alert-danger')
-        logging.getLogger('error_logger').\
-            error('Unable to parse file. ' + repr(e))
+        logger.error('Unable to parse file – %s', error)
         return HttpResponseRedirect(reverse('reporting:import_findings'))
     try:
         error_count = 0
         # Process each csv row and commit it to the database
         for entry in csv_reader:
             if error_count > 5:
-                raise Exception("Too many errors.  Discontinuing import.")
-            pprint(entry)
+                logger.error('More than 5 errors encountered during import, aborting')
+                raise Exception('More than 5 errors encountered during import, aborting')
             title = entry.get('title', None)
             if title is None:
                 messages.error(request, 'Missing title field', extra_tags='alert-danger')
-                logging.getLogger('error_logger').error('Missing title field')
+                logger.error('A finding import was missing title field')
                 error_count += 1
                 continue
 
-            logging.getLogger('error_logger').info('Adding %s to the database',
-                                                   entry['title'])
+            logger.info('Adding %s to the database', entry['title'])
             # Create a Severity object for the provided rating (e.g. High)
             severity_entry = entry.get('severity', 'Informational')
             try:
@@ -240,19 +265,22 @@ def import_findings(request):
                 instance.severity = severity
                 instance.finding_type = finding_type
                 instance.save()
-            except Exception as e:
-                messages.error(request, 'Failed parsing %s: %s' %
-                               (entry['title'], e), extra_tags='alert-danger')
-                logging.getLogger('error_logger').error(repr(e))
+            except Exception as error:
+                messages.error(request, 'Failed parsing {}: {}'.format(entry['title'], error),
+                               extra_tags='alert-danger')
+                logger.error('Failed parsing %s: %s', entry['title'], error)
                 error_count += 1
                 pass
 
         messages.success(request, 'Your csv file has been imported '
                          'successfully =)', extra_tags='alert-success')
 
-    except Exception as e:
-        messages.error(request, str(e), extra_tags='alert-danger')
-        logging.getLogger('error_logger').error(repr(e))
+    except Exception as error:
+        messages.error(
+            request,
+            'Encountered error during finding import – {}'.format(error),
+            extra_tags='alert-danger')
+        logger.error('Encountered error during finding import – %s', error)
 
     return HttpResponseRedirect(reverse('reporting:import_findings'))
 
@@ -371,18 +399,36 @@ def position_increase(request, pk):
     """View function to increase a finding's position which moves it down the
     list.
     """
+    # Get the entry for the current finding
     finding_instance = ReportFindingLink.objects.get(pk=pk)
+    # Increment the finding's position
     finding_instance.position = finding_instance.position + 1
     # Get all other findings of the same severity
-    finding_positions = ReportFindingLink.objects.filter(
+    finding_queryset = ReportFindingLink.objects.filter(
         Q(report=finding_instance.report.pk) & Q(severity=finding_instance.severity)).order_by('position')
-    # Check all of the findings against new position
-    for finding in finding_positions:
-        # Check if new position value matches another finding
-        if finding_instance.position == finding.position:
-            # Decrement the position so the findings swap places
-            finding.position = finding.position - 1
-            finding.save(update_fields=['position'])
+    # If new position is greater than total findings, reduce by one
+    if finding_queryset.count() <  finding_instance.position:
+        finding_instance.position = finding_queryset.count()
+        messages.warning(request,
+                         'Finding is already in the bottom position for the {} severity group.'.format(finding_instance.severity),
+                         extra_tags='alert-warning'
+                        )
+    else:
+        counter = 1
+        if finding_queryset:
+            # Loop from top position down and look for a match
+            for finding in finding_queryset:
+                # Check if finding in loop is NOT the finding being updated
+                if not finding_instance.pk == finding.pk:
+                    # Increment position counter when counter equals form value
+                    if finding_instance.position == counter:
+                        counter += 1
+                    finding.position = counter
+                    finding.save(update_fields=['position'])
+                    counter += 1
+                else:
+                    # Skip the finding being updated by form
+                    pass
     # Save the updated position
     finding_instance.save(update_fields=['position'])
     return HttpResponseRedirect(reverse('reporting:report_detail',
@@ -394,21 +440,36 @@ def position_decrease(request, pk):
     """View function to decrease a finding's position which moves it up the
     list.
     """
+    # Get the entry for the current finding
     finding_instance = ReportFindingLink.objects.get(pk=pk)
+    # Decrement the finding's position
     finding_instance.position = finding_instance.position - 1
-    # Avoid negatives
-    if finding_instance.position < 0:
-        finding_instance.position = 0
     # Get all other findings of the same severity
-    finding_positions = ReportFindingLink.objects.filter(
+    finding_queryset = ReportFindingLink.objects.filter(
         Q(report=finding_instance.report.pk) & Q(severity=finding_instance.severity)).order_by('position')
-    # Check all of the findings against new position
-    for finding in finding_positions:
-        # Check if new position value matches another finding
-        if finding_instance.position == finding.position:
-            # Decrement the position so the findings swap places
-            finding.position = finding.position + 1
-            finding.save(update_fields=['position'])
+    # If new position is less than 1, set pos to 1
+    if finding_instance.position < 1:
+        finding_instance.position = 1
+        messages.warning(request,
+                         'Finding is already in the top position for the {} severity group.'.format(finding_instance.severity),
+                         extra_tags='alert-warning'
+                        )
+    else:
+        counter = 1
+        if finding_queryset:
+            # Loop from top position down and look for a match
+            for finding in finding_queryset:
+                # Check if finding in loop is NOT the finding being updated
+                if not finding_instance.pk == finding.pk:
+                    # Increment position counter when counter equals form value
+                    if finding_instance.position == counter:
+                        counter += 1
+                    finding.position = counter
+                    finding.save(update_fields=['position'])
+                    counter += 1
+                else:
+                    # Skip the finding being updated by form
+                    pass
     # Save the updated position
     finding_instance.save(update_fields=['position'])
     return HttpResponseRedirect(reverse('reporting:report_detail',
@@ -429,8 +490,7 @@ def activate_report(request, pk):
             request.session['active_report']['title'] = report_instance.title
             messages.success(request, '%s is now your active report.' %
                              report_instance.title, extra_tags='alert-success')
-            # return HttpResponseRedirect(reverse('reporting:report_detail', args=(pk, )))
-            return HttpResponseRedirect(reverse('reporting:reports'))
+            return HttpResponseRedirect(reverse('reporting:report_detail', args=(pk, )))
         else:
             messages.error(request, 'The specified report does not exist!',
                            extra_tags='alert-danger')
@@ -669,17 +729,20 @@ def generate_docx(request, pk):
         response['Content-Disposition'] = 'attachment; filename=report.docx'
         docx.save(response)
         return response
-    except jinja2.exceptions.TemplateError as e:
-        messages.error(request, 'Failed to generate the Word report because the docx template contains invalid Jinja2 code:\n{}'.format(e),
+    except jinja2.exceptions.TemplateError as error:
+        messages.error(request, 'Failed to generate the Word report because the docx template contains invalid Jinja2 code:\n{}'.format(error),
                 extra_tags='alert-danger')
-    except jinja2.exceptions.Undefined as e:
-        messages.error(request, 'Failed to generate the Word report because the docx template contains an undefined Jinja2 variable:\n{}'.format(e),
+    except jinja2.exceptions.UndefinedError as error:
+        messages.error(request, 'Failed to generate the Word report because the docx template contains an undefined Jinja2 variable:\n{}'.format(error),
                 extra_tags='alert-danger')
     except PackageNotFoundError:
         messages.error(request, 'Failed to generate the Word report because the docx template could not be found!',
                 extra_tags='alert-danger')
-    except Exception as e:
-        messages.error(request, 'Failed to generate the Word report for an unknown reason: {}'.format(e),
+    except FileNotFoundError as error:
+        messages.error(request, 'Failed to generate the Word report because the an evidence file is missing: {}'.format(error),
+                extra_tags='alert-danger')
+    except Exception as error:
+        messages.error(request, 'Failed to generate the Word report for an unknown reason: {}'.format(error),
                 extra_tags='alert-danger')
     return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
@@ -709,8 +772,8 @@ def generate_xlsx(request, pk):
         response['Content-Disposition'] = 'attachment; filename=report.xlsx'
         output.close()
         return response
-    except Exception as e:
-        messages.error(request, 'Failed to generate the Xlsx report: {}'.format(e),
+    except Exception as error:
+        messages.error(request, 'Failed to generate the Xlsx report: {}'.format(error),
                 extra_tags='alert-danger')
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
@@ -736,8 +799,8 @@ def generate_pptx(request, pk):
         response['Content-Disposition'] = 'attachment; filename=report.pptx'
         pptx.save(response)
         return response
-    except Exception as e:
-        messages.error(request, 'Failed to generate the slide deck: {}'.format(e),
+    except Exception as error:
+        messages.error(request, 'Failed to generate the slide deck: {}'.format(error),
                 extra_tags='alert-danger')
         return HttpResponseRedirect(request.META['HTTP_REFERER'])
 
@@ -764,7 +827,7 @@ def generate_all(request, pk):
     """View function to generate all report types for the specified report."""
     try:
         report_instance = Report.objects.get(pk=pk)
-        docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template2.docx')
+        docx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.docx')
         pptx_template_loc = os.path.join(settings.TEMPLATE_LOC, 'template.pptx')
         # Ask Spenny to make us reports with these findings
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
@@ -781,10 +844,12 @@ def generate_all(request, pk):
         json_doc, word_doc, excel_doc, ppt_doc = spenny.generate_all_reports(
             docx_template_loc,
             pptx_template_loc)
+        # Convert the dict to pretty JSON output for the file
+        pretty_json = json.dumps(json_doc, indent=4)
         # Create a zip file in memory and add the reports to it
         zip_buffer = io.BytesIO()
         zf = zipfile.ZipFile(zip_buffer, 'a')
-        zf.writestr('report.json', json_doc)
+        zf.writestr('report.json', pretty_json)
         zf.writestr('report.docx', word_doc.getvalue())
         zf.writestr('report.xlsx', excel_doc.getvalue())
         zf.writestr('report.pptx', ppt_doc.getvalue())
@@ -919,26 +984,33 @@ def clone_report(request, pk):
 @login_required
 def convert_finding(request, pk):
     """View function to convert a finding in a report to a master finding
-    for the library.
+    for the library. Pre-loads a new finding form with the relevant
+    values for review before submission.
     """
-    finding_instance = ReportFindingLink.objects.get(pk=pk)
-    new_finding = Finding(
-        title=finding_instance.title,
-        description=finding_instance.description,
-        impact=finding_instance.impact,
-        mitigation=finding_instance.mitigation,
-        replication_steps=finding_instance.replication_steps,
-        host_detection_techniques=finding_instance.host_detection_techniques,
-        network_detection_techniques=finding_instance.network_detection_techniques,
-        references=finding_instance.references,
-        severity=finding_instance.severity,
-        finding_type=finding_instance.finding_type
-    )
-    new_finding.save()
-    new_finding_pk = new_finding.pk
-    return HttpResponseRedirect(reverse(
-        'reporting:finding_detail',
-        kwargs={'pk': new_finding_pk}))
+    if request.method == 'POST':
+        form = FindingCreateForm(request.POST)
+        if form.is_valid():
+            new_finding = form.save()
+            new_finding_pk = new_finding.pk
+            return HttpResponseRedirect(reverse(
+                'reporting:finding_detail',
+                kwargs={'pk': new_finding_pk}))
+    else:
+        finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
+        form = FindingCreateForm(initial={
+                'title': finding_instance.title,
+                'description': finding_instance.description,
+                'impact': finding_instance.impact,
+                'mitigation': finding_instance.mitigation,
+                'replication_steps': finding_instance.replication_steps,
+                'host_detection_techniques': finding_instance.host_detection_techniques,
+                'network_detection_techniques': finding_instance.network_detection_techniques,
+                'references': finding_instance.references,
+                'severity': finding_instance.severity,
+                'finding_type': finding_instance.finding_type
+            }
+        )
+    return render(request, 'reporting/finding_form.html', {'form': form})
 
 
 def export_findings_to_csv(request):
@@ -975,6 +1047,22 @@ class FindingCreate(LoginRequiredMixin, CreateView):
         """Override the function to return to the new record after creation."""
         messages.success(self.request, '%s was successfully created.' %
                          self.object.title, extra_tags='alert-success')
+        return reverse('reporting:finding_detail', kwargs={'pk': self.object.pk})
+
+
+class FindingCloneCreate(LoginRequiredMixin, CreateView):
+    """View for creating new findings. This view defaults to the
+    finding_form.html template.
+    """
+    model = Finding
+    form_class = FindingCreateForm
+
+    def get_success_url(self):
+        """Override the function to return to the new record after creation."""
+        messages.success(
+            self.request,
+            'The finding {} was successfully created.'.format(self.object.title),
+            extra_tags='alert-success')
         return reverse('reporting:finding_detail', kwargs={'pk': self.object.pk})
 
 
@@ -1070,7 +1158,15 @@ class ReportCreateWithoutProject(LoginRequiredMixin, CreateView):
     report_form.html template. This version applies no default values.
     """
     model = Report
-    form_class = ReportCreateForm
+    form_class = ReportCreateFormStandalone
+
+    def get_form(self, form_class=None):
+        """Override the function to set a custom queryset for the form."""
+        form = super(ReportCreateWithoutProject, self).get_form(form_class)
+        if not form.fields['project'].queryset:
+            messages.error(self.request, 'There are no active projects for a new report.',
+                           extra_tags='alert-error')
+        return form
 
     def form_valid(self, form):
         """Override form_valid to perform additional actions on new entries."""
@@ -1095,7 +1191,7 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
     report_form.html template.
     """
     model = Report
-    fields = ('title', 'complete')
+    fields = ('title', 'project')
 
     def form_valid(self, form):
         """Override form_valid to perform additional actions on update."""
@@ -1150,6 +1246,58 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
     template_name = 'reporting/local_edit.html'
     success_url = reverse_lazy('reporting:reports')
 
+    def form_valid(self, form):
+        """Override form_valid to perform additional actions on new entries."""
+        # Check if severity or position has changed
+        if 'severity' in form.changed_data or 'position' in form.changed_data:
+            # Get the entries current values (those being changed)
+            old_entry = ReportFindingLink.objects.get(pk=self.object.pk)
+            old_position = old_entry.position
+            old_severity = old_entry.severity
+            # If severity rating changed, adjust previous severity group
+            if 'severity' in form.changed_data:
+                # Get a list of findings for the old severity rating
+                old_severity_queryset = ReportFindingLink.objects.filter(
+                    Q(report__pk=self.object.report.pk) &
+                    Q(severity=old_severity)
+                ).order_by('position')
+                if old_severity_queryset:
+                    for finding in old_severity_queryset:
+                        # Adjust position to close gap created by moved finding
+                        if finding.position > old_position:
+                            finding.position -= 1
+                            finding.save(update_fields=['position'])
+            # Get all findings in report that share the new/current severity rating
+            finding_queryset = ReportFindingLink.objects.filter(
+                Q(report__pk=self.object.report.pk) &
+                Q(severity=self.object.severity)
+            ).order_by('position')
+            # Form sets minimum number to 0, but check again for funny business
+            if self.object.position < 1:
+                self.object.position = 1
+            # Last position should not be larger than total findings
+            if self.object.position > finding_queryset.count():
+                self.object.position = finding_queryset.count()
+            counter = 1
+            if finding_queryset:
+                # Loop from top position down and look for a match
+                for finding in finding_queryset:
+                    # Check if finding in loop is NOT the finding being updated
+                    if not self.object.pk == finding.pk:
+                        # Increment position counter when counter equals form value
+                        if self.object.position == counter:
+                            counter += 1
+                        finding.position = counter
+                        finding.save(update_fields=['position'])
+                        counter += 1
+                    else:
+                        # Skip the finding being updated by form
+                        pass
+            # No other findings with the chosen severity, so make it pos 1
+            else:
+                self.object.position = 1
+        return super().form_valid(form)
+
     def get_form(self, form_class=None):
         """Override the function to set a custom queryset for the form."""
         from ghostwriter.rolodex.models import ProjectAssignment
@@ -1185,6 +1333,16 @@ class ReportFindingLinkDelete(LoginRequiredMixin, DeleteView):
         finding.
         """
         self.report_pk = self.get_object().report.pk
+        # Get all other findings for this report ID
+        findings_queryset = ReportFindingLink.objects.filter(
+            Q(report=self.get_object().report.pk) &
+            Q(severity=self.get_object().severity))
+        if findings_queryset:
+            for finding in findings_queryset:
+                # Adjust position to close gap created by removed finding
+                if finding.position > self.get_object().position:
+                    finding.position -= 1
+                    finding.save()
         return super(ReportFindingLinkDelete, self).\
             delete(request, *args, **kwargs)
 

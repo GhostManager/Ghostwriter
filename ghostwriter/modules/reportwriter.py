@@ -11,9 +11,6 @@ import io
 import os
 import json
 
-from PIL import Image
-from PIL import ImageOps
-
 from xlsxwriter.workbook import Workbook
 
 import docx
@@ -22,7 +19,7 @@ from docx.oxml import parse_xml
 from docx.oxml.shared import OxmlElement, qn
 from docx.oxml.ns import nsdecls
 from docx.shared import RGBColor, Inches, Pt
-from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.style import WD_STYLE, WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 
@@ -42,6 +39,8 @@ from bs4 import NavigableString, Tag
 
 class Reportwriter():
     """Class for generating documents for the provided findings."""
+    # Track report type for differnet Office XML
+    report_type = None
     # Color codes used for finding severity
     # Blue
     informational_color = '8eaadb'
@@ -58,12 +57,17 @@ class Reportwriter():
     # Purple
     critical_color = '966FD6'
     critical_color_hex = [0x96, 0x6f, 0xd6]
-    # Picture border color - this one needs the # in front
-    border_color = '#2d2b6b'
+    # Picture border color
+    border_color = '2d2b6b'
     border_color_hex = [0x45, 0x43, 0x107]
+    # Picture border weight – 12700 is equal to the 1pt weight in Word
+    border_weight = '12700'
     # Extensions allowed for evidence
     image_extensions = ['png', 'jpeg', 'jpg']
     text_extensions = ['txt', 'ps1', 'py', 'md', 'log']
+    # List indentation settings
+    # Double whatever you would set in Word – default is 0.25" so 0.5
+    base_indentation = 0.5
 
     def __init__(self, report_queryset, output_path, evidence_path,
                  template_loc=None):
@@ -126,59 +130,58 @@ class Reportwriter():
         # Finding data
         report_dict['findings'] = {}
         for finding in self.report_queryset.reportfindinglink_set.all():
-            report_dict['findings'][finding.title] = {}
-            report_dict['findings'][finding.title]['id'] = finding.id
-            report_dict['findings'][finding.title]['title'] = finding.title
-            report_dict['findings'][finding.title]['severity'] = \
+            report_dict['findings'][finding.id] = {}
+            report_dict['findings'][finding.id]['title'] = finding.title
+            report_dict['findings'][finding.id]['severity'] = \
                 finding.severity.severity
             if finding.affected_entities:
-                report_dict['findings'][finding.title]['affected_entities'] = \
+                report_dict['findings'][finding.id]['affected_entities'] = \
                     finding.affected_entities
             else:
-                report_dict['findings'][finding.title]['affected_entities'] = \
+                report_dict['findings'][finding.id]['affected_entities'] = \
                     '<p>Must Be Provided</p>'
-            report_dict['findings'][finding.title]['description'] = \
+            report_dict['findings'][finding.id]['description'] = \
                 finding.description
-            report_dict['findings'][finding.title]['impact'] = finding.impact
-            report_dict['findings'][finding.title]['recommendation'] = \
+            report_dict['findings'][finding.id]['impact'] = finding.impact
+            report_dict['findings'][finding.id]['recommendation'] = \
                 finding.mitigation
-            report_dict['findings'][finding.title]['replication_steps'] = \
+            report_dict['findings'][finding.id]['replication_steps'] = \
                 finding.replication_steps
-            report_dict['findings'][finding.title][
+            report_dict['findings'][finding.id][
                 'host_detection_techniques'] = \
                 finding.host_detection_techniques
-            report_dict['findings'][finding.title][
+            report_dict['findings'][finding.id][
                 'network_detection_techniques'] = \
                 finding.network_detection_techniques
-            report_dict['findings'][finding.title]['references'] = \
+            report_dict['findings'][finding.id]['references'] = \
                 finding.references
             # Get any evidence
-            report_dict['findings'][finding.title]['evidence'] = {}
+            report_dict['findings'][finding.id]['evidence'] = {}
             for evidence_file in finding.evidence_set.all():
                 evidence_name = evidence_file.friendly_name
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name] = {}
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['id'] = evidence_file.id
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['friendly_name'] = \
                     evidence_file.friendly_name
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['uploaded_by'] = \
                     evidence_file.uploaded_by.username
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['upload_date'] = \
                     evidence_file.upload_date
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['description'] = \
                     evidence_file.description
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['caption'] = \
                     evidence_file.caption
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['url'] = \
                     evidence_file.document.url
-                report_dict['findings'][finding.title][
+                report_dict['findings'][finding.id][
                     'evidence'][evidence_name]['file_path'] = \
                     str(evidence_file.document)
         # Infrastructure data
@@ -356,6 +359,7 @@ class Reportwriter():
         Code from:
         https://github.com/python-openxml/python-docx/issues/25#issuecomment-400787031
         """
+        # Open XML options used below
         xpath_options = {
             True: {'single': 'count(w:lvl)=1 and ', 'level': 0},
             False: {'single': '', 'level': level},
@@ -425,7 +429,7 @@ class Reportwriter():
         par._p.get_or_add_pPr().get_or_add_numPr().\
             get_or_add_ilvl().val = level
 
-    def process_evidence(self, finding, keyword, file_path, extension, p, report_type=None):
+    def process_evidence(self, finding, keyword, file_path, extension, p):
         """Process the specified evidence file for the named finding to
         add it to the Word document.
         """
@@ -433,7 +437,7 @@ class Reportwriter():
             with open(file_path, 'r') as evidence_contents:
                 # Read in evidence text
                 evidence_text = evidence_contents.read()
-                if report_type == 'pptx':
+                if self.report_type == 'pptx':
                     # Place new textbox to the mid-right
                     top = Inches(1.65)
                     left = Inches(6)
@@ -464,32 +468,39 @@ class Reportwriter():
                         u' \u2013 ' +
                         finding['evidence'][keyword]['caption'])
         elif extension in self.image_extensions:
-            # Add a border to the image - this is not ideal
-            img = Image.open(file_path)
-            file_path_parts = os.path.split(file_path)
-            image_directory = file_path_parts[0]
-            image_name = file_path_parts[1]
-            new_file = os.path.join(
-                image_directory,
-                'border_' + image_name)
-            img_with_border = ImageOps.expand(
-                img,
-                border=1,
-                fill=self.border_color)
-            img_with_border = img_with_border.convert('RGB')
-            # Save the new copy to the evidence folder with
-            # a`border_` prefix
-            img_with_border.save(new_file)
-            # Drop in the image at the full 6.5" width and add
-            # the caption
-            if report_type == 'pptx':
+            # Drop in the image at the full 6.5" width and add the caption
+            if self.report_type == 'pptx':
                 top = Inches(1.65)
                 left = Inches(8)
                 width = Inches(4.5)
-                image = self.finding_slide.shapes.add_picture(new_file, left, top, width=width)
+                image = self.finding_slide.shapes.add_picture(file_path, left, top, width=width)
             else:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = p.add_run()
-                run.add_picture(new_file, width=Inches(6.5))
+                # Add the picture to the document
+                inline_shape = run.add_picture(file_path, width=Inches(6.5))
+                # Find inline shape properties (pic:spPr) and get the last one
+                pic_data = run._r.xpath("//pic:spPr")[-1]
+                # Create the Open XML elements for the border:
+                # <a:ln w="12700">
+                #     <a:solidFill>
+                #     <a:srgbClr val="7030A0"/>
+                #     </a:solidFill>
+                # </a:ln>
+                # Create an line element `a:ln` and set width
+                ln_xml = OxmlElement('a:ln')
+                ln_xml.set('w', self.border_weight)
+                # Make it a solid line with `a:solidFill`
+                solidfill_xml = OxmlElement('a:solidFill')
+                # Add `a:srgbClr` to control color and set hex value
+                color_xml = OxmlElement('a:srgbClr')
+                color_xml.set('val', self.border_color)
+                # Append each element in reverse order to construct `a:ln`
+                solidfill_xml.append(color_xml)
+                ln_xml.append(solidfill_xml)
+                # Append the new `a:ln` attribute to the shape properties
+                pic_data.append(ln_xml)
+                # Create the caption
                 p = self.spenny_doc.add_paragraph(
                     'Figure ',
                     style='Caption')
@@ -508,8 +519,9 @@ class Reportwriter():
         parent_element = p.getparent()
         parent_element.remove(p)
 
-    def replace_and_write(self, text, p, finding, report_json, italic=False, underline=False, bold=False, inline_code=False, link_run=False, link_url=None, report_type=None):
+    def replace_and_write(self, text, p, finding, italic=False, underline=False, bold=False, inline_code=False, link_run=False, link_url=None):
         """Function to find and replace template keywords."""
+        text = text.replace('\r\n', '')
         # Regex for searching for bracketed template placeholders, e.g. {{.client}}
         keyword_regex = r'\{\{\.(.*?)\}\}'
         # Search for {{. }} keywords
@@ -520,27 +532,26 @@ class Reportwriter():
             # There should never be - or need to be - multiple matches
             match = match[0]
             keyword = match.\
-                replace('{', '').\
-                replace('}', '').\
-                replace('.', '').\
+                replace('}}', '').\
+                replace('{{.', '').\
                 strip()
         else:
             keyword = ''
         # Perform static client name replacement
         if '{{.client}}' in text:
-            if report_json['client']['short_name']:
+            if self.report_json['client']['short_name']:
                 text = text.replace(
                     '{{.client}}',
-                    report_json['client']['short_name'])
+                    self.report_json['client']['short_name'])
             else:
                 text = text.replace(
                     '{{.client}}',
-                    report_json['client']['full_name'])
+                    self.report_json['client']['full_name'])
 
         # Transform caption placeholders into figures
         if '{{.caption}}' in text:
             text = text.replace('{{.caption}}', '')
-            if report_type == 'pptx':
+            if self.report_type == 'pptx':
                 # Only option would be to make the caption a slide
                 # bullet and that would be weird - so just pass
                 pass
@@ -559,11 +570,14 @@ class Reportwriter():
                             finding['evidence'][keyword]['file_path']
                 extension = finding['evidence'][keyword]['url'].\
                     split('.')[-1]
-                self.process_evidence(finding, keyword, file_path, extension, p, report_type)
-                return
+                if os.path.exists(file_path):
+                    self.process_evidence(finding, keyword, file_path, extension, p)
+                    return
+                else:
+                    raise FileNotFoundError(file_path)
 
         # Add a new run to the paragraph
-        if report_type == 'pptx':
+        if self.report_type == 'pptx':
             run = p.add_run()
             run.text = text
             # For pptx, formatting is applied via the font instead of on the run object
@@ -611,7 +625,18 @@ class Reportwriter():
             run.italic = italic
             run.underline = underline
 
-    def process_nested_tags(self, contents, p, finding, report_json, prev_p=None, num=True, report_type=None):
+    def process_nested_tags(self, contents, p, finding, prev_p=None, num=True):
+        """Function to process BeautifulSoup 4 Tag objects containing
+        nested HTML tags.
+
+        contents        The contents of a BS4 Tag
+        p               A docx paragraph object
+        finding          The current finding (JSON) being processed
+        prev_p          Previous paragraph object for continuing lists
+                        (Defaults to None)
+        num             Boolean value to determine if a list Tag is
+                        ordered/numbered (Defaults to True)
+        """
         # Iterate over the provided list
         for part in contents:
             # Track temporary styles for text runs
@@ -650,7 +675,6 @@ class Reportwriter():
                 # A list length > 1 means nested formatting
                 # Get the parent object's style info first as it 
                 # applies to all future runs
-                # if tag_count > 1:
                 # A code tag here is inline code inside of a p tag
                 if part_name == 'code':
                     nested_inline_code = True
@@ -681,6 +705,7 @@ class Reportwriter():
                         tag_contents = tag.contents
                         # Check for an additional tags in the contents
                         # This happens when a hyperlink is formatted with a font style
+                        # TODO: Error here if a list has more than two levels
                         if tag_contents[0].name:
                             if tag_contents[0].name == 'a':
                                 link_run = True
@@ -719,7 +744,10 @@ class Reportwriter():
                     if link_run or nested_link_run:
                         link_run = True
                     # Write the text for this run
-                    self.replace_and_write(content_text, p, finding, report_json, italic_font, underline, bold_font, inline_code, link_run, link_url, report_type=report_type)
+                    self.replace_and_write(
+                            content_text, p, finding, italic_font,
+                            underline, bold_font, inline_code, link_run, link_url
+                        )
                     # Reset temporary run styles
                     bold_font = False
                     underline = False
@@ -728,17 +756,116 @@ class Reportwriter():
             # There are no tags to process, so write the string
             else:
                 if isinstance(part, NavigableString):
-                    self.replace_and_write(part, p, finding, report_json, report_type=report_type)
+                    self.replace_and_write(part, p, finding)
                 else:
-                    self.replace_and_write(part.text, p, finding, report_json, report_type=report_type)
+                    self.replace_and_write(part.text, p, finding)
 
-    def process_text_xml(self, text, finding, report_json, report_type=None):
+    def create_list_paragraph(self, prev_p, level, num=False):
+        """Function to create a new paragraph in the document for a list. The
+        ``num`` defaults to false and determines if the line item will be
+        numbered or represented as part of an unordered list (bullet).
+        """
+        if self.report_type == 'pptx':
+            # Move to new paragraph/line and indent bullets based on level
+            p = self.finding_body_shape.text_frame.add_paragraph()
+            p.level = level
+        else:
+            if num:
+                p = self.spenny_doc.add_paragraph(style='Number List')
+            else:
+                p = self.spenny_doc.add_paragraph(style='Bullet List')
+            self.list_number(p, prev=prev_p, level=level, num=num)
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        return p
+
+    def parse_nested_html_lists(self, tag, prev_p, num, finding, level=0):
+        """Recursive function for parsing deeply nested lists. This checks for
+        <ol> or <ul> tags and keeps drilling until all nested lists are found
+        and processed.
+
+        Returns the last paragraph object created.
+        """
+        p = prev_p
+        contents = tag.contents
+        for part in contents:
+            if part.name == 'li':
+                # Get the contents of li
+                li_contents = part.contents
+                # A length of `1` means no other tags to process
+                if len(li_contents) == 1:
+                    # Create the paragraph for this list item
+                    p = self.create_list_paragraph(prev_p, level, num)
+                    if li_contents[0].name:
+                        self.process_nested_tags(li_contents, p, finding, prev_p, num)
+                    else:
+                        self.replace_and_write(part.text, p, finding)
+                # Bigger lists mean more tags, so process nested tags
+                else:
+                    # Find part with nested list
+                    if part.ol or part.ul:
+                        # Get everything between the <li> and the first nested list tag
+                        temp = []
+                        nested_list = None
+                        for sub_part in part:
+                            # Add everything NOT a nested list to temp
+                            # This holds text and nested tags that come before the first list tag
+                            if not sub_part.name == 'ol' and not sub_part.name == 'ul':
+                                if sub_part != '\n':
+                                    temp.append(sub_part)
+                            elif sub_part.name == 'ol' or sub_part.name == 'ul':
+                                if sub_part != '\n':
+                                    nested_list = sub_part
+                        # If temp isn't empty, process it like any other line
+                        if temp:
+                            p = self.create_list_paragraph(prev_p, level, num)
+                            if len(temp) == 1:
+                                if temp[0].name:
+                                    self.process_nested_tags(temp, p, finding, prev_p, num)
+                                else:
+                                    self.replace_and_write(temp[0], p, finding)
+                            # Bigger lists mean more tags, so process nested tags
+                            else:
+                                self.process_nested_tags(temp, p, finding, prev_p, num)
+                        # Recursively process this list and any other nested lists inside of it
+                        if nested_list:
+                            # Increment the list level counter for this nested list
+                            level += 1
+                            p = self.parse_nested_html_lists(nested_list, p, num, finding, level)
+                    else:
+                        p = self.create_list_paragraph(prev_p, level, num)
+                        self.process_nested_tags(part.contents, p, finding, prev_p, num)
+                prev_p = p
+            # If ol tag encountered, increment level and switch to numbered list
+            elif part.name == 'ol':
+                level += 1
+                p = self.parse_nested_html_lists(part, prev_p, num, finding, level)
+            # If ul tag encountered, increment level and switch to bulleted list
+            elif part.name == 'ul':
+                level += 1
+                p = self.parse_nested_html_lists(part, prev_p, num, finding, level)
+            # No change in list type, so proceed with writing the line
+            elif part.name:
+                p = self.create_list_paragraph(prev_p, level, num)
+                self.process_nested_tags(part, p, finding, prev_p, num)
+            else:
+                if not isinstance(part, NavigableString):
+                    print('Unknown tag for list - {}'.format(part.name))
+                else:
+                    if part.strip() != '':
+                        p = self.create_list_paragraph(prev_p, level, num)
+                        self.replace_and_write(part.strip(), p, finding)
+            # Track the paragraph used for this list item
+            # prev_p = p
+        # Return last paragraph created
+        return p
+
+    def process_text_xml(self, text, finding):
         """Process the provided text from the specified finding to parse
         keywords for evidence placement and formatting for Office XML.
         """
         prev_p = None
         # Setup the first text frame for the PowerPoint slide
-        if report_type == 'pptx':
+        if self.report_type == 'pptx':
             if self.finding_body_shape.has_text_frame:
                 self.finding_body_shape.text_frame.clear()
                 self.delete_paragraph(self.finding_body_shape.text_frame.paragraphs[0])
@@ -761,18 +888,18 @@ class Reportwriter():
                     # Result will be a list with strings and more tags:
                     # ['Some words with ', <em>italic text</em>, ' and then more words.']
                     contents = tag.contents
-                    if report_type == 'pptx':
+                    if self.report_type == 'pptx':
                         p = self.finding_body_shape.text_frame.add_paragraph()
                     else:
                         p = self.spenny_doc.add_paragraph()
-                    self.process_nested_tags(contents, p, finding, report_json, report_type=report_type)
+                    self.process_nested_tags(contents, p, finding)
                 # PRE – Code Blocks
                 elif tag_name == 'pre':
                     # The WYSIWYG editor doesn't allow users to format text
                     # inside of a code block because it's all treated as code
                     # So, just insert the text without any further processing
                     contents = tag.contents
-                    if report_type == 'pptx':
+                    if self.report_type == 'pptx':
                         # Place new textbox to the mid-right
                         if contents:
                             top = Inches(1.65)
@@ -815,64 +942,71 @@ class Reportwriter():
                                         p = self.spenny_doc.add_paragraph(code_line)
                                         p.style = 'CodeBlock'
                                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                # UL – Unordered/Bulleted Lists
-                elif tag_name == 'ul':
-                    # Unordered/bulleted lists don't need numbers or paragraph tracking
-                    num = False
-                    prev_p = None
-                    # Get the ul tag's contents and check each item
-                    # A ul tag should only contain li tags
-                    contents = tag.contents
-                    for part in contents:
-                        # Check if the tag is a list item, <li>
-                        if part.name == 'li':
-                            # Get the contents of li
-                            li_contents = part.contents
-                            if report_type == 'pptx':
-                                # Move to new paragraph/line and indent bullets one tab
-                                p = self.finding_body_shape.text_frame.add_paragraph()
-                                p.level = 1
-                            else:
-                                # Create the paragraph for this list item
-                                p = self.spenny_doc.add_paragraph(style='List Bulleted')
-                                p = self.set_contextual_spacing(p)
-                                self.list_number(p, prev=prev_p, level=0, num=num)
-                                p.paragraph_format.left_indent = Inches(0.5)
-                                # A length of `1` means no other tags to process
-                            if len(li_contents) == 1:
-                                self.replace_and_write(part.text, p, finding, report_json, report_type=report_type)
-                            # Bigger lists mean more tags, so process nested tags
-                            else:
-                                self.process_nested_tags(part, p, finding, report_json, prev_p, num, report_type)
-                        else:
-                            if not isinstance(part, NavigableString):
-                                print('Unknown tag for ul - {}'.format(part.name))
-                # OL – Ordered/Numbered Lists
-                elif tag_name == 'ol':
+                # OL & UL – Ordered/Numbered & Unordered Lists
+                elif tag_name == 'ol' or tag_name == 'ul':
                     # Ordered/numbered lists need numbers and linked paragraphs
-                    num = True
+                    p = None
                     prev_p = None
-                    # Get the ul tag's contents and check each item
-                    # A ul tag should only contain li tags
+                    if tag_name == 'ol':
+                        num = True
+                    else:
+                        num = False
+                    # Get the list tag's contents and check each item
+                    # A list tag should only contain li tags
+                    # Nested lists (indented list items) are nested inside li tags
                     contents = tag.contents
                     for part in contents:
+                        # Reset list indentation level for each loop
+                        level = 0
                         # Check if the tag is a list item, <li>
                         if part.name == 'li':
                             # Get the contents of li
                             li_contents = part.contents
-                            # Create the paragraph for this list item
-                            p = self.spenny_doc.add_paragraph(style='List Numbered')
-                            p = self.set_contextual_spacing(p)
-                            self.list_number(p, prev=prev_p, level=0, num=num)
-                            p.paragraph_format.left_indent = Inches(0.5)
                             # A length of `1` means no other tags to process
                             if len(li_contents) == 1:
-                                # run = p.add_run(part)
-                                self.replace_and_write(part.text, p, finding, report_json, report_type=report_type)
+                                # Create the paragraph for this list item
+                                p = self.create_list_paragraph(prev_p, level, num)
+                                if li_contents[0].name:
+                                    self.process_nested_tags(li_contents, p, finding, prev_p, num)
+                                else:
+                                    self.replace_and_write(part.text, p, finding)
                             # Bigger lists mean more tags, so process nested tags
                             else:
-                                self.process_nested_tags(part, p, finding, report_json, prev_p, num, report_type)
-                            # Track the paragraph used for this list item
+                                # Identify a part with a nested list
+                                if part.ol or part.ul:
+                                    # Get everything between the <li> and the first nested <ol>
+                                    temp = []
+                                    nested_list = None
+                                    for sub_part in part:
+                                        # Add everything NOT a nested list to temp
+                                        # This holds text and nested tags that come before the first list tag
+                                        if not sub_part.name == 'ol' and not sub_part.name == 'ul':
+                                            if sub_part != '\n':
+                                                temp.append(sub_part)
+                                        elif sub_part.name == 'ol' or sub_part.name == 'ul':
+                                            if sub_part != '\n':
+                                                nested_list = sub_part
+                                    # If temp isn't empty, process it like any other line
+                                    if temp:
+                                        p = self.create_list_paragraph(prev_p, level, num)
+                                        if len(temp) == 1:
+                                            if temp[0].name:
+                                                self.process_nested_tags(temp, p, finding, prev_p, num)
+                                            else:
+                                                self.replace_and_write(temp[0], p, finding)
+                                        # Bigger lists mean more tags, so process nested tags
+                                        else:
+                                            self.process_nested_tags(temp, p, finding, prev_p, num)
+                                    # Recursively process this list and any other nested lists inside of it
+                                    if nested_list:
+                                        # Increment the list level counter for this nested list
+                                        level += 1
+                                        p = self.parse_nested_html_lists(nested_list, p, num, finding, level)
+                                # No nested list, proceed as normal
+                                else:
+                                    p = self.create_list_paragraph(prev_p, level, num)
+                                    self.process_nested_tags(part.contents, p, finding, prev_p, num)
+                            # Track the paragraph used for this list item to link subsequent paragraphs
                             prev_p = p
                         else:
                             if not isinstance(part, NavigableString):
@@ -884,7 +1018,7 @@ class Reportwriter():
     def generate_word_docx(self):
         """Generate a Word document for the current report."""
         # Generate the JSON for the report
-        report_json = json.loads(self.generate_json())
+        self.report_json = json.loads(self.generate_json())
         # Create Word document writer using the specified template file
         if self.template_loc:
             try:
@@ -896,21 +1030,21 @@ class Reportwriter():
         # Prepare the `context` dict for the Word template rendering
         context = {}
         # Client information
-        context['client'] = report_json['client']['full_name']
-        context['client_short'] = report_json['client']['short_name']
-        context['client_pocs'] = report_json['client']['poc'].values()
+        context['client'] = self.report_json['client']['full_name']
+        context['client_short'] = self.report_json['client']['short_name']
+        context['client_pocs'] = self.report_json['client']['poc'].values()
         # Assessment information
-        context['assessment_name'] = report_json['project']['name']
-        context['project_type'] = report_json['project']['project_type']
+        context['assessment_name'] = self.report_json['project']['name']
+        context['project_type'] = self.report_json['project']['project_type']
         context['company'] = settings.COMPANY_NAME
-        context['company_pocs'] = report_json['team'].values()
+        context['company_pocs'] = self.report_json['team'].values()
         # Infrastructure information
-        context['domains'] = report_json['infrastructure']['domains'].values()
-        context['static_servers'] = report_json['infrastructure']['servers']['static'].values()
-        context['cloud_servers'] = report_json['infrastructure']['servers']['cloud'].values()
-        context['domains_and_servers'] = report_json['infrastructure']['domains_and_servers'].values()
+        context['domains'] = self.report_json['infrastructure']['domains'].values()
+        context['static_servers'] = self.report_json['infrastructure']['servers']['static'].values()
+        context['cloud_servers'] = self.report_json['infrastructure']['servers']['cloud'].values()
+        context['domains_and_servers'] = self.report_json['infrastructure']['domains_and_servers'].values()
         # Findings information
-        context['findings'] = report_json['findings'].values()
+        context['findings'] = self.report_json['findings'].values()
         for finding in context['findings']:
             finding_color = self.informational_color
             if finding['severity'].lower() == 'informational':
@@ -926,18 +1060,18 @@ class Reportwriter():
             finding['color'] = finding_color
         # Generate the subdocument for findings
         self.spenny_doc = self.main_spenny_doc.new_subdoc()
-        self.generate_finding_subdoc(report_json)
+        self.generate_finding_subdoc()
         context['findings_subdoc'] = self.spenny_doc
         # Render the Word document + auto-escape any unsafe XML/HTML
         self.main_spenny_doc.render(context, autoescape=True)
         # Return the final rendered document
         return self.main_spenny_doc
 
-    def generate_finding_subdoc(self, report_json):
+    def generate_finding_subdoc(self):
         """Generate a Word document for the current report."""
         counter = 0
-        total_findings = len(report_json['findings'].values())
-        for finding in report_json['findings'].values():
+        total_findings = len(self.report_json['findings'].values())
+        for finding in self.report_json['findings'].values():
             # There's a special Heading 3 for the finding title so we don't
             # use `add_heading()` here
             p = self.spenny_doc.add_paragraph(finding['title'])
@@ -976,28 +1110,25 @@ class Reportwriter():
                     self.critical_color_hex[2])
             # Add an Affected Entities section
             self.spenny_doc.add_heading('Affected Entities', 4)
-            self.process_text_xml(finding['affected_entities'], finding, report_json)
+            self.process_text_xml(finding['affected_entities'], finding)
             # Add a Description section that may also include evidence figures
             self.spenny_doc.add_heading('Description', 4)
-            self.process_text_xml(finding['description'], finding, report_json)
+            self.process_text_xml(finding['description'], finding)
             # Create Impact section
             self.spenny_doc.add_heading('Impact', 4)
             self.process_text_xml(
                 finding['impact'],
-                finding,
-                report_json)
+                finding)
             # Create Recommendations section
             self.spenny_doc.add_heading('Recommendation', 4)
             self.process_text_xml(
                 finding['recommendation'],
-                finding,
-                report_json)
+                finding)
             # Create Replication section
             self.spenny_doc.add_heading('Replication Steps', 4)
             self.process_text_xml(
                 finding['replication_steps'],
-                finding,
-                report_json)
+                finding)
             # Check if techniques are provided before creating a host
             # detection section
             if finding['host_detection_techniques']:
@@ -1006,8 +1137,7 @@ class Reportwriter():
                     u'Adversary Detection Techniques \u2013 Host', 4)
                 self.process_text_xml(
                     finding['host_detection_techniques'],
-                    finding,
-                    report_json)
+                    finding)
             # Check if techniques are provided before creating a network
             # detection section
             if finding['network_detection_techniques']:
@@ -1016,18 +1146,17 @@ class Reportwriter():
                     u'Adversary Detection Techniques \u2013 Network', 4)
                 self.process_text_xml(
                     finding['network_detection_techniques'],
-                    finding,
-                    report_json)
+                    finding)
             # Create References section
             if finding['references']:
                 self.spenny_doc.add_heading('References', 4)
-                self.process_text_xml(finding['references'], finding, report_json)
+                self.process_text_xml(finding['references'], finding)
             counter += 1
             # Check if this is the last finding to avoid an extra blank page
             if not counter == total_findings:
                 self.spenny_doc.add_page_break()
 
-    def process_text_xlsx(self, html, text_format, finding, report_json):
+    def process_text_xlsx(self, html, text_format, finding):
         """Process the provided text from the specified finding to parse
         keywords for evidence placement and formatting in xlsx documents.
         """
@@ -1039,14 +1168,14 @@ class Reportwriter():
         text = BeautifulSoup(html, 'lxml').text
         # Perform the necessary replacements
         if '{{.client}}' in text:
-            if report_json['client']['short_name']:
+            if self.report_json['client']['short_name']:
                 text = text.replace(
                     '{{.client}}',
-                    report_json['client']['short_name'])
+                    self.report_json['client']['short_name'])
             else:
                 text = text.replace(
                     '{{.client}}',
-                    report_json['client']['full_name'])
+                    self.report_json['client']['full_name'])
         text = text.replace('{{.caption}}', u'Caption \u2013 ')
         # Find/replace evidence keywords because they're ugly and don't make sense when read
         match = re.findall(keyword_regex, text)
@@ -1069,7 +1198,7 @@ class Reportwriter():
         """Generate the finding rows and save the document."""
         from ghostwriter.reporting.models import Evidence
         # Generate the JSON for the report
-        report_json = json.loads(self.generate_json())
+        self.report_json = json.loads(self.generate_json())
         # Create xlsxwriter
         spenny_doc = memory_object
         self.worksheet = spenny_doc.add_worksheet('Findings')
@@ -1103,7 +1232,7 @@ class Reportwriter():
         # Loop through the dict of findings to create findings worksheet
         self.col = 0
         self.row = 1
-        for finding in report_json['findings'].values():
+        for finding in self.report_json['findings'].values():
             # Finding Name
             self.worksheet.write(self.row, self.col, finding['title'], wrap_format)
             self.col += 1
@@ -1128,37 +1257,37 @@ class Reportwriter():
             # Affected Asset
             if finding['affected_entities']:
                 self.process_text_xlsx(
-                    finding['affected_entities'], asset_format, finding, report_json)
+                    finding['affected_entities'], asset_format, finding)
             else:
                 self.worksheet.write(
-                    self.row, self.col, 'N/A', asset_format, finding, report_json)
+                    self.row, self.col, 'N/A', asset_format, finding)
             self.col += 1
             # Description
             self.process_text_xlsx(
-                finding['description'], wrap_format, finding, report_json)
+                finding['description'], wrap_format, finding)
             self.col += 1
             # Impact
             self.process_text_xlsx(
-                finding['impact'], wrap_format, finding, report_json)
+                finding['impact'], wrap_format, finding)
             self.col += 1
             # Recommendation
             self.process_text_xlsx(
-                finding['recommendation'], wrap_format, finding, report_json)
+                finding['recommendation'], wrap_format, finding)
             self.col += 1
             # Replication
             self.process_text_xlsx(
-                finding['replication_steps'], wrap_format, finding, report_json)
+                finding['replication_steps'], wrap_format, finding)
             self.col += 1
             # Detection
             self.process_text_xlsx(
-                finding['host_detection_techniques'], wrap_format, finding, report_json)
+                finding['host_detection_techniques'], wrap_format, finding)
             self.col += 1
             self.process_text_xlsx(
-                finding['network_detection_techniques'], wrap_format, finding, report_json)
+                finding['network_detection_techniques'], wrap_format, finding)
             self.col += 1
             # References
             self.process_text_xlsx(
-                finding['references'], wrap_format, finding, report_json)
+                finding['references'], wrap_format, finding)
             self.col += 1
             # Collect the evidence, if any, from the finding's folder and
             # insert inline with description
@@ -1177,15 +1306,16 @@ class Reportwriter():
             self.row += 1
             self.col = 0
         # Add a filter to the worksheet
-        self.worksheet.autofilter('A1:J{}'.format(len(report_json['findings'])+1))
+        self.worksheet.autofilter('A1:J{}'.format(len(self.report_json['findings'])+1))
         # Finalize document
         spenny_doc.close()
         return(spenny_doc)
 
     def generate_powerpoint_pptx(self):
         """Generate the tables and save the PowerPoint presentation."""
+        self.report_type = 'pptx'
         # Generate the JSON for the report
-        report_json = json.loads(self.generate_json())
+        self.report_json = json.loads(self.generate_json())
         # Create document writer using the specified template
         if self.template_loc:
             try:
@@ -1224,7 +1354,7 @@ class Reportwriter():
             'Informational': 0
         }
         # Calculate finding stats
-        for finding in report_json['findings'].values():
+        for finding in self.report_json['findings'].values():
             findings_stats[finding['severity']] += 1
         # Slide styles (From Master Style counting top to bottom from 0..n)
         SLD_LAYOUT_TITLE = 0
@@ -1240,9 +1370,9 @@ class Reportwriter():
         text_frame = body_shape.text_frame
         # Use text_frame.text for first line/paragraph or
         # text_frame.paragraphs[0]
-        text_frame.text = '{} Debrief'.format(report_json['project']['project_type'])
+        text_frame.text = '{} Debrief'.format(self.report_json['project']['project_type'])
         p = text_frame.add_paragraph()
-        p.text = report_json['client']['full_name']
+        p.text = self.report_json['client']['full_name']
         # Add Agenda slide
         slide_layout = self.spenny_ppt.slide_layouts[
             SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -1298,13 +1428,13 @@ class Reportwriter():
         # Add Findings Overview Slide 2
         # If there are findings then write a table of findings and
         # severity ratings
-        if len(report_json['findings']) > 0:
+        if len(self.report_json['findings']) > 0:
             # Delete the default text placeholder
             textbox = shapes[1]
             sp = textbox.element
             sp.getparent().remove(sp)
             # Add a table
-            rows = len(report_json['findings']) + 1
+            rows = len(self.report_json['findings']) + 1
             columns = 2
             left = Inches(1.5)
             top = Inches(2)
@@ -1333,7 +1463,7 @@ class Reportwriter():
                 RGBColor(0x2D, 0x28, 0x69)
             # Write findings rows
             row_iter = 1
-            for finding in report_json['findings'].values():
+            for finding in self.report_json['findings'].values():
                 table.cell(row_iter, 0).text = finding['title']
                 risk_cell = table.cell(row_iter, 1)
                 # Set risk rating
@@ -1361,7 +1491,7 @@ class Reportwriter():
             p.text = 'No findings'
             p.level = 0
         # Create slide for each finding
-        for finding in report_json['findings'].values():
+        for finding in self.report_json['findings'].values():
             slide_layout = self.spenny_ppt.slide_layouts[
                 SLD_LAYOUT_TITLE_AND_CONTENT]
             self.finding_slide = self.spenny_ppt.slides.add_slide(slide_layout)
@@ -1372,9 +1502,9 @@ class Reportwriter():
                 finding['title'],
                 finding['severity'])
             if finding['description']:
-                self.process_text_xml(finding['description'], finding, report_json, 'pptx')
+                self.process_text_xml(finding['description'], finding)
             else:
-                self.process_text_xml('<p>No description provided</p>', finding, report_json, 'pptx')
+                self.process_text_xml('<p>No description provided</p>', finding)
             # Add some detailed notes
             # Strip all HTML tags and replace any \x0D characters for pptx
             entities = BeautifulSoup(finding['affected_entities'], 'lxml').text.replace('\x0D', '')
@@ -1442,7 +1572,7 @@ MITIGATION\n\n{}\n\nREPLICATION\n\n{}\n\nREFERENCES\n\n{}'.format(
         each file.
         """
         # Generate the JSON report - it just needs to be a string object
-        report_json = self.generate_json()
+        self.report_json = json.loads(self.generate_json())
         # Generate the docx report - save it in a memory stream
         try:
             self.template_loc = docx_template
@@ -1467,4 +1597,4 @@ MITIGATION\n\n{}\n\nREPLICATION\n\n{}\n\nREFERENCES\n\n{}'.format(
         except:
             raise
         # Return each memory object
-        return report_json, word_stream, excel_stream, ppt_stream
+        return self.report_json, word_stream, excel_stream, ppt_stream

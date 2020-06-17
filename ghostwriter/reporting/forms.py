@@ -10,6 +10,10 @@ from .models import (
     Finding, Report, ReportFindingLink, Evidence, LocalFindingNote,
     FindingNote)
 
+from ghostwriter.rolodex.models import Project
+
+from datetime import datetime
+
 
 class FindingCreateForm(forms.ModelForm):
     """Form used with the FindingCreate CreateView in views.py to allow
@@ -69,6 +73,33 @@ class ReportCreateForm(forms.ModelForm):
         self.helper.form_show_labels = False
 
 
+class ReportCreateFormStandalone(forms.ModelForm):
+    """Form used with the ReportCreateWithoutProject CreateView in views.py
+    to allow excluding fields.
+    """
+    class Meta:
+        """Metadata for the model form."""
+        model = Report
+        exclude = ('creation', 'last_update',
+                   'created_by', 'complete')
+
+    def __init__(self, *args, **kwargs):
+        """Override the `init()` function to set some attributes."""
+        super(ReportCreateFormStandalone, self).__init__(*args, **kwargs)
+        active_projects = Project.objects.filter(end_date__gte=datetime.today())
+        if active_projects:
+            self.fields['project'].empty_label = '-- Select an Active Project --'
+        else:
+            self.fields['project'].empty_label = '-- No Active Projects --'
+        self.fields['project'].queryset = active_projects
+        self.helper = FormHelper()
+        self.helper.form_class = 'form-inline'
+        self.helper.form_method = 'post'
+        self.helper.field_class = \
+            'h-100 justify-content-center align-items-center'
+        self.helper.form_show_labels = False
+
+
 class ReportFindingLinkUpdateForm(forms.ModelForm):
     """Form used with the ReportFindingLink UpdateView in views.py to allow
     excluding fields.
@@ -81,6 +112,9 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Override the `init()` function to set some attributes."""
         super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
+        # Set a min position of `1`
+        self.fields['position'].widget.attrs['min'] = '1'
+        # Set placeholder text and other form settings
         self.fields['affected_entities'].widget.attrs['placeholder'] = \
             'DC01.TEXTLAB.LOCAL'
         self.helper = FormHelper()
@@ -131,9 +165,10 @@ class EvidenceForm(forms.ModelForm):
         friendly_name = cleaned_data.get('friendly_name')
         finding = cleaned_data.get('finding')
         # Check if provided name has already been used for another file for this report
-        report_queryset = Evidence.objects.filter(finding=finding.id).values_list('friendly_name', flat=True)
-        if friendly_name in report_queryset:
-            raise ValidationError(_('This friendly name has already been used for a file attached to this finding.'))
+        report_queryset = Evidence.objects.filter(finding=finding.id).values_list('id', 'friendly_name')
+        for evidence in report_queryset:
+            if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
+                raise ValidationError(_('This friendly name has already been used for a file attached to this finding.'))
         # Return the cleaned data
         return cleaned_data
 

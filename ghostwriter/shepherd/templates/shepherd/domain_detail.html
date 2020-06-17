@@ -214,7 +214,8 @@
                             {% if domain.burned_explanation %}
                                 <p>
                                     This domain has been flagged as "Burned" for the following reason(s):<br>
-                                    {{ domain.burned_explanation }}
+                                    <hr>
+                                    {{ domain.burned_explanation|safe }}
                                 </p>
                             {% else %}
                                 <p>This domain has been flagged as "Burned" with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
@@ -237,18 +238,29 @@
                         {% if domain.get_list %}
                             <table>
                                 <tr>
-                                    <th>Records</th>
+                                    <th>Record</th>
+                                    <th>Value</th>
                                 </tr>
-                                {% for record in domain.get_list %}
-                                    {% if record %}
+                                {% if domain.get_list.items %}
+                                    {% for record, value in domain.get_list.items %}
                                         <tr>
-                                            <td style="text-align: left">{{ record }}</td>
+                                            <td style="text-align: center">{{ record|upper }}</td>
+                                            {% if value %}
+                                                <td style="text-align: left">{{ value }}</td>
+                                            {% else %}
+                                                <td style="text-align: left">Record is empty</td>
+                                            {% endif %}
                                         </tr>
-                                    {% endif %}
-                                {% endfor %}
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td style="text-align: center">Record Dictionary</td>
+                                        <td style="text-align: left">{{ domain.get_list }}</td>
+                                    </tr>
+                                {% endif %}
                             </table>
                         {% else %}
-                            <p>Refresh DNS records to populate this area.</p>
+                            <p>No DNS records have been found for this domain. Refresh DNS records to populate this area.</p>
                         {% endif %}
                     </div>
                 </div>
@@ -264,23 +276,23 @@
                 <div id="collapseProject" class="collapse" aria-labelledby="description" data-parent="#accordion">
                     <div class="card-body">
                         {% if domain.history_set.all %}
-                            <table>
-                                <tr>
-                                    <th>Client</th>
-                                    <th>Activity Type</th>
-                                    <th>Project Type</th>
-                                    <th>Start</th>
-                                    <th>End</th>
-                                    <th>Notes</th>
-                                    <th>Options</th>
-                                </tr>
+                            <table id="projectTable" class="tablesorter" style="margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th>Client</th>
+                                        <th>Activity Type</th>
+                                        <th>Project Type</th>
+                                        <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                                        <th class="sorter-false">Notes</th>
+                                        <th class="sorter-false">Options</th>
+                                    </tr>
+                                </thead>
                                 {% for project in domain.history_set.all %}
                                     <tr>
                                         <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
                                         <td>{{ project.activity_type }}</td>
                                         <td>{{ project.project.project_type }}</td>
-                                        <td>{{ project.start_date }}</td>
-                                        <td>{{ project.end_date }}</td>
+                                        <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
                                         <td style="text-align: justify">{{ project.note|safe}}</td>
                                         <td>
                                             <div class="dropdown">
@@ -343,4 +355,20 @@
 
 {% block collapse_js %}
 {{ block.super }}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#projectTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
 {% endblock %}
