@@ -276,4 +276,10 @@ ssl/*.crt
 ssl/*.key
 ssl/dhparam.pem
 
+# Configurations
+compose/production/nginx/nginx.conf
+
+# Templates
+ghostwriter/reporting/templates/reports/*_template.docx
+
 .vscode/settings.json
