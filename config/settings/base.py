@@ -344,6 +344,7 @@ NAMECHEAP_CONFIG = {
 
 # Cloud service configuration
 CLOUD_SERVICE_CONFIG = {
+    'enable_cloud_monitor': env("ENABLE_CLOUD_MONITOR", default=False),
     'aws_key': env("AWS_KEY", default=None),
     'aws_secret': env("AWS_SECRET", default=None),
     'do_api_key': env("DO_API_KEY", default=None)

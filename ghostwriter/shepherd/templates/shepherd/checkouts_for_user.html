@@ -52,7 +52,7 @@
 
                                 <td>{{ entry.activity_type}}</td>
 
-                                <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
+                                <td class="{% if entry.will_be_released %}text-danger burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
 
                                 <td>
                                     <div class="dropdown">
@@ -109,7 +109,7 @@
 
                                 <td>{{ entry.server_role}}</td>
 
-                                <td class="{% if entry.will_be_released %}text-danger{% endif %}">{{ entry.end_date }}</td>
+                                <td class="{% if entry.will_be_released %}text-danger burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
 
                                 <td>
                                     <div class="dropdown">

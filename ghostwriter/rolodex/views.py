@@ -440,12 +440,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             self.request,
             'Project successfully updated.',
             extra_tags='alert-success')
-        next_url = self.request.POST.get('next', '/')
-        if next_url:
-            if '/domains/' in next_url:
-                return '{}#collapseHistory'.format(next_url)
-        else:
-            return reverse('rolodex:project_detail', kwargs={'pk': self.object.pk})
+        return reverse('rolodex:project_detail', kwargs={'pk': self.object.pk})
 
     def get_initial(self):
         """Set the initial values for the form."""

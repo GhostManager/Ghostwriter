@@ -9,7 +9,7 @@
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date }} {{ project.project_type }}</li>
+            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date|date:"d M Y" }} {{ project.project_type }}</li>
         </ul>
     </nav>
 {% endblock %}
@@ -51,7 +51,7 @@
 
         <div>
             <span style="margin-right: 40px;">
-                {{ project.start_date }} to {{ project.end_date }}
+                {{ project.start_dat|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}
             </span>
             <span>
                 {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
@@ -91,13 +91,13 @@
                                     <tr>
                                         <td nowrap>{{ operator.operator.name }}</td>
                                         <td nowrap>{{ operator.role }}</td>
-                                        {% if operator.start_date %}
-                                            <td nowrap>{{ operator.start_date }}</td>
+                                        {% if operator.start_date|date:"d M Y" %}
+                                            <td nowrap>{{ operator.start_date|date:"d M Y" }}</td>
                                         {% else %}
                                             <td></td>
                                         {% endif %}
-                                        {% if operator.end_date %}
-                                            <td nowrap>{{ operator.end_date }}</td>
+                                        {% if operator.end_date|date:"d M Y" %}
+                                            <td nowrap>{{ operator.end_date|date:"d M Y" }}</td>
                                         {% else %}
                                             <td></td>
                                         {% endif %}
@@ -205,7 +205,7 @@
                                 <thead>
                                     <th>Domain Name</th>
                                     <th>Purpose</th>
-                                    <th>Date Range</th>
+                                    <th class="sorter-date-range-dMMMyyyy">Date Range</th>
                                     <th class="sorter-false">Note</th>
                                     <th class="sorter-false">Options</th>
                                 </thead>
@@ -220,7 +220,7 @@
                                             </a>
                                         </td>
                                         <td>{{ domain.activity_type }}</td>
-                                        <td>{{ domain.start_date }} to {{ domain.end_date }}</td>
+                                        <td>{{ domain.start_date|date:"d M Y" }} – {{ domain.end_date|date:"d M Y" }}</td>
                                         <td style="text-align: justify;">{{ domain.note|safe }}</td>
                                         <td>
                                             <div class="dropdown">
@@ -517,7 +517,7 @@
                                 <tr>
                                     <td>{{ report.creation }}</td>
                                     <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                                    <td>{{ report.last_update }}</td>
+                                    <td>{{ report.last_update|date:"d M Y" }}</td>
                                     {% if report.complete %}
                                         {% if report.delivered %}
                                             <td>Delivered</td>
