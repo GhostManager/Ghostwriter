@@ -22,6 +22,9 @@ class DomainAdmin(admin.ModelAdmin):
             'fields': ('whois_status', 'health_status', 'health_dns',
                        'burned_explanation')
         }),
+        ('DNS Status', {
+            'fields': ('dns_record',)
+        }),
         ('Categories', {
             'fields': ('all_cat', 'ibm_xforce_cat', 'talos_cat',
                        'bluecoat_cat', 'fortiguard_cat', 'opendns_cat',

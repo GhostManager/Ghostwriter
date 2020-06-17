@@ -28,6 +28,6 @@ redis==3.2.1
 requests==2.22.0
 boto3==1.10.8
 botocore==1.13.8
-django-import-export==1.2.0
+django-import-export==2.2.0
 django-tinymce==2.8.0
 docxtpl==0.6.3

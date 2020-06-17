@@ -81,6 +81,18 @@ p {
     margin-bottom: 20px;
 }
 
+.bold {
+    font-weight: bold;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
 pre {
     font-size: var(--main-font-size);
     font-weight: 300;
@@ -727,6 +739,7 @@ th, td {
     border-bottom: 1px solid #ddd;
     font-size: var(--main-font-size);
     word-wrap: break-word;
+    max-width: 600px;
 }
 
 td {
@@ -1224,4 +1237,12 @@ img {
 .card td {
     border-bottom: 0;
     text-align: left;
+}
+
+/* ---------------------------------------------------
+    TOAST MESSAGE STYLES
+----------------------------------------------------- */
+
+.toast-body {
+    word-wrap: break-word;
 }

@@ -5,6 +5,7 @@ from django.urls import reverse
 # from django.contrib.auth.models import User
 from django.conf import settings
 
+import json
 import datetime
 from datetime import date
 
@@ -124,9 +125,8 @@ class Domain(models.Model):
         blank=True,
         help_text='Enter the name of the registrar where this domain is '
                   'registered')
-    dns_record = models.CharField(
+    dns_record = models.TextField(
         'DNS Records',
-        max_length=500,
         null=True,
         blank=True,
         help_text='Enter the domain\'s DNS records - leave blank if you '
@@ -275,9 +275,16 @@ class Domain(models.Model):
     def get_list(self):
         """Property to enable fetching the list from the dns_record entry."""
         if self.dns_record:
-            return self.dns_record.split(' ::: ')
+            try:
+                json_acceptable_string = self.dns_record.replace("'", "\"")
+                if json_acceptable_string:
+                    return json.loads(json_acceptable_string)
+                else:
+                    return None
+            except Exception:
+                return self.dns_record
         else:
-            None
+            return None
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""

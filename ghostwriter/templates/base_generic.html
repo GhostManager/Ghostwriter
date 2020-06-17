@@ -31,6 +31,7 @@
         <!-- jQuery tablesorter plugin -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.widgets.js" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-date-range.min.js" crossorigin="anonymous"></script>
 
         <!-- TinyMCE -->
         <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
@@ -199,7 +200,7 @@
                                 <li><a href="{% url 'shepherd:domain_import' %}">Upload Bulk Domains</a></li>
                             </ul>
                         </li>
-                        <li><a href="{% url 'shepherd:update' %}">Domain Update Controls</a></li>
+                        <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
                     </ul>
 
                     <!-- Admin Section -->

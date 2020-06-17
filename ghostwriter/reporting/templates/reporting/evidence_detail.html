@@ -29,25 +29,21 @@
 
     <!-- File Information Section -->
     <table style="width: 70%; margin-left: 15%;">
-        <tr class="hidden-table">
-            <th class="form_th"><i class="fas fa-info"></i> File Information</th>
-            <th class="form_th"></th>
-        </tr>
         <tr>
-            <td style="border-bottom: 0">Uploaded by</td>
+            <td nowrap style="border-bottom: 0">Uploaded by</td>
             <td style="border-bottom: 0">{{ evidence.uploaded_by }}</td>
         </tr>
         <tr>
-            <td style="border-bottom: 0">Upload Date</td>
+            <td nowrap style="border-bottom: 0">Upload Date</td>
             <td style="border-bottom: 0">{{ evidence.upload_date }}</td>
         </tr>
         <tr>
-            <td style="border-bottom: 0">Description</td>
-            <td style="border-bottom: 0">{{ evidence.description }}</td>
+            <td nowrap style="border-bottom: 0">Description</td>
+            <td style="border-bottom: 0">{{ evidence.description|safe }}</td>
         </tr>
         <tr>
-            <td style="border-bottom: 0">Report Caption</td>
-            <td style="border-bottom: 0">{{ evidence.caption }}</td>
+            <td nowrap style="border-bottom: 0">Report Caption</td>
+            <td style="border-bottom: 0">{{ evidence.caption|safe }}</td>
         </tr>
     </table>
 
