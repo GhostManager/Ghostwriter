@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
-from rest_framework import viewsets
+from rest_framework import viewsets, generics
 
 from .models import Oplog, OplogEntry
 from .forms import OplogCreateForm, OplogCreateEntryForm
@@ -63,8 +63,15 @@ class OplogEntryDelete(LoginRequiredMixin, DeleteView):
 		return reverse('oplog:oplog_entries', args=(self.object.oplog_id.id,))
 
 class OplogEntryViewSet(viewsets.ModelViewSet):
-    queryset = OplogEntry.objects.all()
-    serializer_class = OplogEntrySerializer
+	serializer_class = OplogEntrySerializer
+	queryset = OplogEntry.objects.all()
+
+	def get_queryset(self):
+		if 'oplog_id' not in self.request.query_params:
+			return OplogEntry.objects.all().order_by('-start_date')
+		else:
+			oplog_id = self.request.query_params['oplog_id']
+			return OplogEntry.objects.filter(oplog_id=oplog_id).order_by('-start_date')
 
 class OplogViewSet(viewsets.ModelViewSet):
     queryset = Oplog.objects.all()

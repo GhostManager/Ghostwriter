@@ -27,17 +27,8 @@
                 <th>Delete</th>
             </tr>
         </thead>
-        {% for entry in entries %}
-            <tr>
-                <td nowrap>{{ entry.start_date }}</td>
-                <td nowrap>{{ entry.tool }}</td>
-                <td nowrap>{{ entry.user_context }}</td>
-                <td nowrap>{{ entry.command }}</td>
-                <td nowrap>{{ entry.operator_name }}</td>
-                <td class="clickable"><a href="{% url 'oplog:oplog_entry_update' pk=entry.id %}">View/Edit</a></td>
-                <td class="clickable"><a href="{% url 'oplog:oplog_entry_delete' pk=entry.id %}">Delete</a></td>
-            </tr>
-        {% endfor %}
+        <tbody>
+        </tbody>
     </table>
     <p><a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a></p>
 {% endblock %}
@@ -46,6 +37,37 @@
 {% block morescripts %}
     <!-- jQuery Tablesorter Script -->
     <script>
+        function updateTable() {
+            $.ajax({
+                type: 'GET',
+                url: "{% url 'oplog:oplogentry-list' %}?oplog_id={{pk}}",
+                success: function(response) {
+                    console.log(response)
+                    $("#oplogTable").find('tbody').empty()
+                    console.log("HERE")
+                    $.each(response, function(index, entry) {
+                        var newRow = `<tr>
+                            <td>${entry["start_date"]}</td>
+                            <td>${entry["tool"]}</td>
+                            <td>${entry["user_context"]}</td>
+                            <td>${entry["command"]}</td>
+                            <td>${entry["operator_name"]}</td>
+                            <td class="clickable"><a href="/oplog/${entry['id']}/entries/update">View/Edit</a></td>
+                            <td class="clickable"><a href="/oplog/${entry['id']}/entries/delete">Delete</a></td>
+                            </tr>`
+ 
+                        newRow = newRow.replace("REPLACEME", entry["id"]);
+                        console.log(newRow)
+
+                        $("#oplogTable").append(newRow);
+                    });
+                },
+                error: function (response) {
+                    console.log("Error submitting ajax query")
+                }
+            });
+        }
+
         $(document).ready(function()  {
             $("#oplogTable").tablesorter(
                             {
@@ -55,6 +77,9 @@
                             }
                         );
             $('.tablesorter').trigger('update');
+            updateTable()
+            setInterval(updateTable, 5000)
         });
+ 
     </script>
 {% endblock %}
