@@ -42,9 +42,7 @@
                 type: 'GET',
                 url: "{% url 'oplog:oplogentry-list' %}?oplog_id={{pk}}",
                 success: function(response) {
-                    console.log(response)
                     $("#oplogTable").find('tbody').empty()
-                    console.log("HERE")
                     $.each(response, function(index, entry) {
                         var newRow = `<tr>
                             <td>${entry["start_date"]}</td>
@@ -57,7 +55,6 @@
                             </tr>`
  
                         newRow = newRow.replace("REPLACEME", entry["id"]);
-                        console.log(newRow)
 
                         $("#oplogTable").append(newRow);
                     });
