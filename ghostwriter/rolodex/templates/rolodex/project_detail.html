@@ -51,7 +51,7 @@
 
         <div>
             <span style="margin-right: 40px;">
-                {{ project.start_dat|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}
+                {{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}
             </span>
             <span>
                 {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}

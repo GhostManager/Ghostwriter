@@ -5,6 +5,29 @@
 
 {% block tinymcejs %}
     <script>
+        // TinyMCE OpenURL dialog config only accepts height/width in pixels
+        // Get browser windows width and height and calculate pixels from a percentage to avoid overflow
+        var dialog_percentage = .7
+        var window_width = window.innerWidth;
+        var window_height = window.innerHeight;
+        var dialog_width = window_width * dialog_percentage;
+        var dialog_height = window_height * dialog_percentage;
+        // Monitor for window resizing and adjust dialog as needed
+        window.addEventListener("resize", adjust_dialog);
+        function adjust_dialog() {
+            var window_width = window.innerWidth;
+            var window_height = window.innerHeight;
+            var dialog_width = window_width * dialog_percentage;
+            var dialog_height = window_height * dialog_percentage;
+            var dialog_box = document.getElementsByClassName('tox-dialog')[0];
+            if (typeof dialog_box !== 'undefined') {
+                tinyMCE.DOM.setStyle(tinyMCE.DOM.get(dialog_box), 'height', dialog_height + 'px');
+                tinyMCE.DOM.setStyle(tinyMCE.DOM.get(dialog_box), 'width', dialog_width + 'px');
+                tinyMCE.DOM.setStyle(tinyMCE.DOM.get(dialog_box), 'max-height', dialog_height + 'px');
+                tinyMCE.DOM.setStyle(tinyMCE.DOM.get(dialog_box), 'max-width', dialog_width + 'px');
+            };
+        }
+        // Initialize TinyMCE
         tinymce.init({
             selector:'textarea',
             height: '300',
@@ -34,8 +57,8 @@
                         _dialog = editor.windowManager.openUrl({
                             title: 'Upload Evidence',
                             url: '{% url "reporting:upload_evidence_modal" reportfindinglink.id %}',
-                            height: 1100,
-                            width: 1000,
+                            height: dialog_height,
+                            width: dialog_width,
                             buttons: [
                                 {
                                     type: 'custom',
