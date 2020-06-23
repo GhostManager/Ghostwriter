@@ -9,33 +9,41 @@
 
         <title>{% block title %}Ghostwriter{% endblock %}</title>
 
+        <!-- Load Static Files -->
+        {% load static %}
+        <link rel="shortcut icon" href="{%  static 'favicon.ico' %}">
+
         <!-- Bootstrap CSS CDN -->
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-
-        <!-- Add additional CSS in static file -->
-        {% load static %}
-        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-        <link rel="shortcut icon" href="{%  static 'favicon.ico' %}">
-        <link rel="stylesheet" href="{% static 'jquery/jquery-ui.css' %}">
 
         <!-- Font Awesome JS -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
 
+        <!-- jQuery UI & jQuery CDN -->
+        <link rel="stylesheet" href="{% static 'jquery/jquery-ui.css' %}">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
-        <!-- jQuery UI for Datepicker -->
+        <!-- jQuery UI for Datepickers -->
         <script src="{% static 'jquery/jquery-ui.js' %}"></script>
 
-        <!-- jQuery tablesorter plugin -->
+        <!-- jQuery Tablesorter Plugin -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.widgets.js" crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-date-range.min.js" crossorigin="anonymous"></script>
 
+        <!-- Toastr -->
+        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+
         <!-- TinyMCE -->
         <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/tinymce/custom.js' %}" ></script>
+
+        <!-- Ghostwriter JS & CSS -->
+        <script src="{% static 'js/project.js' %}"></script>
+        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
         {% block tinymcejs %}
             <script>
@@ -240,44 +248,6 @@
                 </nav>
             {% endif %}
 
-            <!-- Section for Toasts Flexbox -->
-            <div class="position-absolute w-100 p-4 d-flex flex-column align-items-end" style="z-index: 10;">
-                <div class="w-25">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="toast fade show ml-auto" role="alert" aria-live="assertive" aria-atomic="true">
-                                <div class="toast-header"
-                                {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-                                    style="background: #d5e8d7;"
-                                {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-                                    style="background: #fbf2d0;"
-                                {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-                                    style="background: #f3d8da;"
-                                {% endif %}>
-                                    {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-                                        <i class="fas fa-check" style="color: #2a562a; padding-right: 10px;"></i>
-                                        <strong class="mr-auto" style="color: #2a562a;">Success</strong>
-                                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-                                        <i class="fas fa-exclamation-circle" style="color: #806620; padding-right: 10px;"></i>
-                                        <strong class="mr-auto" style="color: #806620;">Warning</strong>
-                                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-                                        <i class="fas fa-exclamation" style="color: #692326; padding-right: 10px;"></i>
-                                        <strong class="mr-auto" style="color: #692326;">Error</strong>
-                                    {% endif %}
-                                    <small>{% now "SHORT_DATETIME_FORMAT" %}</small>
-                                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                <div class="toast-body">
-                                    {{ message }}
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-            </div>
-
             <!-- Page Content Holder -->
             <div id="content">
                 {% if user.is_authenticated %}
@@ -318,11 +288,13 @@
                                         </li>
                                         <li class="nav-item">
                                             {% count_assignments request as assignment_count %}
+                                            <a id="assignment-count" href="{% url 'home:dashboard' %}"
                                             {% if assignment_count > 0 %}
-                                                <a href="{% url 'home:dashboard' %}" class="notify-badge badge badge-warning">{{ assignment_count }}</a>
+                                                class="notify-badge badge badge-warning">
                                             {% elif assignment_count > 5 %}
-                                                <a href="{% url 'home:dashboard' %}" class="notify-badge badge badge-danger">{{ assignment_count }}</a>
+                                                class="notify-badge badge badge-danger">
                                             {% endif %}
+                                            {{ assignment_count }}</a>
                                         </li>
                                     {% else %}
                                         <p>{% block pagetitle %}{% endblock %}</p>
@@ -362,12 +334,6 @@
             </div>
         </div>
 
-        <!-- initialize toasts -->
-        <script>
-            $('.toast').toast({delay:3000});
-            $('.toast').toast('show');
-        </script>
-
         <!-- Script for opening and closing the sidebar -->
         <script>
             $(document).ready(function() {
@@ -378,7 +344,7 @@
             });
         </script>
 
-        <!-- Scripts for Collapsibles -->
+        <!-- Script for Collapsibles -->
         <script>
             var coll = document.getElementsByClassName('collapsible');
             var i;
@@ -402,7 +368,7 @@
             });
         </script>
 
-        <!-- Script to Open Accordions on Link -->
+        <!-- Script to Opening Accordions on Link -->
         <script>
             // Modification of https://gist.github.com/raddevon/8958486
             function openAnchorAccordion() {
@@ -421,6 +387,110 @@
 
             jQuery('body').on('click', 'a', openAnchorAccordion);
         </script>
+
+        <!-- Initialize Config for Toastr Toasts -->
+        <script>
+            // Default Configuration
+            $(document).ready(function() {
+                toastr.options = {
+                    'closeButton': true,
+                    'debug': false,
+                    'newestOnTop': false,
+                    'progressBar': true,
+                    'positionClass': 'toast-top-right',
+                    'preventDuplicates': false,
+                    'showDuration': '1000',
+                    'hideDuration': '1000',
+                    'timeOut': '4000',
+                    'extendedTimeOut': '4000',
+                    'showEasing': 'swing',
+                    'hideEasing': 'linear',
+                    'showMethod': 'fadeIn',
+                    'hideMethod': 'fadeOut',
+                }
+                // Need to set this outside of the dict per the README
+                // https://github.com/CodeSeven/toastr#escape-html-characters
+                toastr.options.escapeHtml = true;
+            });
+
+            // Display toast notification for each message on page load
+            {% for message in messages %}
+                {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+                    displayToastTop('success', '{{ message }}');
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+                    displayToastTop('warning', '{{ message }}');
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                    displayToastTop('error', '{{ message }}');
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+                    displayToastTop('info', '{{ message }}');
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
+                    displayToastTop('info', '{{ message }}');
+                {% endif %}
+            {% endfor %}
+        </script>
+
+        {% if user.is_authenticated %}
+            <!-- Script for WebSockets Group for Authenticated Users -->
+            <script>
+                // Connect to channel for individual notifcations
+                var username = '{{ user }}';
+                var ws_user = new WebSocket(
+                    'ws://' + window.location.host +
+                    '/ws/users/' + username + '/');
+                // Connect to channel for all user notifications
+                var ws_all = new WebSocket(
+                    'ws://' + window.location.host +
+                    '/ws/users/all/');
+
+                // Functions for sending messages
+                function sendMessage(socket, msg){
+                    console.log(msg);
+                    // Wait until the state of the socket is not ready and send the message when it is...
+                    waitForSocketConnection(socket, function(){
+                        socket.send(msg);
+                    });
+                }
+                // Make the function wait until the connection is made...
+                function waitForSocketConnection(socket, callback){
+                    setTimeout(
+                        function () {
+                            if (socket.readyState === 1) {
+                                if (callback != null){
+                                    callback();
+                                }
+                            } else {
+                                console.log('Waiting for connection...')
+                                waitForSocketConnection(socket, callback);
+                            }
+                        }, 5); // wait 5 milisecond for the connection...
+                }
+
+                // Handle receiving messages on channels
+                ws_user.onmessage = function(e) {
+                    var data = JSON.parse(e.data);
+                    if (data.assignments !== undefined) {
+                        console.log(data.assignments);
+                        document.getElementById('assignment-count').innerHTML = data.assignments
+                    } else {
+                        console.log('Received task NOPE');
+                    }
+                    displayToastTop(data.message['level'], data.message['message'], data.message['title']);
+                }
+
+                ws_all.onmessage = function(e) {
+                    var data = JSON.parse(e.data);
+                    displayToastTop(data.message['level'], data.message['message'], data.message['title']);
+                };
+
+                // Handle unexpected WebSocket closures
+                ws_user.onclose = function(e) {
+                    console.error('User noification WebSocket closed unexpectedly');
+                };
+                ws_all.onclose = function(e) {
+                    console.error('Global notification WebSocket closed unexpectedly');
+                };
+            </script>
+        {% endif %}
 
         {% block morescripts %}{% endblock %}
     </body>

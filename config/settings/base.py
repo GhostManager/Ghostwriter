@@ -63,6 +63,7 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
     # "django.contrib.humanize", # Handy template tags
     "django.contrib.admin",
+    "channels",
 ]
 
 THIRD_PARTY_APPS = [
@@ -86,6 +87,20 @@ LOCAL_APPS = [
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# WEBSOCKETS
+# ------------------------------------------------------------------------------
+# https://channels.readthedocs.io/en/stable/installation.html
+ASGI_APPLICATION = "ghostwriter.routing.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
+    },
+}
 
 # MIGRATIONS
 # ------------------------------------------------------------------------------
@@ -254,7 +269,6 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
-
 # django-allauth
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
@@ -276,8 +290,8 @@ ACCOUNT_SIGNUP_FORM_CLASS = 'ghostwriter.home.forms.SignupForm'
 INSTALLED_APPS += ["compressor"]
 STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 
-# Message formatting
-
+# DJANGO MESSAGES
+# ------------------------------------------------------------------------------
 from django.contrib.messages import constants as messages
 MESSAGE_TAGS = {
     messages.INFO: 'alert alert-info',
@@ -286,7 +300,8 @@ MESSAGE_TAGS = {
     messages.ERROR: 'alert alert-danger'
 }
 
-# Django Q settings
+# DJANGO Q
+# ------------------------------------------------------------------------------
 
 # Settings to be aware of:
 
@@ -308,14 +323,16 @@ Q_CLUSTER = {
     'redis': env("QCLUSTER_CONNECTION", default={'host': 'redis', 'port': 6379, 'db': 0})
 }
 
-# DomainCheck configuration
+# DOMAIN HEALTH CHECKS
+# ------------------------------------------------------------------------------
 # Enter a VirusTotal API key (free or paid)
 DOMAINCHECK_CONFIG = {
     'virustotal_api_key': env("VIRUSTOTAL_API_KEY", default=None),
     'sleep_time': 20,
 }
 
-# Slack configuration
+# SLACK
+# ------------------------------------------------------------------------------
 SLACK_CONFIG = {
     'enable_slack': env("SLACK_ENABLE", default=False),
     'slack_emoji': env("SLACK_EMOJI", default=":ghost:"),
@@ -325,14 +342,16 @@ SLACK_CONFIG = {
     'slack_webhook_url': env("SLACK_URL", default="")
 }
 
-# Global settings for your team
+# GLOBAL COMPANY SETTINGS
+# ------------------------------------------------------------------------------
 COMPANY_NAME = env("COMPANY_NAME", default="Ghostwriter")
 COMPANY_TWITTER = env("COMPANY_TWITTER", default="@ghostwriter")
 COMPANY_EMAIL = env("COMPANY_EMAIL", default="info@ghostwriter.local")
 
 TEMPLATE_LOC = env("TEMPLATE_LOC", default=str(APPS_DIR("reporting", "templates", "reports")))
 
-# Namecheap configuration
+# NAMECHEAP
+# ------------------------------------------------------------------------------
 NAMECHEAP_CONFIG = {
     'enable_namecheap': env("NAMECHEAP_ENABLE", default=False),
     'namecheap_api_key': env("NAMECHEAP_API_KEY", default=None),
@@ -342,7 +361,8 @@ NAMECHEAP_CONFIG = {
     'namecheap_page_size': env("NAMECHEAP_PAGE_SIZE", default="100")
 }
 
-# Cloud service configuration
+# CLOUD SERVICES
+# ------------------------------------------------------------------------------
 CLOUD_SERVICE_CONFIG = {
     'enable_cloud_monitor': env("ENABLE_CLOUD_MONITOR", default=False),
     'aws_key': env("AWS_KEY", default=None),
@@ -350,6 +370,8 @@ CLOUD_SERVICE_CONFIG = {
     'do_api_key': env("DO_API_KEY", default=None)
 }
 
+# TINYMCE
+# ------------------------------------------------------------------------------
 TINYMCE_JS_ROOT = os.path.join(STATIC_ROOT, "js/tiny_mce")
 TINYMCE_JS_URL = os.path.join(STATIC_URL, "js/tiny_mce/tiny_mce.min.js")
 TINYMCE_SPELLCHECKER = True

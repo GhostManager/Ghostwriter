@@ -1243,6 +1243,67 @@ img {
     TOAST MESSAGE STYLES
 ----------------------------------------------------- */
 
-.toast-body {
-    word-wrap: break-word;
+.toast {
+    max-width: none;
+}
+
+#toast-container > .toast {
+    background-image: none !important;
+    overflow:auto;
+    max-height: calc(95vh);
+}
+
+#toast-container > .toast:before {
+    position: fixed;
+    font-family: "Font Awesome 5 Free";
+    font-size: 24px;
+    line-height: 18px;
+    float: left;
+    color: #FFF;
+    padding-right: 0.5em;
+    margin: auto 0.5em auto -1.5em;
+}
+
+#toast-container > .toast-success:before {
+    content: "\f00c";
+    font-weight: 900;
+    color: #2a562a;
+}
+
+#toast-container > .toast-success, .toast-close-button {
+    background: #d5e8d7;
+    color: #2a562a;
+}
+
+#toast-container > .toast-warning:before {
+    content: "\f071";
+    font-weight: 900;
+    color: #806620;
+}
+
+#toast-container > .toast-warning, .toast-close-button {
+    background: #fbf2d0;
+    color: #806620;
+}
+
+#toast-container > .toast-error:before {
+    content: "\f06a";
+    font-weight: 900;
+    color: #692326;
+}
+
+#toast-container > .toast-error, .toast-close-button {
+    background: #f3d8da;
+    color: #692326;
+}
+
+#toast-container > .toast-info:before {
+    content: "\f129";
+    font-weight: 900;
+    color: #51768F;
+}
+
+#toast-container > .toast-info, .toast-close-button {
+    background: #D9EDF6;
+    color: #51768F;
 }

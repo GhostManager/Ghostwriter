@@ -16,6 +16,12 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.db.models.signals import post_init, post_save
 from django.dispatch import receiver
 
+# Imports for Django Channels & WebSockets
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
+channel_layer = get_channel_layer()
+
 # Django imports for verifying a user is logged-in to access a view
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -1249,11 +1255,56 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         """Override form_valid to perform additional actions on new entries."""
         # Check if severity or position has changed
-        if 'severity' in form.changed_data or 'position' in form.changed_data:
+        if ('severity' in form.changed_data or
+            'position' in form.changed_data or
+            'assigned_to' in form.changed_data
+        ):
             # Get the entries current values (those being changed)
             old_entry = ReportFindingLink.objects.get(pk=self.object.pk)
             old_position = old_entry.position
             old_severity = old_entry.severity
+            old_assignee = old_entry.assigned_to
+            # Notify new assignee over WebSockets
+            if 'assigned_to' in form.changed_data:
+                # Only notify if the assignee is not the user who made the change
+                if self.request.user != self.object.assigned_to:
+                    logger.info('User filter passed')
+                    # Count the current user's total assignments
+                    new_users_assignments = ReportFindingLink.objects.\
+                        select_related('report', 'report__project').\
+                        filter(Q(assigned_to=self.object.assigned_to) & Q(report__complete=False) &
+                            Q(complete=False)).count() + 1
+                    old_users_assignments = ReportFindingLink.objects.\
+                        select_related('report', 'report__project').\
+                        filter(Q(assigned_to=old_assignee) & Q(report__complete=False) &
+                            Q(complete=False)).count() - 1
+                    # Send the message to the assigned user
+                    async_to_sync(channel_layer.group_send)(
+                        'notify_{}'.format(self.object.assigned_to),
+                        {
+                            'type': 'task',
+                            'message': {
+                                'message': 'You have been assigned to this finding for {}:\n{}'.format(self.object.report, self.object.title),
+                                'level': 'info',
+                                'title': 'New Assignment'
+                            },
+                            'assignments': new_users_assignments,
+                        },
+                    )
+                if self.request.user != old_assignee:
+                    # Send the message to the unassigned user
+                    async_to_sync(channel_layer.group_send)(
+                        'notify_{}'.format(old_assignee),
+                        {
+                            'type': 'task',
+                            'message': {
+                                'message': 'You have been unassigned from this finding for {}:\n{}'.format(self.object.report, self.object.title),
+                                'level': 'info',
+                                'title': 'Assignment Change'
+                            },
+                            'assignments': old_users_assignments,
+                        },
+                    )
             # If severity rating changed, adjust previous severity group
             if 'severity' in form.changed_data:
                 # Get a list of findings for the old severity rating
