@@ -1,7 +1,10 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from django.core.serializers import serialize
+from django.dispatch import receiver
 from django.db import models
-
+from django.db.models.signals import post_save
 from tinymce.models import HTMLField
-
 
 class Oplog(models.Model):
     name = models.CharField(max_length=50)
@@ -29,10 +32,11 @@ class OplogEntry(models.Model):
         'Oplog',
         on_delete=models.CASCADE,
         null=True,
-        help_text="Select which log to which this entry will be inserted."
+        help_text="Select which log to which this entry will be inserted.",
+        related_name="entries"
     )
-    start_date = models.DateTimeField(auto_now_add=True)
-    end_date = models.DateTimeField(auto_now_add=True)
+    start_date = models.DateTimeField(auto_now=True)
+    end_date = models.DateTimeField(auto_now=True)
     source_ip = models.CharField(
         'Source IP / Hostname',
         blank=True,
@@ -96,3 +100,9 @@ class OplogEntry(models.Model):
         max_length=50,
     )
 
+@receiver(post_save, sender=OplogEntry)
+def signal_oplog_entry(sender, instance, **kwargs):
+    channel_layer = get_channel_layer()
+    oplog_id = instance.oplog_id.id
+    json_data = serialize('json', [instance,])
+    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type":"send_oplog_entry", "text":json_data})

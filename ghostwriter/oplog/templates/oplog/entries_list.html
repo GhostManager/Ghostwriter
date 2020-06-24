@@ -14,12 +14,15 @@
 {% endblock %}
 
 {% block content %}
-    <!-- Reports Table Section -->
-    <table id="oplogTable" class="tablesorter">
+    <!-- Oplog Table Section -->
+    <input id="searchInput" type="text" placeholder="Filter..."/>
+    <p><a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a></p>
+
+    <table id="oplogTable" class="table-striped mb-0">
         <thead>
             <tr>
+                <th>ID</th>
                 <th>Start Date</th>
-                <th>Tool Name</th>
                 <th>User Context</th>
                 <th>Command</th>
                 <th>Operator</th>
@@ -27,56 +30,80 @@
                 <th>Delete</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="oplogTableBody">
         </tbody>
     </table>
-    <p><a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a></p>
 {% endblock %}
 
 
 {% block morescripts %}
     <!-- jQuery Tablesorter Script -->
     <script>
-        function updateTable() {
-            $.ajax({
-                type: 'GET',
-                url: "{% url 'oplog:oplogentry-list' %}?oplog_id={{pk}}",
-                success: function(response) {
-                    $("#oplogTable").find('tbody').empty()
-                    $.each(response, function(index, entry) {
-                        var newRow = `<tr>
-                            <td>${entry["start_date"]}</td>
-                            <td>${entry["tool"]}</td>
+        var endpoint = "ws://" + window.location.host + window.location.pathname
+        var socket = new WebSocket(endpoint)
+        var $table = $("#oplogTable tbody")
+
+        // This is the filter function to search through row entries
+        $(document).ready(function(){
+            $("#searchInput").on("keyup", function() {
+                var value = $(this).val().toLowerCase();
+                $("#oplogTableBody tr").filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+
+        $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
+            // This is super janky, but we get the id of the entry by appending
+            // it to the button id
+            var $column = $(this).closest('td')
+            var buttonName = $column.attr('id')
+            var id = buttonName.split("_")[1]
+            socket.send(JSON.stringify({
+                'action':'delete',
+               'oplogEntryId': id
+            }))
+            var $tr = $(this).closest('tr')
+            $tr.fadeOut('slow', function () {
+                $tr.remove()
+            });
+        });
+
+        $('#oplogTable').on('click', '[id^="editButton_"]', function (e) {
+            var $column = $(this).closest('td')
+            var buttonName = $column.attr('id')
+            var id = buttonName.split("_")[1]
+            window.location.href = "/oplog/" + id + "/entries/update"
+        });
+
+        socket.onmessage = function(e) {
+            entries = JSON.parse(e.data)
+            entries.forEach(element => {
+                entry = element['fields']
+                id = element['pk']
+                var date = new Date(entry["start_date"])
+                $table.prepend(`<tr>
+                            <td>${id}</td>
+                            <td>${date.toUTCString()}</td>
                             <td>${entry["user_context"]}</td>
                             <td>${entry["command"]}</td>
                             <td>${entry["operator_name"]}</td>
-                            <td class="clickable"><a href="/oplog/${entry['id']}/entries/update">View/Edit</a></td>
-                            <td class="clickable"><a href="/oplog/${entry['id']}/entries/delete">Delete</a></td>
-                            </tr>`
- 
-                        newRow = newRow.replace("REPLACEME", entry["id"]);
-
-                        $("#oplogTable").append(newRow);
-                    });
-                },
-                error: function (response) {
-                    console.log("Error submitting ajax query")
-                }
-            });
+                            <td id="editButton_${id}"><a href="javascript:void(0);"><i class="far fa-edit"></i></a></td>
+                            <td id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
+                            <!-- All the hidden fields for search purposes -->
+                            <td style="display:none;">${entry["end_date"]}</td>
+                            <td style="display:none;">${entry["end_date"]}</td>
+                            <td style="display:none;">${entry["source_ip"]}</td>
+                            <td style="display:none;">${entry["dest_ip"]}</td>
+                            <td style="display:none;">${entry["description"]}</td>
+                            <td style="display:none;">${entry["output"]}</td>
+                            <td style="display:none;">${entry["comments"]}</td>
+                            </tr>`).fadeIn("slow")
+            })
         }
 
-        $(document).ready(function()  {
-            $("#oplogTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-            updateTable()
-            setInterval(updateTable, 5000)
-        });
- 
+        socket.onerror = function (e) {
+            console.log("[!] error: ", e)
+        }
     </script>
 {% endblock %}

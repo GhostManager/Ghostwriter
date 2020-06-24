@@ -29,6 +29,9 @@ requests==2.22.0
 boto3==1.10.8
 botocore==1.13.8
 djangorestframework==3.11.0
+djangorestframework-api-key==2.0.0
 django-import-export==2.2.0
 django-tinymce==2.8.0
 docxtpl==0.6.3
+channels==2.4.0
+channels-redis==2.4.2
