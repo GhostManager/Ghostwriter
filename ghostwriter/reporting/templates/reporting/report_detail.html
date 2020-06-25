@@ -1,4 +1,5 @@
 {% extends "base_generic.html" %}
+{% load report_tags %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
@@ -76,18 +77,17 @@
 
         <!-- Finding Table Section -->
         {% if report.reportfindinglink_set.all %}
-            <table class="roundedCorners">
+            <table id="findings-table" class="roundedCorners" findings-update-url="{% url 'reporting:update_report_findings' %}">
                 <tr>
                     <th>
-                        Weight
+                        Order
                         <div class="dropdown">
                             <button class="dropbtn dropbtn-info far fa-question-circle"></button>
                             <div class="dropdown-content dropdown-content-info">
-                                <p><em>Report Weight</em> adjusts the order in which findings will appear in generated reports. Findings will always be grouped by severity in descending order (e.g. Critical, High, Medium, Low). Weight can be adjusted to tweak where individual findings are ranked within these severity buckets.</p>
+                                <p><em>Report Order</em> adjusts the order in which findings will appear here and in generated reports. Findings will always be grouped by severity in descending order (e.g. Critical, High, Medium, Low). Adjust a fidning's position to tweak where it is ranked within its severity category.</p>
                             </div>
                         </div>
                     </th>
-                    <th>Severity</th>
                     <th>Finding</th>
                     <th>
                         Evidence
@@ -119,73 +119,73 @@
                     <th>Options</th>
                 </tr>
 
-                {% for finding in report.reportfindinglink_set.all %}
-                    <tr>
-                        <td>
-                            <a href="{% url 'reporting:position_decrease' finding.id %}"><i class="fas fa-chevron-up"></i></a>
-                             {{ finding.position }} 
-                             <a href="{% url 'reporting:position_increase' finding.id %}"><i class="fas fa-chevron-down"></i></a>
-                        </td>
-                        {% if finding.severity.severity == "Critical" %}
-                            <td class="critical" id="cols"><strong>{{ finding.severity }}</strong></td>
-                        {% elif finding.severity.severity == "High" %}
-                            <td class="high" id="cols"><strong>{{ finding.severity }}</strong></td>
-                        {% elif finding.severity.severity == "Medium" %}
-                            <td class="medium" id="cols"><strong>{{ finding.severity }}</strong></td>
-                        {% elif finding.severity.severity == "Low" %}
-                            <td class="low" id="cols"><strong>{{ finding.severity }}</strong></td>
-                        {% else %}
-                            <td class="info" id="cols"><strong>{{ finding.severity }}</strong></td>
-                        {% endif %}
-                        <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
-                        {% if finding.evidence_set.all %}
-                            <td>
-                                {% for evidence_file in finding.evidence_set.all %}
-                                    <div class="dropdown">
-                                        <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><button class="dropbtn clickable" style="font-size: 1.1em; font-weight: 300; line-height: 1.7em;">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button></a>
-                                        <div class="dropdown-content">
-                                            <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><i class="far fa-file-image"></i> View</a>
-                                            <a href="{% url 'reporting:evidence_update' evidence_file.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
+                {% for group in severity_groups %}
+                    <tbody>
+                        <th id="{{ group|lower }}_header" class="severity_header {{ group|lower }}" colspan="7" scope="colgroup">{{ group }}</th>
+                    </tbody>
+                    <tbody id="{{ group|lower }}_severity" class="sortable_list connected_sortable">
+                        {% if severity_groups|get_item:group %}
+                            {% for finding in severity_groups|get_item:group %}
+                                <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
+                                    <td class="holdme">
+                                        <i class="fas fa-arrows-alt"></i> {{ finding.position }}
+                                    </td>
+                                    <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                    {% if finding.evidence_set.all %}
+                                        <td>
+                                            {% for evidence_file in finding.evidence_set.all %}
+                                                <div class="dropdown">
+                                                    <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><button class="dropbtn clickable" style="font-size: 1.1em; font-weight: 300; line-height: 1.7em;">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button></a>
+                                                    <div class="dropdown-content">
+                                                        <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><i class="far fa-file-image"></i> View</a>
+                                                        <a href="{% url 'reporting:evidence_update' evidence_file.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                        <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                                    </div>
+                                                </div>
+                                                {% if not forloop.last %}<hr>{% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    {% else %}
+                                        <td>
+                                            <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i></a>
+                                        </td>
+                                    {% endif %}
+                                    {% if finding.assigned_to == request.user %}
+                                        {% if finding.complete %}
+                                            <td style="color: #A8D08D"><strong>You</strong></td>
+                                        {% else %}
+                                            <td style="color: #FF7E79"><strong>You</strong></td>
+                                        {% endif %} 
+                                    {% else %}
+                                        <td style="color: #7a7a7a"><strong>{{ finding.assigned_to }}</strong></td>
+                                    {% endif %}
+                                    {% if finding.complete %}
+                                        <td style="color: #A8D08D"><strong>Ready for Review</strong></td>
+                                    {% else %}
+                                        <td style="color: #FF7E79"><strong>Needs Editing</strong></td>
+                                    {% endif %}
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div class="dropdown-content">
+                                                <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i> Attach Evidence</a>
+                                                <a href="{% url 'reporting:local_edit' finding.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a href="{% url 'reporting:finding_status_toggle' finding.id %}">{% if finding.complete %}<i style="color: darkorange" class="fas fa-toggle-off"></i> Flag for Editing {% else %}<i style="color: green" class="fas fa-toggle-on"></i> Mark as Complete {% endif %}</a>
+                                                <a href="{% url 'reporting:local_remove' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Remove</a>
+                                                <a href="{% url 'reporting:convert_finding' finding.id %}"><i class="far fa-copy"></i> Clone to Library</a>
+                                            </div>
                                         </div>
-                                    </div>
-                                    {% if not forloop.last %}<hr>{% endif %}
-                                {% endfor %}
-                            </td>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         {% else %}
-                            <td>
-                                <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i></a>
-                            </td>
+                            <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder" class="severity-row-placeholder">
+                                <td colspan="7" scope="colgroup">No {{ group }} findings yet. Add a {{ group }} finding or drag-and-drop a finding here to update its severity.</td>
+                            </tr>
                         {% endif %}
-                        {% if finding.assigned_to == request.user %}
-                            {% if finding.complete %}
-                                <td style="color: #A8D08D"><strong>You</strong></td>
-                            {% else %}
-                                <td style="color: #FF7E79"><strong>You</strong></td>
-                            {% endif %} 
-                        {% else %}
-                            <td style="color: #7a7a7a"><strong>{{ finding.assigned_to }}</strong></td>
-                        {% endif %}
-                        {% if finding.complete %}
-                            <td style="color: #A8D08D"><strong>Ready for Review</strong></td>
-                        {% else %}
-                            <td style="color: #FF7E79"><strong>Needs Editing</strong></td>
-                        {% endif %}
-                        <td>
-                            <div class="dropdown">
-                                <button class="dropbtn far fa-caret-square-down"></button>
-                                <div class="dropdown-content">
-                                    <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i> Attach Evidence</a>
-                                    <a href="{% url 'reporting:local_edit' finding.id %}"><i class="far fa-edit"></i> Edit</a>
-                                    <a href="{% url 'reporting:finding_status_toggle' finding.id %}">{% if finding.complete %}<i style="color: darkorange" class="fas fa-toggle-off"></i> Flag for Editing {% else %}<i style="color: green" class="fas fa-toggle-on"></i> Mark as Complete {% endif %}</a>
-                                    <a href="{% url 'reporting:local_remove' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Remove</a>
-                                    <a href="{% url 'reporting:convert_finding' finding.id %}"><i class="far fa-copy"></i> Clone to Library</a>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                {% endfor %}
+                    {% endfor %}
+                </tbody>
             </table>
         {% else %}
             <p>No findings have been added to this report yet.</p>
@@ -207,4 +207,183 @@
 
 {% block collapse_js %}
 {{ block.super }}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for Sortable Groups of Findings -->
+    <script>
+        {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
+        {% for group in severity_groups %}
+            var update_url = $('#findings-table').attr('findings-update-url');
+            var report_id = '{{ report.id }}';
+            var csrftoken = '{{ csrf_token }}';
+            var {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_severity, {
+                items: 'tbody > tr',
+                group: 'severity',
+                animation: 150,
+                filter: '.severity-row-placeholder',
+                ghostClass: 'sortable-ghost',
+                handle: '.holdme',
+
+                // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
+                setData: function (dataTransfer, dragEl) {
+                    dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+                },
+
+                // Element is chosen
+                onChoose: function (event) {
+                    event.oldIndex;
+                },
+
+                // Element is unchosen
+                onUnchoose: function (event) {},
+
+                // Element dragging started
+                onStart: function (event) {
+                    event.oldIndex;
+                },
+
+                // Element is dropped into the list from another list
+                onAdd: function (event) {
+                    // Get the placeholder `tr` if it exists
+                    placeholder = event.to.getElementsByClassName('severity-row-placeholder')[0];
+                    var positions = {{ group | lower }}_sortable.toArray();
+                    // Prep AJAX request with CSRF token
+                    $.ajaxSetup({
+                        beforeSend: function(xhr, settings) {
+                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                            }
+                        }
+                    });
+                    // Send AJAX POST request
+                    $.ajax(update_url, {
+                        type: 'POST',
+                        data: {
+                            'report': report_id,
+                            'severity': event.to.id,
+                            'positions': JSON.stringify(positions)
+                        },
+                        success: function (data) {
+                            console.log(data)
+                        }
+                    });
+                    // An "empty" group will have one row, the placeholder row
+                    if (event.to.rows.length > 0) {
+                        if (placeholder !== undefined) {
+                            // Group contains at least one finding, delete the placeholder
+                            placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                        };
+                    };
+                },
+
+                // Called by any change to the list (add / update / remove)
+                onSort: function (event) {
+                    // Code here triggers twice for the element if dragged to another group (two sorts)
+                    [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, index) {
+                        //el.setAttribute("data-id",index);
+                        var cell = el.getElementsByClassName('holdme')[0];
+                        cell.innerHTML = '<i class="fas fa-arrows-alt"></i>' + (index + 1);
+                    });
+                },
+
+                // Changed sorting within list
+                onUpdate: function (event) {
+                    var positions = {{ group | lower }}_sortable.toArray();
+                    // Prep AJAX request with CSRF token
+                    $.ajaxSetup({
+                        beforeSend: function(xhr, settings) {
+                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                            }
+                        }
+                    });
+                    // Send AJAX POST request
+                    $.ajax(update_url, {
+                        type: 'POST',
+                        data: {
+                            'report': report_id,
+                            'severity': event.item.parentNode.id,
+                            'positions': JSON.stringify(positions)
+                        },
+                        success: function (data) {
+                            console.log(data)
+                        }
+                    });
+                },
+
+                // Element is removed from the list into another list
+                onRemove: function (event) {
+                    // Get the placeholder `tr` if it exists
+                    placeholder = event.from.getElementsByClassName('severity-row-placeholder')[0];
+                    var positions = {{ group | lower }}_sortable.toArray();
+                    // Prep AJAX request with CSRF token
+                    $.ajaxSetup({
+                        beforeSend: function(xhr, settings) {
+                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                            }
+                        }
+                    });
+                    // Send AJAX POST request
+                    $.ajax(update_url, {
+                        type: 'POST',
+                        data: {
+                            'report': report_id,
+                            'severity': event.from.id,
+                            'positions': JSON.stringify(positions)
+                        },
+                        success: function (data) {
+                            console.log(data)
+                        }
+                    });
+                    // An "empty" group will have one row, the placeholder row
+                    if (event.from.rows.length == 0) {
+                        // Just one row, add a placeholder row
+                        var placeholder_row = event.from.insertRow(0)
+                        placeholder_row.id = '{{ group|lower }}_placeholder'
+                        placeholder_row.className = 'severity-row-placeholder'
+                        placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder', 0)
+                        cell = placeholder_row.insertCell(0);
+                        cell.colSpan = 7
+                        cell.innerHTML = 'No {{ group }} findings yet. Add a {{ group }} finding or drag-and-drop a finding here to update its severity.'
+                    } else {
+                        if (placeholder !== undefined) {
+                            // Otherwise, delete the placeholder
+                            placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                        };
+                    };
+                },
+
+                // Event when you move an item in the list or between lists
+                onMove: function (event, originalEvent) {
+                    // Code here triggers with every drag to a new position
+                },
+
+                // Attempt to drag a filtered element
+                onFilter: function (event) {},
+
+                // Called when creating a clone of element
+                onClone: function (event) {},
+
+                // Called when dragging element changes position
+                onChange: function (event) {
+                    // Code here triggers with every move while drag is in progress
+                },
+
+                // Element dragging ended
+                onEnd: function (event) {
+                    var itemEl = event.item; // dragged HTMLElement
+                    event.to; // target list
+                    event.from; // previous list
+                    event.oldIndex; // element's old index within old parent
+                    event.newIndex; // element's new index within new parent
+                    event.oldDraggableIndex; // element's old index within old parent, only counting draggable elements
+                    event.newDraggableIndex; // element's new index within new parent, only counting draggable elements
+                    event.clone // the clone element
+                    event.pullMode; // when item is in another sortable: `"clone"` if cloning, `true` if moving
+                },
+            });
+        {% endfor %}
+    </script>
 {% endblock %}
