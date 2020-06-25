@@ -20,7 +20,6 @@
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
 
         <!-- jQuery UI & jQuery CDN -->
-        
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
@@ -48,52 +47,76 @@
         {% block tinymcejs %}
             <script>
                 tinymce.init({
-                    selector:'textarea',
-                    height: '300',
-                    width: '100%',
-                    plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace paste link',
-                    toolbar: 'bold italic link bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
-                    menubar: 'file edit tools',
-                    paste_data_images: false,
-                    paste_as_text: true,
-                    browser_spellcheck: true,
-                    setup: function (editor) {
-                        editor.ui.registry.addButton('codeInline', {
-                            icon: 'sourcecode',
-                            text: 'Inline Code',
-                            tooltip: 'Format selected text as inline code',
-                            onAction: function (_) {
-                                tinymce.activeEditor.formatter.toggle('code')
-                            },
-                        });
+                  selector: 'textarea',
+                  height: '300',
+                  width: '100%',
+                  plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace paste link',
+                  toolbar: 'bold italic link bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
+                  menubar: 'file edit tools',
+                  paste_data_images: false,
+                  paste_as_text: true,
+                  browser_spellcheck: true,
+                  setup: function (editor) {
+                    editor.ui.registry.addButton('codeInline', {
+                      icon: 'sourcecode',
+                      text: 'Inline Code',
+                      tooltip: 'Format selected text as inline code',
+                      onAction: function (_) {
+                        tinymce.activeEditor.formatter.toggle('code')
+                      },
+                    });
+                  },
+                  content_style: '.left { text-align: left; }' +
+                    'img.left { float: left; }' +
+                    'table.left { float: left; }' +
+                    '.right { text-align: right; }' +
+                    'img.right { float: right; }' +
+                    'table.right { float: right; }' +
+                    '.center { text-align: center; }' +
+                    'img.center { display: block; margin: 0 auto; }' +
+                    'table.center { display: block; margin: 0 auto; }' +
+                    '.full { text-align: justify; }' +
+                    'img.full { display: block; margin: 0 auto; }' +
+                    'table.full { display: block; margin: 0 auto; }' +
+                    '.bold { font-weight: bold; }' +
+                    '.italic { font-style: italic; }' +
+                    '.underline { text-decoration: underline; }' +
+                    '.example1 {}' +
+                    '.tablerow1 { background-color: #D3D3D3; }',
+                  formats: {
+                    alignleft: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'left'
                     },
-                    content_style: '.left { text-align: left; }' +
-                        'img.left { float: left; }' +
-                        'table.left { float: left; }' +
-                        '.right { text-align: right; }' +
-                        'img.right { float: right; }' +
-                        'table.right { float: right; }' +
-                        '.center { text-align: center; }' +
-                        'img.center { display: block; margin: 0 auto; }' +
-                        'table.center { display: block; margin: 0 auto; }' +
-                        '.full { text-align: justify; }' +
-                        'img.full { display: block; margin: 0 auto; }' +
-                        'table.full { display: block; margin: 0 auto; }' +
-                        '.bold { font-weight: bold; }' +
-                        '.italic { font-style: italic; }' +
-                        '.underline { text-decoration: underline; }' +
-                        '.example1 {}' +
-                        '.tablerow1 { background-color: #D3D3D3; }',
-                    formats: {
-                        alignleft: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'left' },
-                        aligncenter: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'center' },
-                        alignright: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'right' },
-                        alignfull: { selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img', classes: 'full' },
-                        bold: { inline: 'span', classes: 'bold' },
-                        italic: { inline: 'span', classes: 'italic' },
-                        underline: { inline: 'span', classes: 'underline', exact: true },
-                        strikethrough: { inline: 'del' }
+                    aligncenter: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'center'
                     },
+                    alignright: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'right'
+                    },
+                    alignfull: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'full'
+                    },
+                    bold: {
+                      inline: 'span',
+                      classes: 'bold'
+                    },
+                    italic: {
+                      inline: 'span',
+                      classes: 'italic'
+                    },
+                    underline: {
+                      inline: 'span',
+                      classes: 'underline',
+                      exact: true
+                    },
+                    strikethrough: {
+                      inline: 'del'
+                    }
+                  },
                 });
             </script>
         {% endblock %}
@@ -334,13 +357,13 @@
             </div>
         </div>
 
-        <!-- Script for opening and closing the sidebar -->
+        <!-- Script for Sidebar -->
         <script>
-            $(document).ready(function() {
-                $('#sidebarCollapse').on('click', function() {
-                    $('#sidebar').toggleClass('active');
-                    $(this).toggleClass('active');
-                });
+            $(document).ready(function () {
+              $('#sidebarCollapse').on('click', function () {
+                $('#sidebar').toggleClass('active');
+                $(this).toggleClass('active');
+              });
             });
         </script>
 
@@ -349,22 +372,22 @@
             var coll = document.getElementsByClassName('collapsible');
             var i;
             for (i = 0; i < coll.length; i++) {
-                coll[i].addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    var content = this.nextElementSibling;
-                    if (content.style.maxHeight){
-                        content.style.maxHeight = null;
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + 'px';
-                    } 
-                });
+              coll[i].addEventListener('click', function () {
+                this.classList.toggle('active');
+                var content = this.nextElementSibling;
+                if (content.style.maxHeight) {
+                  content.style.maxHeight = null;
+                } else {
+                  content.style.maxHeight = content.scrollHeight + 'px';
+                }
+              });
             }
         </script>
 
         <!-- Script for Bootstrap Hover Tooltip -->
         <script>
-            $(document).ready(function(){
-                $('[data-toggle="tooltip"]').tooltip();
+            $(document).ready(function () {
+              $('[data-toggle="tooltip"]').tooltip();
             });
         </script>
 
@@ -372,15 +395,15 @@
         <script>
             // Modification of https://gist.github.com/raddevon/8958486
             function openAnchorAccordion() {
-                if (window.location.hash) {
-                    var jQuerytarget = jQuery('body').find(window.location.hash);
-                    // console.log( jQuerytarget );
-                    if (jQuerytarget.hasClass('collapse')) {
-                        var jQuerytargetAccordion = jQuerytarget.find('.collapse');
-                        // console.log( jQuerytargetAccordion );
-                        jQuerytarget.collapse('show');
-                    }
+              if (window.location.hash) {
+                var jQuerytarget = jQuery('body').find(window.location.hash);
+                // console.log( jQuerytarget );
+                if (jQuerytarget.hasClass('collapse')) {
+                  var jQuerytargetAccordion = jQuerytarget.find('.collapse');
+                  // console.log( jQuerytargetAccordion );
+                  jQuerytarget.collapse('show');
                 }
+              }
             }
 
             openAnchorAccordion();
@@ -391,26 +414,26 @@
         <!-- Initialize Config for Toastr Toasts -->
         <script>
             // Default Configuration
-            $(document).ready(function() {
-                toastr.options = {
-                    'closeButton': true,
-                    'debug': false,
-                    'newestOnTop': false,
-                    'progressBar': true,
-                    'positionClass': 'toast-top-right',
-                    'preventDuplicates': false,
-                    'showDuration': '1000',
-                    'hideDuration': '1000',
-                    'timeOut': '4000',
-                    'extendedTimeOut': '4000',
-                    'showEasing': 'swing',
-                    'hideEasing': 'linear',
-                    'showMethod': 'fadeIn',
-                    'hideMethod': 'fadeOut',
-                }
-                // Need to set this outside of the dict per the README
-                // https://github.com/CodeSeven/toastr#escape-html-characters
-                toastr.options.escapeHtml = true;
+            $(document).ready(function () {
+              toastr.options = {
+                'closeButton': true,
+                'debug': false,
+                'newestOnTop': false,
+                'progressBar': true,
+                'positionClass': 'toast-top-right',
+                'preventDuplicates': false,
+                'showDuration': '1000',
+                'hideDuration': '1000',
+                'timeOut': '4000',
+                'extendedTimeOut': '4000',
+                'showEasing': 'swing',
+                'hideEasing': 'linear',
+                'showMethod': 'fadeIn',
+                'hideMethod': 'fadeOut',
+              }
+              // Need to set this outside of the dict per the README
+              // https://github.com/CodeSeven/toastr#escape-html-characters
+              toastr.options.escapeHtml = true;
             });
 
             // Display toast notification for each message on page load
@@ -435,55 +458,54 @@
                 // Connect to channel for individual notifcations
                 var username = '{{ user }}';
                 var ws_user = new WebSocket(
-                    'ws://' + window.location.host +
-                    '/ws/users/' + username + '/');
+                  'ws://' + window.location.host +
+                  '/ws/users/' + username + '/');
                 // Connect to channel for all user notifications
                 var ws_all = new WebSocket(
-                    'ws://' + window.location.host +
-                    '/ws/users/all/');
+                  'ws://' + window.location.host +
+                  '/ws/users/all/');
 
                 // Functions for sending messages
-                function sendMessage(socket, msg){
-                    // Wait until the state of the socket is not ready and send the message when it is...
-                    waitForSocketConnection(socket, function(){
-                        socket.send(msg);
-                    });
+                function sendMessage(socket, msg) {
+                  // Wait until the state of the socket is not ready and send the message when it is...
+                  waitForSocketConnection(socket, function () {
+                    socket.send(msg);
+                  });
                 }
                 // Make the function wait until the connection is made...
-                function waitForSocketConnection(socket, callback){
-                    setTimeout(
-                        function () {
-                            if (socket.readyState === 1) {
-                                if (callback != null){
-                                    callback();
-                                }
-                            } else {
-                                console.log('Waiting for connection...')
-                                waitForSocketConnection(socket, callback);
-                            }
-                        }, 5); // wait 5 milisecond for the connection...
+                function waitForSocketConnection(socket, callback) {
+                  setTimeout(
+                    function () {
+                      if (socket.readyState === 1) {
+                        if (callback != null) {
+                          callback();
+                        }
+                      } else {
+                        console.log('Waiting for connection...')
+                        waitForSocketConnection(socket, callback);
+                      }
+                    }, 5); // wait 5 milisecond for the connection...
                 }
 
                 // Handle receiving messages on channels
-                ws_user.onmessage = function(e) {
-                    var data = JSON.parse(e.data);
-                    if (data.assignments !== undefined) {
-                        document.getElementById('assignment-count').innerHTML = data.assignments
-                    }
-                    displayToastTop(data.message['level'], data.message['message'], data.message['title']);
+                ws_user.onmessage = function (e) {
+                  var data = JSON.parse(e.data);
+                  if (data.assignments !== undefined) {
+                    document.getElementById('assignment-count').innerHTML = data.assignments
+                  }
+                  displayToastTop(data.message['level'], data.message['message'], data.message['title']);
                 }
-
-                ws_all.onmessage = function(e) {
-                    var data = JSON.parse(e.data);
-                    displayToastTop(data.message['level'], data.message['message'], data.message['title']);
+                ws_all.onmessage = function (e) {
+                  var data = JSON.parse(e.data);
+                  displayToastTop(data.message['level'], data.message['message'], data.message['title']);
                 };
 
                 // Handle unexpected WebSocket closures
-                ws_user.onclose = function(e) {
-                    console.error('User noification WebSocket closed unexpectedly');
+                ws_user.onclose = function (e) {
+                  console.error('User noification WebSocket closed unexpectedly');
                 };
-                ws_all.onclose = function(e) {
-                    console.error('Global notification WebSocket closed unexpectedly');
+                ws_all.onclose = function (e) {
+                  console.error('Global notification WebSocket closed unexpectedly');
                 };
             </script>
         {% endif %}

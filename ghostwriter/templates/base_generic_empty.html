@@ -1,3 +1,5 @@
+{% load custom_tags %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -7,55 +9,127 @@
 
         <title>{% block title %}Ghostwriter{% endblock %}</title>
 
-        <!-- Bootstrap CSS CDN -->
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-
-        <!-- Add additional CSS in static file -->
+        <!-- Load Static Files -->
         {% load static %}
-        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
         <link rel="shortcut icon" href="{%  static 'favicon.ico' %}">
-        <link rel="stylesheet" href="{% static 'jquery/jquery-ui.css' %}">
+
+        <!-- Bootstrap CSS CDN -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
         <!-- Font Awesome JS -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
 
-        <!-- jQuery CDN - Slim version (=without AJAX) -->
-        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-        <!-- Popper.JS -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
-        <!-- Bootstrap JS -->
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+        <!-- jQuery UI & jQuery CDN -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
-        <!-- jQuery UI for Datepicker -->
-        <script src="{% static 'jquery/external/jquery/jquery.js' %}"></script>
-        <script src="{% static 'jquery/jquery-ui.js' %}"></script>
-
-        <!-- jQuery tablesorter plugin -->
+        <!-- jQuery Tablesorter Plugin -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.widgets.js" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-date-range.min.js" crossorigin="anonymous"></script>
+
+        <!-- SortableJS for Drag n Drop -->
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+        <!-- Toastr -->
+        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+
+        <!-- TinyMCE -->
+        <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/tinymce/custom.js' %}" ></script>
+
+        <!-- Ghostwriter JS & CSS -->
+        <script src="{% static 'js/project.js' %}"></script>
+        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+        {% block tinymcejs %}
+            <script>
+                tinymce.init({
+                  selector: 'textarea',
+                  height: '300',
+                  width: '100%',
+                  plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace paste link',
+                  toolbar: 'bold italic link bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
+                  menubar: 'file edit tools',
+                  paste_data_images: false,
+                  paste_as_text: true,
+                  browser_spellcheck: true,
+                  setup: function (editor) {
+                    editor.ui.registry.addButton('codeInline', {
+                      icon: 'sourcecode',
+                      text: 'Inline Code',
+                      tooltip: 'Format selected text as inline code',
+                      onAction: function (_) {
+                        tinymce.activeEditor.formatter.toggle('code')
+                      },
+                    });
+                  },
+                  content_style: '.left { text-align: left; }' +
+                    'img.left { float: left; }' +
+                    'table.left { float: left; }' +
+                    '.right { text-align: right; }' +
+                    'img.right { float: right; }' +
+                    'table.right { float: right; }' +
+                    '.center { text-align: center; }' +
+                    'img.center { display: block; margin: 0 auto; }' +
+                    'table.center { display: block; margin: 0 auto; }' +
+                    '.full { text-align: justify; }' +
+                    'img.full { display: block; margin: 0 auto; }' +
+                    'table.full { display: block; margin: 0 auto; }' +
+                    '.bold { font-weight: bold; }' +
+                    '.italic { font-style: italic; }' +
+                    '.underline { text-decoration: underline; }' +
+                    '.example1 {}' +
+                    '.tablerow1 { background-color: #D3D3D3; }',
+                  formats: {
+                    alignleft: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'left'
+                    },
+                    aligncenter: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'center'
+                    },
+                    alignright: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'right'
+                    },
+                    alignfull: {
+                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                      classes: 'full'
+                    },
+                    bold: {
+                      inline: 'span',
+                      classes: 'bold'
+                    },
+                    italic: {
+                      inline: 'span',
+                      classes: 'italic'
+                    },
+                    underline: {
+                      inline: 'span',
+                      classes: 'underline',
+                      exact: true
+                    },
+                    strikethrough: {
+                      inline: 'del'
+                    }
+                  },
+                });
+            </script>
+        {% endblock %}
     </head>
 
     <body>
         <div class="wrapper">
-            <!-- Sidebar Holder -->
             <!-- Page Content Holder -->
             <div id="content">
-            <!-- Section for Flash Messages -->
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert {{ message.tags }} alert-dismissible" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            <!-- Page Content Goes Here -->
-            <div>
-                {% block content %}{% endblock %}
-
+                <!-- Page Content Goes Here -->
+                <div>
+                    {% block content %}{% endblock %}
+                </div>
             </div>
         </div>
 
