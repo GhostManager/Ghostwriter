@@ -13,7 +13,9 @@
         <!-- General Section -->
         <strong><i class="fas fa-book"></i> Oplog Entry Details</strong>
         <hr>
-        {{ form.oplog_id|as_crispy_field}}
+        {{ form.oplog_id|as_crispy_field }}
+        {{ form.start_date|as_crispy_field }}
+        {{ form.end_date|as_crispy_field }}
         {{ form.source_ip|as_crispy_field }}
         {{ form.dest_ip|as_crispy_field }}
         {{ form.tool|as_crispy_field }}

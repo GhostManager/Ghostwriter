@@ -5,8 +5,6 @@ from django.contrib import admin
 from django.views.generic import TemplateView, RedirectView
 from django.views import defaults as default_views
 
-from ghostwriter.schema import schema
-
 urlpatterns = [
      # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),

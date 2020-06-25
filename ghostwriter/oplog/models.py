@@ -1,10 +1,12 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from datetime import datetime
 from django.core.serializers import serialize
 from django.dispatch import receiver
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from tinymce.models import HTMLField
+import uuid
 
 class Oplog(models.Model):
     name = models.CharField(max_length=50)
@@ -35,8 +37,14 @@ class OplogEntry(models.Model):
         help_text="Select which log to which this entry will be inserted.",
         related_name="entries"
     )
-    start_date = models.DateTimeField(auto_now=True)
-    end_date = models.DateTimeField(auto_now=True)
+    start_date = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+    end_date = models.DateTimeField(
+        null=True,
+        blank=True
+    )
     source_ip = models.CharField(
         'Source IP / Hostname',
         blank=True,
@@ -100,9 +108,19 @@ class OplogEntry(models.Model):
         max_length=50,
     )
 
+
+@receiver(pre_save, sender=OplogEntry)
+def oplog_pre_save(sender, instance, **kwargs):
+    if instance.start_date == None:
+        instance.start_date = datetime.utcnow()
+
+    if instance.end_date == None:
+        instance.end_date = datetime.utcnow()
+
 @receiver(post_save, sender=OplogEntry)
 def signal_oplog_entry(sender, instance, **kwargs):
-    channel_layer = get_channel_layer()
-    oplog_id = instance.oplog_id.id
-    json_data = serialize('json', [instance,])
-    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type":"send_oplog_entry", "text":json_data})
+    if kwargs['created']:
+        channel_layer = get_channel_layer()
+        oplog_id = instance.oplog_id.id
+        json_data = serialize('json', [instance,])
+        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type":"send_oplog_entry", "text":json_data})

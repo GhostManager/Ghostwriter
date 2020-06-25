@@ -15,19 +15,25 @@
 
 {% block content %}
     <!-- Oplog Table Section -->
-    <input id="searchInput" type="text" placeholder="Filter..."/>
-    <p><a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a></p>
+    <div id="utilBar">
+        <div style="float:left;">
+            <input id="searchInput" type="text" placeholder="Filter..."/>
+        </div>
+        <div style="float:right;">
+            <a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a>
+        </div>
+    </div>
+    <div style="clear: both;"></div>
+    <a href="javascript:void(0);"><i class="far fa-plus-square" id="columnSelectDropdown"></i><label>Select Columns</label></a>
+
+    <div id="columnSelect" style="display:none;">
+        <ul class="list-group-row" id="checkboxList">
+        </ul>
+    </div>
 
     <table id="oplogTable" class="table-striped mb-0">
         <thead>
-            <tr>
-                <th>ID</th>
-                <th>Start Date</th>
-                <th>User Context</th>
-                <th>Command</th>
-                <th>Operator</th>
-                <th>View/Edit</th>
-                <th>Delete</th>
+            <tr id="oplogTableHeader">
             </tr>
         </thead>
         <tbody id="oplogTableBody">
@@ -42,6 +48,60 @@
         var endpoint = "ws://" + window.location.host + window.location.pathname
         var socket = new WebSocket(endpoint)
         var $table = $("#oplogTable tbody")
+        let columInfo = []
+        columInfo = [
+                            ['startDateCheckBox', 'startDateColumn', 'Start Date'],
+                            ['endDateCheckbox', 'endDateColumn', 'End Date'],
+                            ['idCheckbox', 'idColumn', 'ID'],
+                            ['sourceIPCheckbox', 'sourceIPColumn', 'Source'],
+                            ['destIPCheckbox', 'destIPColumn', 'Destination'],
+                            ['toolNameCheckbox', 'toolNameColumn', 'Tool Name'],
+                            ['userContextCheckbox', 'userContextColumn', 'User Context'],
+                            ['commandCheckbox', 'commandColumn', 'Command'],
+                            ['descriptionCheckbox', 'descriptionColumn', 'Description'],
+                            ['outputCheckbox', 'outputColumn', 'Output'],
+                            ['commentsCheckbox', 'commentsColumn', 'Comments'],
+                            ['operatorCheckbox', 'operatorColumn', 'Operator'],
+                            ['editCheckbox', 'editColumn', 'View/Edit'],
+                            ['deleteCheckbox', 'deleteColumn', 'Delete'],
+                            ['copyCheckbox', 'copyColumn', 'Copy']
+                    ]
+
+        function coupleCheckboxColumn(checkboxId, columnClass){
+            $(checkboxId).change(function (e){
+                if (!this.checked) {
+                    $(columnClass).hide()
+                }
+                else {
+                    $(columnClass).show()
+                }
+            });
+        }
+
+        function hideColumns() {
+            columInfo.forEach(function(value, index, array) {
+                $checkbox = $("#" + value[0])
+                if (!$checkbox.prop("checked")) {
+                    $("." + value[1]).hide()
+                }
+            })
+        }
+
+        // Populate the table info
+        $checkboxList = $("#checkboxList")
+        $tableHeader = $("#oplogTableHeader")
+        columInfo.forEach(function(value, index, array) {
+            checkboxEntry = `
+            <input type="checkbox" id="${value[0]}" checked/>
+            <lablel>${value[2]}</label>
+            `
+            $checkboxList.append(checkboxEntry)
+            headerColumn = `
+            <th class="${value[1]}">${value[2]}</th>
+            `
+            $tableHeader.append(headerColumn)
+            coupleCheckboxColumn("#" + value[0], "." + value[1])
+        })
 
         // This is the filter function to search through row entries
         $(document).ready(function(){
@@ -51,6 +111,11 @@
                     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
                 });
             });
+        });
+
+        $("#columnSelectDropdown").click(function() {
+            $("#columnSelect").toggle("slow");
+            $("#columnSelectDropdown").toggleClass("fa-plus-square fa-minus-square")
         });
 
         $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
@@ -69,6 +134,16 @@
             });
         });
 
+        $('#oplogTable').on('click', '[id^="copyButton_"]', function (event) {
+            var $column = $(this).closest('td')
+            var buttonName = $column.attr('id')
+            var id = buttonName.split("_")[1]
+            socket.send(JSON.stringify({
+                'action':'copy',
+               'oplogEntryId': id
+            }))
+        });
+
         $('#oplogTable').on('click', '[id^="editButton_"]', function (e) {
             var $column = $(this).closest('td')
             var buttonName = $column.attr('id')
@@ -81,24 +156,27 @@
             entries.forEach(element => {
                 entry = element['fields']
                 id = element['pk']
-                var date = new Date(entry["start_date"])
-                $table.prepend(`<tr>
-                            <td>${id}</td>
-                            <td>${date.toUTCString()}</td>
-                            <td>${entry["user_context"]}</td>
-                            <td>${entry["command"]}</td>
-                            <td>${entry["operator_name"]}</td>
-                            <td id="editButton_${id}"><a href="javascript:void(0);"><i class="far fa-edit"></i></a></td>
-                            <td id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
-                            <!-- All the hidden fields for search purposes -->
-                            <td style="display:none;">${entry["end_date"]}</td>
-                            <td style="display:none;">${entry["end_date"]}</td>
-                            <td style="display:none;">${entry["source_ip"]}</td>
-                            <td style="display:none;">${entry["dest_ip"]}</td>
-                            <td style="display:none;">${entry["description"]}</td>
-                            <td style="display:none;">${entry["output"]}</td>
-                            <td style="display:none;">${entry["comments"]}</td>
-                            </tr>`).fadeIn("slow")
+                var newRow = `<tr>
+                            <td class="${columInfo[0][1]}">${entry["start_date"]}</td>
+                            <td class="${columInfo[1][1]}">${entry["end_date"]}</td>
+                            <td class="${columInfo[2][1]}">${id}</td>
+                            <td class="${columInfo[3][1]}">${entry["source_ip"]}</td>
+                            <td class="${columInfo[4][1]}">${entry["dest_ip"]}</td>
+                            <td class="${columInfo[5][1]}">${entry["tool"]}</td>
+                            <td class="${columInfo[6][1]}">${entry["user_context"]}</td>
+                            <td class="${columInfo[7][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["command"]}<div></td>
+                            <td class="${columInfo[8][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["description"]}</div></td>
+                            <td class="${columInfo[9][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["output"]}</div></td>
+                            <td class="${columInfo[10][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["comments"]}</div></td>
+                            <td class="${columInfo[11][1]}">${entry["operator_name"]}</td>
+                            <td class="${columInfo[12][1]}" id="editButton_${id}"><a href="javascript:void(0);"><i class="far fa-edit"></i></a></td>
+                            <td class="${columInfo[13][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
+                            <td class="${columInfo[14][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
+                            </tr>`
+
+                $newRow = $table.prepend(newRow).hide()
+                hideColumns()
+                $newRow.fadeIn("slow");
             })
         }
 

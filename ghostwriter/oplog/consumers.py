@@ -16,6 +16,13 @@ def getAllLogEntries(oplogId):
 def deleteOplogEntry(oplogEntryId):
     OplogEntry.objects.get(pk=oplogEntryId).delete()
 
+@database_sync_to_async
+def copyOplogEntry(oplogEntryId):
+    entry = OplogEntry.objects.get(pk=oplogEntryId)
+    if entry:
+        entry.pk = None
+        entry.save()
+
 class OplogEntryConsumer(AsyncWebsocketConsumer):
 
     async def send_oplog_entry(self, event):
@@ -45,5 +52,8 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         if json_data['action'] == "delete":
             oplog_entry_id = int(json_data['oplogEntryId'])
             await deleteOplogEntry(oplog_entry_id)
+        if json_data['action'] == "copy":
+            oplog_entry_id = int(json_data['oplogEntryId'])
+            await copyOplogEntry(oplog_entry_id)
 
 
