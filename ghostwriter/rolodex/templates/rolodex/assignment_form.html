@@ -88,14 +88,6 @@
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Script for Datepicker -->
-    <script>
-        $(function() {
-            $("#id_start_date").datepicker();
-            $("#id_end_date").datepicker();
-        });
-    </script>
-
     <!-- Script to set the default dates after project change -->
     <script>
         $("#id_project").change(function () {

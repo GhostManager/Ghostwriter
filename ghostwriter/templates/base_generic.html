@@ -20,18 +20,18 @@
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
 
         <!-- jQuery UI & jQuery CDN -->
-        <link rel="stylesheet" href="{% static 'jquery/jquery-ui.css' %}">
+        
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-
-        <!-- jQuery UI for Datepickers -->
-        <script src="{% static 'jquery/jquery-ui.js' %}"></script>
 
         <!-- jQuery Tablesorter Plugin -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.widgets.js" crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-date-range.min.js" crossorigin="anonymous"></script>
+
+        <!-- SortableJS for Drag n Drop -->
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
         <!-- Toastr -->
         <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
@@ -444,7 +444,6 @@
 
                 // Functions for sending messages
                 function sendMessage(socket, msg){
-                    console.log(msg);
                     // Wait until the state of the socket is not ready and send the message when it is...
                     waitForSocketConnection(socket, function(){
                         socket.send(msg);
@@ -469,10 +468,7 @@
                 ws_user.onmessage = function(e) {
                     var data = JSON.parse(e.data);
                     if (data.assignments !== undefined) {
-                        console.log(data.assignments);
                         document.getElementById('assignment-count').innerHTML = data.assignments
-                    } else {
-                        console.log('Received task NOPE');
                     }
                     displayToastTop(data.message['level'], data.message['message'], data.message['title']);
                 }
