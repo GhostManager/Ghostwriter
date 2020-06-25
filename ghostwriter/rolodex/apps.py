@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class RolodexConfig(AppConfig):
-    name = 'ghostwriter.rolodex'
+    name = "ghostwriter.rolodex"
 
     def ready(self):
         try:

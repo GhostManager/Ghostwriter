@@ -1,41 +1,67 @@
 """This contains customizations for the models in the Django admin panel."""
 
 from django.contrib import admin
-from .models import (Domain, HealthStatus, DomainStatus, WhoisStatus,
-                             ActivityType, History, ServerRole, ServerStatus,
-                             ServerProvider, ServerHistory, StaticServer,
-                             TransientServer, DomainServerConnection,
-                             AuxServerAddress)
+from .models import (
+    Domain,
+    HealthStatus,
+    DomainStatus,
+    WhoisStatus,
+    ActivityType,
+    History,
+    ServerRole,
+    ServerStatus,
+    ServerProvider,
+    ServerHistory,
+    StaticServer,
+    TransientServer,
+    DomainServerConnection,
+    AuxServerAddress,
+)
 
 
 # Define the admin classes and register models
 @admin.register(Domain)
 class DomainAdmin(admin.ModelAdmin):
-    list_display = ('domain_status', 'name', 'whois_status', 'health_status',
-                    'health_dns', 'registrar', 'note')
-    list_filter = ('domain_status',)
+    list_display = (
+        "domain_status",
+        "name",
+        "whois_status",
+        "health_status",
+        "health_dns",
+        "registrar",
+        "note",
+    )
+    list_filter = ("domain_status",)
     fieldsets = (
-        (None, {
-            'fields': ('name', 'domain_status', 'creation', 'expiration')
-        }),
-        ('Health Statuses', {
-            'fields': ('whois_status', 'health_status', 'health_dns',
-                       'burned_explanation')
-        }),
-        ('DNS Status', {
-            'fields': ('dns_record',)
-        }),
-        ('Categories', {
-            'fields': ('all_cat', 'ibm_xforce_cat', 'talos_cat',
-                       'bluecoat_cat', 'fortiguard_cat', 'opendns_cat',
-                       'trendmicro_cat')
-        }),
-        ('Email and Spam', {
-            'fields': ('mx_toolbox_status',)
-        }),
-        ('Misc', {
-            'fields': ('note',)
-        })
+        (None, {"fields": ("name", "domain_status", "creation", "expiration")}),
+        (
+            "Health Statuses",
+            {
+                "fields": (
+                    "whois_status",
+                    "health_status",
+                    "health_dns",
+                    "burned_explanation",
+                )
+            },
+        ),
+        ("DNS Status", {"fields": ("dns_record",)}),
+        (
+            "Categories",
+            {
+                "fields": (
+                    "all_cat",
+                    "ibm_xforce_cat",
+                    "talos_cat",
+                    "bluecoat_cat",
+                    "fortiguard_cat",
+                    "opendns_cat",
+                    "trendmicro_cat",
+                )
+            },
+        ),
+        ("Email and Spam", {"fields": ("mx_toolbox_status",)}),
+        ("Misc", {"fields": ("note",)}),
     )
 
 
@@ -61,8 +87,7 @@ class ActivityTypeAdmin(admin.ModelAdmin):
 
 @admin.register(History)
 class HistoryAdmin(admin.ModelAdmin):
-    list_display = ('client', 'domain', 'activity_type', 'end_date',
-                    'operator')
+    list_display = ("client", "domain", "activity_type", "end_date", "operator")
 
 
 @admin.register(ServerRole)

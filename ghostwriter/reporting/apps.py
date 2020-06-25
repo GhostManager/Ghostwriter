@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class ReportingConfig(AppConfig):
-    name = 'ghostwriter.reporting'
+    name = "ghostwriter.reporting"
 
     def ready(self):
         try:

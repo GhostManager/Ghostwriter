@@ -2,7 +2,7 @@ from django.apps import AppConfig
 
 
 class HomeConfig(AppConfig):
-    name = 'ghostwriter.home'
+    name = "ghostwriter.home"
 
     def ready(self):
         try:

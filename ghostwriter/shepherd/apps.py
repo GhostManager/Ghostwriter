@@ -4,7 +4,7 @@ from django.apps import AppConfig
 
 
 class ShepherdConfig(AppConfig):
-    name = 'ghostwriter.shepherd'
+    name = "ghostwriter.shepherd"
 
     def ready(self):
         try:

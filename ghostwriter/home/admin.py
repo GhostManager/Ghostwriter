@@ -8,5 +8,5 @@ from ghostwriter.home.models import UserProfile
 # Define the admin classes and register models
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'avatar')
-    list_filter = ('user',)
+    list_display = ("user", "avatar")
+    list_filter = ("user",)
