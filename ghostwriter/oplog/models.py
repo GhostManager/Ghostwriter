@@ -119,8 +119,7 @@ def oplog_pre_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=OplogEntry)
 def signal_oplog_entry(sender, instance, **kwargs):
-    if kwargs['created']:
-        channel_layer = get_channel_layer()
-        oplog_id = instance.oplog_id.id
-        json_data = serialize('json', [instance,])
-        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type":"send_oplog_entry", "text":json_data})
+    channel_layer = get_channel_layer()
+    oplog_id = instance.oplog_id.id
+    json_data = serialize('json', [instance,])
+    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type":"send_oplog_entry", "text":json_data})

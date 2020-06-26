@@ -19,12 +19,14 @@
             <tr>
                 <th>Name</th>
                 <th>Project</th>
+                <th>ID</th>
             </tr>
         </thead>
         {% for log in op_logs %}
             <tr>
                 <td class='clickable'><a href={% url 'oplog:oplog_entries' log.pk %}>{{ log.name }}</a></td>
                 <td nowrap>{{ log.project }}</td>
+                <td nowrap>{{ log.id }}</td>
             </tr>
         {% endfor %}
     </table>

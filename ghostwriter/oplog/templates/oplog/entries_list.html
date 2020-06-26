@@ -164,17 +164,28 @@
                             <td class="${columInfo[4][1]}">${entry["dest_ip"]}</td>
                             <td class="${columInfo[5][1]}">${entry["tool"]}</td>
                             <td class="${columInfo[6][1]}">${entry["user_context"]}</td>
-                            <td class="${columInfo[7][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["command"]}<div></td>
-                            <td class="${columInfo[8][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["description"]}</div></td>
-                            <td class="${columInfo[9][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["output"]}</div></td>
-                            <td class="${columInfo[10][1]}"><div class="overflow-auto" style="max-height: 250px;">${entry["comments"]}</div></td>
+                            <td class="${columInfo[7][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["command"]}<div></td>
+                            <td class="${columInfo[8][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["description"]}</div></td>
+                            <td class="${columInfo[9][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["output"]}</div></td>
+                            <td class="${columInfo[10][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["comments"]}</div></td>
                             <td class="${columInfo[11][1]}">${entry["operator_name"]}</td>
                             <td class="${columInfo[12][1]}" id="editButton_${id}"><a href="javascript:void(0);"><i class="far fa-edit"></i></a></td>
                             <td class="${columInfo[13][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
                             <td class="${columInfo[14][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
                             </tr>`
 
-                $newRow = $table.prepend(newRow).hide()
+                
+                var rowFound = false
+                $('#oplogTable tr').each(function() {
+                    if($(this).find('td').eq(2).text() == id) {
+                        $(this).replaceWith(newRow);
+                        rowFound = true;
+                    }
+                })
+                if (!rowFound) {
+                    $newRow = $table.prepend(newRow).hide()
+                }
+
                 hideColumns()
                 $newRow.fadeIn("slow");
             })
