@@ -1,12 +1,15 @@
 from rest_framework import serializers
 from .models import Oplog, OplogEntry
 
+
 class OplogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Oplog
-        fields = ('__all__')
+        fields = "__all__"
+
 
 class OplogEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = OplogEntry
-        fields = ('__all__')
+        fields = "__all__"
+

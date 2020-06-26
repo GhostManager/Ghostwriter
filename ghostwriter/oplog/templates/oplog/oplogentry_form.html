@@ -4,29 +4,29 @@
 {% block pagetitle %}New Oplog Entry{% endblock %}
 
 {% block content %}
-    <p>Enter log details</p>
+<p>Enter log details</p>
 
-    <!-- Form Section -->
-    <form class="newitem" action="" method="post">
-        {% csrf_token %}
+<!-- Form Section -->
+<form class="newitem" action="" method="post">
+    {% csrf_token %}
 
-        <!-- General Section -->
-        <strong><i class="fas fa-database"></i> Oplog Entry Details</strong>
-        <hr>
-        {{ form.oplog_id|as_crispy_field }}
-        {{ form.start_date|as_crispy_field }}
-        {{ form.end_date|as_crispy_field }}
-        {{ form.source_ip|as_crispy_field }}
-        {{ form.dest_ip|as_crispy_field }}
-        {{ form.tool|as_crispy_field }}
-        {{ form.user_context|as_crispy_field }}
-        {{ form.command|as_crispy_field }}
-        {{ form.description|as_crispy_field }}
-        {{ form.output|as_crispy_field }}
-        {{ form.comments|as_crispy_field }}
-        {{ form.operator_name|as_crispy_field }}
+    <!-- General Section -->
+    <strong><i class="fas fa-database"></i> Oplog Entry Details</strong>
+    <hr>
+    {{ form.oplog_id|as_crispy_field }}
+    {{ form.start_date|as_crispy_field }}
+    {{ form.end_date|as_crispy_field }}
+    {{ form.source_ip|as_crispy_field }}
+    {{ form.dest_ip|as_crispy_field }}
+    {{ form.tool|as_crispy_field }}
+    {{ form.user_context|as_crispy_field }}
+    {{ form.command|as_crispy_field }}
+    {{ form.description|as_crispy_field }}
+    {{ form.output|as_crispy_field }}
+    {{ form.comments|as_crispy_field }}
+    {{ form.operator_name|as_crispy_field }}
 
-        <input type="submit" class="btn btn-primary" value="Save">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+    <input type="submit" class="btn btn-primary" value="Save">
+    <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
+</form>
 {% endblock %}
