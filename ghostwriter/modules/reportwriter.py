@@ -304,7 +304,8 @@ class Reportwriter():
         report_dict['objectives'] = {}
         for objective in self.report_queryset.project.projectobjective_set.all():
             report_dict['objectives'][objective.objective] = {}
-            report_dict['objectives'][objective.objective]['name'] = objective.objective
+            objective_text = BeautifulSoup(objective.objective).get_text()
+            report_dict['objectives'][objective.objective]['name'] = objective_text
             report_dict['objectives'][objective.objective]['status'] = objective.status.objective_status
 
         return json.dumps(report_dict, indent=2, cls=DjangoJSONEncoder)
