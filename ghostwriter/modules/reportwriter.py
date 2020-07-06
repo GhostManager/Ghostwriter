@@ -73,15 +73,16 @@ class Reportwriter():
                  template_loc=None):
         """Everything that must be initialized is setup here."""
         self.output_path = output_path
+        
+        if template_loc != None:
+            template_dirname = os.path.dirname(template_loc)
+            template_filename = os.path.basename(template_loc)
+            project_type = report_queryset.project.project_type.project_type.replace(" ", "-")
 
-        template_dirname = os.path.dirname(template_loc)
-        template_filename = os.path.basename(template_loc)
-        project_type = report_queryset.project.project_type.project_type.replace(" ", "-")
+            template_projecttype_path = '{}{}{}_{}'.format(template_dirname, os.path.sep, project_type, template_filename)
 
-        template_projecttype_path = '{}{}{}_{}'.format(template_dirname, os.path.sep, project_type, template_filename)
-
-        if os.path.isfile(template_projecttype_path):
-            template_loc = template_projecttype_path
+            if os.path.isfile(template_projecttype_path):
+                template_loc = template_projecttype_path
 
         self.template_loc = template_loc
         self.evidence_path = evidence_path
