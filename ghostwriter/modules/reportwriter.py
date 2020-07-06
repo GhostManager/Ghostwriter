@@ -43,17 +43,17 @@ class Reportwriter():
     report_type = None
     # Color codes used for finding severity
     # Blue
-    informational_color = '8eaadb'
-    informational_color_hex = [0x83, 0xaa, 0xdb]
+    informational_color = '1e4696'
+    informational_color_hex = [0x1e, 0x49, 0x96]
     # Green
-    low_color = 'a8d08d'
-    low_color_hex = [0xa8, 0xd0, 0x8d]
+    low_color = '009b5a'
+    low_color_hex = [0x00, 0x9b, 0x5a]
     # Orange
-    medium_color = 'f4b083'
-    medium_color_hex = [0xf4, 0xb0, 0x83]
+    medium_color = '366e2d'
+    medium_color_hex = [0xe6, 0x6e, 0x2d]
     # Red
-    high_color = 'ff7e79'
-    high_color_hex = [0xff, 0x7e, 0x79]
+    high_color = 'd24146'
+    high_color_hex = [0xd2, 0x41, 0x46]
     # Purple
     critical_color = '966FD6'
     critical_color_hex = [0x96, 0x6f, 0xd6]
