@@ -1061,6 +1061,8 @@ class Reportwriter():
         context['static_servers'] = self.report_json['infrastructure']['servers']['static'].values()
         context['cloud_servers'] = self.report_json['infrastructure']['servers']['cloud'].values()
         context['domains_and_servers'] = self.report_json['infrastructure']['domains_and_servers'].values()
+        # Objectives information
+        context['objectives'] = self.report_json['objectives'].values()
         # Findings information
         context['findings'] = self.report_json['findings'].values()
         for finding in context['findings']:
