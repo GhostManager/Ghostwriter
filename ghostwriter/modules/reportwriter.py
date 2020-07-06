@@ -299,6 +299,14 @@ class Reportwriter():
                 'end_date'] = operator.end_date
             report_dict['team'][operator.operator.id][
                 'note'] = operator.note
+        # Objectives
+        report_dict['objectives'] = {}
+        for objective in self.report_queryset.project.projectobjective_set.all():
+            report_dict['objectives'][objective.objective] = {}
+            report_dict['objectives'][objective.objective]['name'] = objective.objective
+            report_dict['objectives'][objective.objective]['status'] = objective.status.objective_status
+            report_dict['objectives'][objective.objective]['complete'] = "Achieved" if objective.complete else "Not achieved"
+
         return json.dumps(report_dict, indent=2, cls=DjangoJSONEncoder)
 
     def create_newline(self):
