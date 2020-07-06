@@ -19,8 +19,12 @@
     <div style="float:left;">
         <input id="searchInput" type="text" placeholder="Filter..." />
     </div>
-    <div style="float:right;">
+    <div style="float:left;">
+
+    </div>
+    <div style="float:right; ">
         <a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a>
+        <p><a id="export_link"><i class="far fa-plus-square"></i>Export to CSV</a></p>
     </div>
 </div>
 <div style="clear: both;"></div>
@@ -46,7 +50,7 @@
 {% block morescripts %}
 <!-- jQuery Tablesorter Script -->
 <script>
-    var endpoint = "ws://" + window.location.host + window.location.pathname
+    var endpoint = "ws://" + window.location.host + "/ws" +  window.location.pathname
     var socket = new WebSocket(endpoint)
     var $table = $("#oplogTable tbody")
     let columInfo = []
@@ -103,6 +107,22 @@
         $tableHeader.append(headerColumn)
         coupleCheckboxColumn("#" + value[0], "." + value[1])
     })
+
+    function download(url, filename) {
+        fetch(url).then(function (t) {
+            return t.blob().then((b) => {
+                var a = document.createElement("a");
+                a.href = URL.createObjectURL(b);
+                a.setAttribute("download", filename);
+                a.click();
+            });
+        });
+    }
+
+    var $exportLink = $("#export_link")
+    $exportLink.click(function (e) {
+        download("/oplog/api/entries?export=csv&&oplog_id={{pk}}", "exports.csv");
+    });
 
     // This is the filter function to search through row entries
     $(document).ready(function () {

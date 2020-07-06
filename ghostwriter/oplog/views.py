@@ -1,12 +1,14 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from rest_framework import viewsets, generics
+from rest_framework.response import Response
 
+from .admin import OplogEntryResource
 from .models import Oplog, OplogEntry
 from .forms import OplogCreateForm, OplogCreateEntryForm
 from .serializers import OplogSerializer, OplogEntrySerializer
@@ -77,12 +79,25 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
     queryset = OplogEntry.objects.all()
     permission_classes = [HasAPIKey | IsAuthenticated]
 
-    def get_queryset(self):
+    def list(self, request):
+        queryset = OplogEntry.objects.all().order_by("-start_date")
         if "oplog_id" not in self.request.query_params:
-            return OplogEntry.objects.all().order_by("-start_date")
+            queryset = OplogEntry.objects.all().order_by("-start_date")
         else:
             oplog_id = self.request.query_params["oplog_id"]
-            return OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
+            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by(
+                "-start_date"
+            )
+        if "export" in request.query_params:
+            format = request.query_params["export"]
+            dataset = OplogEntryResource().export(queryset)
+            try:
+                return HttpResponse(getattr(dataset, format))
+            except AttributeError:
+                return None
+
+        serializer = OplogEntrySerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class OplogViewSet(viewsets.ModelViewSet):

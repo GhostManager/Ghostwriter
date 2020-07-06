@@ -1,3 +1,4 @@
+from datetime import datetime as dt
 from django.contrib import admin
 from import_export import resources
 
@@ -8,6 +9,22 @@ from import_export.admin import ImportExportModelAdmin
 
 
 class OplogEntryResource(resources.ModelResource):
+    def before_import_row(self, row, **kwargs):
+        if "start_date" in row.keys():
+            try:
+                timestamp = int(row["start_date"])
+                dt_object = dt.fromtimestamp(timestamp / 1000)
+                row["start_date"] = str(dt_object)
+            except ValueError:
+                pass
+        if "end_date" in row.keys():
+            try:
+                timestamp = int(row["end_date"])
+                dt_object = dt.fromtimestamp(timestamp / 1000)
+                row["end_date"] = str(dt_object)
+            except ValueError:
+                pass
+
     class Meta:
         model = OplogEntry
 
