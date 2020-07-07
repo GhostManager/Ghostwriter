@@ -50,7 +50,7 @@
 {% block morescripts %}
 <!-- jQuery Tablesorter Script -->
 <script>
-    var endpoint = "ws://" + window.location.host + "/ws" +  window.location.pathname
+    var endpoint = "wss://" + window.location.host + "/ws" + window.location.pathname
     var socket = new WebSocket(endpoint)
     var $table = $("#oplogTable tbody")
     let columInfo = []
