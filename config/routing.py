@@ -10,7 +10,7 @@ application = ProtocolTypeRouter({
     'websocket': AuthMiddlewareStack(
             URLRouter(
                [
-                    path("oplog/<int:pk>/entries", OplogEntryConsumer)
+                    path("ws/oplog/<int:pk>/entries", OplogEntryConsumer)
                ])
     )
 })
