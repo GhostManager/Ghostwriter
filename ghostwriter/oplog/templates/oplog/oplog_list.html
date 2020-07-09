@@ -20,13 +20,15 @@
             <th>Name</th>
             <th>Project</th>
             <th>ID</th>
+            <th>Export to CSV</th>
         </tr>
     </thead>
     {% for log in op_logs %}
     <tr>
         <td class='clickable'><a href={% url 'oplog:oplog_entries' log.pk %}>{{ log.name }}</a></td>
         <td nowrap>{{ log.project }}</td>
-        <td nowrap>{{ log.id }}</td>
+        <td nowrap class="oplogId">{{ log.id }}</td>
+        <td class='exportOplog'><a href='#'>Export</a></td>
     </tr>
     {% endfor %}
 </table>
@@ -36,15 +38,26 @@
 {% block morescripts %}
 <!-- jQuery Tablesorter Script -->
 <script>
+    function download(url, filename) {
+        fetch(url).then(function (t) {
+            return t.blob().then((b) => {
+                var a = document.createElement("a");
+                a.href = URL.createObjectURL(b);
+                a.setAttribute("download", filename);
+                a.click();
+            });
+        });
+    }
+
     $(document).ready(function () {
         $("#oplogTable").tablesorter(
             {
-                cssAsc: 'down',
-                cssDesc: 'up',
-                cssNone: 'none',
-            }
-        );
-        $('.tablesorter').trigger('update');
+                cssAsc: ' down', cssDesc: 'up', cssNone: 'none',
+            }); $('.tablesorter').trigger('update');
+    });
+    $(".exportOplog").on("click", function () {
+        id = $(this).parent().find('.oplogId').html()
+        download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
     });
 </script>
 {% endblock %}

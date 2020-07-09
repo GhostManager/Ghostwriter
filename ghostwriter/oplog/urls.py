@@ -12,6 +12,7 @@ from .views import (
     OplogListEntries,
     OplogEntryViewSet,
     OplogViewSet,
+    OplogEntriesImport,
 )
 
 app_name = "ghostwriter.oplog"
@@ -34,5 +35,6 @@ urlpatterns = [
         "<int:pk>/entries/delete", OplogEntryDelete.as_view(), name="oplog_entry_delete"
     ),
     path("<int:pk>/entries", OplogListEntries, name="oplog_entries"),
+    path("import", OplogEntriesImport, name="oplog_import"),
 ]
 

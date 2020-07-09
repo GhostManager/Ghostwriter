@@ -7,6 +7,7 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
+from tablib import Dataset
 
 from .admin import OplogEntryResource
 from .models import Oplog, OplogEntry
@@ -22,6 +23,25 @@ def index(request):
     op_logs = Oplog.objects.all()
     context = {"op_logs": op_logs}
     return render(request, "oplog/oplog_list.html", context=context)
+
+
+@login_required
+def OplogEntriesImport(request):
+    if request.method == "POST":
+        oplog_entry_resource = OplogEntryResource()
+
+        new_entries = request.FILES["csv_file"]
+        dataset = Dataset()
+        imported_data = dataset.load(new_entries.read().decode())
+        result = oplog_entry_resource.import_data(imported_data, dry_run=True)
+
+        if not result.has_errors():
+            oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
+            return HttpResponseRedirect(reverse("oplog:index"))
+        else:
+            print("Error importing")
+
+    return render(request, "oplog/oplog_import.html")
 
 
 @login_required
