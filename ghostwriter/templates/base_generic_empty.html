@@ -23,6 +23,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <script src="{% static 'js/jquery.formset.js' %}"></script>
 
         <!-- jQuery Tablesorter Plugin -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
@@ -124,14 +125,391 @@
 
     <body>
         <div class="wrapper">
+            <!-- Sidebar Holder -->
+            {% if user.is_authenticated %}
+                <nav id="sidebar">
+                    <!-- Sidebar Top Section -->
+                    <a href="{% url 'home:dashboard' %}">
+                        <div class="sidebar-header">
+                            <h3><img src="{% static 'images/font_ghost.png' %}" alt="SpecterOps" style="width:10%"> Ghostwriter</h3>
+                        </div>
+                    </a>
+
+                    <!-- Rolodex Section -->
+                    <ul class="list-unstyled components">
+                        <p class="sideheader"><i class="fas fa-address-card"></i> Clients & Projects</p>
+
+                        <!-- Search Section -->
+                        <div class="search">
+                            <form action="{% url 'rolodex:clients' %}" method="GET">
+                                <span class="fa fa-search"></span>
+                                <input type="text" name="client_search" placeholder="Search clients">
+                                <input type="submit" style="display: none" />
+                            </form>
+                        </div>
+
+                        <!-- Menu Section -->
+                        <li>
+                            <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle" data-target="#clientSubmenu">
+                                Clients
+                                <div class="expand_caret caret"></div>
+                            </a>
+                            <ul class="collapse list-unstyled" id="clientSubmenu">
+                                <li><a href="{% url 'rolodex:clients' %}">Client List</a></li>
+                                <li><a href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Projects</a>
+                            <ul class="collapse list-unstyled" id="projectSubmenu">
+                                <li><a href="{% url 'rolodex:projects' %}">Projects List</a></li>
+                                <li><a href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <!-- Ghostwriter Section -->
+                    <ul class="list-unstyled components">
+                        <p class="sideheader"><i class="fas fa-pencil-alt"></i> Findings & Reports</p>
+
+                        <!-- Search Section -->
+                        <div class="search">
+                            <form action="{% url 'reporting:findings' %}" method="GET">
+                                <span class="fa fa-search"></span>
+                                <input type="text" name="finding_search" placeholder="Search findings">
+                                <input type="submit" style="display: none" />
+                            </form>
+                        </div>
+
+                        <!-- Menu Section -->
+                        <li>
+                            <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Findings</a>
+                            <ul class="collapse list-unstyled" id="findingsSubmenu">
+                                <li><a href="{% url 'reporting:findings' %}">Finding Library</a></li>
+                                <li><a href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
+                                <li><a href="{% url 'reporting:import_findings' %}">Upload Bulk Findings</a></li>
+                                <li><a href="{% url 'reporting:export_findings_to_csv' %}">Export Findings</a></li>
+                            </ul>
+                            <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
+                            <ul class="collapse list-unstyled" id="reportSubmenu">
+                                <li><a href="{% url 'reporting:reports' %}">Report Library</a></li>
+                                <li><a href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
+                                <li><a href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <!-- Shepherd Section -->
+                    <ul class="list-unstyled components">
+                        <p class="sideheader"><i class="fas fa-server"></i> Infrastructure</p>
+
+                        <!-- Search Section -->
+                        <div class="search">
+                            <form action="{% url 'shepherd:domains' %}" method="GET">
+                                <span class="fa fa-search"></span>
+                                <input type="text" name="domain_search" placeholder="Search domains">
+                                <input type="submit" style="display: none" />
+                            </form>
+                        </div>
+
+                        <!-- Menu Section -->
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'shepherd:user_assets' %}">My Active Assets</a></li>
+                        {% endif %}
+                        <li>
+                            <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Servers</a>
+                            <ul class="collapse list-unstyled" id="serverSubmenu">
+                                <li><a href="{% url 'shepherd:servers' %}">Server Library</a></li>
+                                <li><a href="{% url 'shepherd:server_create' %}">Add New Server</a></li>
+                                <li><a href="{% url 'shepherd:server_import' %}">Upload Bulk Servers</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domains</a>
+                            <ul class="collapse list-unstyled" id="shepSubmenu">
+                                <li><a href="{% url 'shepherd:domains' %}">Domain Library</a></li>
+                                <li><a href="{% url 'shepherd:domain_create' %}">Add New Domain</a></li>
+                                <li><a href="{% url 'shepherd:domain_import' %}">Upload Bulk Domains</a></li>
+                            </ul>
+                        </li>
+                        <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
+                    </ul>
+
+                    <!-- Admin Section -->
+                    {% if request.user.is_staff %}
+                        <ul class="list-unstyled components">
+                            <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Management</p>
+                            <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
+                            <li>
+                                <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
+                                <ul class="collapse list-unstyled" id="pageSubmenu">
+                                    <li><a href="{% url 'admin:users_user_changelist' %}">Users</a></li>
+                                    <li><a href="{% url 'admin:app_list' 'django_q' %}">Q Tasks</a></li>
+                                    <li><a href="{% url 'admin:index' %}">Admin Panel</a></li>
+                                </ul>
+                            </li>
+
+                            <!-- Documentation Section -->
+                            <li>
+                                <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
+                                <ul class="collapse list-unstyled" id="docsSubmenu">
+                                    <li><a href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
+                                    <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
+                                    <li><a href="https://github.com/GhostManager/DomainCheck"><i class="fab fa-github-alt"></i> DomainCheck on GitHub</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    {% endif %}
+
+                    <!-- Sidebar Buttons -->
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'account_logout' %}" class="button">Logout <i class="fas fa-sign-out-alt"></i></a>
+                    {% else %}
+                        <a href="{% url 'account_login' %}" class="button">Login <i class="fas fa-sign-in-alt"></i></a>
+                    {% endif %}
+
+                    <a href="https://www.specterops.io"><img src="{% static 'images/domain.png' %}" alt="SpecterOps" style="width:55%"></a>
+                </nav>
+            {% endif %}
+
             <!-- Page Content Holder -->
             <div id="content">
+                {% if user.is_authenticated %}
+                    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                        <div class="container-fluid">
+                            <button type="button" id="sidebarCollapse" class="navbar-btn" title="Toggle sidebar menu">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </button>
+                            <button class="btn btn-light d-inline-block d-lg-none ml-auto" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                                <i class="fas fa-align-justify"></i>
+                            </button>
+
+                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                                <!-- Breadcrumb Links -->
+                                {% block breadcrumbs %}{% endblock %}
+
+                                <!-- Active Report Link -->
+                                <ul class="nav navbar-nav ml-auto">
+                                    {% if user.is_authenticated %}
+                                        <li class="nav-item">
+                                            <div class="dropdown">
+                                                {% if request.session.active_report.id and request.session.active_report.title %}
+                                                    <a class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">Report: {{ request.session.active_report.title }}</a>
+                                                    <div class="dropdown-content dropdown-content-info">
+                                                        <p style="margin: 10px">This is your active report. Any findings you add will be added to this report.</p>
+                                                        <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo"class="fas fa-exchange-alt"></i> Switch Reports</a>
+                                                    </div>
+                                                {% else %}
+                                                    <a class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Report: Click Here to Select a Report</a>
+                                                    <div class="dropdown-content dropdown-content-info">
+                                                        <p style="margin-bottom: 5px">This is your active report. Any findings you add will be added to this report.</p>
+                                                        <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo"class="fas fa-exchange-alt"></i> Select a Report</a>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </li>
+                                        <li class="nav-item">
+                                            {% count_assignments request as assignment_count %}
+                                            <a id="assignment-count" href="{% url 'home:dashboard' %}"
+                                            {% if assignment_count > 0 %}
+                                                class="notify-badge badge badge-warning">
+                                            {% elif assignment_count > 5 %}
+                                                class="notify-badge badge badge-danger">
+                                            {% endif %}
+                                            {{ assignment_count }}</a>
+                                        </li>
+                                    {% else %}
+                                        <p>{% block pagetitle %}{% endblock %}</p>
+                                    {% endif %}
+                                </ul>
+                                <ul class="nav navbar-nav" style="margin: 0;">
+                                    <a class="nav-link" href="{% url 'home:profile' %}"><img style="width: 40px; height: 40px; border-radius: 50%; margin-top: -10px;" class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar"></a>
+                                </ul>
+                            </div>
+                        </div>
+                    </nav>
+                {% endif %}
+
                 <!-- Page Content Goes Here -->
                 <div>
                     {% block content %}{% endblock %}
+                    {% block pagination %}
+                        {% if is_paginated %}
+                            <div class="pagination">
+                                <span class="page-links">
+                                    <span class="page-current">
+                                        <p>
+                                            {% if page_obj.has_previous %}
+                                                <a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">< </a>
+                                            {% endif %}
+                                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                            {% if page_obj.has_next %}
+                                                <a href="{{ request.path }}?page={{ page_obj.next_page_number }}"> ></a>
+                                            {% endif %}
+                                        </p>
+                                    </span>
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% endblock %} 
                 </div>
             </div>
         </div>
+
+        <!-- Script for Sidebar -->
+        <script>
+            $(document).ready(function () {
+              $('#sidebarCollapse').on('click', function () {
+                $('#sidebar').toggleClass('active');
+                $(this).toggleClass('active');
+              });
+            });
+        </script>
+
+        <!-- Script for Collapsibles -->
+        <script>
+            var coll = document.getElementsByClassName('collapsible');
+            var i;
+            for (i = 0; i < coll.length; i++) {
+              coll[i].addEventListener('click', function () {
+                this.classList.toggle('active');
+                var content = this.nextElementSibling;
+                if (content.style.maxHeight) {
+                  content.style.maxHeight = null;
+                } else {
+                  content.style.maxHeight = content.scrollHeight + 'px';
+                }
+              });
+            }
+        </script>
+
+        <!-- Script for Bootstrap Hover Tooltip -->
+        <script>
+            $(document).ready(function () {
+              $('[data-toggle="tooltip"]').tooltip();
+            });
+        </script>
+
+        <!-- Script to Opening Accordions on Link -->
+        <script>
+            // Modification of https://gist.github.com/raddevon/8958486
+            function openAnchorAccordion() {
+              if (window.location.hash) {
+                var jQuerytarget = jQuery('body').find(window.location.hash);
+                // console.log( jQuerytarget );
+                if (jQuerytarget.hasClass('collapse')) {
+                  var jQuerytargetAccordion = jQuerytarget.find('.collapse');
+                  // console.log( jQuerytargetAccordion );
+                  jQuerytarget.collapse('show');
+                }
+              }
+            }
+
+            openAnchorAccordion();
+
+            jQuery('body').on('click', 'a', openAnchorAccordion);
+        </script>
+
+        <!-- Initialize Config for Toastr Toasts -->
+        <script>
+            // Default Configuration
+            $(document).ready(function () {
+              toastr.options = {
+                'closeButton': true,
+                'debug': false,
+                'newestOnTop': false,
+                'progressBar': true,
+                'positionClass': 'toast-top-right',
+                'preventDuplicates': false,
+                'showDuration': '1000',
+                'hideDuration': '1000',
+                'timeOut': '4000',
+                'extendedTimeOut': '4000',
+                'showEasing': 'swing',
+                'hideEasing': 'linear',
+                'showMethod': 'fadeIn',
+                'hideMethod': 'fadeOut',
+              }
+              // Need to set this outside of the dict per the README
+              // https://github.com/CodeSeven/toastr#escape-html-characters
+              toastr.options.escapeHtml = true;
+            });
+
+            // Display toast notification for each message on page load
+            {% for message in messages %}
+                {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+                    displayToastTop({type:'success', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+                    displayToastTop({type:'warning', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                    displayToastTop({type:'error', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+                    displayToastTop({type:'info', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
+                    displayToastTop({type:'info', string:'{{ message }}'});
+                {% endif %}
+            {% endfor %}
+        </script>
+
+        {% if user.is_authenticated %}
+            <!-- Script for WebSockets Group for Authenticated Users -->
+            <script>
+                // Connect to channel for individual notifcations
+                var username = '{{ user }}';
+                var ws_user = new WebSocket(
+                  'ws://' + window.location.host +
+                  '/ws/users/' + username + '/');
+                // Connect to channel for all user notifications
+                var ws_all = new WebSocket(
+                  'ws://' + window.location.host +
+                  '/ws/users/all/');
+
+                // Functions for sending messages
+                function sendMessage(socket, msg) {
+                  // Wait until the state of the socket is not ready and send the message when it is...
+                  waitForSocketConnection(socket, function () {
+                    socket.send(msg);
+                  });
+                }
+                // Make the function wait until the connection is made...
+                function waitForSocketConnection(socket, callback) {
+                  setTimeout(
+                    function () {
+                      if (socket.readyState === 1) {
+                        if (callback != null) {
+                          callback();
+                        }
+                      } else {
+                        console.log('Waiting for connection...')
+                        waitForSocketConnection(socket, callback);
+                      }
+                    }, 5); // wait 5 milisecond for the connection...
+                }
+
+                // Handle receiving messages on channels
+                ws_user.onmessage = function (e) {
+                  var data = JSON.parse(e.data);
+                  if (data.assignments !== undefined) {
+                    document.getElementById('assignment-count').innerHTML = data.assignments
+                  }
+                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
+                }
+                ws_all.onmessage = function (e) {
+                  var data = JSON.parse(e.data);
+                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
+                };
+
+                // Handle unexpected WebSocket closures
+                ws_user.onclose = function (e) {
+                  console.error('User noitfication WebSocket closed unexpectedly');
+                };
+                ws_all.onclose = function (e) {
+                  console.error('Global notification WebSocket closed unexpectedly');
+                };
+            </script>
+        {% endif %}
 
         {% block morescripts %}{% endblock %}
     </body>

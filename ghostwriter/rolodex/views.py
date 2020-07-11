@@ -1,59 +1,72 @@
-"""This contains all of the views for the Rolodex application's various
-webpages.
-"""
+"""This contains all of the views used by the Rolodex application."""
 
-# Import logging functionality
 import logging
 
-# Django imports for generic views and template rendering
-from django.urls import reverse
-from django.views import generic
+from django import forms
 from django.contrib import messages
-from django.shortcuts import render
-from django.core import serializers
-from django.urls import reverse_lazy
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-
-# Django imports for verifying a user is logged-in to access a view
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core import serializers
+from django.db import transaction
+from django.forms import formset_factory, inlineformset_factory
+from django.forms.utils import ErrorList
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse, reverse_lazy
+from django.utils.translation import ugettext_lazy as _
+from django.views import generic
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
 
-# Django imports for forms
-from django.http import HttpResponseRedirect, HttpResponse
-from django.shortcuts import get_object_or_404
-
-# Import additional models
-from .models import (
-    Client,
-    Project,
-    ClientContact,
-    ProjectAssignment,
-    ClientNote,
-    ProjectNote,
-    ProjectObjective,
-    ObjectiveStatus,
-)
-from .forms import (
-    ClientCreateForm,
-    ProjectCreateForm,
-    ClientContactCreateForm,
-    AssignmentCreateForm,
-    ClientNoteCreateForm,
-    ProjectNoteCreateForm,
-    ProjectObjectiveCreateForm,
-)
-
-# from shepherd.models import History, ServerHistory, TransientServer
-
-# Import additional modules
 from ghostwriter.modules import codenames
 
-# Import model filters for views
 from .filters import ClientFilter, ProjectFilter
+from .forms import (
+    AssignmentCreateForm,
+    AssignmentCreateFormset,
+    BaseProjectAssignmentInlineFormSet,
+    BaseProjectObjectiveInlineFormSet,
+    ClientContactCreateForm,
+    ClientCreateForm,
+    ClientNoteCreateForm,
+    ProjectCreateForm,
+    ProjectNoteCreateForm,
+    ProjectObjectiveCreateForm,
+    ProjectObjectiveCreateFormset,
+)
+from .models import (
+    Client,
+    ClientContact,
+    ClientNote,
+    ObjectiveStatus,
+    Project,
+    ProjectAssignment,
+    ProjectNote,
+    ProjectObjective,
+)
 
-
-# Setup logger
+# Using __name__ resolves to ghostwriter.rolodex.views
 logger = logging.getLogger(__name__)
+
+
+##################
+# AJAX Functions #
+##################
+
+
+@login_required
+def ajax_load_project(request):
+    """
+    View used with AJAX requests to retrieve instances of :model:`rolodex.Project` during
+    the creation of individual :model:`rolodex.ProjectAssignment`.
+
+    **Template**
+
+    :template:`rolodex/assignment_form.html`
+    """
+    project_id = request.GET.get("project")
+    project = Project.objects.filter(id=project_id)
+    data = serializers.serialize("json", project)
+    return HttpResponse(data, content_type="application/json")
 
 
 ##################
@@ -62,26 +75,21 @@ logger = logging.getLogger(__name__)
 
 
 @login_required
-def ajax_load_project(request):
-    """View function used with AJAX for retrieving project details.
-    Used in assignment forms to set the default assignment dates.
-    """
-    project_id = request.GET.get("project")
-    project = Project.objects.filter(id=project_id)
-    data = serializers.serialize("json", project)
-    return HttpResponse(data, content_type="application/json")
-
-
-@login_required
 def index(request):
-    """View function to redirect empty requests to the dashboard."""
+    """
+    Display the main homepage.
+    """
     return HttpResponseRedirect(reverse("home:dashboard"))
 
 
 @login_required
 def client_list(request):
-    """View showing all clients. This view defaults to the client_list.html
-    template.
+    """
+    Display a list of all :model:`rolodex.Client`.
+
+    **Template**
+
+    :template:`rolodex/client_list.html`
     """
     # Check if a search parameter is in the request
     try:
@@ -91,7 +99,7 @@ def client_list(request):
     if search_term:
         messages.success(
             request,
-            "Displaying search results for: %s" % search_term,
+            "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
         client_list = Client.objects.filter(name__icontains=search_term).order_by(
@@ -105,8 +113,12 @@ def client_list(request):
 
 @login_required
 def project_list(request):
-    """View showing all projects. This view defaults to the project_list.html
-    template and allows for filtering.
+    """
+    Display a list of all :model:`rolodex.Project`.
+
+    **Template**
+
+    :template:`rolodex/project_list.html`
     """
     project_list = (
         Project.objects.select_related("client").all().order_by("complete", "client")
@@ -117,7 +129,9 @@ def project_list(request):
 
 @login_required
 def assign_client_codename(request, pk):
-    """View function for assigning a codename to a client."""
+    """
+    Assign a codename to an individual :model:`rolodex.Client`.
+    """
     client_instance = Client.objects.get(id=pk)
     codename_verified = False
     while not codename_verified:
@@ -134,7 +148,9 @@ def assign_client_codename(request, pk):
 
 @login_required
 def assign_project_codename(request, pk):
-    """View function for assigning a codename to a project."""
+    """
+    Assign a codename to an individual :model:`rolodex.Project`.
+    """
     project_instance = Project.objects.get(id=pk)
     codename_verified = False
     while not codename_verified:
@@ -151,7 +167,9 @@ def assign_project_codename(request, pk):
 
 @login_required
 def complete_project(request, pk):
-    """View function to mark the specified project as complete."""
+    """
+    Toggle the `complete` field of an individual :model:`rolodex.Project` to `True`.
+    """
     try:
         project_instance = Project.objects.get(pk=pk)
         if project_instance:
@@ -181,7 +199,9 @@ def complete_project(request, pk):
 
 @login_required
 def reopen_project(request, pk):
-    """View function to mark the specified project as incomplete."""
+    """
+    Toggle the `complete` field of an individual :model:`rolodex.Project` to `False`.
+    """
     try:
         project_instance = Project.objects.get(pk=pk)
         if project_instance:
@@ -209,7 +229,9 @@ def reopen_project(request, pk):
 
 @login_required
 def set_objective_status(request, pk, status):
-    """View function to update the status for the specified objective."""
+    """
+    Update the `status` field of an individual :model:`rolodex.ProjectObjective`.
+    """
     try:
         project_objective = ProjectObjective.objects.get(pk=pk)
         if project_objective:
@@ -218,7 +240,7 @@ def set_objective_status(request, pk, status):
                 project_objective.save()
                 messages.success(
                     request,
-                    '"%s" is now Active.' % project_objective.objective,
+                    '"{}" is now Active.'.format(project_objective.objective),
                     extra_tags="alert-success",
                 )
             elif status == "onhold":
@@ -226,7 +248,7 @@ def set_objective_status(request, pk, status):
                 project_objective.save()
                 messages.success(
                     request,
-                    '"%s" is now On Hold.' % project_objective.objective,
+                    '"{}" is now On Hold.'.format(project_objective.objective),
                     extra_tags="alert-success",
                 )
             elif status == "complete":
@@ -234,7 +256,7 @@ def set_objective_status(request, pk, status):
                 project_objective.save()
                 messages.success(
                     request,
-                    '"%s" is now Complete.' % project_objective.objective,
+                    '"{}" is now Complete.'.format(project_objective.objective),
                     extra_tags="alert-success",
                 )
             else:
@@ -275,8 +297,21 @@ def set_objective_status(request, pk, status):
 
 
 class ClientDetailView(LoginRequiredMixin, generic.DetailView):
-    """View showing the details for the specified client. This view defaults to the
-    client_detail.html template.
+    """
+    Display an individual :model:`rolodex.Client`.
+    
+    **Context**
+    
+    ``domains``
+        List of :model:`shepherd.Domain` associated with :model:`rolodex.Client`.
+    ``servers``
+        List of :model:`shepherd.StaticServer` associated with :model:`rolodex.Client`.
+    ``vps``
+        List of :model:`shepherd.TransientServer` associated with :model:`rolodex.Client`.
+    
+    **Template**
+    
+    :template:`rolodex/client_detail.html`
     """
 
     model = Client
@@ -284,9 +319,6 @@ class ClientDetailView(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ClientDetailView, self).get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         domain_history = History.objects.select_related("domain").filter(
@@ -314,19 +346,21 @@ class ClientDetailView(LoginRequiredMixin, generic.DetailView):
 
 
 class ClientCreate(LoginRequiredMixin, CreateView):
-    """View for creating new client entries. This view defaults to the
-    client_form.html template.
+    """
+    Create an individual :model:`rolodex.Client`.
+
+    **Template**
+    
+    :template:`rolodex/client_form.html`
     """
 
     model = Client
     form_class = ClientCreateForm
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
-        """Override form_valid to perform additional actions on new entries."""
         codename_verified = False
         while not codename_verified:
             new_codename = codenames.codename(uppercase=True)
@@ -339,20 +373,21 @@ class ClientCreate(LoginRequiredMixin, CreateView):
 
 
 class ClientUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing client entries. This view defaults to the
-    client_form.html template.
+    """
+    Update an individual :model:`rolodex.Client`.
+    
+    **Template**
+    
+    :template:`rolodex/client_form.html`
     """
 
     model = Client
-    # fields = '__all__'
     form_class = ClientCreateForm
 
     def get_success_url(self):
-        """Override the function to return to the new record after updating."""
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
     def get_initial(self):
-        """Set the initial values for the form."""
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         return {
             "codename": client_instance.codename,
@@ -360,8 +395,19 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
 
 class ClientDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing client entries. This view defaults to the
-    confirm_delete.html template.
+    """
+    Delete an individual :model:`rolodex.Client`.
+    
+    **Context**
+    
+    ``object_type``
+        A string describing what is to be deleted.
+    ``object_to_be_deleted``
+        The to-be-deleted instance of :model:`rolodex.Client`.
+    
+    **Template**
+    
+    :template:`ghostwriter/confirm_delete.html`
     """
 
     model = Client
@@ -369,9 +415,6 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("rolodex:clients")
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ClientDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "client and all associated data"
@@ -380,23 +423,58 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
 
 
 class ProjectDetailView(LoginRequiredMixin, generic.DetailView):
-    """View showing the details for the specified client. This view defaults to the
-    project_detail.html template.
+    """
+    Display an individual :model:`rolodex.Project`.
+
+    **Template**
+    
+    :template:`rolodex/project_detail.html`
     """
 
     model = Project
 
 
+# Setup formsets for `ProjectCreate()`
+# Default to one form each so initial form is not overly long
+ObjectiveFormset = inlineformset_factory(
+    Project,
+    ProjectObjective,
+    form=ProjectObjectiveCreateFormset,
+    extra=1,
+    formset=BaseProjectObjectiveInlineFormSet,
+)
+AssignmentFormset = inlineformset_factory(
+    Project,
+    ProjectAssignment,
+    form=AssignmentCreateFormset,
+    extra=1,
+    formset=BaseProjectAssignmentInlineFormSet,
+)
+
+
 class ProjectCreate(LoginRequiredMixin, CreateView):
-    """View for creating new projects. This view defaults to the
-    project_form.html template.
+    """
+    Create an individual :model:`rolodex.Project` with zero or more
+    :model:`rolodex.ProjectAssignment` and :model:`rolodex.ProjectObjective`.
+    
+    **Context**
+    
+    ``client_name``
+        An instance of :model:`rolodex.Client.
+    ``objectives``
+        An instance of `ObjectiveFormSet()`
+    ``assignments``
+        An instance of `AssignmentFormSet()`
+    
+    **Template**
+    
+    :template:`rolodex/project_form.html`
     """
 
     model = Project
     form_class = ProjectCreateForm
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "Project successfully created for this client.",
@@ -404,8 +482,17 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
+    def get_context_data(self, **kwargs):
+        ctx = super(ProjectCreate, self).get_context_data(**kwargs)
+        if self.request.POST:
+            ctx["objectives"] = ObjectiveFormset(self.request.POST, prefix="obj")
+            ctx["assignments"] = AssignmentFormset(self.request.POST, prefix="assign")
+        else:
+            ctx["objectives"] = ObjectiveFormset(prefix="obj")
+            ctx["assignments"] = AssignmentFormset(prefix="assign")
+        return ctx
+
     def form_valid(self, form):
-        """Override form_valid to perform additional actions on new entries."""
         # Generate and assign a unique codename to the project
         codename_verified = False
         while not codename_verified:
@@ -415,99 +502,151 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             except Exception:
                 codename_verified = True
         form.instance.codename = new_codename
-        return super().form_valid(form)
+
+        # Get form context data – used for validation of inline forms
+        ctx = self.get_context_data()
+        objectives = ctx["objectives"]
+        assignments = ctx["assignments"]
+
+        # Now validate inline formsets
+        # Validation is largely handled by the custom base formset, `BaseProjectInlineFormSet`
+        try:
+            with transaction.atomic():
+                # Save the parent form – will rollback if a child fails validation
+                self.object = form.save()
+
+                objectives_valid = objectives.is_valid()
+                if objectives_valid:
+                    objectives.instance = self.object
+                    objectives_object = objectives.save()
+
+                assignments_valid = assignments.is_valid()
+                if assignments_valid:
+                    assignments.instance = self.object
+                    assignments.save()
+
+                if form.is_valid() and objectives_valid and assignments_valid:
+                    return super().form_valid(form)
+                else:
+                    # Raise an error to rollback transactions
+                    raise forms.ValidationError("Invalid form data")
+        # Otherwise return `form_invalid` and display errors
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.error(exception)
+            return super(ProjectCreate, self).form_invalid(form)
 
     def get_initial(self):
-        """Set the initial values for the form."""
-        client = get_object_or_404(Client, pk=self.kwargs.get("pk"))
+        client = ""
+        if "pk" in self.kwargs:
+            pk = self.kwargs.get("pk")
+            if pk:
+                client = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         return {
             "client": client,
         }
 
-    def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
-        ctx = super(ProjectCreate, self).get_context_data(**kwargs)
-        client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        ctx["client_name"] = client_instance
-        return ctx
-
-
-class ProjectCreateWithoutClient(LoginRequiredMixin, CreateView):
-    """View for creating new projects. This view defaults to the
-    project_form.html template. This version applies no default values.
-    """
-
-    model = Project
-    form_class = ProjectCreateForm
-
-    def get_success_url(self):
-        """Override the function to return to the new record after creation."""
-        messages.success(
-            self.request,
-            "Project successfully created for the selected client.",
-            extra_tags="alert-success",
-        )
-        return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
-
-    def form_valid(self, form):
-        """Override form_valid to perform additional actions on new entries."""
-        # Generate and assign a unique codename to the project
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Project.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-        return super().form_valid(form)
-
 
 class ProjectUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing project entries. This view defaults to the
-    project_form.html template.
+    """
+    Update an individual :model:`rolodex.Project`.
+    
+    **Template**
+    
+    :template:`rolodex/project_form.html`
     """
 
     model = Project
     form_class = ProjectCreateForm
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ProjectUpdate, self).get_context_data(**kwargs)
         ctx["origin"] = self.request.META.get("HTTP_REFERER")
+        if self.request.POST:
+            ctx["objectives"] = ObjectiveFormset(
+                self.request.POST, prefix="obj", instance=self.object
+            )
+            ctx["assignments"] = AssignmentFormset(
+                self.request.POST, prefix="assign", instance=self.object
+            )
+        else:
+            ctx["objectives"] = ObjectiveFormset(prefix="obj", instance=self.object)
+            ctx["assignments"] = AssignmentFormset(
+                prefix="assign", instance=self.object
+            )
         return ctx
 
     def get_success_url(self):
-        """Override the function to return to the parent record after updating."""
         messages.success(
             self.request, "Project successfully updated.", extra_tags="alert-success"
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def get_initial(self):
-        """Set the initial values for the form."""
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         return {
             "codename": project_instance.codename,
         }
 
+    def form_valid(self, form):
+        # Get form context data – used for validation of inline forms
+        ctx = self.get_context_data()
+        objectives = ctx["objectives"]
+        assignments = ctx["assignments"]
+        print("GOT HERE")
+
+        # Now validate inline formsets
+        # Validation is largely handled by the custom base formset, `BaseProjectInlineFormSet`
+        try:
+            with transaction.atomic():
+                # Save the parent form – will rollback if a child fails validation
+                self.object = form.save()
+                print("SAVED")
+
+                objectives_valid = objectives.is_valid()
+                if objectives_valid:
+                    objectives.instance = self.object
+                    objectives_object = objectives.save()
+                print(objectives_valid)
+                assignments_valid = assignments.is_valid()
+                if assignments_valid:
+                    assignments.instance = self.object
+                    assignments.save()
+                print(assignments_valid)
+                if form.is_valid() and objectives_valid and assignments_valid:
+                    return super().form_valid(form)
+                else:
+                    # Raise an error to rollback transactions
+                    raise forms.ValidationError("Invalid form data")
+        # Otherwise return `form_invalid` and display errors
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.error(exception)
+            return super(ProjectUpdate, self).form_invalid(form)
+
 
 class ProjectDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing projects. This view defaults to the
-    confirm_delete.html template.
+    """
+    Delete an individual :model:`rolodex.Project`.
+    
+    **Context**
+    
+    ``object_type``
+        A string describing what is to be deleted.
+    ``object_to_be_deleted``
+        The to-be-deleted instance of :model:`rolodex.Project`.
+    
+    **Template**
+    
+    :template:`ghostwriter/confirm_delete.html`
     """
 
     model = Project
     template_name = "confirm_delete.html"
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ProjectDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "project and all associated data (reports, evidence, etc.)"
@@ -515,15 +654,23 @@ class ProjectDelete(LoginRequiredMixin, DeleteView):
         return ctx
 
     def get_success_url(self):
-        """Override the function to return to the parent record after deletion."""
         return "{}#collapseHistory".format(
             reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
         )
 
 
 class ClientContactCreate(LoginRequiredMixin, CreateView):
-    """View for creating new POC entries. This view defaults to the
-    contact_form.html template.
+    """
+    Create an individual :model:`rolodex.ClientContact`.
+    
+    **Context**
+    
+    ``client_name``
+        An instance of :model:`rolodex.Client`.
+    
+    **Template**
+    
+    :template:`rolodex/contact_form.html`
     """
 
     model = ClientContact
@@ -531,13 +678,11 @@ class ClientContactCreate(LoginRequiredMixin, CreateView):
     template_name = "rolodex/contact_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         return "{}#collapsePOC".format(
             reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
         )
 
     def get_initial(self):
-        """Set the initial values for the form."""
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         client = client_instance
         return {
@@ -545,9 +690,6 @@ class ClientContactCreate(LoginRequiredMixin, CreateView):
         }
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ClientContactCreate, self).get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         ctx["client_name"] = client_instance
@@ -555,8 +697,12 @@ class ClientContactCreate(LoginRequiredMixin, CreateView):
 
 
 class ClientContactUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing POC entries. This view defaults to the
-    contact_form.html template.
+    """
+    Update an individual :model:`rolodex.ClientContact`.
+    
+    **Template**
+    
+    :template:`rolodex/contact_form.html`
     """
 
     model = ClientContact
@@ -564,30 +710,36 @@ class ClientContactUpdate(LoginRequiredMixin, UpdateView):
     template_name = "rolodex/contact_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after updating."""
         return "{}#collapsePOC".format(
             reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
         )
 
 
 class ClientContactDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing POC entries. This view defaults to the
-    confirm_delete.html template.
+    """
+    Delete an individual :model:`rolodex.ClientContact`.
+    
+    **Context**
+    
+    ``object_type``
+        A string describing what is to be deleted.
+    ``object_to_be_deleted``
+        The to-be-deleted instance of :model:`rolodex.ClientContact`.
+    
+    **Template**
+    
+    :template:`templates/confirm_delete.html`
     """
 
     model = ClientContact
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return to the parent record after deletion."""
         return "{}#collapsePOC".format(
             reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
         )
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ClientContactDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "point of contact"
@@ -596,8 +748,17 @@ class ClientContactDelete(LoginRequiredMixin, DeleteView):
 
 
 class AssignmentCreate(LoginRequiredMixin, CreateView):
-    """View for assigning operators to a project. This view defaults to the
-    assignment_form.html template.
+    """
+    Create an individual :model:`rolodex.ProjectAssignment`.
+    
+    **Context**
+
+    ``project_name``
+        An instance of :model:`rolodex.Project`.
+    
+    **Template**
+    
+    :template:`rolodex/assignment_form.html`
     """
 
     model = ProjectAssignment
@@ -605,13 +766,11 @@ class AssignmentCreate(LoginRequiredMixin, CreateView):
     template_name = "rolodex/assignment_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         return "{}#collapseOperators".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
 
     def get_initial(self):
-        """Set the initial values for the form."""
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         project = project_instance
         return {
@@ -619,9 +778,6 @@ class AssignmentCreate(LoginRequiredMixin, CreateView):
         }
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(AssignmentCreate, self).get_context_data(**kwargs)
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         ctx["project_name"] = project_instance
@@ -629,8 +785,12 @@ class AssignmentCreate(LoginRequiredMixin, CreateView):
 
 
 class AssignmentUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing operator assignments. This view defaults to the
-    assignment_form.html template.
+    """
+    Update an individual :model:`rolodex.ProjectAssignment`.
+    
+    **Template**
+    
+    :template:`rolodex/assignment_form.html`
     """
 
     model = ProjectAssignment
@@ -638,30 +798,36 @@ class AssignmentUpdate(LoginRequiredMixin, UpdateView):
     template_name = "rolodex/assignment_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after updating."""
         return "{}#collapseOperators".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
 
 
 class AssignmentDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing operator assignments. This view defaults to
-    the confirm_delete.html template.
+    """
+    Create an individual :model:`rolodex.ProjectAssignment`.
+    
+    **Context**
+    
+    ``object_type``
+        A string describing what is to be deleted.
+    ``object_to_be_deleted``
+        The to-be-deleted instance of :model:`rolodex.ProjectAssignment`.
+    
+    **Template**
+    
+    :template:`ghostwriter/confirm_delete.html`
     """
 
     model = ProjectAssignment
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return to the parent record after deletion."""
         return "{}#collapseOperators".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(AssignmentDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "assignment"
@@ -672,8 +838,17 @@ class AssignmentDelete(LoginRequiredMixin, DeleteView):
 
 
 class ClientNoteCreate(LoginRequiredMixin, CreateView):
-    """View for creating new note entries. This view defaults to the
-    contact_form.html template.
+    """
+    Create an individual :model:`rolodex.ClientNote`.
+
+    **Context**
+
+    ``client_name``
+        An instance of :model:`rolodex.Client`.
+
+    **Template**
+
+    :template:`ghostwriter/note_form.html`
     """
 
     model = ClientNote
@@ -681,7 +856,6 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "Note successfully added to this client.",
@@ -692,15 +866,11 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         )
 
     def get_initial(self):
-        """Set the initial values for the form."""
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         client = client_instance
         return {"client": client, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ClientNoteCreate, self).get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         ctx["client_name"] = client_instance
@@ -708,8 +878,12 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
 
 
 class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing note entries. This view defaults to the
-    client_note_form.html template.
+    """
+    Update an individual :model:`rolodex.ClientNote`.
+
+    **Template**
+
+    :template:`ghostwriter/note_form.html`
     """
 
     model = ClientNote
@@ -717,7 +891,6 @@ class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after updating."""
         messages.success(
             self.request, "Note successfully updated.", extra_tags="alert-success"
         )
@@ -727,15 +900,25 @@ class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
 
 
 class ClientNoteDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing note entries. This view defaults to the
-    confirm_delete.html template.
+    """
+    Delete an individual :model:`rolodex.ClientNote`.
+
+    **Context**
+
+    ``object_type``
+        A string describing what is to be deleted.
+    ``object_to_be_deleted``
+        The to-be-deleted instance of :model:`rolodex.ClientNote`.
+
+    **Template**
+
+    :template:`ghostwriter/confirm_delete.html`
     """
 
     model = ClientNote
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return to the parent record after deletion."""
         messages.warning(
             self.request, "Note successfully deleted.", extra_tags="alert-warning"
         )
@@ -744,9 +927,6 @@ class ClientNoteDelete(LoginRequiredMixin, DeleteView):
         )
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ClientNoteDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "note"
@@ -755,8 +935,17 @@ class ClientNoteDelete(LoginRequiredMixin, DeleteView):
 
 
 class ProjectNoteCreate(LoginRequiredMixin, CreateView):
-    """View for creating new note entries. This view defaults to the
-    note_form.html template.
+    """
+    Create an individual :model:`rolodex.ProjectNote`.
+    
+    **Context**
+    
+    ``project_name``
+        An instance of :model:`rolodex.Project`.
+    
+    **Template**
+    
+    :template:`ghostwriter/note_form.html`
     """
 
     model = ProjectNote
@@ -764,7 +953,6 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "Note successfully added to this project.",
@@ -775,15 +963,11 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
         )
 
     def get_initial(self):
-        """Set the initial values for the form."""
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         project = project_instance
         return {"project": project, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ProjectNoteCreate, self).get_context_data(**kwargs)
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         ctx["project_name"] = project_instance
@@ -791,8 +975,12 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
 
 
 class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing note entries. This view defaults to the
-    project_note_form.html template.
+    """
+    Update an individual :model:`rolodex.ProjectNote`.
+
+    **Template**
+
+    :template:`ghostwriter/note_form.html`
     """
 
     model = ProjectNote
@@ -800,7 +988,6 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after updating."""
         messages.success(
             self.request, "Note successfully updated.", extra_tags="alert-success"
         )
@@ -810,15 +997,25 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
 
 
 class ProjectNoteDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing note entries. This view defaults to the
-    confirm_delete.html template.
+    """
+    Delete an individual :model:`rolodex.ProjectNote`.
+    
+    **Context**
+    
+    ``object_type``
+        A string describing what is to be deleted.
+    ``object_to_be_deleted``
+        The to-be-deleted instance of :model:`rolodex.ProjectNote`.
+    
+    **Template**
+    
+    :template:`ghostwriter/confirm_delete.html`
     """
 
     model = ProjectNote
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return to the parent record after deletion."""
         messages.warning(
             self.request, "Note successfully deleted.", extra_tags="alert-warning"
         )
@@ -827,9 +1024,6 @@ class ProjectNoteDelete(LoginRequiredMixin, DeleteView):
         )
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ProjectNoteDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "project note"
@@ -838,12 +1032,24 @@ class ProjectNoteDelete(LoginRequiredMixin, DeleteView):
 
 
 class ProjectObjectiveCreate(LoginRequiredMixin, CreateView):
+    """
+    Create an individual :model:`rolodex.ProjectObjective`.
+
+    **Context**
+
+    ``project_name``
+        An instance of :model:`rolodex.Project`.
+    
+    **Template**
+
+    :template:`ghostwriter/templates/confirm_delete.html`
+    """
+
     model = ProjectObjective
     form_class = ProjectObjectiveCreateForm
     template_name = "rolodex/objective_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "Objective successfully added to this project.",
@@ -854,15 +1060,11 @@ class ProjectObjectiveCreate(LoginRequiredMixin, CreateView):
         )
 
     def get_initial(self):
-        """Set the initial values for the form."""
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         project = project_instance
         return {"project": project}
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ProjectObjectiveCreate, self).get_context_data(**kwargs)
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         ctx["project_name"] = project_instance
@@ -870,8 +1072,12 @@ class ProjectObjectiveCreate(LoginRequiredMixin, CreateView):
 
 
 class ProjectObjectiveUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing objectives. This view defaults to the
-    objective_form.html template.
+    """
+    Update an individual :model:`rolodex.ProjectObjective`.
+
+    **Template**
+
+    :template:`rolodex/objective_form.html`
     """
 
     model = ProjectObjective
@@ -879,7 +1085,6 @@ class ProjectObjectiveUpdate(LoginRequiredMixin, UpdateView):
     template_name = "rolodex/objective_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after updating."""
         messages.success(
             self.request, "Objective successfully updated.", extra_tags="alert-success"
         )
@@ -889,15 +1094,25 @@ class ProjectObjectiveUpdate(LoginRequiredMixin, UpdateView):
 
 
 class ProjectObjectiveDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing objectives. This view defaults to the
-    confirm_delete.html template.
+    """
+    Delete an individual :model:`rolodex.ProjectObjective`.
+
+    **Context**
+
+    ``object_type``
+        A string describing what is to be deleted.
+    ``object_to_be_deleted``
+        A to-be-deleted instance of :model:`rolodex.ProjectObjective`.
+
+    **Template**
+
+    :template:`ghostwriter/confirm_delete.html`
     """
 
     model = ProjectObjective
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return to the parent record after deletion."""
         messages.warning(
             self.request, "Note successfully deleted.", extra_tags="alert-warning"
         )
@@ -906,12 +1121,8 @@ class ProjectObjectiveDelete(LoginRequiredMixin, DeleteView):
         )
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ProjectObjectiveDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "project objective"
         ctx["object_to_be_deleted"] = queryset.objective
         return ctx
-

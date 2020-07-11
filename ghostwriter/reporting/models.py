@@ -1,20 +1,19 @@
-"""This contains all of the database models for the Ghostwriter application."""
+"""This contains all of the database models used by the Reporting application."""
 
 import os
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
-from django.conf import settings
 
-# from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
-
-# Import for Tiny MCE fields
 from tinymce.models import HTMLField
 
 
 class Severity(models.Model):
-    """Model representing the various severity ratings for findings."""
+    """
+    Stores an individual severity rating.
+    """
 
     severity = models.CharField(
         "Severity",
@@ -30,8 +29,8 @@ class Severity(models.Model):
     )
 
     def count_findings(self):
-        """Count and return the number of findings using the severity entry in
-        the `Finding` model.
+        """
+        Return the number of :model:`reporting.Finding` associated with an instance.
         """
         return Finding.objects.filter(severity=self).count()
 
@@ -50,15 +49,17 @@ class Severity(models.Model):
 
 
 class FindingType(models.Model):
-    """Model representing the types of findings available."""
+    """
+    Stores an individual finding type.
+    """
 
     finding_type = models.CharField(
         "Type", max_length=100, unique=True, help_text="Type of finding (e.g. network)"
     )
 
     def count_findings(self):
-        """Count and return the number of findings using the finding_type
-        entry in the `Finding` model.
+        """
+        Return the number of :model:`reporting.Finding` associated with an instance.
         """
         return Finding.objects.filter(finding_type=self).count()
 
@@ -77,11 +78,9 @@ class FindingType(models.Model):
 
 
 class Finding(models.Model):
-    """Model representing the findings. This is the primary model for the
-    Ghostwriter application. This model keeps a record of the finding names,
-    descriptions, severities, and other related data.
-
-    There are foreign keys for the `Severity` and `FindingType` models.
+    """
+    Stores an individual finding, related to :model:`reporting.Severity` and
+    :model:`reporting.FindingType`.
     """
 
     title = models.CharField(
@@ -176,9 +175,8 @@ class Finding(models.Model):
 
 
 class Report(models.Model):
-    """Model representing the reports for projects.
-
-    There are foreign keys for the `Project` and `User` models.
+    """
+    Stores an individual report, related to :model:`rolodex.Project` and :model:`users.User`.
     """
 
     title = models.CharField(
@@ -231,12 +229,9 @@ class Report(models.Model):
 
 
 class ReportFindingLink(models.Model):
-    """Model representing findings linked to active reports. This also stores
-    any local edits made to the findings for the report and to which operator
-    the edits are assigned.
-
-    There are foreign keys for the `Severity`, `FindingType`, `Report`, and
-    `User` models.
+    """
+    Stores an individual copy of a finding added to a :model:`reporting.Report` with
+    :model:`reporting.Severity`, :model:`reporting.FindingType`, and :model:`users.User`.
     """
 
     title = models.CharField(
@@ -342,8 +337,8 @@ class ReportFindingLink(models.Model):
         """Metadata for the model."""
 
         ordering = ["report", "severity__weight", "position"]
-        verbose_name = "Report link"
-        verbose_name_plural = "Report links"
+        verbose_name = "Report finding"
+        verbose_name_plural = "Report findings"
 
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
@@ -365,10 +360,9 @@ class ReportFindingLink(models.Model):
 
 
 class Evidence(models.Model):
-    """Model representing metadata for uploaded evidence files linked to
-    findings in reports.
-
-    There are foreign keys for the `ReportFindingLink` and `User` models.
+    """
+    Stores an individual evidence file, related to :model:`reporting.ReportFindingLink`
+    and :model:`users.User`.
     """
 
     def set_upload_destination(instance, filename):
@@ -434,10 +428,8 @@ class Evidence(models.Model):
 
 
 class Archive(models.Model):
-    """Model representing all of the archived reports linked to clients and
-    projects.
-
-    There is a foreign key for the `Project` model.
+    """
+    Stores an individual archived report, related to :model:`rolodex.Project.
     """
 
     report_archive = models.FileField()
@@ -460,12 +452,10 @@ class Archive(models.Model):
 
 
 class FindingNote(models.Model):
-    """Model representing notes for findings added to a report.
-
-    There are foreign keys for the `Finding` and `User` models.
+    """
+    Stores an individual finding note, related to :model:`reporting.Finding`.
     """
 
-    # This field is automatically filled with the current date
     timestamp = models.DateField(
         "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
     )
@@ -495,12 +485,10 @@ class FindingNote(models.Model):
 
 
 class LocalFindingNote(models.Model):
-    """Model representing notes for findings added to a report.
-
-    There are foreign keys for the `ReportFindingLink` and `User` models.
+    """
+    Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`.
     """
 
-    # This field is automatically filled with the current date
     timestamp = models.DateField(
         "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
     )
@@ -529,4 +517,3 @@ class LocalFindingNote(models.Model):
     def __str__(self):
         """String for representing the model object (in Admin site etc.)."""
         return f"{self.finding} {self.timestamp}: {self.note}"
-

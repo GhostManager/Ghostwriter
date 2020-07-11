@@ -1,32 +1,30 @@
-"""This contains all of the forms for the Rolodex application."""
-
-from django import forms
-from django.core.exceptions import ValidationError
-from django.utils.translation import ugettext_lazy as _
+"""This contains all of the forms used by the Rolodex application."""
 
 from crispy_forms.helper import FormHelper
+from django import forms
+from django.core.exceptions import ValidationError
+from django.forms import formset_factory
+from django.forms.models import BaseInlineFormSet
+from django.utils.translation import ugettext_lazy as _
 
 from .models import (
     Client,
-    Project,
     ClientContact,
-    ProjectAssignment,
     ClientNote,
+    Project,
+    ProjectAssignment,
     ProjectNote,
     ProjectObjective,
 )
 
 
 class ClientCreateForm(forms.ModelForm):
-    """Form used with the ClientCreate CreateView in views.py to allow
-    excluding fields.
+    """
+    Create an individual :model:`rolodex.Client`.
     """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = Client
-        # exclude = ('codename',)
         fields = "__all__"
         widgets = {
             "name": forms.TextInput(attrs={"size": 55}),
@@ -50,13 +48,11 @@ class ClientCreateForm(forms.ModelForm):
 
 
 class ProjectCreateForm(forms.ModelForm):
-    """Form used with the ProjectCreate CreateView in views.py to allow
-    excluding fields.
+    """
+    Create an individual :model:`rolodex.Project`.
     """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = Project
         exclude = ("operator", "codename")
         widgets = {
@@ -65,7 +61,6 @@ class ProjectCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ProjectCreateForm, self).__init__(*args, **kwargs)
         self.fields["start_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
@@ -85,26 +80,25 @@ class ProjectCreateForm(forms.ModelForm):
         self.helper.field_class = "h-100 justify-content-center align-items-center"
 
     def clean_end_date(self):
-        """Clean and sanitize user input."""
         end_date = self.cleaned_data["end_date"]
         start_date = self.cleaned_data["start_date"]
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("Invalid date: The provided end date " "comes before the start date")
+                _(
+                    "Invalid project date: The provided end date comes before the start date"
+                )
             )
-        # Return the cleaned data
         return end_date
 
 
 class ClientContactCreateForm(forms.ModelForm):
-    """Form used with the FindingCreate CreateView in views.py to allow
-    excluding fields.
+    """
+    Create an individual :model:`rolodex.ClientContact` for a pre-defined
+    :model:`rolodex.Client`.
     """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = ClientContact
         exclude = ("last_used_by", "burned_explanation")
         widgets = {
@@ -117,7 +111,6 @@ class ClientContactCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ClientContactCreateForm, self).__init__(*args, **kwargs)
         self.fields["name"].widget.attrs["placeholder"] = "Name to appear in reports"
         self.fields["email"].widget.attrs["placeholder"] = "info@specterops.io"
@@ -135,17 +128,17 @@ class ClientContactCreateForm(forms.ModelForm):
 
 
 class AssignmentCreateForm(forms.ModelForm):
-    """Form used with the AssignmentCreate CreateView in views.py."""
+    """
+    Create an individual :model:`rolodex.ProjectAssignment` for a pre-defined
+    :model:`users.User`.
+    """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = ProjectAssignment
         fields = "__all__"
         widgets = {"project": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(AssignmentCreateForm, self).__init__(*args, **kwargs)
         self.fields["operator"].queryset = self.fields["operator"].queryset.order_by(
             "name"
@@ -169,9 +162,6 @@ class AssignmentCreateForm(forms.ModelForm):
         self.helper.field_class = "h-100 justify-content-center align-items-center"
 
     def clean(self):
-        """Override `clean()` to do some additional checks with the
-        hidden field.
-        """
         cleaned_data = self.cleaned_data
         project = cleaned_data["project"]
         end_date = self.cleaned_data["end_date"]
@@ -181,39 +171,39 @@ class AssignmentCreateForm(forms.ModelForm):
             if start_date < project.start_date:
                 raise ValidationError(
                     _(
-                        "Invalid date: The provided start "
-                        "date comes before the start of this "
-                        "project, {}".format(project.start_date)
+                        "Invalid assignment: The provided start date comes before the start of this project, {}".format(
+                            project.start_date
+                        )
                     )
                 )
             if end_date > project.end_date:
                 raise ValidationError(
                     _(
-                        "Invalid date: The provided end date "
-                        "comes after the end of this project"
-                        ", {}".format(project.end_date)
+                        "Invalid assignment: The provided end date comes after the end of this project, {}".format(
+                            project.end_date
+                        )
                     )
                 )
 
     def clean_end_date(self):
-        """Clean and sanitize user input."""
         end_date = self.cleaned_data["end_date"]
         start_date = self.cleaned_data["start_date"]
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("Invalid date: The provided end date " "comes before the start date")
+                _(
+                    "Invalid assignment: The provided end date comes before the project's start date"
+                )
             )
-        # Return the cleaned data
         return end_date
 
 
 class ClientNoteCreateForm(forms.ModelForm):
-    """Form used with the ClientNote CreateView in views.py."""
+    """
+    Create an individual :model:`rolodex.ClientNote` for a :model:`rolodex.Client`.
+    """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = ClientNote
         fields = "__all__"
         widgets = {
@@ -223,7 +213,6 @@ class ClientNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ClientNoteCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -233,11 +222,11 @@ class ClientNoteCreateForm(forms.ModelForm):
 
 
 class ProjectNoteCreateForm(forms.ModelForm):
-    """Form used with the ProjectNote CreateView in views.py."""
+    """
+    Create an individual :model:`rolodex.ProjectNote` for a :model:`rolodex.Project`.
+    """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = ProjectNote
         fields = "__all__"
         widgets = {
@@ -247,7 +236,6 @@ class ProjectNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ProjectNoteCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -257,17 +245,16 @@ class ProjectNoteCreateForm(forms.ModelForm):
 
 
 class ProjectObjectiveCreateForm(forms.ModelForm):
-    """Form used with the ProjectObjectiveCreate CreateView in views.py."""
+    """
+    Create an individual :model:`rolodex.ProjectObjective` for a :model:`rolodex.Project`.
+    """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = ProjectObjective
         fields = "__all__"
         widgets = {"project": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ProjectObjectiveCreateForm, self).__init__(*args, **kwargs)
         self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["deadline"].widget.attrs["autocomplete"] = "off"
@@ -275,8 +262,195 @@ class ProjectObjectiveCreateForm(forms.ModelForm):
         self.fields["objective"].widget.attrs[
             "placeholder"
         ] = "Obtain commit privileges to git"
+        self.fields["objective"].error_messages = {
+            "required": "You must provide an objective"
+        }
+        self.fields["deadline"].error_messages = {
+            "required": "You must provide a deadline"
+        }
+        self.fields["objective"].error_messages = {
+            "required": "You must provide an objective"
+        }
+        self.fields["status"].error_messages = {"required": "You must provide a status"}
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
         self.helper.field_class = "h-100 justify-content-center align-items-center"
         self.helper.form_show_labels = False
+
+
+class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
+    """
+    Inline FormSet template for :model:`rolodex.ProjectObjective` that adds validation
+    to check that the same objective is not created twice and the objective forms are
+    all complete or blank.
+    """
+
+    def clean(self):
+        objectives = []
+        duplicates = False
+        super(BaseProjectObjectiveInlineFormSet, self).clean()
+        if any(self.errors):
+            return
+        for form in self.forms:
+            if form.cleaned_data:
+                objective = form.cleaned_data["objective"]
+                deadline = form.cleaned_data["deadline"]
+
+                # Check that no two objectives are the same
+                if objective:
+                    if objective in objectives:
+                        duplicates = True
+                    objectives.append(objective)
+
+                if duplicates:
+                    form.add_error(
+                        "objective",
+                        "Duplicate entry: Your project objectives should be unique",
+                    )
+
+                # Check that all objective have a deadline and status
+                if deadline and not objective:
+                    form.add_error(
+                        "objective",
+                        "Incomplete entry: You set a deadline without an objective",
+                    )
+                elif objective and not deadline:
+                    form.add_error(
+                        "deadline",
+                        "Incomplete entry: Your objective still needs a deadline",
+                    )
+
+
+class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
+    """
+    Inline FormSet template for :model:`rolodex.ProjectAssignment` that adds validation
+    to check that the same operator is not assigned twice and the assignment forms are
+    all complete or blank.
+    """
+
+    def clean(self):
+        assignments = []
+        duplicates = False
+        super(BaseProjectAssignmentInlineFormSet, self).clean()
+        if any(self.errors):
+            return
+        for form in self.forms:
+            if form.cleaned_data:
+                operator = form.cleaned_data["operator"]
+                start_date = form.cleaned_data["start_date"]
+                end_date = form.cleaned_data["end_date"]
+                role = form.cleaned_data["role"]
+                note = form.cleaned_data["note"]
+
+                # Check that one operator is not assigned twice
+                if operator:
+                    if operator in assignments:
+                        duplicates = True
+                    assignments.append(operator)
+
+                if duplicates:
+                    form.add_error(
+                        "operator",
+                        "Duplicate assignment: This operator is assigned more than once",
+                    )
+
+                # Check if assignment form is complete
+                if operator and not all(
+                    x is not None for x in [start_date, end_date, role]
+                ):
+                    if not start_date:
+                        form.add_error(
+                            "start_date",
+                            "Incomplete assignment: Your assigned operator is missing a start date",
+                        )
+                    if not end_date:
+                        form.add_error(
+                            "end_date",
+                            "Incomplete assignment: Your assigned operator is missing an end date",
+                        )
+                    if not role:
+                        form.add_error(
+                            "role",
+                            "Incomplete assignment: Your assigned operator is missing a project role",
+                        )
+                elif (
+                    all(x is not None for x in [start_date, end_date, role])
+                    and not operator
+                ):
+                    form.add_error(
+                        "operator",
+                        "Incomplete assignment: Your assignment is incomplete, missing an operator",
+                    )
+                elif note and all(
+                    x is None for x in [operator, start_date, end_date, role]
+                ):
+                    form.add_error(
+                        "note",
+                        "Incomplete assignment: This note is part of an incomplete assignment form",
+                    )
+
+
+class ProjectObjectiveCreateFormset(forms.ModelForm):
+    """
+    Create one or more :model:`rolodex.ProjectObjective`.
+    """
+
+    class Meta:
+        model = ProjectObjective
+        fields = ("deadline", "objective")
+
+    def __init__(self, *args, **kwargs):
+        super(ProjectObjectiveCreateFormset, self).__init__(*args, **kwargs)
+        self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
+        self.fields["deadline"].widget.attrs["autocomplete"] = "off"
+        self.fields["deadline"].widget.input_type = "date"
+        self.fields["objective"].widget.attrs[
+            "placeholder"
+        ] = "Obtain commit privileges to git"
+        self.fields["deadline"].error_messages = {"required": "deadline"}
+        self.fields["objective"].error_messages = {"required": "objective"}
+        self.helper = FormHelper()
+        self.helper.form_class = "form-inline"
+        self.helper.form_method = "post"
+        self.helper.field_class = "h-100 justify-content-center align-items-center"
+        self.helper.form_show_labels = False
+
+
+class AssignmentCreateFormset(forms.ModelForm):
+    """
+    Create one or more :model:`rolodex.ProjectAssignment`.
+    """
+
+    class Meta:
+        model = ProjectAssignment
+        fields = ("start_date", "end_date", "role", "operator", "note")
+
+    def __init__(self, *args, **kwargs):
+        super(AssignmentCreateFormset, self).__init__(*args, **kwargs)
+        self.fields["operator"].queryset = self.fields["operator"].queryset.order_by(
+            "name"
+        )
+        self.fields["operator"].label_from_instance = lambda obj: "%s (%s)" % (
+            obj.name,
+            obj.username,
+        )
+        self.fields["start_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
+        self.fields["start_date"].widget.attrs["autocomplete"] = "off"
+        self.fields["start_date"].widget.input_type = "date"
+        self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
+        self.fields["end_date"].widget.attrs["autocomplete"] = "off"
+        self.fields["end_date"].widget.input_type = "date"
+        self.fields["note"].widget.attrs[
+            "placeholder"
+        ] = "This assignment is only for 3 of the 4 weeks ..."
+        self.fields["start_date"].error_messages = {"required": "start_date"}
+        self.fields["end_date"].error_messages = {"required": "end_date"}
+        self.fields["role"].error_messages = {"required": "role"}
+        self.fields["operator"].error_messages = {"required": "operator"}
+        self.fields["note"].error_messages = {"required": "note"}
+        self.helper = FormHelper()
+        self.helper.form_class = "form-inline"
+        self.helper.form_method = "post"
+        self.helper.field_class = "h-100 justify-content-center align-items-center"
+

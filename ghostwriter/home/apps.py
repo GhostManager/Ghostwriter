@@ -1,3 +1,5 @@
+"""This contains the configuration of the Home application."""
+
 from django.apps import AppConfig
 
 

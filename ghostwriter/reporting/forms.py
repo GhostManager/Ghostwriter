@@ -1,38 +1,34 @@
-"""This contains all of the forms for the Ghostwriter application."""
+"""This contains all of the forms used by the Reporting application."""
 
+from datetime import datetime
+
+from crispy_forms.helper import FormHelper
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
-from crispy_forms.helper import FormHelper
-
-from .models import (
-    Finding,
-    Report,
-    ReportFindingLink,
-    Evidence,
-    LocalFindingNote,
-    FindingNote,
-)
-
 from ghostwriter.rolodex.models import Project
 
-from datetime import datetime
+from .models import (
+    Evidence,
+    Finding,
+    FindingNote,
+    LocalFindingNote,
+    Report,
+    ReportFindingLink,
+)
 
 
 class FindingCreateForm(forms.ModelForm):
-    """Form used with the FindingCreate CreateView in views.py to allow
-    excluding fields.
+    """
+    Create an individual :model:`reporting.Finding`.
     """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = Finding
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(FindingCreateForm, self).__init__(*args, **kwargs)
         self.fields["title"].widget.attrs["placeholder"] = "SQL Injection"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
@@ -62,18 +58,15 @@ class FindingCreateForm(forms.ModelForm):
 
 
 class ReportCreateForm(forms.ModelForm):
-    """Form used with the ReportCreate CreateView in views.py to allow
-    excluding fields.
+    """
+    Create an individual :model:`reporting.Report` with a pre-defined :model:`rolodex.Project`.
     """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = Report
         exclude = ("creation", "last_update", "created_by", "complete")
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ReportCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -83,18 +76,15 @@ class ReportCreateForm(forms.ModelForm):
 
 
 class ReportCreateFormStandalone(forms.ModelForm):
-    """Form used with the ReportCreateWithoutProject CreateView in views.py
-    to allow excluding fields.
+    """
+    Create an individual :model:`reporting.Report` without a pre-defined :model:`rolodex.Project`.
     """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = Report
         exclude = ("creation", "last_update", "created_by", "complete")
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ReportCreateFormStandalone, self).__init__(*args, **kwargs)
         active_projects = Project.objects.filter(end_date__gte=datetime.today())
         if active_projects:
@@ -110,18 +100,15 @@ class ReportCreateFormStandalone(forms.ModelForm):
 
 
 class ReportFindingLinkUpdateForm(forms.ModelForm):
-    """Form used with the ReportFindingLink UpdateView in views.py to allow
-    excluding fields.
+    """
+    Update an individual :model:`reporting.ReportFindingLink`.
     """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = ReportFindingLink
         exclude = ("report",)
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
         # Set a min position of `1`
         self.fields["position"].widget.attrs["min"] = "1"
@@ -136,8 +123,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
 
 
 class EvidenceForm(forms.ModelForm):
-    """Form used with the Evidence model in models.py to allow excluding
-    fields.
+    """
+    Create an individual :model:`reporting.Evidence`.
     """
 
     class Meta:
@@ -157,7 +144,6 @@ class EvidenceForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(EvidenceForm, self).__init__(*args, **kwargs)
         self.fields["caption"].required = True
         self.fields["friendly_name"].required = True
@@ -177,7 +163,6 @@ class EvidenceForm(forms.ModelForm):
         self.helper.field_class = "h-100 justify-content-center align-items-center"
 
     def clean(self):
-        """Clean and sanitize user input."""
         cleaned_data = super(EvidenceForm, self).clean()
         friendly_name = cleaned_data.get("friendly_name")
         finding = cleaned_data.get("finding")
@@ -192,16 +177,15 @@ class EvidenceForm(forms.ModelForm):
                         "This friendly name has already been used for a file attached to this finding."
                     )
                 )
-        # Return the cleaned data
         return cleaned_data
 
 
 class FindingNoteCreateForm(forms.ModelForm):
-    """Form used with the FindingNote CreateView in views.py."""
+    """
+    Create an individual :model:`reporting.FindingNote`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
-
         model = FindingNote
         fields = "__all__"
         widgets = {
@@ -211,7 +195,6 @@ class FindingNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(FindingNoteCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -221,11 +204,11 @@ class FindingNoteCreateForm(forms.ModelForm):
 
 
 class LocalFindingNoteCreateForm(forms.ModelForm):
-    """Form used with the LocalFindingNote CreateView in views.py."""
+    """
+    Display an individual :model:`reporting.LocalFindingNote`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
-
         model = LocalFindingNote
         fields = "__all__"
         widgets = {
@@ -235,11 +218,9 @@ class LocalFindingNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(LocalFindingNoteCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
         self.helper.field_class = "h-100 justify-content-center align-items-center"
         self.helper.form_show_labels = False
-

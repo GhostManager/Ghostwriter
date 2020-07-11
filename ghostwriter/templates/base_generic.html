@@ -23,6 +23,7 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <script src="{% static 'js/jquery.formset.js' %}"></script>
 
         <!-- jQuery Tablesorter Plugin -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
@@ -439,15 +440,15 @@
             // Display toast notification for each message on page load
             {% for message in messages %}
                 {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-                    displayToastTop('success', '{{ message }}');
+                    displayToastTop({type:'success', string:'{{ message }}'});
                 {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-                    displayToastTop('warning', '{{ message }}');
+                    displayToastTop({type:'warning', string:'{{ message }}'});
                 {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-                    displayToastTop('error', '{{ message }}');
+                    displayToastTop({type:'error', string:'{{ message }}'});
                 {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-                    displayToastTop('info', '{{ message }}');
+                    displayToastTop({type:'info', string:'{{ message }}'});
                 {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
-                    displayToastTop('info', '{{ message }}');
+                    displayToastTop({type:'info', string:'{{ message }}'});
                 {% endif %}
             {% endfor %}
         </script>
@@ -493,16 +494,16 @@
                   if (data.assignments !== undefined) {
                     document.getElementById('assignment-count').innerHTML = data.assignments
                   }
-                  displayToastTop(data.message['level'], data.message['message'], data.message['title']);
+                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
                 }
                 ws_all.onmessage = function (e) {
                   var data = JSON.parse(e.data);
-                  displayToastTop(data.message['level'], data.message['message'], data.message['title']);
+                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
                 };
 
                 // Handle unexpected WebSocket closures
                 ws_user.onclose = function (e) {
-                  console.error('User noification WebSocket closed unexpectedly');
+                  console.error('User noitfication WebSocket closed unexpectedly');
                 };
                 ws_all.onclose = function (e) {
                   console.error('Global notification WebSocket closed unexpectedly');

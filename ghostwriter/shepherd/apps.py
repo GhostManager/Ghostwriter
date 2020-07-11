@@ -1,4 +1,4 @@
-"""This defines the available applications."""
+"""This contains the configuration of the Shepherd application."""
 
 from django.apps import AppConfig
 

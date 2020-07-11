@@ -1,11 +1,8 @@
-"""This contains all of the URL mappings for the Rolodex application. The
-`urlpatterns` list routes URLs to views. For more information please see:
+"""This contains all of the URL mappings used by the Rolodex application."""
 
-https://docs.djangoproject.com/en/2.1/topics/http/urls/
-"""
+from django.urls import path
 
 from . import views
-from django.urls import path
 
 app_name = "rolodex"
 
@@ -72,11 +69,11 @@ urlpatterns += [
 urlpatterns += [
     path(
         "projects/create",
-        views.ProjectCreateWithoutClient.as_view(),
+        views.ProjectCreate.as_view(),
         name="project_create_no_client",
     ),
     path(
-        "projects/<int:pk>/create", views.ProjectCreate.as_view(), name="project_create"
+        "projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"
     ),
     path(
         "projects/<int:pk>/update/",

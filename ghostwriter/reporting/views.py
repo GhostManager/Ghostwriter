@@ -1,113 +1,90 @@
-"""This contains all of the views for the Ghostwriter application's
-various webpages.
-"""
+"""This contains all of the views used by the Reporting application."""
 
 
-# Django imports for generic views and template rendering
-from django.urls import reverse
-from django.views import generic
-from django.core.files import File
-from django.shortcuts import render
-from django.contrib import messages
-from django.urls import reverse_lazy
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
+# Import Python libraries for various things
+import csv
+import io
+import json
+import logging
+import logging.config
+import os
+import zipfile
+from datetime import datetime
 
-# Imports for Signals
-from django.db.models.signals import post_init, post_save
-from django.dispatch import receiver
+# Import for Jinja2 templating
+import jinja2
 
 # Imports for Django Channels & WebSockets
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-channel_layer = get_channel_layer()
+# Import for references to Django's settings.py and storage
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model
 
 # Django imports for verifying a user is logged-in to access a view
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-
-# Django imports for forms
-from django.http import HttpResponse, HttpResponseRedirect, Http404, JsonResponse
-from django.shortcuts import get_object_or_404
-
-# Import for references to Django's settings.py and storage
-from django.conf import settings
+from django.core.files import File
 
 # Import models and forms
 from django.db.models import Q
-from django.contrib.auth import get_user_model
 
-User = get_user_model()
+# Imports for Signals
+from django.db.models.signals import post_init, post_save
+from django.dispatch import receiver
 
-# from rolodex.models import Project, ProjectAssignment
-from .models import (
-    Finding,
-    Severity,
-    FindingType,
-    Report,
-    ReportFindingLink,
-    Evidence,
-    Archive,
-    FindingNote,
-    LocalFindingNote,
-)
-from .forms import (
-    FindingCreateForm,
-    ReportCreateForm,
-    ReportFindingLinkUpdateForm,
-    EvidenceForm,
-    FindingNoteCreateForm,
-    LocalFindingNoteCreateForm,
-    ReportCreateFormStandalone,
-)
+# Django imports for forms
+from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.shortcuts import get_object_or_404, render
 
-# Import model filters for views
-from .filters import FindingFilter, ReportFilter, ArchiveFilter
-
-# Import model resources for views
-from .resources import FindingResource
-
-# Import Python libraries for various things
-import io
-import os
-import csv
-import json
-import zipfile
-from datetime import datetime
+# Django imports for generic views and template rendering
+from django.urls import reverse, reverse_lazy
+from django.views import generic
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from docx.opc.exceptions import PackageNotFoundError
 
 # Import for generating the xlsx reports in memory
 from xlsxwriter.workbook import Workbook
 
-import jinja2
-from docx.opc.exceptions import PackageNotFoundError
-
 # Import custom modules
 from ghostwriter.modules import reportwriter
 
+# Import model filters for views
+from .filters import ArchiveFilter, FindingFilter, ReportFilter
+from .forms import (
+    EvidenceForm,
+    FindingCreateForm,
+    FindingNoteCreateForm,
+    LocalFindingNoteCreateForm,
+    ReportCreateForm,
+    ReportCreateFormStandalone,
+    ReportFindingLinkUpdateForm,
+)
 
-# Setup logger
-import logging
-import logging.config
+# from rolodex.models import Project, ProjectAssignment
+from .models import (
+    Archive,
+    Evidence,
+    Finding,
+    FindingNote,
+    FindingType,
+    LocalFindingNote,
+    Report,
+    ReportFindingLink,
+    Severity,
+)
+
+# Import model resources for views
+from .resources import FindingResource
+
+channel_layer = get_channel_layer()
+
+User = get_user_model()
 
 # Using __name__ resolves to ghostwriter.reporting.views
 logger = logging.getLogger(__name__)
-LOGGING_CONFIG = None
-logging.config.dictConfig(
-    {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "console": {
-                # Format: timestamp + name + 12 spaces + info level + 8 spaces + message
-                "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
-            },
-        },
-        "handlers": {
-            "console": {"class": "logging.StreamHandler", "formatter": "console",},
-        },
-        "loggers": {"": {"level": "INFO", "handlers": ["console"],},},
-    }
-)
 
 
 #####################

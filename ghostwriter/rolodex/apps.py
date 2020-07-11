@@ -1,3 +1,5 @@
+"""This contains the configuration of the Rolodex application."""
+
 from django.apps import AppConfig
 
 

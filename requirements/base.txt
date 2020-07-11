@@ -33,3 +33,4 @@ botocore==1.13.8
 django-import-export==2.2.0
 django-tinymce==2.8.0
 docxtpl==0.6.3
+docutils==0.16

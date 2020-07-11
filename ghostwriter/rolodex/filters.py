@@ -1,4 +1,4 @@
-"""This contains all of the model filters for the Ghostwriter application."""
+"""This contains all of the model filters used by the Rolodex application."""
 
 import django_filters
 from django import forms
@@ -7,7 +7,14 @@ from .models import Client
 
 
 class ClientFilter(django_filters.FilterSet):
-    """Filter used to search the `Client` model."""
+    """
+    Filter :model:`rolodex.Client` model for searching.
+
+    **Fields**
+
+    ``name``
+        Case insensitive search of the name field.
+    """
 
     name = django_filters.CharFilter(lookup_expr="icontains")
 
@@ -17,7 +24,22 @@ class ClientFilter(django_filters.FilterSet):
 
 
 class ProjectFilter(django_filters.FilterSet):
-    """Filter used to search the `Project` model."""
+    """
+    Filter :model:`rolodex.Project` model for searching.
+
+    **Fields**
+
+    ``start_date``
+        DateFilter for start_date values greater than provided value.
+    ``end_date``
+        DateFilter for end_date values less than provided value.
+    ``start_date_range``
+        DateRangeFilter for retrieving entries with matching start_date values.
+    ``end_date_range``
+        DateRangeFilter for retrieving entries with matching end_date values.
+    ``complete``
+        Boolean field for filtering incomplete projects.
+    """
 
     start_date = django_filters.DateFilter(
         lookup_expr=("gt"),

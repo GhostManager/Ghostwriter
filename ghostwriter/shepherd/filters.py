@@ -1,19 +1,34 @@
-"""This contains all of the model filters for the Shepherd application."""
+"""This contains all of the model filters used by the Shepherd application."""
 
 import django_filters
 from django import forms
 
-from .models import Domain, HealthStatus, DomainStatus, ServerStatus
+from .models import Domain, DomainStatus, HealthStatus, ServerStatus
 
 
 class DomainFilter(django_filters.FilterSet):
-    """Filter used to search the `Domain` model."""
+    """
+    Filter :model:`shepherd.Domain` model for searching.
+
+    **Fields**
+
+    ``name``
+        Case insensitive search of the name field contents.
+    ``all_cat``
+        Case insensitive search of the all_cat field.
+    ``health_status``
+        Checkbox choice filter using :model:`shepherd.HealthStatus`.
+    ``domain_status``
+        Checkbox choice filter using :model:`shepherd.DomainStatus`.
+    ``expiration_status``
+        Boolean field to filter expired domains.
+    """
 
     name = django_filters.CharFilter(
         lookup_expr="icontains", label="Domain Name Contains"
     )
     all_cat = django_filters.CharFilter(
-        lookup_expr="icontains", label="Categories Contains"
+        lookup_expr="icontains", label="Categories Contain"
     )
     health_status = django_filters.ModelMultipleChoiceFilter(
         queryset=HealthStatus.objects.all(),
@@ -40,7 +55,18 @@ class DomainFilter(django_filters.FilterSet):
 
 
 class ServerFilter(django_filters.FilterSet):
-    """Filter used to search the `StaticServer` model."""
+    """
+    Filter :model:`shepherd.StaticServer` model for searching.
+
+    **Fields**
+
+    ``io_address``
+        Case insensitive search of the ip_address field contents.
+    ``name``
+        Case insensitive search of the name field contents.
+    ``server_status``
+        Checkbox choice filter using :model:`shepherd.ServerStatus`.
+    """
 
     ip_address = django_filters.CharFilter(
         lookup_expr="icontains", label="IP Address Contains"

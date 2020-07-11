@@ -1,21 +1,19 @@
-"""This contains all of the forms for the Home application."""
-
-from django import forms
-from django.contrib.auth import get_user_model
+"""This contains all of the forms used by the Home application."""
 
 from crispy_forms.helper import FormHelper
+from django import forms
+from django.contrib.auth import get_user_model
 
 from ghostwriter.home.models import UserProfile
 
 
 class UserProfileForm(forms.ModelForm):
-    """Form used to upload user profile avatars."""
+    """
+    Upload user profile avatars for individual :model:`home.UserProfile`.
+    """
 
     class Meta:
-        """Metadata for the model form."""
-
         model = UserProfile
-        # fields = ('__all__')
         exclude = ("user",)
         widgets = {
             "user": forms.HiddenInput(),
@@ -23,7 +21,6 @@ class UserProfileForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(UserProfileForm, self).__init__(*args, **kwargs)
         self.fields["avatar"].widget.attrs["class"] = "custom-file-input"
         self.helper = FormHelper()
@@ -33,6 +30,10 @@ class UserProfileForm(forms.ModelForm):
 
 
 class SignupForm(forms.ModelForm):
+    """
+    Create a new :model:`users.User`.
+    """
+
     class Meta:
         model = get_user_model()
         fields = [

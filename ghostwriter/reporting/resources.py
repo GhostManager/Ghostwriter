@@ -1,9 +1,16 @@
+"""This contains all of the ``import_export`` model resources used by the Reporting application."""
+
 from import_export import resources
 from import_export.fields import Field
+
 from .models import Finding
 
 
 class FindingResource(resources.ModelResource):
+    """
+    Import and export :model:`reporting.Finding`.
+    """
+
     severity = Field(attribute="severity__severity", column_name="severity")
     finding_type = Field(
         attribute="finding_type__finding_type", column_name="finding_type"

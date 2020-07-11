@@ -1,12 +1,15 @@
-"""This contains all of the WebSocket consumers for the Home application."""
+"""This contains all of the WebSocket consumers used by the Home application."""
 
-from django.contrib import messages
-from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 import json
+
+from channels.generic.websocket import AsyncWebsocketConsumer, WebsocketConsumer
+from django.contrib import messages
 
 
 class UserConsumer(AsyncWebsocketConsumer):
-    """Consumer for handling user notifications."""
+    """
+    Handle notifications related individual :model:`users.User` over WebSockets.
+    """
 
     async def connect(self):
         self.username = self.scope["url_route"]["kwargs"]["username"]
@@ -46,7 +49,9 @@ class UserConsumer(AsyncWebsocketConsumer):
 
 
 class ProjectConsumer(AsyncWebsocketConsumer):
-    """Consumer for handling project-specific notifications."""
+    """
+    Handle notifications related to individual :model:`rolodex.Project` over WebSockets.
+    """
 
     async def connect(self):
         self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
@@ -76,4 +81,3 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         message = event["message"]
         # Send message to WebSocket
         await self.send(text_data=json.dumps({"message": message}))
-

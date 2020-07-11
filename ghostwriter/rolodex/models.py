@@ -1,73 +1,61 @@
-"""This contains all of the database models for the Rolodex application."""
+"""This contains all of the database models used by the Rolodex application."""
 
+from django.conf import settings
 from django.db import models
 from django.urls import reverse
-
-# from django.contrib.auth.models import User
-from django.conf import settings
+from tinymce.models import HTMLField
 
 from ghostwriter.reporting.models import ReportFindingLink
 
 
 class Client(models.Model):
-    """Model representing the clients attached to project records. This model
-    tracks client information.
-
-    There are no foreign keys.
+    """
+    Stores an individual client.
     """
 
     name = models.CharField(
         "Client Name",
         max_length=100,
         unique=True,
-        help_text="Provide the full name of this client as you would want it "
-        "to appear in a report",
+        help_text="Provide the client's full name as you would want it to appear in a report",
     )
     short_name = models.CharField(
         "Client Short Name",
         max_length=100,
         null=True,
         blank=True,
-        help_text="Provide an abbreviation, or short name, that can be used "
-        "to refer to this client",
+        help_text="Provide an abbreviation, or short name, that can be used to refer to this client",
     )
     codename = models.CharField(
         "Client Codename",
         max_length=100,
         null=True,
         blank=True,
-        help_text="A codename for the client that might be used to discuss "
-        "the client in public",
+        help_text="A codename for the client that might be used to discuss the client in public",
     )
     note = models.TextField(
         "Client Note",
         max_length=1000,
         null=True,
         blank=True,
-        help_text="Use this field to describe the client or provide some "
-        "additional information",
+        help_text="Use this field to describe the client or provide some additional information",
     )
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["name"]
         verbose_name = "Client"
         verbose_name_plural = "Clients"
 
     def get_absolute_url(self):
-        """Returns the URL to access a particular instance of the model."""
         return reverse("rolodex:client_detail", args=[str(self.id)])
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.name
 
 
 class ClientContact(models.Model):
-    """Model representing the points of contact attached to a client.
-
-    There is a foreign key for the `Client` model.
+    """
+    Stores an individual point of contact, related to :model:`rolodex.Client`.
     """
 
     name = models.CharField(
@@ -78,7 +66,7 @@ class ClientContact(models.Model):
         max_length=100,
         null=True,
         help_text="Enter the contact's job title or role in the project - "
-        "this will appear in the reports",
+        "this will appear in reports",
     )
     email = models.CharField(
         "Email",
@@ -99,9 +87,8 @@ class ClientContact(models.Model):
         max_length=500,
         null=True,
         blank=True,
-        help_text="Use this field to provide additional information about "
-        "the contact like availability or more information about "
-        "their role",
+        help_text="Use this field to provide additional information about the contact "
+        "like their availability or more information about their role",
     )
     # Foreign keys
     client = models.ForeignKey(
@@ -109,21 +96,18 @@ class ClientContact(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["client", "id"]
         verbose_name = "Client POC"
         verbose_name_plural = "Client POCs"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.name} ({self.client})"
 
 
 class ProjectType(models.Model):
-    """Model representing the available project types used for projects.
-
-    There are no foreign keys.
+    """
+    Stores an individual project type, related to :model:`rolodex.Project`.
     """
 
     project_type = models.CharField(
@@ -134,22 +118,19 @@ class ProjectType(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["project_type"]
         verbose_name = "Project type"
         verbose_name_plural = "Project types"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.project_type
 
 
 class Project(models.Model):
-    """Model representing projects. This model holds all information for
-    projects like the client and execution window.
-
-    There are foreign keys for the `Client`, `User`, and `ProjectType` models.
+    """
+    Stores an individual project, related to :model:`rolodex.Client`,
+    :model:`rolodex.ProjectType`, and :model:`users.User`.
     """
 
     codename = models.CharField(
@@ -157,8 +138,7 @@ class Project(models.Model):
         max_length=100,
         null=True,
         blank=True,
-        help_text="Create a codename for this project that might be used to "
-        "refer to it in public",
+        help_text="Create a codename for this project that might be used to refer to it in public",
     )
     start_date = models.DateField(
         "Start Date", max_length=100, help_text="Enter the start date of this project"
@@ -170,16 +150,14 @@ class Project(models.Model):
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to provide any additional notes about this "
-        "project that should be recorded",
+        help_text="Use this area to provide any additional notes about this project that should be recorded",
     )
     slack_channel = models.CharField(
         "Project Slack Channel",
         max_length=100,
         null=True,
         blank=True,
-        help_text="Provide an (optional) Slack channel to be used for "
-        "notifications related to this project",
+        help_text="Provide an (optional) Slack channel to be used for notifications related to this project",
     )
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark this project as complete/closed"
@@ -198,13 +176,13 @@ class Project(models.Model):
         "ProjectType",
         on_delete=models.PROTECT,
         null=False,
-        help_text="Select a category for this project that best describes "
-        "the work being performed",
+        help_text="Select a category for this project that best describes the work being performed",
     )
 
     def count_findings(self):
-        """Count and return the number of findings across all reports associated
-        with the `Project` model instance.
+        """
+        Count and return the number of findings across all reports associated with
+        an individual :model:`rolodex.Project`.
         """
         finding_queryset = ReportFindingLink.objects.select_related(
             "report", "report__project"
@@ -214,26 +192,21 @@ class Project(models.Model):
     count = property(count_findings)
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["client", "start_date", "project_type", "codename"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
 
     def get_absolute_url(self):
-        """Returns the URL to access a particular instance of the model."""
         return reverse("rolodex:project_detail", args=[str(self.id)])
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.start_date} {self.client} {self.project_type} ({self.codename})"
 
 
 class ProjectRole(models.Model):
-    """Model representing the available project roles used for operator
-    assignments.
-
-    There are no foreign keys.
+    """
+    Stores an individual project role.
     """
 
     project_role = models.CharField(
@@ -241,41 +214,45 @@ class ProjectRole(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["project_role"]
         verbose_name = "Project role"
         verbose_name_plural = "Project roles"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.project_role
 
 
 class ProjectAssignment(models.Model):
-    """Model representing which operators are attached to a project.
-
-    There are foreign keys for the `Project`, `ProjectRole`, and `User` models.
+    """
+    Stores an individual project assignment, related to :model:`users.User`,
+    :model:`rolodex.Project`, and :model:`rolodex.ProjectRole`.
     """
 
     start_date = models.DateField(
-        "Start Date", max_length=100, help_text="Enter the start date of the project"
+        "Start Date",
+        max_length=100,
+        blank=True,
+        help_text="Enter the start date of the project",
     )
     end_date = models.DateField(
-        "End Date", max_length=100, help_text="Enter the end date of the project"
+        "End Date",
+        max_length=100,
+        blank=True,
+        help_text="Enter the end date of the project",
     )
     note = models.TextField(
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to provide any additional notes about this "
-        "assignment",
+        help_text="Use this area to provide any additional notes about this assignment",
     )
     # Foreign keys
     operator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         help_text="Select a user to assign to this project",
     )
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
@@ -283,30 +260,33 @@ class ProjectAssignment(models.Model):
         ProjectRole,
         on_delete=models.SET_NULL,
         null=True,
-        help_text="Select a role that best describes the selected user's "
-        "role in this project",
+        blank=True,
+        help_text="Select a role that best describes the selected user's role in this project",
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["project", "start_date", "operator"]
         verbose_name = "Project assignment"
         verbose_name_plural = "Project assignments"
 
+    def save(self, *args, **kwargs):
+        if self.start_date < self.project.start_date:
+            self.start_date = self.project.start_date
+        elif self.end_date > self.project.end_date:
+            self.end_date = self.project.end_date
+        super(ProjectAssignment, self).save(*args, **kwargs)
+
     def get_absolute_url(self):
-        """Returns the URL to access a particular instance of the model."""
         return reverse("rolodex:project_detail", args=[str(self.project.id)])
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.operator} - {self.project} {self.end_date})"
 
 
 class ObjectiveStatus(models.Model):
-    """Model representing the available objective statuses used for projects.
-
-    There are no foreign keys.
+    """
+    Stores an individual objective status.
     """
 
     objective_status = models.CharField(
@@ -317,57 +297,66 @@ class ObjectiveStatus(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["objective_status"]
         verbose_name = "Objective status"
         verbose_name_plural = "Objective statuses"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.objective_status
 
 
 class ProjectObjective(models.Model):
-    """Model representing objectives for projects.
-
-    There are foreign keys for the `Project` and `ObjectiveStatus` models.
+    """
+    Stores an individual project objective, related to :model:`rolodex.Project` and :model:`rolodex.ObjectiveStatus`.
     """
 
-    objective = models.TextField(
+    def get_status():
+        """Get the default status for the status field."""
+        active_status = ObjectiveStatus.objects.get(objective_status="Active")
+        return active_status
+
+    objective = HTMLField(
         "Objective", null=True, blank=True, help_text="Provide a concise objective"
     )
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark the objective as complete"
     )
     deadline = models.DateField(
-        "Due Date", max_length=100, help_text="Provide a deadline for this objective"
+        "Due Date",
+        max_length=100,
+        blank=True,
+        help_text="Provide a deadline for this objective",
     )
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
     status = models.ForeignKey(
         ObjectiveStatus,
         on_delete=models.PROTECT,
-        null=False,
-        help_text="Set the initial status for this objective",
+        default=get_status,
+        help_text="Set the status for this objective",
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["project", "complete", "deadline", "status", "objective"]
         verbose_name = "Project objective"
         verbose_name_plural = "Project objectives"
 
+    def save(self, *args, **kwargs):
+        if self.deadline < self.project.start_date:
+            self.deadline = self.project.start_date
+        elif self.deadline > self.project.end_date:
+            self.deadline = self.project.end_date
+        super(ProjectObjective, self).save(*args, **kwargs)
+
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.project} - {self.objective} {self.status})"
 
 
 class ClientNote(models.Model):
-    """Model representing notes for clients.
-
-    There are foreign keys for the `Client` and `User` models.
+    """
+    Stores an individual note, related to :model:`rolodex.Client` and :model:`users.User`.
     """
 
     # This field is automatically filled with the current date
@@ -388,21 +377,18 @@ class ClientNote(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["client", "timestamp"]
         verbose_name = "Client note"
         verbose_name_plural = "Client notes"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.client}: {self.timestamp} - {self.note}"
 
 
 class ProjectNote(models.Model):
-    """Model representing notes for projects.
-
-    There are foreign keys for the `Project` and `User` models.
+    """
+    Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`.
     """
 
     # This field is automatically filled with the current date
@@ -413,8 +399,8 @@ class ProjectNote(models.Model):
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to add a note to this project - it can be "
-        "anything you want others to see/know about the project",
+        help_text="Use this area to add a note to this project - it can be anything "
+        "you want others to see/know about the project",
     )
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
@@ -423,13 +409,10 @@ class ProjectNote(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
 
         ordering = ["project", "timestamp"]
         verbose_name = "Project note"
         verbose_name_plural = "Project notes"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.project}: {self.timestamp} - {self.note}"
-

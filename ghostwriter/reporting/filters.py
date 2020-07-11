@@ -1,13 +1,24 @@
-"""This contains all of the model filters for the Ghostwriter application."""
+"""This contains all of the model filters used by the Reporting application."""
 
 import django_filters
 from django import forms
 
-from .models import Finding, Severity, FindingType, Report, Archive
+from .models import Archive, Finding, FindingType, Report, Severity
 
 
 class FindingFilter(django_filters.FilterSet):
-    """Filter used to search the `Finding` model."""
+    """
+    Filter :model:`reporting.Finding` model for searching.
+
+    **Fields**
+
+    ``title``
+        Case insensitive search of the title field contents.
+    ``severity``
+        Checkbox choice filter using :model:`reporting.Severty`.
+    ``finding_type``
+        Multiple choice filter using :model:`reporting.FindingType`.
+    """
 
     title = django_filters.CharFilter(lookup_expr="icontains", label="Title Contains")
     severity = django_filters.ModelMultipleChoiceFilter(
@@ -24,7 +35,16 @@ class FindingFilter(django_filters.FilterSet):
 
 
 class ReportFilter(django_filters.FilterSet):
-    """Filter used to search the `Report` model."""
+    """
+    Filter :model:`reporting.Report` model for searching.
+
+    **Fields**
+
+    ``title``
+        Case insensitive search of the title field contents.
+    ``complete``
+        Boolean field to filter completed reports.
+    """
 
     title = django_filters.CharFilter(lookup_expr="icontains", label="Title Contains")
 
@@ -43,7 +63,14 @@ class ReportFilter(django_filters.FilterSet):
 
 
 class ArchiveFilter(django_filters.FilterSet):
-    """Filter used to search the `Report` model."""
+    """
+    Filter :model:`reporting.Report` model for searching.
+
+    **Fields**
+
+    ``client``
+        Case insensitive search of the client field and associated :model:`rolodex.Client`.
+    """
 
     client = django_filters.CharFilter(
         field_name="project__client__name", label="Client Name", lookup_expr="icontains"

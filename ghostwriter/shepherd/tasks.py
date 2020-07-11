@@ -1,67 +1,43 @@
 """This contains tasks to be run using Django Q and Redis."""
 
+import datetime
+import io
+import json
+import logging
+import logging.config
+import os
+import zipfile
+from collections import defaultdict
+from datetime import date
 
-# Import the shepherd application's models and settings
-from django.db.models import Q
+import boto3
+import nmap
+import pytz
+import requests
+from botocore.exceptions import ClientError
 from django.conf import settings
 from django.core.files import File
-
-from .models import (
-    Domain,
-    History,
-    DomainStatus,
-    HealthStatus,
-    StaticServer,
-    ServerStatus,
-    ServerHistory,
-    WhoisStatus,
-    TransientServer,
-    DomainNote,
-)
-
-# Import Python libraries for various things
-import io
-import os
-import json
-import pytz
-import nmap
-import boto3
-import zipfile
-import requests
-import datetime
-from datetime import date
+from django.db.models import Q
 from lxml import objectify
-from collections import defaultdict
-from botocore.exceptions import ClientError
 
-# Import custom modules
 from ghostwriter.modules.dns import DNSCollector
 from ghostwriter.modules.review import DomainReview
 
-
-# Setup logger
-import logging
-import logging.config
+from .models import (
+    Domain,
+    DomainNote,
+    DomainStatus,
+    HealthStatus,
+    History,
+    ServerHistory,
+    ServerStatus,
+    StaticServer,
+    TransientServer,
+    WhoisStatus,
+)
 
 # Using __name__ resolves to ghostwriter.shepherd.tasks
 logger = logging.getLogger(__name__)
-LOGGING_CONFIG = None
-logging.config.dictConfig(
-    {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "formatters": {
-            "console": {
-                # Format: timestamp + name + 12 spaces + info level + 8 spaces + message
-                "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
-            },
-        },
-        "handlers": {
-            "console": {"class": "logging.StreamHandler", "formatter": "console",},
-        },
-        "loggers": {"": {"level": "INFO", "handlers": ["console"],},},
-    }
-)
 
 
 def craft_cloud_message(

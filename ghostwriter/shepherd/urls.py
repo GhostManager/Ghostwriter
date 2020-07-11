@@ -1,11 +1,8 @@
-"""This contains all of the URL mappings for the Shepherd application. The
-`urlpatterns` list routes URLs to views. For more information please see:
+"""This contains all of the URL mappings used by the Shepherd application."""
 
-https://docs.djangoproject.com/en/2.1/topics/http/urls/
-"""
+from django.urls import path
 
 from . import views
-from django.urls import path
 
 app_name = "shepherd"
 

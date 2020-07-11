@@ -1,24 +1,28 @@
-"""This contains all of the forms for the Shepherd application."""
+"""This contains all of the forms used by the Shepherd application."""
 
+from datetime import date
+
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Column, Layout, Row, Submit
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit, Row, Column
+from ghostwriter.rolodex.models import Project
 
-from datetime import date
-
-from .models import Domain, History, DomainNote, DomainServerConnection, DomainStatus
 from .models import (
-    StaticServer,
-    TransientServer,
+    AuxServerAddress,
+    Domain,
+    DomainNote,
+    DomainServerConnection,
+    DomainStatus,
+    History,
     ServerHistory,
     ServerNote,
     ServerStatus,
-    AuxServerAddress,
+    StaticServer,
+    TransientServer,
 )
-from ghostwriter.rolodex.models import Project
 
 
 class DateInput(forms.DateInput):
@@ -26,19 +30,17 @@ class DateInput(forms.DateInput):
 
 
 class CheckoutForm(forms.ModelForm):
-    """Form used for domain checkout. Updates the domain (status) and creates
-    a history entry.
+    """
+    Create individual :model:`shepherd.History` for a pre-defined :model:`shepherd.Domain`.
     """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = History
         fields = "__all__"
         widgets = {"operator": forms.HiddenInput(), "domain": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(CheckoutForm, self).__init__(*args, **kwargs)
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["client"].label = ""
@@ -61,8 +63,8 @@ class CheckoutForm(forms.ModelForm):
         self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
         self.helper.field_class = "h-100 justify-content-center align-items-center"
-        # Prevent "not one of the valid options" errors from AJAX project
-        # filtering
+
+        # Prevent "not one of the valid options" errors from AJAX project filtering
         if "client" in self.data:
             try:
                 client_id = int(self.data.get("client"))
@@ -77,20 +79,20 @@ class CheckoutForm(forms.ModelForm):
             )
 
     def clean_end_date(self):
-        """Clean and sanitize user input."""
         end_date = self.cleaned_data["end_date"]
         start_date = self.cleaned_data["start_date"]
+
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("Invalid date: The provided end date " "comes before the start date.")
+                _("Invalid date: The provided end date comes before the start date.")
             )
-        # Return the cleaned data
         return end_date
 
     def clean_domain(self):
         insert = self.instance.pk == None
         domain = self.cleaned_data["domain"]
+
         if insert:
             unavailable = DomainStatus.objects.get(domain_status="Unavailable")
             expired = domain.expiration < date.today()
@@ -98,27 +100,23 @@ class CheckoutForm(forms.ModelForm):
                 raise ValidationError("This domain's registration has expired!")
             if domain.domain_status == unavailable:
                 raise ValidationError(
-                    "Someone beat you to it. This domain has "
-                    "already been checked out!"
+                    "Someone beat you to it. This domain has already been checked out!"
                 )
-        # Return the cleaned data
         return domain
 
 
 class ServerCheckoutForm(forms.ModelForm):
-    """Form used for server checkout. Updates the server (status) and creates
-    a history entry.
+    """
+    Create individual :model:`shepherd.ServerHistory`.
     """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = ServerHistory
         fields = "__all__"
         widgets = {"operator": forms.HiddenInput(), "server": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ServerCheckoutForm, self).__init__(*args, **kwargs)
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["client"].label = ""
@@ -143,8 +141,8 @@ class ServerCheckoutForm(forms.ModelForm):
         self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
         self.helper.field_class = "h-100 justify-content-center align-items-center"
-        # Prevent "not one of the valid options" errors from AJAX project
-        # filtering
+
+        # Prevent "not one of the valid options" errors from AJAX project filtering
         if "client" in self.data:
             try:
                 client_id = int(self.data.get("client"))
@@ -159,15 +157,14 @@ class ServerCheckoutForm(forms.ModelForm):
             )
 
     def clean_end_date(self):
-        """Clean and sanitize user input."""
         end_date = self.cleaned_data["end_date"]
         start_date = self.cleaned_data["start_date"]
+
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("Invalid date: The provided end date " "comes before the start date.")
+                _("Invalid date: The provided end date comes before the start date.")
             )
-        # Return the cleaned data
         return end_date
 
     def clean_server(self):
@@ -177,18 +174,17 @@ class ServerCheckoutForm(forms.ModelForm):
             unavailable = ServerStatus.objects.get(server_status="Unavailable")
             if server.server_status == unavailable:
                 raise ValidationError(
-                    "Someone beat you to it. This server has "
-                    "already been checked out!"
+                    "Someone beat you to it. This server has already been checked out!"
                 )
-        # Return the cleaned data
         return server
 
 
 class DomainCreateForm(forms.ModelForm):
-    """Form used with the DomainCreate CreateView in views.py."""
+    """
+    Create individual :model:`shepherd.Domain`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = Domain
         exclude = (
@@ -201,7 +197,6 @@ class DomainCreateForm(forms.ModelForm):
         )
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(DomainCreateForm, self).__init__(*args, **kwargs)
         self.fields["name"].widget.attrs["placeholder"] = "specterops.io"
         self.fields["name"].label = ""
@@ -250,32 +245,30 @@ class DomainCreateForm(forms.ModelForm):
         self.helper.field_class = "h-100 justify-content-center align-items-center"
 
     def clean_expiration(self):
-        """Clean and sanitize user input."""
         expiration = self.cleaned_data["expiration"]
         creation = self.cleaned_data["creation"]
+
         # Check if expiration comes before the creation date
         if expiration < creation:
             raise ValidationError(
                 _(
-                    "Invalid date: The provided expiration "
-                    "date comes before the purchase date."
+                    "Invalid date: The provided expiration date comes before the purchase date."
                 )
             )
-        # Return the cleaned data
         return expiration
 
 
 class ServerCreateForm(forms.ModelForm):
-    """Form used with the ServerCreate CreateView in views.py."""
+    """
+    Create individual :model:`shepherd.StaticServer`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = StaticServer
         exclude = ("last_used_by",)
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ServerCreateForm, self).__init__(*args, **kwargs)
         self.fields["ip_address"].widget.attrs["placeholder"] = "172.10.10.236"
         self.fields["name"].widget.attrs["placeholder"] = "hostname"
@@ -292,17 +285,18 @@ class ServerCreateForm(forms.ModelForm):
 
 
 class TransientServerCreateForm(forms.ModelForm):
-    """Form used with the TransientServer CreateView in views.py."""
+    """
+    Create individual :model:`shepherd.TransientServer` for a pre-defined
+    :model:`rolodex.Project`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = TransientServer
         fields = "__all__"
         widgets = {"operator": forms.HiddenInput(), "project": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(TransientServerCreateForm, self).__init__(*args, **kwargs)
         self.fields["ip_address"].widget.attrs["placeholder"] = "172.10.10.236"
         self.fields["name"].widget.attrs["placeholder"] = "hostname"
@@ -317,10 +311,11 @@ class TransientServerCreateForm(forms.ModelForm):
 
 
 class DomainLinkForm(forms.ModelForm):
-    """Form used with the DomainLServerConnection views."""
+    """
+    Create or update individual :model:`shepherd.DomainServerConnection`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = DomainServerConnection
         fields = "__all__"
@@ -329,7 +324,6 @@ class DomainLinkForm(forms.ModelForm):
         }
 
     def __init__(self, project=None, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(DomainLinkForm, self).__init__(*args, **kwargs)
         if project:
             self.fields["domain"].queryset = History.objects.filter(project=project)
@@ -348,7 +342,6 @@ class DomainLinkForm(forms.ModelForm):
             self.helper.field_class = "h-100 justify-content-center align-items-center"
 
     def clean(self):
-        """Clean and sanitize user input."""
         if self.cleaned_data["static_server"] and self.cleaned_data["transient_server"]:
             raise ValidationError(
                 _("Invalid Server Selection: Select only " "one server")
@@ -358,15 +351,17 @@ class DomainLinkForm(forms.ModelForm):
             and not self.cleaned_data["transient_server"]
         ):
             raise ValidationError(
-                _("Invalid Server Selection: You must " "select one server")
+                _("Invalid Server Selection: You must select one server")
             )
 
 
 class DomainNoteCreateForm(forms.ModelForm):
-    """Form used with the DomainNote CreateView in views..py."""
+    """
+    Create individual :model:`shepherd.DomainNote` for a pre-defined
+    :model:`shepherd.Domain`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = DomainNote
         fields = "__all__"
@@ -377,7 +372,6 @@ class DomainNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(DomainNoteCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -387,10 +381,12 @@ class DomainNoteCreateForm(forms.ModelForm):
 
 
 class ServerNoteCreateForm(forms.ModelForm):
-    """Form used with the ServerNote CreateView in views.py."""
+    """
+    Create individual :model:`shepherd.ServerNote` for a pre-defined
+    :model:`shepherd.StaticServer`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = ServerNote
         fields = "__all__"
@@ -401,7 +397,6 @@ class ServerNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(ServerNoteCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -411,16 +406,16 @@ class ServerNoteCreateForm(forms.ModelForm):
 
 
 class BurnForm(forms.ModelForm):
-    """Form used with the `burn` in views.py."""
+    """
+    Update the burned_explanation field for an individual :model:`shepherd.Domain`.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = Domain
         fields = ("burned_explanation",)
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(BurnForm, self).__init__(*args, **kwargs)
         self.fields["burned_explanation"].widget.attrs[
             "placeholder"
@@ -433,10 +428,12 @@ class BurnForm(forms.ModelForm):
 
 
 class AuxServerAddressCreateForm(forms.ModelForm):
-    """Form used with the AuxAddress CreateView in views.py."""
+    """
+    Create individual :model:`shepherd.AuxServerAddress` for a pre-defined
+    :model:`shepherd.StaticServer.
+    """
 
     class Meta:
-        """Modify the attributes of the form."""
 
         model = AuxServerAddress
         fields = "__all__"
@@ -445,7 +442,6 @@ class AuxServerAddressCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(AuxServerAddressCreateForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
@@ -453,4 +449,3 @@ class AuxServerAddressCreateForm(forms.ModelForm):
         self.helper.field_class = "h-100 justify-content-center align-items-center"
         self.fields["primary"].label = "Make Primary Address"
         self.fields["ip_address"].label = ""
-

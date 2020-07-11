@@ -1,17 +1,20 @@
-"""
-This contains all of the URL mappings for the Reporting application.
-"""
+"""This contains all of the URL mappings used by the Reporting application."""
 
 from django.urls import path
 
-# from . import views
 from .views import (
     EvidenceDelete,
     EvidenceUpdate,
     FindingCreate,
     FindingDelete,
     FindingDetailView,
+    FindingNoteCreate,
+    FindingNoteDelete,
+    FindingNoteUpdate,
     FindingUpdate,
+    LocalFindingNoteCreate,
+    LocalFindingNoteDelete,
+    LocalFindingNoteUpdate,
     ReportCreate,
     ReportCreateWithoutProject,
     ReportDelete,
@@ -20,12 +23,15 @@ from .views import (
     ReportFindingLinkUpdate,
     ReportUpdate,
     activate_report,
+    ajax_update_report_findings,
     archive,
     archive_list,
     assign_blank_finding,
     assign_finding,
     clone_report,
+    convert_finding,
     download_archive,
+    export_findings_to_csv,
     finding_status_toggle,
     findings_list,
     generate_all,
@@ -37,22 +43,13 @@ from .views import (
     index,
     position_decrease,
     position_increase,
-    report_status_toggle,
     report_delivery_toggle,
+    report_status_toggle,
     reports_list,
     upload_evidence,
     upload_evidence_modal,
     upload_evidence_modal_success,
     view_evidence,
-    FindingNoteCreate,
-    FindingNoteUpdate,
-    FindingNoteDelete,
-    LocalFindingNoteCreate,
-    LocalFindingNoteUpdate,
-    LocalFindingNoteDelete,
-    convert_finding,
-    export_findings_to_csv,
-    ajax_update_report_findings,
 )
 
 app_name = "reporting"
@@ -206,4 +203,3 @@ urlpatterns += [
     path("import/csv/", import_findings, name="import_findings"),
     path("export/csv/", export_findings_to_csv, name="export_findings_to_csv"),
 ]
-

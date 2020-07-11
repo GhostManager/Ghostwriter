@@ -13,25 +13,20 @@
 {% endblock %}
 
 {% block content %}
-    <p>Fill-out this form with all necessary information for this project for {{ client_name }}:</p>
+    <p>Fill-out this form with all necessary information for this project for the selected client:</p>
 
-    <!-- Form Error Sections -->
+    <!-- Form Error Section -->
     {% if form.errors %}
-        {% for field in form %}
-            {% for error in field.errors %}
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <strong>{{ error|escape }}</strong>
-                </div>
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
     {% endif %}
 
     <!-- Form Section -->
@@ -75,8 +70,106 @@
         <!-- Hidden Inputs -->
         {{ form.codename }}
 
+        <!-- Spacer -->
+        <p style="margin: 40px;"></p>
+
+        <!-- Objective Section -->
+        <div>
+            <strong><i class="fas fa-crosshairs"></i> Set Objectives</strong>
+            <hr>
+            {{ objectives.management_form }}
+            {% for form in objectives %}
+                {% if objectives.errors %}
+                    <script>
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                displayToastTop({type:'error', string:'{{ field }}: {{ error }}', context:'form'});
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            displayToastTop({type:'error', string:'{{ field }}: {{ error }}', context:'form'});
+                        {% endfor %}
+                    </script>
+                {% endif %}
+                <div class="objective-formset">
+                    <div class="form-row">
+                        <div class="form-group col-md-6 mb-0">
+                            {{ form.deadline|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    {{ form.objective|as_crispy_field }}
+                </div>
+
+                <!-- Hidden Inputs -->
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- Objective Section -->
+        <strong><i class="fas fa-user-alt"></i> Assign Operators</strong>
+        <hr>
+        {{ assignments.management_form }}
+        {% for form in assignments %}
+            {% if assignments.errors %}
+                <script>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                    {% endfor %}
+                </script>
+            {% endif %}
+            <div class="form-row">
+                <div class="form-group col-md-6 mb-0">
+                    {{ form.operator|as_crispy_field }}
+                </div>
+                <div class="form-group col-md-6 mb-0">
+                    {{ form.role|as_crispy_field }}
+                </div>
+            </div>
+
+            <!-- Spacer -->
+            <p style="margin: 40px;"></p>
+
+            <div class="form-row">
+                <div class="form-group col-md-6 mb-0">
+                    {{ form.start_date|as_crispy_field }}
+                </div>
+                <div class="form-group col-md-6 mb-0">
+                    {{ form.end_date|as_crispy_field }}
+                </div>
+            </div>
+
+            <!-- Spacer -->
+            <p style="margin: 40px;"></p>
+
+            {{ form.note|as_crispy_field }}
+
+            <!-- Hidden Inputs -->
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+        {% endfor %}
         <input type="hidden" name="next" value="{{ origin }}">
         <input type="submit" class="btn btn-primary" value="Submit">
         <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
+{% endblock %}
+
+{% block morescripts %}
+    <script type="text/javascript">
+        $('.objective-formset').formset({
+            addText: 'Add Objective',
+            deleteText: 'Remove',
+            addCssClass: 'btn btn-primary',
+            deleteCssClass: 'btn btn-secondary',
+            prefix: '{{ objectives.prefix }}',
+        });
+    </script>
 {% endblock %}

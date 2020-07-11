@@ -1,17 +1,14 @@
-"""This contains all of the URL mappings for the Home application. The
-`urlpatterns` list routes URLs to views. For more information please see:
+"""This contains all of the URL mappings used by the Home application."""
 
-https://docs.djangoproject.com/en/2.1/topics/http/urls/
-"""
+from django.urls import path
 
 from ghostwriter.home.views import (
     dashboard,
-    profile,
     management,
-    upload_avatar,
+    profile,
     send_slack_test_msg,
+    upload_avatar,
 )
-from django.urls import path
 
 app_name = "home"
 

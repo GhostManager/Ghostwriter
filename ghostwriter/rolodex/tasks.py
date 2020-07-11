@@ -1,27 +1,27 @@
 """This contains tasks to be run using Django Q and Redis."""
 
-# Import the rolodex application's models and settings
-from django.db.models import Q
+import datetime
+import json
+from datetime import date
+
+import requests
 from django.conf import settings
+from django.db.models import Q
 
 from .models import Project
 
-# Import Python libraries for various things
-import json
-import requests
-import datetime
-from datetime import date
-
 
 def send_slack_msg(message, slack_channel=None):
-    """Accepts message text and sends it to Slack. This requires Slack
-    settings and a webhook be configured in the application's settings.
+    """
+    Accepts message text and sends it to Slack. This requires Slack settings and
+    a webhook be configured in the application's settings.
 
-    Parameters:
+    **Parameters**
 
-    message         A string to be sent as the Slack message
-    slack_channel   Defaults to using the global setting. Can be set to any
-                    Slack channel name.
+    ``message``
+        A string to be sent as the Slack message
+    ``slack_channel``
+        Defaults to using the global setting. Can be set to any Slack channel name.
     """
     try:
         enable_slack = settings.SLACK_CONFIG["enable_slack"]
@@ -60,7 +60,9 @@ def send_slack_msg(message, slack_channel=None):
 
 
 def check_project_freshness():
-    """Check all incomplete projects to see if they are past due to be finished."""
+    """
+    Checks all entries in :model:`rolodex.Project` for incomplete projects that are overdue.
+    """
     project_queryset = Project.objects.filter(complete=False)
     for project in project_queryset:
         nag_date = project.end_date + datetime.timedelta(1)

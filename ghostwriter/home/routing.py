@@ -1,4 +1,4 @@
-"""This contains all of the WebSocket routes for the Home application."""
+"""This contains all of the WebSocket routes used by the Home application."""
 
 from django.urls import re_path
 

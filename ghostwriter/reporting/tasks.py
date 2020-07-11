@@ -1,22 +1,23 @@
-from .models import Report, Archive
+"""This contains tasks to be run using Django Q and Redis."""
 
-# Import Python libraries for various things
-import io
-import os
-import json
-import nmap
-import zipfile
-import requests
 import datetime
+import io
+import json
+import os
+import zipfile
 from datetime import date
-from django.db.models import Q
+
+import nmap
+import requests
 from django.conf import settings
 from django.core.files import File
+from django.db.models import Q
 
-# Import custom modules
 from ghostwriter.modules import reportwriter
 from ghostwriter.modules.dns import DNSCollector
 from ghostwriter.modules.review import DomainReview
+
+from .models import Archive, Report
 
 
 def zip_directory(path, zip_handler):

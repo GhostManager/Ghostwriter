@@ -80,4 +80,11 @@
             });
         });
     </script>
+
+    <script>
+        $('.add-objective-form').click(function(){
+            let obj_form = $('#objective-form-template #objective-form-container:first').clone(true);
+            $(obj_form).appendTo($('#additional-forms'))
+        });
+    </script>
 {% endblock %}

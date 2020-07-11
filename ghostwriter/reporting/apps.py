@@ -1,3 +1,5 @@
+"""This contains the configuration of the Reporting application."""
+
 from django.apps import AppConfig
 
 
