@@ -27,6 +27,16 @@ def copyOplogEntry(oplogEntryId):
         entry.save()
 
 
+@database_sync_to_async
+def editOplogEntry(oplogEntryId, description, output, comments):
+    entry = OplogEntry.objects.get(pk=oplogEntryId)
+    if entry:
+        entry.description = description
+        entry.output = output
+        entry.comments = comments
+        entry.save()
+
+
 class OplogEntryConsumer(AsyncWebsocketConsumer):
     async def send_oplog_entry(self, event):
         await self.send(text_data=event["text"])
@@ -39,9 +49,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         entries = await getAllLogEntries(oplog_id)
         json_entries = serialize("json", entries)
 
-        await self.channel_layer.group_send(
-            str(oplog_id), {"type": "send_oplog_entry", "text": json_entries}
-        )
+        await self.channel_layer.group_send(str(oplog_id), {"type": "send_oplog_entry", "text": json_entries})
 
     async def disconnect(self, close_code):
         print(f"[*] Disconnected: {close_code}")
@@ -54,4 +62,8 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         if json_data["action"] == "copy":
             oplog_entry_id = int(json_data["oplogEntryId"])
             await copyOplogEntry(oplog_entry_id)
+
+        if json_data["action"] == "edit":
+            oplog_entry_id = int(json_data["oplogEntryId"])
+            await editOplogEntry(oplog_entry_id, json_data["description"], json_data["output"], json_data["comments"])
 

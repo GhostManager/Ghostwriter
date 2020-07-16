@@ -37,4 +37,3 @@ urlpatterns = [
     path("<int:pk>/entries", OplogListEntries, name="oplog_entries"),
     path("import", OplogEntriesImport, name="oplog_import"),
 ]
-

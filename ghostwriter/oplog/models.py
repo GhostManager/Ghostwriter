@@ -6,7 +6,6 @@ from django.dispatch import receiver
 from django.db import models
 from django.db.models.signals import post_save, pre_save
 from tinymce.models import HTMLField
-import uuid
 
 
 class Oplog(models.Model):
@@ -101,10 +100,10 @@ class OplogEntry(models.Model):
 
 @receiver(pre_save, sender=OplogEntry)
 def oplog_pre_save(sender, instance, **kwargs):
-    if instance.start_date == None:
+    if instance.start_date is None:
         instance.start_date = datetime.utcnow()
 
-    if instance.end_date == None:
+    if instance.end_date is None:
         instance.end_date = datetime.utcnow()
 
 
