@@ -54,23 +54,13 @@ class OplogEntry(models.Model):
         max_length=50,
     )
 
-    tool = models.CharField(
-        "Tool name",
-        blank=True,
-        help_text="The tool used to execute the action",
-        max_length=50,
-    )
+    tool = models.CharField("Tool name", blank=True, help_text="The tool used to execute the action", max_length=50,)
 
     user_context = models.CharField(
-        "User Context",
-        blank=True,
-        help_text="The user context that executed the command",
-        max_length=50,
+        "User Context", blank=True, help_text="The user context that executed the command", max_length=50,
     )
 
-    command = models.CharField(
-        "Command", blank=True, help_text="The command that was executed", max_length=50,
-    )
+    command = models.CharField("Command", blank=True, help_text="The command that was executed", max_length=50,)
 
     description = models.CharField(
         "Description",
@@ -79,31 +69,22 @@ class OplogEntry(models.Model):
         max_length=50,
     )
 
-    output = HTMLField(
-        "Output", null=True, blank=True, help_text="The output of the executed command",
-    )
+    output = HTMLField("Output", null=True, blank=True, help_text="The output of the executed command",)
 
     comments = models.CharField(
-        "Comments",
-        blank=True,
-        help_text="Any additional comments or useful information.",
-        max_length=50,
+        "Comments", blank=True, help_text="Any additional comments or useful information.", max_length=50,
     )
 
     operator_name = models.CharField(
-        "Operator",
-        blank=True,
-        help_text="The operator that performed the action.",
-        max_length=50,
+        "Operator", blank=True, help_text="The operator that performed the action.", max_length=50,
     )
 
 
 @receiver(pre_save, sender=OplogEntry)
 def oplog_pre_save(sender, instance, **kwargs):
-    if instance.start_date is None:
+    if not instance.start_date:
         instance.start_date = datetime.utcnow()
-
-    if instance.end_date is None:
+    if not instance.end_date:
         instance.end_date = datetime.utcnow()
 
 
@@ -112,6 +93,4 @@ def signal_oplog_entry(sender, instance, **kwargs):
     channel_layer = get_channel_layer()
     oplog_id = instance.oplog_id.id
     json_data = serialize("json", [instance,])
-    async_to_sync(channel_layer.group_send)(
-        str(oplog_id), {"type": "send_oplog_entry", "text": json_data}
-    )
+    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_data})

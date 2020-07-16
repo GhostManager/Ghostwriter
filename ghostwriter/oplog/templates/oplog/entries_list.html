@@ -23,7 +23,7 @@
 
     </div>
     <div style="float:right; ">
-        <a href="{% url 'oplog:oplog_entry_create' pk=pk%}"><i class="far fa-plus-square"></i> Create a new entry</a>
+        <a href="javascript:void(0)"><i class=" far fa-plus-square" id="createNewEntry"></i> Create a new entry</a>
     </div>
 </div>
 <div style="clear: both;"></div>
@@ -58,21 +58,20 @@
     var $table = $("#oplogTable tbody")
     let columnInfo = []
     columnInfo = [
-        ['startDateCheckBox', 'startDateColumn', 'Start Date'],
-        ['endDateCheckbox', 'endDateColumn', 'End Date'],
-        ['idCheckbox', 'idColumn', 'ID'],
-        ['sourceIPCheckbox', 'sourceIPColumn', 'Source'],
-        ['destIPCheckbox', 'destIPColumn', 'Destination'],
-        ['toolNameCheckbox', 'toolNameColumn', 'Tool Name'],
-        ['userContextCheckbox', 'userContextColumn', 'User Context'],
-        ['commandCheckbox', 'commandColumn', 'Command'],
-        ['descriptionCheckbox', 'descriptionColumn', 'Description'],
-        ['outputCheckbox', 'outputColumn', 'Output'],
-        ['commentsCheckbox', 'commentsColumn', 'Comments'],
-        ['operatorCheckbox', 'operatorColumn', 'Operator'],
-        ['editCheckbox', 'editColumn', 'View/Edit'],
-        ['deleteCheckbox', 'deleteColumn', 'Delete'],
-        ['copyCheckbox', 'copyColumn', 'Copy']
+        ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date'],
+        ['endDateCheckbox', 'endDateColumn', 'End Date', 'end_date'],
+        ['idCheckbox', 'idColumn', 'ID', 'oplog_id'],
+        ['sourceIPCheckbox', 'sourceIPColumn', 'Source', 'source_ip'],
+        ['destIPCheckbox', 'destIPColumn', 'Destination', 'dest_ip'],
+        ['toolNameCheckbox', 'toolNameColumn', 'Tool Name', 'tool'],
+        ['userContextCheckbox', 'userContextColumn', 'User Context', 'user_context'],
+        ['commandCheckbox', 'commandColumn', 'Command', 'command'],
+        ['descriptionCheckbox', 'descriptionColumn', 'Description', 'description'],
+        ['outputCheckbox', 'outputColumn', 'Output', 'output'],
+        ['commentsCheckbox', 'commentsColumn', 'Comments', 'comments'],
+        ['operatorCheckbox', 'operatorColumn', 'Operator', 'operator_name'],
+        ['deleteCheckbox', 'deleteColumn', 'Delete', ''],
+        ['copyCheckbox', 'copyColumn', 'Copy', '']
     ]
 
     function coupleCheckboxColumn(checkboxId, columnClass) {
@@ -93,6 +92,15 @@
                 $("." + value[1]).hide()
             }
         })
+    }
+
+    function getKeyName(cell) {
+        var className = cell.attr("class")
+        for (column of columnInfo) {
+            if (className.indexOf(column[1]) >= 0) {
+                return column[3]
+            }
+        }
     }
 
     // Populate the table info
@@ -126,6 +134,13 @@
         $("#columnSelectDropdown").toggleClass("fa-plus-square fa-minus-square")
     });
 
+    $("#createNewEntry").click(function () {
+        socket.send(JSON.stringify({
+            'action': 'create',
+            'oplog_id': {{ pk }}
+        }))
+    })
+
     $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
         // This is super janky, but we get the id of the entry by appending
         // it to the button id
@@ -152,67 +167,34 @@
         }))
     });
 
-    $('#oplogTable').on('click', '[id^="saveButton_"]', function (event) {
-        var $column = $(this).closest('td')
-        var buttonName = $column.attr('id')
-        var id = buttonName.split("_")[1]
 
-        var row = $(this).closest('tr')
-        var editBtn = row.find('[id^="editButton_"]')
 
-        var description = row.find('.descriptionColumn').children('textarea').val()
-        var output = row.find('.outputColumn').children('textarea').val()
-        var comments = row.find('.commentsColumn').children('textarea').val()
+    $('#oplogTable').on('dblclick', '.editableCell', function (e) {
+        var text = $(this).text()
+        var input = $('<textarea style="height:200px;"/>');
+        $(this).html(input);
+        $textArea = $(this).find("textarea")
+        $textArea.focus()
+        $textArea.val(text)
+    });
 
+    $('#oplogTable').on('focusout', '.editableCell', function (e) {
+        var $textArea = $(this).find("textarea")
+        var input = $('<div class="overflow-auto" style="max-height: 200px;">');
+
+        var value = $textArea.val()
+        var keyName = getKeyName($(this))
 
         socket.send(JSON.stringify({
             'action': 'edit',
             'oplogEntryId': id,
-            'description': description,
-            'output': output,
-            'comments': comments,
+            'modifiedRow': {
+                [keyName]: value
+            }
         }))
 
-        row.find('td').each(function (key, value) {
-            if ($(this).attr('class') == columnInfo[8][1] ||
-                $(this).attr('class') == columnInfo[9][1] ||
-                $(this).attr('class') == columnInfo[10][1]) {
-                var $textArea = $(this).find("textarea")
-                var input = $('<div class="overflow-auto" style="max-height: 200px;">');
-                input.text($textArea.val())
-                $(this).html(input);
-            }
-        });
-
-        $(this).hide()
-        editBtn.show()
-    });
-
-    $('#oplogTable').on('click', '[id^="editButton_"]', function (e) {
-        var $column = $(this).closest('td')
-        var buttonName = $column.attr('id')
-        var id = buttonName.split("_")[1]
-        //window.location.href = "/oplog/" + id + "/entries/update"
-
-        var row = $(this).closest('tr')
-        $(this).css('height', '200px')
-        row.find('td').each(function (key, value) {
-            if ($(this).attr('class') == columnInfo[8][1] ||
-                $(this).attr('class') == columnInfo[9][1] ||
-                $(this).attr('class') == columnInfo[10][1]) {
-                var html = $(this).text()
-                var input = $('<textarea style="height:200px;"/>');
-                input.val(html);
-                $(this).html(input);
-            }
-        });
-
-        $column.hide()
-        $saveBtn = row.find('[id^="saveButton_"]');
-        $saveBtn.show()
-
-
-
+        input.text(value)
+        $(this).html(input)
     });
 
     socket.onmessage = function (e) {
@@ -221,22 +203,20 @@
             entry = element['fields']
             id = element['pk']
             var newRow = `<tr>
-                            <td class="${columnInfo[0][1]}">${entry["start_date"]}</td>
-                            <td class="${columnInfo[1][1]}">${entry["end_date"]}</td>
+                            <td class="${columnInfo[0][1]} editableCell">${entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
+                            <td class="${columnInfo[1][1]} editableCell">${entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
                             <td class="${columnInfo[2][1]}">${id}</td>
-                            <td class="${columnInfo[3][1]}">${entry["source_ip"]}</td>
-                            <td class="${columnInfo[4][1]}">${entry["dest_ip"]}</td>
-                            <td class="${columnInfo[5][1]}">${entry["tool"]}</td>
-                            <td class="${columnInfo[6][1]}">${entry["user_context"]}</td>
-                            <td class="${columnInfo[7][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["command"]}<div></td>
-                            <td class="${columnInfo[8][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["description"]}</div></td>
-                            <td class="${columnInfo[9][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["output"]}</div></td>
-                            <td class="${columnInfo[10][1]}"><div class="overflow-auto" style="max-height: 200px;">${entry["comments"]}</div></td>
-                            <td class="${columnInfo[11][1]}">${entry["operator_name"]}</td>
-                            <td id="saveButton_${id}" style="display:none"><a href="javascript:void(0);"><i class="fa fa-check" aria-hidden="true"></i></a></td>
-                            <td class="${columnInfo[12][1]}" id="editButton_${id}"><a href="javascript:void(0);"><i class="far fa-edit"></i></a></td>
-                            <td class="${columnInfo[13][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
-                            <td class="${columnInfo[14][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
+                            <td class="${columnInfo[3][1]} editableCell">${entry["source_ip"]}</td>
+                            <td class="${columnInfo[4][1]} editableCell">${entry["dest_ip"]}</td>
+                            <td class="${columnInfo[5][1]} editableCell">${entry["tool"]}</td>
+                            <td class="${columnInfo[6][1]} editableCell">${entry["user_context"]}</td>
+                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["command"]}<div></td>
+                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["description"]}</div></td>
+                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["output"]}</div></td>
+                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["comments"]}</div></td>
+                            <td class="${columnInfo[11][1]} editableCell">${entry["operator_name"]}</td>
+                            <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
+                            <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
                             </tr>`
 
 

@@ -15,6 +15,13 @@ def getAllLogEntries(oplogId):
 
 
 @database_sync_to_async
+def createOplogEntry(oplog_id):
+    newEntry = OplogEntry.objects.create(oplog_id_id=oplog_id)
+    newEntry.output = ""
+    newEntry.save()
+
+
+@database_sync_to_async
 def deleteOplogEntry(oplogEntryId):
     OplogEntry.objects.get(pk=oplogEntryId).delete()
 
@@ -28,13 +35,13 @@ def copyOplogEntry(oplogEntryId):
 
 
 @database_sync_to_async
-def editOplogEntry(oplogEntryId, description, output, comments):
+def editOplogEntry(oplogEntryId, modifiedRow):
     entry = OplogEntry.objects.get(pk=oplogEntryId)
-    if entry:
-        entry.description = description
-        entry.output = output
-        entry.comments = comments
-        entry.save()
+
+    for key, value in modifiedRow.items():
+        setattr(entry, key, value)
+
+    entry.save()
 
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
@@ -65,5 +72,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
         if json_data["action"] == "edit":
             oplog_entry_id = int(json_data["oplogEntryId"])
-            await editOplogEntry(oplog_entry_id, json_data["description"], json_data["output"], json_data["comments"])
+            await editOplogEntry(oplog_entry_id, json_data["modifiedRow"])
 
+        if json_data["action"] == "create":
+            await createOplogEntry(json_data["oplog_id"])
