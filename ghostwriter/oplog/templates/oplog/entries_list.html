@@ -23,12 +23,11 @@
 
     </div>
     <div style="float:right; ">
-        <a href="javascript:void(0)"><i class=" far fa-plus-square" id="createNewEntry"></i> Create a new entry</a>
+        <a href="javascript:void(0)" id="createNewEntry"><i class=" far fa-plus-square"></i> Create a new entry</a>
     </div>
 </div>
 <div style="clear: both;"></div>
-<a href="javascript:void(0);"><i class="far fa-plus-square" id="columnSelectDropdown"></i><label>Select
-        Columns</label></a>
+<a href="javascript:void(0);" id="columnSelectDropdown"><i class="far fa-plus-square"></i>Select Columns</a>
 
 <div id="columnSelect" style="display:none;">
     <ul class="list-group-row" id="checkboxList">
@@ -53,6 +52,7 @@
     if (location.protocol == "https:") {
         protocol = "wss://"
     }
+    var $selectedCell = null;
     var endpoint = protocol + window.location.host + "/ws" + window.location.pathname
     var socket = new WebSocket(endpoint)
     var $table = $("#oplogTable tbody")
@@ -103,6 +103,61 @@
         }
     }
 
+    function clearBorder($cell) {
+        $cell.css('border', '#000 solid 0px');
+    }
+
+    function selectCell($cell) {
+        if ($selectedCell != null) {
+            clearBorder($selectedCell)
+        }
+        $selectedCell = $cell
+        $selectedCell.css({
+            "border-color": "#666666",
+            "border-width": "2px",
+            "border-style": "solid"
+        })
+    }
+
+    function editCell($cell) {
+        var oldText = $cell.text()
+        clearBorder($cell)
+        var input = $('<textarea style="height:200px;"/>');
+        $cell.html(input);
+        $textArea = $cell.find("textarea")
+        $textArea.focus()
+        $textArea.val(oldText)
+    }
+
+    function closeAndSend($cell) {
+        var $textArea = $cell.find("textarea")
+
+        var value = $textArea.val()
+        var keyName = getKeyName($cell)
+
+        var id = $cell.parent().find(".idColumn").html()
+
+        var element = document.createElement('div');
+        element.innerText = value
+        var sanitizedValue = element.innerHTML;
+
+        socket.send(JSON.stringify({
+            'action': 'edit',
+            'oplogEntryId': id,
+            'modifiedRow': {
+                [keyName]: sanitizedValue
+            }
+        }))
+    }
+
+    function updateRow($existingRow, newRow) {
+        $(newRow).children().each(function () {
+            var className = $(this).attr("class").split(" ")[0]
+            $existingRow.find("." + className).html($(this).html())
+        });
+        selectCell($selectedCell)
+    }
+
     // Populate the table info
     $checkboxList = $("#checkboxList")
     $tableHeader = $("#oplogTableHeader")
@@ -127,74 +182,124 @@
                 $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
             });
         });
-    });
 
-    $("#columnSelectDropdown").click(function () {
-        $("#columnSelect").toggle("slow");
-        $("#columnSelectDropdown").toggleClass("fa-plus-square fa-minus-square")
-    });
+        $("body").keydown(function (e) {
+            if ($selectedCell != null) {
+                if (e.keyCode == 37) { // left
+                    e.stopPropagation()
+                    $newCell = $selectedCell.prev('.editableCell');
+                    if ($newCell.length != 0) {
+                        selectCell($newCell);
+                    }
+                }
+                if (e.keyCode == 38) { // left
+                    e.stopPropagation()
+                    $newRow = $selectedCell.parent('tr').prev()
+                    if ($newRow.length != 0) {
+                        className = $selectedCell.attr("class").split(" ")[0]
+                        $newCell = $newRow.find("." + className)
+                        selectCell($newCell);
+                    }
+                }
 
-    $("#createNewEntry").click(function () {
-        socket.send(JSON.stringify({
-            'action': 'create',
-            'oplog_id': {{ pk }}
-        }))
-    })
-
-    $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
-        // This is super janky, but we get the id of the entry by appending
-        // it to the button id
-        var $column = $(this).closest('td')
-        var buttonName = $column.attr('id')
-        var id = buttonName.split("_")[1]
-        socket.send(JSON.stringify({
-            'action': 'delete',
-            'oplogEntryId': id
-        }))
-        var $tr = $(this).closest('tr')
-        $tr.fadeOut('slow', function () {
-            $tr.remove()
-        });
-    });
-
-    $('#oplogTable').on('click', '[id^="copyButton_"]', function (event) {
-        var $column = $(this).closest('td')
-        var buttonName = $column.attr('id')
-        var id = buttonName.split("_")[1]
-        socket.send(JSON.stringify({
-            'action': 'copy',
-            'oplogEntryId': id
-        }))
-    });
-
-
-
-    $('#oplogTable').on('dblclick', '.editableCell', function (e) {
-        var text = $(this).text()
-        var input = $('<textarea style="height:200px;"/>');
-        $(this).html(input);
-        $textArea = $(this).find("textarea")
-        $textArea.focus()
-        $textArea.val(text)
-    });
-
-    $('#oplogTable').on('focusout', '.editableCell', function (e) {
-        var $textArea = $(this).find("textarea")
-        var input = $('<div class="overflow-auto" style="max-height: 200px;">');
-
-        var value = $textArea.val()
-        var keyName = getKeyName($(this))
-
-        socket.send(JSON.stringify({
-            'action': 'edit',
-            'oplogEntryId': id,
-            'modifiedRow': {
-                [keyName]: value
+                else if (e.keyCode == 39 || e.keyCode == 9) { // right & tab
+                    e.stopPropagation()
+                    $newCell = $selectedCell.next('.editableCell');
+                    if ($newCell.length != 0) {
+                        selectCell($newCell);
+                    }
+                }
+                if (e.keyCode == 40) { // left
+                    e.stopPropagation()
+                    $newRow = $selectedCell.parent('tr').next()
+                    if ($newRow.length != 0) {
+                        className = $selectedCell.attr("class").split(" ")[0]
+                        $newCell = $newRow.find("." + className)
+                        selectCell($newCell);
+                    }
+                }
+                else if (e.keyCode == 13) { // enter
+                    e.preventDefault()
+                    editCell($selectedCell)
+                }
             }
-        }))
+        });
 
-        input.text(value)
-        $(this).html(input)
+        $("#columnSelectDropdown").click(function () {
+            $("#columnSelect").toggle("slow");
+            $("#columnSelectDropdown").find("i").toggleClass("fa-plus-square fa-minus-square")
+        });
+
+        $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
+            // This is super janky, but we get the id of the entry by appending
+            // it to the button id
+            var $column = $(this).closest('td')
+            var buttonName = $column.attr('id')
+            var id = buttonName.split("_")[1]
+            socket.send(JSON.stringify({
+                'action': 'delete',
+                'oplogEntryId': id
+            }))
+            var $tr = $(this).closest('tr')
+            $tr.fadeOut('slow', function () {
+                $tr.remove()
+            });
+        });
+
+
+        $('#oplogTable').on('click', '[id^="copyButton_"]', function (event) {
+            var $column = $(this).closest('td')
+            var buttonName = $column.attr('id')
+            var id = buttonName.split("_")[1]
+            socket.send(JSON.stringify({
+                'action': 'copy',
+                'oplogEntryId': id
+            }))
+        });
+
+        $("#oplogTable").on('mouseenter', '.editableCell', function (e) {
+            if (!$(this).is($selectedCell)) {
+                $(this).css({
+                    "border-color": "#666666",
+                    "border-width": "1px",
+                    "border-style": "dotted"
+                });
+            }
+        });
+
+        $("#oplogTable").on('mouseleave', '.editableCell', function (e) {
+            if (!$(this).is($selectedCell)) {
+                $(this).css('border', '#000 solid 0px');
+            }
+        });
+
+        $('#oplogTable').on('click', '.editableCell', function (e) {
+            selectCell($(this))
+        });
+
+        $('#oplogTable').on('dblclick', '.editableCell', function (e) {
+            editCell($(this))
+        });
+
+        $('#oplogTable').on('focusout', '.editableCell', function (e) {
+            closeAndSend($(this))
+        });
+
+        $("#oplogTable").on('keydown', 'textarea', function (e) {
+            var keyCode = e.keyCode || e.which;
+            e.stopPropagation()
+            if (keyCode == 9) {
+                closeAndSend($(this).parent())
+            }
+        });
+
+        $("#createNewEntry").click(function () {
+            socket.send(JSON.stringify({
+                'action': 'create',
+                'oplog_id': {{ pk }}
+            }))
+        })
+
     });
 
     socket.onmessage = function (e) {
@@ -223,7 +328,7 @@
             var rowFound = false
             $('#oplogTable tr').each(function () {
                 if ($(this).find('td').eq(2).text() == id) {
-                    $(this).replaceWith(newRow);
+                    updateRow($(this), newRow)
                     rowFound = true;
                 }
             })
