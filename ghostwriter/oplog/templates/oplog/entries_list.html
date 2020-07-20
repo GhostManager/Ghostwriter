@@ -15,6 +15,9 @@
 
 {% block content %}
 <!-- Oplog Table Section -->
+<div id="connection">
+    <div align="right" id="connectionStatus"><i class="fas fa-network-wired" style="color:red"></i>Disconnected</div>
+</div>
 <div id="utilBar">
     <div style="float:left;">
         <input id="searchInput" type="text" placeholder="Filter..." />
@@ -53,9 +56,8 @@
         protocol = "wss://"
     }
     var $selectedCell = null;
-    var endpoint = protocol + window.location.host + "/ws" + window.location.pathname
-    var socket = new WebSocket(endpoint)
     var $table = $("#oplogTable tbody")
+    var socket = null;
     let columnInfo = []
     columnInfo = [
         ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date'],
@@ -120,13 +122,15 @@
     }
 
     function editCell($cell) {
-        var oldText = $cell.text()
-        clearBorder($cell)
-        var input = $('<textarea style="height:200px;"/>');
-        $cell.html(input);
-        $textArea = $cell.find("textarea")
-        $textArea.focus()
-        $textArea.val(oldText)
+        if (socket.readyState == WebSocket.OPEN) {
+            var oldText = $cell.text()
+            clearBorder($cell)
+            var input = $('<textarea style="height:200px;"/>');
+            $cell.html(input);
+            $textArea = $cell.find("textarea")
+            $textArea.focus()
+            $textArea.val(oldText)
+        }
     }
 
     function closeAndSend($cell) {
@@ -158,24 +162,89 @@
         selectCell($selectedCell)
     }
 
-    // Populate the table info
-    $checkboxList = $("#checkboxList")
-    $tableHeader = $("#oplogTableHeader")
-    columnInfo.forEach(function (value, index, array) {
-        checkboxEntry = `
-            <input type="checkbox" id="${value[0]}" checked/>
-            <lablel>${value[2]}</label>
-            `
-        $checkboxList.append(checkboxEntry)
-        headerColumn = `
-            <th class="${value[1]}">${value[2]}</th>
-            `
-        $tableHeader.append(headerColumn)
-        coupleCheckboxColumn("#" + value[0], "." + value[1])
-    })
+    function connect() {
+        var endpoint = protocol + window.location.host + "/ws" + window.location.pathname
+        socket = new WebSocket(endpoint)
+
+        socket.onopen = function (e) {
+            $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: green'></i>Connected</div>")
+        }
+
+        socket.onmessage = function (e) {
+            entries = JSON.parse(e.data)
+            entries.forEach(element => {
+                entry = element['fields']
+                id = element['pk']
+                var newRow = `<tr>
+                            <td class="${columnInfo[0][1]} editableCell">${entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
+                            <td class="${columnInfo[1][1]} editableCell">${entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
+                            <td class="${columnInfo[2][1]}">${id}</td>
+                            <td class="${columnInfo[3][1]} editableCell">${entry["source_ip"]}</td>
+                            <td class="${columnInfo[4][1]} editableCell">${entry["dest_ip"]}</td>
+                            <td class="${columnInfo[5][1]} editableCell">${entry["tool"]}</td>
+                            <td class="${columnInfo[6][1]} editableCell">${entry["user_context"]}</td>
+                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["command"]}<div></td>
+                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["description"]}</div></td>
+                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["output"]}</div></td>
+                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["comments"]}</div></td>
+                            <td class="${columnInfo[11][1]} editableCell">${entry["operator_name"]}</td>
+                            <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
+                            <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
+                            </tr>`
+
+
+                var rowFound = false
+                $('#oplogTable tr').each(function () {
+                    if ($(this).find('td').eq(2).text() == id) {
+                        updateRow($(this), newRow)
+                        rowFound = true;
+                    }
+                })
+                if (!rowFound) {
+                    $newRow = $table.prepend(newRow).hide()
+                }
+
+                hideColumns()
+                $newRow.fadeIn("slow");
+            })
+        }
+
+        socket.onerror = function (e) {
+            $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
+            console.log("[!] error: ", e)
+            socket.close()
+        }
+
+        socket.onclose = function (e) {
+            $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
+            setTimeout(function () {
+                console.log("Retrying connection");
+                connect()
+            }, 5000)
+        }
+
+    }
 
     // This is the filter function to search through row entries
     $(document).ready(function () {
+
+        connect()
+        // Populate the table info
+        $checkboxList = $("#checkboxList")
+        $tableHeader = $("#oplogTableHeader")
+        columnInfo.forEach(function (value, index, array) {
+            checkboxEntry = `
+            <input type="checkbox" id="${value[0]}" checked/>
+            <lablel>${value[2]}</label>
+            `
+            $checkboxList.append(checkboxEntry)
+            headerColumn = `
+            <th class="${value[1]}">${value[2]}</th>
+            `
+            $tableHeader.append(headerColumn)
+            coupleCheckboxColumn("#" + value[0], "." + value[1])
+        })
+
         $("#searchInput").on("keyup", function () {
             var value = $(this).val().toLowerCase();
             $("#oplogTableBody tr").filter(function () {
@@ -186,14 +255,15 @@
         $("body").keydown(function (e) {
             if ($selectedCell != null) {
                 if (e.keyCode == 37) { // left
-                    e.stopPropagation()
+                    e.preventDefault()
                     $newCell = $selectedCell.prev('.editableCell');
                     if ($newCell.length != 0) {
+
                         selectCell($newCell);
                     }
                 }
-                if (e.keyCode == 38) { // left
-                    e.stopPropagation()
+                if (e.keyCode == 38) { // up
+                    e.preventDefault()
                     $newRow = $selectedCell.parent('tr').prev()
                     if ($newRow.length != 0) {
                         className = $selectedCell.attr("class").split(" ")[0]
@@ -203,14 +273,14 @@
                 }
 
                 else if (e.keyCode == 39 || e.keyCode == 9) { // right & tab
-                    e.stopPropagation()
+                    e.preventDefault()
                     $newCell = $selectedCell.next('.editableCell');
                     if ($newCell.length != 0) {
                         selectCell($newCell);
                     }
                 }
-                if (e.keyCode == 40) { // left
-                    e.stopPropagation()
+                if (e.keyCode == 40) { // down
+                    e.preventDefault()
                     $newRow = $selectedCell.parent('tr').next()
                     if ($newRow.length != 0) {
                         className = $selectedCell.attr("class").split(" ")[0]
@@ -274,11 +344,15 @@
         });
 
         $('#oplogTable').on('click', '.editableCell', function (e) {
-            selectCell($(this))
+            if ($(this).find("textarea").length == 0) {
+                selectCell($(this))
+            }
         });
 
         $('#oplogTable').on('dblclick', '.editableCell', function (e) {
-            editCell($(this))
+            if ($(this).find("textarea").length == 0) {
+                editCell($(this))
+            }
         });
 
         $('#oplogTable').on('focusout', '.editableCell', function (e) {
@@ -302,47 +376,5 @@
 
     });
 
-    socket.onmessage = function (e) {
-        entries = JSON.parse(e.data)
-        entries.forEach(element => {
-            entry = element['fields']
-            id = element['pk']
-            var newRow = `<tr>
-                            <td class="${columnInfo[0][1]} editableCell">${entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                            <td class="${columnInfo[1][1]} editableCell">${entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                            <td class="${columnInfo[2][1]}">${id}</td>
-                            <td class="${columnInfo[3][1]} editableCell">${entry["source_ip"]}</td>
-                            <td class="${columnInfo[4][1]} editableCell">${entry["dest_ip"]}</td>
-                            <td class="${columnInfo[5][1]} editableCell">${entry["tool"]}</td>
-                            <td class="${columnInfo[6][1]} editableCell">${entry["user_context"]}</td>
-                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["command"]}<div></td>
-                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["description"]}</div></td>
-                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["output"]}</div></td>
-                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["comments"]}</div></td>
-                            <td class="${columnInfo[11][1]} editableCell">${entry["operator_name"]}</td>
-                            <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
-                            <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
-                            </tr>`
-
-
-            var rowFound = false
-            $('#oplogTable tr').each(function () {
-                if ($(this).find('td').eq(2).text() == id) {
-                    updateRow($(this), newRow)
-                    rowFound = true;
-                }
-            })
-            if (!rowFound) {
-                $newRow = $table.prepend(newRow).hide()
-            }
-
-            hideColumns()
-            $newRow.fadeIn("slow");
-        })
-    }
-
-    socket.onerror = function (e) {
-        console.log("[!] error: ", e)
-    }
 </script>
 {% endblock %}

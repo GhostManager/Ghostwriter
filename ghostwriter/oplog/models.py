@@ -40,40 +40,33 @@ class OplogEntry(models.Model):
     )
     start_date = models.DateTimeField(null=True, blank=True)
     end_date = models.DateTimeField(null=True, blank=True)
-    source_ip = models.CharField(
+    source_ip = models.TextField(
         "Source IP / Hostname",
         blank=True,
         help_text="Provide the source hostname / IP from which the command originated.",
-        max_length=50,
     )
 
-    dest_ip = models.CharField(
+    dest_ip = models.TextField(
         "Destination IP/Hostname",
         blank=True,
         help_text="Provide the destination hostname / ip on which the command was ran.",
-        max_length=50,
     )
 
-    tool = models.CharField("Tool name", blank=True, help_text="The tool used to execute the action", max_length=50,)
+    tool = models.TextField("Tool name", blank=True, help_text="The tool used to execute the action")
 
-    user_context = models.CharField(
-        "User Context", blank=True, help_text="The user context that executed the command", max_length=50,
+    user_context = models.TextField(
+        "User Context", blank=True, help_text="The user context that executed the command",
     )
 
-    command = models.CharField("Command", blank=True, help_text="The command that was executed", max_length=50,)
+    command = models.TextField("Command", blank=True, help_text="The command that was executed",)
 
-    description = models.CharField(
-        "Description",
-        blank=True,
-        help_text="A description of why the command was executed and expected results.",
-        max_length=50,
+    description = models.TextField(
+        "Description", blank=True, help_text="A description of why the command was executed and expected results.",
     )
 
-    output = HTMLField("Output", null=True, blank=True, help_text="The output of the executed command",)
+    output = models.TextField("Output", null=True, blank=True, help_text="The output of the executed command",)
 
-    comments = models.CharField(
-        "Comments", blank=True, help_text="Any additional comments or useful information.", max_length=50,
-    )
+    comments = models.TextField("Comments", blank=True, help_text="Any additional comments or useful information.",)
 
     operator_name = models.CharField(
         "Operator", blank=True, help_text="The operator that performed the action.", max_length=50,
