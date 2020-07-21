@@ -257,14 +257,28 @@
                 if (e.keyCode == 37) { // left
                     e.preventDefault()
                     $newCell = $selectedCell.prev('.editableCell');
-                    if ($newCell.length != 0) {
 
+                    while ($newCell.is(":hidden")) {
+                        $newCell = $newCell.prev('.editableCell');
+                        if ($newCell.length == 0) {
+                            return;
+                        }
+                    }
+                    if ($newCell.length != 0) {
                         selectCell($newCell);
                     }
                 }
                 if (e.keyCode == 38) { // up
                     e.preventDefault()
                     $newRow = $selectedCell.parent('tr').prev()
+
+                    while ($newRow.is(":hidden")) {
+                        $newRow = $newRow.parent('tr').prev()
+                        if ($newRow.length == 0) {
+                            return
+                        }
+                    }
+
                     if ($newRow.length != 0) {
                         className = $selectedCell.attr("class").split(" ")[0]
                         $newCell = $newRow.find("." + className)
@@ -275,6 +289,13 @@
                 else if (e.keyCode == 39 || e.keyCode == 9) { // right & tab
                     e.preventDefault()
                     $newCell = $selectedCell.next('.editableCell');
+
+                    while ($newCell.is(":hidden")) {
+                        $newCell = $newCell.next('.editableCell');
+                        if ($newCell.length == 0) {
+                            return;
+                        }
+                    }
                     if ($newCell.length != 0) {
                         selectCell($newCell);
                     }
@@ -282,6 +303,14 @@
                 if (e.keyCode == 40) { // down
                     e.preventDefault()
                     $newRow = $selectedCell.parent('tr').next()
+
+                    while ($newRow.is(":hidden")) {
+                        $newRow = $newRow.parent('tr').next()
+                        if ($newRow.length == 0) {
+                            return
+                        }
+                    }
+
                     if ($newRow.length != 0) {
                         className = $selectedCell.attr("class").split(" ")[0]
                         $newCell = $newRow.find("." + className)
