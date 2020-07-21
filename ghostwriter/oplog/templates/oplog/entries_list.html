@@ -201,7 +201,9 @@
                     }
                 })
                 if (!rowFound) {
-                    $newRow = $table.prepend(newRow).hide()
+                    $table.prepend(newRow)
+                    $newRow = $table.children('tr:first');
+                    $newRow.hide()
                 }
 
                 hideColumns()
