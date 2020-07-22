@@ -4,8 +4,10 @@ from datetime import datetime
 from django.core.serializers import serialize
 from django.dispatch import receiver
 from django.db import models
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, post_delete
 from tinymce.models import HTMLField
+
+import json
 
 
 class Oplog(models.Model):
@@ -85,5 +87,17 @@ def oplog_pre_save(sender, instance, **kwargs):
 def signal_oplog_entry(sender, instance, **kwargs):
     channel_layer = get_channel_layer()
     oplog_id = instance.oplog_id.id
-    json_data = serialize("json", [instance,])
-    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_data})
+    serialized_entry = serialize("json", [instance,])
+    entry = json.loads(serialized_entry)
+    json_message = json.dumps({"action": "create", "data": entry})
+
+    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+
+
+@receiver(post_delete, sender=OplogEntry)
+def delete_oplog_entry(sender, instance, **kwargs):
+    channel_layer = get_channel_layer()
+    oplog_id = instance.oplog_id.id
+    entry_id = instance.id
+    json_message = json.dumps({"action": "delete", "data": entry_id})
+    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})

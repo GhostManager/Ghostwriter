@@ -171,11 +171,13 @@
         }
 
         socket.onmessage = function (e) {
-            entries = JSON.parse(e.data)
-            entries.forEach(element => {
-                entry = element['fields']
-                id = element['pk']
-                var newRow = `<tr>
+            message = JSON.parse(e.data)
+            if (message["action"] == "create") {
+                entries = message["data"]
+                entries.forEach(element => {
+                    entry = element['fields']
+                    id = element['pk']
+                    var newRow = `<tr>
                             <td class="${columnInfo[0][1]} editableCell">${entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
                             <td class="${columnInfo[1][1]} editableCell">${entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
                             <td class="${columnInfo[2][1]}">${id}</td>
@@ -193,22 +195,36 @@
                             </tr>`
 
 
-                var rowFound = false
+                    var rowFound = false
+                    $('#oplogTable tr').each(function () {
+                        if ($(this).find('td').eq(2).text() == id) {
+                            updateRow($(this), newRow)
+                            rowFound = true;
+                        }
+                    })
+                    if (!rowFound) {
+                        $table.prepend(newRow)
+                        $newRow = $table.children('tr:first');
+                        $newRow.hide()
+                    }
+
+                    hideColumns()
+                    $newRow.fadeIn("slow");
+                })
+            }
+            if (message["action"] == "delete") {
+                var id = message["data"]
+                console.log(id)
                 $('#oplogTable tr').each(function () {
                     if ($(this).find('td').eq(2).text() == id) {
-                        updateRow($(this), newRow)
-                        rowFound = true;
+                        $(this).fadeOut('slow', function () {
+                            $(this).remove()
+                        });
                     }
                 })
-                if (!rowFound) {
-                    $table.prepend(newRow)
-                    $newRow = $table.children('tr:first');
-                    $newRow.hide()
-                }
 
-                hideColumns()
-                $newRow.fadeIn("slow");
-            })
+
+            }
         }
 
         socket.onerror = function (e) {
@@ -341,10 +357,6 @@
                 'action': 'delete',
                 'oplogEntryId': id
             }))
-            var $tr = $(this).closest('tr')
-            $tr.fadeOut('slow', function () {
-                $tr.remove()
-            });
         });
 
 

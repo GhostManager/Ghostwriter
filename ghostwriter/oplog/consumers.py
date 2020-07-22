@@ -54,9 +54,10 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
         entries = await getAllLogEntries(oplog_id)
-        json_entries = serialize("json", entries)
+        serialized_entries = json.loads(serialize("json", entries))
+        message = json.dumps({"action": "create", "data": serialized_entries})
 
-        await self.channel_layer.group_send(str(oplog_id), {"type": "send_oplog_entry", "text": json_entries})
+        await self.channel_layer.group_send(str(oplog_id), {"type": "send_oplog_entry", "text": message})
 
     async def disconnect(self, close_code):
         print(f"[*] Disconnected: {close_code}")
