@@ -31,16 +31,25 @@ def OplogEntriesImport(request):
     if request.method == "POST":
         oplog_entry_resource = OplogEntryResource()
 
-        new_entries = request.FILES["csv_file"]
+        new_entries = request.FILES["csv_file"].read().decode('iso-8859-1')
         dataset = Dataset()
-        imported_data = dataset.load(new_entries.read().decode())
-        result = oplog_entry_resource.import_data(imported_data, dry_run=True)
 
-        if not result.has_errors():
-            oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
-            return HttpResponseRedirect(reverse("oplog:index"))
-        else:
-            print("Error importing")
+        rows = new_entries.split('\n')
+
+        imported_data = dataset.load(rows[0], format="csv")
+        for row in rows:
+            try:
+                row_list = row.split(',', 7)
+                last_half = row_list.pop(7)
+                row_list += last_half.rsplit(',', 4)
+                print(row_list)
+                imported_data.rpush(row_list)
+            except Exception as e:
+                print(e)
+                print(f'Offending row: {row}')
+
+        oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
+        return HttpResponseRedirect(reverse("oplog:index"))
 
     return render(request, "oplog/oplog_import.html")
 

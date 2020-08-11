@@ -55,7 +55,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
 
         entries = await getAllLogEntries(oplog_id)
         serialized_entries = json.loads(serialize("json", entries))
-        message = json.dumps({"action": "create", "data": serialized_entries})
+        message = json.dumps({"action": "sync", "data": serialized_entries})
 
         await self.channel_layer.group_send(str(oplog_id), {"type": "send_oplog_entry", "text": message})
 
