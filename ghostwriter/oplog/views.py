@@ -31,25 +31,15 @@ def OplogEntriesImport(request):
     if request.method == "POST":
         oplog_entry_resource = OplogEntryResource()
 
-        new_entries = request.FILES["csv_file"].read().decode('iso-8859-1')
+        new_entries = request.FILES["csv_file"].read().decode("iso-8859-1")
         dataset = Dataset()
 
-        rows = new_entries.split('\n')
+        imported_data = dataset.load(new_entries, format="csv")
+        result = oplog_entry_resource.import_data(imported_data, dry_run=True)
 
-        imported_data = dataset.load(rows[0], format="csv")
-        for row in rows:
-            try:
-                row_list = row.split(',', 7)
-                last_half = row_list.pop(7)
-                row_list += last_half.rsplit(',', 4)
-                print(row_list)
-                imported_data.rpush(row_list)
-            except Exception as e:
-                print(e)
-                print(f'Offending row: {row}')
-
-        oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
-        return HttpResponseRedirect(reverse("oplog:index"))
+        if not result.has_errors():
+            oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
+            return HttpResponseRedirect(reverse("oplog:index"))
 
     return render(request, "oplog/oplog_import.html")
 
@@ -115,9 +105,7 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
             queryset = OplogEntry.objects.all().order_by("-start_date")
         else:
             oplog_id = self.request.query_params["oplog_id"]
-            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by(
-                "-start_date"
-            )
+            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
         if "export" in request.query_params:
             format = request.query_params["export"]
             dataset = OplogEntryResource().export(queryset)
