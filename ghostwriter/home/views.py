@@ -1,26 +1,27 @@
 """This contains all of the views used by the Home application."""
 
+# Standard Libraries
 import datetime
 import logging
 
+# Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
 from django.db.models import Q
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse, reverse_lazy
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django_q.models import Task
 from django_q.tasks import async_task
 
+# Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
 from .forms import UserProfileForm
-from .models import UserProfile
 
 User = get_user_model()
 
@@ -126,9 +127,9 @@ def upload_avatar(request):
 def management(request):
     """
     Display the current Ghostwriter settings.
-    
+
     **Context**
-    
+
     ``company_name ``
         The current value of ``settings.COMPANY_NAME``.
     ``company_twitter``
@@ -173,9 +174,9 @@ def management(request):
         The associated value from ``settings.CLOUD_SERVICE_CONFIG``.
     ``do_api_key``
         The associated value from ``settings.CLOUD_SERVICE_CONFIG``.
-    
+
     **Template**
-    
+
     :template:`home/management.html`
     """
 
@@ -194,7 +195,6 @@ def management(request):
         Sanitize the provided input and return for display in the template.
         """
         sanitized_string = sensitive_thing
-        print(sanitized_string)
         length = len(sensitive_thing)
         if sensitive_thing:
             if "http" in sensitive_thing:
