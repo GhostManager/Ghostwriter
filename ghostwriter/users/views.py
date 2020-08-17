@@ -1,11 +1,10 @@
 """This contains all of the views used by the Users application."""
 
+# Django & Other 3rd Party Libraries
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
 from django.contrib import messages
-from django.contrib.auth import get_user_model, update_session_auth_hash
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import ugettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
@@ -16,14 +15,14 @@ User = get_user_model()
 class UserDetailView(LoginRequiredMixin, DetailView):
     """
     Display an individual :model:`users.User`.
-    
+
     **Context**
-    
+
     ``context``
         description.
-    
+
     **Template**
-    
+
     :template:`None`
     """
 
@@ -66,14 +65,14 @@ user_update_view = UserUpdateView.as_view()
 class UserRedirectView(LoginRequiredMixin, RedirectView):
     """
     Redirect to the details view for an individual :model:`users.User`.
-    
+
     **Context**
-    
+
     ``username``
         Username of the current user.
-    
+
     **Template**
-    
+
     :template:`None`
     """
 
