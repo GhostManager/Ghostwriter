@@ -1,7 +1,9 @@
 """This contains the custom template tags used by he Rolodex application."""
 
+# Django & Other 3rd Party Libraries
 from django import template
 
+# Ghostwriter Libraries
 from ghostwriter.shepherd.models import AuxServerAddress
 
 register = template.Library()

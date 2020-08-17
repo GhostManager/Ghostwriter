@@ -4,28 +4,22 @@
 {% block pagetitle %}Note{% endblock %}
 
 {% block content %}
-    <p>
-        Notes include a timestamp and the username of the creator.<br>
-        Enter all text below and then click Submit:
-    </p>
+    <p>This is a note for <strong>{{ note_object }}</strong>. All notes include a timestamp and the username of the creator.</p>
+
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <!-- Note Section -->
-        {% for field in form.visible_fields %}
-            <div class="form-group">
-                {{ field|as_crispy_field }}
-            </div>
-        {% endfor %}
-
-        <!-- Hidden Fields -->
-        {% for hidden_field in form.hidden_fields %}
-            {{ hidden_field }}
-        {% endfor %}
-
-        <input type="submit" class="btn btn-primary" value="Submit">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+    {% crispy form form.helper %}
 {% endblock %}

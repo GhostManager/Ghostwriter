@@ -39,299 +39,19 @@
 
         <!-- TinyMCE -->
         <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
-        <script type="text/javascript" src="{% static 'js/tinymce/custom.js' %}" ></script>
+
+        <!-- TinyMCE -->
+        <script type="application/javascript" src= "{% static 'js/tinymce/config.js' %}"></script>
 
         <!-- Ghostwriter JS & CSS -->
         <script src="{% static 'js/project.js' %}"></script>
         <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-
-        {% block tinymcejs %}
-            <script>
-                tinymce.init({
-                  selector: 'textarea',
-                  height: '300',
-                  width: '100%',
-                  plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace paste link',
-                  toolbar: 'bold italic link bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
-                  menubar: 'file edit tools',
-                  paste_data_images: false,
-                  paste_as_text: true,
-                  browser_spellcheck: true,
-                  setup: function (editor) {
-                    editor.ui.registry.addButton('codeInline', {
-                      icon: 'sourcecode',
-                      text: 'Inline Code',
-                      tooltip: 'Format selected text as inline code',
-                      onAction: function (_) {
-                        tinymce.activeEditor.formatter.toggle('code')
-                      },
-                    });
-                  },
-                  content_style: '.left { text-align: left; }' +
-                    'img.left { float: left; }' +
-                    'table.left { float: left; }' +
-                    '.right { text-align: right; }' +
-                    'img.right { float: right; }' +
-                    'table.right { float: right; }' +
-                    '.center { text-align: center; }' +
-                    'img.center { display: block; margin: 0 auto; }' +
-                    'table.center { display: block; margin: 0 auto; }' +
-                    '.full { text-align: justify; }' +
-                    'img.full { display: block; margin: 0 auto; }' +
-                    'table.full { display: block; margin: 0 auto; }' +
-                    '.bold { font-weight: bold; }' +
-                    '.italic { font-style: italic; }' +
-                    '.underline { text-decoration: underline; }' +
-                    '.example1 {}' +
-                    '.tablerow1 { background-color: #D3D3D3; }',
-                  formats: {
-                    alignleft: {
-                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                      classes: 'left'
-                    },
-                    aligncenter: {
-                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                      classes: 'center'
-                    },
-                    alignright: {
-                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                      classes: 'right'
-                    },
-                    alignfull: {
-                      selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                      classes: 'full'
-                    },
-                    bold: {
-                      inline: 'span',
-                      classes: 'bold'
-                    },
-                    italic: {
-                      inline: 'span',
-                      classes: 'italic'
-                    },
-                    underline: {
-                      inline: 'span',
-                      classes: 'underline',
-                      exact: true
-                    },
-                    strikethrough: {
-                      inline: 'del'
-                    }
-                  },
-                });
-            </script>
-        {% endblock %}
     </head>
 
     <body>
         <div class="wrapper">
-            <!-- Sidebar Holder -->
-            {% if user.is_authenticated %}
-                <nav id="sidebar">
-                    <!-- Sidebar Top Section -->
-                    <a href="{% url 'home:dashboard' %}">
-                        <div class="sidebar-header">
-                            <h3><img src="{% static 'images/font_ghost.png' %}" alt="SpecterOps" style="width:10%"> Ghostwriter</h3>
-                        </div>
-                    </a>
-
-                    <!-- Rolodex Section -->
-                    <ul class="list-unstyled components">
-                        <p class="sideheader"><i class="fas fa-address-card"></i> Clients & Projects</p>
-
-                        <!-- Search Section -->
-                        <div class="search">
-                            <form action="{% url 'rolodex:clients' %}" method="GET">
-                                <span class="fa fa-search"></span>
-                                <input type="text" name="client_search" placeholder="Search clients">
-                                <input type="submit" style="display: none" />
-                            </form>
-                        </div>
-
-                        <!-- Menu Section -->
-                        <li>
-                            <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle" data-target="#clientSubmenu">
-                                Clients
-                                <div class="expand_caret caret"></div>
-                            </a>
-                            <ul class="collapse list-unstyled" id="clientSubmenu">
-                                <li><a href="{% url 'rolodex:clients' %}">Client List</a></li>
-                                <li><a href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Projects</a>
-                            <ul class="collapse list-unstyled" id="projectSubmenu">
-                                <li><a href="{% url 'rolodex:projects' %}">Projects List</a></li>
-                                <li><a href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-
-                    <!-- Ghostwriter Section -->
-                    <ul class="list-unstyled components">
-                        <p class="sideheader"><i class="fas fa-pencil-alt"></i> Findings & Reports</p>
-
-                        <!-- Search Section -->
-                        <div class="search">
-                            <form action="{% url 'reporting:findings' %}" method="GET">
-                                <span class="fa fa-search"></span>
-                                <input type="text" name="finding_search" placeholder="Search findings">
-                                <input type="submit" style="display: none" />
-                            </form>
-                        </div>
-
-                        <!-- Menu Section -->
-                        <li>
-                            <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Findings</a>
-                            <ul class="collapse list-unstyled" id="findingsSubmenu">
-                                <li><a href="{% url 'reporting:findings' %}">Finding Library</a></li>
-                                <li><a href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
-                                <li><a href="{% url 'reporting:import_findings' %}">Upload Bulk Findings</a></li>
-                                <li><a href="{% url 'reporting:export_findings_to_csv' %}">Export Findings</a></li>
-                            </ul>
-                            <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
-                            <ul class="collapse list-unstyled" id="reportSubmenu">
-                                <li><a href="{% url 'reporting:reports' %}">Report Library</a></li>
-                                <li><a href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
-                                <li><a href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-
-                    <!-- Shepherd Section -->
-                    <ul class="list-unstyled components">
-                        <p class="sideheader"><i class="fas fa-server"></i> Infrastructure</p>
-
-                        <!-- Search Section -->
-                        <div class="search">
-                            <form action="{% url 'shepherd:domains' %}" method="GET">
-                                <span class="fa fa-search"></span>
-                                <input type="text" name="domain_search" placeholder="Search domains">
-                                <input type="submit" style="display: none" />
-                            </form>
-                        </div>
-
-                        <!-- Menu Section -->
-                        {% if user.is_authenticated %}
-                            <li><a href="{% url 'shepherd:user_assets' %}">My Active Assets</a></li>
-                        {% endif %}
-                        <li>
-                            <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Servers</a>
-                            <ul class="collapse list-unstyled" id="serverSubmenu">
-                                <li><a href="{% url 'shepherd:servers' %}">Server Library</a></li>
-                                <li><a href="{% url 'shepherd:server_create' %}">Add New Server</a></li>
-                                <li><a href="{% url 'shepherd:server_import' %}">Upload Bulk Servers</a></li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domains</a>
-                            <ul class="collapse list-unstyled" id="shepSubmenu">
-                                <li><a href="{% url 'shepherd:domains' %}">Domain Library</a></li>
-                                <li><a href="{% url 'shepherd:domain_create' %}">Add New Domain</a></li>
-                                <li><a href="{% url 'shepherd:domain_import' %}">Upload Bulk Domains</a></li>
-                            </ul>
-                        </li>
-                        <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
-                    </ul>
-
-                    <!-- Admin Section -->
-                    {% if request.user.is_staff %}
-                        <ul class="list-unstyled components">
-                            <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Management</p>
-                            <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
-                            <li>
-                                <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
-                                <ul class="collapse list-unstyled" id="pageSubmenu">
-                                    <li><a href="{% url 'admin:users_user_changelist' %}">Users</a></li>
-                                    <li><a href="{% url 'admin:app_list' 'django_q' %}">Q Tasks</a></li>
-                                    <li><a href="{% url 'admin:index' %}">Admin Panel</a></li>
-                                </ul>
-                            </li>
-
-                            <!-- Documentation Section -->
-                            <li>
-                                <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
-                                <ul class="collapse list-unstyled" id="docsSubmenu">
-                                    <li><a href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
-                                    <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
-                                    <li><a href="https://github.com/GhostManager/DomainCheck"><i class="fab fa-github-alt"></i> DomainCheck on GitHub</a></li>
-                                </ul>
-                            </li>
-                        </ul>
-                    {% endif %}
-
-                    <!-- Sidebar Buttons -->
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'account_logout' %}" class="button">Logout <i class="fas fa-sign-out-alt"></i></a>
-                    {% else %}
-                        <a href="{% url 'account_login' %}" class="button">Login <i class="fas fa-sign-in-alt"></i></a>
-                    {% endif %}
-
-                    <a href="https://www.specterops.io"><img src="{% static 'images/domain.png' %}" alt="SpecterOps" style="width:55%"></a>
-                </nav>
-            {% endif %}
-
             <!-- Page Content Holder -->
             <div id="content">
-                {% if user.is_authenticated %}
-                    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-                        <div class="container-fluid">
-                            <button type="button" id="sidebarCollapse" class="navbar-btn" title="Toggle sidebar menu">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </button>
-                            <button class="btn btn-light d-inline-block d-lg-none ml-auto" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                                <i class="fas fa-align-justify"></i>
-                            </button>
-
-                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                                <!-- Breadcrumb Links -->
-                                {% block breadcrumbs %}{% endblock %}
-
-                                <!-- Active Report Link -->
-                                <ul class="nav navbar-nav ml-auto">
-                                    {% if user.is_authenticated %}
-                                        <li class="nav-item">
-                                            <div class="dropdown">
-                                                {% if request.session.active_report.id and request.session.active_report.title %}
-                                                    <a class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">Report: {{ request.session.active_report.title }}</a>
-                                                    <div class="dropdown-content dropdown-content-info">
-                                                        <p style="margin: 10px">This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo"class="fas fa-exchange-alt"></i> Switch Reports</a>
-                                                    </div>
-                                                {% else %}
-                                                    <a class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Report: Click Here to Select a Report</a>
-                                                    <div class="dropdown-content dropdown-content-info">
-                                                        <p style="margin-bottom: 5px">This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo"class="fas fa-exchange-alt"></i> Select a Report</a>
-                                                    </div>
-                                                {% endif %}
-                                            </div>
-                                        </li>
-                                        <li class="nav-item">
-                                            {% count_assignments request as assignment_count %}
-                                            <a id="assignment-count" href="{% url 'home:dashboard' %}"
-                                            {% if assignment_count > 0 %}
-                                                class="notify-badge badge badge-warning">
-                                            {% elif assignment_count > 5 %}
-                                                class="notify-badge badge badge-danger">
-                                            {% endif %}
-                                            {{ assignment_count }}</a>
-                                        </li>
-                                    {% else %}
-                                        <p>{% block pagetitle %}{% endblock %}</p>
-                                    {% endif %}
-                                </ul>
-                                <ul class="nav navbar-nav" style="margin: 0;">
-                                    <a class="nav-link" href="{% url 'home:profile' %}"><img style="width: 40px; height: 40px; border-radius: 50%; margin-top: -10px;" class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar"></a>
-                                </ul>
-                            </div>
-                        </div>
-                    </nav>
-                {% endif %}
-
                 <!-- Page Content Goes Here -->
                 <div>
                     {% block content %}{% endblock %}
@@ -342,7 +62,7 @@
                                     <span class="page-current">
                                         <p>
                                             {% if page_obj.has_previous %}
-                                                <a href="{{ request.path }}?page={{ page_obj.previous_page_number }}">< </a>
+                                                <a href="{{ request.path }}?page={{ page_obj.previous_page_number }}"></a>
                                             {% endif %}
                                             Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
                                             {% if page_obj.has_next %}
@@ -353,7 +73,7 @@
                                 </span>
                             </div>
                         {% endif %}
-                    {% endblock %} 
+                    {% endblock %}
                 </div>
             </div>
         </div>
@@ -503,7 +223,7 @@
 
                 // Handle unexpected WebSocket closures
                 ws_user.onclose = function (e) {
-                  console.error('User noitfication WebSocket closed unexpectedly');
+                  console.error('User notfication WebSocket closed unexpectedly');
                 };
                 ws_all.onclose = function (e) {
                   console.error('Global notification WebSocket closed unexpectedly');

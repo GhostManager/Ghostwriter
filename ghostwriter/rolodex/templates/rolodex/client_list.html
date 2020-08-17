@@ -14,17 +14,11 @@
 
 {% block content %}
     <!-- Filter Section -->
-    <div class="m-auto">
-        <form class="filterform" method="get">
-            <div class="form-group">
-                {{ filter.form.name|as_crispy_field }}
-            </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'rolodex:clients' %}" class="btn btn-secondary">Reset</a>
-        </form>
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
     </div>
 
-    {% if filter.qs|length == 0 %} 
+    {% if filter.qs|length == 0 %}
         <p>There are no active clients yet or your search returned no results.</p>
     {% else %}
         <table id="clientTable" class="tablesorter">

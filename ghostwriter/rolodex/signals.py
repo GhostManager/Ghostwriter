@@ -1,17 +1,24 @@
 """This contains all of the model Signals used by the Rolodex application."""
 
-from django.contrib import messages
-from django.db.models.signals import post_save, pre_delete
+# Standard Libraries
+import logging
+
+# Django & Other 3rd Party Libraries
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+# Ghostwriter Libraries
 from ghostwriter.rolodex.models import Project, ProjectAssignment
 from ghostwriter.shepherd.models import History, ServerHistory
+
+# Using __name__ resolves to ghostwriter.rolodex.signals
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=Project)
 def update_project(sender, instance, **kwargs):
     """
-    Updates dates for :model:`shepherd.History`, :,odel:`shepherd.ServerHistory`, and
+    Updates dates for :model:`shepherd.History`, :model:`shepherd.ServerHistory`, and
     :model:`rolodex.ProjectAssignments whenever :model:`rolodex.Project` is updated.
     """
     domain_checkouts = History.objects.filter(project=instance)

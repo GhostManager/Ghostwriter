@@ -14,47 +14,15 @@
 
 {% block content %}
     <!-- Filter Section -->
-    <div class="m-auto">
-        <form autocomplete="off" class="filterform" method="get" style="width: 60%; margin-left: 20%">
-            <div class="row">
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {{ filter.form.start_date_range|as_crispy_field }}
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {{ filter.form.start_date|as_crispy_field }}
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {{ filter.form.complete|as_crispy_field }}
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class='col-sm-4'>
-                    <div class="form-group">
-                        {{ filter.form.end_date_range|as_crispy_field }}
-                    </div>
-                </div>
-                <div class='col-sm-4'>
-                    <div class="form-group">
-                        {{ filter.form.end_date|as_crispy_field }}
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'rolodex:projects' %}" class="btn btn-secondary">Reset</a>
-        </form>
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
     </div>
 
     <p>
         <a href="{% url 'rolodex:project_create_no_client' %}"><i class="far fa-plus-square"></i> Create a Project</a>
     </p>
 
-    {% if filter.qs|length == 0 %} 
+    {% if filter.qs|length == 0 %}
         <p>There are no projects to display.</p>
     {% else %}
         <table id="projectTable" class="tablesorter">

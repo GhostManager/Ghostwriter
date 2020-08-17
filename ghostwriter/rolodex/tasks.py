@@ -1,14 +1,19 @@
 """This contains tasks to be run using Django Q and Redis."""
 
+# Standard Libraries
 import datetime
 import json
+import logging
 from datetime import date
 
+# Django & Other 3rd Party Libraries
 import requests
 from django.conf import settings
-from django.db.models import Q
 
 from .models import Project
+
+# Using __name__ resolves to ghostwriter.rolodex.tasks
+logger = logging.getLogger(__name__)
 
 
 def send_slack_msg(message, slack_channel=None):
@@ -53,9 +58,10 @@ def send_slack_msg(message, slack_channel=None):
                 headers={"Content-Type": "application/json"},
             )
             if response.status_code != 200:
-                print(
-                    "[!] Request to Slack returned an error %s, the "
-                    "response is:\n%s" % (response.status_code, response.text)
+                logger.warning(
+                    "[!] Request to Slack returned an error %s, the response was: %s",
+                    response.status_code,
+                    response.text,
                 )
 
 

@@ -1,10 +1,11 @@
 """This contains all of the database models used by the Rolodex application."""
 
+# Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
-from tinymce.models import HTMLField
 
+# Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink
 
 
@@ -15,30 +16,29 @@ class Client(models.Model):
 
     name = models.CharField(
         "Client Name",
-        max_length=100,
+        max_length=255,
         unique=True,
-        help_text="Provide the client's full name as you would want it to appear in a report",
+        help_text="Provide the client's full name as you want it to appear in a report",
     )
     short_name = models.CharField(
         "Client Short Name",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
-        help_text="Provide an abbreviation, or short name, that can be used to refer to this client",
+        help_text="Provide an abbreviated name to be used in reports",
     )
     codename = models.CharField(
         "Client Codename",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="A codename for the client that might be used to discuss the client in public",
     )
     note = models.TextField(
         "Client Note",
-        max_length=1000,
         null=True,
         blank=True,
-        help_text="Use this field to describe the client or provide some additional information",
+        help_text="Describe the client or provide some additional information",
     )
 
     class Meta:
@@ -59,36 +59,38 @@ class ClientContact(models.Model):
     """
 
     name = models.CharField(
-        "Name", max_length=100, help_text="Enter the contact's full name", null=True
+        "Name", help_text="Enter the contact's full name", max_length=255, null=True
     )
     job_title = models.CharField(
         "Title or Role",
-        max_length=100,
+        max_length=255,
         null=True,
-        help_text="Enter the contact's job title or role in the project - "
-        "this will appear in reports",
+        blank=True,
+        help_text="Enter the contact's job title or project role as you want it to appear in a report",
     )
     email = models.CharField(
         "Email",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Enter an email address for this contact",
     )
+    # The ITU E.164 states phone numbers should not exceed 15 characters
+    # We want valid phone numbers, but validating them (here or in forms) is unnecessary
+    # Numbers are not used for anything – and any future use would involve human involvement
+    # The `max_length` allows for people adding spaces, other chars, and extension numbers
     phone = models.CharField(
         "Phone",
-        max_length=100,
+        max_length=50,
         null=True,
         blank=True,
-        help_text="Enter a phone number for the contact",
+        help_text="Enter a phone number for this contact",
     )
     note = models.TextField(
         "Client Note",
-        max_length=500,
         null=True,
         blank=True,
-        help_text="Use this field to provide additional information about the contact "
-        "like their availability or more information about their role",
+        help_text="Provide additional information about the contact",
     )
     # Foreign keys
     client = models.ForeignKey(
@@ -112,7 +114,7 @@ class ProjectType(models.Model):
 
     project_type = models.CharField(
         "Project Type",
-        max_length=100,
+        max_length=255,
         unique=True,
         help_text="Enter a project type (e.g. red team, penetration test)",
     )
@@ -135,39 +137,39 @@ class Project(models.Model):
 
     codename = models.CharField(
         "Project Codename",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
-        help_text="Create a codename for this project that might be used to refer to it in public",
+        help_text="A codename for the client that might be used to discuss the client in public",
     )
     start_date = models.DateField(
-        "Start Date", max_length=100, help_text="Enter the start date of this project"
+        "Start Date", max_length=12, help_text="Enter the start date of this project"
     )
     end_date = models.DateField(
-        "End Date", max_length=100, help_text="Enter the end date of this project"
+        "End Date", max_length=12, help_text="Enter the end date of this project"
     )
     note = models.TextField(
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to provide any additional notes about this project that should be recorded",
+        help_text="Provide additional information about the project and planning",
     )
     slack_channel = models.CharField(
         "Project Slack Channel",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
-        help_text="Provide an (optional) Slack channel to be used for notifications related to this project",
+        help_text="Provide an Slack channel to be used for project notifications",
     )
     complete = models.BooleanField(
-        "Completed", default=False, help_text="Mark this project as complete/closed"
+        "Completed", default=False, help_text="Mark this project as complete"
     )
     # Foreign keys
     client = models.ForeignKey(
         "Client",
         on_delete=models.CASCADE,
         null=False,
-        help_text="Select the client this project should be attached to",
+        help_text="Select the client to which this project should be attached",
     )
     operator = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
@@ -210,7 +212,10 @@ class ProjectRole(models.Model):
     """
 
     project_role = models.CharField(
-        "Project Role", max_length=100, unique=True, help_text="Enter an operator role"
+        "Project Role",
+        max_length=255,
+        unique=True,
+        help_text="Enter an operator role used for project assignments",
     )
 
     class Meta:
@@ -231,13 +236,13 @@ class ProjectAssignment(models.Model):
 
     start_date = models.DateField(
         "Start Date",
-        max_length=100,
+        null=True,
         blank=True,
         help_text="Enter the start date of the project",
     )
     end_date = models.DateField(
         "End Date",
-        max_length=100,
+        null=True,
         blank=True,
         help_text="Enter the end date of the project",
     )
@@ -245,7 +250,7 @@ class ProjectAssignment(models.Model):
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to provide any additional notes about this assignment",
+        help_text="Provide additional information about the project role and assignment",
     )
     # Foreign keys
     operator = models.ForeignKey(
@@ -291,7 +296,7 @@ class ObjectiveStatus(models.Model):
 
     objective_status = models.CharField(
         "Objective Status",
-        max_length=100,
+        max_length=255,
         unique=True,
         help_text="Enter an objective status (e.g. Active, On Hold)",
     )
@@ -308,7 +313,8 @@ class ObjectiveStatus(models.Model):
 
 class ProjectObjective(models.Model):
     """
-    Stores an individual project objective, related to :model:`rolodex.Project` and :model:`rolodex.ObjectiveStatus`.
+    Stores an individual project objective, related to :model:`rolodex.Project` and
+    :model:`rolodex.ObjectiveStatus`.
     """
 
     def get_status():
@@ -316,7 +322,7 @@ class ProjectObjective(models.Model):
         active_status = ObjectiveStatus.objects.get(objective_status="Active")
         return active_status
 
-    objective = HTMLField(
+    objective = models.TextField(
         "Objective", null=True, blank=True, help_text="Provide a concise objective"
     )
     complete = models.BooleanField(
@@ -324,7 +330,8 @@ class ProjectObjective(models.Model):
     )
     deadline = models.DateField(
         "Due Date",
-        max_length=100,
+        max_length=12,
+        null=True,
         blank=True,
         help_text="Provide a deadline for this objective",
     )
@@ -344,6 +351,7 @@ class ProjectObjective(models.Model):
         verbose_name_plural = "Project objectives"
 
     def save(self, *args, **kwargs):
+        # Move a deadline outside of the project's window into the window
         if self.deadline < self.project.start_date:
             self.deadline = self.project.start_date
         elif self.deadline > self.project.end_date:
@@ -361,14 +369,13 @@ class ClientNote(models.Model):
 
     # This field is automatically filled with the current date
     timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
     )
     note = models.TextField(
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to add a note to this client - it can be "
-        "anything you want others to see/know about the client",
+        help_text="Leave the client or related projects",
     )
     # Foreign Keys
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False)
@@ -393,14 +400,13 @@ class ProjectNote(models.Model):
 
     # This field is automatically filled with the current date
     timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
     )
     note = models.TextField(
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to add a note to this project - it can be anything "
-        "you want others to see/know about the project",
+        help_text="Leave a note about the project or related client",
     )
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
