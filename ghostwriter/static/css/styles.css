@@ -6,6 +6,9 @@
 
 :root {
   --main-font-size: 16px;
+  --primary-color: #51b071;
+  --secondary-color: #2B2C66;
+  --secondary-color-fade: #7386D5;
 
   --h1-font-color: #2B2C66;
   --h2-font-color: #51B071;
@@ -40,6 +43,7 @@
   --dropdown-button-hover-color: #6d7fcc;
 
   --table-header-color: #2B2C66;
+  --secondary-table-header-color: rgba(170, 170, 170, 0.2);
 
   --clickable-underline-color: #51B071;
 
@@ -67,16 +71,21 @@
 }
 
 body {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Poppins', "Font Awesome 5 Free", sans-serif;
   background: var(--main-bg-color);
 }
 
 p {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Poppins', "Font Awesome 5 Free", sans-serif;
   font-size: var(--main-font-size);
   font-weight: 300;
   line-height: 1.7em;
   color: var(--main-txt-color);
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+h4 {
   margin-top: 20px;
   margin-bottom: 20px;
 }
@@ -136,6 +145,61 @@ h3 {
 
 h6 {
   padding-top: 20px;
+}
+
+.float-right-top {
+  position: absolute;
+  right: 5px;
+  top: 0;
+}
+
+.clickable-link {
+  cursor: pointer;
+}
+
+#scroll-button {
+  display: inline-block;
+  background-color: var(--button-primary-color);
+  width: 50px;
+  height: 50px;
+  text-align: center;
+  border-radius: 4px;
+  margin: 30px;
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  transition: background-color .3s;
+  z-index: 1000;
+}
+
+#scroll-button:hover {
+  cursor: pointer;
+  background-color: #333;
+}
+
+#scroll-button:active {
+  background-color: #555;
+}
+
+#scroll-button::before {
+  font-family: "Font Awesome 5 Free";
+  content: "\f062";
+  font-weight: 600;
+  font-style: normal;
+  text-rendering: normal;
+  font-size: 2em;
+  line-height: 50px;
+  color: #fff;
+}
+
+/* ---------------------------------------------------
+    MODAL STYLES
+----------------------------------------------------- */
+
+#object-preview-content {
+  font-style: italic;
+  text-align: center;
+  margin: 20px;
 }
 
 /* ---------------------------------------------------
@@ -308,14 +372,21 @@ input[type="file"] {
   box-shadow: 0 0 3px var(--search-box-shadow), 0 10px 15px #ebebeb inset;
 }
 
-.search input {
-  text-indent: 45px;
+.detail-page-search {
+  width: 50%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.search .fa-search {
-  position: absolute;
-  top: 10px;
-  left: 12.5%;
+.center-block {
+  display: table;
+  /* Instead of display:block */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.search input {
+  text-indent: .5em;
 }
 
 .wrapper {
@@ -493,7 +564,7 @@ h1 {
 }
 
 h2 {
-  font-weight: 900;
+  font-weight: 600;
   text-align: center;
   color: var(--h2-font-color);
   font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
@@ -563,62 +634,62 @@ p.severity-box.info {
 
 .critical {
   color: var(--crit-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .high {
   color: var(--high-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .medium {
   color: var(--med-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .low {
   color: var(--low-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .info {
   color: var(--info-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .informational {
   color: var(--info-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .neutral {
   color: var(--neutral-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .critical-background {
   background-color: var(--crit-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .high-background {
   background-color: var(--high-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .medium-background {
   background-color: var(--med-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .low-background {
   background-color: var(--low-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .info-background {
   background-color: var(--info-rating-color);
-  font-weight: 900;
+  font-weight: 600;
 }
 
 /* ---------------------------------------------------
@@ -702,8 +773,8 @@ table {
   border-collapse: collapse;
   width: 100%;
   overflow-x: auto;
-  margin-top: 40px;
-  margin-bottom: 40px;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .smallCell {
@@ -725,11 +796,12 @@ th {
 }
 
 th.severity_header {
-  background: none;
+  background-color: var(--secondary-table-header-color);
   text-align: justified;
-  padding-top: 20px;
-  padding-bottom: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
   border-bottom: none;
+  pointer-events: none;
 }
 
 .severity_header:hover {
@@ -774,6 +846,10 @@ th:last-child {
 
 .form_th:hover {
   background-color: #fafafa;
+}
+
+.form-spacer {
+  margin: 20px;
 }
 
 th,
@@ -856,7 +932,7 @@ td p {
   padding: 0px;
   font-size: 15px;
   cursor: pointer;
-  background-color: #fafafa;
+  background-color: var(--main-bg-color);
   border: none;
 }
 
@@ -897,10 +973,9 @@ td p {
   text-align: left;
   text-decoration: none;
   display: block;
-  ;
 }
 
-.dropdown a:hover {
+.dropdown-content a:hover {
   background-color: var(--dropdown-button-hover-color);
 }
 
@@ -912,6 +987,130 @@ td p {
 
 .dropdown-right:hover .dropdown-content {
   display: block;
+}
+
+.evidence-dropdown {
+  font-size: var(--main-font-size);
+  font-weight: 400;
+  line-height: 1.7em;
+  color: var(--main-txt-color);
+  background-color: transparent;
+}
+
+.evidence-dropdown:hover {
+  background-color: #f5f5f5;
+}
+
+/* ---------------------------------------------------
+    BOOTSTRAP TAB STYLES
+----------------------------------------------------- */
+
+.nav-tabs .nav-link.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.nav-tabs .nav-link {
+  background-color: var(--neutral-rating-color);
+  color: white;
+}
+
+.nav-link {
+  white-space: nowrap;
+}
+
+.tab-icon:before {
+  font-family: "Font Awesome 5 Free";
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.search-icon:before {
+  content: "\f002";
+}
+
+.pencil-icon:before {
+  content: "\f303";
+}
+
+.shield-icon:before {
+  content: "\f3ed";
+}
+
+.link-icon:before {
+  content: "\f0c1";
+}
+
+.server-icon:before {
+  content: "\f233";
+}
+
+.list-icon:before {
+  content: "\f0ca";
+}
+
+.file-icon:before {
+  content: "\f15b";
+}
+
+.project-icon:before {
+  font-family: "Font Awesome 5 Free";
+  content: "\f542";
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.assignment-icon:before {
+  font-family: "Font Awesome 5 Free";
+  content: "\f0c0";
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.objective-icon:before {
+  font-family: "Font Awesome 5 Free";
+  content: "\f05b";
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.poc-icon:before {
+  font-family: "Font Awesome 5 Free";
+  content: "\f2bb";
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.client-icon:before {
+  font-family: "Font Awesome 5 Free";
+  content: "\f1ad";
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.tab-content {
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  padding: 10px;
+}
+
+.nav-tabs {
+  margin-bottom: 0;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px !important;
+  border-radius: 5px;
 }
 
 /* ---------------------------------------------------
@@ -938,7 +1137,7 @@ td p {
   position: relative;
 }
 
-.active,
+.collapsible.active,
 .collapsible:hover {
   background-color: var(--collapsible-hover-color);
 }
@@ -1129,15 +1328,6 @@ ol {
 /* ---------------------------------------------------
     NOTIFICATIONS
 ----------------------------------------------------- */
-
-.fade {
-  opacity: 0;
-  -webkit-transition: opacity 0.5s linear !important;
-  -moz-transition: opacity 0.5s linear !important;
-  -ms-transition: opacity 0.5s linear !important;
-  -o-transition: opacity 0.5s linear !important;
-  transition: opacity 0.5s linear !important;
-}
 
 .badge {
   margin-left: 5px;
@@ -1339,7 +1529,7 @@ img {
 
 #toast-container>.toast-success:before {
   content: "\f00c";
-  font-weight: 900;
+  font-weight: 600;
   color: #2a562a;
 }
 
@@ -1351,7 +1541,7 @@ img {
 
 #toast-container>.toast-warning:before {
   content: "\f071";
-  font-weight: 900;
+  font-weight: 600;
   color: #806620;
 }
 
@@ -1363,7 +1553,7 @@ img {
 
 #toast-container>.toast-error:before {
   content: "\f06a";
-  font-weight: 900;
+  font-weight: 600;
   color: #692326;
 }
 
@@ -1375,7 +1565,7 @@ img {
 
 #toast-container>.toast-info:before {
   content: "\f129";
-  font-weight: 900;
+  font-weight: 600;
   color: #51768F;
 }
 
