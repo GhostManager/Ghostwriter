@@ -1,9 +1,11 @@
 """This contains the custom template tags used by he Home application."""
 
+# Django & Other 3rd Party Libraries
 from django import template
 from django.contrib.auth.models import Group
 from django.db.models import Q
 
+# Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink
 
 register = template.Library()

@@ -1,7 +1,9 @@
 """This contains all of the WebSocket consumers used by the Home application."""
 
+# Standard Libraries
 import json
 
+# Django & Other 3rd Party Libraries
 from channels.generic.websocket import AsyncWebsocketConsumer, WebsocketConsumer
 from django.contrib import messages
 

@@ -104,6 +104,8 @@ def upload_avatar(request):
 
     ``form``
         A single ``UserProfileForm`` form.
+    ``cancel_link``
+        Link for the form's Cancel button to return to user's profile page
 
     **Template**
 
@@ -119,7 +121,10 @@ def upload_avatar(request):
             return redirect("home:profile")
     else:
         form = UserProfileForm()
-    return render(request, "home/upload_avatar.html", {"form": form})
+    cancel_link = reverse("home:profile")
+    return render(
+        request, "home/upload_avatar.html", {"form": form, "cancel_link": cancel_link}
+    )
 
 
 @login_required

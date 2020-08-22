@@ -1,7 +1,9 @@
 """This contains all of the database models for the Home application."""
 
+# Standard Libraries
 import os
 
+# Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.db import models
 from django.templatetags.static import static

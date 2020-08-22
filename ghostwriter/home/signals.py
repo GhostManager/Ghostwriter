@@ -1,9 +1,11 @@
 """This contains all of the model Signals used by the Home application."""
 
+# Django & Other 3rd Party Libraries
 from django.contrib.auth import get_user_model
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+# Ghostwriter Libraries
 from ghostwriter.home.models import UserProfile
 
 User = get_user_model()
