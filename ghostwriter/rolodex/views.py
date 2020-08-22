@@ -117,7 +117,7 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                 "result": "success",
                 "status": status_str,
                 "classes": classes,
-                "message": 'Objective status is now set to "{status}"'.format(
+                "message": "Objective status is now set to: {status}".format(
                     status=self.object.status
                 ),
             }
@@ -133,7 +133,7 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
         except ObjectiveStatus.DoesNotExist:
             data = {
                 "result": "error",
-                "message": 'Desired objective status was not found: "{status}"'.format(
+                "message": "Desired objective status was not found: {status}".format(
                     status=status.title()
                 ),
             }
@@ -390,6 +390,11 @@ def client_list(request):
     """
     Display a list of all :model:`rolodex.Client`.
 
+    **Context**
+
+    ``filter``
+        Instance of :filter:`rolodex.ClientFilter`
+
     **Template**
 
     :template:`rolodex/client_list.html`
@@ -418,6 +423,11 @@ def client_list(request):
 def project_list(request):
     """
     Display a list of all :model:`rolodex.Project`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`rolodex.ProjectFilter`
 
     **Template**
 
@@ -537,7 +547,7 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         contacts = ctx["contacts"]
 
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, `BaseClientContactInlineFormSet`
+        # Validation is largely handled by the custom base formset, ``BaseClientContactInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
@@ -568,7 +578,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
     **Context**
 
     ``contacts``
-        Instance of the `ClientContactFormSet()` formset
+        Instance of the ``ClientContactFormSet()`` formset
     ``cancel_link``
         Link for the form's Cancel button to return to client detail page
 
@@ -616,7 +626,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         contacts = ctx["contacts"]
 
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, `BaseClientContactInlineFormSet`
+        # Validation is largely handled by the custom base formset, ``BaseClientContactInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
@@ -843,7 +853,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         assignments = ctx["assignments"]
 
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, `BaseProjectInlineFormSet`
+        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
@@ -890,7 +900,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
     ``assignments``
         Instance of the `ProjectAssignmentFormSet()` formset
     ``cancel_link``
-        Link for the form's Cancel button to return to project detail page
+        Link for the form's Cancel button to return to project's detail page
 
     **Template**
 
@@ -982,7 +992,7 @@ class ProjectDelete(LoginRequiredMixin, DeleteView):
     ``object_to_be_deleted``
         The to-be-deleted instance of :model:`rolodex.Project`
     ``cancel_link``
-        Link for the form's Cancel button to return to project detail page
+        Link for the form's Cancel button to return to project's detail page
 
     **Template**
 
@@ -1017,7 +1027,7 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
     ``note_object``
         Instance of :model:`rolodex.Project` associated with note
     ``cancel_link``
-        Link for the form's Cancel button to return to project detail page
+        Link for the form's Cancel button to return to project's detail page
 
     **Template**
 
@@ -1062,7 +1072,7 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
     ``note_object``
         Instance of :model:`rolodex.Project` associated with note
     ``cancel_link``
-        Link for the form's Cancel button to return to project detail page
+        Link for the form's Cancel button to return to project's detail page
 
     **Template**
 

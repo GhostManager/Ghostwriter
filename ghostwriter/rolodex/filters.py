@@ -24,7 +24,10 @@ class ClientFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
         lookup_expr="icontains",
         widget=TextInput(
-            attrs={"placeholder": "Full or partial client name", "autocomplete": "off"}
+            attrs={
+                "placeholder": "Enter full or partial name...",
+                "autocomplete": "off",
+            }
         ),
     )
 
@@ -49,10 +52,10 @@ class ClientFilter(django_filters.FilterSet):
                     css_class="form-row",
                 ),
                 ButtonHolder(
-                    Submit("submit", "Filter", css_class="btn btn-primary"),
+                    Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
                     HTML(
                         """
-                        <a class="btn btn-secondary" role="button" href="{%  url 'rolodex:clients' %}">Reset</a>
+                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'rolodex:clients' %}">Reset</a>
                         """
                     ),
                 ),
@@ -142,10 +145,10 @@ class ProjectFilter(django_filters.FilterSet):
                     css_class="form-row",
                 ),
                 ButtonHolder(
-                    Submit("submit", "Filter", css_class="btn btn-primary"),
+                    Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
                     HTML(
                         """
-                        <a class="btn btn-secondary" role="button" href="{%  url 'rolodex:projects' %}">Reset</a>
+                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'rolodex:projects' %}">Reset</a>
                         """
                     ),
                 ),

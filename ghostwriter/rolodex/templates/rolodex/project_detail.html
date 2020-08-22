@@ -198,7 +198,7 @@
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
-                                            <a href="{% url 'reporting:activate_report' report.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}"><i class="fas fa-power-off"></i> Activate</a>
                                             <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
                                             <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
                                             <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
@@ -686,7 +686,42 @@
         });
     </script>
 
+    <!-- Activate Report with AJAX -->
+    <script>
+        $('.js-activate-report').click(function () {
+            var url = $(this).attr('activate-report-url');
+            var reportId = $(this).attr('activate-report-id');
+            var csrftoken = $(this).attr('activate-report-csrftoken');
+            var activeReportBar = $('#active-report-id');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'report': reportId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        activeReportBar.html(data['report']);
+                        activeReportBar.attr('href', data['report_url']);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                    }
+                }
+            });
+        });
+    </script>
+
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
     {% include "confirm_delete_modal.html" %}
-
 {% endblock %}
