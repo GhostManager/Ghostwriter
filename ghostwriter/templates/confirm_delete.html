@@ -10,7 +10,7 @@
 
     <p>Are you sure you want to delete this {{ object_type }}? This action cannot be undone.</p>
 
-    <p><em>{{ object_to_be_deleted|safe }}</em></p>
+    <p><em>{{ object_to_be_deleted }}</em></p>
 
     <form action="" method="POST">
         {% csrf_token %}
