@@ -1,12 +1,14 @@
 """This contains all of the base URL mappings used by Ghostwriter."""
 
+# Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views import defaults as default_views
-from django.views.generic import RedirectView, TemplateView
+from django.views.generic import RedirectView
 
+# Ghostwriter Libraries
 from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
@@ -35,7 +37,6 @@ urlpatterns = [
     path("shepherd/", include("ghostwriter.shepherd.urls", namespace="shepherd")),
     path("reporting/", include("ghostwriter.reporting.urls", namespace="reporting")),
     path("", RedirectView.as_view(pattern_name="home:dashboard"), name="home"),
-    path("tinymce/", include("tinymce.urls")),
     # Add additional custom paths below this line...
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
