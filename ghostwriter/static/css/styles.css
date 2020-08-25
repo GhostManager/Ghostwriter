@@ -91,7 +91,7 @@ h4 {
 }
 
 .bold {
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .italic {
@@ -595,6 +595,7 @@ footer {
   margin: auto;
   font-size: 20px;
   position: relative;
+  max-width: 100%;
 }
 
 .centerdiv {
@@ -689,6 +690,11 @@ p.severity-box.info {
 
 .info-background {
   background-color: var(--info-rating-color);
+  font-weight: 600;
+}
+
+.neutral-background {
+  background-color: var(--neutral-rating-color);
   font-weight: 600;
 }
 
@@ -839,15 +845,6 @@ th:last-child {
   border-bottom-right-radius: 5px;
 }
 
-.form_th {
-  background-color: #fafafa;
-  color: black;
-}
-
-.form_th:hover {
-  background-color: #fafafa;
-}
-
 .form-spacer {
   margin: 20px;
 }
@@ -881,14 +878,23 @@ tr:hover {
 
 .healthy {
   color: var(--healthy-color) !important;
-  font-weight: bold;
+  font-weight: 600;
   text-align: center;
 }
 
 .burned {
   color: var(--burned-color);
-  font-weight: bold;
+  font-weight: 600;
   text-align: center;
+}
+
+.form-th {
+  background-color: #fafafa;
+  color: black;
+}
+
+.form-th:hover {
+  background-color: #fafafa;
 }
 
 /* ---------------------------------------------------
@@ -922,6 +928,13 @@ thead th.down {
 td p {
   margin-top: 5px;
   margin-bottom: 5px;
+}
+
+.holdme:before {
+  font-family: "Font Awesome 5 Free";
+  content: "\f7a4";
+  font-weight: 900;
+  font-size: 18px;
 }
 
 /* ---------------------------------------------------
@@ -1027,6 +1040,11 @@ td p {
   font-weight: 600;
 }
 
+.icon {
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 .search-icon:before {
   content: "\f002";
 }
@@ -1053,6 +1071,62 @@ td p {
 
 .file-icon:before {
   content: "\f15b";
+}
+
+.wireless-icon:before {
+  content: "\f1eb";
+}
+
+.cloud-icon:before {
+  content: "\f0c2";
+}
+
+.physical-icon:before {
+  content: "\f084";
+}
+
+.network-icon:before {
+  content: "\f6ff";
+}
+
+.mobile-icon:before {
+  content: "\f3cd";
+}
+
+.host-icon:before {
+  content: "\f109";
+}
+
+.bug-icon:before {
+  content: "\f188";
+}
+
+.code-icon:before {
+  content: "\f121";
+}
+
+.grip-icon:before {
+  content: "\f7a4";
+}
+
+.comment-icon:before {
+  content: "\f27a";
+}
+
+.ol-list-icon:before {
+  content: "\f0cb";
+}
+
+.help-icon:before {
+  content: "\f4c4";
+}
+
+.impact-icon:before {
+  content: "\f1e2";
+}
+
+.writing-icon:before {
+  content: "\f5b7";
 }
 
 .project-icon:before {
@@ -1145,7 +1219,7 @@ td p {
 .collapsible:after {
   content: "\002B";
   color: white;
-  font-weight: bold;
+  font-weight: 600;
   float: right;
   margin-left: 5px;
 }
@@ -1221,7 +1295,7 @@ td p {
 }
 
 .myaccordion .btn {
-  font-weight: bold;
+  font-weight: 600;
   color: white;
   padding: 0;
 }
@@ -1239,7 +1313,7 @@ td p {
 .card-header:after {
   content: "\002B";
   color: white;
-  font-weight: bold;
+  font-weight: 600;
   float: right;
   margin-left: 5px;
 }
@@ -1263,7 +1337,15 @@ ol {
 
 .finding-card pre {
   text-align: justify;
+  font-family: "Courier New", Courier, monospace;
   padding-left: 20px;
+  white-space: pre-wrap;
+}
+
+.finding-card code {
+  font-size: var(--main-font-size);
+  font-family: "Courier New", Courier, monospace;
+  color: var(--main-txt-color);
 }
 
 /* ---------------------------------------------------
