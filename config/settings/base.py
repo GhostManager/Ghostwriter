@@ -2,8 +2,10 @@
 Base settings to build other settings files upon.
 """
 
+# Django & Other 3rd Party Libraries
 import environ
-import os
+from django.contrib.messages import constants as messages
+
 
 ROOT_DIR = (
     environ.Path(__file__) - 3
@@ -21,10 +23,11 @@ if READ_DOT_ENV_FILE:
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = env.bool("DJANGO_DEBUG", False)
-# Local time zone. Choices are
-# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
-# though not all of them may be available with every OS.
-# In Windows, this must be set to your system time zone.
+
+# Local time zone – Choices are:
+#   http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+#   Not all of them may be available with every OS
+#   In Windows, this must be set to your system time zone
 TIME_ZONE = "UTC"
 # https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = "en-us"
@@ -231,7 +234,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
 )
-### EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # https://docs.djangoproject.com/en/2.2/ref/settings/#email-timeout
 EMAIL_TIMEOUT = 5
@@ -291,8 +294,6 @@ STATICFILES_FINDERS += ["compressor.finders.CompressorFinder"]
 
 # DJANGO MESSAGES
 # ------------------------------------------------------------------------------
-from django.contrib.messages import constants as messages
-
 MESSAGE_TAGS = {
     messages.INFO: "alert alert-info",
     messages.SUCCESS: "alert alert-success",
