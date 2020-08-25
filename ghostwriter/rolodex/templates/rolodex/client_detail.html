@@ -1,5 +1,7 @@
 {% extends "base_generic.html" %}
 
+{% load bleach_tags %}
+
 {% block pagetitle %}{{ client.name }} Details{% endblock %}
 
 {% block breadcrumbs %}
@@ -32,7 +34,7 @@
         <h3>Client Description</h3>
         <hr>
         {% if client.note %}
-            {{ client.note|safe }}
+            {{ client.note|bleach }}
         {% else %}
             <p>No information provided for this client.</p>
         {% endif %}
@@ -73,7 +75,7 @@
                                         --
                                     {% endif %}
                                 </td>
-                                <td style="text-align: justify;">{{ poc.note|safe }}</td>
+                                <td style="text-align: justify;">{{ poc.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
@@ -111,7 +113,7 @@
                                 <td><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                                 <td>{{ project.project_type }}</td>
                                 <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
-                                <td style="text-align: justify">{{ project.note|safe }}</td>
+                                <td style="text-align: justify">{{ project.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
@@ -202,7 +204,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                {{ note.note|safe }}
+                                {{ note.note|bleach }}
                                 <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
                             </div>
                         </div>

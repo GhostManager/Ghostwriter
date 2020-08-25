@@ -2,6 +2,8 @@
 
 {% load determine_primary %}
 
+{% load bleach_tags %}
+
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
 {% block breadcrumbs %}
@@ -58,7 +60,7 @@
         <p class="form-spacer"></p>
 
         {% if project.note %}
-           {{ project.note|safe }}
+           {{ project.note|bleach }}
         {% else %}
             <p>No additional information provided for this project.</p>
         {% endif %}
@@ -99,7 +101,7 @@
                                     <td></td>
                                 {% endif %}
 
-                                <td style="text-align: justify">{{ operator.note|safe }}</td>
+                                <td style="text-align: justify">{{ operator.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
@@ -141,7 +143,7 @@
                                         {{ objective.status }}
                                     </span>
                                 </td>
-                                <td nowrap id="delete-target-content-objective-{{ objective.id }}">{{ objective.objective|safe }}</td>
+                                <td nowrap id="delete-target-content-objective-{{ objective.id }}">{{ objective.objective|bleach }}</td>
                                 <td nowrap>{{ objective.deadline }}</td>
                                 <td>
                                     <div class="dropdown">
@@ -297,7 +299,7 @@
                                 </td>
                                 <td>{{ domain.activity_type }}</td>
                                 <td>{{ domain.start_date|date:"d M Y" }} – {{ domain.end_date|date:"d M Y" }}</td>
-                                <td style="text-align: justify;">{{ domain.note|safe }}</td>
+                                <td style="text-align: justify;">{{ domain.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
@@ -403,7 +405,7 @@
                                 <td>{{ server.activity_type }}</td>
                                 <td>{{ server.server_role }}</td>
                                 <td>{{ server.server.server_provider }}</td>
-                                <td style="text-align: justify;">{{ server.note|safe }}</td>
+                                <td style="text-align: justify;">{{ server.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
@@ -428,7 +430,7 @@
                                 <td>{{ server.activity_type }}</td>
                                 <td>{{ server.server_role }}</td>
                                 <td>{{ server.server_provider }}</td>
-                                <td style="text-align: justify;">{{ server.note|safe }}</td>
+                                <td style="text-align: justify;">{{ server.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
@@ -521,7 +523,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                {{ note.note|safe }}
+                                {{ note.note|bleach }}
                                 <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
                             </div>
                         </div>
