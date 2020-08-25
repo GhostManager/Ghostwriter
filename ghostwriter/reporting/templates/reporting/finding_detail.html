@@ -1,5 +1,7 @@
 {% extends "base_generic.html" %}
 
+{% load bleach_tags %}
+
 {% block pagetitle %}{{ finding.title }} Details{% endblock %}
 
 {% block breadcrumbs %}
@@ -25,7 +27,7 @@
             <button class="dropbtn far fa-caret-square-down"></button>
             <div id="myDropdown" class="dropdown-content">
                 <a href="{% url 'reporting:finding_update' finding.id %}"><i class="far fa-edit"></i> Edit</a>
-                <a href="{% url 'reporting:assign_finding' finding.id %}"><i style="color: green" class="far fa-plus-square"></i> Add to Report</a>
+                <a class="js-assign-finding" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"><i style="color: green" class="far fa-plus-square"></i> Add to Report</a>
                 <a href="{% url 'reporting:findings' %}"><i class="fas fa-arrow-left"></i> Return to Findings</a>
                 <a href="{% url 'reporting:finding_delete' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
             </div>
@@ -44,6 +46,24 @@
             {% elif finding.severity.severity == "Low" %}
                 low-background
             {% endif %}
+            icon
+            {% if finding.finding_type.finding_type == "Cloud" %}
+                cloud-icon
+            {% elif finding.finding_type.finding_type == "Host" %}
+                host-icon
+            {% elif finding.finding_type.finding_type == "Mobile" %}
+                mobile-icon
+            {% elif finding.finding_type.finding_type == "Network" %}
+                network-icon
+            {% elif finding.finding_type.finding_type == "Physical" %}
+                physical-icon
+            {% elif finding.finding_type.finding_type == "Web" %}
+                code-icon
+            {% elif finding.finding_type.finding_type == "Wireless" %}
+                wireless-icon
+            {% else %}
+                bug-icon
+            {% endif %}
         ">
             {{ finding.severity.severity }}
         </span>
@@ -53,14 +73,14 @@
         <!-- Description -->
         <div class="card">
             <div class="card-header" id="description" data-toggle="collapse" data-target="#collapseDescription" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseDescription" aria-expanded="false" aria-controls="collapseDescription">
+                <a class="accordion-toggle btn btn-link icon writing-icon" data-toggle="collapse" data-target="#collapseDescription" aria-expanded="false" aria-controls="collapseDescription">
                     Description
                 </a>
             </div>
             <div id="collapseDescription" class="finding-collapse collapse show" aria-labelledby="description">
                 <div class="finding-card card-body">
                     {% if finding.description %}
-                        {{ finding.description|safe }}
+                        {{ finding.description|bleach }}
                     {% else %}
                         <p>Description write-up is needed.</p>
                     {% endif %}
@@ -71,14 +91,14 @@
         <!-- Impact -->
         <div class="card">
             <div class="card-header" id="impact" data-toggle="collapse" data-target="#collapseImpact" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseImpact" aria-expanded="false" aria-controls="collapseImpact">
+                <a class="accordion-toggle btn btn-link icon impact-icon" data-toggle="collapse" data-target="#collapseImpact" aria-expanded="false" aria-controls="collapseImpact">
                     Impact
                 </a>
             </div>
             <div id="collapseImpact" class="finding-collapse collapse show" aria-labelledby="impact">
                 <div class="finding-card card-body">
                     {% if finding.impact %}
-                        {{ finding.impact|safe }}
+                        {{ finding.impact|bleach }}
                     {% else %}
                         <p>Impact write-up is needed.</p>
                     {% endif %}
@@ -89,14 +109,14 @@
         <!-- Recommendations -->
         <div class="card">
             <div class="card-header" id="recommendations" data-toggle="collapse" data-target="#collapseRecommendations" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseRecommendations" aria-expanded="false" aria-controls="collapseRecommendations">
+                <a class="accordion-toggle btn btn-link icon help-icon" data-toggle="collapse" data-target="#collapseRecommendations" aria-expanded="false" aria-controls="collapseRecommendations">
                     Recommendations
                 </a>
             </div>
             <div id="collapseRecommendations" class="finding-collapse collapse show" aria-labelledby="recommendations">
                 <div class="finding-card card-body">
                     {% if finding.mitigation %}
-                        {{ finding.mitigation|safe }}
+                        {{ finding.mitigation|bleach }}
                     {% else %}
                         <p>Recommendations are needed.</p>
                     {% endif %}
@@ -107,8 +127,8 @@
         <!-- Detections -->
         <div class="card">
             <div class="card-header" id="hostdetection" data-toggle="collapse" data-target="#collapseHDetect" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseHDetect" aria-expanded="false" aria-controls="collapseHDetect">
-                    Detections
+                <a class="accordion-toggle btn btn-link icon shield-icon" data-toggle="collapse" data-target="#collapseHDetect" aria-expanded="false" aria-controls="collapseHDetect">
+                    Detection Recommendations
                 </a>
             </div>
             <div id="collapseHDetect" class="finding-collapse collapse show" aria-labelledby="hostdetection">
@@ -117,15 +137,14 @@
                         <h4>Host Detection</h4>
                         <hr>
 
-                        {{ finding.host_detection_techniques|safe }}
+                        {{ finding.host_detection_techniques|bleach }}
                     {% endif %}
 
                     {% if finding.network_detection_techniques %}
-                        <br />
                         <h4>Network Detection</h4>
                         <hr>
 
-                        {{ finding.network_detection_techniques|safe }}
+                        {{ finding.network_detection_techniques|bleach }}
                     {% endif %}
 
                     {% if not finding.network_detection_techniques and not finding.host_detection_techniques %}
@@ -138,14 +157,14 @@
         <!-- Replication Steps -->
         <div class="card">
             <div class="card-header" id="replication" data-toggle="collapse" data-target="#collapseReplication" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseReplication" aria-expanded="false" aria-controls="collapseReplication">
+                <a class="accordion-toggle btn btn-link icon ol-list-icon" data-toggle="collapse" data-target="#collapseReplication" aria-expanded="false" aria-controls="collapseReplication">
                     Replication Steps
                 </a>
             </div>
             <div id="collapseReplication" class="finding-collapse collapse show" aria-labelledby="replication">
                 <div class="finding-card card-body">
                     {% if finding.replication_steps %}
-                        {{ finding.replication_steps|safe }}
+                        {{ finding.replication_steps|bleach }}
                     {% else %}
                         <p>Replication steps are needed.</p>
                     {% endif %}
@@ -156,14 +175,14 @@
         <!-- References -->
         <div class="card">
             <div class="card-header" id="reference" data-toggle="collapse" data-target="#collapseReference" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseReference" aria-expanded="false" aria-controls="collapseReference">
+                <a class="accordion-toggle btn btn-link icon link-icon" data-toggle="collapse" data-target="#collapseReference" aria-expanded="false" aria-controls="collapseReference">
                     References
                 </a>
             </div>
             <div id="collapseReference" class="finding-collapse collapse show" aria-labelledby="reference">
                 <div class="finding-card card-body">
                     {% if finding.references %}
-                        {{ finding.references|safe }}
+                        {{ finding.references|bleach }}
                     {% else %}
                         <p>References are needed.</p>
                     {% endif %}
@@ -181,7 +200,7 @@
                 </div>
                 <div id="collapseGuidance" class="finding-collapse collapse show" aria-labelledby="guidance">
                     <div class="finding-card card-body">
-                        {{ finding.finding_guidance|safe }}
+                        {{ finding.finding_guidance|bleach }}
                     </div>
                 </div>
             </div>
@@ -190,8 +209,8 @@
         <!-- Notes -->
         <div class="card">
             <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
-                    Notes <span class="badge badge-pill badge-light" style="margin-right: auto; margin-left: 10px;">{{ finding.findingnote_set.all.count }}</span>
+                <a class="accordion-toggle btn btn-link icon comment-icon" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
+                    Notes
                 </a>
             </div>
             <div id="collapseNotes" class="finding-collapse collapse show" aria-labelledby="notes">
@@ -201,27 +220,32 @@
                     </p>
                     {% if finding.findingnote_set.all %}
                         {% for note in finding.findingnote_set.all reversed %}
-                            <p style="text-align: center;">{{ note.timestamp }}</p>
-                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                                {% if request.user == note.operator or request.user.is_staff %}
-                                    <div class="dropdown right">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content">
-                                            <a href="{% url 'reporting:finding_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'reporting:finding_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                            <div id="note-container-{{ note.id }}">
+                                <p style="text-align: center;">{{ note.timestamp }}</p>
+                                <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                    <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                    {% if request.user == note.operator or request.user.is_staff %}
+                                        <div class="dropdown right">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div id="note-dropdown-{{ note.id }}" class="dropdown-content">
+                                                <a href="{% url 'reporting:finding_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                            </div>
                                         </div>
-                                    </div>
-                                {% endif %}
-                                <p>{{ note.note|safe }}</p>
-                                <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                                    {% endif %}
+                                    {{ note.note|bleach }}
+                                    <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                                </div>
                             </div>
                         {% endfor %}
-                    {% else %}
-                        <p style="text-align: center;">No notes for this finding.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
+{% endblock %}
+
+{% block morescripts %}
+    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+    {% include "confirm_delete_modal.html" %}
 {% endblock %}

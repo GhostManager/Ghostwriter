@@ -1,5 +1,8 @@
 {% extends "base_generic.html" %}
+
 {% load crispy_forms_tags %}
+
+{% load bleach_tags %}
 
 {% block pagetitle %}Project List{% endblock %}
 
@@ -14,47 +17,15 @@
 
 {% block content %}
     <!-- Filter Section -->
-    <div class="m-auto">
-        <form autocomplete="off" class="filterform" method="get" style="width: 60%; margin-left: 20%">
-            <div class="row">
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {{ filter.form.start_date_range|as_crispy_field }}
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {{ filter.form.start_date|as_crispy_field }}
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {{ filter.form.complete|as_crispy_field }}
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class='col-sm-4'>
-                    <div class="form-group">
-                        {{ filter.form.end_date_range|as_crispy_field }}
-                    </div>
-                </div>
-                <div class='col-sm-4'>
-                    <div class="form-group">
-                        {{ filter.form.end_date|as_crispy_field }}
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'rolodex:projects' %}" class="btn btn-secondary">Reset</a>
-        </form>
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
     </div>
 
     <p>
         <a href="{% url 'rolodex:project_create_no_client' %}"><i class="far fa-plus-square"></i> Create a Project</a>
     </p>
 
-    {% if filter.qs|length == 0 %} 
+    {% if filter.qs|length == 0 %}
         <p>There are no projects to display.</p>
     {% else %}
         <table id="projectTable" class="tablesorter">
@@ -69,11 +40,11 @@
             </thead>
             {% for project in filter.qs %}
                 <tr>
-                    <td nowrap class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
-                    <td nowrap class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
-                    <td nowrap>{{ project.project_type }}</td>
+                    <td class="clickable"><a href="{{ project.client.get_absolute_url }}">{{ project.client }}</a></td>
+                    <td class="clickable"><a href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                    <td>{{ project.project_type }}</td>
                     <td nowrap>{{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</td>
-                    <td>{{ project.note|safe }}</td>
+                    <td>{{ project.note|bleach }}</td>
                 </tr>
             {% endfor %}
         </table>
@@ -92,14 +63,6 @@
                             }
                         );
             $('.tablesorter').trigger('update');
-        });
-    </script>
-
-    <!-- Script for Datepicker -->
-    <script>
-        $(function() {
-            $("#id_start_date").datepicker({dateformat: 'mm/dd/yyyy'});
-            $("#id_end_date").datepicker();
         });
     </script>
 {% endblock %}

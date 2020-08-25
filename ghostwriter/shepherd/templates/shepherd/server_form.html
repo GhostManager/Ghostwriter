@@ -71,13 +71,3 @@
         <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
-
-{% block morescripts %}
-    <!-- Script for Datepicker -->
-    <script>
-        $(function() {
-            $("#id_creation").datepicker();
-            $("#id_expiration").datepicker();
-        });
-    </script>
-{% endblock %}

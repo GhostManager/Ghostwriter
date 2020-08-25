@@ -14,16 +14,28 @@
     </style>
 
     <h2>API & Notification Configurations</h2>
-    <p>These settings are managed in settings.py and changing them will require restarting the application:</p>
+    <p>These settings are managed in your <em>.django</em> environment variables file and <em>config/settings/base.py</em>. Changing them will require restarting the application.</p>
     <table style="width: 75%; border: none; margin-left: 12.5%; margin-top: 20px" align="center">
         <!-- General Section -->
         <tr>
-            <th class="form_th"><i class="fas fa-cogs"></i> General Settings</th>
-            <th class="form_th"></th>
+            <th class="form-th"><i class="fas fa-cogs"></i> General Settings</th>
+            <th class="form-th"></th>
         </tr>
         <tr>
             <td><i class="far fa-clock"></i> Timezone Time</td>
             <td>{{ timezone }}</td>
+        </tr>
+        <tr>
+            <td><i class="fas fa-building"></i> Company Name</td>
+            <td>{{ company_name }}</td>
+        </tr>
+        <tr>
+            <td><i class="fab fa-twitter"></i> Twitter</td>
+            <td>{{ company_twitter }}</td>
+        </tr>
+        <tr>
+            <td><i class="fas fa-envelope"></i> Email</td>
+            <td>{{ company_email }}</td>
         </tr>
 
         <!-- Spacer -->
@@ -33,8 +45,8 @@
 
         <!-- Domain Health Section -->
         <tr>
-            <th class="form_th"><i class="fas fa-heart"></i> Domain Health Checks</th>
-            <th class="form_th"></th>
+            <th class="form-th"><i class="fas fa-heart"></i> Domain Health Checks</th>
+            <th class="form-th"></th>
         </tr>
         <tr>
             <td><i class="fab fa-google"></i> VirusTotal API Key</td>
@@ -54,16 +66,92 @@
             <td class="hidden-table">&nbsp;</th>
         </tr>
 
+        <!-- Registrar Section -->
+        <tr>
+            <th class="form-th"><i class="fas fa-cloud-download-alt"></i> Domain Registrar API</th>
+            <th class="form-th"></th>
+        </tr>
+        {% if enable_namecheap %}
+            <tr>
+                <td><i class="fas fa-toggle-on"></i> Namecheap API Enabled</td>
+                <td>{{ enable_namecheap }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-laptop-code"></i> Namecheap Whitelisted IP</td>
+                <td>{{ namecheap_client_ip }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-key"></i> Namecheap API Key</td>
+                <td>{{ namecheap_api_key }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-user"></i> Namecheap Username</td>
+                <td>{{ namecheap_username }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-users-cog"></i> Namecheap API Username</td>
+                <td>{{ namecheap_api_username }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-hashtag"></i> Namecheap Page Size</td>
+                <td>{{ namecheap_page_size }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td><i class="fas fa-toggle-off"></i> Namecheap API Enabled</td>
+                <td>{{ enable_namecheap }}</td>
+            </tr>
+        {% endif %}
+
+        <!-- Spacer -->
+        <tr>
+            <td class="hidden-table">&nbsp;</th>
+        </tr>
+
+        <!-- Registrar Section -->
+        <tr>
+            <th class="form-th"><i class="fas fa-cloud"></i> Cloud Services</th>
+            <th class="form-th"></th>
+        </tr>
+        {% if enable_cloud_monitor %}
+            <tr>
+                <td><i class="fas fa-toggle-on"></i> Cloud Monitoring Enabled</td>
+                <td>{{ enable_cloud_monitor }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-aws"></i> AWS Access Key</td>
+                <td>{{ aws_key }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-aws"></i>> AWS Access Key Secret</td>
+                <td>{{ aws_secret }}</td>
+            </tr>
+            <tr>
+                <td><i class="fab fa-digital-ocean"></i> Digital Ocean API Key</td>
+                <td>{{ do_api_key }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td><i class="fas fa-toggle-off"></i> Cloud Monitoring Enabled</td>
+                <td>{{ enable_cloud_monitor }}</td>
+            </tr>
+        {% endif %}
+
+        <!-- Spacer -->
+        <tr>
+            <td class="hidden-table">&nbsp;</th>
+        </tr>
+
         <!-- Notification Section -->
         <tr>
-            <th class="form_th"><i class="fas fa-bell"></i> Notifications</th>
-            <th class="form_th"></th>
-        </tr>
-        <tr>
-            <td><i class="fab fa-slack"></i> Slack Enabled</td>
-            <td>{{ enable_slack }}</td>
+            <th class="form-th"><i class="fas fa-bell"></i> Notifications</th>
+            <th class="form-th"></th>
         </tr>
         {% if enable_slack %}
+            <tr>
+                <td><i class="fas fa-toggle-on"></i> Slack Enabled</td>
+                <td>{{ enable_slack }}</td>
+            </tr>
             <tr>
                 <td><i class="fab fa-slack"></i> Slack WebHook</td>
                 <td>{{ slack_webhook_url }}</td>
@@ -84,42 +172,10 @@
                 <td><i class="fab fa-slack"></i> Slack Target</td>
                 <td>{{ slack_alert_target }}</td>
             </tr>
-        {% endif %}
-
-        <!-- Spacer -->
-        <tr>
-            <td class="hidden-table">&nbsp;</th>
-        </tr>
-
-        <!-- Registrar Section -->
-        <tr>
-            <th class="form_th"><i class="fas fa-cloud-download-alt"></i> Domain Registar API</th>
-            <th class="form_th"></th>
-        </tr>
-        <tr>
-            <td><i class="fas fa-code"></i> Namecheap API Enabled</td>
-            <td>{{ enable_namecheap }}</td>
-        </tr>
-        {% if enable_namecheap %}
+        {% else %}
             <tr>
-                <td><i class="fas fa-laptop-code"></i> Namecheap Whitelisted IP</td>
-                <td>{{ namecheap_client_ip }}</td>
-            </tr>
-            <tr>
-                <td><i class="fas fa-key"></i> Namecheap API Key</td>
-                <td>{{ namecheap_api_key }}</td>
-            </tr>
-            <tr>
-                <td><i class="fas fa-user"></i> Namecheap Username</td>
-                <td>{{ namecheap_username }}</td>
-            </tr>
-            <tr>
-                <td><i class="fas fa-users-cog"></i> Namecheap API Username</td>
-                <td>{{ namecheap_api_username }}</td>
-            </tr>
-            <tr>
-                <td><i class="fas fa-hashtag"></i> Namecheap Page Size</td>
-                <td>{{ namecheap_page_size }}</td>
+                <td><i class="fas fa-toggle-off"></i> Slack Enabled</td>
+                <td>{{ enable_slack }}</td>
             </tr>
         {% endif %}
     </table>

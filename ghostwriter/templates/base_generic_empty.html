@@ -1,3 +1,5 @@
+{% load custom_tags %}
+
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -7,57 +9,226 @@
 
         <title>{% block title %}Ghostwriter{% endblock %}</title>
 
-        <!-- Bootstrap CSS CDN -->
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
-
-        <!-- Add additional CSS in static file -->
+        <!-- Load Static Files -->
         {% load static %}
-        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
         <link rel="shortcut icon" href="{%  static 'favicon.ico' %}">
-        <link rel="stylesheet" href="{% static 'jquery/jquery-ui.css' %}">
+
+        <!-- Bootstrap CSS CDN -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
         <!-- Font Awesome JS -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
 
-        <!-- jQuery CDN - Slim version (=without AJAX) -->
-        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-        <!-- Popper.JS -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
-        <!-- Bootstrap JS -->
-        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+        <!-- jQuery UI & jQuery CDN -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
-        <!-- jQuery UI for Datepicker -->
-        <script src="{% static 'jquery/external/jquery/jquery.js' %}"></script>
-        <script src="{% static 'jquery/jquery-ui.js' %}"></script>
-
-        <!-- jQuery tablesorter plugin -->
+        <!-- jQuery Tablesorter Plugin -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.widgets.js" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-date-range.min.js" crossorigin="anonymous"></script>
+
+        <!-- SortableJS for Drag n Drop -->
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+        <!-- Toastr -->
+        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+
+        <!-- TinyMCE -->
+        <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
+
+        <!-- TinyMCE -->
+        <script type="application/javascript" src= "{% static 'js/tinymce/config.js' %}"></script>
+
+        <!-- Ghostwriter JS & CSS -->
+        <script src="{% static 'js/project.js' %}"></script>
+        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     </head>
 
     <body>
         <div class="wrapper">
-            <!-- Sidebar Holder -->
             <!-- Page Content Holder -->
             <div id="content">
-            <!-- Section for Flash Messages -->
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert {{ message.tags }} alert-dismissible" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            <!-- Page Content Goes Here -->
-            <div>
-                {% block content %}{% endblock %}
-
+                <!-- Page Content Goes Here -->
+                <div>
+                    {% block content %}{% endblock %}
+                    {% block pagination %}
+                        {% if is_paginated %}
+                            <div class="pagination">
+                                <span class="page-links">
+                                    <span class="page-current">
+                                        <p>
+                                            {% if page_obj.has_previous %}
+                                                <a href="{{ request.path }}?page={{ page_obj.previous_page_number }}"></a>
+                                            {% endif %}
+                                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                            {% if page_obj.has_next %}
+                                                <a href="{{ request.path }}?page={{ page_obj.next_page_number }}"> ></a>
+                                            {% endif %}
+                                        </p>
+                                    </span>
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% endblock %}
+                </div>
             </div>
         </div>
+
+        <!-- Script for Sidebar -->
+        <script>
+            $(document).ready(function () {
+              $('#sidebarCollapse').on('click', function () {
+                $('#sidebar').toggleClass('active');
+                $(this).toggleClass('active');
+              });
+            });
+        </script>
+
+        <!-- Script for Collapsibles -->
+        <script>
+            var coll = document.getElementsByClassName('collapsible');
+            var i;
+            for (i = 0; i < coll.length; i++) {
+              coll[i].addEventListener('click', function () {
+                this.classList.toggle('active');
+                var content = this.nextElementSibling;
+                if (content.style.maxHeight) {
+                  content.style.maxHeight = null;
+                } else {
+                  content.style.maxHeight = content.scrollHeight + 'px';
+                }
+              });
+            }
+        </script>
+
+        <!-- Script for Bootstrap Hover Tooltip -->
+        <script>
+            $(document).ready(function () {
+              $('[data-toggle="tooltip"]').tooltip();
+            });
+        </script>
+
+        <!-- Script to Opening Accordions on Link -->
+        <script>
+            // Modification of https://gist.github.com/raddevon/8958486
+            function openAnchorAccordion() {
+              if (window.location.hash) {
+                var jQuerytarget = jQuery('body').find(window.location.hash);
+                // console.log( jQuerytarget );
+                if (jQuerytarget.hasClass('collapse')) {
+                  var jQuerytargetAccordion = jQuerytarget.find('.collapse');
+                  // console.log( jQuerytargetAccordion );
+                  jQuerytarget.collapse('show');
+                }
+              }
+            }
+
+            openAnchorAccordion();
+
+            jQuery('body').on('click', 'a', openAnchorAccordion);
+        </script>
+
+        <!-- Initialize Config for Toastr Toasts -->
+        <script>
+            // Default Configuration
+            $(document).ready(function () {
+              toastr.options = {
+                'closeButton': true,
+                'debug': false,
+                'newestOnTop': false,
+                'progressBar': true,
+                'positionClass': 'toast-top-right',
+                'preventDuplicates': false,
+                'showDuration': '1000',
+                'hideDuration': '1000',
+                'timeOut': '4000',
+                'extendedTimeOut': '4000',
+                'showEasing': 'swing',
+                'hideEasing': 'linear',
+                'showMethod': 'fadeIn',
+                'hideMethod': 'fadeOut',
+              }
+              // Need to set this outside of the dict per the README
+              // https://github.com/CodeSeven/toastr#escape-html-characters
+              toastr.options.escapeHtml = true;
+            });
+
+            // Display toast notification for each message on page load
+            {% for message in messages %}
+                {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+                    displayToastTop({type:'success', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+                    displayToastTop({type:'warning', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                    displayToastTop({type:'error', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+                    displayToastTop({type:'info', string:'{{ message }}'});
+                {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
+                    displayToastTop({type:'info', string:'{{ message }}'});
+                {% endif %}
+            {% endfor %}
+        </script>
+
+        {% if user.is_authenticated %}
+            <!-- Script for WebSockets Group for Authenticated Users -->
+            <script>
+                // Connect to channel for individual notifcations
+                var username = '{{ user }}';
+                var ws_user = new WebSocket(
+                  'ws://' + window.location.host +
+                  '/ws/users/' + username + '/');
+                // Connect to channel for all user notifications
+                var ws_all = new WebSocket(
+                  'ws://' + window.location.host +
+                  '/ws/users/all/');
+
+                // Functions for sending messages
+                function sendMessage(socket, msg) {
+                  // Wait until the state of the socket is not ready and send the message when it is...
+                  waitForSocketConnection(socket, function () {
+                    socket.send(msg);
+                  });
+                }
+                // Make the function wait until the connection is made...
+                function waitForSocketConnection(socket, callback) {
+                  setTimeout(
+                    function () {
+                      if (socket.readyState === 1) {
+                        if (callback != null) {
+                          callback();
+                        }
+                      } else {
+                        console.log('Waiting for connection...')
+                        waitForSocketConnection(socket, callback);
+                      }
+                    }, 5); // wait 5 milisecond for the connection...
+                }
+
+                // Handle receiving messages on channels
+                ws_user.onmessage = function (e) {
+                  var data = JSON.parse(e.data);
+                  if (data.assignments !== undefined) {
+                    document.getElementById('assignment-count').innerHTML = data.assignments
+                  }
+                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
+                }
+                ws_all.onmessage = function (e) {
+                  var data = JSON.parse(e.data);
+                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
+                };
+
+                // Handle unexpected WebSocket closures
+                ws_user.onclose = function (e) {
+                  console.error('User notfication WebSocket closed unexpectedly');
+                };
+                ws_all.onclose = function (e) {
+                  console.error('Global notification WebSocket closed unexpectedly');
+                };
+            </script>
+        {% endif %}
 
         {% block morescripts %}{% endblock %}
     </body>

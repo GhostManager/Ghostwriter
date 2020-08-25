@@ -14,28 +14,11 @@
 
 {% block content %}
     <!-- Filter Section -->
-    <div class="m-auto">
-        <form class="filterform" method="get">
-            <div class="form-row">
-                <div class="form-group col-md-6 mb-0">
-                    {{ filter.form.title|as_crispy_field }}
-                </div>
-                <div class="form-group col-md-6 mb-0">
-                    {{ filter.form.complete|as_crispy_field }}
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group col-md-6 mb-0">
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                </div>
-                <div class="form-group col-md-6 mb-0">
-                    <a href="{% url 'reporting:reports' %}" class="btn btn-secondary">Reset</a>
-                </div>
-            </div>
-        </form>
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
     </div>
 
-    {% if filter.qs|length == 0 %} 
+    {% if filter.qs|length == 0 %}
         <p>There are no reports to see here.</p>
     {% else %}
         <!-- Instructions -->
@@ -80,15 +63,7 @@
                         <td><span class="badge badge-primary">In Progress</span></td>
                     {% endif %}
                     <td >{{ report.created_by }}</td>
-                    {% if request.session.active_report.id and request.session.active_report.title %}
-                        {% if report.id == request.session.active_report.id %}
-                            <td><span class="badge">Current Report</span></td>
-                        {% else %}
-                            <td><a href="{% url 'reporting:activate_report' report.id %}"><span class="badge badge-primary">Select Report</span></button></td>
-                        {% endif %}
-                    {% else %}
-                        <td><a href="{% url 'reporting:activate_report' report.id %}"><span class="badge badge-primary">Select Report</span></button></td>
-                    {% endif %}
+                    <td><a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report btn btn-secondary" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Select Report</a></td>
                 </tr>
             {% endfor %}
         </table>
@@ -107,6 +82,42 @@
                             }
                         );
             $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    <!-- Activate Report with AJAX -->
+    <script>
+        $('.js-activate-report').click(function () {
+            var url = $(this).attr('activate-report-url');
+            var reportId = $(this).attr('activate-report-id');
+            var csrftoken = $(this).attr('activate-report-csrftoken');
+            var activeReportBar = $('#active-report-id');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'report': reportId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        activeReportBar.html(data['report']);
+                        activeReportBar.attr('href', data['report_url']);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                    }
+                }
+            });
         });
     </script>
 {% endblock %}

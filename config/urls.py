@@ -1,25 +1,44 @@
+"""This contains all of the base URL mappings used by Ghostwriter."""
+
+# Django & Other 3rd Party Libraries
 from django.conf import settings
-from django.urls import include, path
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.views.generic import TemplateView, RedirectView
+from django.urls import include, path, re_path
 from django.views import defaults as default_views
+from django.views.generic import RedirectView
+
+# Ghostwriter Libraries
+from ghostwriter.users.views import (
+    account_change_password,
+    account_reset_password_from_key,
+)
 
 urlpatterns = [
-     # Django Admin, use {% url 'admin:index' %}
+    path("admin/doc/", include("django.contrib.admindocs.urls")),
+    # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management
     path("users/", include("ghostwriter.users.urls", namespace="users")),
     path("home/", include("ghostwriter.home.urls", namespace="home")),
+    path(
+        "accounts/password/change/",
+        account_change_password,
+        name="account_change_password",
+    ),
+    re_path(
+        r"^accounts/password/reset/key/(?P<uidb36>[0-9A-Za-z]+)-(?P<key>.+)/$",
+        account_reset_password_from_key,
+        name="account_reset_password_from_key",
+    ),
     path("accounts/", include("allauth.urls")),
     # path("accounts/", include("django.contrib.auth.urls")),
     path("rolodex/", include("ghostwriter.rolodex.urls", namespace="rolodex")),
     path("shepherd/", include("ghostwriter.shepherd.urls", namespace="shepherd")),
     path("reporting/", include("ghostwriter.reporting.urls", namespace="reporting")),
     path("", RedirectView.as_view(pattern_name="home:dashboard"), name="home"),
-    path("tinymce/", include("tinymce.urls")),
-	path("oplog/", include("ghostwriter.oplog.urls", namespace="oplog")),
-
+    path("oplog/", include("ghostwriter.oplog.urls", namespace="oplog")),
+    # Add additional custom paths below this line...
     # Your stuff: custom urls includes go here
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

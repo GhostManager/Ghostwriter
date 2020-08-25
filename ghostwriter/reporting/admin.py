@@ -1,63 +1,20 @@
-"""This contains customizations for the models in the Django admin panel."""
+"""This contains customizations for displaying the Reporting application models in the admin panel."""
 
+# Django & Other 3rd Party Libraries
 from django.contrib import admin
-from .models import (Finding, Report, Severity, FindingType,
-    ReportFindingLink, Evidence, Archive, FindingNote,
-    LocalFindingNote)
-
 from import_export.admin import ImportExportModelAdmin
 
-
-# Define the admin classes and register models
-@admin.register(Finding)
-class FindingAdmin(ImportExportModelAdmin):
-    list_display = ('severity', 'title', 'finding_type')
-    list_filter = ('severity', 'title', 'finding_type')
-    fieldsets = (
-        (None, {
-            'fields': ('severity', 'title', 'finding_type')
-        }),
-        ('Finding Details', {
-            'fields': ('description', 'impact', 'mitigation',
-                       'replication_steps', 'host_detection_techniques',
-                       'network_detection_techniques', 'references')
-        })
-    )
-
-
-@admin.register(Report)
-class ReportAdmin(admin.ModelAdmin):
-    list_display = ('project', 'title', 'complete', 'created_by', 'archived')
-    list_filter = ('project',)
-    fieldsets = (
-        (None, {
-            'fields': ('project', 'title', 'created_by')
-        }),
-        ('Current Status', {
-            'fields': ('complete',)
-        })
-    )
-
-
-@admin.register(Evidence)
-class EvidenceAdmin(admin.ModelAdmin):
-    list_display = ('upload_date', 'uploaded_by')
-    list_filter = ('upload_date',)
-
-
-@admin.register(ReportFindingLink)
-class ReportFindingLinkAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(Severity)
-class SeverityAdmin(admin.ModelAdmin):
-    pass
-
-
-@admin.register(FindingType)
-class FindingTypeAdmin(admin.ModelAdmin):
-    pass
+from .models import (
+    Archive,
+    Evidence,
+    Finding,
+    FindingNote,
+    FindingType,
+    LocalFindingNote,
+    Report,
+    ReportFindingLink,
+    Severity,
+)
 
 
 @admin.register(Archive)
@@ -65,11 +22,109 @@ class ArchiveAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Evidence)
+class EvidenceAdmin(admin.ModelAdmin):
+    list_display = ("document", "upload_date", "uploaded_by")
+    list_filter = ("uploaded_by",)
+    list_display_links = ("document", "upload_date", "uploaded_by")
+    fieldsets = (
+        (
+            "Evidence Document",
+            {"fields": ("friendly_name", "caption", "description", "document")},
+        ),
+        ("Report Information", {"fields": ("finding", "uploaded_by",)},),
+    )
+
+
+@admin.register(FindingType)
+class FindingTypeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Finding)
+class FindingAdmin(ImportExportModelAdmin):
+    list_display = ("title", "severity", "finding_type")
+    list_filter = ("severity", "finding_type")
+    list_editable = ("severity", "finding_type")
+    list_display_links = ("title",)
+    fieldsets = (
+        ("General Information", {"fields": ("title", "severity", "finding_type")}),
+        ("Finding Guidance", {"fields": ("finding_guidance",)}),
+        (
+            "Finding Details",
+            {
+                "fields": (
+                    "description",
+                    "impact",
+                    "mitigation",
+                    "replication_steps",
+                    "host_detection_techniques",
+                    "network_detection_techniques",
+                    "references",
+                )
+            },
+        ),
+    )
+
+
 @admin.register(FindingNote)
 class FindingNoteAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("operator", "timestamp", "finding")
+    list_display_links = ("operator", "timestamp", "finding")
 
 
 @admin.register(LocalFindingNote)
 class LocalFindingNoteAdmin(admin.ModelAdmin):
+    list_display = ("operator", "timestamp", "finding")
+    list_display_links = ("operator", "timestamp", "finding")
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_display = ("title", "project", "complete", "archived", "created_by")
+    list_filter = ("complete", "archived")
+    list_editable = ("complete",)
+    list_display_links = ("title", "project")
+    fieldsets = (
+        ("Report Details", {"fields": ("project", "title", "created_by")}),
+        ("Current Status", {"fields": ("complete", "delivered", "archived")}),
+    )
+
+
+@admin.register(ReportFindingLink)
+class ReportFindingLinkAdmin(admin.ModelAdmin):
+    list_display = ("report", "severity", "finding_type", "title", "complete")
+    list_filter = ("severity", "finding_type", "complete")
+    list_editable = (
+        "severity",
+        "finding_type",
+        "complete",
+    )
+    list_display_links = ("report", "title")
+    fieldsets = (
+        (
+            "General Information",
+            {"fields": ("title", "severity", "finding_type", "position")},
+        ),
+        ("Finding Status", {"fields": ("complete", "assigned_to", "report")}),
+        ("Finding Guidance", {"fields": ("finding_guidance",)}),
+        (
+            "Finding Details",
+            {
+                "fields": (
+                    "description",
+                    "impact",
+                    "mitigation",
+                    "replication_steps",
+                    "host_detection_techniques",
+                    "network_detection_techniques",
+                    "references",
+                )
+            },
+        ),
+    )
+
+
+@admin.register(Severity)
+class SeverityAdmin(admin.ModelAdmin):
     pass

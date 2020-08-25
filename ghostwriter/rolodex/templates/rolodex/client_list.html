@@ -1,5 +1,8 @@
 {% extends "base_generic.html" %}
+
 {% load crispy_forms_tags %}
+
+{% load bleach_tags %}
 
 {% block pagetitle %}Client List{% endblock %}
 
@@ -14,17 +17,11 @@
 
 {% block content %}
     <!-- Filter Section -->
-    <div class="m-auto">
-        <form class="filterform" method="get">
-            <div class="form-group">
-                {{ filter.form.name|as_crispy_field }}
-            </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'rolodex:clients' %}" class="btn btn-secondary">Reset</a>
-        </form>
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
     </div>
 
-    {% if filter.qs|length == 0 %} 
+    {% if filter.qs|length == 0 %}
         <p>There are no active clients yet or your search returned no results.</p>
     {% else %}
         <table id="clientTable" class="tablesorter">
@@ -39,7 +36,7 @@
                 <tr>
                     <td nowrap class="clickable"><a href="{{ client.get_absolute_url }}">{{ client.name }}</i></a></td>
                     <td nowrap>{{ client.codename }}</td>
-                    <td>{{ client.note|safe }}</td>
+                    <td>{{ client.note|bleach }}</td>
                 </tr>
             {% endfor %}
         </table>

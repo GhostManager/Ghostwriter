@@ -1,3 +1,5 @@
+"""This contains the ``allauth`` adapters used by the Users application."""
+
 from typing import Any
 
 from allauth.account.adapter import DefaultAccountAdapter

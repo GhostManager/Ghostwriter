@@ -2,7 +2,7 @@ pytz==2019.1  # https://github.com/stub42/pytz
 python-slugify==3.0.2  # https://github.com/un33k/python-slugify
 Pillow==6.1.0  # https://github.com/python-pillow/Pillow
 rcssmin==1.0.6  # https://github.com/ndparker/rcssmin
-argon2-cffi==19.1.0  # https://github.com/hynek/argon2_cffi
+argon2-cffi==20.1.0  # https://github.com/hynek/argon2_cffi
 redis==3.2.1  # https://github.com/antirez/redis
 
 # Django
@@ -14,6 +14,8 @@ django-allauth==0.39.1  # https://github.com/pennersr/django-allauth
 django-crispy-forms==1.7.2  # https://github.com/django-crispy-forms/django-crispy-forms
 django-compressor==2.3  # https://github.com/django-compressor/django-compressor
 django-redis==4.10.0  # https://github.com/niwinz/django-redis
+channels==2.4.0 # https://channels.readthedocs.io/en/stable/index.html
+channels-redis==2.4.2 # https://github.com/django/channels_redis/
 
 # Ghostwriter specific
 bs4==0.0.1
@@ -33,5 +35,5 @@ djangorestframework-api-key==2.0.0
 django-import-export==2.2.0
 django-tinymce==2.8.0
 docxtpl==0.6.3
-channels==2.4.0
-channels-redis==2.4.2
+docutils==0.16
+django-bleach==0.6.1

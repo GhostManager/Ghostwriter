@@ -1,0 +1,11 @@
+{% comment %}
+Modified version of the django-crispy-forms alert.html:
+    https://github.com/django-crispy-forms/django-crispy-forms/blob/master/crispy_forms/templates/bootstrap4/layout/alert.html
+
+This version adds ``{{ alert.flat_attrs|safe }}`` to the alert's div to support additional parameters like ``role`` or ``data-dismiss``.
+{% endcomment %}
+
+<div{% if alert.css_id %} id="{{ alert.css_id }}"{% endif %}{% if alert.css_class %} class="{{ alert.css_class }}"{% endif %} {{ alert.flat_attrs|safe }}>
+    {% if dismiss %}<button type="button" class="close" data-dismiss="alert">&times;</button>{% endif %}
+    {{ content|safe }}
+</div>

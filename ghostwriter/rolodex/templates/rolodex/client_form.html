@@ -6,61 +6,63 @@
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
+            {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Client Form</li>
+            {% comment %} Check if `object` is in context to determine if this is a `ClientUpdate` request {% endcomment %}
+            {% if object %}
+                <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' object.id %}">{{ client.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Update</li>
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">New Client Form</li>
+            {% endif %}
         </ul>
     </nav>
 {% endblock %}
 
 {% block content %}
-    <p>
-        Fill-out this form with basic information pertaining to the client.<br>
-        Points of contact are created and associated with a client using the <i class="far fa-plus-square"></i> button on the client details page.
-    </p>
+    <strong><i class="fas fa-project-diagram"></i> Setup a Project</strong>
+    <hr>
+    <p>Use the tabs to provide basic client information and add points of contact:</p>
 
-    <!-- Form Error Sections -->
+    <!-- Form Error Section -->
     {% if form.errors %}
-        {% for field in form %}
-            {% for error in field.errors %}
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <strong>{{ error|escape }}</strong>
-                </div>
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post">
-        {% csrf_token %}
+    {% crispy form form.helper %}
+{% endblock %}
 
-        <!-- Client Info Section -->
-        <strong><i class="far fa-building"></i> Client Information</strong>
-        <hr>
+{% block tabs %}
+    {{ block.super }}
+{% endblock %}
 
-        {{ form.name|as_crispy_field }}
-        {{ form.short_name|as_crispy_field }}
+{% block tabforms %}
+    {{ block.super }}
+{% endblock %}
 
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- Additional Info Section -->
-        <strong><i class="far fa-comment-alt"></i> Additional Info</strong>
-        <hr>
-
-        <!-- Hidden Inputs -->
-        {{ form.codename }}
-
-        {{ form.note|as_crispy_field }}
-
-        <input type="submit" class="btn btn-primary" value="Submit">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+{% block morescripts %}
+    <!-- Formset Manipulation Buttons -->
+    <script>
+        $('.formset-add-{{ contacts.prefix }}').click(function() {
+            tinymce.remove();
+            var form_idx = $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val();
+            $('#formset-{{ contacts.prefix }}').append($('#empty-form-{{ contacts.prefix }}').html().replace(/__prefix__/g, form_idx));
+            $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+            tinyInit();
+            var new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
+            new_form.find('span.counter').html(parseInt(form_idx) + 1);
+            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+        });
+    </script>
 {% endblock %}

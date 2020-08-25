@@ -1,0 +1,38 @@
+<!-- Copy the Project End Date to the Provided Field -->
+<script>
+    function copyDate(deadline_field) {
+        var project_date = document.getElementById('id_end_date').value;
+        document.getElementById(deadline_field).value = project_date;
+    }
+</script>
+
+<!-- Functions for Managing Formsets -->
+<script>
+    $('#add_obj').click(function() {
+        var form_idx = $('#id_obj-TOTAL_FORMS').val();
+        $('#objectives_form_set').append($('#empty_form_obj').html().replace(/__prefix__/g, form_idx));
+        $('#id_obj-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+        var new_objective_id = '#id_obj-' + form_idx + '-objective';
+        // Initialize newly copied textarea as TinyMCE editor
+        tinyMCE.execCommand('mceAddControl', false, new_objective_id);
+    });
+
+    $('#del_obj').click(function() {
+        // console.log('DELETE!');
+        var del_form = $(this).parents('.dynamic-form'),
+            del_field = del_form.find('input:hidden[id $= "-DELETE"]');
+        // console.log(del_field);
+        // if (del_field.length) {
+        //     console.log(del_field);
+        // }
+    });
+
+    $('#add_assignment').click(function() {
+        var form_idx = $('#id_obj-TOTAL_FORMS').val();
+        $('#objectives_form_set').append($('#empty_form_obj').html().replace(/__prefix__/g, form_idx));
+        $('#id_obj-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+        var new_objective_id = '#id_obj-' + form_idx + '-objective';
+        // Initialize newly copied textarea as TinyMCE editor
+        tinyMCE.execCommand('mceAddControl', false, new_objective_id);
+    });
+</script>

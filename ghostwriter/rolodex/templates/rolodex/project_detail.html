@@ -2,6 +2,8 @@
 
 {% load determine_primary %}
 
+{% load bleach_tags %}
+
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
 {% block breadcrumbs %}
@@ -22,26 +24,23 @@
             <div id="myDropdown" class="dropdown-content">
                 <a href="{% url 'rolodex:project_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
                 <a href="{% url 'rolodex:client_detail' project.client.id %}"><i class="far fa-user-circle"></i> Jump to Client</a>
-                <a href="{% url 'rolodex:project_codename' project.id %}"><i class="fas fa-redo-alt"></i> Re-roll codename</a>
+                <a href="javascript:void(0)" class="clickable-link js-roll-codename" roll-codename-csrftoken="{{ csrf_token }}" roll-codename-url="{% url 'rolodex:ajax_roll_project_codename' project.id %}" roll-codename-project="{{ project.id }}"><i class="fas fa-redo-alt"></i> Re-roll codename</a>
                 <a href="{% url 'rolodex:project_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
             </div>
         </div>
     </h2>
 
-    <h6><em>{{ project.codename }}</em></h6>
+    <h6><span id="project-codename" style="font-style: italic;">{{ project.codename }}</span></h6>
 
     <!-- Project Status & Toggles -->
     <h6>
         {% if project.complete %}
-            <em>Complete!</em>
-            <a title="Mark {{ project.name }} as incomplete" href="{% url 'rolodex:reopen_project' project.id %}"><i class="fas fa-toggle-on"></i></a>
+            <span id="js-project-status" style="font-style: italic;">Complete!</span>
+            <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}"><i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i></a>
         {% else %}
-            <em>In Progress</em>
-            <a title="Mark {{ project.name }} as complete" href="{% url 'rolodex:complete_project' project.id %}"><i class="fas fa-toggle-off"></i></a>
+            <span id="js-project-status" style="font-style: italic;">Active</span>
+            <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}"><i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i></a>
         {% endif %}
-
-        <!-- Spacer -->
-        <p></p>
     </h6>
 
     <div>
@@ -58,511 +57,462 @@
             </span>
         </div>
 
-        <!-- Project Description -->
+        <p class="form-spacer"></p>
+
         {% if project.note %}
-           {{ project.note|safe }}
+           {{ project.note|bleach }}
         {% else %}
             <p>No additional information provided for this project.</p>
         {% endif %}
 
+        <p class="form-spacer"></p>
 
-    <div id="accordion" class="myaccordion">
-        <!-- Operators Section -->
-        <div class="card">
-            <div class="card-header" id="operators" data-toggle="collapse" data-target="#collapseOperators">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseOperators" aria-expanded="false" aria-controls="collapseOperators">
-                    <i class="fas fa-user-plus"></i> Operators <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
-                </a>
-            </div>
-            <div id="collapseOperators" class="collapse" aria-labelledby="operators" data-parent="#accordion">
-                <div class="card-body">
-                    <p><a href="{% url 'rolodex:assign_operator' project.id %}"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
-                        {% if project.projectassignment_set.all %}
-                            <table>
-                                <tr>
-                                    <th>Operator</th>
-                                    <th>Role</th>
-                                    <th>Start Date</th>
-                                    <th>End Date</th>
-                                    <th>Note</th>
-                                    <th style="text-align: center;">Options</th>
-                                </tr>
-                                {% for operator in project.projectassignment_set.all %}
-                                    <tr>
-                                        <td nowrap>{{ operator.operator.name }}</td>
-                                        <td nowrap>{{ operator.role }}</td>
-                                        {% if operator.start_date|date:"d M Y" %}
-                                            <td nowrap>{{ operator.start_date|date:"d M Y" }}</td>
-                                        {% else %}
-                                            <td></td>
-                                        {% endif %}
-                                        {% if operator.end_date|date:"d M Y" %}
-                                            <td nowrap>{{ operator.end_date|date:"d M Y" }}</td>
-                                        {% else %}
-                                            <td></td>
-                                        {% endif %}
+        <!-- Navigation Tabs -->
+        {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
+        <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'rolodex:ajax_update_project_badges' project.id %}">
+            {% include "snippets/project_nav_tabs.html" %}
+        </ul>
 
-                                        <td style="text-align: justify">{{ operator.note|safe }}</td>
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="dropbtn far fa-caret-square-down"></button>
-                                                <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                                    <a href="{% url 'rolodex:assignment_edit' operator.id %}"><i class="far fa-edit"></i> Edit Assignment</a>
-                                                    <a href="{% url 'rolodex:assignment_delete' operator.id %}"><i style="color: red;" class="far fa-minus-square"></i> Unassign</a>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </table>
-                        {% else %}
-                            <p>No operators have been assigned to this project yet.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+        <div class="tab-content">
+            <div id="assignments" class="tab-pane in active">
+                <p><a href="{% url 'rolodex:project_update' project.id %}#assignments"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
+                {% if project.projectassignment_set.all %}
+                    <table>
+                        <thead>
+                            <th>Operator</th>
+                            <th>Role</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Note</th>
+                            <th style="text-align: center;">Options</th>
+                        </thead>
+                        {% for operator in project.projectassignment_set.all %}
+                            <tr>
+                                <td nowrap id="delete-target-content-assignment-{{ operator.id }}">{{ operator.operator.name }}</td>
+                                <td nowrap>{{ operator.role }}</td>
+                                {% if operator.start_date|date:"d M Y" %}
+                                    <td nowrap>{{ operator.start_date|date:"d M Y" }}</td>
+                                {% else %}
+                                    <td></td>
+                                {% endif %}
+                                {% if operator.end_date|date:"d M Y" %}
+                                    <td nowrap>{{ operator.end_date|date:"d M Y" }}</td>
+                                {% else %}
+                                    <td></td>
+                                {% endif %}
 
-        <!-- Objectives Section -->
-        <div class="card">
-            <div class="card-header" id="objectives" data-toggle="collapse" data-target="#collapseObjectives">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseObjectives" aria-expanded="false" aria-controls="collapseObjectives">
-                    <i class="fas fa-crosshairs"></i> Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
-                </a>
-            </div>
-            <div id="collapseObjectives" class="collapse" aria-labelledby="objectives" data-parent="#accordion">
-                <div class="card-body">
-                    <p><a href="{% url 'rolodex:project_objective_create' project.id %}"><i class="far fa-plus-square"></i> Add an Objective</a></p>
-                        {% if project.projectobjective_set.all %}
-                            <table id="objectiveTable" class="tablesorter">
-                                <thead>
-                                    <th>Status</th>
-                                    <th>Objective</th>
-                                    <th>Deadline</th>
-                                    <th class="sorter-false" style="text-align: center;">Options</th>
-                                </thead>
-                                {% for objective in project.projectobjective_set.all %}
-                                    <tr>
-                                        <td nowrap>
-                                            <span class="badge badge-pill badge-dark
-                                                {% if objective.status.objective_status == "Active" %}
-                                                    low-background
-                                                {% elif objective.status.objective_status == "On Hold" %}
-                                                    medium-background
-                                                {% elif objective.status.objective_status == "Complete" %}
-                                                    info-background
-                                                {% endif %}
-                                                ">
-                                                {{ objective.status }}
-                                            </span>
-                                        </td>
-                                        <td nowrap>{{ objective.objective|safe }}</td>
-                                        <td nowrap>{{ objective.deadline }}</td>
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="dropbtn far fa-caret-square-down"></button>
-                                                <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
-                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='active' %}"><i class="low fas fa-running"></i> Set Active</a>
-                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='onhold' %}"><i class="medium far fa-pause-circle"></i> Set On Hold</a>
-                                                    <a href="{% url 'rolodex:set_objective_status' pk=objective.id status='complete' %}"><i class="info fas fa-check"></i> Set Complete</a>
-                                                    <a href="{% url 'rolodex:project_objective_update' objective.id %}"><i class="far fa-edit"></i> Edit Objective</a>
-                                                    <a href="{% url 'rolodex:project_objective_delete' objective.id %}"><i style="color: red;" class="far fa-minus-square"></i> Remove</a>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </table>
-                        {% else %}
-                            <p>No objectives have been set for this project yet.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Infrastructure Section -->
-            <div class="card">
-                <div class="card-header" id="infra" data-toggle="collapse" data-target="#collapseInfra">
-                    <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseInfra" aria-expanded="false" aria-controls="collapseInfra">
-                        <i class="fas fa-server"></i> Infrastructure Used
-                    </a>
-                </div>
-                <div id="collapseInfra" class="collapse" aria-labelledby="infra" data-parent="#accordion">
-                    <div class="card-body">
-                        <!-- Domain Section -->
-                        <h4 style="margin-bottom: 30px;">Domains</h4>
-
-                        <!-- Search Section -->
-                        <div class="search" style="width: 35%; margin-left: 32.5%;">
-                            <form action="{% url 'shepherd:domains' %}" method="GET">
-                                <span class="fa fa-search"></span>
-                                <input type="text" name="domain_search" placeholder="Search domains">
-                                <input type="submit" style="display: none;" />
-                            </form>
-                        </div>
-
-                        {% if project.history_set.all %}
-                            <table id="domainTable" class="tablesorter" style="margin-top: 10px;">
-                                <thead>
-                                    <th>Domain Name</th>
-                                    <th>Purpose</th>
-                                    <th class="sorter-date-range-dMMMyyyy">Date Range</th>
-                                    <th class="sorter-false">Note</th>
-                                    <th class="sorter-false">Options</th>
-                                </thead>
-                                {% for domain in project.history_set.all %}
-                                    <tr>
-                                        <td nowrap style="text-align: left;">
-                                            <button type="button" class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ domain.domain.name }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')">
-                                                <i class="far fa-copy"></i>
-                                            </button>
-                                            <a id="domain_{{ domain.domain.id }}" class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">
-                                                {{ domain.domain.name }}
-                                            </a>
-                                        </td>
-                                        <td>{{ domain.activity_type }}</td>
-                                        <td>{{ domain.start_date|date:"d M Y" }} – {{ domain.end_date|date:"d M Y" }}</td>
-                                        <td style="text-align: justify;">{{ domain.note|safe }}</td>
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="dropbtn far fa-caret-square-down"></button>
-                                                <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                                    <a href="{% url 'shepherd:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                                    <a href="{% url 'shepherd:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </table>
-                        {% else %}
-                            <p>There are no domains tied to this project yet.</p>
-                        {% endif %}
-
-                        <!-- Server Section -->
-                        <div class="dropdown">
-                            <h4 style="float: left; margin-right: 5px; margin-top: 40px;">
-                                Servers
-                                <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
-                            </h4>
-
-                            <div class="dropdown-content dropdown-content-info">
-                                <p>Checked-out servers will appear here. Add transient servers (i.e. virtual private servers) here as they are spun up for the project so they can be easily tracked and associated with domains and activities.
-                            </div>
-                        </div>
-
-                        <!-- Search Section -->
-                        <div class="search" style="width: 35%; margin-left: 32.5%;">
-                            <form action="{% url 'shepherd:server_search' %}" method="POST">
-                                {% csrf_token %}
-                                <span class="fa fa-search"></span>
-                                <input type="text" name="server_search" placeholder="Search for an IP address to checkout">
-                                <input type="hidden" name="project_id" value="{{ project.id }}"
-                                <input type="submit" style="display: none;" />
-                            </form>
-                        </div>
-
-                        <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Cloud Server</a></p>
-                        {% if project.serverhistory_set.all or project.transientserver_set.all %}
-                            <table id="serverTable" class="tablesorter">
-                                <thead>
-                                    <th>
-                                        Primary IP Address
-                                        <div class="dropdown-right">
-                                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                            <div class="dropdown-content dropdown-content-info">
-                                                <p>The primary IP address is set in the database and used only to allow users to determine which IP address is used globally to refer to the server.<br />
-                                                Only <em>static servers</em> will be links.</p>
-                                            </div>
+                                <td style="text-align: justify">{{ operator.note|bleach }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'rolodex:project_update' project.id %}#assignments"><i class="far fa-edit"></i> Edit Assignment</a>
+                                            <a id="assignment-delete-button-{{ operator.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}" delete-target-id="{{ operator.id }}" delete-target-type="assignment"><i style="color: red;" class="far fa-minus-square"></i> Unassign</a>
                                         </div>
-                                    </th>
-                                    <th>All IP Addresses</th>
-                                    <th>Name</th>
-                                    <th>Purpose</th>
-                                    <th>Role</th>
-                                    <th>Provider</th>
-                                    <th class="sorter-false">Note</th>
-                                    <th class="sorter-false">Options</th>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>No operators have been assigned to this project yet.</p>
+                {% endif %}
+            </div>
+            <div id="objectives" class="tab-pane ">
+                <p><a href="{% url 'rolodex:project_update' project.id %}#objectives"><i class="far fa-plus-square"></i> Add an Objective</a></p>
+                {% if project.projectobjective_set.all %}
+                    <table id="objectiveTable" class="tablesorter">
+                        <thead>
+                            <th>Status</th>
+                            <th>Objective</th>
+                            <th>Deadline</th>
+                            <th class="sorter-false" style="text-align: center;">Options</th>
+                        </thead>
+                        {% for objective in project.projectobjective_set.all %}
+                            <tr>
+                                <td nowrap>
+                                    <span id="objective-status-{{ objective.id }}" class="badge badge-pill badge-dark
+                                        {% if objective.status.objective_status == "Active" %}
+                                            low-background
+                                        {% elif objective.status.objective_status == "On Hold" %}
+                                            medium-background
+                                        {% elif objective.status.objective_status == "Complete" %}
+                                            info-background
+                                        {% endif %}
+                                        ">
+                                        {{ objective.status }}
+                                    </span>
+                                </td>
+                                <td nowrap id="delete-target-content-objective-{{ objective.id }}">{{ objective.objective|bleach }}</td>
+                                <td nowrap>{{ objective.deadline }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
+                                            <a class="js-set-objective-status" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'active' %}" set-objective-status="active" set-objective-status-id="{{ objective.id }}"><i class="low fas fa-running"></i> Set Active</a>
+                                            <a class="js-set-objective-status" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'on hold' %}" set-objective-status="onhold" set-objective-status-id="{{ objective.id }}"><i class="medium far fa-pause-circle"></i> Set On Hold</a>
+                                            <a class="js-set-objective-status" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'complete' %}" set-objective-status="complete" set-objective-status-id="{{ objective.id }}"><i class="info fas fa-check"></i> Set Complete</a>
+                                            <a href="{% url 'rolodex:project_update' project.id %}#objectives"><i class="far fa-edit"></i> Edit Objective</a>
+                                            <a id="objective-delete-button-{{ objective.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_objective' objective.id %}" delete-target-id="{{ objective.id }}" delete-target-type="objective"><i style="color: red;" class="far fa-minus-square"></i> Remove</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>No objectives have been set for this project yet.</p>
+                {% endif %}
+            </div>
+            <div id="reports" class="tab-pane ">
+                {% if project.complete %}
+                    <p>The project is marked as complete so no additional reports may be created.</p>
+                {% else %}
+                    <p><a href="{% url 'reporting:report_create' project.id %}"><i class="far fa-plus-square"></i> Add a Report</a></p>
+                {% endif %}
+
+                {% if project.report_set.all %}
+                    <table id="reportTable" class="tablesorter">
+                        <thead>
+                            <th>Creation</th>
+                            <th>Title</th>
+                            <th>Last Update</th>
+                            <th>Status</th>
+                            <th>Created by</th>
+                            <th class="sorter-false" style="text-align: center;">Options</th>
+                        </thead>
+                        {% for report in project.report_set.all %}
+                            <tr>
+                                <td>{{ report.creation }}</td>
+                                <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                                <td>{{ report.last_update|date:"d M Y" }}</td>
+                                {% if report.complete %}
+                                    {% if report.delivered %}
+                                        <td>Delivered</td>
+                                    {% else %}
+                                        <td>Complete, Awaiting Delivery</td>
+                                    {% endif %}
+                                {% else %}
+                                    <td>In Progress</td>
+                                {% endif %}
+                                <td>{{ report.created_by }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
+                                            <a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}"><i class="fas fa-power-off"></i> Activate</a>
+                                            <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
+                                            <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
+                                            <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+
+                    {% for report in project.report_set.all %}
+                        {% if report.reportfindinglink_set.all %}
+                            <h4>{{ report.title }}</h4>
+                            <table>
+                                <thead>
+                                    <th>Severity</th>
+                                    <th>Finding</th>
+                                    <th>Owner</th>
+                                    <th>Status</th>
                                 </thead>
-                                {% for server in project.serverhistory_set.all %}
-                                    {% get_primary_address server.server as primary_address%}
+                                {% for finding in report.reportfindinglink_set.all %}
                                     <tr>
-                                        <td nowrap style="text-align: left;">
-                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ primary_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#server_{{ server.server.id }}')">
-                                                <i class="far fa-copy"></i>
-                                            </button>
-                                            <a id="server_{{ server.server.id }}" class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ primary_address }}</a>
-                                        </td>
-                                        <td nowrap style="text-align: left;">
-                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ server.server.id }}')">
-                                                <i class="far fa-copy"></i>
-                                            </button>
-                                            <span id="address_{{ server.server.id }}">{{ server.server.ip_address }}</span>
-                                            {% if server.server.auxserveraddress_set %}
-                                                <br />
-                                                {% for addy in server.server.auxserveraddress_set.all %}
-                                                    {% if forloop.last %}
-                                                        <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
-                                                            <i class="far fa-copy"></i>
-                                                        </button>
-                                                        <span id="address_{{ addy.id }}">{{ addy }}</span>
-                                                    {% elif forloop.first %}
-                                                        <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
-                                                            <i class="far fa-copy"></i>
-                                                        </button>
-                                                        <span id="address_{{ addy.id }}">{{ addy }}</span>
-                                                        <br />
-                                                    {% else %}
-                                                        <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
-                                                            <i class="far fa-copy"></i>
-                                                        </button>
-                                                        <span id="address_{{ addy.id }}">{{ addy }}</span>
-                                                        <br />
-                                                    {% endif %}
-                                                {% endfor %}
+                                        {% if finding.severity.severity == "Critical" %}
+                                            <td class="critical">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "High" %}
+                                            <td class="high">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Medium" %}
+                                            <td class="medium">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Low" %}
+                                            <td class="low">{{ finding.severity }}</td>
+                                        {% else %}
+                                            <td class="info">{{ finding.severity }}</td>
+                                        {% endif %}
+                                        <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                        {% if finding.assigned_to == request.user %}
+                                            {% if finding.complete %}
+                                                <td class="low">You</td>
+                                            {% else %}
+                                                <td class="high">You</td>
                                             {% endif %}
-                                        </td>
-                                        <td>{{ server.server.name }}</td>
-                                        <td>{{ server.activity_type }}</td>
-                                        <td>{{ server.server_role }}</td>
-                                        <td>{{ server.server.server_provider }}</td>
-                                        <td style="text-align: justify;">{{ server.note|safe }}</td>
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="dropbtn far fa-caret-square-down"></button>
-                                                <div id="myDropdown" class="dropdown-content">
-                                                    <a href="{% url 'shepherd:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                                    <a href="{% url 'shepherd:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                                {% for server in project.transientserver_set.all %}
-                                    <tr>
-                                        <td style="text-align: left;">
-                                            <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#vps_{{ server.id }}')">
-                                                <i class="far fa-copy"></i>
-                                            </button>
-                                            <span id="vps_{{ server.id }}">{{ server.ip_address }}</span>
-                                        </td>
-                                        <td style="text-align: left;"></td>
-                                        <td>{{ server.name }}</td>
-                                        <td>{{ server.activity_type }}</td>
-                                        <td>{{ server.server_role }}</td>
-                                        <td>{{ server.server_provider }}</td>
-                                        <td style="text-align: justify;">{{ server.note|safe }}</td>
-                                        <td>
-                                            <div class="dropdown">
-                                                <button class="dropbtn far fa-caret-square-down"></button>
-                                                <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                                    <a href="{% url 'shepherd:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
-                                                    <a href="{% url 'shepherd:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
-                                                </div>
-                                            </div>
-                                        </td>
+                                        {% else %}
+                                            <td class="neutral">{{ finding.assigned_to }}</td>
+                                        {% endif %}
+                                        {% if finding.complete %}
+                                            <td class="low">Ready for Review</td>
+                                        {% else %}
+                                            <td class="high">Needs Editing</td>
+                                        {% endif %}
                                     </tr>
                                 {% endfor %}
                             </table>
                         {% else %}
-                            <p>There are no servers tied to this project yet.</p>
+                            <p>No findings have been added to this project's reports yet.</p>
                         {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p>No reports have been created for this project yet.</p>
+                {% endif %}
 
-                        <!-- DNS Section -->
-                        <div class="dropdown">
-                            <h4 style="float: left; margin-right: 5px; margin-top: 40px;">
-                                Domains and Servers
-                                <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
-                            </h4>
-                            <div class="dropdown-content dropdown-content-info">
-                                <p>Add an association to track which of this project's currently checked-out domains is being used with which project server.</p>
+            </div>
+            <div id="infrastructure" class="tab-pane ">
+                <!-- Domain Section -->
+                <h4>Domains</h4>
+
+                <!-- Search Section -->
+                <div class="search" style="width: 35%; margin-left: 32.5%;">
+                    <form action="{% url 'shepherd:domains' %}" method="GET">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text" id="inner-domain-search-addon"><span class="fa fa-search"></span></span>
                             </div>
+                            <input autocomplete="off" type="text" class="form-control" name="domain_search" placeholder="Search domains" aria-label="domains" aria-describedby="inner-domain-search-addon">
                         </div>
-
-                        <!-- Determine if at least one server and one domain -->
-                        {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
-                            <p>
-                                <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Associate a Domain + Server</a>
-                            </p>
-                            {% if project.domainserverconnection_set.all %}
-                                <table>
-                                    <tr>
-                                        <th>Domain</th>
-                                        <th>Server IP</th>
-                                        <th>Server name</ht>
-                                        <th>CDN Endpoint</th>
-                                        <th>Options</th>
-                                    </tr>
-                                    {% for connection in project.domainserverconnection_set.all %}
-                                        <tr>
-                                            <td>{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
-                                            {% if connection.static_server %}
-                                                <td>{{ connection.static_server.server.ip_address }}</td>
-                                                <td>{{ connection.static_server.server.name }}</td>
-                                            {% else %}
-                                                <td>{{ connection.transient_server.ip_address }}</td>
-                                                <td>{{ connection.transient_server.name }}</td>
-                                            {% endif %}
-                                            {% if connection.endpoint %}
-                                                <td>{{ connection.endpoint }}</td>
-                                            {% else %}
-                                                <td>No Endpoint</td>
-                                            {% endif %}
-                                            <td>
-                                                <div class="dropdown">
-                                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                                    <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                                        <a href="{% url 'shepherd:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
-                                                        <a href="{% url 'shepherd:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                </table>
-                            {% endif %}
-                        {% else %}
-                            <p>Check-out/add at least one domain and one server to create an association.</p>
-                        {% endif %}
+                        <input type="submit" style="display: none" />
+                    </form>
                 </div>
-            </div>
-        </div>
 
-        <!-- Findings Section -->
-        <div class="card">
-            <div class="card-header" id="findings" data-toggle="collapse" data-target="#collapseFindings">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseFindings" aria-expanded="false" aria-controls="collapseFindings">
-                    <i class="fab fa-searchengin"></i> Findings <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
-                </a>
-            </div>
-            <div id="collapseFindings" class="collapse" aria-labelledby="findings" data-parent="#accordion">
-                <div class="card-body">
-                    {% if project.report_set.all %}
-                        {% for report in project.report_set.all %}
-                            {% if report.reportfindinglink_set.all %}
-                                <h4 style="margin-top: 40px; margin-bottom: 40px;">{{ report.title }}</h4>
-                                <table>
-                                    <tr>
-                                        <th>Severity</th>
-                                        <th>Finding</th>
-                                        <th>Owner</th>
-                                        <th>Status</th>
-                                    </tr>
-                                    {% for finding in report.reportfindinglink_set.all %}
-                                        <tr>
-                                            {% if finding.severity.severity == "Critical" %}
-                                                <td class="critical">{{ finding.severity }}</td>
-                                            {% elif finding.severity.severity == "High" %}
-                                                <td class="high">{{ finding.severity }}</td>
-                                            {% elif finding.severity.severity == "Medium" %}
-                                                <td class="medium">{{ finding.severity }}</td>
-                                            {% elif finding.severity.severity == "Low" %}
-                                                <td class="low">{{ finding.severity }}</td>
-                                            {% else %}
-                                                <td class="info">{{ finding.severity }}</td>
-                                            {% endif %}
-                                            <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
-                                            {% if finding.assigned_to == request.user %}
-                                                {% if finding.complete %}
-                                                    <td class="low">You</td>
-                                                {% else %}
-                                                    <td class="high">You</td>
-                                                {% endif %}
-                                            {% else %}
-                                                <td class="neutral">{{ finding.assigned_to }}</td>
-                                            {% endif %}
-                                            {% if finding.complete %}
-                                                <td class="low">Ready for Review</td>
-                                            {% else %}
-                                                <td class="high">Needs Editing</td>
-                                            {% endif %}
-                                        </tr>
-                                    {% endfor %}
-                                </table>
-                            {% else %}
-                                <p>No findings have been added to this project's reports yet.</p>
-                            {% endif %}
+                {% if project.history_set.all %}
+                    <table id="domainTable" class="tablesorter">
+                        <thead>
+                            <th>Domain Name</th>
+                            <th>Purpose</th>
+                            <th class="sorter-date-range-dMMMyyyy">Date Range</th>
+                            <th class="sorter-false">Note</th>
+                            <th class="sorter-false">Options</th>
+                        </thead>
+                        {% for domain in project.history_set.all %}
+                            <tr>
+                                <td nowrap style="text-align: left;">
+                                    <button type="button" class="btn" data-toggle="tooltip" data-placement="top" title="Copy {{ domain.domain.name }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')">
+                                        <i class="far fa-copy"></i>
+                                    </button>
+                                    <a id="domain_{{ domain.domain.id }}" class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">
+                                        {{ domain.domain.name }}
+                                    </a>
+                                </td>
+                                <td>{{ domain.activity_type }}</td>
+                                <td>{{ domain.start_date|date:"d M Y" }} – {{ domain.end_date|date:"d M Y" }}</td>
+                                <td style="text-align: justify;">{{ domain.note|bleach }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'shepherd:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                            <a href="{% url 'shepherd:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
                         {% endfor %}
-                    {% else %}
-                        <p>No reports have been created for this project yet.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+                    </table>
+                {% else %}
+                    <p>There are no domains tied to this project yet.</p>
+                {% endif %}
 
-        <!-- Reports Section -->
-        <div class="card">
-            <div class="card-header" id="reports" data-toggle="collapse" data-target="#collapseReports">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseReports" aria-expanded="false" aria-controls="collapseReports">
-                    <i class="fas fa-book"></i> Reports <span class="badge badge-pill badge-light">{{ project.report_set.all.count }}</span>
-                </a>
-            </div>
-            <div id="collapseReports" class="collapse" aria-labelledby="reports" data-parent="#accordion">
-                <div class="card-body">
-                    {% if project.complete %}
-                        <p>The project is marked as complete so no additional reports may be created.</p>
-                    {% else %}
-                        <p><a href="{% url 'reporting:report_create' project.id %}"><i class="far fa-plus-square"></i> Add a Report</a></p>
-                    {% endif %}
-                    {% if project.report_set.all %}
-                        <table id="reportTable" class="tablesorter">
-                            <thead>
-                                <th>Creation</th>
-                                <th>Title</th>
-                                <th>Last Update</th>
-                                <th>Status</th>
-                                <th>Created by</th>
-                                <th class="sorter-false" style="text-align: center;">Options</th>
-                            </thead>
-                            {% for report in project.report_set.all %}
-                                <tr>
-                                    <td>{{ report.creation }}</td>
-                                    <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                                    <td>{{ report.last_update|date:"d M Y" }}</td>
-                                    {% if report.complete %}
-                                        {% if report.delivered %}
-                                            <td>Delivered</td>
-                                        {% else %}
-                                            <td>Complete, Awaiting Delivery</td>
-                                        {% endif %}
-                                    {% else %}
-                                        <td>In Progress</td>
+                <!-- Server Section -->
+                <div class="dropdown">
+                    <h4 style="float: left; margin-right: 5px;">
+                        Servers
+                        <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
+                    </h4>
+
+                    <div class="dropdown-content dropdown-content-info">
+                        <p>Checked-out servers will appear here. Add transient servers (i.e. virtual private servers) here as they are spun up for the project so they can be easily tracked and associated with domains and activities.
+                    </div>
+                </div>
+
+                <!-- Search Section -->
+                <div class="search" style="width: 35%; margin-left: 32.5%;">
+                    <form action="{% url 'shepherd:server_search' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="fa fa-search input-group-text" id="inner-server-search-addon"></span>
+                            </div>
+                            <input autocomplete="off" type="text" class="form-control" name="server_search" placeholder="Search for an IP address to checkout" aria-label="servers" aria-describedby="inner-server-search-addon">
+                        </div>
+                        <input type="hidden" name="project_id" value="{{ project.id }}"
+                        <input type="submit" style="display: none" />
+                    </form>
+                </div>
+
+                <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Cloud Server</a></p>
+                {% if project.serverhistory_set.all or project.transientserver_set.all %}
+                    <table id="serverTable" class="tablesorter">
+                        <thead>
+                            <th>
+                                Primary IP Address
+                                <div class="dropdown-right">
+                                    <button class="dropbtn dropbtn-info far fa-question-circle"></button>
+                                    <div class="dropdown-content dropdown-content-info">
+                                        <p>The primary IP address is set in the database and used only to allow users to determine which IP address is used globally to refer to the server.<br />
+                                        Only <em>static servers</em> will be links.</p>
+                                    </div>
+                                </div>
+                            </th>
+                            <th>All IP Addresses</th>
+                            <th>Name</th>
+                            <th>Purpose</th>
+                            <th>Role</th>
+                            <th>Provider</th>
+                            <th class="sorter-false">Note</th>
+                            <th class="sorter-false">Options</th>
+                        </thead>
+                        {% for server in project.serverhistory_set.all %}
+                            {% get_primary_address server.server as primary_address%}
+                            <tr>
+                                <td nowrap style="text-align: left;">
+                                    <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ primary_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#server_{{ server.server.id }}')">
+                                        <i class="far fa-copy"></i>
+                                    </button>
+                                    <a id="server_{{ server.server.id }}" class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ primary_address }}</a>
+                                </td>
+                                <td nowrap style="text-align: left;">
+                                    <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ server.server.id }}')">
+                                        <i class="far fa-copy"></i>
+                                    </button>
+                                    <span id="address_{{ server.server.id }}">{{ server.server.ip_address }}</span>
+                                    {% if server.server.auxserveraddress_set %}
+                                        <br />
+                                        {% for addy in server.server.auxserveraddress_set.all %}
+                                            {% if forloop.last %}
+                                                <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
+                                                    <i class="far fa-copy"></i>
+                                                </button>
+                                                <span id="address_{{ addy.id }}">{{ addy }}</span>
+                                            {% elif forloop.first %}
+                                                <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
+                                                    <i class="far fa-copy"></i>
+                                                </button>
+                                                <span id="address_{{ addy.id }}">{{ addy }}</span>
+                                                <br />
+                                            {% else %}
+                                                <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
+                                                    <i class="far fa-copy"></i>
+                                                </button>
+                                                <span id="address_{{ addy.id }}">{{ addy }}</span>
+                                                <br />
+                                            {% endif %}
+                                        {% endfor %}
                                     {% endif %}
-                                    <td>{{ report.created_by }}</td>
+                                </td>
+                                <td>{{ server.server.name }}</td>
+                                <td>{{ server.activity_type }}</td>
+                                <td>{{ server.server_role }}</td>
+                                <td>{{ server.server.server_provider }}</td>
+                                <td style="text-align: justify;">{{ server.note|bleach }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'shepherd:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
+                                            <a href="{% url 'shepherd:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% for server in project.transientserver_set.all %}
+                            <tr>
+                                <td style="text-align: left;">
+                                    <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#vps_{{ server.id }}')">
+                                        <i class="far fa-copy"></i>
+                                    </button>
+                                    <span id="vps_{{ server.id }}">{{ server.ip_address }}</span>
+                                </td>
+                                <td style="text-align: left;"></td>
+                                <td>{{ server.name }}</td>
+                                <td>{{ server.activity_type }}</td>
+                                <td>{{ server.server_role }}</td>
+                                <td>{{ server.server_provider }}</td>
+                                <td style="text-align: justify;">{{ server.note|bleach }}</td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                            <a href="{% url 'shepherd:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
+                                            <a href="{% url 'shepherd:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>There are no servers tied to this project yet.</p>
+                {% endif %}
+
+                <!-- DNS Section -->
+                <div class="dropdown">
+                    <h4 style="float: left; margin-right: 5px;">
+                        Domains and Servers
+                        <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
+                    </h4>
+                    <div class="dropdown-content dropdown-content-info">
+                        <p>Add an association to track which of this project's currently checked-out domains is being used with which project server.</p>
+                    </div>
+                </div>
+
+                <!-- Determine if at least one server and one domain -->
+                {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
+                    <p>
+                        <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Associate a Domain + Server</a>
+                    </p>
+                    {% if project.domainserverconnection_set.all %}
+                        <table>
+                            <tr>
+                                <th>Domain</th>
+                                <th>Server IP</th>
+                                <th>Server name</ht>
+                                <th>CDN Endpoint</th>
+                                <th>Options</th>
+                            </tr>
+                            {% for connection in project.domainserverconnection_set.all %}
+                                <tr>
+                                    <td>{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
+                                    {% if connection.static_server %}
+                                        <td>{{ connection.static_server.server.ip_address }}</td>
+                                        <td>{{ connection.static_server.server.name }}</td>
+                                    {% else %}
+                                        <td>{{ connection.transient_server.ip_address }}</td>
+                                        <td>{{ connection.transient_server.name }}</td>
+                                    {% endif %}
+                                    {% if connection.endpoint %}
+                                        <td>{{ connection.endpoint }}</td>
+                                    {% else %}
+                                        <td>No Endpoint</td>
+                                    {% endif %}
                                     <td>
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
-                                            <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
-                                                <a href="{% url 'reporting:activate_report' report.id %}"><i class="far fa-edit"></i> Edit</a>
-                                                <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
-                                                <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
-                                                <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                            <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
+                                                <a href="{% url 'shepherd:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
+                                                <a href="{% url 'shepherd:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
                                             </div>
                                         </div>
                                     </td>
                                 </tr>
                             {% endfor %}
                         </table>
-                    {% else %}
-                        <p>No reports have been created for this project yet.</p>
                     {% endif %}
-                </div>
+                {% else %}
+                    <p>Check-out/add at least one domain and one server to create an association.</p>
+                {% endif %}
             </div>
-        </div>
-
-        <!-- Additional Information Section -->
-        <div class="card">
-            <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
-                    <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
-                </a>
-            </div>
-            <div id="collapseNotes" class="collapse" aria-labelledby="notes" data-parent="#accordion">
-                <div class="card-body">
-                    <p>
-                        <a href="{% url 'rolodex:project_note_add' project.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
-                    </p>
-                    {% if project.projectnote_set.all %}
-                        {% for note in project.projectnote_set.all reversed %}
+            <div id="notes" class="tab-pane ">
+                <p>
+                    <a href="{% url 'rolodex:project_note_add' project.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                </p>
+                {% if project.projectnote_set.all %}
+                    {% for note in project.projectnote_set.all reversed %}
+                        <div id="note-container-{{ note.id }}">
                             <p>{{ note.timestamp }}</p>
                             <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
                                 <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
@@ -571,25 +521,25 @@
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content">
                                             <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'rolodex:project_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                            <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
                                         </div>
                                     </div>
                                 {% endif %}
-                                <p>{{ note.note|safe }}</p>
+                                {{ note.note|bleach }}
                                 <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
                             </div>
-                        {% endfor %}
-                    {% else %}
-                        <p>No notes for this project.</p>
-                    {% endif %}
-                </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No notes for this project.</p>
+                {% endif %}
             </div>
         </div>
     </div>
 {% endblock %}
 
-{% block collapse_js %}
-{{ block.super }}
+{% block tabs %}
+    {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
@@ -628,14 +578,154 @@
         });
     </script>
 
-    <!-- Script for Copying Text to Clipboard-->
+    <!-- Roll Codename with AJAX -->
     <script>
-        function copyToClipboard(element) {
-            var $temp = $("<input>");
-            $("body").append($temp);
-            $temp.val($(element).text()).select();
-            document.execCommand("copy");
-            $temp.remove();
-        }
+        $(".js-roll-codename").click(function () {
+            var url = $(this).attr('roll-codename-url');
+            var projectId = $(this).attr('roll-codename-project');
+            var csrftoken = $(this).attr('roll-codename-csrftoken')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'project': projectId
+                },
+                success: function (data) {
+                    $("#project-codename").html(data['codename']);
+                }
+            });
+        });
     </script>
+
+    <!-- Toggle Project Status with AJAX -->
+    <script>
+        $('.js-toggle-project-status').click(function () {
+            var url = $(this).attr('toggle-project-status-url');
+            var projectId = $(this).attr('toggle-project-status-id');
+            var csrftoken = $(this).attr('toggle-project-status-csrftoken');
+            var statusIcon = $('#js-toggle-project-status-icon');
+            var statusText = $('#js-project-status')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'project': projectId
+                },
+                success: function (data) {
+                    statusText.html(data['status']);
+                    if (data['toggle']) {
+                        statusIcon.removeClass('fa-toggle-off')
+                        statusIcon.addClass('fa-toggle-on')
+                    } else {
+                        statusIcon.removeClass('fa-toggle-on')
+                        statusIcon.addClass('fa-toggle-off')
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Project Update'});
+                    }
+                }
+            });
+        });
+    </script>
+
+    <!-- Set Project Objective Status with AJAX -->
+    <script>
+        $('.js-set-objective-status').each(function(index) {
+            $(this).click(function () {
+                var url = $(this).attr('set-objective-status-url');
+                var newStatus = $(this).attr('set-objective-status');
+                var objectiveId = $(this).attr('set-objective-status-id');
+                var csrftoken = $(this).attr('set-objective-status-csrftoken');
+                var statusPillId = '#objective-status-' + objectiveId;
+                var statusPill = $(statusPillId);
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'objective': objectiveId,
+                        'status': newStatus
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            statusPill.html(data['status']);
+                            statusPill.removeClass()
+                            statusPill.addClass(data['classes'])
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Objective Update'});
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- Activate Report with AJAX -->
+    <script>
+        $('.js-activate-report').click(function () {
+            var url = $(this).attr('activate-report-url');
+            var reportId = $(this).attr('activate-report-id');
+            var csrftoken = $(this).attr('activate-report-csrftoken');
+            var activeReportBar = $('#active-report-id');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'report': reportId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        activeReportBar.html(data['report']);
+                        activeReportBar.attr('href', data['report_url']);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                    }
+                }
+            });
+        });
+    </script>
+
+    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+    {% include "confirm_delete_modal.html" %}
 {% endblock %}

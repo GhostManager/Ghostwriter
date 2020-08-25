@@ -1,0 +1,76 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Finding Import{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Findings Import</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <!-- File Upload -->
+    <h2>Upload Findings CSV</h2>
+    <p>Upload a csv file containing your findings to be imported:</p>
+    <form action="{% url 'reporting:import_findings' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="csv_file" class="csvlabel">
+                <div class="csvdiv">Click or drop your csv file here</div>
+                <input type="file" id="csv_file" name="csv_file" required="True"
+                accept="text/csv">
+            </label>
+            <p id="filename"></p>
+        </div>
+        <div class="form-group">
+            <div style="text-align: center"></div>
+                <button class="button"><i class="fas fa-file-upload"></i> Upload</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Spacer -->
+    <p style="margin: 40p;"></p>
+
+    <!-- Section for Instructions -->
+    <h3>Instructions</h3>
+    <div>
+        <p>Your csv file must have these headers:</p>
+        <div style="width: 50%; margin: 0 auto">
+            <p>
+                <em>
+                    title, description, severity, impact, mitigation, replication_steps, host_detection_techniques, network_detection_techniques, references, finding_type, finding_guidance
+                </em>
+            </p>
+        </div>
+
+        <p>
+            To avoid "KeyError" errors, ensure the csv file was saved without a Byte Order Marker (BOM).<br>
+            Download a template with the headers and an example entry:
+        </p>
+
+        {% load static %}
+        <a href="{% static 'files/template_findings.csv' %}" style="margin: 20px" class="button"><i class="fas fa-file-download"></i> Download Template</a>
+    </div>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for Upload Form -->
+    <script>
+        $('input[type=file]').on('change', function() {
+            $("#filename").text($(this).val());
+        });
+
+        $('input[type=file]').on('dragenter', function() {
+            $('csvdiv').addClass('dragover');
+        });
+
+        $('input[type=file]').on('dragleave', function() {
+            $('csvdiv').removeClass('dragover');
+        });
+    </script>
+{% endblock %}

@@ -6,87 +6,91 @@
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
+            {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Project Form</li>
+            {% comment %} Check if `object` is in context to determine if this is a ProjectUpdate` request {% endcomment %}
+            {% if object %}
+                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object.client }}" href="{% url 'rolodex:client_detail' object.client.id %}">{{ object.client }}</a></li>
+                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object }}" href="{% url 'rolodex:project_detail' object.id %}">{{ object.start_date|date:"d M Y" }} {{ object.project_type }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            {% else %}
+            {% comment %} Check if `client` is in context for `ProjectCreate` for a specific client {% endcomment %}
+                {% if client %}
+                    <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ client }}" href="{% url 'rolodex:client_detail' client.id %}">{{ client }}</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active" aria-current="page">New Project Form</li>
+            {% endif %}
         </ul>
     </nav>
 {% endblock %}
 
 {% block content %}
-    <p>Fill-out this form with all necessary information for this project for {{ client_name }}:</p>
+    <strong><i class="fas fa-project-diagram"></i> Setup a Project</strong>
+    <hr>
+    <p>Use the tabs to provide basic project parameters, notes, assignments, and objectives:</p>
 
-    <!-- Form Error Sections -->
+    <!-- Form Error Section -->
     {% if form.errors %}
-        {% for field in form %}
-            {% for error in field.errors %}
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <strong>{{ error|escape }}</strong>
-                </div>
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post">
-        {% csrf_token %}
+    {% crispy form form.helper %}
+{% endblock %}
 
-        <!-- Project Info Section -->
-        <strong><i class="fas fa-tasks"></i> Client Information</td></strong>
-        <hr>
+{% block tabs %}
+    {{ block.super }}
+{% endblock %}
 
-        {{ form.client|as_crispy_field }}
-
-        <!-- Project Info Section -->
-        <strong><i class="fas fa-tasks"></i> Project Information</td></strong>
-        <hr>
-
-        <div class="form-row">
-            <div class="form-group col-md-6 mb-0">
-                {{ form.start_date|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.end_date|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.project_type|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.slack_channel|as_crispy_field }}
-            </div>
-        </div>
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- Additional Info Section -->
-        <strong><i class="far fa-comment-alt"></i> Additional Info</strong>
-        <hr>
-
-        {{ form.note|as_crispy_field }}
-
-        <!-- Hidden Inputs -->
-        {{ form.codename }}
-
-        <input type="hidden" name="next" value="{{ origin }}">
-        <input type="submit" class="btn btn-primary" value="Submit">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+{% block tabforms %}
+    {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Script for Datepicker -->
+    <!-- Copy a Project Date to the Provided Field -->
     <script>
-        $(function() {
-            $("#id_start_date").datepicker({dateformat: 'mm/dd/yyyy'});
-            $("#id_end_date").datepicker();
+        function copyStartDate(deadline_field) {
+            var project_date = document.getElementById('id_start_date').value;
+            deadline_field.val(project_date);
+        }
+
+        function copyEndDate(deadline_field) {
+            var project_date = document.getElementById('id_end_date').value;
+            deadline_field.val(project_date);
+        }
+    </script>
+
+    <!-- Formset Manipulation Buttons -->
+    <script>
+        $('.formset-add-{{ objectives.prefix }}').click(function() {
+            tinymce.remove();
+            var form_idx = $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val();
+            $('#formset-{{ objectives.prefix }}').append($('#empty-form-{{ objectives.prefix }}').html().replace(/__prefix__/g, form_idx));
+            $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+            tinyInit();
+            var new_form = $('#formset-{{ objectives.prefix }}').find('div.formset-container').last()
+            new_form.find('span.counter').html(parseInt(form_idx) + 1);
+            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+        });
+
+        $('.formset-add-{{ assignments.prefix }}').click(function() {
+            tinymce.remove();
+            var form_idx = $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val();
+            $('#formset-{{ assignments.prefix }}').append($('#empty-form-{{ assignments.prefix }}').html().replace(/__prefix__/g, form_idx));
+            $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+            tinyInit();
+            var new_form = $('#formset-{{ assignments.prefix }}').find('div.formset-container').last()
+            new_form.find('span.counter').html(parseInt(form_idx) + 1);
+            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
         });
     </script>
 {% endblock %}
