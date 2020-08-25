@@ -116,7 +116,8 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
 
 class ClientContactForm(forms.ModelForm):
     """
-    Create an individual :model:`rolodex.ClientContact` for a :model:`rolodex.Client`.
+    Save an individual :model:`rolodex.ClientContact` associated with an individual
+    :model:`rolodex.Client`.
     """
 
     class Meta:
@@ -297,7 +298,8 @@ class ClientForm(forms.ModelForm):
 
 class ClientNoteForm(forms.ModelForm):
     """
-    Create an individual :model:`rolodex.ClientNote` for a :model:`rolodex.Client`.
+    Save an individual :model:`rolodex.ClientNote` associated with an individual
+    :model:`rolodex.Client`.
     """
 
     class Meta:

@@ -167,7 +167,8 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
 
 class ProjectAssignmentForm(forms.ModelForm):
     """
-    Create an individual :model:`rolodex.ProjectAssignment` for a :model:`rolodex.Project`.
+    Save an individual :model:`rolodex.ProjectAssignment` associated with an individual
+    :model:`rolodex.Project`.
     """
 
     class Meta:
@@ -291,7 +292,8 @@ class ProjectAssignmentForm(forms.ModelForm):
 
 class ProjectObjectiveForm(forms.ModelForm):
     """
-    Create an individual :model:`rolodex.ProjectObjective` for a :model:`rolodex.Project`.
+    Save an individual :model:`rolodex.ProjectObjective` associated with an individual
+    :model:`rolodex.Project`.
     """
 
     class Meta:
@@ -407,7 +409,8 @@ ProjectObjectiveFormSet = inlineformset_factory(
 class ProjectForm(forms.ModelForm):
     """
     Save an individual :model:`rolodex.Project` with instances of
-    :model:`rolodex.ProjectAssignment` and :model:`rolodex.ProjectObjective`.
+    :model:`rolodex.ProjectAssignment` and :model:`rolodex.ProjectObjective` associated
+    with an individual :model:`rolodex.Client`.
     """
 
     class Meta:
@@ -540,7 +543,8 @@ class ProjectForm(forms.ModelForm):
 
 class ProjectNoteForm(forms.ModelForm):
     """
-    Create an individual :model:`rolodex.ProjectNote` for a :model:`rolodex.Project`.
+    Save an individual :model:`rolodex.ProjectNote` associated with an individual
+    :model:`rolodex.Project`.
     """
 
     class Meta:
