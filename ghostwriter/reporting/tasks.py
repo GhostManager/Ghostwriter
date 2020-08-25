@@ -1,23 +1,25 @@
 """This contains tasks to be run using Django Q and Redis."""
 
+# Standard Libraries
 import datetime
 import io
-import json
+import logging
 import os
 import zipfile
 from datetime import date
 
-import nmap
-import requests
+# Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.core.files import File
 from django.db.models import Q
 
+# Ghostwriter Libraries
 from ghostwriter.modules import reportwriter
-from ghostwriter.modules.dns import DNSCollector
-from ghostwriter.modules.review import DomainReview
 
 from .models import Archive, Report
+
+# Using __name__ resolves to ghostwriter.reporting.tasks
+logger = logging.getLogger(__name__)
 
 
 def zip_directory(path, zip_handler):

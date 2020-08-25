@@ -20,6 +20,7 @@
         <div class="dropdown">
             <button class="dropbtn far fa-caret-square-down"></button>
             <div id="myDropdown" class="dropdown-content">
+                <a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}"><i class="fas fa-power-off"></i> Activate</a>
                 <a href="{% url 'reporting:report_update' report.id %}"><i class="far fa-edit"></i> Edit</a>
                 <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
                 <a href="{% url 'rolodex:project_detail' report.project.id %}"><i class="far fa-file-alt"></i> Jump to Project</a>
@@ -31,44 +32,43 @@
 
     <!-- Report Status & Toggles -->
     <h6>
-        Report Status: 
+        Report Status:
         {% if report.complete %}
-            <em>Complete!</em>
-            <a title="Mark {{ report.name }} as incomplete" href="{% url 'reporting:report_status_toggle' report.id %}"><i class="fas fa-toggle-on"></i></i></a>
+            <span id="js-report-status" style="font-style: italic;">Complete</span>
+            <a title="Mark report as incomplete" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-on"></i></a>
         {% else %}
-            <em>In Progress</em>
-            <a title="Mark {{ report.name }} as complete" href="{% url 'reporting:report_status_toggle' report.id %}"><i class="fas fa-toggle-off"></i></i></a>
+            <span id="js-report-status" style="font-style: italic;">In Progress</span>
+            <a title="Mark report as complete" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
         {% endif %}
     </h6>
 
-    {% if report.complete %}
-        <h6>
-            Delivery Status: 
-            {% if report.delivered %}
-                <em>Delivered!</em>
-                <a title="Mark {{ report.name }} as incomplete" href="{% url 'reporting:report_delivery_toggle' report.id %}"><i class="fas fa-toggle-on"></i></i></a>
-            {% else %}
-                <em>Not Delivered</em>
-                <a title="Mark {{ report.name }} as complete" href="{% url 'reporting:report_delivery_toggle' report.id %}"><i class="fas fa-toggle-off"></i></i></a>
-            {% endif %}
-        </h6>
-    {% endif %}
+    <h6>
+        Delivery Status:
+        {% if report.delivered %}
+            <span id="js-delivery-status" style="font-style: italic;">Delivered</span>
+            <a title="Mark report as not delivered" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-on"></i></a>
+        {% else %}
+            <span id="js-delivery-status" style="font-style: italic;">Not Delivered</span>
+            <a title="Mark report as delivered" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-off"></i></a>
+        {% endif %}
+    </h6>
 
     <!-- Findings Section -->
     <div style="margin-left: 20px; margin-top: 40px">
         <h4><i class="fab fa-searchengin"></i> Attached Findings</h4>
         <hr>
 
-        <p>
-            Attach findings by searching and then clicking the <i class="far fa-plus-square"></i> button next to your desired finding.<br>
-            The finding will be added to your <em>active report</em> displayed at the top of every page
-        </p>
+        <p>Attach findings by searching and then clicking the <i class="far fa-plus-square"></i> button next to your desired finding.</p>
 
         <!-- Search Section -->
-        <div class="search" style="width: 35%; margin-left: 32.5%;">
+        <div class="search detail-page-search">
             <form action="{% url 'reporting:findings' %}" method="GET">
-                <span class="fa fa-search"></span>
-                <input type="text" name="finding_search" placeholder="Search findings">
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text fa fa-search" id="report-findings-search"></span>
+                    </div>
+                    <input type="text" class="form-control" name="findings-search" placeholder="Search findings" aria-label="findings" aria-describedby="report-findings-search">
+                </div>
                 <input type="submit" style="display: none" />
             </form>
         </div>
@@ -79,15 +79,7 @@
         {% if report.reportfindinglink_set.all %}
             <table id="findings-table" class="roundedCorners" findings-update-url="{% url 'reporting:update_report_findings' %}">
                 <tr>
-                    <th>
-                        Order
-                        <div class="dropdown">
-                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                            <div class="dropdown-content dropdown-content-info">
-                                <p><em>Report Order</em> adjusts the order in which findings will appear here and in generated reports. Findings will always be grouped by severity in descending order (e.g. Critical, High, Medium, Low). Adjust a fidning's position to tweak where it is ranked within its severity category.</p>
-                            </div>
-                        </div>
-                    </th>
+                    <th>Order</th>
                     <th>Finding</th>
                     <th>
                         Evidence
@@ -128,15 +120,13 @@
                         {% if severity_groups|get_item:group %}
                             {% for finding in severity_groups|get_item:group %}
                                 <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
-                                    <td class="holdme">
-                                        <i class="fas fa-arrows-alt"></i> {{ finding.position }}
-                                    </td>
-                                    <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                    <td class="holdme"></td>
+                                    <td class="clickable"><a id="delete-target-content-finding-{{ finding.id }}" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                     {% if finding.evidence_set.all %}
                                         <td>
                                             {% for evidence_file in finding.evidence_set.all %}
                                                 <div class="dropdown">
-                                                    <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><button class="dropbtn clickable" style="font-size: 1.1em; font-weight: 300; line-height: 1.7em;">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></button></a>
+                                                    <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="dropbtn clickable evidence-dropdown">{{ evidence_file.friendly_name }} <i class="fas fa-caret-down"></i></a>
                                                     <div class="dropdown-content">
                                                         <a href="{% url 'reporting:evidence_detail' evidence_file.id %}"><i class="far fa-file-image"></i> View</a>
                                                         <a href="{% url 'reporting:evidence_update' evidence_file.id %}"><i class="far fa-edit"></i> Edit</a>
@@ -153,27 +143,35 @@
                                     {% endif %}
                                     {% if finding.assigned_to == request.user %}
                                         {% if finding.complete %}
-                                            <td style="color: #A8D08D"><strong>You</strong></td>
+                                            <td class="healthy">You</td>
                                         {% else %}
-                                            <td style="color: #FF7E79"><strong>You</strong></td>
-                                        {% endif %} 
+                                            <td class="burned">You</td>
+                                        {% endif %}
                                     {% else %}
-                                        <td style="color: #7a7a7a"><strong>{{ finding.assigned_to }}</strong></td>
+                                        {% if finding.assigned_to %}
+                                            <td class="neutral">{{ finding.assigned_to }}</td>
+                                        {% else %}
+                                            <td class="medium">TBD</td>
+                                        {% endif %}
                                     {% endif %}
-                                    {% if finding.complete %}
-                                        <td style="color: #A8D08D"><strong>Ready for Review</strong></td>
-                                    {% else %}
-                                        <td style="color: #FF7E79"><strong>Needs Editing</strong></td>
-                                    {% endif %}
+                                    <td>
+                                        <span id="finding-status-{{ finding.id }}" class="
+                                            {% if finding.complete %}
+                                                healthy">Ready
+                                            {% else %}
+                                                burned"> Needs Editing
+                                            {% endif %}
+                                        </span>
                                     <td>
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
                                             <div class="dropdown-content">
                                                 <a href="{% url 'reporting:upload_evidence' finding.id %}"><i class="fas fa-paperclip"></i> Attach Evidence</a>
                                                 <a href="{% url 'reporting:local_edit' finding.id %}"><i class="far fa-edit"></i> Edit</a>
-                                                <a href="{% url 'reporting:finding_status_toggle' finding.id %}">{% if finding.complete %}<i style="color: darkorange" class="fas fa-toggle-off"></i> Flag for Editing {% else %}<i style="color: green" class="fas fa-toggle-on"></i> Mark as Complete {% endif %}</a>
-                                                <a href="{% url 'reporting:local_remove' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Remove</a>
+                                                <a class="js-set-finding-status" href="javascript:void(0);" set-finding-status-csrftoken="{{ csrf_token }}" set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}" set-finding-status="edit" set-finding-status-id="{{ finding.id }}"><i style="color: darkorange" class="fas fa-toggle-off"></i> Flag for Editing</a>
+                                                <a class="js-set-finding-status" href="javascript:void(0);" set-finding-status-csrftoken="{{ csrf_token }}" set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}" set-finding-status="complete" set-finding-status-id="{{ finding.id }}"><i style="color: green" class="fas fa-toggle-on"></i> Mark as Complete</a>
                                                 <a href="{% url 'reporting:convert_finding' finding.id %}"><i class="far fa-copy"></i> Clone to Library</a>
+                                                <a id="finding-delete-button-{{ finding.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id%}" delete-target-id="{{ finding.id }}" delete-target-type="finding"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
                                             </div>
                                         </div>
                                     </td>
@@ -181,7 +179,7 @@
                             {% endfor %}
                         {% else %}
                             <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder" class="severity-row-placeholder">
-                                <td colspan="7" scope="colgroup">No {{ group }} findings yet. Add a {{ group }} finding or drag-and-drop a finding here to update its severity.</td>
+                                <td colspan="7" scope="colgroup">Add a {{ group }} finding or drag-and-drop a finding here to update its severity.</td>
                             </tr>
                         {% endif %}
                     {% endfor %}
@@ -283,7 +281,7 @@
                     [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, index) {
                         //el.setAttribute("data-id",index);
                         var cell = el.getElementsByClassName('holdme')[0];
-                        cell.innerHTML = '<i class="fas fa-arrows-alt"></i>' + (index + 1);
+                        // cell.innerHTML = '<i class="fas fa-arrows-alt"></i>' + (index + 1);
                     });
                 },
 
@@ -307,7 +305,7 @@
                             'positions': JSON.stringify(positions)
                         },
                         success: function (data) {
-                            console.log(data)
+                            console.log(data);
                         }
                     });
                 },
@@ -334,7 +332,8 @@
                             'positions': JSON.stringify(positions)
                         },
                         success: function (data) {
-                            console.log(data)
+                            console.log("Updated on remove");
+                            console.log(data);
                         }
                     });
                     // An "empty" group will have one row, the placeholder row
@@ -386,4 +385,208 @@
             });
         {% endfor %}
     </script>
+
+    <!-- Set Finding Status with AJAX -->
+    <script>
+        $('.js-set-finding-status').each(function(index) {
+            $(this).click(function () {
+                var url = $(this).attr('set-finding-status-url');
+                var newStatus = $(this).attr('set-finding-status');
+                var findingId = $(this).attr('set-finding-status-id');
+                var csrftoken = $(this).attr('set-finding-status-csrftoken');
+                var statusColId = '#finding-status-' + findingId;
+                var statusCol = $(statusColId);
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'finding': findingId,
+                        'status': newStatus
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            statusCol.html(data['status']);
+                            statusCol.removeClass();
+                            statusCol.addClass(data['classes']);
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Finding Update'});
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- Toggle Report Status with AJAX -->
+    <script>
+        $('.js-toggle-report-status').click(function () {
+            var url = $(this).attr('toggle-report-status-url');
+            var reportId = $(this).attr('toggle-report-status-id');
+            var csrftoken = $(this).attr('toggle-report-status-csrftoken');
+            var statusIcon = $('#js-report-status-icon');
+            var statusText = $('#js-report-status')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'report': reportId
+                },
+                success: function (data) {
+                    statusText.html(data['status']);
+                    if (data['toggle']) {
+                        statusIcon.removeClass('fa-toggle-off')
+                        statusIcon.addClass('fa-toggle-on')
+                    } else {
+                        statusIcon.removeClass('fa-toggle-on')
+                        statusIcon.addClass('fa-toggle-off')
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                    }
+                }
+            });
+        });
+    </script>
+
+    <!-- Toggle Report Delivery Status with AJAX -->
+    <script>
+        $('.js-toggle-delivery-status').click(function () {
+            var url = $(this).attr('toggle-delivery-status-url');
+            var reportId = $(this).attr('toggle-delivery-status-id');
+            var csrftoken = $(this).attr('toggle-delivery-status-csrftoken');
+            var statusIcon = $('#js-delivery-status-icon');
+            var statusText = $('#js-delivery-status')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'report': reportId
+                },
+                success: function (data) {
+                    statusText.html(data['status']);
+                    if (data['toggle']) {
+                        statusIcon.removeClass('fa-toggle-off')
+                        statusIcon.addClass('fa-toggle-on')
+                    } else {
+                        statusIcon.removeClass('fa-toggle-on')
+                        statusIcon.addClass('fa-toggle-off')
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                    }
+                }
+            });
+        });
+    </script>
+
+    <!-- Toggle Report Status with AJAX -->
+    <script>
+        $('.js-toggle-report-status').click(function () {
+            var url = $(this).attr('toggle-report-status-url');
+            var reportId = $(this).attr('toggle-report-status-id');
+            var csrftoken = $(this).attr('toggle-report-status-csrftoken');
+            var statusIcon = $('#js-report-status-icon');
+            var statusText = $('#js-report-status')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'report': reportId
+                },
+                success: function (data) {
+                    statusText.html(data['status']);
+                    if (data['toggle']) {
+                        statusIcon.removeClass('fa-toggle-off')
+                        statusIcon.addClass('fa-toggle-on')
+                    } else {
+                        statusIcon.removeClass('fa-toggle-on')
+                        statusIcon.addClass('fa-toggle-off')
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                    }
+                }
+            });
+        });
+    </script>
+
+    <!-- Activate Report with AJAX -->
+    <script>
+        $('.js-activate-report').click(function () {
+            var url = $(this).attr('activate-report-url');
+            var reportId = $(this).attr('activate-report-id');
+            var csrftoken = $(this).attr('activate-report-csrftoken');
+            var activeReportBar = $('#active-report-id');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'report': reportId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        activeReportBar.html(data['report']);
+                        activeReportBar.attr('href', data['report_url']);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                    }
+                }
+            });
+        });
+    </script>
+
+    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+    {% include "confirm_delete_modal.html" %}
 {% endblock %}

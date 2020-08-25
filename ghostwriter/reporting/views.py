@@ -1,6 +1,7 @@
 """This contains all of the views used by the Reporting application."""
 
 
+# Standard Libraries
 # Import Python libraries for various things
 import csv
 import io
@@ -11,59 +12,39 @@ import os
 import zipfile
 from datetime import datetime
 
-# Import for Jinja2 templating
-import jinja2
-
-# Imports for Django Channels & WebSockets
+# Django & Other 3rd Party Libraries
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-
-# Import for references to Django's settings.py and storage
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-
-# Django imports for verifying a user is logged-in to access a view
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.files import File
-
-# Import models and forms
 from django.db.models import Q
-
-# Imports for Signals
 from django.db.models.signals import post_init, post_save
 from django.dispatch import receiver
-
-# Django imports for forms
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
-
-# Django imports for generic views and template rendering
 from django.urls import reverse, reverse_lazy
-from django.views import generic
-from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.views.generic.detail import DetailView, SingleObjectMixin
+from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from docx.opc.exceptions import PackageNotFoundError
-
-# Import for generating the xlsx reports in memory
 from xlsxwriter.workbook import Workbook
 
-# Import custom modules
+# Ghostwriter Libraries
 from ghostwriter.modules import reportwriter
+from ghostwriter.rolodex.models import Project, ProjectAssignment
 
-# Import model filters for views
 from .filters import ArchiveFilter, FindingFilter, ReportFilter
 from .forms import (
     EvidenceForm,
-    FindingCreateForm,
-    FindingNoteCreateForm,
-    LocalFindingNoteCreateForm,
-    ReportCreateForm,
-    ReportCreateFormStandalone,
+    FindingForm,
+    FindingNoteForm,
+    LocalFindingNoteForm,
     ReportFindingLinkUpdateForm,
+    ReportForm,
 )
-
-# from rolodex.models import Project, ProjectAssignment
 from .models import (
     Archive,
     Evidence,
@@ -75,8 +56,6 @@ from .models import (
     ReportFindingLink,
     Severity,
 )
-
-# Import model resources for views
 from .resources import FindingResource
 
 channel_layer = get_channel_layer()
@@ -94,18 +73,22 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_init, sender=Evidence)
 def backup_evidence_path(sender, instance, **kwargs):
-    """Backup the old evidence file's path so it can be cleaned up after the
-    new file is uploaded.
+    """
+    Backup the file path of the old evidence file in the :model:`reporting.Evidence` instance
+    when a new file is uploaded.
     """
     instance._current_evidence = instance.document
 
 
 @receiver(post_save, sender=Evidence)
 def delete_old_evidence(sender, instance, **kwargs):
-    """Delete the old evidence file when it is replaced."""
+    """
+    Delete the old evidence file in the :model:`reporting.Evidence` instance when a new file
+    is uploaded.
+    """
     if hasattr(instance, "_current_evidence"):
         if instance._current_evidence:
-            if not instance._current_evidence.path in instance.document.path:
+            if instance._current_evidence.path not in instance.document.path:
                 try:
                     os.remove(instance._current_evidence.path)
                     logger.info(
@@ -122,8 +105,9 @@ def delete_old_evidence(sender, instance, **kwargs):
 
 @login_required
 def ajax_update_report_findings(request):
-    """View function used with AJAX for updating report position and
-    severity for findings moved using drag-and-drop.
+    """
+    Update the ``position`` and ``severity`` fields of all :model:`reporting.ReportFindingLink`
+    attached to an individual :model:`reporting.Report`.
     """
     if request.method == "POST" and request.is_ajax():
         data = request.POST.get("positions")
@@ -146,7 +130,7 @@ def ajax_update_report_findings(request):
             counter = 1
             logger.info(order)
             for finding_id in order:
-                if not "placeholder" in finding_id:
+                if "placeholder" not in finding_id:
                     finding_instance = ReportFindingLink.objects.get(id=finding_id)
                     if finding_instance:
                         finding_instance.severity = severity
@@ -169,6 +153,341 @@ def ajax_update_report_findings(request):
     return JsonResponse(data)
 
 
+class FindingAssignment(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Copy an individual :model:`reporting.Finding` to create a new
+    :model:`reporting.ReportFindingLink` connected to the user's active
+    :model:`reporting.Report`.
+    """
+
+    model = Finding
+
+    def get_position(self, report_pk):
+        finding_count = ReportFindingLink.objects.filter(
+            Q(report__pk=report_pk) & Q(severity=self.object.severity)
+        ).count()
+        if finding_count:
+            try:
+                # Get all other findings of the same severity with last position first
+                finding_positions = ReportFindingLink.objects.filter(
+                    Q(report__pk=report_pk) & Q(severity=self.object.severity)
+                ).order_by("-position")
+                # Set new position to be one above the last/largest position
+                last_position = finding_positions[0].position
+                return last_position + 1
+            except Exception:
+                return finding_count + 1
+        else:
+            return 1
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+
+        # The user must have the ``active_report`` session variable
+        # Get the variable and default to ``None`` if it does not exist
+        active_report = self.request.session.get("active_report", None)
+        if active_report:
+            try:
+                report = Report.objects.get(pk=active_report["id"])
+            except Exception:
+                message = (
+                    "Please select a report to edit before trying to assign a finding"
+                )
+                data = {"result": "error", "message": message}
+                return JsonResponse(data)
+
+            # Clone the selected object to make a new :model:`reporting.ReportFindingLink`
+            report_link = ReportFindingLink(
+                title=self.object.title,
+                description=self.object.description,
+                impact=self.object.impact,
+                mitigation=self.object.mitigation,
+                replication_steps=self.object.replication_steps,
+                host_detection_techniques=self.object.host_detection_techniques,
+                network_detection_techniques=self.object.network_detection_techniques,
+                references=self.object.references,
+                severity=self.object.severity,
+                finding_type=self.object.finding_type,
+                finding_guidance=self.object.finding_guidance,
+                report=report,
+                assigned_to=self.request.user,
+                position=self.get_position(report.id),
+            )
+            report_link.save()
+
+            message = "{} successfully added to your active report".format(self.object)
+            data = {"result": "success", "message": message}
+            logger.info(
+                "Copied %s %s to %s %s (%s %s) by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                report.__class__.__name__,
+                report.id,
+                report_link.__class__.__name__,
+                report_link.id,
+                self.request.user,
+            )
+        else:
+            message = "Please select a report to edit before trying to assign a finding"
+            data = {"result": "error", "message": message}
+        return JsonResponse(data)
+
+
+class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`reporting.LocalFindingNote`.
+    """
+
+    model = LocalFindingNote
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class FindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`reporting.FindingNote`.
+    """
+
+    model = FindingNote
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ReportFindingLinkDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`reporting.ReportFindingLink`.
+    """
+
+    model = ReportFindingLink
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        self.report_pk = self.get_object().report.pk
+
+        # Get all other findings with the same severity for this report ID
+        findings_queryset = ReportFindingLink.objects.filter(
+            Q(report=self.get_object().report.pk)
+            & Q(severity=self.get_object().severity)
+        )
+        if findings_queryset:
+            for finding in findings_queryset:
+                # Adjust position to close gap created by removed finding
+                if finding.position > self.get_object().position:
+                    finding.position -= 1
+                    finding.save()
+
+        self.object.delete()
+        data = {
+            "result": "success",
+            "message": "Successfully deleted {finding} and cleaned up evidence".format(
+                finding=self.object
+            ),
+        }
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+
+        return JsonResponse(data)
+
+
+class ReportActivate(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Set an individual :model:`reporting.Report` as active for the current user session.
+    """
+
+    model = Report
+
+    # Set the user's session variable
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+
+        try:
+            self.request.session["active_report"] = {}
+            self.request.session["active_report"]["id"] = self.object.id
+            self.request.session["active_report"]["title"] = self.object.title
+            message = "{report} is now your active report".format(
+                report=self.object.title
+            )
+            data = {
+                "result": "success",
+                "report": self.object.title,
+                "report_url": self.object.get_absolute_url(),
+                "message": message,
+            }
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {
+                "result": "error",
+                "message": "Could not set the selected report as your active report",
+            }
+
+        return JsonResponse(data)
+
+
+class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``complete`` field of an individual :model:`rolodex.Report`.
+    """
+
+    model = Report
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.complete:
+                self.object.complete = False
+                data = {
+                    "result": "success",
+                    "message": "Report successfully marked as incomplete",
+                    "status": "In Progress",
+                    "toggle": 0,
+                }
+            else:
+                self.object.complete = True
+                data = {
+                    "result": "success",
+                    "message": "Report successfully marked as complete",
+                    "status": "Complete",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update report's status"}
+
+        return JsonResponse(data)
+
+
+class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``delivered`` field of an individual :model:`rolodex.Report`.
+    """
+
+    model = Report
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.delivered:
+                self.object.delivered = False
+                data = {
+                    "result": "success",
+                    "message": "Report successfully marked as not delivered",
+                    "status": "Not Delivered",
+                    "toggle": 0,
+                }
+            else:
+                self.object.delivered = True
+                data = {
+                    "result": "success",
+                    "message": "Report successfully marked as delivered",
+                    "status": "Delivered",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled delivery status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {
+                "result": "error",
+                "message": "Could not update report's deliveery status",
+            }
+
+        return JsonResponse(data)
+
+
+class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Update the ``complete`` field of an individual :model:`reporting.ReportFindingLink`.
+    """
+
+    model = ReportFindingLink
+
+    def post(self, *args, **kwargs):
+        data = {}
+        # Get ``status`` kwargs from the URL
+        status = self.kwargs["status"]
+        self.object = self.get_object()
+
+        try:
+            result = "success"
+            if status.lower() == "edit":
+                self.object.complete = False
+                message = "Successfully flagged finding for editing"
+                display_status = "Needs Editing"
+                classes = "burned"
+            elif status.lower() == "complete":
+                self.object.complete = True
+                message = "Successfully marking finding as complete"
+                display_status = "Ready"
+                classes = "healthy"
+            else:
+                message = "Could not update the finding's status to: {}".format(status)
+                result = "error"
+            # Prepare the JSON response data
+            data = {
+                "result": result,
+                "status": display_status,
+                "classes": classes,
+                "message": message,
+            }
+            logger.info(
+                "Set status of %s %s to %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                status,
+                self.request.user,
+            )
+        # Return an error message if the query for the requested status returned DoesNotExist
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update finding's status"}
+
+        return JsonResponse(data)
+
+
 ##################
 # View Functions #
 ##################
@@ -176,14 +495,25 @@ def ajax_update_report_findings(request):
 
 @login_required
 def index(request):
-    """View function to redirect empty requests to the dashboard."""
+    """
+    Display the main homepage.
+    """
     return HttpResponseRedirect(reverse("home:dashboard"))
 
 
 @login_required
 def findings_list(request):
-    """View showing all available findings. This view defaults to the
-    finding_list.html template and allows for filtering.
+    """
+    Display a list of all :model:`reporting.Finding`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`reporting.FindingFilter`
+
+    **Template**
+
+    :template:`reporting/finding_list.html`
     """
     # Check if a search parameter is in the request
     try:
@@ -193,7 +523,7 @@ def findings_list(request):
     if search_term:
         messages.success(
             request,
-            "Displaying search results for: %s" % search_term,
+            "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
         findings_list = (
@@ -215,8 +545,12 @@ def findings_list(request):
 
 @login_required
 def reports_list(request):
-    """View showing all reports. This view defaults to the report_list.html
-    template and allows for filtering.
+    """
+    Display a list of all :model:`reporting.Report`.
+
+    **Template**
+
+    :template:`reporting/report_list.html`
     """
     reports_list = (
         Report.objects.select_related("created_by").all().order_by("complete", "title")
@@ -227,8 +561,17 @@ def reports_list(request):
 
 @login_required
 def archive_list(request):
-    """View showing all archived reports. This view defaults to the
-    report_list.html template and allows for filtering.
+    """
+    Display a list of all :model:`reporting.Report` marked as archived.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`reporting.ArchiveFilter`
+
+    **Template**
+
+    :template:`reporting/archives.html`
     """
     archive_list = (
         Archive.objects.select_related("project__client")
@@ -241,12 +584,16 @@ def archive_list(request):
 
 @login_required
 def import_findings(request):
-    """View function for uploading and processing csv files and importing
-    findings.
+    """
+    Import a list of :model:`reporting.Finding` entries from a csv.
+
+    **Template**
+
+    :template:`reporting/finding_import.html`
     """
     # If the request is 'GET' return the upload page
     if request.method == "GET":
-        return render(request, "reporting/findings_import.html")
+        return render(request, "reporting/finding_import.html")
     # If not a GET, then proceed
     try:
         # Get the `csv_file` from the POSTed form data
@@ -254,7 +601,7 @@ def import_findings(request):
         # Do a lame/basic check to see if this is a csv file
         if not csv_file.name.endswith(".csv"):
             messages.error(
-                request, "Your file is not a csv!", extra_tags="alert-danger"
+                request, "Your file must be a csv", extra_tags="alert-danger"
             )
             return HttpResponseRedirect(reverse("reporting:import_findings"))
         # The file is loaded into memory, so we must be aware of system limits
@@ -289,9 +636,9 @@ def import_findings(request):
         # Process each csv row and commit it to the database
         for entry in csv_reader:
             if error_count > 5:
-                logger.error("More than 5 errors encountered during import, aborting")
+                logger.error("Encountered more than 5 errors during import, aborting")
                 raise Exception(
-                    "More than 5 errors encountered during import, aborting"
+                    "Encountered more than 5 errors during import, aborting"
                 )
             title = entry.get("title", None)
             if title is None:
@@ -357,81 +704,11 @@ def import_findings(request):
 
 
 @login_required
-def assign_finding(request, pk):
-    """View function for adding a finding to the user's active report."""
-
-    def get_position(report_pk):
-        finding_count = ReportFindingLink.objects.filter(
-            Q(report__pk=report_pk) & Q(severity=finding.severity)
-        ).count()
-        if finding_count:
-            try:
-                # Get all other findings of the same severity with last position first
-                finding_positions = ReportFindingLink.objects.filter(
-                    Q(report__pk=report_pk) & Q(severity=finding.severity)
-                ).order_by("-position")
-                # Set new position to be one above the last/largest position
-                last_position = finding_positions[0].position
-                return last_position + 1
-            except:
-                return finding_count + 1
-        else:
-            return 1
-
-    # The user must have the `active_report` session variable
-    # Get the variable and default to `None` if it does not exist
-    active_report = request.session.get("active_report", None)
-    if active_report:
-        try:
-            report = Report.objects.get(pk=active_report["id"])
-        except Exception:
-            messages.error(
-                request,
-                "You have no active report! Select a report to edit before trying to edit one.",
-                extra_tags="alert-danger",
-            )
-            return HttpResponseRedirect(reverse("reporting:findings"))
-        finding = Finding.objects.get(pk=pk)
-        report_link = ReportFindingLink(
-            title=finding.title,
-            description=finding.description,
-            impact=finding.impact,
-            mitigation=finding.mitigation,
-            replication_steps=finding.replication_steps,
-            host_detection_techniques=finding.host_detection_techniques,
-            network_detection_techniques=finding.network_detection_techniques,
-            references=finding.references,
-            severity=finding.severity,
-            finding_type=finding.finding_type,
-            finding_guidance=finding.finding_guidance,
-            report=report,
-            assigned_to=request.user,
-            position=get_position(active_report["id"]),
-        )
-        report_link.save()
-        messages.success(
-            request,
-            "{} successfully added to report.".format(finding.title),
-            extra_tags="alert-success",
-        )
-        return HttpResponseRedirect(
-            "{}#collapseFinding".format(
-                reverse("reporting:report_detail", args=(report.id,))
-            )
-        )
-        return HttpResponseRedirect(reverse("reporting:findings"))
-    else:
-        messages.error(
-            request,
-            "You have no active report! Select a report to edit before trying to edit one.",
-            extra_tags="alert-danger",
-        )
-        return HttpResponseRedirect(reverse("reporting:findings"))
-
-
-@login_required
 def assign_blank_finding(request, pk):
-    """View function for adding a blank finding to the specified report."""
+    """
+    Create a blank :model:`reporting.ReportFindingLink` entry linked to an individual
+    :model:`reporting.Report`.
+    """
     info_sev = Severity.objects.get(severity="Informational")
 
     def get_position(report_pk):
@@ -447,7 +724,7 @@ def assign_blank_finding(request, pk):
                 # Set new position to be one above the last/largest position
                 last_position = finding_positions[0].position
                 return last_position + 1
-            except:
+            except Exception:
                 return finding_count + 1
         else:
             return 1
@@ -486,270 +763,19 @@ def assign_blank_finding(request, pk):
 
 
 @login_required
-def position_increase(request, pk):
-    """View function to increase a finding's position which moves it down the
-    list.
-    """
-    # Get the entry for the current finding
-    finding_instance = ReportFindingLink.objects.get(pk=pk)
-    # Increment the finding's position
-    finding_instance.position = finding_instance.position + 1
-    # Get all other findings of the same severity
-    finding_queryset = ReportFindingLink.objects.filter(
-        Q(report=finding_instance.report.pk) & Q(severity=finding_instance.severity)
-    ).order_by("position")
-    # If new position is greater than total findings, reduce by one
-    if finding_queryset.count() < finding_instance.position:
-        finding_instance.position = finding_queryset.count()
-        messages.warning(
-            request,
-            "Finding is already in the bottom position for the {} severity group.".format(
-                finding_instance.severity
-            ),
-            extra_tags="alert-warning",
-        )
-    else:
-        counter = 1
-        if finding_queryset:
-            # Loop from top position down and look for a match
-            for finding in finding_queryset:
-                # Check if finding in loop is NOT the finding being updated
-                if not finding_instance.pk == finding.pk:
-                    # Increment position counter when counter equals form value
-                    if finding_instance.position == counter:
-                        counter += 1
-                    finding.position = counter
-                    finding.save(update_fields=["position"])
-                    counter += 1
-                else:
-                    # Skip the finding being updated by form
-                    pass
-    # Save the updated position
-    finding_instance.save(update_fields=["position"])
-    return HttpResponseRedirect(
-        reverse("reporting:report_detail", args=(finding_instance.report.id,))
-    )
-
-
-@login_required
-def position_decrease(request, pk):
-    """View function to decrease a finding's position which moves it up the
-    list.
-    """
-    # Get the entry for the current finding
-    finding_instance = ReportFindingLink.objects.get(pk=pk)
-    # Decrement the finding's position
-    finding_instance.position = finding_instance.position - 1
-    # Get all other findings of the same severity
-    finding_queryset = ReportFindingLink.objects.filter(
-        Q(report=finding_instance.report.pk) & Q(severity=finding_instance.severity)
-    ).order_by("position")
-    # If new position is less than 1, set pos to 1
-    if finding_instance.position < 1:
-        finding_instance.position = 1
-        messages.warning(
-            request,
-            "Finding is already in the top position for the {} severity group.".format(
-                finding_instance.severity
-            ),
-            extra_tags="alert-warning",
-        )
-    else:
-        counter = 1
-        if finding_queryset:
-            # Loop from top position down and look for a match
-            for finding in finding_queryset:
-                # Check if finding in loop is NOT the finding being updated
-                if not finding_instance.pk == finding.pk:
-                    # Increment position counter when counter equals form value
-                    if finding_instance.position == counter:
-                        counter += 1
-                    finding.position = counter
-                    finding.save(update_fields=["position"])
-                    counter += 1
-                else:
-                    # Skip the finding being updated by form
-                    pass
-    # Save the updated position
-    finding_instance.save(update_fields=["position"])
-    return HttpResponseRedirect(
-        reverse("reporting:report_detail", args=(finding_instance.report.id,))
-    )
-
-
-@login_required
-def activate_report(request, pk):
-    """View function to set the specified report as the current user's active
-    report.
-    """
-    # Set the user's session variable
-    try:
-        report_instance = Report.objects.get(pk=pk)
-        if report_instance:
-            request.session["active_report"] = {}
-            request.session["active_report"]["id"] = pk
-            request.session["active_report"]["title"] = report_instance.title
-            messages.success(
-                request,
-                "%s is now your active report." % report_instance.title,
-                extra_tags="alert-success",
-            )
-            return HttpResponseRedirect(reverse("reporting:report_detail", args=(pk,)))
-        else:
-            messages.error(
-                request,
-                "The specified report does not exist!",
-                extra_tags="alert-danger",
-            )
-            return HttpResponseRedirect(reverse("reporting:reports"))
-    except Exception:
-        messages.error(
-            request,
-            "Could not set the requested report as your " "active report.",
-            extra_tags="alert-danger",
-        )
-        return HttpResponseRedirect(reverse("reporting:reports"))
-
-
-@login_required
-def report_status_toggle(request, pk):
-    """View function to toggle the status for the specified report."""
-    try:
-        report_instance = Report.objects.get(pk=pk)
-        if report_instance:
-            if report_instance.complete:
-                report_instance.complete = False
-                report_instance.save()
-                messages.success(
-                    request,
-                    "{} is now marked as incomplete.".format(report_instance.title),
-                    extra_tags="alert-success",
-                )
-                return HttpResponseRedirect(
-                    reverse("reporting:report_detail", args=(pk,))
-                )
-            else:
-                report_instance.complete = True
-                report_instance.save()
-                messages.success(
-                    request,
-                    "{} is now marked as complete.".format(report_instance.title),
-                    extra_tags="alert-success",
-                )
-                return HttpResponseRedirect(
-                    reverse("reporting:report_detail", args=(pk,))
-                )
-        else:
-            messages.error(
-                request,
-                "The specified report does not exist!",
-                extra_tags="alert-danger",
-            )
-            return HttpResponseRedirect(reverse("reporting:reports"))
-    except Exception:
-        messages.error(
-            request, "Could not update the report's status!", extra_tags="alert-danger"
-        )
-        return HttpResponseRedirect(reverse("reporting:reports"))
-
-
-@login_required
-def report_delivery_toggle(request, pk):
-    """View function to toggle the delivery status for the specified report."""
-    try:
-        report_instance = Report.objects.get(pk=pk)
-        if report_instance:
-            if report_instance.delivered:
-                report_instance.delivered = False
-                report_instance.save()
-                messages.success(
-                    request,
-                    "{} is now marked as not delivered.".format(report_instance.title),
-                    extra_tags="alert-success",
-                )
-                return HttpResponseRedirect(
-                    reverse("reporting:report_detail", args=(pk,))
-                )
-            else:
-                report_instance.delivered = True
-                report_instance.save()
-                messages.success(
-                    request,
-                    "{} is now marked as delivered.".format(report_instance.title),
-                    extra_tags="alert-success",
-                )
-                return HttpResponseRedirect(
-                    reverse("reporting:report_detail", args=(pk,))
-                )
-        else:
-            messages.error(
-                request,
-                "The specified report does not exist!",
-                extra_tags="alert-danger",
-            )
-            return HttpResponseRedirect(reverse("reporting:reports"))
-    except Exception:
-        messages.error(
-            request, "Could not update the report's status!", extra_tags="alert-danger"
-        )
-        return HttpResponseRedirect(reverse("reporting:reports"))
-
-
-@login_required
-def finding_status_toggle(request, pk):
-    """View function to toggle the status for the specified finding."""
-    try:
-        finding_instance = ReportFindingLink.objects.get(pk=pk)
-        if finding_instance:
-            if finding_instance.complete:
-                finding_instance.complete = False
-                finding_instance.save()
-                messages.success(
-                    request,
-                    "{} is now marked as in need of editing.".format(
-                        finding_instance.title
-                    ),
-                    extra_tags="alert-success",
-                )
-                return HttpResponseRedirect(
-                    reverse(
-                        "reporting:report_detail", args=(finding_instance.report.id,)
-                    )
-                )
-            else:
-                finding_instance.complete = True
-                finding_instance.save()
-                messages.success(
-                    request,
-                    "{} is now marked as ready for review.".format(
-                        finding_instance.title
-                    ),
-                    extra_tags="alert-success",
-                )
-                return HttpResponseRedirect(
-                    reverse(
-                        "reporting:report_detail", args=(finding_instance.report.id,)
-                    )
-                )
-        else:
-            messages.error(
-                request,
-                "The specified finding does not exist!",
-                extra_tags="alert-danger",
-            )
-            return HttpResponseRedirect(reverse("reporting:reports"))
-    except Exception:
-        messages.error(
-            request,
-            "Could not set the requested finding as " "complete.",
-            extra_tags="alert-danger",
-        )
-        return HttpResponseRedirect(reverse("reporting:reports"))
-
-
-@login_required
 def upload_evidence(request, pk):
-    """View function for handling evidence file uploads."""
+    """
+    Create an individual :model:`reporting.Evidence` entry linked to an individual
+    :model:`reporting.ReportFindingLink`.
+
+    **Template**
+
+    :template:`reporting/evidence_form.html`
+    """
+    finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
+    cancel_link = reverse(
+        "reporting:report_detail", kwargs={"pk": finding_instance.report.pk}
+    )
     if request.method == "POST":
         form = EvidenceForm(request.POST, request.FILES)
         if form.is_valid():
@@ -778,12 +804,23 @@ def upload_evidence(request, pk):
                 )
     else:
         form = EvidenceForm(initial={"finding": pk, "uploaded_by": request.user})
-    return render(request, "reporting/evidence_form.html", {"form": form})
+    return render(
+        request,
+        "reporting/evidence_form.html",
+        {"form": form, "cancel_link": cancel_link},
+    )
 
 
 @login_required
 def upload_evidence_modal(request, pk):
-    """View function for handling evidence file uploads via TinyMCE URLDialog."""
+    """
+    Create an individual :model:`reporting.Evidence` entry linked to an individual
+    :model:`reporting.ReportFindingLink` using a TinyMCE URLDialog.
+
+    **Template**
+
+    :template:`reporting/evidence_form_modal.html`
+    """
     # Get a list of previously used friendly names for this finding
     report_queryset = Evidence.objects.filter(finding=pk).values_list(
         "friendly_name", flat=True
@@ -810,22 +847,37 @@ def upload_evidence_modal(request, pk):
             return HttpResponseRedirect(
                 reverse("reporting:upload_evidence_modal_success")
             )
-    # Other requests (GETs) are shown the form
     else:
-        form = EvidenceForm(initial={"finding": pk, "uploaded_by": request.user})
+        # This is for the modal pop-up, so set the ``is_modal`` parameter to hide the usual form buttons
+        form = EvidenceForm(
+            initial={"finding": pk, "uploaded_by": request.user}, is_modal=True
+        )
     context = {"form": form, "used_friendly_names": used_friendly_names}
     return render(request, "reporting/evidence_form_modal.html", context=context)
 
 
 @login_required
 def upload_evidence_modal_success(request):
-    """View function for displaying a simple success page for the TinyMCE URLDialog."""
+    """
+    Display message following the successful creation of an individual
+    :model:`reporting.Evidence` using a TinyMCE URLDialog.
+
+    **Template**
+
+    :template:`reporting/evidence_modal_success.html`
+    """
     return render(request, "reporting/evidence_modal_success.html")
 
 
 @login_required
 def view_evidence(request, pk):
-    """View function for viewing evidence file uploads."""
+    """
+    Display an individual :model:`reporting.Evidence`.
+
+    **Template**
+
+    :template:`reporting/evidence_detail.html`
+    """
     evidence_instance = Evidence.objects.get(pk=pk)
     file_content = None
     if os.path.isfile(evidence_instance.document.path):
@@ -842,7 +894,7 @@ def view_evidence(request, pk):
             for line in temp:
                 try:
                     file_content.append(line.decode())
-                except:
+                except Exception:
                     file_content.append(line)
 
         elif (
@@ -867,7 +919,9 @@ def view_evidence(request, pk):
 
 @login_required
 def generate_docx(request, pk):
-    """View function to generate a docx report for the specified report."""
+    """
+    Generate a Word document report for an individual :model:`reporting.Report`.
+    """
     report_instance = Report.objects.get(pk=pk)
     # Ask Spenny to make us a report with these findings
     output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
@@ -879,38 +933,23 @@ def generate_docx(request, pk):
     try:
         docx = spenny.generate_word_docx()
         response = HttpResponse(
-            content_type="application/vnd.openxmlformats-officedocument."
-            "wordprocessingml.document"
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
         response["Content-Disposition"] = "attachment; filename=report.docx"
         docx.save(response)
         return response
-    except jinja2.exceptions.TemplateError as error:
-        messages.error(
-            request,
-            "Failed to generate the Word report because the docx template contains invalid Jinja2 code:\n{}".format(
-                error
-            ),
-            extra_tags="alert-danger",
-        )
-    except jinja2.exceptions.UndefinedError as error:
-        messages.error(
-            request,
-            "Failed to generate the Word report because the docx template contains an undefined Jinja2 variable:\n{}".format(
-                error
-            ),
-            extra_tags="alert-danger",
-        )
     except PackageNotFoundError:
         messages.error(
             request,
-            "Failed to generate the Word report because the docx template could not be found!",
+            "The specified Word docx template could not be found: {}".format(
+                template_loc
+            ),
             extra_tags="alert-danger",
         )
     except FileNotFoundError as error:
         messages.error(
             request,
-            "Failed to generate the Word report because the an evidence file is missing: {}".format(
+            "Halt document generation because an evidence file is missing: {}".format(
                 error
             ),
             extra_tags="alert-danger",
@@ -918,17 +957,19 @@ def generate_docx(request, pk):
     except Exception as error:
         messages.error(
             request,
-            "Failed to generate the Word report for an unknown reason: {}".format(
-                error
-            ),
+            "Encountered an error generating the document: {}".format(error),
             extra_tags="alert-danger",
         )
-    return HttpResponseRedirect(request.META["HTTP_REFERER"])
+    return HttpResponseRedirect(
+        reverse("reporting:report_detail", kwargs={"pk": report_instance.pk})
+    )
 
 
 @login_required
 def generate_xlsx(request, pk):
-    """View function to generate a xlsx report for the specified report."""
+    """
+    Generate an Excel spreadsheet for an individual :model:`reporting.Report`.
+    """
     try:
         report_instance = Report.objects.get(pk=pk)
         # Ask Spenny to make us a report with these findings
@@ -944,8 +985,7 @@ def generate_xlsx(request, pk):
         output.seek(0)
         response = HttpResponse(
             output.read(),
-            content_type="application/application/vnd.openxmlformats-"
-            "officedocument.spreadsheetml.sheet",
+            content_type="application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         response["Content-Disposition"] = "attachment; filename=report.xlsx"
         output.close()
@@ -953,15 +993,19 @@ def generate_xlsx(request, pk):
     except Exception as error:
         messages.error(
             request,
-            "Failed to generate the Xlsx report: {}".format(error),
+            "Encountered an error generating the document: {}".format(error),
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(request.META["HTTP_REFERER"])
+    return HttpResponseRedirect(
+        reverse("reporting:report_detail", kwargs={"pk": report_instance.pk})
+    )
 
 
 @login_required
 def generate_pptx(request, pk):
-    """View function to generate a pptx report for the specified report."""
+    """
+    Generate a PowerPoint slide deck for an individual :model:`reporting.Report`.
+    """
     try:
         report_instance = Report.objects.get(pk=pk)
         # Ask Spenny to make us a report with these findings
@@ -973,8 +1017,7 @@ def generate_pptx(request, pk):
         )
         pptx = spenny.generate_powerpoint_pptx()
         response = HttpResponse(
-            content_type="application/application/vnd.openxmlformats-"
-            "officedocument.presentationml.presentation"
+            content_type="application/application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
         response["Content-Disposition"] = "attachment; filename=report.pptx"
         pptx.save(response)
@@ -982,15 +1025,19 @@ def generate_pptx(request, pk):
     except Exception as error:
         messages.error(
             request,
-            "Failed to generate the slide deck: {}".format(error),
+            "Encountered an error generating the document: {}".format(error),
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(request.META["HTTP_REFERER"])
+    return HttpResponseRedirect(
+        reverse("reporting:report_detail", kwargs={"pk": report_instance.pk})
+    )
 
 
 @login_required
 def generate_json(request, pk):
-    """View function to generate a json report for the specified report."""
+    """
+    Generate a JSON report for an individual :model:`reporting.Report`.
+    """
     report_instance = Report.objects.get(pk=pk)
     # Ask Spenny to make us a report with these findings
     output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
@@ -1005,7 +1052,9 @@ def generate_json(request, pk):
 
 @login_required
 def generate_all(request, pk):
-    """View function to generate all report types for the specified report."""
+    """
+    Generate all report types for an individual :model:`reporting.Report`.
+    """
     try:
         report_instance = Report.objects.get(pk=pk)
         docx_template_loc = os.path.join(settings.TEMPLATE_LOC, "template.docx")
@@ -1036,19 +1085,21 @@ def generate_all(request, pk):
         response["Content-Disposition"] = "attachment; filename=reports.zip"
         response.write(zip_buffer.read())
         return response
-    except:
+    except Exception:
         messages.error(
             request,
             "Failed to generate one or more documents for the archive",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(request.META["HTTP_REFERER"])
+    return HttpResponseRedirect(
+        reverse("reporting:report_detail", kwargs={"pk": report_instance.pk})
+    )
 
 
 @login_required
 def zip_directory(path, zip_handler):
-    """Zip the target directory and all of its contents, for archiving
-    purposes.
+    """
+    Compress the target directory as a Zip file for archiving.
     """
     # Walk the target directory
     abs_src = os.path.abspath(path)
@@ -1062,9 +1113,10 @@ def zip_directory(path, zip_handler):
 
 @login_required
 def archive(request, pk):
-    """View function to generate all report types for the specified report and
-    then zip all reports and evidence. The archive file is saved is saved in
-    the archives directory.
+    """
+    Generate all report types for an individual :model:`reporting.Report`, collect all
+    related :model:`reporting.Evidence` and related files, and compress the files into a
+    single Zip file for arhciving.
     """
     report_instance = Report.objects.select_related("project", "project__client").get(
         pk=pk
@@ -1114,7 +1166,9 @@ def archive(request, pk):
 
 @login_required
 def download_archive(request, pk):
-    """View function to allow for downloading archived reports."""
+    """
+    Return the target :model:`reporting.Report` archive file for download.
+    """
     archive_instance = Archive.objects.get(pk=pk)
     file_path = os.path.join(settings.MEDIA_ROOT, archive_instance.report_archive.path)
     if os.path.exists(file_path):
@@ -1131,8 +1185,8 @@ def download_archive(request, pk):
 
 @login_required
 def clone_report(request, pk):
-    """View function to clone the specified report along with all of its
-    findings.
+    """
+    Create an identical copy of an individual :model:`reporting.Report`.
     """
     report_instance = ReportFindingLink.objects.select_related("report").filter(
         report=pk
@@ -1155,12 +1209,16 @@ def clone_report(request, pk):
 
 @login_required
 def convert_finding(request, pk):
-    """View function to convert a finding in a report to a master finding
-    for the library. Pre-loads a new finding form with the relevant
-    values for review before submission.
+    """
+    Create a copy of an individual :model:`reporting.ReportFindingLink` and prepare
+    it to be saved as a new :model:`reporting.Finding`.
+
+    **Template**
+
+    :template:`reporting/finding_form.html`
     """
     if request.method == "POST":
-        form = FindingCreateForm(request.POST)
+        form = FindingForm(request.POST)
         if form.is_valid():
             new_finding = form.save()
             new_finding_pk = new_finding.pk
@@ -1169,7 +1227,7 @@ def convert_finding(request, pk):
             )
     else:
         finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
-        form = FindingCreateForm(
+        form = FindingForm(
             initial={
                 "title": finding_instance.title,
                 "description": finding_instance.description,
@@ -1187,7 +1245,9 @@ def convert_finding(request, pk):
 
 
 def export_findings_to_csv(request):
-    """View function to export the current findings table to a csv file."""
+    """
+    Export all :model:`reporting.Finding` to a csv file for download.
+    """
     timestamp = datetime.now().isoformat()
     fiinding_resource = FindingResource()
     dataset = fiinding_resource.export()
@@ -1201,64 +1261,80 @@ def export_findings_to_csv(request):
 # View Classes #
 ################
 
+# CBVs related to :model:`reporting.Finding`
 
-class FindingDetailView(LoginRequiredMixin, generic.DetailView):
-    """View showing the details for the specified finding. This view defaults
-    to the finding_detail.html template.
+
+class FindingDetailView(LoginRequiredMixin, DetailView):
+    """
+    Display an individual :model:`reporting.Finding`.
+
+    **Template**
+
+    :template:`reporting/finding_detail.html`
     """
 
     model = Finding
 
 
 class FindingCreate(LoginRequiredMixin, CreateView):
-    """View for creating new findings. This view defaults to the
-    finding_form.html template.
+    """
+    Create an individual instance of :model:`reporting.Finding`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to clients list page
+
+    **Template**
+
+    :template:`reporting/finding_form.html`
     """
 
     model = Finding
-    form_class = FindingCreateForm
+    form_class = FindingForm
+
+    def get_context_data(self, **kwargs):
+        ctx = super(FindingCreate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:findings")
+        return ctx
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
-            "{} was successfully created.".format(self.object.title),
-            extra_tags="alert-success",
-        )
-        return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
-
-
-class FindingCloneCreate(LoginRequiredMixin, CreateView):
-    """View for creating new findings. This view defaults to the
-    finding_form.html template.
-    """
-
-    model = Finding
-    form_class = FindingCreateForm
-
-    def get_success_url(self):
-        """Override the function to return to the new record after creation."""
-        messages.success(
-            self.request,
-            "The finding {} was successfully created.".format(self.object.title),
+            "Successfully added {} to the findings library".format(self.object.title),
             extra_tags="alert-success",
         )
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
 
 
 class FindingUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing findings. This view defaults to the
-    finding_form.html template.
+    """
+    Update an individual instance of :model:`reporting.Finding`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to clients list page
+
+    **Template**
+
+    :template:`reporting/finding_form.html`
     """
 
     model = Finding
-    fields = "__all__"
+    form_class = FindingForm
+
+    def get_context_data(self, **kwargs):
+        ctx = super(FindingUpdate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse(
+            "reporting:finding_detail", kwargs={"pk": self.object.pk}
+        )
+        return ctx
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
-            "Master record for {} was successfully updated.".format(
+            "Master record for {} was successfully updated".format(
                 self.get_object().title
             ),
             extra_tags="alert-success",
@@ -1267,18 +1343,30 @@ class FindingUpdate(LoginRequiredMixin, UpdateView):
 
 
 class FindingDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing findings. This view defaults to the
-    finding_confirm_delete.html template.
+    """
+    Delete an individual instance of :model:`reporting.Finding`.
+
+    **Context**
+
+    ``object_type``
+        String describing what is to be deleted
+    ``object_to_be_deleted``
+        To-be-deleted instance of :model:`reporting.Finding`
+    ``cancel_link``
+        Link for the form's Cancel button to return to finding list page
+
+    **Template**
+
+    :template:`confirm_delete.html`
     """
 
     model = Finding
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return a message after deletion."""
         messages.warning(
             self.request,
-            "Master record for {} was successfully deleted.".format(
+            "Master record for {} was successfully deleted".format(
                 self.get_object().title
             ),
             extra_tags="alert-warning",
@@ -1286,76 +1374,77 @@ class FindingDelete(LoginRequiredMixin, DeleteView):
         return reverse_lazy("reporting:findings")
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(FindingDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "finding master record"
         ctx["object_to_be_deleted"] = queryset.title
+        ctx["cancel_link"] = reverse("reporting:findings")
         return ctx
 
 
-class ReportDetailView(LoginRequiredMixin, generic.DetailView):
-    """View showing the details for the specified report. This view defaults to the
-    report_detail.html template.
+# CBVs related to :model:`reporting.Report`
+
+
+class ReportDetailView(LoginRequiredMixin, DetailView):
+    """
+    Display an individual :model:`reporting.Report`.
+
+    **Template**
+
+    :template:`reporting/report_detail.html`
     """
 
     model = Report
 
 
 class ReportCreate(LoginRequiredMixin, CreateView):
-    """View for creating new reports. This view defaults to the
-    report_form.html template.
+    """
+    Create an individual instance of :model:`reporting.Report`.
+
+    **Context**
+
+    ``project``
+        Instance of :model:`reporting.Project` associated with this report
+    ``cancel_link``
+        Link for the form's Cancel button to return to report list or details page
+
+    **Template**
+
+    :template:`reporting/report_form.html`
     """
 
     model = Report
-    form_class = ReportCreateForm
+    form_class = ReportForm
 
-    def form_valid(self, form):
-        """Override form_valid to perform additional actions on new entries."""
-        from ghostwriter.rolodex.models import Project
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        # Check if this request is for a specific project or not
+        self.project = ""
+        # Determine if ``pk`` is in the kwargs
+        if "pk" in self.kwargs:
+            pk = self.kwargs.get("pk")
+            # Try to get the project from :model:`reporting.Project`
+            if pk:
+                self.project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
 
-        project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        form.instance.project = project
-        form.instance.created_by = self.request.user
-        self.request.session["active_report"] = {}
-        self.request.session["active_report"]["title"] = form.instance.title
-        return super().form_valid(form)
+    def get_form_kwargs(self):
+        kwargs = super(ReportCreate, self).get_form_kwargs()
+        kwargs.update({"project": self.project})
+        return kwargs
 
-    def get_initial(self):
-        """Set the initial values for the form."""
-        from ghostwriter.rolodex.models import Project
-
-        project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        title = "{} {} ({}) Report".format(
-            project.client, project.project_type, project.start_date
-        )
-        return {"title": title, "project": project}
-
-    def get_success_url(self):
-        """Override the function to return to the new record after creation."""
-        self.request.session["active_report"]["id"] = self.object.pk
-        self.request.session.modified = True
-        messages.success(
-            self.request,
-            "New report was successfully created " "and is now your active report.",
-            extra_tags="alert-success",
-        )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
-
-
-class ReportCreateWithoutProject(LoginRequiredMixin, CreateView):
-    """View for creating new reports. This view defaults to the
-    report_form.html template. This version applies no default values.
-    """
-
-    model = Report
-    form_class = ReportCreateFormStandalone
+    def get_context_data(self, **kwargs):
+        ctx = super(ReportCreate, self).get_context_data(**kwargs)
+        ctx["project"] = self.project
+        if self.project:
+            ctx["cancel_link"] = reverse(
+                "rolodex:project_detail", kwargs={"pk": self.project.pk}
+            )
+        else:
+            ctx["cancel_link"] = reverse("reporting:reports")
+        return ctx
 
     def get_form(self, form_class=None):
-        """Override the function to set a custom queryset for the form."""
-        form = super(ReportCreateWithoutProject, self).get_form(form_class)
+        form = super(ReportCreate, self).get_form(form_class)
         if not form.fields["project"].queryset:
             messages.error(
                 self.request,
@@ -1365,36 +1454,67 @@ class ReportCreateWithoutProject(LoginRequiredMixin, CreateView):
         return form
 
     def form_valid(self, form):
-        """Override form_valid to perform additional actions on new entries."""
-        from ghostwriter.rolodex.models import Project
-
+        project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+        form.instance.project = project
         form.instance.created_by = self.request.user
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["title"] = form.instance.title
         return super().form_valid(form)
 
+    def get_initial(self):
+        if self.project:
+            title = "{} {} ({}) Report".format(
+                self.project.client, self.project.project_type, self.project.start_date
+            )
+            return {"title": title, "project": self.project.id}
+
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         self.request.session["active_report"]["id"] = self.object.pk
         self.request.session.modified = True
         messages.success(
             self.request,
-            "New report was successfully created " "and is now your active report.",
+            "New report was successfully created and is now your active report.",
             extra_tags="alert-success",
         )
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
 
 
 class ReportUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing reports. This view defaults to the
-    report_form.html template.
+    """
+    Update an individual instance of :model:`reporting.Report`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to report's detail page
+
+    **Template**
+
+    :template:`reporting/report_form.html`
     """
 
     model = Report
-    fields = ("title", "project")
+    form_class = ReportForm
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        # Check if this request is for a specific project or not
+        self.project = "update"
+
+    def get_form_kwargs(self):
+        kwargs = super(ReportUpdate, self).get_form_kwargs()
+        kwargs.update({"project": self.project})
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super(ReportUpdate, self).get_context_data(**kwargs)
+        ctx["project"] = self.object.project
+        ctx["cancel_link"] = reverse(
+            "reporting:report_detail", kwargs={"pk": self.object.pk}
+        )
+        return ctx
 
     def form_valid(self, form):
-        """Override form_valid to perform additional actions on update."""
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["id"] = form.instance.id
         self.request.session["active_report"]["title"] = form.instance.title
@@ -1402,7 +1522,6 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request, "Report was updated successfully.", extra_tags="alert-success"
         )
@@ -1410,49 +1529,81 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
 
 
 class ReportDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing reports. This view defaults to the
-    report_confirm_delete.html
-    template.
+    """
+    Delete an individual instance of :model:`reporting.Report`.
+
+    **Context**
+
+    ``object_type``
+        String describing what is to be deleted
+    ``object_to_be_deleted``
+        To-be-deleted instance of :model:`reporting.Report`
+    ``cancel_link``
+        Link for the form's Cancel button to return to report's detail page
+
+    **Template**
+
+    :template:`confirm_delete.html`
     """
 
     model = Report
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["id"] = ""
         self.request.session["active_report"]["title"] = ""
         self.request.session.modified = True
         messages.warning(
             self.request,
-            "Report and associated evidence files " "were deleted successfully.",
+            "Report and associated evidence files were deleted successfully.",
             extra_tags="alert-warning",
         )
-        return reverse_lazy("reporting:reports")
+        return "{}#reports".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
+        )
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(ReportDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
+        ctx["cancel_link"] = reverse(
+            "rolodex:project_detail", kwargs={"pk": self.object.project.pk}
+        )
         ctx["object_type"] = "entire report, evidence and all"
         ctx["object_to_be_deleted"] = queryset.title
         return ctx
 
 
+# CBVs related to :model:`reporting.ReportFindingLink`
+
+
 class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating the local copies of a finding linked to a report.
-    This view defaults to the local_edit.html template."""
+    """
+    Update an individual instance of :model:`reporting.ReportFindingLink`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to report's detail page
+
+    **Template**
+
+    :template:`reporting/local_edit.html.html`
+    """
 
     model = ReportFindingLink
     form_class = ReportFindingLinkUpdateForm
     template_name = "reporting/local_edit.html"
     success_url = reverse_lazy("reporting:reports")
 
+    def get_context_data(self, **kwargs):
+        ctx = super(ReportFindingLinkUpdate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse(
+            "reporting:report_detail", kwargs={"pk": self.object.report.pk}
+        )
+        return ctx
+
     def form_valid(self, form):
-        """Override form_valid to perform additional actions on new entries."""
         # Check if severity, position, or assigned_to has changed
         if (
             "severity" in form.changed_data
@@ -1567,9 +1718,6 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
-        """Override the function to set a custom queryset for the form."""
-        from ghostwriter.rolodex.models import ProjectAssignment
-
         form = super(ReportFindingLinkUpdate, self).get_form(form_class)
         user_primary_keys = ProjectAssignment.objects.filter(
             project=self.object.report.project
@@ -1580,7 +1728,6 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
         return form
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "{} was successfully updated.".format(self.get_object().title),
@@ -1589,59 +1736,46 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
         return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id})
 
 
-class ReportFindingLinkDelete(LoginRequiredMixin, DeleteView):
-    """View for updating the local copies of a finding linked to a report.
-    This view defaults to the local_remove.html template."""
-
-    model = ReportFindingLink
-    template_name = "reporting/local_remove.html"
-
-    def get_success_url(self, **kwargs):
-        """Override function to return to the report."""
-        messages.warning(
-            self.request,
-            "{} was removed from this report.".format(self.get_object().title),
-            extra_tags="alert-warning",
-        )
-        return reverse_lazy("reporting:report_detail", args=(self.report_pk,))
-
-    def delete(self, request, *args, **kwargs):
-        """Override function to save the report ID before deleting the
-        finding.
-        """
-        self.report_pk = self.get_object().report.pk
-        # Get all other findings for this report ID
-        findings_queryset = ReportFindingLink.objects.filter(
-            Q(report=self.get_object().report.pk)
-            & Q(severity=self.get_object().severity)
-        )
-        if findings_queryset:
-            for finding in findings_queryset:
-                # Adjust position to close gap created by removed finding
-                if finding.position > self.get_object().position:
-                    finding.position -= 1
-                    finding.save()
-        return super(ReportFindingLinkDelete, self).delete(request, *args, **kwargs)
+# CBVs related to :model:`reporting.Evidence`
 
 
-class EvidenceDetailView(LoginRequiredMixin, generic.DetailView):
-    """View showing the details for the specified evidence file. This view
-    defaults to the evidence_detail.html template.
+class EvidenceDetailView(LoginRequiredMixin, DetailView):
+    """
+    Display an individual instance of :model:`reporting.Evidence`.
+
+    **Template**
+
+    :template:`reporting/evidence_detail.html`
     """
 
     model = Evidence
 
 
 class EvidenceUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing evidence. This view defaults to the
-    evidence_form.html template.
+    """
+    Update an individual instance of :model:`reporting.Evidence`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to evidence's detail page
+
+    **Template**
+
+    :template:`reporting/evidence_form.html`
     """
 
     model = Evidence
     form_class = EvidenceForm
 
+    def get_context_data(self, **kwargs):
+        ctx = super(EvidenceUpdate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse(
+            "reporting:evidence_detail", kwargs={"pk": self.object.pk},
+        )
+        return ctx
+
     def get_success_url(self):
-        """Override the function to return to the report after updates."""
         messages.success(
             self.request,
             "{} was successfully updated.".format(self.get_object().friendly_name),
@@ -1653,90 +1787,150 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
 
 
 class EvidenceDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing evidence. This view defaults to the
-    evidence_confirm_delete.html template.
+    """
+    Delete an individual instance of :model:`reporting.Evidence`.
+
+    **Context**
+
+    ``object_type``
+        String describing what is to be deleted
+    ``object_to_be_deleted``
+        To-be-deleted instance of :model:`reporting.Evidence`
+    ``cancel_link``
+        Link for the form's Cancel button to return to evidence's detail page
+
+    **Template**
+
+    :template:`confirm_delete.html`
     """
 
     model = Evidence
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        """Override the function to return to the report after deletion."""
-        messages.warning(
-            self.request,
-            "{} was removed from this report and the associated file has been deleted.".format(
-                self.get_object().friendly_name
-            ),
-            extra_tags="alert-success",
+        messages.success(
+            self.request, self.message, extra_tags="alert-success",
         )
         return reverse(
             "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
         )
 
     def delete(self, request, *args, **kwargs):
-        """Override function to save the report ID before deleting the
-        finding.
-        """
-        full_path = os.path.join(settings.MEDIA_ROOT, self.get_object().document.name)
+        self.object = self.get_object()
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+        self.message = "Successfully deleted the evidence and associated file"
+        full_path = os.path.join(settings.MEDIA_ROOT, self.object.document.name)
         directory = os.path.dirname(full_path)
         if os.path.isfile(full_path):
-            os.remove(full_path)
+            try:
+                os.remove(full_path)
+            except Exception:
+                self.message = "Successfully deleted the evidence, but could not delete the associated file{}"
+                logger.warning(
+                    "Failed to delete file associated with %s %s: %s",
+                    self.object.__class__.__name__,
+                    self.object.id,
+                    full_path,
+                )
         # Try to delete the directory tree if this was the last/only file
         try:
             os.removedirs(directory)
         except Exception:
-            pass
+            logger.warning(
+                "Failed to remove empty directory previously associated with %s %s: %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                directory,
+            )
         return super(EvidenceDelete, self).delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
         ctx = super(EvidenceDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["object_type"] = "evidence file"
+        ctx["cancel_link"] = reverse(
+            "reporting:evidence_detail", kwargs={"pk": queryset.pk}
+        )
+        ctx["object_type"] = "evidence file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.friendly_name
         return ctx
 
 
+# CBVs related to :model:`reporting.FindingNote`
+
+
 class FindingNoteCreate(LoginRequiredMixin, CreateView):
-    """View for creating new note entries. This view defaults to the
-    note_form.html template.
+    """
+    Create an individual instance of :model:`reporting.FindingNote`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to finding's detail page
+
+    **Template**
+
+    :template:`note_form.html`
     """
 
     model = FindingNote
-    form_class = FindingNoteCreateForm
+    form_class = FindingNoteForm
     template_name = "note_form.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super(FindingNoteCreate, self).get_context_data(**kwargs)
+        finding_instance = get_object_or_404(Finding, pk=self.kwargs.get("pk"))
+        ctx["cancel_link"] = reverse(
+            "reporting:finding_detail", kwargs={"pk": finding_instance.pk}
+        )
+        return ctx
+
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "Note successfully added to this finding.",
             extra_tags="alert-success",
         )
-        return reverse(
-            "reporting:finding_detail", kwargs={"pk": self.object.finding.id}
+        return "{}#notes".format(
+            reverse("reporting:finding_detail", kwargs={"pk": self.object.finding.id})
         )
 
     def get_initial(self):
-        """Set the initial values for the form."""
         finding_instance = get_object_or_404(Finding, pk=self.kwargs.get("pk"))
         finding = finding_instance
         return {"finding": finding, "operator": self.request.user}
 
 
 class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing note entries. This view defaults to the
-    note_form.html template.
+    """
+    Update an individual instance of :model:`reporting.FindingNote`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to finding's detail page
+
+    **Template**
+
+    :template:`note_form.html`
     """
 
     model = FindingNote
-    form_class = FindingNoteCreateForm
+    form_class = FindingNoteForm
     template_name = "note_form.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super(FindingNoteUpdate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse(
+            "reporting:finding_detail", kwargs={"pk": self.object.finding.pk}
+        )
+        return ctx
+
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request, "Note successfully updated.", extra_tags="alert-success"
         )
@@ -1745,54 +1939,46 @@ class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
         )
 
 
-class FindingNoteDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing note entries. This view defaults to the
-    confirm_delete.html template.
-    """
-
-    model = FindingNote
-    template_name = "confirm_delete.html"
-
-    def get_success_url(self):
-        """Override the function to return to the server after deletion."""
-        messages.warning(
-            self.request, "Note successfully deleted.", extra_tags="alert-warning"
-        )
-        return reverse(
-            "reporting:finding_detail", kwargs={"pk": self.object.finding.pk}
-        )
-
-    def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
-        ctx = super(FindingNoteDelete, self).get_context_data(**kwargs)
-        queryset = kwargs["object"]
-        ctx["object_type"] = "note"
-        ctx["object_to_be_deleted"] = queryset.note
-        return ctx
+# CBVs related to :model:`reporting.LocalFindingNote`
 
 
 class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
-    """View for creating new note entries. This view defaults to the
-    note_form.html template.
+    """
+    Create an individual instance of :model:`reporting.LocalFindingNote`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to finding's detail page
+
+    **Template**
+
+    :template:`note_form.html`
     """
 
     model = LocalFindingNote
-    form_class = LocalFindingNoteCreateForm
+    form_class = LocalFindingNoteForm
     template_name = "note_form.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super(LocalFindingNoteCreate, self).get_context_data(**kwargs)
+        finding_instance = get_object_or_404(
+            ReportFindingLink, pk=self.kwargs.get("pk")
+        )
+        ctx["cancel_link"] = reverse(
+            "reporting:local_edit", kwargs={"pk": finding_instance.pk}
+        )
+        return ctx
+
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "Note successfully added to this finding.",
             extra_tags="alert-success",
         )
-        return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.id})
+        return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})
 
     def get_initial(self):
-        """Set the initial values for the form."""
         finding_instance = get_object_or_404(
             ReportFindingLink, pk=self.kwargs.get("pk")
         )
@@ -1801,43 +1987,33 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
 
 
 class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing note entries. This view defaults to the
-    note_form.html template.
+    """
+    Update an individual instance of :model:`reporting.LocalFindingNote`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to finding's detail page
+
+    **Template**
+
+    :template:`note_form.html`
     """
 
     model = LocalFindingNote
-    form_class = LocalFindingNoteCreateForm
+    form_class = LocalFindingNoteForm
     template_name = "note_form.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super(LocalFindingNoteUpdate, self).get_context_data(**kwargs)
+        note_instance = get_object_or_404(LocalFindingNote, pk=self.kwargs.get("pk"))
+        ctx["cancel_link"] = reverse(
+            "reporting:local_edit", kwargs={"pk": note_instance.finding.id}
+        )
+        return ctx
+
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request, "Note successfully updated.", extra_tags="alert-success"
         )
         return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})
-
-
-class LocalFindingNoteDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing note entries. This view defaults to the
-    confirm_delete.html template.
-    """
-
-    model = LocalFindingNote
-    template_name = "confirm_delete.html"
-
-    def get_success_url(self):
-        """Override the function to return to the server after deletion."""
-        messages.warning(
-            self.request, "Note successfully deleted.", extra_tags="alert-warning"
-        )
-        return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})
-
-    def get_context_data(self, **kwargs):
-        """Override the `get_context_data()` function to provide additional
-        information.
-        """
-        ctx = super(LocalFindingNoteDelete, self).get_context_data(**kwargs)
-        queryset = kwargs["object"]
-        ctx["object_type"] = "note"
-        ctx["object_to_be_deleted"] = queryset.note
-        return ctx

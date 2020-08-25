@@ -1,5 +1,6 @@
 """This contains customizations for displaying the Reporting application models in the admin panel."""
 
+# Django & Other 3rd Party Libraries
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 
@@ -27,7 +28,10 @@ class EvidenceAdmin(admin.ModelAdmin):
     list_filter = ("uploaded_by",)
     list_display_links = ("document", "upload_date", "uploaded_by")
     fieldsets = (
-        ("Evidence Document", {"fields": ("friendly_name", "description", "document")}),
+        (
+            "Evidence Document",
+            {"fields": ("friendly_name", "caption", "description", "document")},
+        ),
         ("Report Information", {"fields": ("finding", "uploaded_by",)},),
     )
 
@@ -83,7 +87,7 @@ class ReportAdmin(admin.ModelAdmin):
     list_display_links = ("title", "project")
     fieldsets = (
         ("Report Details", {"fields": ("project", "title", "created_by")}),
-        ("Current Status", {"fields": ("complete",)}),
+        ("Current Status", {"fields": ("complete", "delivered", "archived")}),
     )
 
 

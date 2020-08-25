@@ -1,13 +1,14 @@
 """This contains all of the database models used by the Reporting application."""
 
+# Standard Libraries
 import os
 
+# Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
-
-from tinymce.models import HTMLField
+from django.utils.translation import ugettext_lazy as _
 
 
 class Severity(models.Model):
@@ -17,7 +18,7 @@ class Severity(models.Model):
 
     severity = models.CharField(
         "Severity",
-        max_length=100,
+        max_length=255,
         unique=True,
         help_text="Severity rating (e.g. High, Low)",
     )
@@ -37,14 +38,11 @@ class Severity(models.Model):
     count = property(count_findings)
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["severity"]
         verbose_name = "Severity rating"
         verbose_name_plural = "Severity ratings"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.severity
 
 
@@ -54,7 +52,7 @@ class FindingType(models.Model):
     """
 
     finding_type = models.CharField(
-        "Type", max_length=100, unique=True, help_text="Type of finding (e.g. network)"
+        "Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)"
     )
 
     def count_findings(self):
@@ -66,81 +64,73 @@ class FindingType(models.Model):
     count = property(count_findings)
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["finding_type"]
         verbose_name = "Finding type"
         verbose_name_plural = "Finding types"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.finding_type
 
 
 class Finding(models.Model):
     """
-    Stores an individual finding, related to :model:`reporting.Severity` and
-    :model:`reporting.FindingType`.
+    Stores an individual finding, related to :model:`reporting.Severity` and :model:`reporting.FindingType`.
     """
 
     title = models.CharField(
         "Title",
-        max_length=200,
+        max_length=255,
         unique=True,
-        help_text="Enter a title for this finding that will appear in the " "reports",
+        help_text="Enter a title for this finding that will appear in reports",
     )
-    description = HTMLField(
+    description = models.TextField(
         "Description",
         null=True,
         blank=True,
         help_text="Provide a description for this finding that introduces it",
     )
-    impact = HTMLField(
+    impact = models.TextField(
         "Impact",
-        help_text="Describe the impact of this finding on the affected " "entities",
+        help_text="Describe the impact of this finding on the affected entities",
         null=True,
         blank=True,
     )
-    mitigation = HTMLField(
+    mitigation = models.TextField(
         "Mitigation",
         null=True,
         blank=True,
         help_text="Describe how this finding can be resolved or addressed",
     )
-    replication_steps = HTMLField(
+    replication_steps = models.TextField(
         "Replication Steps",
         null=True,
         blank=True,
         help_text="Provide an explanation for how the reader may reproduce "
         "this finding",
     )
-    host_detection_techniques = HTMLField(
+    host_detection_techniques = models.TextField(
         "Host Detection Techniques",
         null=True,
         blank=True,
-        help_text="Describe how this finding can be detected on an endpoint "
-        "- leave blank if this does not apply",
+        help_text="Describe how this finding can be detected on an endpoint - leave blank if this does not apply",
     )
-    network_detection_techniques = HTMLField(
+    network_detection_techniques = models.TextField(
         "Network Detection Techniques",
         null=True,
         blank=True,
-        help_text="Describe how this finding can be detected on a network "
-        "- leave blank if this does not apply",
+        help_text="Describe how this finding can be detected on a network - leave blank if this does not apply",
     )
-    references = HTMLField(
+    references = models.TextField(
         "References",
         null=True,
         blank=True,
-        help_text="Provide solid references for this finding, such as links "
-        "to reference materials, tooling, and white papers",
+        help_text="Provide solid references for this finding, such as links to tools and white papers",
     )
     finding_guidance = models.TextField(
         "Finding Guidance",
         null=True,
         blank=True,
-        help_text="Provide notes for your team that describes how the finding "
-        "is intended to be used and any details that should be provided "
+        help_text="Provide notes for your team that describes how the finding is intended to be used or edited"
         "during editing",
     )
     # Foreign Keys
@@ -148,8 +138,7 @@ class Finding(models.Model):
         "Severity",
         on_delete=models.PROTECT,
         null=True,
-        help_text="Select a severity rating for this finding that reflects "
-        "its role in a system compromise",
+        help_text="Select a severity rating for this finding that reflects its role in a system compromise",
     )
     finding_type = models.ForeignKey(
         "FindingType",
@@ -159,19 +148,15 @@ class Finding(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["severity", "finding_type", "title"]
         verbose_name = "Finding"
         verbose_name_plural = "Findings"
 
     def get_absolute_url(self):
-        """Returns the URL to access a particular instance of the model."""
         return reverse("reporting:finding_detail", args=[str(self.id)])
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
-        return f"{self.title} ({self.severity})"
+        return f"[{self.severity}] {self.title}"
 
 
 class Report(models.Model):
@@ -181,10 +166,9 @@ class Report(models.Model):
 
     title = models.CharField(
         "Title",
-        max_length=200,
+        max_length=255,
         default="New Report",
-        help_text="Provide a meaningful title for this report "
-        "- this is only seen in Ghostwriter",
+        help_text="Provide a meaningful title for this report - this is only seen in Ghostwriter",
     )
     creation = models.DateField(
         "Creation Date", auto_now_add=True, help_text="Date the report was created"
@@ -213,18 +197,14 @@ class Report(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["-creation", "-last_update", "project"]
         verbose_name = "Report"
         verbose_name_plural = "Reports"
 
     def get_absolute_url(self):
-        """Returns the URL to access a particular instance of the model."""
         return reverse("reporting:report_detail", args=[str(self.id)])
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.title}"
 
 
@@ -236,21 +216,15 @@ class ReportFindingLink(models.Model):
 
     title = models.CharField(
         "Title",
-        max_length=200,
-        help_text="Enter a title for this finding that will appear in the " "reports",
+        max_length=255,
+        help_text="Enter a title for this finding that will appear in the reports",
     )
-    position = models.IntegerField(
-        "Report Position",
-        default=1,
-        help_text="Set this findings weight to adjust where it appears in the "
-        "report compared to other findings with the same Severity rating",
-    )
+    position = models.IntegerField("Report Position", default=1,)
     affected_entities = models.TextField(
         "Affected Entities",
         null=True,
         blank=True,
-        help_text="Provide a list of the affected entities (e.g. domains, "
-        "hostnames, IP addresses)",
+        help_text="Provide a list of the affected entities (e.g. domains, hostnames, IP addresses)",
     )
     description = models.TextField(
         "Description",
@@ -262,7 +236,7 @@ class ReportFindingLink(models.Model):
         "Impact",
         null=True,
         blank=True,
-        help_text="Describe the impact of this finding on the affected " "entities",
+        help_text="Describe the impact of this finding on the affected entities",
     )
     mitigation = models.TextField(
         "Mitigation",
@@ -274,48 +248,43 @@ class ReportFindingLink(models.Model):
         "Replication Steps",
         null=True,
         blank=True,
-        help_text="Provide an explanation for how the reader may reproduce "
-        "this finding",
+        help_text="Provide an explanation for how the reader may reproduce this finding",
     )
     host_detection_techniques = models.TextField(
         "Host Detection Techniques",
         null=True,
         blank=True,
-        help_text="Describe how this finding can be detected on an endpoint "
-        "- leave blank if this does not apply",
+        help_text="Describe how this finding can be detected on an endpoint - leave blank if this does not apply",
     )
     network_detection_techniques = models.TextField(
         "Network Detection Techniques",
         null=True,
         blank=True,
-        help_text="Describe how this finding can be detected on a network "
-        "- leave blank if this does not apply",
+        help_text="Describe how this finding can be detected on a network - leave blank if this does not apply",
     )
-    references = HTMLField(
+    references = models.TextField(
         "References",
         null=True,
         blank=True,
-        help_text="Provide solid references for this finding, such as links "
-        "to reference materials, tooling, and white papers",
+        help_text="Provide solid references for this finding, such as links to reference materials, tooling, and white papers",
     )
     finding_guidance = models.TextField(
         "Finding Guidance",
         null=True,
         blank=True,
-        help_text="Provide notes for your team that describes how the finding "
-        "is intended to be used and any details that should be provided "
-        "during editing",
+        help_text="Provide notes for your team that describes this finding within this report",
     )
     complete = models.BooleanField(
-        "Completed", default=False, help_text="Is the finding ready for review"
+        "Completed",
+        default=False,
+        help_text="Mark the finding as ready for a QA review",
     )
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
         on_delete=models.PROTECT,
         null=True,
-        help_text="Select a severity rating for this finding that reflects "
-        "its role in a system compromise",
+        help_text="Select a severity rating for this finding that reflects its role in a system compromise",
     )
     finding_type = models.ForeignKey(
         "FindingType",
@@ -329,19 +298,15 @@ class ReportFindingLink(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="Assign the task of editing this finding to a specific "
-        "operator - defaults to the operator that added it to the report",
+        help_text="Assign the task of editing this finding to a specific operator - defaults to the operator that added it to the report",
     )
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["report", "severity__weight", "position"]
         verbose_name = "Report finding"
         verbose_name_plural = "Report findings"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.title
 
     def get_evidence_list(self):
@@ -366,8 +331,8 @@ class Evidence(models.Model):
     """
 
     def set_upload_destination(instance, filename):
-        """Sets the `upload_to` destination to the evidence folder for the
-        associated report ID.
+        """
+        Sets the `upload_to` destination to the evidence folder for the associated report ID.
         """
         return os.path.join("evidence", str(instance.finding.report.id), filename)
 
@@ -375,10 +340,8 @@ class Evidence(models.Model):
     friendly_name = models.CharField(
         "Friendly Name",
         null=True,
-        max_length=100,
-        help_text="Provide a simple name to be used for displaying this "
-        "file in the interface and for use as a keyword for placing the "
-        "file within the report",
+        max_length=255,
+        help_text="Provide a simple name to be used to reference this evidence",
     )
     upload_date = models.DateField(
         "Upload Date",
@@ -387,18 +350,12 @@ class Evidence(models.Model):
     )
     caption = models.CharField(
         "Caption",
-        max_length=200,
+        max_length=255,
         blank=True,
-        help_text="Provide a caption to be used in the report output "
-        "- keep it brief",
+        help_text="Provide a one line caption to be used in the report - keep it brief",
     )
     description = models.TextField(
-        "Description",
-        max_length=500,
-        blank=True,
-        help_text="Provide a description/explanation of the evidence that "
-        "other users can see to help them understand the purpose of this "
-        "evidence",
+        "Description", blank=True, help_text="Describe this evidence to your team",
     )
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE)
@@ -407,24 +364,21 @@ class Evidence(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["finding", "document"]
         verbose_name = "Evidence"
         verbose_name_plural = "Evidence"
 
     def get_absolute_url(self):
-        """Returns the URL to access a particular instance of the model."""
         return reverse("reporting:evidence_file", args=[str(self.id)])
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.document.name
 
     def clean(self, *args, **kwargs):
         super(Evidence, self).clean(*args, **kwargs)
+        # Validate here in the model so there is always a file asociated with the entry
         if not self.document:
-            raise ValidationError("Please provide an evidence file.")
+            raise ValidationError(_("You must provide an evidence file"), "incomplete")
 
 
 class Archive(models.Model):
@@ -440,14 +394,11 @@ class Archive(models.Model):
         return os.path.basename(self.report_archive.name)
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["project"]
         verbose_name = "Archived report"
         verbose_name_plural = "Archived reports"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return self.report_archive.name
 
 
@@ -457,14 +408,13 @@ class FindingNote(models.Model):
     """
 
     timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
     )
     note = models.TextField(
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to add a note to this finding - it can be "
-        "anything you want others to see/know about the finding",
+        help_text="Provide additional information about the finding",
     )
     # Foreign Keys
     finding = models.ForeignKey("Finding", on_delete=models.CASCADE, null=False)
@@ -473,14 +423,11 @@ class FindingNote(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["finding", "-timestamp"]
         verbose_name = "Local finding note"
         verbose_name_plural = "Local finding notes"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.finding} {self.timestamp}: {self.note}"
 
 
@@ -490,14 +437,13 @@ class LocalFindingNote(models.Model):
     """
 
     timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
     )
     note = models.TextField(
         "Notes",
         null=True,
         blank=True,
-        help_text="Use this area to add a note to this finding - it can be "
-        "anything you want others to see/know about the finding",
+        help_text="Provide additional information about the finding",
     )
     # Foreign Keys
     finding = models.ForeignKey(
@@ -508,12 +454,9 @@ class LocalFindingNote(models.Model):
     )
 
     class Meta:
-        """Metadata for the model."""
-
         ordering = ["finding", "-timestamp"]
         verbose_name = "Local finding note"
         verbose_name_plural = "Local finding notes"
 
     def __str__(self):
-        """String for representing the model object (in Admin site etc.)."""
         return f"{self.finding} {self.timestamp}: {self.note}"

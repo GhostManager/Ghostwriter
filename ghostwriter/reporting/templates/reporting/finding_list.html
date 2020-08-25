@@ -14,39 +14,8 @@
 
 {% block content %}
     <!-- Filter Section -->
-    <div class="m-auto">
-        <form class="filterform" method="get">
-            <div class="form-group">
-                {{ filter.form.title|as_crispy_field }}
-            </div>
-            <div class="form-row" style="margin-bottom: 20px;">
-                <div class="form-group col-md-12 mb-0">
-                    <div class="dropdown">
-                        <button class="dropbtn" style="font-family: 'Poppins', sans-serif; margin-right: 20px;"><i class="far fa-caret-square-down"></i> Severity</button>
-                        <div class="dropdown-content dropdown-content-info">
-                            {% for choice in filter.form.severity %}
-                                <label class="checkbox-inline">
-                                    {{ choice.tag }} {{ choice.choice_label }}
-                                </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="dropdown">
-                        <button class="dropbtn" style="font-family: 'Poppins', sans-serif;"><i class="far fa-caret-square-down"></i> Type</button>
-                        <div class="dropdown-content dropdown-content-info">
-                            {% for choice in filter.form.finding_type %}
-                                <label class="checkbox-inline">
-                                    {{ choice.tag }} {{ choice.choice_label }}
-                                </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'reporting:findings' %}" class="btn btn-secondary">Reset</a>
-        </form>
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
     </div>
 
     {% if filter.qs|length == 0 %}
@@ -61,7 +30,7 @@
                 <thead>
                     <tr>
                         <th id="cols" class="sortable">Severity</th>
-                        <th id="cols" class="sortable">Type</th>
+                        <th id="cols" class="sortable"><span style="margin-right: 10px;">Type</span></th>
                         <th id="cols" class="sortable">Title</th>
                         <th class="sorter-false">
                             Add to Report
@@ -101,26 +70,26 @@
 
                             <!-- Finding Type (e.g. Network) -->
                             {% if finding.finding_type.finding_type == "Network" %}
-                                <td style="font-size: 15px" title="Network Finding"><i class="fas fa-network-wired"></i> Network</td>
+                                <td style="font-size: 15px" title="Network Finding" class="icon network-icon"><span style="display: none;">Network</span></td>
                             {% elif finding.finding_type.finding_type == "Wireless" %}
-                                <td style="font-size: 15px" title="Wireless Finding"><i class="fas fa-wifi"></i> Wireless</td>
+                                <td style="font-size: 15px" title="Wireless Finding" class="icon wireless-icon"><span style="display: none;">Wireless</span></td>
                             {% elif finding.finding_type.finding_type == "Physical" %}
-                                <td style="font-size: 15px" title="Physical Finding"><i class="fas fa-user-secret"></i> Physical</td>
-                            {% elif finding.finding_type.finding_type == "Web Application" %}
-                                <td style="font-size: 15px" title="Web App Finding"><i class="fas fa-code"></i> Web App</td>
+                                <td style="font-size: 15px" title="Physical Finding" class="icon physical-icon"><span style="display: none;">Physical</span></td>
+                            {% elif finding.finding_type.finding_type == "Web" %}
+                                <td style="font-size: 15px" title="Web App Finding" class="icon code-icon"><span style="display: none;">Web</span></td>
                             {% elif finding.finding_type.finding_type == "Mobile Application" %}
-                                <td style="font-size: 15px" title="Mobile Finding"><i class="fas fa-mobile-alt"></i> Mobile App</td>
+                                <td style="font-size: 15px" title="Mobile Finding" class="icon mobile-icon"><span style="display: none;">Mobile</span></td>
                             {% elif finding.finding_type.finding_type == "Cloud" %}
-                                <td style="font-size: 15px" title="Cloud Finding"><i class="fas fa-cloud"></i> Cloud</td>
+                                <td style="font-size: 15px" title="Cloud Finding" class="icon cloud-icon"><span style="display: none;">Cloud</span></td>
                             {% elif finding.finding_type.finding_type == "Host" %}
-                                <td style="font-size: 15px" title="Local Host Finding"><i class="fas fa-laptop"></i> Host</td>
+                                <td style="font-size: 15px" title="Local Host Finding" class="icon host-icon"><span style="display: none;">Host</span></td>
                             {% else %}
-                                <td id="cols" class="severity">{{ finding.finding_type.finding_type }}</td>
+                                <td style="font-size: 15px" title="Local Host Finding" class="icon host-icon"><span style="display: none;">Other</span></td>
                             {% endif %}
 
                             <!-- Other Information -->
                             <td id="cols" class="title clickable"><a href="{{ finding.get_absolute_url }}">{{ finding.title }}</a></td>
-                            <td><a href="{% url 'reporting:assign_finding' finding.id %}"><i style="font-size: 15px" class="far fa-plus-square"></i></button></td>
+                            <td><a class="js-assign-finding" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"><i style="font-size: 15px" class="far fa-plus-square"></i></button></td>
                             <td><a href="{% url 'reporting:finding_update' finding.id %}"><i style="font-size: 15px" class="far fa-edit"></i></button></td>
                         </tr>
                     {% endfor %}
@@ -142,6 +111,40 @@
                             }
                         );
             $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    <!-- Assign Finding with AJAX -->
+    <script>
+        $('.js-assign-finding').click(function () {
+            var url = $(this).attr('assign-finding-url');
+            var findingId = $(this).attr('assign-finding-id');
+            var csrftoken = $(this).attr('assign-finding-csrftoken')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'finding': findingId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        // Something
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Finding Assigned'});
+                    }
+                }
+            });
         });
     </script>
 {% endblock %}
