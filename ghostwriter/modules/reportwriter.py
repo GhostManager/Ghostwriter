@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-"""This module contains the tools required for generating Microsoft Office
-documents for reporting. The Reportwriter class accepts data and produces a
-docx, xlsx, pptx, and json using the provided data.
+"""
+This module contains the tools required for generating Microsoft Office documents for
+reporting. The ``Reportwriter`` class accepts data and produces a docx, xlsx, pptx,
+and json using the provided data.
 """
 
 # Standard Libraries
