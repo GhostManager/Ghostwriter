@@ -5,7 +5,7 @@
 This module contains the ``DomainReview`` class. The class checks if a domain name is
 properly categorized, has not been flagged in VirusTotal, or tagged with a bad category.
 
-``DomainReview`` checks the domain against VirusTotal, Cisco Talos, Bluecoat,
+``DomainReview`` checks VirusTotal, Cisco Talos, Bluecoat,
 IBM X-Force, Fortiguard, TrendMicro, OpeDNS, and MXToolbox. Domains will also
 be checked against malwaredomains.com's list of reported domains.
 """
@@ -39,8 +39,7 @@ class DomainReview(object):
         "https://www.virustotal.com/vtapi/v2/domain/report?apikey={}&domain={}"
     )
     # Categories we don't want to see
-    # These are lowercase to avoid inconsistencies with how each service might
-    # return the categories
+    # These are lowercase to avoid inconsistencies with how each service might return the categories
     blacklisted = [
         "phishing",
         "web ads/analytics",
