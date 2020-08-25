@@ -1,34 +1,56 @@
 Changelog
 =========
 
+25 August 2020
+--------------
+* Cleaned and refactored each application to improve UI/UX and performance
+    * See the code style guide in the wiki
+* Added admin documentation for template filters and tags, views, and models
+    * Added `docutils==0.16` to requirements
+    * Added `django.contrib.admindocs` to base.py
+    * Visit the Django administration panel and click "Documentation" in the upper-right corner
+* Removed `django-tinymce` from the project
+    * Determined this library was the root cause of several inconsistencies and issues
+    * Ghostwriter did not use the library's major features, so removing it entirely simplified development
+    * Model fields that were `HTMLField` are now `TextField` once again
+    * Library remains listed in the requirements for backwards compatibility with migrations that import `django-tinymce.HTMLField`
+* Converted many views to AJAX requests
+* Introduced `django-channels` and support for WebSockets
+* Added aupport for automatic project activity logging with new application and WebSockets
+    * See the wiki for more information
+* Fixed several issues related to report generation
+    * Modified Open XML for image borders in Word reports to address cases where a border edge could go missing
+    * Created an allowlist for HTML tags to avoid parsing errors when encountering unsupported HTML elements (e.g., `<br />`)
+* Added `django-bleach` and `Bleach` to the project to sanitize WYSIWYG HTML in rare cases it must be rendered (e.g., previewing a finding)
+
 15 June 2020
 ------------
 * FIXED: Evidence files deleted during updates
-	* This happened because of logic intended to clean-up evidence files when a user replaced an evidence file with a new upload
-	* Function broke when the evidence upload location changed post-Dockerization
+    * This happened because of logic intended to clean-up evidence files when a user replaced an evidence file with a new upload
+    * Function broke when the evidence upload location changed post-Dockerization
 * FIXED: Finding References lists were not left-aligned in Word reports
-	* All lists will now default to left-aligned vs. justified
+    * All lists will now default to left-aligned vs. justified
     * This addresses list items with longer words/hostnames spreading out across the page in Word
 * FIXED: Updating evidence required changing the `friendly_name` field
-	* This check triggered on updates and checked if the name was unique for that finding
-	* Check would fail because current name would match itself
+    * This check triggered on updates and checked if the name was unique for that finding
+    * Check would fail because current name would match itself
 * FIXED: Images were not centered
-	* Images were set to 6.5" by default, which "centered" them
-	* All images are now centered in case users change the size
+    * Images were set to 6.5" by default, which "centered" them
+    * All images are now centered in case users change the size
 * FIXED: Transparent areas in images become solid black
-	* Alpha layers in PNG files converted to solid black during image processing
+    * Alpha layers in PNG files converted to solid black during image processing
     * That image processing has been completely removed
 * FIXED: Images needed proper borders
-	* Ghostwriter now inserts the necessary Open XML elements to add a 1pt #2d2b6b border to all images
-	* The fake borders added to images via PIL and image processing are gone
+    * Ghostwriter now inserts the necessary Open XML elements to add a 1pt #2d2b6b border to all images
+    * The fake borders added to images via PIL and image processing are gone
     * Border color can be changed by editing the class variables `border_color` and `border_color_hex` in reportwriter.py
 * FIXED: Reports skipped evidence with periods in the name
-	* Evidence processing individually removed `{`, `}`, and `.` from identified keywords
-	* Now `{{.` and `}}` are removed to avoid collateral damage
+    * Evidence processing individually removed `{`, `}`, and `.` from identified keywords
+    * Now `{{.` and `}}` are removed to avoid collateral damage
 * FIXED: Missing evidence files caused a 500 error
-	* This should never happen because of the above change to evidence updates
-	* As a precaution, Ghostwriter now checks if the file path is valid and raises a `FileNotFoundError` instead of skipping the file or failing
-	* Determined this was preferable to the image just not being the report or inserting a "missing file" message
+    * This should never happen because of the above change to evidence updates
+    * As a precaution, Ghostwriter now checks if the file path is valid and raises a `FileNotFoundError` instead of skipping the file or failing
+    * Determined this was preferable to the image just not being the report or inserting a "missing file" message
 * FIXED: Updating a report title caused a 500 error
     * The UpdateView was incompatible with changes made to the report form to support creating a report outside of a project
 * FIXED: Lists with indented items did not translate to report output
