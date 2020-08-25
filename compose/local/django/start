@@ -10,5 +10,6 @@ EVIDENCE_DIR=/app/ghostwriter/media/evidence
 [[ ! -d "$EVIDENCE_DIR" ]] && mkdir -p "$EVIDENCE_DIR"
 [[ ! -d "$AVATAR_DIR" ]] && mkdir -p "$AVATAR_DIR"
 
+python manage.py makemigrations
 python manage.py migrate
-python manage.py runserver_plus 0.0.0.0:8000
+python manage.py runserver 0.0.0.0:8000

@@ -49,8 +49,10 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = True
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = "config.urls"
+
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
-WSGI_APPLICATION = "config.wsgi.application"
+#WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.routing.application"
 
 # APPS
 # ------------------------------------------------------------------------------
@@ -66,11 +68,13 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
+    "channels",
     "crispy_forms",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    # "rest_framework",
+    "rest_framework",
+    "rest_framework_api_key",
     'django_q',
     'django_filters',
     'import_export',
@@ -83,6 +87,7 @@ LOCAL_APPS = [
     'ghostwriter.rolodex.apps.RolodexConfig',
     'ghostwriter.shepherd.apps.ShepherdConfig',
     'ghostwriter.reporting.apps.ReportingConfig',
+    'ghostwriter.oplog.apps.OplogConfig',
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -348,6 +353,27 @@ CLOUD_SERVICE_CONFIG = {
     'aws_key': env("AWS_KEY", default=None),
     'aws_secret': env("AWS_SECRET", default=None),
     'do_api_key': env("DO_API_KEY", default=None)
+}
+
+# Django REST configurations
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        #'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated', 
+        #'rest_framework_api_key.permissions.HasAPIKey',
+    ],
+}
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", "6379")]
+        }
+    }
 }
 
 TINYMCE_JS_ROOT = os.path.join(STATIC_ROOT, "js/tiny_mce")
