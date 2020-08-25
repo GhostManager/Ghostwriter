@@ -29,10 +29,10 @@ from .forms import (
     CheckoutForm,
     DomainCreateForm,
     DomainLinkForm,
-    DomainNoteCreateForm,
+    DomainNoteForm,
     ServerCheckoutForm,
     ServerCreateForm,
-    ServerNoteCreateForm,
+    ServerNoteForm,
     TransientServerCreateForm,
 )
 from .models import (
@@ -86,7 +86,7 @@ def ajax_load_projects(request):
 def ajax_load_project(request):
     """
     Retrieve individual :model:`rolodex.Project`.
-    
+
     **Context**
 
     ``project``
@@ -115,14 +115,14 @@ def index(request):
 def domain_list(request):
     """
     Display a list of all :model:`shepherd.Domain`.
-    
+
     **Context**
-    
+
     ``filter``
         Instance of :filter:`shepherd.DopmainFilter`
-    
+
     **Template**
-    
+
     :template:`shepherd/domain_list.html`
     """
     # Check if a search parameter is in the request
@@ -157,14 +157,14 @@ def domain_list(request):
 def server_list(request):
     """
     Display a list of all :model:`shepherd.StaticServer`.
-    
+
     **Context**
-    
+
     ``filter``
         Instance of :filter:`shepherd.ServerFilter.
-    
+
     **Template**
-    
+
     :template:`shepherd/server_list.html`
     """
     servers_list = (
@@ -197,7 +197,7 @@ def server_search(request):
                         extra_tags="alert-warning",
                     )
                     return HttpResponseRedirect(
-                        "{}#collapseInfra".format(
+                        "{}#infrastructure".format(
                             reverse("rolodex:project_detail", kwargs={"pk": project_id})
                         )
                     )
@@ -215,7 +215,7 @@ def server_search(request):
                     extra_tags="alert-success",
                 )
                 return HttpResponseRedirect(
-                    "{}#collapseInfra".format(
+                    "{}#infrastructure".format(
                         reverse("rolodex:project_detail", kwargs={"pk": project_id})
                     )
                 )
@@ -236,7 +236,7 @@ def server_search(request):
                         extra_tags="alert-warning",
                     )
                     return HttpResponseRedirect(
-                        "{}#collapseInfra".format(
+                        "{}#infrastructure".format(
                             reverse("rolodex:project_detail", kwargs={"pk": project_id})
                         )
                     )
@@ -254,7 +254,7 @@ def server_search(request):
                     extra_tags="alert-success",
                 )
                 return HttpResponseRedirect(
-                    "{}#collapseInfra".format(
+                    "{}#infrastructure".format(
                         reverse("rolodex:project_detail", kwargs={"pk": project_id})
                     )
                 )
@@ -265,7 +265,7 @@ def server_search(request):
                 extra_tags="alert-warning",
             )
             return HttpResponseRedirect(
-                "{}#collapseInfra".format(
+                "{}#infrastructure".format(
                     reverse("rolodex:project_detail", kwargs={"pk": project_id})
                 )
             )
@@ -280,7 +280,7 @@ def domain_release(request, pk):
     entry in :model:`shepherd.DomainStatus`.
 
     **Template**
-    
+
     :template:`checkouts_for_user.html`
     """
     # Fetch the checkout for the provided primary key
@@ -328,7 +328,7 @@ def server_release(request, pk):
     entry in :model:`shepherd.ServerStatus`.
 
     **Template**
-    
+
     :template:`checkouts_for_user.html`
     """
     # Fetch the checkout for the provided primary key
@@ -376,16 +376,16 @@ def user_assets(request):
     """
     Display all :model:`shepherd.Domain` and :model:`shepherd.StaticServer` associated
     with the current :model:`users.User`.
-    
+
     **Context**
-    
+
     ``domains``
         All :model:`shepherd.Domain` associated with current :model:`users.User`.
     ``server``
         All :model:`shepherd.StaticServer` associated with current :model:`users.User`.
-    
+
     **Template**
-    
+
     :template:`checkouts_for_user.html`
     """
     # Fetch the domain history for the current user
@@ -422,18 +422,18 @@ def burn(request, pk):
     """
     Update the health_status, domain_status, and burned_explanation fields for an
     individual :model:`shepherd.Domain`.
-    
+
     **Context**
-    
+
     ``form``
         Instance of :form:`shepjerd.BurnForm`.
     ``domain_instance``
         Instance of :model:`shepherd.Domain` to be updated.
     ``domain_name``
         Value of name field for instance of :model:`shepherd.Domain` to be updated.
-    
+
     **Template**
-    
+
     :template:`shepherd/burn.html`
     """
     # Fetch the domain for the provided primary key
@@ -459,9 +459,7 @@ def burn(request, pk):
                 request, "Domain has been marked as burned.", extra_tags="alert-warning"
             )
             return HttpResponseRedirect(
-                "{}#collapseBurned".format(
-                    reverse("shepherd:domain_detail", kwargs={"pk": pk})
-                )
+                "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
             )
             return HttpResponseRedirect(
                 reverse("shepherd:domain_detail", kwargs={"pk": pk})
@@ -485,7 +483,7 @@ def import_domains(request):
     Display form and import CSV file to create bulk :model:`shepherd.Domain`.
 
     **Template**
-    
+
     :template:`shepherd/domain_import.html`
     """
     # If the request is 'GET' return the upload page
@@ -628,7 +626,7 @@ def import_servers(request):
     Display form and import CSV file to create bulk :model:`shepherd.StaticServer`.
 
     **Template**
-    
+
     :template:`shepherd/server_import.html`
     """
     # If the request is 'GET' return the upload page
@@ -998,7 +996,7 @@ def update_cat_single(request, pk):
                 extra_tags="alert-danger",
             )
     return HttpResponseRedirect(
-        "{}#collapseHealth".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
+        "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
     )
 
 
@@ -1062,7 +1060,7 @@ def update_dns_single(request, pk):
                 extra_tags="alert-danger",
             )
     return HttpResponseRedirect(
-        "{}#collapseDNS".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
+        "{}#dns".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
     )
 
 
@@ -1163,7 +1161,7 @@ class DomainDetailView(LoginRequiredMixin, generic.DetailView):
     Display list of all :model:`shepherd.Domain`.
 
     **Template**
-    
+
     :template:`shepherd/domain_list.html`
     """
 
@@ -1204,7 +1202,7 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
         messages.success(
             self.request, "Domain successfully checked-out.", extra_tags="alert-success"
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1217,9 +1215,9 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
 class HistoryUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.History`.
-    
+
     **Template**
-    
+
     :template:`shepherd/checkout.html`
     """
 
@@ -1236,17 +1234,17 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
         next_url = self.request.POST.get("next", "/")
         if next_url:
             if "/domains/" in next_url:
-                return "{}#collapseProject".format(next_url)
+                return "{}#history".format(next_url)
             elif "/projects/" in next_url:
-                return "{}#collapseInfra".format(next_url)
+                return "{}#infrastructure".format(next_url)
             else:
-                return "{}#collapseProject".format(
+                return "{}#history".format(
                     reverse(
                         "shepherd:domain_detail", kwargs={"pk": self.object.domain.id}
                     )
                 )
         else:
-            return "{}#collapseProject".format(
+            return "{}#history".format(
                 reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
             )
 
@@ -1260,16 +1258,16 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
 class HistoryDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.History`.
-    
+
     **Context**
-    
+
     ``object_type``
         A string describing what is to be deleted.
     ``object_to_be_deleted``
         The to-be-deleted instance of :model:`shepherd.History`.
-    
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -1285,17 +1283,17 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
         next_url = self.request.POST.get("next", "/")
         if next_url:
             if "/domains/" in next_url:
-                return "{}#collapseProject".format(next_url)
+                return "{}#history".format(next_url)
             elif "/projects/" in next_url:
-                return "{}#collapseInfra".format(next_url)
+                return "{}#infrastructure".format(next_url)
             else:
-                return "{}#collapseProject".format(
+                return "{}#history".format(
                     reverse(
                         "shepherd:domain_detail", kwargs={"pk": self.object.domain.id}
                     )
                 )
         else:
-            return "{}#collapseProject".format(
+            return "{}#history".format(
                 reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
             )
 
@@ -1324,14 +1322,14 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
 class DomainCreate(LoginRequiredMixin, CreateView):
     """
     Create an individual :model:`shepherd.Domain`.
-    
+
     **Context**
-    
+
     ``context``
         description.
-    
+
     **Template**
-    
+
     :template:`shepherd/domain_form.html`
     """
 
@@ -1348,9 +1346,9 @@ class DomainCreate(LoginRequiredMixin, CreateView):
 class DomainUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.Domain`.
-    
+
     **Template**
-    
+
     :template:`shepherd/domain_form.html`
     """
 
@@ -1367,16 +1365,16 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
 class DomainDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.Domain`.
-    
+
     **Context**
-    
+
     ``object_type``
         A string describing what is to be deleted.
     ``object_to_be_deleted``
         The to-be-deleted instance of :model:`shepherd.Domain`.
-    
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -1400,14 +1398,14 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
 class ServerDetailView(LoginRequiredMixin, generic.DetailView):
     """
     Display an individual :model:`shepherd.StaticServer`.
-    
+
     **Context**
-    
+
     ``primary_address``
         Primary IP address from :model:`shepherd.AuxServerAddress` for :model:`shepherd.SaticServer`.
-    
+
     **Template**
-    
+
     :template:`shepherd/server_detail.html`
     """
 
@@ -1428,14 +1426,14 @@ class ServerDetailView(LoginRequiredMixin, generic.DetailView):
 class ServerCreate(LoginRequiredMixin, CreateView):
     """
     Create an individual :model:`shepherd.StaticServer`.
-    
+
     **Context**
-    
+
     ``context``
         description.
-    
+
     **Template**
-    
+
     :template:`shepherd/server_form.html`
     """
 
@@ -1453,9 +1451,9 @@ class ServerCreate(LoginRequiredMixin, CreateView):
 class ServerUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.StaticServer`.
-    
+
     **Template**
-    
+
     :template:`shepherd/server_form.html`
     """
 
@@ -1473,16 +1471,16 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
 class ServerDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.StaticServer`.
-    
+
     **Context**
-    
+
     ``object_type``
         A string describing what is to be deleted.
     ``object_to_be_deleted``
         The to-be-deleted instance of :model:`shepherd.StaticServer`.
-    
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -1506,7 +1504,7 @@ class ServerDelete(LoginRequiredMixin, DeleteView):
 class ServerHistoryCreate(LoginRequiredMixin, CreateView):
     """
     Create an individual :model:`shepherd.ServerHistory`.
- 
+
     **Template**
 
     :template:`shepherd/server_checkout.html`
@@ -1538,7 +1536,7 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
             self.request, "Server successfully checked-out.", extra_tags="alert-success"
         )
         # return reverse('shepherd:user_assets')
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1551,9 +1549,9 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
 class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.ServerHistory`.
-    
+
     **Template**
-    
+
     :template:`shepherd/server_checkout.html`
     """
 
@@ -1567,7 +1565,7 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
             "Server history successfully updated.",
             extra_tags="alert-success",
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1580,16 +1578,16 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
 class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.ServerHistory`.
-    
+
     **Context**
-    
+
     ``object_type``
         A string describing what is to be deleted.
     ``object_to_be_deleted``
         The to-be-deleted instance of :model:`shepherd.ServerHistory`.
-    
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -1603,7 +1601,7 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
             "Server history successfully deleted.",
             extra_tags="alert-warning",
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1618,14 +1616,14 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
 class TransientServerCreate(LoginRequiredMixin, CreateView):
     """
     Create an individual :model:`shepherd.TransientServer`.
-    
+
     **Context**
-    
+
     ``project_name``
         Codename from the related :model:`rolodex.Project`.
-    
+
     **Template**
-    
+
     :template:`shepherd/vps_form.html`
     """
 
@@ -1639,7 +1637,7 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
             "Server successfully added to the project.",
             extra_tags="alert-success",
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1656,9 +1654,9 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
 class TransientServerUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.TransientServer`.
-    
+
     **Template**
-    
+
     :template:`shepherd/vps_form.html`
     """
 
@@ -1672,7 +1670,7 @@ class TransientServerUpdate(LoginRequiredMixin, UpdateView):
             "Server information successfully updated.",
             extra_tags="alert-success",
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1680,16 +1678,16 @@ class TransientServerUpdate(LoginRequiredMixin, UpdateView):
 class TransientServerDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.TransientServer`.
-    
+
     **Context**
-    
+
     ``object_type``
         A string describing what is to be deleted.
     ``object_to_be_deleted``
         The to-be-deleted instance of :model:`shepherd.TransientServer`.
-    
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -1700,7 +1698,7 @@ class TransientServerDelete(LoginRequiredMixin, DeleteView):
         messages.success(
             self.request, "Server successfully deleted.", extra_tags="alert-warning"
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1731,7 +1729,7 @@ class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
             "Server successfully associated with domain.",
             extra_tags="alert-success",
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1750,9 +1748,9 @@ class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
 class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.DomainServerConnection`.
-    
+
     **Template**
-    
+
     :template:`shepherd/connect_form.html`
     """
 
@@ -1766,7 +1764,7 @@ class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
             "Connection information successfully updated.",
             extra_tags="alert-success",
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1781,16 +1779,16 @@ class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
 class DomainServerConnectionDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.DomainServerConnection`.
-    
+
     **Context**
-    
+
     ``object_type``
-        A string describing what is to be deleted.
+        A string describing what is to be deleted
     ``object_to_be_deleted``
-        The to-be-deleted instance of :model:`shepherd.DomainServerConnection`.
-    
+        The to-be-deleted instance of :model:`shepherd.DomainServerConnection`
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -1803,7 +1801,7 @@ class DomainServerConnectionDelete(LoginRequiredMixin, DeleteView):
             "Domain and server connection successfully deleted.",
             extra_tags="alert-warning",
         )
-        return "{}#collapseInfra".format(
+        return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
 
@@ -1827,19 +1825,21 @@ class DomainServerConnectionDelete(LoginRequiredMixin, DeleteView):
 class DomainNoteCreate(LoginRequiredMixin, CreateView):
     """
     Create an individual :model:`shepherd.DomainNote`.
-    
+
     **Context**
-    
+
     ``domain_name``
-        Domain name value from the related :model:`shepherd.Domain`.
-    
+        Domain name value from the related :model:`shepherd.Domain`
+    ``cancel_link``
+        Link for the form's Cancel button to return to server's detail page
+
     **Template**
-    
+
     :template:`note_form.html`
     """
 
     model = DomainNote
-    form_class = DomainNoteCreateForm
+    form_class = DomainNoteForm
     template_name = "note_form.html"
 
     def get_success_url(self):
@@ -1849,7 +1849,7 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
             "Note successfully added to this domain.",
             extra_tags="alert-success",
         )
-        return "{}#collapseNotes".format(
+        return "{}#notes".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
         )
 
@@ -1861,45 +1861,64 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super(DomainNoteCreate, self).get_context_data(**kwargs)
         domain_instance = get_object_or_404(Domain, pk=self.kwargs.get("pk"))
-        ctx["domain_name"] = domain_instance.name.upper()
+        ctx["note_object"] = domain_instance.name.upper()
+        ctx["cancel_link"] = "{}#notes".format(
+            reverse("shepherd:domain_detail", kwargs={"pk": domain_instance.id})
+        )
         return ctx
 
 
 class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.DomainNote`.
-    
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to server's detail page
+
     **Template**
-    
+
     :template:`note_form.html`
     """
 
     model = DomainNote
-    form_class = DomainNoteCreateForm
+    form_class = DomainNoteForm
     template_name = "note_form.html"
 
     def get_success_url(self):
         messages.success(
             self.request, "Note successfully updated.", extra_tags="alert-success"
         )
-        return "{}#collapseNotes".format(
+        return "{}#notes".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
         )
+
+    def get_context_data(self, **kwargs):
+        ctx = super(DomainNoteUpdate, self).get_context_data(**kwargs)
+        domain_instance = self.object.domain
+        ctx["note_object"] = domain_instance.name.upper()
+        ctx["cancel_link"] = "{}#notes".format(
+            reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
+        )
+        return ctx
 
 
 class DomainNoteDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.DomainNote`.
-    
+
     **Context**
-    
+
     ``object_type``
-        A string describing what is to be deleted.
+        A string describing what is to be deleted
     ``object_to_be_deleted``
-        The to-be-deleted instance of :model:`shepherd.DomainNote`.
-    
+        The to-be-deleted instance of :model:`shepherd.DomainNote`
+    ``cancel_link``
+        Link for the form's Cancel button to return to server's detail page
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -1910,7 +1929,7 @@ class DomainNoteDelete(LoginRequiredMixin, DeleteView):
         messages.warning(
             self.request, "Note successfully deleted.", extra_tags="alert-warning"
         )
-        return "{}#collapseNotes".format(
+        return "{}#notes".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
         )
 
@@ -1919,25 +1938,30 @@ class DomainNoteDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "note"
         ctx["object_to_be_deleted"] = queryset.note
+        ctx["cancel_link"] = "{}#notes".format(
+            reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
+        )
         return ctx
 
 
 class ServerNoteCreate(LoginRequiredMixin, CreateView):
     """
     Create an individual :model:`shepherd.ServerNote`.
-    
+
     **Context**
-    
-    ``server_name``
-        Server name value from the related :model:`shepherd.StaticServer`.
-    
+
+    ``note_object``
+        Instance of :model:`rolodex.Project` associated with note
+    ``cancel_link``
+        Link for the form's Cancel button to return to server's detail page
+
     **Template**
-    
-    :template:`notet_form.html`
+
+    :template:`note_form.html`
     """
 
     model = ServerNote
-    form_class = ServerNoteCreateForm
+    form_class = ServerNoteForm
     template_name = "note_form.html"
 
     def get_success_url(self):
@@ -1946,7 +1970,7 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
             "Note successfully added to this server.",
             extra_tags="alert-success",
         )
-        return "{}#collapseNotes".format(
+        return "{}#notes".format(
             reverse("shepherd:server_detail", kwargs={"pk": self.object.server.id})
         )
 
@@ -1958,45 +1982,66 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super(ServerNoteCreate, self).get_context_data(**kwargs)
         server_instance = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
-        ctx["server_name"] = server_instance.ip_address
+        ctx["note_object"] = server_instance.ip_address
+        ctx["cancel_link"] = reverse(
+            "shepherd:server_detail", kwargs={"pk": server_instance.id}
+        )
         return ctx
 
 
 class ServerNoteUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.ServerNote`.
-    
+
+    **Context**
+
+    ``note_object``
+        Instance of :model:`rolodex.Project` associated with note
+    ``cancel_link``
+        Link for the form's Cancel button to return to server's detail page
+
     **Template**
-    
+
     :template:`note_form.html`
     """
 
     model = ServerNote
-    form_class = ServerNoteCreateForm
+    form_class = ServerNoteForm
     template_name = "note_form.html"
 
     def get_success_url(self):
         messages.success(
             self.request, "Note successfully updated.", extra_tags="alert-success"
         )
-        return "{}#collapseNotes".format(
+        return "{}#notes".format(
             reverse("shepherd:server_detail", kwargs={"pk": self.object.server.id})
         )
+
+    def get_context_data(self, **kwargs):
+        ctx = super(ServerNoteUpdate, self).get_context_data(**kwargs)
+        server_instance = self.object.server
+        ctx["note_object"] = server_instance.ip_address
+        ctx["cancel_link"] = reverse(
+            "shepherd:server_detail", kwargs={"pk": self.object.server.id}
+        )
+        return ctx
 
 
 class ServerNoteDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.ServerNote`.
-    
+
     **Context**
-    
+
     ``object_type``
-        A string describing what is to be deleted.
+        A string describing what is to be deleted
     ``object_to_be_deleted``
-        The to-be-deleted instance of :model:`shepherd.ServerNote`.
-    
+        The to-be-deleted instance of :model:`shepherd.ServerNote`
+    ``cancel_link``
+        Link for the form's Cancel button to return to server's detail page
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 
@@ -2007,7 +2052,7 @@ class ServerNoteDelete(LoginRequiredMixin, DeleteView):
         messages.warning(
             self.request, "Note successfully deleted.", extra_tags="alert-warning"
         )
-        return "{}#collapseNotes".format(
+        return "{}#notes".format(
             reverse("shepherd:server_detail", kwargs={"pk": self.object.server.id})
         )
 
@@ -2016,22 +2061,25 @@ class ServerNoteDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "note"
         ctx["object_to_be_deleted"] = queryset.note
+        ctx["cancel_link"] = reverse(
+            "shepherd:server_detail", kwargs={"pk": self.object.server.id}
+        )
         return ctx
 
 
 class AuxServerAddressCreate(LoginRequiredMixin, CreateView):
     """
     Create an individual :model:`shepherd.AuxServerAddress`.
-    
+
     **Context**
-    
+
     ``server_id``
         Primary key value of the related :model:`shepherd.StaticServer`.
     ``server_name``
         Name value of the related :model:`shepherd.StaticServer`.
-    
+
     **Template**
-    
+
     :template:`shepherd/address_form.html`
     """
 
@@ -2077,9 +2125,9 @@ class AuxServerAddressCreate(LoginRequiredMixin, CreateView):
 class AuxServerAddressUpdate(LoginRequiredMixin, UpdateView):
     """
     Update an individual :model:`shepherd.AuxServerAddress`.
-    
+
     **Template**
-    
+
     :template:`shepherd/address_form.html`
     """
 
@@ -2119,16 +2167,16 @@ class AuxServerAddressUpdate(LoginRequiredMixin, UpdateView):
 class AuxServerAddressDelete(LoginRequiredMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.AuxServerAddress`.
-    
+
     **Context**
-    
+
     ``object_type``
         A string describing what is to be deleted.
     ``object_to_be_deleted``
         The to-be-deleted instance of :model:`shepherd.AuxServerAddress`.
-    
+
     **Template**
-    
+
     :template:`ghostwriter/confirm_delete.html`
     """
 

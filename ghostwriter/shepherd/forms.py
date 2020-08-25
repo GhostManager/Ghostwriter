@@ -1,13 +1,16 @@
 """This contains all of the forms used by the Shepherd application."""
 
+# Standard Libraries
 from datetime import date
 
+# Django & Other 3rd Party Libraries
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Column, Layout, Row, Submit
+from crispy_forms.layout import HTML, ButtonHolder, Div, Layout, Submit
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
+# Ghostwriter Libraries
 from ghostwriter.rolodex.models import Project
 
 from .models import (
@@ -23,10 +26,6 @@ from .models import (
     StaticServer,
     TransientServer,
 )
-
-
-class DateInput(forms.DateInput):
-    input_type = "date"
 
 
 class CheckoutForm(forms.ModelForm):
@@ -355,9 +354,9 @@ class DomainLinkForm(forms.ModelForm):
             )
 
 
-class DomainNoteCreateForm(forms.ModelForm):
+class DomainNoteForm(forms.ModelForm):
     """
-    Create individual :model:`shepherd.DomainNote` for a pre-defined
+    Create individual :model:`shepherd.DomainNote` associated with an individual
     :model:`shepherd.Domain`.
     """
 
@@ -372,17 +371,36 @@ class DomainNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(DomainNoteCreateForm, self).__init__(*args, **kwargs)
+        super(DomainNoteForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
-        self.helper.field_class = "h-100 justify-content-center align-items-center"
+        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
+        self.helper.layout = Layout(
+            Div("note", "operator", "domain"),
+            ButtonHolder(
+                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
+
+    def clean_note(self):
+        note = self.cleaned_data["note"]
+        # Check if note is empty
+        if not note:
+            raise ValidationError(
+                _("You must provide some content for the note"), code="required",
+            )
+        return note
 
 
-class ServerNoteCreateForm(forms.ModelForm):
+class ServerNoteForm(forms.ModelForm):
     """
-    Create individual :model:`shepherd.ServerNote` for a pre-defined
+    Create individual :model:`shepherd.ServerNote` associated with an individual
     :model:`shepherd.StaticServer`.
     """
 
@@ -397,12 +415,31 @@ class ServerNoteCreateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ServerNoteCreateForm, self).__init__(*args, **kwargs)
+        super(ServerNoteForm, self).__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
-        self.helper.field_class = "h-100 justify-content-center align-items-center"
+        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
+        self.helper.layout = Layout(
+            Div("note", "operator", "server"),
+            ButtonHolder(
+                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
+
+    def clean_note(self):
+        note = self.cleaned_data["note"]
+        # Check if note is empty
+        if not note:
+            raise ValidationError(
+                _("You must provide some content for the note"), code="required",
+            )
+        return note
 
 
 class BurnForm(forms.ModelForm):

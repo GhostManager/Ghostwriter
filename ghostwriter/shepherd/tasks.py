@@ -339,7 +339,7 @@ def release_domains(no_action=False, reset_dns=False):
                 domain.domain_status = DomainStatus.objects.get(
                     domain_status="Available"
                 )
-                # domain.save()
+                domain.save()
                 domain_updates[domain.id]["change"] = "released"
             # Make sure the Namecheap API config is good and reg is Namecheap
             # Most importantly, check the `reset_dns` flag is True in kwargs
@@ -711,11 +711,11 @@ def fetch_namecheap_domains():
     """Fetch a list of registered domains for the specified Namecheap account. A valid API key,
     username, and whitelisted IP address must be used. Returns a dictionary containing errors
     and each domain name paired with change status.
-    
+
     Result statuses: created, updated, burned, updated & burned
-    
+
     The returned XML contains entries for domains like this:
-    
+
     <RequestedCommand>namecheap.domains.getList</RequestedCommand>
     <CommandResponse Type="namecheap.domains.getList">
         <DomainGetListResult>
@@ -809,11 +809,12 @@ def fetch_namecheap_domains():
             )
     except Exception as error:
         logger.error("Namecheap API request failed with error: %s", error)
-        return "[!] Namecheap API request failed with error: {}".format(error)
+        return "Namecheap API request failed with error: {}".format(error)
     # There's a chance no domains are returned if the provided usernames don't have any domains
     if domains_list:
         # Get the current list of Namecheap domains in the library
         domain_queryset = Domain.objects.filter(registrar="Namecheap")
+        expired_status = DomainStatus.objects.get(domain_status="Expired")
         for domain in domain_queryset:
             # Check if a domain in the library is _not_ in the Namecheap response
             if not any(d["Name"] == domain.name for d in domains_list):
@@ -830,6 +831,7 @@ def fetch_namecheap_domains():
                     entry = {}
                     domain.expired = True
                     domain.auto_renew = False
+                    domain.domain_status = expired_status
                     # If the domain expiration date is in the future, adjust it
                     if domain.expiration >= date.today():
                         domain.expiration = domain.expiration - datetime.timedelta(
@@ -1244,6 +1246,7 @@ def check_expiration():
     expiration date.
     """
     domain_queryset = Domain.objects.all()
+    expired_status = DomainStatus.objects.get(domain_status="Expired")
     for domain in domain_queryset:
         if domain.expiration <= date.today():
             if domain.auto_renew:
@@ -1258,4 +1261,5 @@ def check_expiration():
                     domain.expiration,
                 )
                 domain.expired = True
+                domain.domain_status = expired_status
                 domain.save()
