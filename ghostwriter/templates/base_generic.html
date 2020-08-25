@@ -70,7 +70,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text fa fa-search" id="client-search-addon"></span>
                                     </div>
-                                    <input type="text" class="form-control" name="client-search" placeholder="Search clients" aria-label="client" aria-describedby="client-search-addon">
+                                    <input type="text" class="form-control" name="client_search" placeholder="Search clients" aria-label="client" aria-describedby="client-search-addon">
                                 </div>
                                 <input type="submit" style="display: none" />
                             </form>
@@ -107,7 +107,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text fa fa-search" id="findings-search-addon"></span>
                                     </div>
-                                    <input type="text" class="form-control" name="findings-search" placeholder="Search findings" aria-label="findings" aria-describedby="findings-search-addon">
+                                    <input type="text" class="form-control" name="finding_search" placeholder="Search findings" aria-label="findings" aria-describedby="findings-search-addon">
                                 </div>
                                 <input type="submit" style="display: none" />
                             </form>
@@ -142,7 +142,7 @@
                                     <div class="input-group-prepend">
                                         <span class="input-group-text fa fa-search" id="domain-search-addon"></span>
                                     </div>
-                                    <input type="text" class="form-control" name="domain-search" placeholder="Search domains" aria-label="domain" aria-describedby="domain-search-addon">
+                                    <input type="text" class="form-control" name="domain_search" placeholder="Search domains" aria-label="domain" aria-describedby="domain-search-addon">
                                 </div>
                                 <input type="submit" style="display: none" />
                             </form>
@@ -232,13 +232,13 @@
                                         <li class="nav-item">
                                             <div class="dropdown">
                                                 {% if request.session.active_report.id and request.session.active_report.title %}
-                                                    <a class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">Report: {{ request.session.active_report.title }}</a>
+                                                    <a id="active-report-id" class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">{{ request.session.active_report.title }}</a>
                                                     <div class="dropdown-content dropdown-content-info">
                                                         <p style="margin: 10px">This is your active report. Any findings you add will be added to this report.</p>
                                                         <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo" class="fas fa-exchange-alt"></i> Switch Reports</a>
                                                     </div>
                                                 {% else %}
-                                                    <a class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Report: Click Here to Select a Report</a>
+                                                    <a id="active-report-id" class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Click Here to Select a Report</a>
                                                     <div class="dropdown-content dropdown-content-info">
                                                         <p style="margin-bottom: 5px">This is your active report. Any findings you add will be added to this report.</p>
                                                         <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo" class="fas fa-exchange-alt"></i> Select a Report</a>
