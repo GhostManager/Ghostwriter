@@ -77,6 +77,7 @@ THIRD_PARTY_APPS = [
     "django_filters",
     "import_export",
     "tinymce",
+    "django_bleach",
 ]
 
 LOCAL_APPS = [
@@ -372,3 +373,38 @@ CLOUD_SERVICE_CONFIG = {
     "aws_secret": env("AWS_SECRET", default=None),
     "do_api_key": env("DO_API_KEY", default=None),
 }
+
+# BLEACH
+# ------------------------------------------------------------------------------
+# Which HTML tags are allowed
+BLEACH_ALLOWED_TAGS = [
+    "code",
+    "span",
+    "p",
+    "ul",
+    "ol",
+    "li",
+    "a",
+    "em",
+    "strong",
+    "u",
+    "b",
+    "i",
+    "pre",
+]
+# Which HTML attributes are allowed
+BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
+# Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
+BLEACH_ALLOWED_STYLES = [
+    "color",
+    "font-family",
+    "font-weight",
+    "text-decoration",
+    "font-variant",
+]
+# Which protocols (and pseudo-protocols) are allowed in 'src' attributes (assuming src is an allowed attribute)
+BLEACH_ALLOWED_PROTOCOLS = ["http", "https", "data"]
+# Strip unknown tags if True, replace with HTML escaped characters if False
+BLEACH_STRIP_TAGS = True
+# Strip HTML comments, or leave them in.
+BLEACH_STRIP_COMMENTS = True
