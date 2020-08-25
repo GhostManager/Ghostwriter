@@ -1,0 +1,73 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}Domain Entry{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb" style="padding-left: 20px;">
+    <ul class="breadcrumb" style="margin: 0;">
+        <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Oplogs</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Oplog Entries Import</li>
+    </ul>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- File Upload -->
+<h2>Upload Oplog Entries CSV</h2>
+<p>Upload a csv file containing oplog entries to be imported:</p>
+<form action="{% url 'oplog:oplog_import'%}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="csv_file" class="csvlabel">
+            <div class="csvdiv">Click or drop your csv file here</div>
+            <input type="file" id="csv_file" name="csv_file" required="True" accept="text/csv">
+        </label>
+        <p id="filename"></p>
+    </div>
+    <div class="form-group">
+        <div style="text-align: center"></div>
+        <button class="button"><i class="fas fa-file-upload"></i> Upload</button>
+    </div>
+    </div>
+</form>
+
+<!-- Spacer -->
+<p style="margin: 40p;"></p>
+
+<!-- Section for Instructions -->
+<h3>Instructions</h3>
+<div>
+    <p>Your csv file must have these headers:</p>
+    <div style="width: 50%; margin: 0 auto">
+        <p>
+            <em>
+                oplog_id, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
+                comments, operator_name
+            </em>
+        </p>
+    </div>
+
+    <p>
+        To avoid "KeyError" errors, ensure the csv file was saved without a Byte Order Marker (BOM).<br>
+        Download a template with the headers and an example entry:
+    </p>
+</div>
+{% endblock %}
+
+{% block morescripts %}
+<!-- Script for Upload Form -->
+<script>
+    $('input[type=file]').on('change', function () {
+        $("#filename").text($(this).val());
+    });
+
+    $('input[type=file]').on('dragenter', function () {
+        $('csvdiv').addClass('dragover');
+    });
+
+    $('input[type=file]').on('dragleave', function () {
+        $('csvdiv').removeClass('dragover');
+    });
+</script>
+{% endblock %}

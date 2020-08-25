@@ -37,7 +37,9 @@ urlpatterns = [
     path("shepherd/", include("ghostwriter.shepherd.urls", namespace="shepherd")),
     path("reporting/", include("ghostwriter.reporting.urls", namespace="reporting")),
     path("", RedirectView.as_view(pattern_name="home:dashboard"), name="home"),
+    path("oplog/", include("ghostwriter.oplog.urls", namespace="oplog")),
     # Add additional custom paths below this line...
+    # Your stuff: custom urls includes go here
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:
