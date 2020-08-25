@@ -1,42 +1,80 @@
-"""This contains all of the forms for the Home application."""
+"""This contains all of the forms used by the Home application."""
 
+# Django & Other 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import (
+    HTML,
+    ButtonHolder,
+    Div,
+    Layout,
+    Submit,
+)
 from django import forms
 from django.contrib.auth import get_user_model
 
-from crispy_forms.helper import FormHelper
-
+# Ghostwriter Libraries
 from ghostwriter.home.models import UserProfile
 
 
 class UserProfileForm(forms.ModelForm):
-    """Form used to upload user profile avatars."""
+    """
+    Upload user profile avatars for individual :model:`home.UserProfile`.
+    """
+
     class Meta:
-        """Metadata for the model form."""
         model = UserProfile
-        # fields = ('__all__')
-        exclude = ('user',)
+        exclude = ("user",)
         widgets = {
-            'user': forms.HiddenInput(),
-            'avatar': forms.ClearableFileInput(),
+            "user": forms.HiddenInput(),
+            "avatar": forms.ClearableFileInput(),
         }
 
     def __init__(self, *args, **kwargs):
-        """Override the `init()` function to set some attributes."""
         super(UserProfileForm, self).__init__(*args, **kwargs)
-        self.fields['avatar'].widget.attrs['class'] = 'custom-file-input'
+        self.fields["avatar"].label = ""
+        self.fields["avatar"].widget.attrs["class"] = "custom-file-input"
         self.helper = FormHelper()
-        self.helper.form_class = 'form-inline'
-        self.helper.form_method = 'post'
-        self.helper.field_class = \
-            'h-100 justify-content-center align-items-center'
+        self.helper.form_method = "post"
+        self.helper.form_class = "newitem"
+        self.helper.form_show_labels = False
+        self.helper.layout = Layout(
+            HTML(
+                """
+                <strong><i class="far fa-images"></i> Avatar Upload</strong>
+                <hr>
+                """
+            ),
+            Div(
+                "avatar",
+                HTML(
+                    """
+                    <label id="filename" class="custom-file-label" for="customFile">Choose avatar image file...</label>
+                    """
+                ),
+                css_class="custom-file",
+            ),
+            ButtonHolder(
+                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
 
 
 class SignupForm(forms.ModelForm):
+    """
+    Create a new :model:`users.User`.
+    """
 
     class Meta:
         model = get_user_model()
-        fields = ['name', ]
+        fields = [
+            "name",
+        ]
 
     def signup(self, request, user):
-        user.name = self.cleaned_data['name']
+        user.name = self.cleaned_data["name"]
         user.save()

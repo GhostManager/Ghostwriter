@@ -1,5 +1,8 @@
 {% extends "base_generic.html" %}
+
 {% load crispy_forms_tags %}
+
+{% load bleach_tags %}
 
 {% block pagetitle %}Static Server Catalog{% endblock %}
 
@@ -74,7 +77,7 @@
                         {% endif %}
 
                         <td nowrap>{{ server.server_provider }}</td>
-                        <td>{{ server.note }}</td>
+                        <td>{{ server.note|bleach }}</td>
                         {% if server.server_status.server_status == "Available" %}
                             <td>
                                 <a href="{% url 'shepherd:server_checkout' server.id %}">

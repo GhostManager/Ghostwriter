@@ -1,12 +1,13 @@
-"""This contains customizations for the models in the Django admin panel."""
+"""This contains customizations for displaying the Home application models in the admin panel."""
 
+# Django & Other 3rd Party Libraries
 from django.contrib import admin
 
+# Ghostwriter Libraries
 from ghostwriter.home.models import UserProfile
 
 
-# Define the admin classes and register models
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'avatar')
-    list_filter = ('user',)
+    list_display = ("user", "avatar")
+    list_filter = ("user",)

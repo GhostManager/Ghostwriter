@@ -1,55 +1,66 @@
-"""This contains customizations for the models in the Django admin panel."""
+"""This contains customizations for displaying the Rolodex application models in the admin panel."""
 
+# Django & Other 3rd Party Libraries
 from django.contrib import admin
-from .models import (Client, Project, ProjectType, ClientContact,
-    ProjectAssignment, ProjectRole, ClientNote, ProjectNote,
-    ProjectObjective, ObjectiveStatus)
+
+from .models import (
+    Client,
+    ClientContact,
+    ClientNote,
+    ObjectiveStatus,
+    Project,
+    ProjectAssignment,
+    ProjectNote,
+    ProjectObjective,
+    ProjectRole,
+    ProjectType,
+)
 
 
-# Define the admin classes and register models
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ('name', 'short_name', 'codename')
-    list_filter = ('name',)
+    list_display = ("name", "short_name", "codename")
+    list_filter = ("name",)
+    list_display_links = ("name", "short_name", "codename")
     fieldsets = (
-        (None, {
-            'fields': ('name', 'short_name', 'codename')
-        }),
-        ('Misc', {
-            'fields': ('note',)
-        })
+        ("General Information", {"fields": ("name", "short_name", "codename")}),
+        ("Misc", {"fields": ("note",)}),
     )
 
 
 @admin.register(ClientContact)
 class ClientContactAdmin(admin.ModelAdmin):
-    list_display = ('name', 'job_title', 'client')
-    list_filter = ('client',)
+    list_display = ("name", "job_title", "client")
+    list_filter = ("client",)
+    list_display_links = ("name", "job_title", "client")
     fieldsets = (
-        (None, {
-            'fields': ('client', 'name', 'job_title', 'email', 'phone')
-        }),
-        ('Misc', {
-            'fields': ('note',)
-        })
+        (
+            "Contact Information",
+            {"fields": ("client", "name", "job_title", "email", "phone")},
+        ),
+        ("Misc", {"fields": ("note",)}),
     )
 
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('client', 'codename', 'project_type', 'start_date',
-                    'end_date')
-    list_filter = ('client',)
+    list_display = (
+        "client",
+        "codename",
+        "project_type",
+        "start_date",
+        "end_date",
+        "complete",
+    )
+    list_filter = ("client",)
+    list_display_links = ("client", "codename")
     fieldsets = (
-        (None, {
-            'fields': ('client', 'codename', 'project_type')
-        }),
-        ('Execution Dates', {
-            'fields': ('start_date', 'end_date')
-        }),
-        ('Misc', {
-            'fields': ('slack_channel', 'note')
-        })
+        ("General Information", {"fields": ("client", "codename", "project_type")}),
+        (
+            "Execution Dates and Status",
+            {"fields": ("start_date", "end_date", "complete")},
+        ),
+        ("Misc", {"fields": ("slack_channel", "note")}),
     )
 
 
@@ -60,7 +71,14 @@ class ProjectTypeAdmin(admin.ModelAdmin):
 
 @admin.register(ProjectAssignment)
 class ProjectAssignmentAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("operator", "project", "start_date", "end_date")
+    list_filter = ("operator", "project")
+    list_display_links = ("operator", "project")
+    fieldsets = (
+        ("Operator Information", {"fields": ("operator", "role", "project")}),
+        ("Assignment Dates", {"fields": ("start_date", "end_date")},),
+        ("Misc", {"fields": ("note",)}),
+    )
 
 
 @admin.register(ProjectRole)
@@ -70,12 +88,16 @@ class ProjectRoleAdmin(admin.ModelAdmin):
 
 @admin.register(ClientNote)
 class ClientNoteAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("operator", "timestamp", "client")
+    list_filter = ("client",)
+    list_display_links = ("operator", "timestamp", "client")
 
 
 @admin.register(ProjectNote)
 class ProjectNoteAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("operator", "timestamp", "project")
+    list_filter = ("project",)
+    list_display_links = ("operator", "timestamp", "project")
 
 
 @admin.register(ObjectiveStatus)

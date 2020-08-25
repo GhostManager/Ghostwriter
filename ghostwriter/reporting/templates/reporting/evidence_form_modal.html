@@ -1,0 +1,35 @@
+{% extends "base_generic_empty.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Evidence Form{% endblock %}
+
+{% block content %}
+    {% include "reporting/evidence_form_template.html" with form=form %}
+
+    <!-- Event for TinyMCE URLDialog -->
+    <script>
+        // https://www.martyfriedel.com/blog/tinymce-5-url-dialog-component-and-window-messaging
+        window.addEventListener('message', function (event) {
+            if (event.data.mceAction ==='evidence_upload'){
+                var used_friendly_names = [];
+                {% for name in used_friendly_names %}
+                used_friendly_names.push('{{ name|escapejs }}')
+                {% endfor %}
+                var value = {
+                    friendly_name: document.getElementById('id_friendly_name').value,
+                    evidence_file: document.getElementById('id_document').value,
+                    caption: document.getElementById('id_caption').value,
+                    used_friendly_names: used_friendly_names
+                };
+
+                document.getElementById('evidence-upload-form').submit();
+
+                window.parent.postMessage({
+                    mceAction: 'execCommand',
+                    cmd: 'upload_and_insert',
+                    value
+                }, origin);
+            }
+        });
+    </script>
+{% endblock %}

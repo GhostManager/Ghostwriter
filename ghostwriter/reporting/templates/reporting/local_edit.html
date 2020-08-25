@@ -1,5 +1,8 @@
 {% extends "base_generic.html" %}
+
 {% load crispy_forms_tags %}
+
+{% load bleach_tags %}
 
 {% block pagetitle %}Finding Entry{% endblock %}
 
@@ -9,7 +12,7 @@
             <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' reportfindinglink.report.project.client.id %}">{{ reportfindinglink.report.project.client.name }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' reportfindinglink.report.project.id %}">{{ reportfindinglink.report.project }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' reportfindinglink.report.id %}">{{ reportfindinglink.report }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Local Edit</li>
+            <li class="breadcrumb-item active" aria-current="page">Update Finding</li>
         </ul>
     </nav>
 {% endblock %}
@@ -45,7 +48,7 @@
                             <tr>
                                 <td>{{.caption}}</td>
                                 <td style="text-align: left">Start a line of text with this keyword to make it a caption. This is intended to follow a code block.</td>
-                            </tr>                       
+                            </tr>
                         {% endverbatim %}
                         {% if reportfindinglink.evidence_set.all  %}
                             {% for finding in reportfindinglink.evidence_set.all %}
@@ -58,14 +61,10 @@
                             {% endfor %}
                         {% endif %}
                     </table>
-                    <p>
-                        Insert evidence by using the above keywords. Image evidence may be inserted and previewed inline by clicking the WYSIWIG editor's image button and entering the evidence image's Ghostwriter URL (e.g., <em>https://ghosttwriter.local/media/evidence/2/ghostwriter.png</em>).
-                        Inserting an external image's URL will work but these images <strong><em><u>will not be</u></em></strong> carried over to the report outputs. 
-                    </p>
-                    <p>
-                        For additional formatting, utilize the WYSIWIG HTML formatting to apply bold, italic, code, and inline code text styles.<br />
-                        These styles will carry over to the Word report output as bold, italic, "CodeBlock," and "Code (Inline)" styles respectively.
-                    </p>
+                    <p>Insert evidence by using the above keywords. Image evidence may be inserted and previewed inline by clicking the WYSIWIG editor's image button and entering the evidence image's Ghostwriter URL (e.g., <em>https://ghosttwriter.local/media/evidence/2/ghostwriter.png</em>).</p>
+                    <p>Inserting an external image's URL will work but these images <strong><em><u>will not be</u></em></strong> carried over to the report outputs.</p>
+                    <p>For additional formatting, utilize the WYSIWIG HTML formatting to apply bold, italic, code, and inline code text styles.</p>
+                    <p>These styles will carry over to the Word report output as bold, italic, "CodeBlock," and "Code (Inline)" styles respectively.</p>
                 </div>
             </div>
         </div>
@@ -92,7 +91,7 @@
         <div class="card">
             <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
                 <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
-                    <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ reportfindinglink.localfindingnote_set.all.count }}</span>
+                    <i class="fas fa-comments"></i> Notes
                 </a>
             </div>
             <div id="collapseNotes" class="collapse" aria-labelledby="notes" data-parent="#accordion">
@@ -102,24 +101,24 @@
                     </p>
                     {% if reportfindinglink.localfindingnote_set.all %}
                         {% for note in reportfindinglink.localfindingnote_set.all reversed %}
-                            <p>{{ note.timestamp }}</p>
-                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                                {% if request.user == note.operator or request.user.is_staff %}
-                                    <div class="dropdown right">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content">
-                                            <a href="{% url 'reporting:local_finding_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'reporting:local_finding_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                            <div id="note-container-{{ note.id }}">
+                                <p style="text-align: center;">{{ note.timestamp }}</p>
+                                <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                    <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                    {% if request.user == note.operator or request.user.is_staff %}
+                                        <div class="dropdown right">
+                                            <button class="dropbtn far fa-caret-square-down"></button>
+                                            <div id="note-dropdown-{{ note.id }}" class="dropdown-content">
+                                                <a href="{% url 'reporting:local_finding_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_local_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                            </div>
                                         </div>
-                                    </div>
-                                {% endif %}
-                                <p>{{ note.note|safe }}</p>
-                                <span class="time-right">{{ note.operator.username }}</span>
+                                    {% endif %}
+                                    {{ note.note|bleach }}
+                                    <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                                </div>
                             </div>
                         {% endfor %}
-                    {% else %}
-                        <p>No notes for this finding.</p>
                     {% endif %}
                 </div>
             </div>
@@ -127,121 +126,57 @@
     </div>
 
     <!-- Instructions Section -->
-    <p>
-        Use this form to edit "{{ reportfindinglink.title }}" just for this report.<br>
-        When the finding is complete and ready for review, make sure you check the box down below.
-    </p>
+    <p>Use this form to edit "{{ reportfindinglink.title }}" just for this report.</p>
+    <p>When the finding is complete and ready for review, make sure you check the box down below.</p>
 
-    <!-- Form Error Sections -->
+    <!-- Form Error Section -->
     {% if form.errors %}
-        {% for field in form %}
-            {% for error in field.errors %}
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <strong>{{ error|escape }}</strong>
-                </div>
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post">
-        {% csrf_token %}
+    {% crispy form form.helper %}
+{% endblock %}
 
-        <!-- Task Assignment Section -->
-        <strong><i class="fas fa-user-ninja"></i> Assigned Operator</strong>
-        <hr>
+{% block tabs %}
+    {{ block.super }}
+{% endblock %}
 
-        <div class="form-row justify-content-center">
-            <div class="form-group col-md-6 mb-0">
-                {{ form.assigned_to|as_crispy_field }}
-            </div>
-        </div>
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- General Section -->
-        <strong><i class="fas fa-tags"></i> Finding Categorization</strong>
-        <hr>
-
-        {{ form.title|as_crispy_field }}
-
-        <div class="form-row">
-            <div class="form-group col-md-6 mb-0">
-                {{ form.finding_type|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.severity|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.position|as_crispy_field }}
-            </div>
-        </div>
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- Affected Entities Section -->
-        <strong><i class="fas fa-laptop"></i> Affected Entities</strong>
-        <hr>
-
-        {{ form.affected_entities|as_crispy_field }}
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- Description Section -->
-        <strong><i class="fas fa-pencil-alt"></i> Descriptions</strong>
-        <hr>
-
-        {{ form.description|as_crispy_field }}
-        {{ form.impact|as_crispy_field }}
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- Defender Section -->
-        <strong><i class="fas fa-shield-alt"></i> Defender Information</strong>
-        <hr>
-
-        {{ form.mitigation|as_crispy_field }}
-        {{ form.replication_steps|as_crispy_field }}
-        {{ form.host_detection_techniques|as_crispy_field }}
-        {{ form.network_detection_techniques|as_crispy_field }}
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- Reference Section -->
-        <strong><i class="fas fa-link"></i> Reference Materials</strong>
-        <hr>
-
-        {{ form.references|as_crispy_field }}
-        {{ form.complete|as_crispy_field }}
-
-        <input type="submit" class="btn btn-primary" value="Save">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+{% block tabforms %}
+    {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
+    <!-- Script for the WYSIWYG editor's AutoComplete -->
     <script>
         var evidenceFiles = [
             { text: '\{\{.client\}\}', value: '\{\{.client\}\}' },
             { text: '\{\{.caption\}\}', value: '\{\{.caption\}\}' },
             {% if reportfindinglink.evidence_set.all  %}
                 {% for finding in reportfindinglink.evidence_set.all %}
-                    { text: '\{\{.{{ finding.friendly_name }}\}\}', value: '\{\{.{{ finding.friendly_name }}\}\}' },
+            { text: '\{\{.{{ finding.friendly_name|escapejs }}\}\}', value: '\{\{.{{ finding.friendly_name|escapejs }}\}\}' },
                 {% endfor %}
             {% endif %}
         ];
     </script>
+
+    <!-- Set the Evidence Upload Modal's URL-->
+    <script>
+        // Get the URL from the form attribute
+        var modal_url = $('#report-finding-form').attr('evidence-upload-modal-url');
+        // Assign it to a window variable where the TinyMCE URLDialog can access it
+        window.upload_url = modal_url;
+    </script>
+
+    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+    {% include "confirm_delete_modal.html" %}
 {% endblock %}

@@ -1,184 +1,190 @@
-[
-    {
-        "model": "shepherd.whoisstatus",
-        "pk": 1,
-        "fields": {
-            "whois_status": "Enabled"
-        }
-    },
-    {
-        "model": "shepherd.whoisstatus",
-        "pk": 2,
-        "fields": {
-            "whois_status": "Disabled"
-        }
-    },
-    {
-        "model": "shepherd.whoisstatus",
-        "pk": 3,
-        "fields": {
-            "whois_status": "Unknown"
-        }
-    },
-    {
-        "model": "shepherd.activitytype",
-        "pk": 1,
-        "fields": {
-            "activity": "Command and Control"
-        }
-    },
-    {
-        "model": "shepherd.activitytype",
-        "pk": 2,
-        "fields": {
-            "activity": "Phishing"
-        }
-    },
-    {
-        "model": "shepherd.healthstatus",
-        "pk": 1,
-        "fields": {
-            "health_status": "Healthy"
-        }
-    },
-    {
-        "model": "shepherd.healthstatus",
-        "pk": 2,
-        "fields": {
-            "health_status": "Burned"
-        }
-    },
-    {
-        "model": "shepherd.healthstatus",
-        "pk": 3,
-        "fields": {
-            "health_status": "Questionable"
-        }
-    },
-    {
-        "model": "shepherd.domainstatus",
-        "pk": 1,
-        "fields": {
-            "domain_status": "Available"
-        }
-    },
-    {
-        "model": "shepherd.domainstatus",
-        "pk": 2,
-        "fields": {
-            "domain_status": "Unavailable"
-        }
-    },
-    {
-        "model": "shepherd.domainstatus",
-        "pk": 3,
-        "fields": {
-            "domain_status": "Reserved"
-        }
-    },
-    {
-        "model": "shepherd.domainstatus",
-        "pk": 4,
-        "fields": {
-            "domain_status": "Burned"
-        }
-    },
-    {
-        "model": "shepherd.serverstatus",
-        "pk": 1,
-        "fields": {
-            "server_status": "Available"
-        }
-    },
-    {
-        "model": "shepherd.serverstatus",
-        "pk": 2,
-        "fields": {
-            "server_status": "Unavailable"
-        }
-    },
-    {
-        "model": "shepherd.serverstatus",
-        "pk": 3,
-        "fields": {
-            "server_status": "Reserved"
-        }
-    },
-    {
-        "model": "shepherd.serverprovider",
-        "pk": 1,
-        "fields": {
-            "server_provider": "Amazon Web Services"
-        }
-    },
-    {
-        "model": "shepherd.serverprovider",
-        "pk": 2,
-        "fields": {
-            "server_provider": "Microsoft Azure"
-        }
-    },
-    {
-        "model": "shepherd.serverprovider",
-        "pk": 3,
-        "fields": {
-            "server_provider": "Digital Ocean"
-        }
-    },
-    {
-        "model": "shepherd.serverprovider",
-        "pk": 4,
-        "fields": {
-            "server_provider": "Google Compute Engine"
-        }
-    },
-    {
-        "model": "shepherd.serverprovider",
-        "pk": 5,
-        "fields": {
-            "server_provider": "Linode"
-        }
-    },
-    {
-        "model": "shepherd.serverprovider",
-        "pk": 6,
-        "fields": {
-            "server_provider": "Rackspace"
-        }
-    },
-    {
-        "model": "shepherd.serverrole",
-        "pk": 1,
-        "fields": {
-            "server_role": "Team Server / C2 Server"
-        }
-    },
-    {
-        "model": "shepherd.serverrole",
-        "pk": 2,
-        "fields": {
-            "server_role": "Redirector"
-        }
-    },
-    {
-        "model": "shepherd.serverrole",
-        "pk": 3,
-        "fields": {
-            "server_role": "Payload Hosting"
-        }
-    },
-    {
-        "model": "shepherd.serverrole",
-        "pk": 4,
-        "fields": {
-            "server_role": "SMTP"
-        }
-    },
-    {
-        "model": "shepherd.serverrole",
-        "pk": 5,
-        "fields": {
-            "server_role": "Burner Workstation"
-        }
+[{
+    "model": "shepherd.whoisstatus",
+    "pk": 1,
+    "fields": {
+      "whois_status": "Enabled"
     }
+  },
+  {
+    "model": "shepherd.whoisstatus",
+    "pk": 2,
+    "fields": {
+      "whois_status": "Disabled"
+    }
+  },
+  {
+    "model": "shepherd.whoisstatus",
+    "pk": 3,
+    "fields": {
+      "whois_status": "Unknown"
+    }
+  },
+  {
+    "model": "shepherd.activitytype",
+    "pk": 1,
+    "fields": {
+      "activity": "Command and Control"
+    }
+  },
+  {
+    "model": "shepherd.activitytype",
+    "pk": 2,
+    "fields": {
+      "activity": "Phishing"
+    }
+  },
+  {
+    "model": "shepherd.healthstatus",
+    "pk": 1,
+    "fields": {
+      "health_status": "Healthy"
+    }
+  },
+  {
+    "model": "shepherd.healthstatus",
+    "pk": 2,
+    "fields": {
+      "health_status": "Burned"
+    }
+  },
+  {
+    "model": "shepherd.healthstatus",
+    "pk": 3,
+    "fields": {
+      "health_status": "Questionable"
+    }
+  },
+  {
+    "model": "shepherd.domainstatus",
+    "pk": 1,
+    "fields": {
+      "domain_status": "Available"
+    }
+  },
+  {
+    "model": "shepherd.domainstatus",
+    "pk": 2,
+    "fields": {
+      "domain_status": "Unavailable"
+    }
+  },
+  {
+    "model": "shepherd.domainstatus",
+    "pk": 3,
+    "fields": {
+      "domain_status": "Reserved"
+    }
+  },
+  {
+    "model": "shepherd.domainstatus",
+    "pk": 4,
+    "fields": {
+      "domain_status": "Burned"
+    }
+  },
+  {
+    "model": "shepherd.domainstatus",
+    "pk": 5,
+    "fields": {
+      "domain_status": "Expired"
+    }
+  },
+  {
+    "model": "shepherd.serverstatus",
+    "pk": 1,
+    "fields": {
+      "server_status": "Available"
+    }
+  },
+  {
+    "model": "shepherd.serverstatus",
+    "pk": 2,
+    "fields": {
+      "server_status": "Unavailable"
+    }
+  },
+  {
+    "model": "shepherd.serverstatus",
+    "pk": 3,
+    "fields": {
+      "server_status": "Reserved"
+    }
+  },
+  {
+    "model": "shepherd.serverprovider",
+    "pk": 1,
+    "fields": {
+      "server_provider": "Amazon Web Services"
+    }
+  },
+  {
+    "model": "shepherd.serverprovider",
+    "pk": 2,
+    "fields": {
+      "server_provider": "Microsoft Azure"
+    }
+  },
+  {
+    "model": "shepherd.serverprovider",
+    "pk": 3,
+    "fields": {
+      "server_provider": "Digital Ocean"
+    }
+  },
+  {
+    "model": "shepherd.serverprovider",
+    "pk": 4,
+    "fields": {
+      "server_provider": "Google Compute Engine"
+    }
+  },
+  {
+    "model": "shepherd.serverprovider",
+    "pk": 5,
+    "fields": {
+      "server_provider": "Linode"
+    }
+  },
+  {
+    "model": "shepherd.serverprovider",
+    "pk": 6,
+    "fields": {
+      "server_provider": "Rackspace"
+    }
+  },
+  {
+    "model": "shepherd.serverrole",
+    "pk": 1,
+    "fields": {
+      "server_role": "Team Server / C2 Server"
+    }
+  },
+  {
+    "model": "shepherd.serverrole",
+    "pk": 2,
+    "fields": {
+      "server_role": "Redirector"
+    }
+  },
+  {
+    "model": "shepherd.serverrole",
+    "pk": 3,
+    "fields": {
+      "server_role": "Payload Hosting"
+    }
+  },
+  {
+    "model": "shepherd.serverrole",
+    "pk": 4,
+    "fields": {
+      "server_role": "SMTP"
+    }
+  },
+  {
+    "model": "shepherd.serverrole",
+    "pk": 5,
+    "fields": {
+      "server_role": "Burner Workstation"
+    }
+  }
 ]

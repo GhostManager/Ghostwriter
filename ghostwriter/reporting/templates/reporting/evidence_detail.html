@@ -1,5 +1,7 @@
 {% extends 'base_generic.html' %}
 
+{% load bleach_tags %}
+
 {% block pagetitle %}Evidence Detail{% endblock %}
 
 {% block breadcrumbs %}
@@ -8,6 +10,7 @@
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' evidence.finding.report.project.client.id %}">{{ evidence.finding.report.project.client.name }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' evidence.finding.report.project.id %}">{{ evidence.finding.report.project }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' evidence.finding.report.id %}">{{ evidence.finding.report }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">Evidence</li>
         </ul>
     </nav>
@@ -29,24 +32,20 @@
 
     <!-- File Information Section -->
     <table style="width: 70%; margin-left: 15%;">
-        <tr class="hidden-table">
-            <th class="form_th"><i class="fas fa-info"></i> File Information</th>
-            <th class="form_th"></th>
-        </tr>
         <tr>
-            <td style="border-bottom: 0">Uploaded by</td>
+            <td nowrap style="border-bottom: 0">Uploaded by</td>
             <td style="border-bottom: 0">{{ evidence.uploaded_by }}</td>
         </tr>
         <tr>
-            <td style="border-bottom: 0">Upload Date</td>
+            <td nowrap style="border-bottom: 0">Upload Date</td>
             <td style="border-bottom: 0">{{ evidence.upload_date }}</td>
         </tr>
         <tr>
-            <td style="border-bottom: 0">Description</td>
-            <td style="border-bottom: 0">{{ evidence.description }}</td>
+            <td nowrap style="border-bottom: 0">Description</td>
+            <td style="border-bottom: 0">{{ evidence.description|bleach }}</td>
         </tr>
         <tr>
-            <td style="border-bottom: 0">Report Caption</td>
+            <td nowrap style="border-bottom: 0">Report Caption</td>
             <td style="border-bottom: 0">{{ evidence.caption }}</td>
         </tr>
     </table>
@@ -65,7 +64,7 @@
                     <p style="text-align: center;">{{ line }}</p>
                 {% else %}
                     <p style="margin-left:15%; text-align: left; max-width: 1000px; word-wrap: break-word; line-height: 20px;">
-                        {{ line|safe }}
+                        {{ line }}
                     </p>
                 {% endifequal %}
             {% endfor %}
@@ -73,4 +72,8 @@
     {% else %}
         <p>Evidence file type cannot be displayed.</p>
     {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+
 {% endblock %}

@@ -15,14 +15,10 @@
 
 {% block content %}
     <!-- Filter Section -->
-    <div class="m-auto">
-        <form class="filterform" method="get">
-            <div class="form-group">
-                {{ filter.form.client|as_crispy_field }}
-            </div>
-            <button type="submit" class="btn btn-primary">Filter</button>
-        </form>
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
     </div>
+
     <!-- Archive Files Section -->
     {% if filter.qs|length == 0 %}
         <p>There are no archived reports to see here.</p>
@@ -42,4 +38,4 @@
             {% endfor %}
         </table>
     {% endif %}
-{% endblock %} 
+{% endblock %}

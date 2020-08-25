@@ -1,0 +1,23 @@
+<li class="nav-item">
+    <a id="id_assignments" class="nav-link active" data-toggle="tab" href="#assignments">
+        <i class="fas fa-user-plus"></i> Project Assignments <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_objectives" class="nav-link" data-toggle="tab" href="#objectives">
+        <i class="fas fa-crosshairs"></i> Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_reports" class="nav-link" data-toggle="tab" href="#reports">
+        <i class="fab fa-searchengin"></i> Reports & Findings <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_infrastructure" class="nav-link" data-toggle="tab" href="#infrastructure">
+    <i class="fas fa-server"></i> Infrastructure</a></li>
+    <li class="nav-item">
+    <a id="id_notes" class="nav-link" data-toggle="tab" href="#notes">
+        <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
+    </a>
+</li>

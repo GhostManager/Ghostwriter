@@ -69,6 +69,7 @@ NAMECHEAP_PAGE_SIZE=100
 
 # Cloud Services
 # ------------------------------------------------------------------------------
+ENABLE_CLOUD_MONITOR=False
 AWS_KEY=
 AWS_SECRET=
 DO_API_KEY=

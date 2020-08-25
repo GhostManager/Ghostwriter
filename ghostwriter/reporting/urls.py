@@ -1,173 +1,178 @@
-"""
-This contains all of the URL mappings for the Reporting application.
-"""
+"""This contains all of the URL mappings used by the Reporting application."""
 
+
+# Django & Other 3rd Party Libraries
 from django.urls import path
 
-# from . import views
-from .views import (
-    EvidenceDelete,
-    EvidenceUpdate,
-    FindingCreate,
-    FindingDelete,
-    FindingDetailView,
-    FindingUpdate,
-    ReportCreate,
-    ReportCreateWithoutProject,
-    ReportDelete,
-    ReportDetailView,
-    ReportFindingLinkDelete,
-    ReportFindingLinkUpdate,
-    ReportUpdate,
-    activate_report,
-    archive,
-    archive_list,
-    assign_blank_finding,
-    assign_finding,
-    clone_report,
-    download_archive,
-    finding_status_toggle,
-    findings_list,
-    generate_all,
-    generate_docx,
-    generate_json,
-    generate_pptx,
-    generate_xlsx,
-    import_findings,
-    index,
-    position_decrease,
-    position_increase,
-    report_status_toggle,
-    report_delivery_toggle,
-    reports_list,
-    upload_evidence,
-    view_evidence,
-    FindingNoteCreate,
-    FindingNoteUpdate,
-    FindingNoteDelete,
-    LocalFindingNoteCreate,
-    LocalFindingNoteUpdate,
-    LocalFindingNoteDelete,
-    convert_finding,
-    export_findings_to_csv
-) 
+from . import views
 
 app_name = "reporting"
 
 # URLs for the basic views
 urlpatterns = [
-                path('', index, name='index'),
-                path('findings/', findings_list, name='findings'),
-                path('reports/', reports_list, name='reports'),
-                path('reports/archive', archive_list,
-                     name='archived_reports'),
-                path('reports/archive/download/<int:pk>/',
-                     download_archive, name='download_archive'),
-              ]
+    path("", views.index, name="index"),
+    path("findings/", views.findings_list, name="findings"),
+    path("reports/", views.reports_list, name="reports"),
+    path("reports/archive", views.archive_list, name="archived_reports"),
+    path(
+        "reports/archive/download/<int:pk>/",
+        views.download_archive,
+        name="download_archive",
+    ),
+]
+
+# URLs for AJAX requests – deletion and toggle views
+urlpatterns += [
+    path(
+        "ajax/report/finding/order",
+        views.ajax_update_report_findings,
+        name="update_report_findings",
+    ),
+    path(
+        "ajax/report/activate/<int:pk>",
+        views.ReportActivate.as_view(),
+        name="ajax_activate_report",
+    ),
+    path(
+        "ajax/report/finding/status/<int:pk>/<str:status>",
+        views.ReportFindingStatusUpdate.as_view(),
+        name="ajax_set_finding_status",
+    ),
+    path(
+        "ajax/report/status/toggle/<int:pk>",
+        views.ReportStatusToggle.as_view(),
+        name="ajax_toggle_report_status",
+    ),
+    path(
+        "ajax/report/delivery/<int:pk>",
+        views.ReportDeliveryToggle.as_view(),
+        name="ajax_toggle_report_delivery",
+    ),
+    path(
+        "ajax/report/note/delete/<int:pk>",
+        views.LocalFindingNoteDelete.as_view(),
+        name="ajax_delete_local_finding_note",
+    ),
+    path(
+        "ajax/finding/note/delete/<int:pk>",
+        views.FindingNoteDelete.as_view(),
+        name="ajax_delete_finding_note",
+    ),
+    path(
+        "ajax/finding/assign/<int:pk>",
+        views.FindingAssignment.as_view(),
+        name="ajax_assign_finding",
+    ),
+    path(
+        "report/finding/delete/<int:pk>",
+        views.ReportFindingLinkDelete.as_view(),
+        name="ajax_delete_local_finding",
+    ),
+]
 
 # URLs for creating, updating, and deleting findings
 urlpatterns += [
-                path('findings/create/', FindingCreate.as_view(),
-                     name='finding_create'),
-                path('findings/<int:pk>', FindingDetailView.as_view(),
-                     name='finding_detail'),
-                path('findings/<int:pk>/update/',
-                     FindingUpdate.as_view(), name='finding_update'),
-                path('findings/<int:pk>/delete/',
-                     FindingDelete.as_view(), name='finding_delete'),
-                path('findings/<int:pk>/assign/', assign_finding,
-                     name='assign_finding'),
-                path('findings/<int:pk>/add_note/', FindingNoteCreate.as_view(),
-                    name='finding_note_add'),
-                path('findings/<int:pk>/edit_note/', FindingNoteUpdate.as_view(),
-                    name='finding_note_edit'),
-                path('findings/<int:pk>/delete_note/', FindingNoteDelete.as_view(),
-                    name='finding_note_delete'),
-               ]
+    path("findings/<int:pk>", views.FindingDetailView.as_view(), name="finding_detail"),
+    path("findings/create/", views.FindingCreate.as_view(), name="finding_create"),
+    path(
+        "findings/update/<int:pk>", views.FindingUpdate.as_view(), name="finding_update"
+    ),
+    path(
+        "findings/delete/<int:pk>", views.FindingDelete.as_view(), name="finding_delete"
+    ),
+    path(
+        "findings/notes/create/<int:pk>",
+        views.FindingNoteCreate.as_view(),
+        name="finding_note_add",
+    ),
+    path(
+        "findings/notes/update/<int:pk>",
+        views.FindingNoteUpdate.as_view(),
+        name="finding_note_edit",
+    ),
+]
 
 # URLs for creating, updating, and deleting reports
 urlpatterns += [
-                path('reports/<int:pk>', ReportDetailView.as_view(),
-                     name='report_detail'),
-                path('reports/<int:pk>/create/', ReportCreate.as_view(),
-                     name='report_create'),
-                path('reports/create/', ReportCreateWithoutProject.as_view(),
-                     name='report_create_no_project'),
-                path('reports/<int:pk>/update/', ReportUpdate.as_view(),
-                     name='report_update'),
-                path('reports/<int:pk>/delete/', ReportDelete.as_view(),
-                     name='report_delete'),
-                path('reports/<int:pk>/activate/', activate_report,
-                     name='activate_report'),
-                path('reports/<int:pk>/archive/', archive,
-                     name='archive'),
-                path('reports/<int:pk>/clone/', clone_report,
-                     name='report_clone'),
-                path('reports/<int:pk>/create_blank/',
-                     assign_blank_finding, name='assign_blank_finding'),
-               ]
+    path("reports/<int:pk>", views.ReportDetailView.as_view(), name="report_detail"),
+    path("reports/create/<int:pk>", views.ReportCreate.as_view(), name="report_create"),
+    path(
+        "reports/create/",
+        views.ReportCreate.as_view(),
+        name="report_create_no_project",
+    ),
+    path("reports/update/<int:pk>", views.ReportUpdate.as_view(), name="report_update"),
+    path("reports/delete/<int:pk>", views.ReportDelete.as_view(), name="report_delete"),
+    path("reports/archive/<int:pk>", views.archive, name="archive"),
+    path("reports/clone/<int:pk>", views.clone_report, name="report_clone"),
+    path(
+        "reports/create/blank/<int:pk>",
+        views.assign_blank_finding,
+        name="assign_blank_finding",
+    ),
+]
 
 # URLs for local edits
 urlpatterns += [
-                path('reports/<int:pk>/local_edit/',
-                     ReportFindingLinkUpdate.as_view(),
-                     name='local_edit'),
-                path('reports/<int:pk>/local_remove/',
-                     ReportFindingLinkDelete.as_view(),
-                     name='local_remove'),
-                path('reports/<int:pk>/evidence/', upload_evidence,
-                     name='upload_evidence'),
-                path('reports/evidence/<int:pk>', view_evidence,
-                     name='evidence_detail'),
-                path('reports/evidence/<int:pk>/edit',
-                     EvidenceUpdate.as_view(), name='evidence_update'),
-                path('reports/evidence/<int:pk>/delete',
-                     EvidenceDelete.as_view(), name='evidence_delete'),
-                path('reports/<int:pk>/up/', position_increase,
-                     name='position_increase'),
-                path('reports/<int:pk>/down/', position_decrease,
-                     name='position_decrease'),
-                path('reports/<int:pk>/add_note/', LocalFindingNoteCreate.as_view(),
-                    name='local_finding_note_add'),
-                path('reports/<int:pk>/edit_note/', LocalFindingNoteUpdate.as_view(),
-                    name='local_finding_note_edit'),
-                path('reports/<int:pk>/delete_note/', LocalFindingNoteDelete.as_view(),
-                    name='local_finding_note_delete'),
-                path('reports/<int:pk>/up/', position_increase,
-                     name='position_increase'),
-                path('reports/<int:pk>/convert_finding/', convert_finding,
-                     name='convert_finding'),
-               ]
-
-# URLs for status toggles
-urlpatterns += [
-                path('reports/<int:pk>/report_status/',
-                     report_status_toggle, name='report_status_toggle'),
-                path('reports/<int:pk>/finding_status/',
-                     finding_status_toggle,
-                     name='finding_status_toggle'),
-                path('reports/<int:pk>/delivery_status/',
-                     report_delivery_toggle, name='report_delivery_toggle'),
-               ]
+    path(
+        "reports/findings/update/<int:pk>",
+        views.ReportFindingLinkUpdate.as_view(),
+        name="local_edit",
+    ),
+    path(
+        "reports/evidence/upload/<int:pk>",
+        views.upload_evidence,
+        name="upload_evidence",
+    ),
+    path(
+        "reports/evidence/modal/<int:pk>",
+        views.upload_evidence_modal,
+        name="upload_evidence_modal",
+    ),
+    path(
+        "reports/evidence/modal/success",
+        views.upload_evidence_modal_success,
+        name="upload_evidence_modal_success",
+    ),
+    path("reports/evidence/<int:pk>", views.view_evidence, name="evidence_detail"),
+    path(
+        "reports/evidence/update/<int:pk>",
+        views.EvidenceUpdate.as_view(),
+        name="evidence_update",
+    ),
+    path(
+        "reports/evidence/delete/<int:pk>",
+        views.EvidenceDelete.as_view(),
+        name="evidence_delete",
+    ),
+    path(
+        "reports/notes/create/<int:pk>",
+        views.LocalFindingNoteCreate.as_view(),
+        name="local_finding_note_add",
+    ),
+    path(
+        "reports/notes/update/<int:pk>",
+        views.LocalFindingNoteUpdate.as_view(),
+        name="local_finding_note_edit",
+    ),
+    path(
+        "reports/findings/convert/<int:pk>",
+        views.convert_finding,
+        name="convert_finding",
+    ),
+]
 
 # URLs for generating reports
 urlpatterns += [
-                path('reports/<int:pk>/generate_docx/',
-                     generate_docx, name='generate_docx'),
-                path('reports/<int:pk>/generate_xlsx/',
-                     generate_xlsx, name='generate_xlsx'),
-                path('reports/<int:pk>/generate_pptx/',
-                     generate_pptx, name='generate_pptx'),
-                path('reports/<int:pk>/generate_json/',
-                     generate_json, name='generate_json'),
-                path('reports/<int:pk>/generate_all/',
-                     generate_all, name='generate_all'),
-               ]
+    path("reports/<int:pk>/generate_docx/", views.generate_docx, name="generate_docx"),
+    path("reports/<int:pk>/generate_xlsx/", views.generate_xlsx, name="generate_xlsx"),
+    path("reports/<int:pk>/generate_pptx/", views.generate_pptx, name="generate_pptx"),
+    path("reports/<int:pk>/generate_json/", views.generate_json, name="generate_json"),
+    path("reports/<int:pk>/generate_all/", views.generate_all, name="generate_all"),
+]
 
 # URLs for management functions
 urlpatterns += [
-                path('import/csv/', import_findings,
-                     name='import_findings'),
-                path('export/csv/', export_findings_to_csv,
-                     name='export_findings_to_csv'),
-               ]
+    path("import/csv/", views.import_findings, name="import_findings"),
+    path("export/csv/", views.export_findings_to_csv, name="export_findings_to_csv"),
+]

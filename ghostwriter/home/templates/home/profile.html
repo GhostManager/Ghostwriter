@@ -9,7 +9,7 @@
             text-align: justify;
             border-bottom: 0;
         }
-    
+
         td {
             border-bottom: 0;
         }
@@ -23,17 +23,17 @@
     <!-- Users Profile Section -->
     <table style="width: 55%; border: none; margin-left: 23%; margin-top: 20px" align="center">
         <tr class="hidden-table">
-            <th class="form_th"><i class="far fa-user"></i> Username</th>
+            <th class="form-th"><i class="far fa-user"></i> Username</th>
             <td>{{ user.username }}</td>
         <tr class="hidden-table">
-            <th class="form_th"><i class="fas fa-signature"></i> Full Name</th>
+            <th class="form-th"><i class="fas fa-signature"></i> Full Name</th>
             <td>{{ user.name }}</td>
         <tr class="hidden-table">
-            <th class="form_th"><i class="far fa-envelope"></i> Email</th>
+            <th class="form-th"><i class="far fa-envelope"></i> Email</th>
             <td>{{ user.email }}</td>
         </tr>
         <tr class="hidden-table">
-            <th class="form_th"><i class="fas fa-users"></i> Access</th>
+            <th class="form-th"><i class="fas fa-users"></i> Access</th>
             <td>
                 {% if user.is_superuser %}
                     Superuser, Staff
@@ -53,5 +53,5 @@
     <div class="btn-group" role="group" aria-label="Basic example">
         <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
         <a class="btn btn-primary" href="{% url 'account_email' %}">Update Email Address</a>
-    </div> 
+    </div>
 {% endblock %}
