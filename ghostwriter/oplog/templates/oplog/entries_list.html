@@ -37,7 +37,8 @@
     </ul>
 </div>
 
-<table id="oplogTable" class="table-striped mb-0">
+<div id="oplogTableDiv" style="overflow-x:auto;">
+<table id="oplogTable">
     <thead>
         <tr id="oplogTableHeader">
         </tr>
@@ -50,6 +51,7 @@
         <tr>
     </tbody>
 </table>
+</div>
 {% endblock %}
 
 
@@ -82,6 +84,13 @@
         ['deleteCheckbox', 'deleteColumn', 'Delete', ''],
         ['copyCheckbox', 'copyColumn', 'Copy', '']
     ]
+
+    function resizeContent() {
+        $height = $(window).height() - 250;
+        $("#oplogTableDiv").height($height);
+        $width = $("#content").width();
+        $("#oplogTableDiv").width($width);
+    }
 
     function coupleCheckboxColumn(checkboxId, columnClass) {
         $(checkboxId).change(function (e) {
@@ -293,11 +302,17 @@
 
     // This is the filter function to search through row entries
     $(document).ready(function () {
+        resizeContent();
+
+        $(window).resize(function() {
+            resizeContent();
+        });
 
         connect()
         // Populate the table info
         $checkboxList = $("#checkboxList")
         $tableHeader = $("#oplogTableHeader")
+
         columnInfo.forEach(function (value, index, array) {
             checkboxEntry = `
             <input type="checkbox" id="${value[0]}" checked/>
