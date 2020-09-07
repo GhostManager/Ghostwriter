@@ -6,12 +6,16 @@ from ghostwriter.rolodex.models import Project, Client
 
 from .models import Oplog, OplogEntry
 
+class ShortNameModelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return obj.short_name
+
 
 class OplogCreateForm(forms.ModelForm):
     """
     Form used with the OplogCreate for creating new oplog entries.
     """
-    client_list = forms.ModelChoiceField(queryset=Client.objects.all().order_by('name'))
+    client_list = ShortNameModelChoiceField(queryset=Client.objects.all().order_by('name'))
 
     class Meta:
         model = Oplog

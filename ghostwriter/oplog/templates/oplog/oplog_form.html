@@ -48,7 +48,12 @@
           $("#id_project").html(data);  // replace the contents of the city input with the data that came from the server
         }
       });
-
     });
+
+    $("#id_project").change(function() {
+        var oplog_name = $("#id_client_list option:selected").text() + "-" + $("#id_project option:selected").text() + "-oplog";
+        $("#id_name").val(oplog_name)
+    });
+
   </script>
 {% endblock %}
