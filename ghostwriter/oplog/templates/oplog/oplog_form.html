@@ -29,6 +29,7 @@
         {% csrf_token %}
         {{ form|crispy }}
         <button type="submit" class="btn btn-primary">Submit</button>
+        <button onclick="window.location.href={% url 'oplog:index' %}" class="btn btn-outline-secondary" type="button">Cancel</button>
     </form>
 {% endblock %}
 
