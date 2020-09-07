@@ -23,8 +23,10 @@ def createOplogEntry(oplog_id):
 
 @database_sync_to_async
 def deleteOplogEntry(oplogEntryId):
-    OplogEntry.objects.get(pk=oplogEntryId).delete()
-
+    try:
+        OplogEntry.objects.get(pk=oplogEntryId).delete()
+    except OplogEntry.DoesNotExist:
+        pass
 
 @database_sync_to_async
 def copyOplogEntry(oplogEntryId):
