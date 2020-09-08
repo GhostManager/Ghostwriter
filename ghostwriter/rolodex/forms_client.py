@@ -1,4 +1,4 @@
-"""This contains all client-relatedd forms used by the Rolodex application."""
+"""This contains all client-related forms used by the Rolodex application."""
 
 # Django & Other 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, TabHolder
@@ -204,7 +204,7 @@ class ClientContactForm(forms.ModelForm):
         )
 
 
-# Create the `inlineformset_factory()` objects for `ClientForm()`
+# Create the ``inlineformset_factory()`` objects for ``ClientForm()``
 
 ClientContactFormSet = inlineformset_factory(
     Client,
