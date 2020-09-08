@@ -428,7 +428,7 @@
                                     <span id="vps_{{ server.id }}">{{ server.ip_address }}</span>
                                 </td>
                                 <td style="text-align: left;"></td>
-                                <td>{{ server.name }}</td>
+                                <td id="delete-target-content-server-{{ server.id }}">{{ server.name }}</td>
                                 <td>{{ server.activity_type }}</td>
                                 <td>{{ server.server_role }}</td>
                                 <td>{{ server.server_provider }}</td>
@@ -438,7 +438,7 @@
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
                                             <a href="{% url 'shepherd:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
-                                            <a href="{% url 'shepherd:vps_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
+                                            <a id="server-delete-button-{{ server.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id%}" delete-target-id="{{ server.id }}" delete-target-type="server"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
                                         </div>
                                     </div>
                                 </td>
@@ -476,7 +476,7 @@
                             </tr>
                             {% for connection in project.domainserverconnection_set.all %}
                                 <tr>
-                                    <td>{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
+                                    <td id="delete-target-content-connection-{{ connection.id }}">{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
                                     {% if connection.static_server %}
                                         <td>{{ connection.static_server.server.ip_address }}</td>
                                         <td>{{ connection.static_server.server.name }}</td>
@@ -494,7 +494,7 @@
                                             <button class="dropbtn far fa-caret-square-down"></button>
                                             <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
                                                 <a href="{% url 'shepherd:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
-                                                <a href="{% url 'shepherd:link_delete' connection.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
+                                                <a id="connection-delete-button-{{ connection.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_link' connection.id%}" delete-target-id="{{ connection.id }}" delete-target-type="connection"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
                                             </div>
                                         </div>
                                     </td>
