@@ -1,6 +1,5 @@
 """This contains all of the URL mappings used by the Reporting application."""
 
-
 # Django & Other 3rd Party Libraries
 from django.urls import path
 

@@ -1,6 +1,5 @@
 """This contains all of the views used by the Reporting application."""
 
-
 # Standard Libraries
 # Import Python libraries for various things
 import csv
