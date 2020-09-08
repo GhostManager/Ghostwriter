@@ -1,12 +1,14 @@
-import asyncio
+"""This contains all of the WebSocket consumers used by the Oplog application."""
+
+# Standard Libraries
 import json
-from channels.generic.websocket import AsyncWebsocketConsumer
+
+# Django & Other 3rd Party Libraries
 from channels.db import database_sync_to_async
-
-from .models import Oplog, OplogEntry
-from .serializers import OplogEntrySerializer
-
+from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.serializers import serialize
+
+from .models import OplogEntry
 
 
 @database_sync_to_async
@@ -57,7 +59,9 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         serialized_entries = json.loads(serialize("json", entries))
         message = json.dumps({"action": "sync", "data": serialized_entries})
 
-        await self.channel_layer.group_send(str(oplog_id), {"type": "send_oplog_entry", "text": message})
+        await self.channel_layer.group_send(
+            str(oplog_id), {"type": "send_oplog_entry", "text": message}
+        )
 
     async def disconnect(self, close_code):
         print(f"[*] Disconnected: {close_code}")
