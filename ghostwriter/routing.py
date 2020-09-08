@@ -1,8 +1,10 @@
 """This declares the protocol routing for Ghostwriter."""
 
+# Django & Other 3rd Party Libraries
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 
+# Ghostwriter Libraries
 import ghostwriter.home.routing
 
 application = ProtocolTypeRouter(

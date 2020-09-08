@@ -1,7 +1,9 @@
+# Django & Other 3rd Party Libraries
 import pytest
 from django.conf import settings
 from django.test import RequestFactory
 
+# Ghostwriter Libraries
 from ghostwriter.users.tests.factories import UserFactory
 
 
