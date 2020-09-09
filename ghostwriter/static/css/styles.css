@@ -852,11 +852,12 @@ th:last-child {
 th,
 td {
   padding: 8px;
+  margin-right: 10px;
   text-align: center;
   border-bottom: 1px solid #ddd;
   font-size: var(--main-font-size);
   word-wrap: break-word;
-  max-width: 600px;
+  max-width: 500px;
 }
 
 td {
@@ -1040,9 +1041,10 @@ td p {
   font-weight: 600;
 }
 
-.icon {
+.icon:before {
   font-weight: 600;
   vertical-align: middle;
+  padding-right: 10px;
 }
 
 .search-icon:before {
@@ -1127,6 +1129,14 @@ td p {
 
 .writing-icon:before {
   content: "\f5b7";
+}
+
+.server-icon:before {
+  content: "\f233";
+}
+
+.route-icon:before {
+  content: "\f4d7";
 }
 
 .project-icon:before {
