@@ -167,7 +167,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
 
     class Meta:
         model = ReportFindingLink
-        exclude = ("report", "position")
+        exclude = ("report", "position", "finding_guidance")
 
     def __init__(self, *args, **kwargs):
         super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
@@ -196,9 +196,6 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["references"].widget.attrs[
             "placeholder"
         ] = "Some useful links and references ..."
-        self.fields["finding_guidance"].widget.attrs[
-            "placeholder"
-        ] = "When using this finding in a report be sure to include ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -207,56 +204,51 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.helper.form_id = "report-finding-form"
         self.helper.attrs = {"evidence-upload-modal-url": evidence_upload_url}
         self.helper.layout = Layout(
-            TabHolder(
-                CustomTab(
-                    "Assignments",
-                    "assigned_to",
-                    "affected_entities",
-                    link_css_class="tab-icon list-icon",
-                    css_id="assignee-tab",
-                ),
-                CustomTab(
-                    "Categorization",
-                    "title",
-                    Row(
-                        Column("finding_type", css_class="form-group col-md-6 mb-0"),
-                        Column("severity", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
-                    ),
-                    link_css_class="tab-icon search-icon",
-                    css_id="general-tab",
-                ),
-                CustomTab(
-                    "Description",
-                    Field("description", css_class="enable-evidence-upload"),
-                    Field("impact", css_class="enable-evidence-upload"),
-                    link_css_class="tab-icon pencil-icon",
-                    css_id="description-tab",
-                ),
-                CustomTab(
-                    "Defense",
-                    Field("mitigation", css_class="enable-evidence-upload"),
-                    Field("replication_steps", css_class="enable-evidence-upload"),
-                    Field(
-                        "host_detection_techniques", css_class="enable-evidence-upload"
-                    ),
-                    Field(
-                        "network_detection_techniques",
-                        css_class="enable-evidence-upload",
-                    ),
-                    link_css_class="tab-icon shield-icon",
-                    css_id="defense-tab",
-                ),
-                CustomTab(
-                    "References",
-                    "references",
-                    "finding_guidance",
-                    link_css_class="tab-icon link-icon",
-                    css_id="reference-tab",
-                ),
-                template="tab.html",
-                css_class="nav-justified",
+            HTML(
+                """
+                <h6 class="icon list-icon">Affected Entities</h6>
+                <hr />
+                """
             ),
+            "assigned_to",
+            "affected_entities",
+            HTML(
+                """
+                <h6 class="icon search-icon">Categorization</h6>
+                <hr />
+                """
+            ),
+            "title",
+            Row(
+                Column("finding_type", css_class="form-group col-md-6 mb-0"),
+                Column("severity", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            HTML(
+                """
+                <h6 class="icon pencil-icon">Description</h6>
+                <hr />
+                """
+            ),
+            Field("description", css_class="enable-evidence-upload"),
+            Field("impact", css_class="enable-evidence-upload"),
+            HTML(
+                """
+                <h6 class="icon shield-icon">Defense</h6>
+                <hr />
+                """
+            ),
+            Field("mitigation", css_class="enable-evidence-upload"),
+            Field("replication_steps", css_class="enable-evidence-upload"),
+            Field("host_detection_techniques", css_class="enable-evidence-upload"),
+            Field("network_detection_techniques", css_class="enable-evidence-upload",),
+            HTML(
+                """
+                <h6 class="icon link-icon">References</h6>
+                <hr />
+                """
+            ),
+            "references",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
