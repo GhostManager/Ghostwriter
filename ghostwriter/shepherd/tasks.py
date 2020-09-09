@@ -1,5 +1,6 @@
 """This contains tasks to be run using Django Q and Redis."""
 
+# Standard Libraries
 import datetime
 import io
 import json
@@ -10,6 +11,7 @@ import zipfile
 from collections import defaultdict
 from datetime import date
 
+# Django & Other 3rd Party Libraries
 import boto3
 import nmap
 import pytz
@@ -20,6 +22,7 @@ from django.core.files import File
 from django.db.models import Q
 from lxml import objectify
 
+# Ghostwriter Libraries
 from ghostwriter.modules.dns import DNSCollector
 from ghostwriter.modules.review import DomainReview
 

@@ -7,54 +7,20 @@
     <p>This will create an association between the domain and a server for your project.</p>
     <hr>
 
-    <!-- Form Error Sections -->
+    <!-- Form Error Section -->
     {% if form.errors %}
-        {% for field in form %}
-            {% for error in field.errors %}
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <strong>{{ error|escape }}</strong>
-                </div>
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <!-- Dropdown Section -->
-        <p>First, select a domain checked-out for this project:</p>
-
-        {{ form.domain|as_crispy_field }}
-
-        <p>Then set your subdomain (or "*" for a wildcard) and CDN endpoint (if any) used with this link:</p>
-
-        {{ form.subdomain|as_crispy_field }}
-        {{ form.endpoint|as_crispy_field }}
-
-        <p>Finally, select either a static server checked-out for this project <em>or</em> a transient server to associate with the selected domain:</p>
-
-        <div class="form-row justify-content-center">
-            <div class="form-group col-md-6 mb-0">
-                {{ form.static_server|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.transient_server|as_crispy_field }}
-            </div>
-        </div>
-
-        <!-- Hidden Fields -->
-        {{ form.project }}
-
-        <input type="submit" class="btn btn-primary" value="Submit">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+    {% crispy form form.helper %}
 {% endblock %}

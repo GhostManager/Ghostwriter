@@ -15,89 +15,29 @@
 {% endblock %}
 
 {% block content %}
-    <p>Complete this form and then click Save to checkout {{ server_name }}:</p>
-
-    <!-- Form Error Sections -->
+    <!-- Form Error Section -->
     {% if form.errors %}
-        {% for field in form %}
-            {% for error in field.errors %}
-            <div class="alert alert-danger alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                    <strong>{{ error|escape }}</strong>
-                </div>
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            <div class="alert alert-danger">
-                <strong>{{ error|escape }}</strong>
-            </div>
-        {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
     {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post" id="checkoutForm"
-      data-projects-url="{% url 'shepherd:ajax_load_projects' %}"
-      data-project-url="{% url 'shepherd:ajax_load_project' %}"
-    >
-        {% csrf_token %}
-        <!-- Client Info Section -->
-        <strong><i class="far fa-building"></i> Client Information</strong>
-        <hr>
-
-        {{ form.client|as_crispy_field }}
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-
-        <!-- Usage Section -->
-        <strong><i class="fas fa-tasks"></i> Usage Information</strong>
-        <hr>
-
-        {{ form.project|as_crispy_field }}
-
-        <div class="form-row justify-content-center">
-            <div class="form-group col-md-6 mb-0">
-                {{ form.activity_type|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.server_role|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.start_date|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.end_date|as_crispy_field }}
-            </div>
-        </div>
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-
-        <!-- Additional Information Section -->
-        <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
-        <hr>
-
-        {{ form.note|as_crispy_field }}
-
-        <!-- Hidden Inputs -->
-        {{ form.server }}
-        {{ form.operator }}
-
-        <input type="hidden" name="next" value="{{ origin }}">
-        <input type="submit" class="btn btn-primary" value="Save">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+    {% crispy form form.helper %}
 {% endblock %}
 
 {% block morescripts %}
     <!-- Script for Project Dropdown Filtering -->
     <script>
         $("#id_client").change(function () {
-            var url = $("#checkoutForm").attr("data-projects-url");
+            var url = $("#checkout-form").attr("data-projects-url");
             var clientId = $(this).val();
             $.ajax({
                 url: url,
@@ -114,7 +54,7 @@
     <!-- Script to set the default dates -->
     <script>
       $("#id_project").change(function () {
-        var url = $("#checkoutForm").attr("data-project-url");
+        var url = $("#checkout-form").attr("data-project-url");
         var projectId = $(this).val();
         $.ajax({
             url: url,

@@ -1,5 +1,6 @@
 """This contains all of the URL mappings used by the Shepherd application."""
 
+# Django & Other 3rd Party Libraries
 from django.urls import path
 
 from . import views
@@ -11,174 +12,183 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("domains/", views.domain_list, name="domains"),
     path("domains/<int:pk>", views.DomainDetailView.as_view(), name="domain_detail"),
-    # path('graveyard/', views.GraveyardListView.as_view(), name='graveyard'),
     path("servers/", views.server_list, name="servers"),
     path("servers/<int:pk>", views.ServerDetailView.as_view(), name="server_detail"),
     path("user/active_assets", views.user_assets, name="user_assets"),
+    path("update/", views.update, name="update"),
+]
+
+# URLs for AJAX requests – deletion and toggle views
+urlpatterns += [
     path("ajax/load_projects/", views.ajax_load_projects, name="ajax_load_projects"),
     path("ajax/load_project/", views.ajax_load_project, name="ajax_load_project"),
+    path(
+        "ajax/domain/release/<int:pk>",
+        views.DomainRelease.as_view(),
+        name="ajax_domain_release",
+    ),
+    path(
+        "ajax/server/release/<int:pk>",
+        views.ServerRelease.as_view(),
+        name="ajax_server_release",
+    ),
+    path(
+        "ajax/project/infrastructure/link/delete/<int:pk>",
+        views.DomainServerConnectionDelete.as_view(),
+        name="ajax_delete_domain_link",
+    ),
+    path(
+        "ajax/project/infrastructure/vps/delete/<int:pk>",
+        views.TransientServerDelete.as_view(),
+        name="ajax_delete_vps",
+    ),
+    path(
+        "ajax/domain/note/delete/<int:pk>",
+        views.DomainNoteDelete.as_view(),
+        name="ajax_delete_domain_note",
+    ),
+    path(
+        "ajax/server/notes/delete/<int:pk>",
+        views.ServerNoteDelete.as_view(),
+        name="ajax_delete_server_note",
+    ),
+    path(
+        "ajax/update/categories/all",
+        views.DomainUpdateHealth.as_view(),
+        name="ajax_update_cat",
+    ),
+    path(
+        "ajax/update/categories/<int:pk>",
+        views.DomainUpdateHealth.as_view(),
+        name="ajax_update_cat_single",
+    ),
+    path(
+        "ajax/update/dns/all", views.DomainUpdateDNS.as_view(), name="ajax_update_dns"
+    ),
+    path(
+        "ajax/update/dns/<int:pk>",
+        views.DomainUpdateDNS.as_view(),
+        name="ajax_update_dns_single",
+    ),
+    path(
+        "ajax/update/namecheap",
+        views.RegistrarSyncNamecheap.as_view(),
+        name="ajax_update_namecheap",
+    ),
+    path(
+        "ajax/update/cloud",
+        views.MonitorCloudInfrastructure.as_view(),
+        name="ajax_cloud_monitor",
+    ),
+    path(
+        "ajax/domain/refresh/<int:pk>",
+        views.update_domain_badges,
+        name="ajax_update_domain_badges",
+    ),
 ]
 
 # URLs for domain status change functions
 urlpatterns += [
-    path("domains/<int:pk>/checkout", views.HistoryCreate.as_view(), name="checkout"),
-    path("domains/<int:pk>/release", views.domain_release, name="domain_release"),
-    path("domains/<int:pk>/burn", views.burn, name="burn"),
+    path("domains/checkout/<int:pk>", views.HistoryCreate.as_view(), name="checkout"),
+    path("domains/burn/<int:pk>", views.burn, name="burn"),
 ]
 
 # URLs for server status change functions
 urlpatterns += [
     path(
-        "servers/<int:pk>/checkout",
+        "servers/checkout/<int:pk>",
         views.ServerHistoryCreate.as_view(),
         name="server_checkout",
     ),
-    path("servers/<int:pk>/release", views.server_release, name="server_release"),
     path("servers/search", views.server_search, name="server_search"),
 ]
 
 # URLs for creating, updating, and deleting domains
 urlpatterns += [
     path("domains/create/", views.DomainCreate.as_view(), name="domain_create"),
+    path("domains/update/<int:pk>", views.DomainUpdate.as_view(), name="domain_update"),
+    path("domains/delete/<int:pk>", views.DomainDelete.as_view(), name="domain_delete"),
     path(
-        "domains/<int:pk>/update/", views.DomainUpdate.as_view(), name="domain_update"
-    ),
-    path(
-        "domains/<int:pk>/delete/", views.DomainDelete.as_view(), name="domain_delete"
-    ),
-    path(
-        "domains/<int:pk>/add_note/",
+        "domains/notes/create/<int:pk>",
         views.DomainNoteCreate.as_view(),
         name="domain_note_add",
     ),
     path(
-        "domains/<int:pk>/edit_note/",
+        "domains/notes/update/<int:pk>",
         views.DomainNoteUpdate.as_view(),
         name="domain_note_edit",
-    ),
-    path(
-        "domains/<int:pk>/delete_note/",
-        views.DomainNoteDelete.as_view(),
-        name="domain_note_delete",
     ),
     path("domains/import/", views.import_domains, name="domain_import"),
 ]
 
-# URLs for creating, updating, and deleting static servers
+# URLs for creating, updating, and deleting servers
 urlpatterns += [
     path("servers/create/", views.ServerCreate.as_view(), name="server_create"),
+    path("servers/update/<int:pk>", views.ServerUpdate.as_view(), name="server_update"),
+    path("servers/delete/<int:pk>", views.ServerDelete.as_view(), name="server_delete"),
     path(
-        "servers/<int:pk>/update/", views.ServerUpdate.as_view(), name="server_update"
-    ),
-    path(
-        "servers/<int:pk>/delete/", views.ServerDelete.as_view(), name="server_delete"
-    ),
-    path(
-        "servers/<int:pk>/add_note/",
+        "servers/notes/create/<int:pk>",
         views.ServerNoteCreate.as_view(),
         name="server_note_add",
     ),
     path(
-        "servers/<int:pk>/edit_note/",
+        "servers/notes/update/<int:pk>",
         views.ServerNoteUpdate.as_view(),
         name="server_note_edit",
     ),
     path(
-        "servers/<int:pk>/delete_note/",
-        views.ServerNoteDelete.as_view(),
-        name="server_note_delete",
-    ),
-    path(
-        "servers/create_vps/<int:pk>",
+        "servers/vps/create/<int:pk>",
         views.TransientServerCreate.as_view(),
         name="vps_create",
     ),
     path(
-        "servers/<int:pk>/update_vps/",
+        "servers/vps/update/<int:pk>",
         views.TransientServerUpdate.as_view(),
         name="vps_update",
     ),
     path(
-        "servers/<int:pk>/delete_vps/",
-        views.TransientServerDelete.as_view(),
-        name="vps_delete",
-    ),
-    path(
-        "project/<int:pk>/create_link/",
+        "project/infrastructure/link/create/<int:pk>",
         views.DomainServerConnectionCreate.as_view(),
         name="link_create",
     ),
     path(
-        "project/<int:pk>/update_link/",
+        "project/infrastructure/link/update/<int:pk>",
         views.DomainServerConnectionUpdate.as_view(),
         name="link_update",
     ),
-    path(
-        "project/<int:pk>/delete_link/",
-        views.DomainServerConnectionDelete.as_view(),
-        name="link_delete",
-    ),
     path("servers/import/", views.import_servers, name="server_import"),
-    path(
-        "servers/<int:pk>/add_address/",
-        views.AuxServerAddressCreate.as_view(),
-        name="server_address_add",
-    ),
-    path(
-        "servers/<int:pk>/edit_address/",
-        views.AuxServerAddressUpdate.as_view(),
-        name="server_address_edit",
-    ),
-    path(
-        "servers/<int:pk>/delete_address/",
-        views.AuxServerAddressDelete.as_view(),
-        name="server_address_delete",
-    ),
 ]
 
 # URLs for creating, updating, and deleting project histories
 urlpatterns += [
     path(
-        "domains/history/<int:pk>/create/",
+        "domains/history/create/<int:pk>",
         views.HistoryCreate.as_view(),
         name="history_create",
     ),
     path(
-        "domains/history/<int:pk>/update/",
+        "domains/history/update/<int:pk>",
         views.HistoryUpdate.as_view(),
         name="history_update",
     ),
     path(
-        "domains/history/<int:pk>/delete/",
+        "domains/history/delete/<int:pk>",
         views.HistoryDelete.as_view(),
         name="history_delete",
     ),
     path(
-        "servers/history/<int:pk>/create/",
+        "servers/history/create/<int:pk>",
         views.ServerHistoryCreate.as_view(),
         name="server_history_create",
     ),
     path(
-        "servers/history/<int:pk>/update/",
+        "servers/history/update/<int:pk>",
         views.ServerHistoryUpdate.as_view(),
         name="server_history_update",
     ),
     path(
-        "servers/history/<int:pk>/delete/",
+        "servers/history/delete/<int:pk>",
         views.ServerHistoryDelete.as_view(),
         name="server_history_delete",
     ),
-]
-
-# URLs for management functions
-urlpatterns += [
-    path("update/", views.update, name="update"),
-    path("update_category/", views.update_cat, name="update_cat"),
-    path(
-        "update_category/<int:pk>/", views.update_cat_single, name="update_cat_single"
-    ),
-    path("update_dns/", views.update_dns, name="update_dns"),
-    path("update_dns/<int:pk>/", views.update_dns_single, name="update_dns_single"),
-    path("update_namecheap/", views.pull_domains_namecheap, name="update_namecheap"),
-    path("cloud_monitor/", views.check_cloud_infrastructure, name="cloud_monitor"),
 ]

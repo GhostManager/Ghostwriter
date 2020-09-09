@@ -48,10 +48,10 @@
             {% endif %}
         {% endif %}
 
-        <form action="{% url 'shepherd:update_namecheap' %}" method="POST">
+        <form class="js-queue-task" queue-task-url="{% url 'shepherd:ajax_update_namecheap' %}" method="POST">
             {% csrf_token %}
             <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
-            <button class="btn btn-primary">Pull from Namecheap</button>
+            <button type="submit" class="btn btn-primary col-md-4">Pull from Namecheap</button>
         </form>
     {% endif %}
 
@@ -84,10 +84,10 @@
 
     <p>Note that updates will require <em>at least</em> <strong>{{ update_time }}</strong> minutes ({{ total_domains }} domains * {{ sleep_time }} second sleep configured in settings).</p>
 
-    <form action="{% url 'shepherd:update_cat' %}" method="POST">
+    <form class="js-queue-task" queue-task-url="{% url 'shepherd:ajax_update_cat' %}" method="POST">
         {% csrf_token %}
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
-        <button class="btn btn-primary">Start Update</button>
+        <button type="submit" class="btn btn-primary col-md-4">Start Update</button>
     </form>
 
     <!-- DNS Section -->
@@ -120,10 +120,10 @@
 
     <p>An individual update may take up to 60 seconds, so expect this to take some time.</p>
 
-    <form action="{% url 'shepherd:update_dns' %}" method="POST">
+    <form class="js-queue-task" queue-task-url="{% url 'shepherd:ajax_update_dns' %}" method="POST">
         {% csrf_token %}
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
-        <button class="btn btn-primary">Start Update</button>
+        <button type="submit" class="btn btn-primary col-md-4">Start Update</button>
     </form>
 
     <!-- Cloud Section -->
@@ -158,9 +158,42 @@
 
     <p>A cloud review can take a few minutes if Amazon Web Services is included, so expect this to take some time.</p>
 
-    <form action="{% url 'shepherd:cloud_monitor' %}" method="POST">
+    <form class="js-queue-task" queue-task-url="{% url 'shepherd:ajax_cloud_monitor' %}" method="POST">
         {% csrf_token %}
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
-        <button class="btn btn-primary">Start Cloud Review</button>
+        <button type="submit" class="btn btn-primary col-md-4">Start Cloud Review</button>
     </form>
+{% endblock %}
+
+
+{% block morescripts %}
+    <!-- Queue Tasks with AJAX -->
+    <script>
+        $('.js-queue-task').each(function(index) {
+            $(this).on('submit', function (event) {
+                // Prevent default browser behavior for a form submission
+                event.preventDefault();
+                console.log("Form submitted");
+                // Get the URL from form attribute
+                var url = $(this).attr('queue-task-url');
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        csrfmiddlewaretoken:$('input[name=csrfmiddlewaretoken]').val(),
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            // Do something
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Task Update'});
+                        }
+                    }
+                });
+            });
+        });
+    </script>
 {% endblock %}
