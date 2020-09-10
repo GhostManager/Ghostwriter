@@ -118,7 +118,6 @@ urlpatterns += [
         views.DomainNoteUpdate.as_view(),
         name="domain_note_edit",
     ),
-    path("domains/import/", views.import_domains, name="domain_import"),
 ]
 
 # URLs for creating, updating, and deleting servers
@@ -156,7 +155,6 @@ urlpatterns += [
         views.DomainServerConnectionUpdate.as_view(),
         name="link_update",
     ),
-    path("servers/import/", views.import_servers, name="server_import"),
 ]
 
 # URLs for creating, updating, and deleting project histories
@@ -191,4 +189,10 @@ urlpatterns += [
         views.ServerHistoryDelete.as_view(),
         name="server_history_delete",
     ),
+]
+
+# URLs for management functions
+urlpatterns += [
+    path("export/csv/", views.export_domains_to_csv, name="export_domains_to_csv"),
+    path("export/csv/", views.export_servers_to_csv, name="export_servers_to_csv"),
 ]

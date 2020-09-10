@@ -15,6 +15,7 @@ from .models import (
     ReportFindingLink,
     Severity,
 )
+from .resources import FindingResource
 
 
 @admin.register(Archive)
@@ -43,6 +44,7 @@ class FindingTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Finding)
 class FindingAdmin(ImportExportModelAdmin):
+    resource_class = FindingResource
     list_display = ("title", "severity", "finding_type")
     list_filter = ("severity", "finding_type")
     list_editable = ("severity", "finding_type")

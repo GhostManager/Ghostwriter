@@ -43,7 +43,7 @@ class Severity(models.Model):
         verbose_name_plural = "Severity ratings"
 
     def __str__(self):
-        return self.severity
+        return f"{self.severity}"
 
 
 class FindingType(models.Model):
@@ -69,7 +69,7 @@ class FindingType(models.Model):
         verbose_name_plural = "Finding types"
 
     def __str__(self):
-        return self.finding_type
+        return f"{self.finding_type}"
 
 
 class Finding(models.Model):

@@ -3,8 +3,9 @@
 # Django & Other 3rd Party Libraries
 from import_export import resources
 from import_export.fields import Field
+from import_export.widgets import ForeignKeyWidget
 
-from .models import Finding
+from .models import Finding, FindingType, Severity
 
 
 class FindingResource(resources.ModelResource):
@@ -12,9 +13,15 @@ class FindingResource(resources.ModelResource):
     Import and export :model:`reporting.Finding`.
     """
 
-    severity = Field(attribute="severity__severity", column_name="severity")
+    severity = Field(
+        attribute="severity",
+        column_name="severity",
+        widget=ForeignKeyWidget(Severity, "severity"),
+    )
     finding_type = Field(
-        attribute="finding_type__finding_type", column_name="finding_type"
+        attribute="finding_type",
+        column_name="finding_type",
+        widget=ForeignKeyWidget(FindingType, "finding_type"),
     )
 
     class Meta:
@@ -22,6 +29,8 @@ class FindingResource(resources.ModelResource):
         skip_unchanged = True
         fields = (
             "id",
+            "severity",
+            "finding_type",
             "title",
             "description",
             "impact",

@@ -2,6 +2,7 @@
 
 # Django & Other 3rd Party Libraries
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
 
 from .models import (
     ActivityType,
@@ -21,6 +22,7 @@ from .models import (
     TransientServer,
     WhoisStatus,
 )
+from .resources import DomainResource, StaticServerResource
 
 
 @admin.register(ActivityType)
@@ -79,7 +81,8 @@ class DomainStatusAdmin(admin.ModelAdmin):
 
 
 @admin.register(Domain)
-class DomainAdmin(admin.ModelAdmin):
+class DomainAdmin(ImportExportModelAdmin):
+    resource_class = DomainResource
     list_display = (
         "domain_status",
         "name",
@@ -183,7 +186,8 @@ class ServerStatusRoleAdmin(admin.ModelAdmin):
 
 
 @admin.register(StaticServer)
-class StaticServerAdmin(admin.ModelAdmin):
+class StaticServerAdmin(ImportExportModelAdmin):
+    resource_class = StaticServerResource
     list_display = ("name", "ip_address", "server_status", "server_provider")
     list_filter = ("server_status", "server_provider")
     list_display_links = ("name", "ip_address")

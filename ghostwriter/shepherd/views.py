@@ -1,11 +1,9 @@
 """This contains all of the views used by the Shepherd application."""
 
 # Standard Libraries
-import csv
-import datetime
 import logging
 import logging.config
-from io import StringIO
+from datetime import datetime
 
 # Django & Other 3rd Party Libraries
 from django import forms
@@ -54,6 +52,7 @@ from .models import (
     TransientServer,
     WhoisStatus,
 )
+from .resources import DomainResource, StaticServerResource
 
 # Using __name__ resolves to ghostwriter.shepherd.views
 logger = logging.getLogger(__name__)
@@ -137,7 +136,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
             )
             domain_instance.save()
             # Set the release date to now so historical record is accurate
-            self.object.end_date = datetime.datetime.now()
+            self.object.end_date = datetime.now()
             self.object.save()
             data = {"result": "success", "message": "Domain successfully released"}
             logger.info(
@@ -173,7 +172,7 @@ class ServerRelease(LoginRequiredMixin, SingleObjectMixin, View):
             )
             server_instance.save()
             # Set the release date to now so historical record is accurate
-            self.object.end_date = datetime.datetime.now()
+            self.object.end_date = datetime.now()
             self.object.save()
             data = {"result": "success", "message": "Server successfully released"}
             logger.info(
@@ -712,283 +711,6 @@ def burn(request, pk):
 
 
 @login_required
-def import_domains(request):
-    """
-    Display form and import CSV file to create bulk :model:`shepherd.Domain`.
-
-    **Template**
-
-    :template:`shepherd/domain_import.html`
-    """
-    # If the request is 'GET' return the upload page
-    if request.method == "GET":
-        return render(request, "shepherd/domain_import.html")
-    # If not a GET, then proceed
-    try:
-        # Get the `csv_file` from the POSTed form data
-        csv_file = request.FILES["csv_file"]
-        # Do a lame/basic check to see if this is a csv file
-        if not csv_file.name.endswith(".csv"):
-            messages.error(
-                request, "Your file is not a csv!", extra_tags="alert-danger"
-            )
-            return HttpResponseRedirect(reverse("shepherd:domain_import"))
-        # The file is loaded into memory, so this view must be aware of
-        # system limits
-        if csv_file.multiple_chunks():
-            messages.error(
-                request,
-                "Uploaded file is too big (%.2f MB)." % (csv_file.size / (1000 * 1000)),
-                extra_tags="alert-danger",
-            )
-            return HttpResponseRedirect(reverse("shepherd:domain_import"))
-    except Exception as error:
-        messages.error(
-            request,
-            "Unable to upload/read file: " + repr(error),
-            extra_tags="alert-danger",
-        )
-        logger.error("Unable to upload/read file – %s", error)
-    # Loop over the lines and save the domains to the Domains model
-    try:
-        # Try to read the file data
-        csv_file_wrapper = StringIO(csv_file.read().decode("utf-8"))
-        csv_reader = csv.DictReader(csv_file_wrapper, delimiter=",")
-    except Exception as error:
-        messages.error(
-            request, "Unable to parse file: {}".format(error), extra_tags="alert-danger"
-        )
-        logger.error("Unable to parse file – %s", error)
-        return HttpResponseRedirect(reverse("shepherd:domain_import"))
-    try:
-        # Process each csv row and commit it to the database
-        for entry in csv_reader:
-            logger.info("Reviewing %s for entry into the database", entry["name"])
-            try:
-                health_status = HealthStatus.objects.get(
-                    health_status__iexact=entry["health_status"].strip()
-                )
-            except Exception:
-                health_status = HealthStatus.objects.get(
-                    health_status__iexact="Healthy"
-                )
-            entry["health_status"] = health_status
-            try:
-                whois_status = WhoisStatus.objects.get(
-                    whois_status__iexact=entry["whois_status"].strip()
-                )
-            except Exception:
-                whois_status = WhoisStatus.objects.get(whois_status="Enabled")
-            entry["whois_status"] = whois_status
-            # Check if the optional note field is in the csv and add it as
-            # NULL if not
-            if "note" not in entry:
-                entry["note"] = None
-            # Check if the domain_status Foreign Key is in the csv and try to
-            # resolve the status
-            if "domain_status" in entry:
-                try:
-                    domain_status = DomainStatus.objects.get(
-                        domain_status__iexact=entry["domain_status"].strip()
-                    )
-                except Exception:
-                    domain_status = DomainStatus.objects.get(domain_status="Available")
-                entry["domain_status"] = domain_status
-            else:
-                domain_status = DomainStatus.objects.get(domain_status="Available")
-                entry["domain_status"] = domain_status
-            # Accept a variety of "True" values to mean True
-            # Thanks to @lez0sec for fixing this logic:
-            #   https://github.com/GhostManager/Ghostwriter/issues/73
-            if "auto_renew" in entry:
-                if any(
-                    yes_option in entry["auto_renew"].lower().strip()
-                    for yes_option in ["yes", "enabled", "true", "x", "enable"]
-                ):
-                    entry["auto_renew"] = True
-                else:
-                    entry["auto_renew"] = False
-            # The last_used_by field will only be set by Shepherd at check-out
-            if "last_used_by" in entry:
-                entry["last_used_by"] = None
-            else:
-                entry["last_used_by"] = None
-            # Try to pass the dict object to the `Domain` model
-            try:
-                # First, check if a domain with this name exists
-                domain_name = entry["name"].strip()
-                try:
-                    instance = Domain.objects.get(name=domain_name)
-                except Domain.DoesNotExist:
-                    instance = False
-                if instance:
-                    # This domain already exists so update that entry
-                    logger.info(
-                        "Domain %s already in the database, so updating existing record",
-                        entry["name"],
-                    )
-                    for attr, value in entry.items():
-                        setattr(instance, attr, value)
-                    instance.save()
-                else:
-                    # This is a new domain so create it
-                    new_domain = Domain(**entry)
-                    new_domain.save()
-                messages.success(
-                    request,
-                    "Successfully parsed {}".format(entry["name"]),
-                    extra_tags="alert-success",
-                )
-            # If there is an error, store as string and then display
-            except Exception as error:
-                messages.error(
-                    request,
-                    "Failed parsing {}: {}".format(entry["name"], error),
-                    extra_tags="alert-danger",
-                )
-                logger.error("Failed parsing %s: %s", entry["name"], error)
-                pass
-    except Exception as error:
-        messages.error(
-            request, "Unable to read rows: {}".format(error), extra_tags="alert-danger"
-        )
-        logger.error("Unable to read rows – %s", error)
-    return HttpResponseRedirect(reverse("shepherd:domain_import"))
-
-
-@login_required
-def import_servers(request):
-    """
-    Display form and import CSV file to create bulk :model:`shepherd.StaticServer`.
-
-    **Template**
-
-    :template:`shepherd/server_import.html`
-    """
-    # If the request is 'GET' return the upload page
-    if request.method == "GET":
-        return render(request, "shepherd/server_import.html")
-    # If not a GET, then proceed
-    try:
-        # Get the `csv_file` from the POSTed form data
-        csv_file = request.FILES["csv_file"]
-        # Do a lame/basic check to see if this is a csv file
-        if not csv_file.name.endswith(".csv"):
-            messages.error(
-                request, "Your file is not a csv!", extra_tags="alert-danger"
-            )
-            return HttpResponseRedirect(reverse("shepherd:server_import"))
-        # The file is loaded into memory, so this view must be aware of
-        # system limits
-        if csv_file.multiple_chunks():
-            messages.error(
-                request,
-                "Uploaded file is too big (%.2f MB)." % (csv_file.size / (1000 * 1000)),
-                extra_tags="alert-danger",
-            )
-            return HttpResponseRedirect(reverse("shepherd:server_import"))
-    except Exception as error:
-        messages.error(
-            request,
-            "Unable to upload/read file: {}".format(error),
-            extra_tags="alert-danger",
-        )
-        logger.error("Unable to upload/read file – %s", error)
-    # Loop over the lines and save the servers to the `StaticServer` model
-    try:
-        # Try to read the file data
-        csv_file_wrapper = StringIO(csv_file.read().decode("utf-8"))
-        csv_reader = csv.DictReader(csv_file_wrapper, delimiter=",")
-    except Exception as error:
-        messages.error(
-            request,
-            "Unable to parse file: {}",
-            format(error),
-            extra_tags="alert-danger",
-        )
-        logger.error("Unable to parse file – %s", error)
-        return HttpResponseRedirect(reverse("shepherd:server_import"))
-    try:
-        # Process each csv row and commit it to the database
-        for entry in csv_reader:
-            logger.info("Adding %s to the database", entry["ip_address"])
-            # Check if the optional note field is in the csv and add it as NULL if not
-            if "note" not in entry:
-                entry["note"] = None
-            # Check if the optional name field is in the csv and add it as NULL if not
-            if "name" not in entry:
-                entry["name"] = None
-            # Check if the server_status Foreign Key is in the csv and try to resolve the status
-            if "server_status" in entry:
-                try:
-                    server_status = ServerStatus.objects.get(
-                        server_status__iexact=entry["server_status"]
-                    )
-                except Exception:
-                    server_status = ServerStatus.objects.get(server_status="Available")
-            else:
-                server_status = ServerStatus.objects.get(server_status="Available")
-            entry["server_status"] = server_status
-            # Check if the server_status Foreign Key is in the csv and try to resolve the status
-            if "server_provider" in entry:
-                try:
-                    server_provider = ServerProvider.objects.get(
-                        server_provider__iexact=entry["server_provider"]
-                    )
-                    entry["server_provider"] = server_provider
-                except Exception:
-                    messages.error(
-                        request,
-                        'Failed parsing %s: the "%s" server provider does not '
-                        "exist in the database"
-                        % (entry["ip_address"], entry["server_provider"]),
-                        extra_tags="alert-danger",
-                    )
-                    continue
-            # The last_used_by field will only be set by Shepherd at server check-out
-            if "last_used_by" in entry:
-                entry["last_used_by"] = None
-            else:
-                entry["last_used_by"] = None
-            # Try to pass the dict object to the `StaticServer` model
-            try:
-                # First, check if a server with this address exists
-                try:
-                    instance = StaticServer.objects.get(ip_address=entry["ip_address"])
-                except StaticServer.DoesNotExist:
-                    instance = False
-                if instance:
-                    # This server already exists so update that entry
-                    for attr, value in entry.items():
-                        setattr(instance, attr, value)
-                    instance.save()
-                else:
-                    # This is a new server so create it
-                    new_server = StaticServer(**entry)
-                    new_server.save()
-                messages.success(
-                    request,
-                    "Successfully parsed %s" % entry["ip_address"],
-                    extra_tags="alert-success",
-                )
-            # If there is an error, store as string and then display
-            except Exception as error:
-                messages.error(
-                    request,
-                    "Failed parsing {}: {}".format(entry["ip_address"], error),
-                    extra_tags="alert-danger",
-                )
-                logger.error("Failed parsing %s: %s", entry["ip_address"], error)
-                pass
-    except Exception as error:
-        messages.error(
-            request, "Unable to read rows: {}".format(error), extra_tags="alert-danger"
-        )
-        logger.error("Unable to read rows – ", error)
-    return HttpResponseRedirect(reverse("shepherd:server_import"))
-
-
-@login_required
 def update(request):
     """
     Display results for latest :model:`django_q.Task` and create new instances on demand.
@@ -1148,6 +870,32 @@ def update(request):
         return render(request, "shepherd/update.html", context=context)
     else:
         return HttpResponseRedirect(reverse("shepherd:update"))
+
+
+def export_domains_to_csv(request):
+    """
+    Export all :model:`shepherd.Domain` to a csv file for download.
+    """
+    timestamp = datetime.now().isoformat()
+    domain_resource = DomainResource()
+    dataset = domain_resource.export()
+    response = HttpResponse(dataset.csv, content_type="text/csv")
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+
+    return response
+
+
+def export_servers_to_csv(request):
+    """
+    Export all :model:`shepherd.Server` to a csv file for download.
+    """
+    timestamp = datetime.now().isoformat()
+    server_resource = StaticServerResource()
+    dataset = server_resource.export()
+    response = HttpResponse(dataset.csv, content_type="text/csv")
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+
+    return response
 
 
 ################
