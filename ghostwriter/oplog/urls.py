@@ -5,6 +5,7 @@ from rest_framework import routers
 
 from .views import (
     index,
+    load_projects,
     OplogCreateWithoutProject,
     OplogEntryCreate,
     OplogEntryUpdate,
@@ -25,6 +26,7 @@ urlpatterns = [
     path("", index, name="index"),
     path("api/", include(router.urls)),
     path("create/", OplogCreateWithoutProject.as_view(), name="oplog_create"),
+    path("load-projects/", load_projects, name="load_projects"),
     path(
         "<int:pk>/entries/create", OplogEntryCreate.as_view(), name="oplog_entry_create"
     ),

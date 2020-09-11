@@ -37,14 +37,21 @@
     </ul>
 </div>
 
-<table id="oplogTable" class="table-striped mb-0">
+<div id="oplogTableDiv" style="overflow-x:auto;">
+<table id="oplogTable">
     <thead>
         <tr id="oplogTableHeader">
         </tr>
     </thead>
     <tbody id="oplogTableBody">
     </tbody>
+    <tbody id="oplogTableNoEntries" style="display:none">
+        <tr>
+            <td colspan="100%">No entries to display</td>
+        <tr>
+    </tbody>
 </table>
+</div>
 {% endblock %}
 
 
@@ -58,6 +65,8 @@
     var $selectedCell = null;
     var $table = $("#oplogTable tbody")
     var socket = null;
+    var errorDisplayed = false;
+
     let columnInfo = []
     columnInfo = [
         ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date'],
@@ -75,6 +84,13 @@
         ['deleteCheckbox', 'deleteColumn', 'Delete', ''],
         ['copyCheckbox', 'copyColumn', 'Copy', '']
     ]
+
+    function resizeContent() {
+        $height = $(window).height() - 250;
+        $("#oplogTableDiv").height($height);
+        $width = $("#content").width();
+        $("#oplogTableDiv").width($width);
+    }
 
     function coupleCheckboxColumn(checkboxId, columnClass) {
         $(checkboxId).change(function (e) {
@@ -168,6 +184,7 @@
 
         socket.onopen = function (e) {
             $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: green'></i>Connected</div>")
+            errorDisplayed = false;
         }
 
         socket.onmessage = function (e) {
@@ -245,11 +262,17 @@
                     if ($(this).find('td').eq(2).text() == id) {
                         $(this).fadeOut('slow', function () {
                             $(this).remove()
+                            if ($("#oplogTableBody tr").length == 0){
+                                $('#oplogTableNoEntries').show()
+                            }
                         });
                     }
                 })
 
 
+            }
+            else {
+                $('#oplogTableNoEntries').hide() 
             }
         }
 
@@ -257,10 +280,18 @@
             $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
             console.log("[!] error: ", e)
             socket.close()
+            if (!errorDisplayed) {
+                displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
+                errorDisplayed = true;
+            }
         }
 
         socket.onclose = function (e) {
             $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
+            if (!errorDisplayed) {
+                displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
+                errorDisplayed = true;
+            }
             setTimeout(function () {
                 console.log("Retrying connection");
                 connect()
@@ -271,11 +302,17 @@
 
     // This is the filter function to search through row entries
     $(document).ready(function () {
+        resizeContent();
+
+        $(window).resize(function() {
+            resizeContent();
+        });
 
         connect()
         // Populate the table info
         $checkboxList = $("#checkboxList")
         $tableHeader = $("#oplogTableHeader")
+
         columnInfo.forEach(function (value, index, array) {
             checkboxEntry = `
             <input type="checkbox" id="${value[0]}" checked/>
