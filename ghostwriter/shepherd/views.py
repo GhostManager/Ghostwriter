@@ -46,11 +46,9 @@ from .models import (
     History,
     ServerHistory,
     ServerNote,
-    ServerProvider,
     ServerStatus,
     StaticServer,
     TransientServer,
-    WhoisStatus,
 )
 from .resources import DomainResource, StaticServerResource
 
