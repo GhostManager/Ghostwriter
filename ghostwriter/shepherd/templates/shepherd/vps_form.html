@@ -4,48 +4,22 @@
 {% block pagetitle %}Virtual Private Server{% endblock %}
 
 {% block content %}
-    <p>Enter the details for this VPS and how it will be used for the {{ project_name }} project.</p>
+    <p>Enter the details for this VPS and how it will be used for the project.</p>
+
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
 
     <!-- Form Section -->
-    <form class="newitem" action="" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <!-- Server Info Section -->
-        <strong><i class="fas fa-server"></i> Server Information</strong>
-        <hr>
-
-        {{ form.ip_address|as_crispy_field }}
-
-        {{ form.name|as_crispy_field }}
-
-        <!-- Note Section -->
-        <div class="form-row justify-content-center">
-            <div class="form-group col-md-6 mb-0">
-                {{ form.activity_type|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.server_role|as_crispy_field }}
-            </div>
-            <div class="form-group col-md-6 mb-0">
-                {{ form.server_provider|as_crispy_field }}
-            </div>
-        </div>
-
-        <!-- Spacer -->
-        <p style="margin: 40px;"></p>
-
-        <!-- Additional Information Section -->
-        <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
-        <hr>
-
-        {{ form.note|as_crispy_field }}
-
-        <!-- Hidden Fields -->
-        {% for hidden_field in form.hidden_fields %}
-            {{ hidden_field }}
-        {% endfor %}
-
-        <input type="submit" class="btn btn-primary" value="Submit">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+    {% crispy form form.helper %}
 {% endblock %}

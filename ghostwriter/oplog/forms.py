@@ -1,10 +1,15 @@
-from django import forms
+"""This contains all of the forms used by the Oplog application."""
 
+# Django & Other 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, TabHolder
 from crispy_forms.helper import FormHelper
-from ghostwriter.rolodex.models import Project, Client
+from django import forms
+
+# Ghostwriter Libraries
+from ghostwriter.rolodex.models import Client, Project
 
 from .models import Oplog, OplogEntry
+
 
 class ShortNameModelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
@@ -56,4 +61,3 @@ class OplogCreateEntryForm(forms.ModelForm):
         self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
         self.helper.field_class = "h-100 justify-content-center align-items-center"
-

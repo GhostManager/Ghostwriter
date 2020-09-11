@@ -1,5 +1,6 @@
 """This contains the configuration of the Shepherd application."""
 
+# Django & Other 3rd Party Libraries
 from django.apps import AppConfig
 
 

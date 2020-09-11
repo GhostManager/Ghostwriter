@@ -1,21 +1,22 @@
+"""This contains all of the views used by the Oplog application."""
+
+# Django & Other 3rd Party Libraries
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-
+from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_api_key.permissions import HasAPIKey
 from tablib import Dataset
 
 from .admin import OplogEntryResource
+from .forms import OplogCreateEntryForm, OplogCreateForm
 from .models import Oplog, OplogEntry
-from .forms import OplogCreateForm, OplogCreateEntryForm
-from .serializers import OplogSerializer, OplogEntrySerializer
-
-from rest_framework.permissions import IsAuthenticated
-from rest_framework_api_key.permissions import HasAPIKey
+from .serializers import OplogEntrySerializer, OplogSerializer
 
 from ghostwriter.rolodex.models import Project
 
@@ -116,7 +117,9 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
             queryset = OplogEntry.objects.all().order_by("-start_date")
         else:
             oplog_id = self.request.query_params["oplog_id"]
-            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
+            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by(
+                "-start_date"
+            )
         if "export" in request.query_params:
             format = request.query_params["export"]
             dataset = OplogEntryResource().export(queryset)

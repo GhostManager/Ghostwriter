@@ -1,0 +1,32 @@
+<li class="nav-item active">
+    <a class="nav-link active" data-toggle="tab" href="#details">
+        <i class="fas fa-hourglass-half"></i> General <span class=
+        {% if domain.is_expired %}
+            "badge badge-pill badge-danger">EXPIRED
+        {% else %}
+            "badge badge-pill badge-light">{{ domain.get_domain_age }}
+        {% endif %}
+        </span>
+    </a>
+</li>
+<li class="nav-item"><a class="nav-link" data-toggle="tab" href="#dns">
+    <i class="fas fa-server"></i> DNS Records</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" data-toggle="tab" href="#health">
+        <i class="fas fa-heartbeat"></i> Health
+        <span class="badge badge-pill {% if domain.health_status.health_status == "Healthy" %}badge-light{% else %} badge-danger{% endif %}">{{ domain.health_status }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" data-toggle="tab" href="#history">
+        <i class="fas fa-history"></i> Project History
+        <span class="badge badge-pill badge-light">{{ domain.history_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" data-toggle="tab" href="#notes">
+        <i class="fas fa-comments"></i> Notes
+        <span class="badge badge-pill badge-light">{{ domain.domainnote_set.all.count }}</span>
+    </a>
+</li>

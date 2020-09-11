@@ -1,11 +1,15 @@
+"""This contains customizations for displaying the Oplog application models in the admin panel."""
+
+# Standard Libraries
 from datetime import datetime as dt
+
+# Django & Other 3rd Party Libraries
 from django.contrib import admin
 from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
 # Register your models here.
-from .models import OplogEntry, Oplog
-
-from import_export.admin import ImportExportModelAdmin
+from .models import Oplog, OplogEntry
 
 
 class OplogEntryResource(resources.ModelResource):

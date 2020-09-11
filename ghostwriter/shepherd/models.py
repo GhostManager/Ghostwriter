@@ -1,9 +1,11 @@
 """This contains all of the database models for the Shepherd application."""
 
+# Standard Libraries
 import datetime
 import json
 from datetime import date
 
+# Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -15,7 +17,7 @@ class HealthStatus(models.Model):
     """
 
     health_status = models.CharField(
-        max_length=20,
+        max_length=255,
         unique=True,
         help_text="Health status type (e.g. Healthy, Burned)",
     )
@@ -30,7 +32,6 @@ class HealthStatus(models.Model):
     count = property(count_status)
 
     class Meta:
-
         ordering = ["health_status"]
         verbose_name = "Health status"
         verbose_name_plural = "Health statuses"
@@ -45,7 +46,7 @@ class DomainStatus(models.Model):
     """
 
     domain_status = models.CharField(
-        max_length=20, unique=True, help_text="Domain status type (e.g. Available)"
+        max_length=255, unique=True, help_text="Domain status type (e.g. Available)"
     )
 
     def count_status(self):
@@ -58,7 +59,6 @@ class DomainStatus(models.Model):
     count = property(count_status)
 
     class Meta:
-
         ordering = ["domain_status"]
         verbose_name = "Domain status"
         verbose_name_plural = "Domain statuses"
@@ -73,7 +73,7 @@ class WhoisStatus(models.Model):
     """
 
     whois_status = models.CharField(
-        max_length=20,
+        max_length=255,
         unique=True,
         help_text="WHOIS privacy status (e.g. Enabled, Disabled)",
     )
@@ -88,7 +88,6 @@ class WhoisStatus(models.Model):
     count = property(whois_status)
 
     class Meta:
-
         ordering = ["whois_status"]
         verbose_name = "WHOIS status"
         verbose_name_plural = "WHOIS statuses"
@@ -103,13 +102,12 @@ class ActivityType(models.Model):
     """
 
     activity = models.CharField(
-        max_length=100,
+        max_length=255,
         unique=True,
         help_text="Reason for the use of the asset (e.g. C2, Phishing)",
     )
 
     class Meta:
-
         ordering = ["activity"]
         verbose_name = "Activity type"
         verbose_name_plural = "Activity types"
@@ -121,16 +119,16 @@ class ActivityType(models.Model):
 class Domain(models.Model):
     """
     Stores an individual domain, related to :model:`shepherd.WhoisStatus`,
-    :model:`shepherd.HealthStatus` :model:`shepherd.DomainStatus`,
+    :model:`shepherd.HealthStatus`, :model:`shepherd.DomainStatus`,
     and :model:`users.User`.
     """
 
     name = models.CharField(
-        "Name", max_length=100, unique=True, help_text="Enter the domain name"
+        "Name", max_length=255, unique=True, help_text="Enter the domain name"
     )
     registrar = models.CharField(
         "Registrar",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Enter the name of the registrar where this domain is registered",
@@ -143,7 +141,7 @@ class Domain(models.Model):
     )
     health_dns = models.CharField(
         "DNS Health",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text='Enter passive DNS information from VirusTotal - leave blank or enter "Healthy" if you do not know',
@@ -162,49 +160,49 @@ class Domain(models.Model):
     )
     ibm_xforce_cat = models.CharField(
         "IBM X-Force",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Provide the list of categories determined by IBM X-Force",
     )
     talos_cat = models.CharField(
         "Cisco Talos",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Provide the list of categories determined by Cisco Talos",
     )
     bluecoat_cat = models.CharField(
         "Bluecoat",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Provide the list of categories determined by Bluecoat",
     )
     fortiguard_cat = models.CharField(
         "Fortiguard",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Provide the list of categories determined by Fortiguard",
     )
     opendns_cat = models.CharField(
         "OpenDNS",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Provide the list of categories determined by OpenDNS",
     )
     trendmicro_cat = models.CharField(
         "TrendMicro",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Provide the list of categories determined by TrendMicro",
     )
     mx_toolbox_status = models.CharField(
         "MX Toolbox Status",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Enter the domain spam/blacklist status as determined by MX Toolbox",
@@ -262,7 +260,6 @@ class Domain(models.Model):
     )
 
     class Meta:
-
         ordering = ["health_status", "name", "expiration"]
         verbose_name = "Domain"
         verbose_name_plural = "Domains"
@@ -274,7 +271,10 @@ class Domain(models.Model):
         """
         Calculate the domain's age based on the current date and the instance's creation DateField.
         """
-        time_delta = datetime.date.today() - self.creation
+        if self.is_expired:
+            time_delta = self.expiration - self.creation
+        else:
+            time_delta = datetime.date.today() - self.creation
         return "{} days".format(time_delta.days)
 
     def is_expired(self):
@@ -316,10 +316,10 @@ class History(models.Model):
     """
 
     start_date = models.DateField(
-        "Start Date", max_length=100, help_text="Select the start date of the project"
+        "Start Date", help_text="Select the start date of the project"
     )
     end_date = models.DateField(
-        "End Date", max_length=100, help_text="Select the end date of the project"
+        "End Date", help_text="Select the end date of the project"
     )
     note = models.TextField(
         "Notes",
@@ -361,7 +361,6 @@ class History(models.Model):
     )
 
     class Meta:
-
         ordering = ["client", "domain", "activity_type", "start_date"]
         verbose_name = "Domain history"
         verbose_name_plural = "Domain history"
@@ -392,7 +391,7 @@ class ServerStatus(models.Model):
     """
 
     server_status = models.CharField(
-        max_length=20, unique=True, help_text="Server status (e.g. Available)"
+        max_length=255, unique=True, help_text="Server status (e.g. Available)"
     )
 
     def count_status(self):
@@ -420,9 +419,9 @@ class ServerProvider(models.Model):
     """
 
     server_provider = models.CharField(
-        max_length=100,
+        max_length=255,
         unique=True,
-        help_text="Name of the server provider (e.g. Amazon Web " "Services, Azure)",
+        help_text="Name of the server provider (e.g. Amazon Web Services, Azure)",
     )
 
     def count_provider(self):
@@ -435,7 +434,6 @@ class ServerProvider(models.Model):
     count = property(count_provider)
 
     class Meta:
-
         ordering = ["server_provider"]
         verbose_name = "Server provider"
         verbose_name_plural = "Server providers"
@@ -452,7 +450,7 @@ class StaticServer(models.Model):
 
     ip_address = models.GenericIPAddressField(
         "IP Address",
-        max_length=100,
+        max_length=255,
         unique=True,
         help_text="Enter the server's static IP address",
     )
@@ -464,7 +462,7 @@ class StaticServer(models.Model):
     )
     name = models.CharField(
         "Name",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Enter the server's name (typically hostname)",
@@ -487,7 +485,6 @@ class StaticServer(models.Model):
     )
 
     class Meta:
-
         ordering = ["server_status", "server_provider", "ip_address"]
         verbose_name = "Static server"
         verbose_name_plural = "Static servers"
@@ -505,13 +502,12 @@ class ServerRole(models.Model):
     """
 
     server_role = models.CharField(
-        max_length=100,
+        max_length=255,
         unique=True,
         help_text="A role for applied to the use of a server (e.g. Payload Delivery, Redirector)",
     )
 
     class Meta:
-
         ordering = ["server_role"]
         verbose_name = "Server role"
         verbose_name_plural = "Server roles"
@@ -528,10 +524,10 @@ class ServerHistory(models.Model):
     """
 
     start_date = models.DateField(
-        "Start Date", max_length=100, help_text="Select the start date of the project"
+        "Start Date", help_text="Select the start date of the project"
     )
     end_date = models.DateField(
-        "End Date", max_length=100, help_text="Select the end date of the project"
+        "End Date", help_text="Select the end date of the project"
     )
     note = models.TextField(
         "Notes",
@@ -579,7 +575,6 @@ class ServerHistory(models.Model):
     )
 
     class Meta:
-
         ordering = ["client", "server"]
         verbose_name = "Server history"
         verbose_name_plural = "Server history"
@@ -592,20 +587,20 @@ class ServerHistory(models.Model):
 
     def ip_address(self):
         """
-        Return server ip_address from instance.
+        Return the ``ip_address`` field's value for the instance.
         """
         return self.server.ip_address
 
     def server_name(self):
         """
-        Return server ip_address from instance.
+        Return the ``name`` field's value for the instance.
         """
         return self.server.name
 
     @property
     def will_be_released(self):
         """
-        Test if the instance's end_date DateField value is within the next 24-48 hours.
+        Test if the instance's ``end_date`` DateField value is within the next 24-48 hours.
         """
         if (
             date.today() == self.end_date
@@ -626,13 +621,13 @@ class TransientServer(models.Model):
 
     ip_address = models.GenericIPAddressField(
         "IP Address",
-        max_length=100,
+        max_length=255,
         unique=True,
         help_text="Enter the server IP address",
     )
     name = models.CharField(
         "Name",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="Enter the server's name (typically hostname)",
@@ -679,7 +674,6 @@ class TransientServer(models.Model):
     )
 
     class Meta:
-
         ordering = ["project", "server_provider", "ip_address", "server_role", "name"]
         verbose_name = "Virtual private server"
         verbose_name_plural = "Virtual private servers"
@@ -698,14 +692,14 @@ class DomainServerConnection(models.Model):
 
     endpoint = models.CharField(
         "CDN Endpoint",
-        max_length=100,
+        max_length=255,
         null=True,
         blank=True,
         help_text="The CDN endpoint used with this link, if any",
     )
     subdomain = models.CharField(
         "Subdomain",
-        max_length=100,
+        max_length=255,
         blank=True,
         null=True,
         default="*",
@@ -732,7 +726,7 @@ class DomainServerConnection(models.Model):
 
     def domain_name(self):
         """
-        Return domain name from instance.
+        Return the ``name`` field's value for the instance.
         """
         return self.domain.domain.name
 
@@ -748,7 +742,7 @@ class DomainNote(models.Model):
     """
 
     timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
     )
     note = models.TextField(
         "Notes",
@@ -763,7 +757,6 @@ class DomainNote(models.Model):
     )
 
     class Meta:
-
         ordering = ["domain", "-timestamp"]
         verbose_name = "Domain note"
         verbose_name_plural = "Domain notes"
@@ -778,7 +771,7 @@ class ServerNote(models.Model):
     """
 
     timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, max_length=100, help_text="Creation timestamp"
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
     )
     note = models.TextField(
         "Notes",
@@ -793,7 +786,6 @@ class ServerNote(models.Model):
     )
 
     class Meta:
-
         ordering = ["server", "-timestamp"]
         verbose_name = "Server note"
         verbose_name_plural = "Server notes"
@@ -809,8 +801,9 @@ class AuxServerAddress(models.Model):
 
     ip_address = models.GenericIPAddressField(
         "IP Address",
-        max_length=100,
-        unique=True,
+        max_length=255,
+        null=True,
+        blank=True,
         help_text="Enter the auxiliary IP address for the server",
     )
     primary = models.BooleanField(
@@ -824,7 +817,6 @@ class AuxServerAddress(models.Model):
     )
 
     class Meta:
-
         ordering = ["static_server", "ip_address"]
         verbose_name = "Auxiliary IP address"
         verbose_name_plural = "Auxiliary IP addresses"

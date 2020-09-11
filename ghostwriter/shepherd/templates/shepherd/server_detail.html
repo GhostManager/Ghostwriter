@@ -20,8 +20,8 @@
         <div class="dropdown">
             <button class="dropbtn far fa-caret-square-down"></button>
             <div id="myDropdown" class="dropdown-content">
-                <a href="{% url 'shepherd:server_update' staticserver.id %}"><i class="far fa-edit"></i> Edit</a>
-                <a href="{% url 'shepherd:server_address_add' staticserver.id %}"><i class="far fa-plus-square"></i> Add Aux IP Address</a>
+                <a href="{% url 'shepherd:server_update' staticserver.id %}"><i class="far fa-edit"></i> Edit Details</a>
+                <a href="{% url 'shepherd:server_update' staticserver.id %}#addresses"><i class="far fa-plus-square"></i> Add Aux IP Address</a>
                 {% if staticserver.server_status.server_status == "Available" %}
                     <a href="{% url 'shepherd:server_checkout' staticserver.id %}"><i style="color: green" class="far fa-calendar-check"></i> Checkout Server</a>
                 {% else %}
@@ -32,32 +32,7 @@
         </div>
     </h2>
 
-    <h6>
-        All Addresses: <em>{{ staticserver.ip_address }}</em>
-        {% if staticserver.auxserveraddress_set %}
-            {% for addy in staticserver.auxserveraddress_set.all %}
-                <div class="dropdown">
-                    <em>
-                        {% if forloop.first and forloop.last %}
-                            and {{ addy }}
-                        {% elif forloop.first %}
-                            , {{ addy }}
-                        {% elif forloop.last %}
-                            , and {{ addy }}
-                        {% else %}
-                            , {{ addy }}
-                        {% endif %}
-                    </em>
-                    <div id="myDropdown" class="dropdown-content">
-                        <a href="{% url 'shepherd:server_address_edit' addy.id %}"><i class="far fa-edit"></i> Edit Address</a>
-                        <a href="{% url 'shepherd:server_address_delete' addy.id %}"><i style="color: red" class="far fa-trash-alt"></i> Remove Address</a>
-                    </div>
-                </div>
-            {% endfor %}
-        {% endif %}
-    </h6>
-
-    <div style="margin-left: 20px; margin-top: 20px">
+    <div>
         <!-- Note Section -->
         <h3>Server Description</h3>
         <hr>
@@ -67,19 +42,50 @@
             <p>No information provided for this server.</p>
         {% endif %}
 
+        <!-- Address Section -->
+        <h4><i class="fas fa-route"></i> Server Addresses</h4>
+        <table id="address-table" class="tablesorter" style="margin-top: 10px;">
+            <thead>
+                <tr>
+                    <th>IP Address</th>
+                    <th>Primary</th>
+                </tr>
+            </thead>
+            <tr>
+                <td>{{ staticserver.ip_address }}</td>
+                <td>Assigned to Server</td>
+            </tr>
+            {% if staticserver.auxserveraddress_set %}
+                {% for addy in staticserver.auxserveraddress_set.all %}
+                    <tr>
+                        <td>{{ addy }}</td>
+                        <td>
+                            {% if addy.primary %}
+                                Yes
+                            {% else %}
+                                No
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+
         <!-- Server History Section -->
         <h4><i class="fas fa-history"></i> Project History</h4>
         {% if staticserver.serverhistory_set.all %}
-            <table>
-                <tr>
-                    <th>Project</th>
-                    <th>Activity Type</th>
-                    <th>Server Role</th>
-                    <th>Domain</th>
-                    <th>Date Range</th>
-                    <th>Notes</th>
-                    <th>Edit</th>
-                </tr>
+            <table id="project-table" class="tablesorter" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>Project</th>
+                        <th>Activity Type</th>
+                        <th>Server Role</th>
+                        <th>Domain</th>
+                        <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                        <th class="sorter-false">Notes</th>
+                        <th class="sorter-false">Edit</th>
+                    </tr>
+                </thead>
                 {% for project in staticserver.serverhistory_set.all %}
                     <tr>
                         <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
@@ -109,7 +115,7 @@
             <div class="card">
                 <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
                     <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
-                        <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ staticserver.servernote_set.all.count }}</span>
+                        <i class="fas fa-comments"></i> Notes
                     </a>
                 </div>
                 <div id="collapseNotes" class="collapse show" aria-labelledby="description" data-parent="#accordion">
@@ -119,20 +125,22 @@
                         </p>
                         {% if staticserver.servernote_set.all %}
                             {% for note in staticserver.servernote_set.all reversed %}
-                                <p>{{ note.timestamp }}</p>
-                                <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                                    <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                                    {% if request.user == note.operator or request.user.is_staff %}
-                                        <div class="dropdown right">
-                                            <button class="dropbtn far fa-caret-square-down"></button>
-                                            <div id="myDropdown" class="dropdown-content">
-                                                <a href="{% url 'shepherd:server_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                                <a href="{% url 'shepherd:server_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                <div id="note-container-{{ note.id }}">
+                                    <p>{{ note.timestamp }}</p>
+                                    <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                        <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                        {% if request.user == note.operator or request.user.is_staff %}
+                                            <div class="dropdown right">
+                                                <button class="dropbtn far fa-caret-square-down"></button>
+                                                <div id="myDropdown" class="dropdown-content">
+                                                    <a href="{% url 'shepherd:server_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                                    <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_server_note' note.id %}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    {% endif %}
-                                    <p>{{ note.note|bleach }}</p>
-                                    <span class="time-right">{{ note.operator.username }}</span>
+                                        {% endif %}
+                                        {{ note.note|bleach }}
+                                        <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                                    </div>
                                 </div>
                             {% endfor %}
                         {% else %}
@@ -146,5 +154,24 @@
 {% endblock %}
 
 {% block collapse_js %}
-{{ block.super }}
+    {{ block.super }}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#projectTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+    {% include "confirm_delete_modal.html" %}
 {% endblock %}

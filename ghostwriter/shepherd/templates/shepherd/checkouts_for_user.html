@@ -24,16 +24,8 @@
                         <th>Health</th>
                         <th>Project</th>
                         <th>Purpose</th>
-                        <th>
-                            Check-in Date
-                            <div class="dropdown">
-                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                <div class="dropdown-content dropdown-content-info">
-                                    <p>This is the date your domain will be automatically released back into the pool. Edit your check-out to extend the time.</p>
-                                </div>
-                            </div>
-                        </th>
-                        <th class="sorter-false">Release</th>
+                        <th>Check-in</th>
+                        <th class="sorter-false">Options</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -45,7 +37,7 @@
                                 {% if entry.domain.health_status.health_status == "Healthy" %}
                                     <td class="healthy">{{ entry.domain.health_status }}</td>
                                 {% else %}
-                                    <td class="burned">{{ entry.domain.health_status }}</td>
+                                    <td class="text-danger burned">{{ entry.domain.health_status }}</td>
                                 {% endif %}
 
                                 <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
@@ -59,7 +51,7 @@
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content">
                                             <a href="{% url 'shepherd:history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'shepherd:domain_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                            <a href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_domain_release' entry.id %}" release-asset-id="{{ entry.id }}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
                                         </div>
                                     </div>
                                 </td>
@@ -85,16 +77,8 @@
                         <th>Project</th>
                         <th>Purpose</th>
                         <th>Role</th>
-                        <th>
-                            Check-in Date
-                            <div class="dropdown">
-                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                <div class="dropdown-content dropdown-content-info">
-                                    <p>This is the date your server will be automatically released back into the pool. Edit your check-out to extend the time.</p>
-                                </div>
-                            </div>
-                        </th>
-                        <th class="sorter-false">Release</th>
+                        <th>Check-in</th>
+                        <th class="sorter-false">Options</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -116,7 +100,7 @@
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content">
                                             <a href="{% url 'shepherd:server_history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'shepherd:server_release' entry.id %}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                            <a href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_server_release' entry.id %}" release-asset-id="{{ entry.id }}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
                                         </div>
                                     </div>
                                 </td>
@@ -151,6 +135,52 @@
                             }
                         );
             $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    <!-- Release Domain with AJAX -->
+    <script>
+        $('.js-release-asset').each(function(index) {
+            $(this).click(function () {
+                var url = $(this).attr('release-asset-url');
+                var assetId = $(this).attr('release-asset-id');
+                var csrftoken = $(this).attr('release-asset-csrftoken');
+                // Selectors for each major parent object – tr, tbody, and table
+                var targetRow = $(this).closest('tr');
+                var targetTbody = $(this).closest('tbody');
+                var targetTable = $(this).closest('table');
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'asset': assetId,
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            if (targetRow) {
+                                targetRow.remove();
+                            }
+                            // If that was the last row, hide the empty table
+                            if (targetTbody.find('tr').length == 0) {
+                                targetTable.hide();
+                            }
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Asset Update'});
+                        }
+                    }
+                });
+            });
         });
     </script>
 {% endblock %}

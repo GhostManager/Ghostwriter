@@ -52,22 +52,9 @@
         <p class="form-spacer"></p>
 
         <!-- Navigation Tabs -->
-        <ul class="nav nav-tabs nav-justified">
-            <li class="nav-item active">
-                <a class="nav-link active" data-toggle="tab" href="#details">
-                    <i class="fas fa-hourglass-half"></i> General <span class=
-                    {% if domain.is_expired %}
-                        "badge badge-pill badge-danger">EXPIRED
-                    {% else %}
-                        "badge badge-pill badge-light">{{ domain.get_domain_age }}
-                    {% endif %}
-                    </span>
-                </a>
-            </li>
-            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#dns"><i class="fas fa-server"></i> DNS Records</a></li>
-            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#health"><i class="fas fa-heartbeat"></i> Health <span class="badge badge-pill {% if domain.health_status.health_status == "Healthy" %}badge-light{% else %} badge-danger{% endif %}">{{ domain.health_status }}</span></a></li>
-            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#history"><i class="fas fa-history"></i> Project History <span class="badge badge-pill badge-light">{{ domain.history_set.all.count }}</span></a></li>
-            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#notes"><i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ domain.domainnote_set.all.count }}</span></a></li>
+        {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
+        <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'shepherd:ajax_update_domain_badges' domain.id %}">
+            {% include "snippets/domain_nav_tabs.html" %}
         </ul>
 
         <div class="tab-content">
@@ -101,7 +88,12 @@
 
             <!-- DNS Records Section -->
             <div id="dns" class="tab-pane">
-                <p><a href="{% url 'shepherd:update_dns_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh DNS Records</a></p>
+                <p>
+                    <a href="javascript:void(0)" class="clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}"><i class="fas fa-sync-alt"></i> Refresh DNS Records</a>
+                </p>
+                <p>
+                    Last refresh of this domain: <span>{{ latest_dns_update }}</span>
+                </p>
                 {% if domain.get_list %}
                     <table>
                         <tr>
@@ -134,7 +126,7 @@
             <!-- Domain Health Section -->
             <div id="health" class="tab-pane">
                 <p>
-                    <a href="{% url 'shepherd:update_cat_single' domain.id %}"><i class="fas fa-sync-alt"></i> Refresh Categories</a>
+                    <a href="javascript:void(0)" class="clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}"><i class="fas fa-sync-alt"></i> Refresh Categories</a>
                 </p>
                 <p>The health of a domain is determined by categories and VirusTotal. If the domain is flagged with a bad category or in VirusTotal the domain is considered "Burned" here.<p>
                 <p>DNS Flags are more abstract. These are based on the domain's past and present DNS records and VirusTotal passive DNS hits. If the domain can be linked to a VirusTotal entry the VirusTotal results are recorded below as "flags" in the table.</p>
@@ -288,20 +280,22 @@
                 </p>
                 {% if domain.domainnote_set.all %}
                     {% for note in domain.domainnote_set.all reversed %}
-                        <p>{{ note.timestamp }}</p>
-                        <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
-                            <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                            {% if request.user == note.operator or request.user.is_staff %}
-                                <div class="dropdown right">
-                                    <button class="dropbtn far fa-caret-square-down"></button>
-                                    <div id="myDropdown" class="dropdown-content">
-                                        <a href="{% url 'shepherd:domain_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                        <a href="{% url 'shepherd:domain_note_delete' note.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                        <div id="note-container-{{ note.id }}">
+                            <p>{{ note.timestamp }}</p>
+                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                                {% if request.user == note.operator or request.user.is_staff %}
+                                    <div class="dropdown right">
+                                        <button class="dropbtn far fa-caret-square-down"></button>
+                                        <div id="myDropdown" class="dropdown-content">
+                                            <a href="{% url 'shepherd:domain_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
+                                            <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id %}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                        </div>
                                     </div>
-                                </div>
-                            {% endif %}
-                            <p>{{ note.note|bleach }}</p>
-                            <span class="time-right">{{ note.operator.username }}</span>
+                                {% endif %}
+                                {{ note.note|bleach }}
+                                <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                            </div>
                         </div>
                     {% endfor %}
                 {% else %}
@@ -330,4 +324,43 @@
             $('.tablesorter').trigger('update');
         });
     </script>
+
+    <!-- Submit Update Tasks with AJAX -->
+    <script>
+        $('.js-domain-update').each(function(index) {
+            $(this).click(function () {
+                var url = $(this).attr('domain-update-url');
+                var domainId = $(this).attr('domain-update-id');
+                var csrftoken = $(this).attr('domain-update-csrftoken');
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'domain': domainId,
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            // Do something
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Domain Update'});
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+    {% include "confirm_delete_modal.html" %}
 {% endblock %}

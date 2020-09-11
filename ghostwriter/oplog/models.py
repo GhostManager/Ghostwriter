@@ -1,13 +1,16 @@
+"""This contains all of the database models used by the Oplog application."""
+
+# Standard Libraries
+import json
+from datetime import datetime
+
+# Django & Other 3rd Party Libraries
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from datetime import datetime
 from django.core.serializers import serialize
-from django.dispatch import receiver
 from django.db import models
-from django.db.models.signals import post_save, pre_save, post_delete
-from tinymce.models import HTMLField
-
-import json
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
 
 
 class Oplog(models.Model):
@@ -54,24 +57,41 @@ class OplogEntry(models.Model):
         help_text="Provide the destination hostname / ip on which the command was ran.",
     )
 
-    tool = models.TextField("Tool name", blank=True, help_text="The tool used to execute the action")
+    tool = models.TextField(
+        "Tool name", blank=True, help_text="The tool used to execute the action"
+    )
 
     user_context = models.TextField(
-        "User Context", blank=True, help_text="The user context that executed the command",
+        "User Context",
+        blank=True,
+        help_text="The user context that executed the command",
     )
 
-    command = models.TextField("Command", blank=True, help_text="The command that was executed",)
+    command = models.TextField(
+        "Command", blank=True, help_text="The command that was executed",
+    )
 
     description = models.TextField(
-        "Description", blank=True, help_text="A description of why the command was executed and expected results.",
+        "Description",
+        blank=True,
+        help_text="A description of why the command was executed and expected results.",
     )
 
-    output = models.TextField("Output", null=True, blank=True, help_text="The output of the executed command",)
+    output = models.TextField(
+        "Output", null=True, blank=True, help_text="The output of the executed command",
+    )
 
-    comments = models.TextField("Comments", blank=True, help_text="Any additional comments or useful information.",)
+    comments = models.TextField(
+        "Comments",
+        blank=True,
+        help_text="Any additional comments or useful information.",
+    )
 
     operator_name = models.CharField(
-        "Operator", blank=True, help_text="The operator that performed the action.", max_length=50,
+        "Operator",
+        blank=True,
+        help_text="The operator that performed the action.",
+        max_length=50,
     )
 
 
@@ -91,7 +111,9 @@ def signal_oplog_entry(sender, instance, **kwargs):
     entry = json.loads(serialized_entry)
     json_message = json.dumps({"action": "create", "data": entry})
 
-    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+    async_to_sync(channel_layer.group_send)(
+        str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+    )
 
 
 @receiver(post_delete, sender=OplogEntry)
@@ -100,4 +122,6 @@ def delete_oplog_entry(sender, instance, **kwargs):
     oplog_id = instance.oplog_id.id
     entry_id = instance.id
     json_message = json.dumps({"action": "delete", "data": entry_id})
-    async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+    async_to_sync(channel_layer.group_send)(
+        str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+    )

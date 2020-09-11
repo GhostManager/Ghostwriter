@@ -6,19 +6,20 @@
 {% block content %}
     <p>Explain why {{ domain_name }} is being marked as burned.</p>
 
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
+
     <!-- Form Section -->
-    <form class="newitem" action="" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-    
-        <!-- Explanation Section -->
-        {{ form.burned_explanation|as_crispy_field }}
-
-        <!-- Hidden Fields -->
-        {% for hidden_field in form.hidden_fields %}
-            {{ hidden_field }}
-        {% endfor %}
-
-        <input type="submit" class="btn btn-primary" value="Submit">
-        <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-    </form>
+    {% crispy form form.helper %}
 {% endblock %}

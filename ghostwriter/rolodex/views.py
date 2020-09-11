@@ -48,6 +48,7 @@ logger = logging.getLogger(__name__)
 ##################
 
 
+@login_required
 def update_project_badges(request, pk):
     """
     Return an updated version of the template following a delete action related to
@@ -64,6 +65,7 @@ def update_project_badges(request, pk):
     return HttpResponse(html)
 
 
+@login_required
 def update_client_badges(request, pk):
     """
     Return an updated version of the template following a delete action related to

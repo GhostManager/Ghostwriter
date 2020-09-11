@@ -1,19 +1,20 @@
-from django.urls import path
-from django.urls import include
-
+"""This contains all of the URL mappings used by the Oplog application."""
+  
+# Django & Other 3rd Party Libraries
+from django.urls import include, path
 from rest_framework import routers
 
 from .views import (
-    index,
-    load_projects,
     OplogCreateWithoutProject,
-    OplogEntryCreate,
-    OplogEntryUpdate,
-    OplogEntryDelete,
-    OplogListEntries,
-    OplogEntryViewSet,
-    OplogViewSet,
     OplogEntriesImport,
+    OplogEntryCreate,
+    OplogEntryDelete,
+    OplogEntryUpdate,
+    OplogEntryViewSet,
+    OplogListEntries,
+    OplogViewSet,
+    index,
+    load_projects
 )
 
 app_name = "ghostwriter.oplog"

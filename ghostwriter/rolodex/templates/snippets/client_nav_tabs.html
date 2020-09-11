@@ -9,7 +9,12 @@
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_notess" class="nav-link" data-toggle="tab" href="#notes">
+    <a id="id_infrastructure" class="nav-link" data-toggle="tab" href="#infrastructure-history">
+        <i class="fas fa-comments"></i> Infrastructure History <span class="badge badge-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_notes" class="nav-link" data-toggle="tab" href="#notes">
         <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>
     </a>
 </li>
