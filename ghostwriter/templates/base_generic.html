@@ -489,11 +489,13 @@
 
         {% comment %} Sections for scripts used by forms that use Bootstrap tabs {% endcomment %}
         {% block tabs %}
-            <!-- Switch to Tab from URL -->
+            <!-- Switch to Tab from URL and Slow Scroll -->
             <script>
                 $(window).on('load', function() {
                     if (window.location.hash) {
-                        $('.nav a[href="' + window.location.hash + '"]').tab('show');
+                        $('html, body').animate({
+                            scrollTop: $( $('.nav a[href="' + window.location.hash + '"]') ).offset().top
+                        }, 1000);
                     }
                 });
             </script>
@@ -515,7 +517,6 @@
         {% endblock %}
 
         {% block tabforms %}
-
             <!-- Handle the Delete and Undo buttons -->
             <script>
                 $(document).on("click", ".formset-del-button", function() {
