@@ -1,0 +1,4 @@
+<option value="">---------</option>
+{% for project in projects %}
+<option value="{{ project.pk }}">{{ project.codename }}</option>
+{% endfor %}

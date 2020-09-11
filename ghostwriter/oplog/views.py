@@ -18,6 +18,8 @@ from .forms import OplogCreateEntryForm, OplogCreateForm
 from .models import Oplog, OplogEntry
 from .serializers import OplogEntrySerializer, OplogSerializer
 
+from ghostwriter.rolodex.models import Project
+
 
 # Create your views here.
 @login_required
@@ -52,6 +54,15 @@ def OplogListEntries(request, pk):
     context = {"entries": entries, "pk": pk, "name": name}
     return render(request, "oplog/entries_list.html", context=context)
 
+@login_required
+def load_projects(request):
+    client = request.GET.get('client')
+    try:
+        projects = Project.objects.filter(client=client)
+    except:
+        projects = Project.objects.none()
+
+    return render(request, 'project_dropdown_list.html', {'projects': projects})
 
 class OplogCreateWithoutProject(LoginRequiredMixin, CreateView):
     model = Oplog

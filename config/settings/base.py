@@ -73,7 +73,6 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    "channels",
     "crispy_forms",
     "allauth",
     "allauth.account",
