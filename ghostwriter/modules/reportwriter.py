@@ -834,7 +834,7 @@ class Reportwriter:
                         tag_contents = tag.contents
                         # Check for an additional tags in the contents
                         # This happens when a hyperlink is formatted with a font style
-                        if tag_contents[0].name:
+                        if len(tag_contents) > 0 and tag_contents[0].name:
                             if tag_contents[0].name == "a":
                                 link_run = True
                                 link_url = tag_contents[0]["href"]
