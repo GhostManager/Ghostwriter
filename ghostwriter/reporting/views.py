@@ -1331,7 +1331,10 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         return form
 
     def form_valid(self, form):
-        project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+        project_id = self.kwargs.get("pk")
+        if not project_id:
+            project_id = form.instance.project.id
+        project = get_object_or_404(Project, pk=project_id)
         form.instance.project = project
         form.instance.created_by = self.request.user
         self.request.session["active_report"] = {}
