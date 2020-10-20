@@ -904,7 +904,33 @@ def generate_docx(request, pk):
     # Ask Spenny to make us a report with these findings
     output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
     evidence_path = os.path.join(settings.MEDIA_ROOT)
-    template_loc = os.path.join(settings.TEMPLATE_LOC, "template.docx")
+    # template_loc = os.path.join(settings.TEMPLATE_LOC, "template.docx")
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    client_name = report_instance.project.client
+    assessment_type = report_instance.project.project_type
+
+    report_name = f"{timestamp}_{client_name}_{assessment_type}"
+
+    # Get the template for this report
+    if report_instance.template:
+        report_template = report_instance.template
+        template_loc = report_template.document.path
+    else:
+        report_template = ReportTemplate.objects.get(default=True)
+        template_loc = report_template.document.path
+
+    template_status = report_template.get_status
+    if template_status == "error" or template_status == "failed":
+        messages.error(
+            request,
+            "The selected report template has linting errors and cannot be used to render a Word document",
+            extra_tags="alert-danger",
+        )
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": report_instance.pk})
+        )
+
     spenny = reportwriter.Reportwriter(
         report_instance, output_path, evidence_path, template_loc
     )
@@ -913,7 +939,7 @@ def generate_docx(request, pk):
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-        response["Content-Disposition"] = "attachment; filename=report.docx"
+        response["Content-Disposition"] = f"attachment; filename={report_name}.docx"
         docx.save(response)
         return response
     except PackageNotFoundError:
@@ -952,6 +978,13 @@ def generate_xlsx(request, pk):
     """
     try:
         report_instance = Report.objects.get(pk=pk)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        client_name = report_instance.project.client
+        assessment_type = report_instance.project.project_type
+
+        report_name = f"{timestamp}_{client_name}_{assessment_type}"
+
         # Ask Spenny to make us a report with these findings
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
         evidence_path = os.path.join(settings.MEDIA_ROOT)
@@ -967,7 +1000,7 @@ def generate_xlsx(request, pk):
             output.read(),
             content_type="application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = "attachment; filename=report.xlsx"
+        response["Content-Disposition"] = f"attachment; filename={report_name}.xlsx"
         output.close()
         return response
     except Exception as error:
@@ -988,6 +1021,13 @@ def generate_pptx(request, pk):
     """
     try:
         report_instance = Report.objects.get(pk=pk)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        client_name = report_instance.project.client
+        assessment_type = report_instance.project.project_type
+
+        report_name = f"{timestamp}_{client_name}_{assessment_type}"
+
         # Ask Spenny to make us a report with these findings
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
         evidence_path = os.path.join(settings.MEDIA_ROOT)
@@ -999,7 +1039,7 @@ def generate_pptx(request, pk):
         response = HttpResponse(
             content_type="application/application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
-        response["Content-Disposition"] = "attachment; filename=report.pptx"
+        response["Content-Disposition"] = f"attachment; filename={report_name}.pptx"
         pptx.save(response)
         return response
     except Exception as error:
@@ -1228,7 +1268,7 @@ def export_findings_to_csv(request):
     """
     Export all :model:`reporting.Finding` to a csv file for download.
     """
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     fiinding_resource = FindingResource()
     dataset = fiinding_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
