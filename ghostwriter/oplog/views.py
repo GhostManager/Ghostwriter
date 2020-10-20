@@ -1,6 +1,10 @@
 """This contains all of the views used by the Oplog application."""
 
+# Standard Libraries
+import logging
+
 # Django & Other 3rd Party Libraries
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect
@@ -10,6 +14,7 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.permissions import HasAPIKey
 from tablib import Dataset
 
@@ -18,12 +23,24 @@ from .forms import OplogCreateEntryForm, OplogCreateForm
 from .models import Oplog, OplogEntry
 from .serializers import OplogEntrySerializer, OplogSerializer
 
-from ghostwriter.rolodex.models import Project
+# Using __name__ resolves to ghostwriter.oplog.views
+logger = logging.getLogger(__name__)
 
 
-# Create your views here.
+##################
+# View Functions #
+##################
+
+
 @login_required
 def index(request):
+    """
+    Display a list of all :model:`oplog.Oplog`.
+
+    **Template**
+
+    :template:`oplog/oplog_list.html`
+    """
     op_logs = Oplog.objects.all()
     context = {"op_logs": op_logs}
     return render(request, "oplog/oplog_list.html", context=context)
@@ -31,6 +48,14 @@ def index(request):
 
 @login_required
 def OplogEntriesImport(request):
+    """
+    Import a collection of :model:`oplog.OplogEntry` entries for an individual
+    :model:`oplog.Oplog`.
+
+    **Template**
+
+    :template:`oplog/oplog_import.html`
+    """
     if request.method == "POST":
         oplog_entry_resource = OplogEntryResource()
 
@@ -49,30 +74,75 @@ def OplogEntriesImport(request):
 
 @login_required
 def OplogListEntries(request, pk):
+    """
+    Display all :model:`oplog.OplogEntry` associated with an individual
+    :model:`oplog.Oplog`.
+
+    **Template**
+
+    :template:`oplog/entries_list.html`
+    """
     entries = OplogEntry.objects.filter(oplog_id=pk).order_by("-start_date")
     name = Oplog.objects.get(pk=pk).name
     context = {"entries": entries, "pk": pk, "name": name}
     return render(request, "oplog/entries_list.html", context=context)
 
+
 @login_required
-def load_projects(request):
-    client = request.GET.get('client')
-    try:
-        projects = Project.objects.filter(client=client)
-    except:
-        projects = Project.objects.none()
+def create_oplog(request):
+    """
+    Create an individual :model:`oplog.Oplog`.
+    """
+    context = {}
+    context["cancel_link"] = reverse("oplog:index")
+    if request.method == "POST":
+        form = OplogCreateForm(request.POST)
+        if form.is_valid():
+            # Save the new :model:`oplog.Oplog` instance
+            form.save()
+            messages.success(
+                request,
+                "New operation log was successfully created",
+                extra_tags="alert-success",
+            )
+            # Create new API key for this oplog
+            try:
+                oplog_name = form.instance.name
+                api_key_name = oplog_name
+                api_key, key = APIKey.objects.create_key(name=api_key_name)
+                # Pass the API key via the messages framework
+                messages.info(
+                    request,
+                    f"The API key for your log is { api_key }: { key }\r\nPlease store it somewhere safe: you will not be able to see it again.",
+                    extra_tags="api-key no-toast",
+                )
+            except Exception:
+                logger.exception("Failed to create new API key")
+                messages.error(
+                    request,
+                    "Could not generate an API key for your new operation log – contact your admin!",
+                    extra_tags="alert-danger",
+                )
+            return HttpResponseRedirect(reverse("oplog:index"))
+    else:
+        context["form"] = OplogCreateForm()
+    return render(request, "oplog/oplog_form.html", context=context,)
 
-    return render(request, 'project_dropdown_list.html', {'projects': projects})
 
-class OplogCreateWithoutProject(LoginRequiredMixin, CreateView):
-    model = Oplog
-    form_class = OplogCreateForm
-
-    def get_success_url(self):
-        return reverse("oplog:index")
+################
+# View Classes #
+################
 
 
 class OplogEntryCreate(LoginRequiredMixin, CreateView):
+    """
+    Create an individual :model:`oplog.OplogEntry`.
+
+    **Template**
+
+    :template:`oplog/oplogentry_form.html`
+    """
+
     model = OplogEntry
     form_class = OplogCreateEntryForm
 
@@ -81,8 +151,12 @@ class OplogEntryCreate(LoginRequiredMixin, CreateView):
 
 
 class OplogEntryUpdate(LoginRequiredMixin, UpdateView):
-    """View for updating existing oplog entries. This view defaults to the
-    oplogentry_form.html template.
+    """
+    Update an individual :model:`oplog.OplogEntry`.
+
+    **Template**
+
+    :template:`oplog/oplogentry_form.html`
     """
 
     model = OplogEntry
@@ -94,15 +168,14 @@ class OplogEntryUpdate(LoginRequiredMixin, UpdateView):
 
 
 class OplogEntryDelete(LoginRequiredMixin, DeleteView):
-    """View for deleting existing oplog entries. This view defaults to the
-    oplogentry_form.html template.
+    """
+    Delete an individual :model:`oplog.OplogEntry`.
     """
 
     model = OplogEntry
     fields = "__all__"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
 
 
