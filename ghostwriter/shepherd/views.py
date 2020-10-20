@@ -1018,6 +1018,7 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super(HistoryCreate, self).get_context_data(**kwargs)
         ctx["domain_name"] = self.domain.name.upper()
+        ctx["domain"] = self.domain
         ctx["cancel_link"] = reverse(
             "shepherd:domain_detail", kwargs={"pk": self.kwargs.get("pk")}
         )
