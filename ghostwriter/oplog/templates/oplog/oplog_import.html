@@ -3,19 +3,19 @@
 {% block pagetitle %}Domain Entry{% endblock %}
 
 {% block breadcrumbs %}
-<nav aria-label="breadcrumb" style="padding-left: 20px;">
-    <ul class="breadcrumb" style="margin: 0;">
-        <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Oplogs</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Oplog Entries Import</li>
-    </ul>
-</nav>
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Operation Logs</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Log Import</li>
+        </ul>
+    </nav>
 {% endblock %}
 
 {% block content %}
 <!-- File Upload -->
-<h2>Upload Oplog Entries CSV</h2>
-<p>Upload a csv file containing oplog entries to be imported:</p>
+<h2>Upload Operation Log Entries CSV</h2>
+<p>Upload a csv file containing log entries to be imported:</p>
 <form action="{% url 'oplog:oplog_import'%}" method="POST" enctype="multipart/form-data" class="form-horizontal">
     {% csrf_token %}
     <div class="form-group">

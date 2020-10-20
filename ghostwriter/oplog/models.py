@@ -14,6 +14,10 @@ from django.dispatch import receiver
 
 
 class Oplog(models.Model):
+    """
+    Stores an individual operation log.
+    """
+
     name = models.CharField(max_length=50)
     project = models.ForeignKey(
         "rolodex.Project",
@@ -32,8 +36,7 @@ class Oplog(models.Model):
 # Create your models here.
 class OplogEntry(models.Model):
     """
-    A model representing a single entry in the operational log. This
-    represents a single action taken by an operator in a target network.
+    Stores an individual log entry, related to :model:`oplog.Oplog`.
     """
 
     oplog_id = models.ForeignKey(
@@ -97,6 +100,10 @@ class OplogEntry(models.Model):
 
 @receiver(pre_save, sender=OplogEntry)
 def oplog_pre_save(sender, instance, **kwargs):
+    """
+    Set any missing ``start_date`` and ``end_date`` values for an entry for
+    :model:`oplog.OplogEntry`.
+    """
     if not instance.start_date:
         instance.start_date = datetime.utcnow()
     if not instance.end_date:
@@ -105,6 +112,10 @@ def oplog_pre_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=OplogEntry)
 def signal_oplog_entry(sender, instance, **kwargs):
+    """
+    Send a WebSockets message to update a user's log entry list with the
+    new or updated instance of :model:`oplog.OplogEntry`.
+    """
     channel_layer = get_channel_layer()
     oplog_id = instance.oplog_id.id
     serialized_entry = serialize("json", [instance,])
@@ -118,6 +129,10 @@ def signal_oplog_entry(sender, instance, **kwargs):
 
 @receiver(post_delete, sender=OplogEntry)
 def delete_oplog_entry(sender, instance, **kwargs):
+    """
+    Send a WebSockets message to update a user's log entry list and remove
+    the deleted instance of :model:`oplog.OplogEntry`.
+    """
     channel_layer = get_channel_layer()
     oplog_id = instance.oplog_id.id
     entry_id = instance.id

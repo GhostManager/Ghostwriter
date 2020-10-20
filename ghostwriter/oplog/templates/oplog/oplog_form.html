@@ -2,59 +2,32 @@
 {% load crispy_forms_tags %}
 
 {% block pagetitle %}Oplog Creation{% endblock %}
+
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Create Oplog</li>
+            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Operation Logs</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Log Form</li>
         </ul>
     </nav>
 {% endblock %}
 
 {% block content %}
-    {% if form.errors %}
-        <script>
-            {% for field in form %}
-                {% for error in field.errors %}
-                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-                {% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-            {% endfor %}
-        </script>
-    {% endif %}
+<p>Provide a name for your logs:</p>
 
-    <form method="post" novalidate>
-        {% csrf_token %}
-        {{ form|crispy }}
-        <button type="submit" class="btn btn-primary">Submit</button>
-        <button onclick="window.location.href={% url 'oplog:index' %}" class="btn btn-outline-secondary" type="button">Cancel</button>
-    </form>
-{% endblock %}
+<!-- Form Section -->
+<form class="newitem" method="post">
+    {% csrf_token %}
 
-{% block morescripts %}
-<script>
-    // Code for auto-populating the project list based on provided client
-    $("#id_client_list").change(function () {
-      var url = "{% url 'oplog:load_projects' %}";  // get the url of the `load_cities` view
-      var clientId = $(this).val();  // get the selected country ID from the HTML input
+    <!-- General Section -->
+    <strong><i class="fas fa-database"></i> Operation Log Details</strong>
+    <hr>
 
-      $.ajax({                       // initialize an AJAX request
-        url: url,                    // set the url of the request (= localhost:8000/hr/ajax/load-cities/)
-        data: {
-          'client': clientId       // add the country id to the GET parameters
-        },
-        success: function (data) {   // `data` is the return of the `load_cities` view function
-          $("#id_project").html(data);  // replace the contents of the city input with the data that came from the server
-        }
-      });
-    });
+    {{ form.name|as_crispy_field }}
+    {{ form.project|as_crispy_field }}
 
-    $("#id_project").change(function() {
-        var oplog_name = $("#id_client_list option:selected").text() + "-" + $("#id_project option:selected").text() + "-oplog";
-        $("#id_name").val(oplog_name)
-    });
-
-  </script>
+    <input type="submit" class="btn btn-primary" value="Save">
+    <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
+</form>
 {% endblock %}

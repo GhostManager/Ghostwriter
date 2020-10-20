@@ -1,17 +1,17 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}New Oplog Entry{% endblock %}
+{% block pagetitle %}Operation Log Entry{% endblock %}
 
 {% block content %}
-<p>Enter log details</p>
+<p>Enter log details:</p>
 
 <!-- Form Section -->
 <form class="newitem" action="" method="post">
     {% csrf_token %}
 
     <!-- General Section -->
-    <strong><i class="fas fa-database"></i> Oplog Entry Details</strong>
+    <strong><i class="fas fa-database"></i> Operation Log Entry Details</strong>
     <hr>
     {{ form.oplog_id|as_crispy_field }}
     {{ form.start_date|as_crispy_field }}
