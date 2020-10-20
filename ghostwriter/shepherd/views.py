@@ -931,7 +931,7 @@ def export_domains_to_csv(request):
     """
     Export all :model:`shepherd.Domain` to a csv file for download.
     """
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     domain_resource = DomainResource()
     dataset = domain_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
@@ -944,7 +944,7 @@ def export_servers_to_csv(request):
     """
     Export all :model:`shepherd.Server` to a csv file for download.
     """
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     server_resource = StaticServerResource()
     dataset = server_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
