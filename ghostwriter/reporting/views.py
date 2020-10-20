@@ -450,6 +450,7 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             else:
                 message = "Could not update the finding's status to: {}".format(status)
                 result = "error"
+            self.object.save()
             # Prepare the JSON response data
             data = {
                 "result": result,
