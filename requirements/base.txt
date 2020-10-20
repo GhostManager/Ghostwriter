@@ -21,7 +21,7 @@ channels-redis==2.4.2 # https://github.com/django/channels_redis/
 bs4==0.0.1
 django-filter==2.2.0
 django-q==1.0.2
-dnspython==1.16.0
+dnspython==2.0.0
 pytesseract==0.2.7
 python-nmap==0.6.1
 python-docx==0.8.7
@@ -37,3 +37,4 @@ django-tinymce==2.8.0
 docxtpl==0.6.3
 docutils==0.16
 django-bleach==0.6.1
+jinja2==2.11.2
