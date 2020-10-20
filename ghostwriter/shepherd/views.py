@@ -448,7 +448,7 @@ def domain_list(request):
     # Check if a search parameter is in the request
     search_term = ""
     if "domain_search" in request.GET:
-        search_term = request.GET.get("domain_search")
+        search_term = request.GET.get("domain_search").strip()
         if search_term is None or search_term == "":
             search_term = ""
     # If there is a search term, filter the query by domain name or category

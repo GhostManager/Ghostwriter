@@ -403,7 +403,7 @@ def client_list(request):
     """
     # Check if a search parameter is in the request
     try:
-        search_term = request.GET.get("client_search")
+        search_term = request.GET.get("client_search").strip()
     except Exception:
         search_term = ""
     if search_term:
