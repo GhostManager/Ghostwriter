@@ -8,7 +8,6 @@ function displayToastTop({
   delay = 4,
   escapeHTML = true,
   context = null,
-  singleton = false
 }) {
   if (context !== null) {
     if (context == "form") {
