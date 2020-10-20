@@ -40,6 +40,7 @@ class CheckoutForm(forms.ModelForm):
         super(CheckoutForm, self).__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
+        overwatch_url = reverse("shepherd:ajax_domain_overwatch")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["client"].empty_label = "-- Select a Client --"
@@ -64,6 +65,7 @@ class CheckoutForm(forms.ModelForm):
         self.helper.attrs = {
             "data-projects-url": data_projects_url,
             "data-project-url": data_project_url,
+            "overwatch-url": overwatch_url,
         }
         self.helper.form_id = "checkout-form"
         self.helper.layout = Layout(

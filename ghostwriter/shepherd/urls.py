@@ -85,6 +85,16 @@ urlpatterns += [
         views.update_domain_badges,
         name="ajax_update_domain_badges",
     ),
+    path(
+        "ajax/domain/overwatch",
+        views.ajax_domain_overwatch,
+        name="ajax_domain_overwatch",
+    ),
+    path(
+        "ajax/project/<int:pk>/domains",
+        views.ajax_project_domains,
+        name="ajax_project_domains",
+    ),
 ]
 
 # URLs for domain status change functions

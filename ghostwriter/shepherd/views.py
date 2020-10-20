@@ -115,6 +115,49 @@ def ajax_load_project(request):
     return HttpResponse(data, content_type="application/json")
 
 
+@login_required
+def ajax_domain_overwatch(request):
+    """
+    Retrieve an individual :model:`shepherd.History` to check domain's past history
+    prior to checkout.
+    """
+    client_id = None
+    domain_id = None
+    try:
+        client_id = int(request.GET.get("client"))
+        domain_id = int(request.GET.get("domain"))
+    except Exception:
+        logger.exception("Received bad primary key values")
+
+    if client_id and domain_id:
+        domain_history = History.objects.filter(
+            Q(domain=domain_id) & Q(client=client_id)
+        )
+        if domain_history:
+            data = {
+                "result": "warning",
+                "message": "Domain has been used with this client in the past",
+            }
+        else:
+            data = {"result": "success", "message": ""}
+    else:
+        data = {"result": "error"}
+
+    return JsonResponse(data)
+
+
+@login_required
+def ajax_project_domains(request, pk):
+    """
+    Retrieve all :model:`shepherd.History` related to an individual
+    :model:`rolodex.Project`.
+    """
+    domain_history = History.objects.filter(project=pk)
+    data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
+
+    return HttpResponse(data, content_type="application/json")
+
+
 class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
     """
     Set the ``domain_status`` field of an individual :model:`shepherd.Domain` to
