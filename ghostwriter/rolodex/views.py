@@ -876,7 +876,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                 else:
                     # Raise an error to rollback transactions
                     raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return `form_invalid` and display errors
+        # Otherwise return ``form_invalid`` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
@@ -941,11 +941,11 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
-    def get_initial(self):
-        project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        return {
-            "codename": project_instance.codename,
-        }
+    # def get_initial(self):
+    #     project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+    #     return {
+    #         "codename": project_instance.codename,
+    #     }
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
@@ -953,10 +953,73 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
+        from ghostwriter.shepherd.models import History, ServerHistory
+
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, `BaseProjectInlineFormSet`
+        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
+                # Update infrastructure if project's dates changed
+                update = form.cleaned_data["update_checkouts"]
+                if update:
+                    if (
+                        "end_date" in form.changed_data
+                        or "start_date" in form.changed_data
+                    ):
+                        logger.info(
+                            "Date changed on Project %s, so updating domain and server checkouts",
+                            self.object.pk,
+                        )
+                        # Get the project's current dates
+                        old_project_data = Project.objects.get(pk=self.object.pk)
+                        old_start_date = old_project_data.start_date
+                        old_end_date = old_project_data.end_date
+                        # Form dates
+                        new_start_date = form.cleaned_data["start_date"]
+                        new_end_date = form.cleaned_data["end_date"]
+                        # Timedelta changes
+                        start_timedelta = new_start_date - old_start_date
+                        end_timedelta = new_end_date - old_end_date
+                        try:
+                            # Update checkouts based on deltas
+                            domain_checkouts = History.objects.filter(
+                                project=self.object.pk
+                            )
+                            server_checkouts = ServerHistory.objects.filter(
+                                project=self.object.pk
+                            )
+                            for checkout in domain_checkouts:
+                                logger.info(
+                                    "Updating checkout for %s from %s - %s to %s - %s",
+                                    checkout.domain,
+                                    checkout.start_date,
+                                    checkout.end_date,
+                                    checkout.start_date + start_timedelta,
+                                    checkout.end_date + end_timedelta,
+                                )
+                                checkout.start_date = (
+                                    checkout.start_date + start_timedelta
+                                )
+                                checkout.end_date = checkout.end_date + end_timedelta
+                                checkout.save()
+                            for checkout in server_checkouts:
+                                logger.info(
+                                    "Updating checkout for %s from %s-%s to %s-%s",
+                                    checkout.server,
+                                    checkout.start_date,
+                                    checkout.end_date,
+                                    checkout.start_date + start_timedelta,
+                                    checkout.end_date + end_timedelta,
+                                )
+                                checkout.start_date = (
+                                    checkout.start_date + start_timedelta
+                                )
+                                checkout.end_date = checkout.end_date + end_timedelta
+                                checkout.save()
+                        except Exception:
+                            message = "Could not update checkouts with your changed project dates. Review your checkouts or uncheck the box for automatic updates."
+                            form.add_error("update_checkouts", message)
+
                 # Save the parent form – will rollback if a child fails validation
                 self.object = form.save()
 
@@ -969,17 +1032,15 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                 if assignments_valid:
                     assignments.instance = self.object
                     assignments.save()
-
+                # Proceed with form submission
                 if form.is_valid() and objectives_valid and assignments_valid:
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions
                     raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return `form_invalid` and display errors
-        except Exception as exception:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
+        # Otherwise return ``form_invalid`` and display errors
+        except Exception:
+            logger.exception("Failed to update the project")
             return super(ProjectUpdate, self).form_invalid(form)
 
 

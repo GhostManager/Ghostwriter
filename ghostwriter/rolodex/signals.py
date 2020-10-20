@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def update_project(sender, instance, **kwargs):
     """
     Updates dates for :model:`shepherd.History`, :model:`shepherd.ServerHistory`, and
-    :model:`rolodex.ProjectAssignments whenever :model:`rolodex.Project` is updated.
+    :model:`rolodex.ProjectAssignments` whenever :model:`rolodex.Project` is updated.
     """
     domain_checkouts = History.objects.filter(project=instance)
     server_checkouts = ServerHistory.objects.filter(project=instance)
