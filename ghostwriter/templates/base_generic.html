@@ -124,12 +124,14 @@
                             <ul class="collapse list-unstyled" id="reportSubmenu">
                                 <li><a href="{% url 'reporting:reports' %}">Report Library</a></li>
                                 <li><a href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
+                                <li><a href="{% url 'reporting:templates' %}">Report Template Library</a></li>
+                                <li><a href="{% url 'reporting:template_create' %}">Add New Report Template</a></li>
                                 <li><a href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
                             </ul>
                             <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Operation Logs</a>
                             <ul class="collapse list-unstyled" id="oplogSubmenu">
                                 <li><a href="{% url 'oplog:index' %}">View Oplogs</a></li>
-                                <li><a href="{% url 'oplog:oplog_create' %}">Create Oplog</a></li>
+                                <li><a href="{% url 'oplog:create_oplog' %}">Create Oplog</a></li>
                                 <li><a href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
                             </ul>
                         </li>
@@ -414,16 +416,18 @@
 
             // Display toast notification for each message on page load
             {% for message in messages %}
-                {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-                    displayToastTop({type:'success', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-                    displayToastTop({type:'warning', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-                    displayToastTop({type:'error', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-                    displayToastTop({type:'info', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
-                    displayToastTop({type:'info', string:'{{ message }}'});
+                {% if "no-toast" not in message.tags %}
+                    {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+                        displayToastTop({type:'success', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+                        displayToastTop({type:'warning', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                        displayToastTop({type:'error', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+                        displayToastTop({type:'info', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
+                        displayToastTop({type:'info', string:'{{ message }}'});
+                    {% endif %}
                 {% endif %}
             {% endfor %}
         </script>
