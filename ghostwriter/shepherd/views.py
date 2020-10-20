@@ -1461,8 +1461,9 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(ServerHistoryCreate, self).get_context_data(**kwargs)
+        ctx["server_instance"] = self.server
         ctx["cancel_link"] = reverse(
-            "shepherd:server_detail", kwargs={"pk": self.get_object().id}
+            "shepherd:server_detail", kwargs={"pk": self.kwargs.get("pk")}
         )
         return ctx
 
