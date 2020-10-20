@@ -1451,7 +1451,7 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Server successfully checked-out.", extra_tags="alert-success"
+            self.request, "Server successfully checked-out", extra_tags="alert-success"
         )
         # return reverse('shepherd:user_assets')
         return "{}#infrastructure".format(
