@@ -17,13 +17,16 @@ import nmap
 import pytz
 import requests
 from botocore.exceptions import ClientError
-from django.conf import settings
-from django.core.files import File
 from django.db.models import Q
 from lxml import objectify
 
 # Ghostwriter Libraries
-from ghostwriter.modules.dns import DNSCollector
+from ghostwriter.commandcenter.models import (
+    CloudServicesConfiguration,
+    NamecheapConfiguration,
+    SlackConfiguration,
+)
+from ghostwriter.modules.dns_toolkit import DNSCollector
 from ghostwriter.modules.review import DomainReview
 
 from .models import (
@@ -137,37 +140,50 @@ def craft_unknown_asset_message(
     return json.dumps(UNKNOWN_ASSET_MESSAGE)
 
 
-def get_slack_config():
-    """Function to determine if Slack settings are configured and return the
-    settings if available.
+def craft_burned_message(
+    username, emoji, channel, domain, categories, burned_explanation
+):
     """
-    try:
-        enable_slack = settings.SLACK_CONFIG["enable_slack"]
-    except KeyError:
-        enable_slack = False
-        return enable_slack
-    if enable_slack:
-        try:
-            slack_config = {}
-            slack_config["slack_emoji"] = settings.SLACK_CONFIG["slack_emoji"]
-            slack_config["slack_username"] = settings.SLACK_CONFIG["slack_username"]
-            slack_config["slack_webhook_url"] = settings.SLACK_CONFIG[
-                "slack_webhook_url"
-            ]
-            slack_config["slack_alert_target"] = settings.SLACK_CONFIG[
-                "slack_alert_target"
-            ]
-            slack_config["slack_channel"] = settings.SLACK_CONFIG["slack_channel"]
-            slack_capable = True
-        except KeyError:
-            slack_capable = False
-        return slack_config
-    else:
-        return enable_slack
+    Craft a nicely formatted Slack message using blocks for newly burned domain names.
+    """
+    BURNED_DOMAIN_MESSAGE = {
+        "username": username,
+        "icon_emoji": emoji,
+        "channel": channel,
+        "text": "This domain name is now considered *Burned* :fire:",
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "This domain name is now considered *Burned* :fire:",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {"type": "mrkdwn", "text": "*Domain Name:*\n{}".format(domain),},
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Categories:*\n{}".format(", ".join(categories)),
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Explanation:*\n{}".format(
+                            ", ".join(burned_explanation)
+                        ),
+                    },
+                ],
+            },
+        ],
+    }
+    return json.dumps(BURNED_DOMAIN_MESSAGE)
 
 
 class BearerAuth(requests.auth.AuthBase):
-    """Helper class for providing the Authorization header with Requests."""
+    """
+    Helper class for providing the ``Authorization`` header with ``Requests``.
+    """
 
     token = None
 
@@ -180,66 +196,66 @@ class BearerAuth(requests.auth.AuthBase):
 
 
 def send_slack_msg(message, slack_channel=None):
-    """Accepts message text and sends it to Slack. This requires Slack
-    settings and a webhook be configured in the application's settings.
-
-    Parameters:
-
-    message         A string to be sent as the Slack message
-    slack_channel   Defaults to using the global setting. Can be set to any
-                    Slack channel name.
     """
-    try:
-        enable_slack = settings.SLACK_CONFIG["enable_slack"]
-    except KeyError:
-        enable_slack = False
-    if enable_slack:
-        try:
-            slack_emoji = settings.SLACK_CONFIG["slack_emoji"]
-            slack_username = settings.SLACK_CONFIG["slack_username"]
-            slack_webhook_url = settings.SLACK_CONFIG["slack_webhook_url"]
-            slack_alert_target = settings.SLACK_CONFIG["slack_alert_target"]
-            if not slack_channel:
-                slack_channel = settings.SLACK_CONFIG["slack_channel"]
-            slack_capable = True
-        except KeyError:
-            slack_capable = False
+    Send a basic Slack message using the global Slack configuration.
 
-        if slack_capable:
-            message = slack_alert_target + " " + message
-            slack_data = {
-                "username": slack_username,
-                "icon_emoji": slack_emoji,
-                "channel": slack_channel,
-                "text": message,
-            }
-            response = requests.post(
-                slack_webhook_url,
-                data=json.dumps(slack_data),
-                headers={"Content-Type": "application/json"},
+    **Parameters**
+
+    ``message``
+        A string to be sent as the Slack message
+    ``slack_channel``
+        Defaults to using the global setting. Can be set to any Slack channel name
+    """
+    slack_config = SlackConfiguration.objects.get()
+
+    if slack_config.enable:
+        message = slack_config.slack_alert_target + " " + message
+        slack_data = {
+            "username": slack_config.slack_username,
+            "icon_emoji": slack_config.slack_emoji,
+            "channel": slack_config.slack_channel,
+            "text": message,
+        }
+        response = requests.post(
+            slack_config.webhook_url,
+            data=json.dumps(slack_data),
+            headers={"Content-Type": "application/json"},
+        )
+        if response.status_code != 200:
+            logger.warning(
+                "Request to Slack returned an error %s, the response was: %s",
+                response.status_code,
+                response.text,
             )
-            if response.status_code != 200:
-                logger.error(
-                    "Request to Slack returned an error %s, the response is:\n%s",
-                    response.status_code,
-                    response.text,
-                )
+    else:
+        logger.warning(
+            "Received request to send Slack message, but Slack notifications are disabled in settings"
+        )
 
 
 def send_slack_test_msg(slack_channel=None):
-    """Use `send_slack_msg` to send a test message using the configured Slack webhook."""
+    """
+    Send a test Slack message using the global Slack configuration.
+    """
     message = "This is a test of your notification system."
     send_slack_msg(message, slack_channel)
 
 
 def send_slack_complete_msg(task):
-    """Function to send a Slack message for a task. Meant to be used as a hook
-    for an async_task().
+    """
+    Send a basic Slack message using the global Slack configuration upon completion
+    of an ``async_task()``.
+
+    **Parameters**
+
+    ``task``
+        Instance of :model:`django_q.Task`
     """
     if task.success:
         send_slack_msg(
-            "{} task has completed its run. It completed "
-            "successfully with no additional result data.".format(task.group)
+            "{} task has completed its run. It completed successfully with no additional result data.".format(
+                task.group
+            )
         )
     else:
         if task.result:
@@ -248,55 +264,53 @@ def send_slack_complete_msg(task):
             )
         else:
             send_slack_msg(
-                "{} task failed with no result/error data. Check "
-                "the Django Q admin panel.".format(task.group)
+                "{} task failed with no result/error data. Check the Django Q admin panel.".format(
+                    task.group
+                )
             )
 
 
 def release_domains(no_action=False, reset_dns=False):
-    """Pull all domains currently checked-out in Shepherd and update the
-    status to Available if the project's end date is today or in the past.
+    """
+    Pull all :model:`shepherd.Domain` currently checked-out in Shepherd and update the
+    status to ``Available`` if the project's ``end_date`` value is today or in the past.
 
-    Parameters:
+    **Parameters**
 
-    no_action       Defaults to False. Set to True to take no action and just
-                    return a list of domains that should be released now.
-    reset_dns       Defaults to False. Set to True to reset the DNS records for
-                    Namecheap domains. This sets the DNS records to the defaults.
+    ``no_action``
+        Set to True to take no action and just return a list of domains that should
+        be released (Default: False)
+    ``reset_dns``
+        Set to True to reset the DNS records for Namecheap domains (Default: False)
     """
     domain_updates = {}
     domain_updates["errors"] = {}
+
     # Configure Namecheap API requests
-    namecheap_ready = False
     session = requests.Session()
     reset_records_endpoint = "https://api.namecheap.com/xml.response?apiuser={}&apikey={}&username={}&Command=namecheap.domains.dns.setHosts&ClientIp={}&SLD={}&TLD={}"
     reset_record_template = (
         "&HostName1=@&RecordType1=URL&Address1=http://www.namecheap.com&TTL1=100"
     )
-    try:
-        client_ip = settings.NAMECHEAP_CONFIG["client_ip"]
-        enable_namecheap = settings.NAMECHEAP_CONFIG["enable_namecheap"]
-        namecheap_api_key = settings.NAMECHEAP_CONFIG["namecheap_api_key"]
-        namecheap_username = settings.NAMECHEAP_CONFIG["namecheap_username"]
-        namecheap_api_username = settings.NAMECHEAP_CONFIG["namecheap_api_username"]
-        namecheap_ready = True
-        logger.info("Successfully pulled Namecheap API configuration")
-    except KeyError as error:
-        logger.error("Could not retrieve API configuration: %s", error)
-        domain_updates["errors"][
-            "namecheap"
-        ] = "Could not retrieve API configuration: {}".format(error)
+    namecheap_config = NamecheapConfiguration.objects.get()
+    if reset_dns is True and namecheap_config.enable is False:
+        logger.warning(
+            "Received request to reset Namecheap DNS records for released domains, but Namecheap API is disabled in settings"
+        )
+
     # Start tracking domain releases
     domains_to_be_released = []
-    # First, get all domains set to `Unavailable`
+
+    # First, get all domains set to ``Unavailable``
     queryset = Domain.objects.filter(domain_status__domain_status="Unavailable")
-    # Go through each `Unavailable` domain and check it against projects
+
+    # Go through each ``Unavailable`` domain and check it against projects
     logger.info("Starting domain release task at %s", datetime.datetime.now())
     for domain in queryset:
-        # Get all projects for the domain
         release_me = True
         slack_channel = None
         try:
+            # Get latest project checkout for domain
             project_queryset = History.objects.filter(domain__name=domain.name).latest(
                 "end_date"
             )
@@ -363,10 +377,10 @@ def release_domains(no_action=False, reset_dns=False):
                     # The Namecheap API call requires both usernames, a key, and a whitelisted IP
                     req = session.get(
                         reset_records_endpoint.format(
-                            namecheap_api_username,
-                            namecheap_api_key,
-                            namecheap_username,
-                            client_ip,
+                            namecheap_config.api_username,
+                            namecheap_config.api_key,
+                            namecheap_config.username,
+                            namecheap_config.client_ip,
                             sld,
                             tld,
                         )
@@ -438,154 +452,189 @@ def release_domains(no_action=False, reset_dns=False):
                     ] = "Namecheap API request failed with error: {}".format(error)
             else:
                 domain_updates[domain.id]["dns"] = "no action"
+
     logger.info("Domain release task completed at %s", datetime.datetime.now())
     return domain_updates
 
 
 def release_servers(no_action=False):
-    """Pull all servers currently checked-out in Shepherd and update the
-    status to Available if the project's end date is today or in the past.
-
-    Parameters:
-
-    no_action       Defaults to False. Set to True to take no action and just
-                    return a list of servers that should be released now.
     """
+    Pull all :model:`shepherd.StaticServer` currently checked-out in Shepherd and
+    update the ``server_status`` to ``Available`` if the project's end date is today
+    or in the past.
+
+    **Parameters**
+
+    ``no_action``
+        Set to True to take no action and just return a list of servers that
+        should be released now (Default: False)
+    """
+    server_updates = {}
+    server_updates["errors"] = {}
     servers_to_be_released = []
-    # First get all server set to `Unavailable`
+
+    # First get all server set to ``Unavailable``
     queryset = StaticServer.objects.filter(server_status__server_status="Unavailable")
-    # Go through each `Unavailable` server and check it against projects
+
+    # Go through each ``Unavailable`` server and check it against projects
     for server in queryset:
-        # Get all projects for the server
+        release_me = True
+        slack_channel = None
+
+        # Get latest project checkout for the server
         try:
             project_queryset = ServerHistory.objects.filter(
                 server__ip_address=server.ip_address
             ).latest("end_date")
-        except ServerHistory.DoesNotExist:
-            continue
-        release_me = True
-        # Check each project's end date to determine if all are in the past
-        release_date = project_queryset.end_date
-        warning_date = release_date - datetime.timedelta(1)
-        # Check if date is before or is the end date
-        if date.today() <= release_date:
-            release_me = False
-        # Check if tomorrow is the end date
-        if date.today() == warning_date:
-            release_me = False
-            message = (
-                "Your server, {}, will be released tomorrow! "
-                "Modify the project's end date as needed.".format(server.ip_address)
-            )
+            release_date = project_queryset.end_date
+            warning_date = release_date - datetime.timedelta(1)
             if project_queryset.project.slack_channel:
-                send_slack_msg(message, project_queryset.project.slack_channel)
-            else:
-                send_slack_msg(message)
-        # If release_me is still true, release the server
+                slack_channel = project_queryset.project.slack_channel
+            # Check if date is before or is the end date
+            if date.today() <= release_date:
+                release_me = False
+            # Check if tomorrow is the end date
+            if date.today() == warning_date:
+                release_me = False
+                message = "Your server, {}, will be released tomorrow! Modify the project's end date as needed.".format(
+                    server.ip_address
+                )
+                send_slack_msg(message, slack_channel)
+        except ServerHistory.DoesNotExist:
+            logger.warning(
+                "The server %s has no project history, so releasing it",
+                server.ip_address,
+            )
+            release_date = datetime.datetime.today()
+
+        # If ``release_me`` is still ``True``, release the server
         if release_me:
+            logger.warning("The server %s is marked for release", server.ip_address)
             servers_to_be_released.append(server)
-            # Check no_action and just return list if it is set to True
+            server_updates[server.id] = {}
+            server_updates[server.id]["server"] = server.ip_address
+            server_updates[server.id]["hostname"] = server.name
+            server_updates[server.id]["release_date"] = release_date
+
+            # Check ``no_action`` and just return list if it is set to ``True``
             if no_action:
-                return servers_to_be_released
+                server_updates[server.id]["change"] = "no action"
             else:
+                logger.info("Releasing %s back into the pool.", server.ip_address)
                 message = "Your server, {}, has been released.".format(
                     server.ip_address
                 )
-                logger.info("Releasing %s back into the pool.", server.ip_address)
-                if project_queryset.project.slack_channel:
-                    send_slack_msg(message, project_queryset.project.slack_channel)
-                else:
-                    send_slack_msg(message)
+                send_slack_msg(message, slack_channel)
                 server.server_status = ServerStatus.objects.get(
                     server_status="Available"
                 )
                 server.save()
-    return servers_to_be_released
+                server_updates[server.id]["change"] = "released"
+
+    logger.info("Server release task completed at %s", datetime.datetime.now())
+    return server_updates
 
 
 def check_domains(domain=None):
-    """Initiate a check of all domains in the Domain model and update each
-    domain status.
-
-    Parameters:
-
-    domain          Defaults to None. Provide a domain name's primary key to
-                    update only that domain. This arg is used when a user
-                    requests a specific domain be updated via the web
-                    interface.
     """
-    # Get all domains from the database
+    Initiate a check of all :model:`shepherd.Domain` and update the ``domain_status`` values.
+
+    **Parameters**
+
+    ``domain``
+        Individual domain's primary key to update only that domain (Default: None)
+    """
+    # Fetch Slack configuration information
+    slack_config = SlackConfiguration.objects.get()
+
+    # Get target domain(s) from the database
     domain_list = []
+    sleep_time_override = None
     if domain:
         domain_queryset = Domain.objects.get(pk=domain)
         domain_list.append(domain_queryset)
+        logger.info("Checking only one domain, so disabling sleep time for VirusTotal")
+        sleep_time_override = 0
     else:
         domain_queryset = Domain.objects.all()
         for result in domain_queryset:
             domain_list.append(result)
-    domain_review = DomainReview(domain_list)
+    # Execute ``DomainReview`` to check categories
+    domain_review = DomainReview(domain_list, sleep_time_override)
     lab_results = domain_review.check_domain_status()
+    # Update the domains as needed
+    domain_updates = {}
+    domain_updates["errors"] = {}
     for domain in lab_results:
+        change = "no action"
+        domain_updates[domain.id] = {}
+        domain_updates[domain.id]["domain"] = domain.name
+        if "vt_results" in lab_results[domain]:
+            domain_updates[domain.id]["vt_results"] = lab_results[domain]["vt_results"]
         try:
-            # The `domain` is already a Domain object so this query might be
-            # unnecessary :thinking_emoji:
-            domain_instance = Domain.objects.get(name=domain.name)
             # Flip status if a domain has been flagged as burned
             if lab_results[domain]["burned"]:
-                logger.warning("Domain %s is burned", domain.name)
-                domain_instance.health_status = HealthStatus.objects.get(
-                    health_status="Burned"
-                )
-                domain_instance.domain_status = DomainStatus.objects.get(
-                    domain_status="Burned"
-                )
-                message = "*{}* has been flagged as burned because: {}".format(
-                    domain.name, lab_results[domain]["burned_explanation"]
-                )
-                if lab_results[domain]["categories"]["bad"]:
-                    message = message + " (Bad categories: {})".format(
-                        lab_results[domain]["categories"]["bad"]
+                domain.health_status = HealthStatus.objects.get(health_status="Burned")
+                domain.domain_status = DomainStatus.objects.get(domain_status="Burned")
+                change = "burned"
+                if slack_config.enable:
+                    slack_data = craft_burned_message(
+                        slack_config.slack_username,
+                        slack_config.slack_emoji,
+                        slack_config.slack_channel,
+                        domain.name,
+                        lab_results[domain]["categories"],
+                        lab_results[domain]["burned_explanation"],
                     )
-                send_slack_msg(message)
+                    response = requests.post(
+                        slack_config.webhook_url,
+                        data=slack_data,
+                        headers={"Content-Type": "application/json"},
+                    )
             # Update other fields for the domain object
-            domain_instance.health_dns = lab_results[domain]["health_dns"]
-            domain_instance.burned_explanation = lab_results[domain][
-                "burned_explanation"
-            ]
-            domain_instance.all_cat = lab_results[domain]["categories"]["all"]
-            domain_instance.talos_cat = lab_results[domain]["categories"]["talos"]
-            domain_instance.opendns_cat = lab_results[domain]["categories"]["opendns"]
-            domain_instance.bluecoat_cat = lab_results[domain]["categories"]["bluecoat"]
-            domain_instance.ibm_xforce_cat = lab_results[domain]["categories"]["xforce"]
-            domain_instance.trendmicro_cat = lab_results[domain]["categories"][
-                "trendmicro"
-            ]
-            domain_instance.fortiguard_cat = lab_results[domain]["categories"][
-                "fortiguard"
-            ]
-            domain_instance.mx_toolbox_status = lab_results[domain]["categories"][
-                "mxtoolbox"
-            ]
-            domain_instance.save()
-        except Exception as error:
-            logger.error('Error updating "%s" – %s', domain.name, error)
+            if (
+                lab_results[domain]["burned"]
+                and "burned_explanation" in lab_results[domain]
+            ):
+                if lab_results[domain]["burned_explanation"]:
+                    domain.burned_explanation = "\n".join(
+                        lab_results[domain]["burned_explanation"]
+                    )
+            if lab_results[domain]["categories"] != domain.all_cat:
+                change = "categories updated"
+            if lab_results[domain]["categories"]:
+                domain.all_cat = ", ".join(lab_results[domain]["categories"]).title()
+            else:
+                domain.all_cat = "Uncategorized"
+            domain.save()
+            domain_updates[domain.id]["change"] = change
+        except Exception:
+            trace = traceback.format_exc()
+            domain_updates[domain.id]["change"] = "error"
+            domain_updates["errors"][domain.name] = {}
+            domain_updates["errors"][domain.name] = trace
+            logger.exception('Error updating "%s"', domain.name)
             pass
+
+    return domain_updates
 
 
 def update_dns(domain=None):
-    """Initiate a check of all domains in the Domain model and update each
-    domain's DNS records.
+    """
+    Initiate a check of all :model:`shepherd.Domain` and update each domain's DNS records.
 
-    Parameters:
+    **Parameters**
 
-    domain          Defaults to None. Provide a domain name's primary key to
-                    update only that domain. This arg is used when a user
-                    requests a specific domain be updated via the web
-                    interface.
+    ``domain``
+        Individual domain name's primary key to update only that domain (Default: None)
     """
     domain_list = []
     dns_toolkit = DNSCollector()
-    # Get all domains from the database
+
+    domain_updates = {}
+    domain_updates["errors"] = {}
+
+    # Get the target domain(s) from the database
     if domain:
         domain_queryset = Domain.objects.get(pk=domain)
         domain_list.append(domain_queryset)
@@ -711,7 +760,8 @@ def scan_servers(only_active=False):
 
 
 def fetch_namecheap_domains():
-    """Fetch a list of registered domains for the specified Namecheap account. A valid API key,
+    """
+    Fetch a list of registered domains for the specified Namecheap account. A valid API key,
     username, and whitelisted IP address must be used. Returns a dictionary containing errors
     and each domain name paired with change status.
 
@@ -746,31 +796,17 @@ def fetch_namecheap_domains():
         "Starting Namecheap synchronization task at %s", datetime.datetime.now()
     )
 
-    try:
-        client_ip = settings.NAMECHEAP_CONFIG["client_ip"]
-        enable_namecheap = settings.NAMECHEAP_CONFIG["enable_namecheap"]
-        namecheap_api_key = settings.NAMECHEAP_CONFIG["namecheap_api_key"]
-        namecheap_username = settings.NAMECHEAP_CONFIG["namecheap_username"]
-        namecheap_page_size = settings.NAMECHEAP_CONFIG["namecheap_page_size"]
-        namecheap_api_username = settings.NAMECHEAP_CONFIG["namecheap_api_username"]
-    except KeyError as e:
-        logger.error(
-            "Encountered an error when fetching the Namecheap API configuration. Check your .django env file. Error: %s",
-            e,
-        )
-        return "[!] Encountered an error when fetching the Namecheap API configuration. Check your .django file. Error: {}".format(
-            e
-        )
+    namecheap_config = NamecheapConfiguration.objects.get()
 
     try:
         # The Namecheap API call requires both usernames, a key, and a whitelisted IP
         req = session.get(
             get_domain_list_endpoint.format(
-                namecheap_api_username,
-                namecheap_api_key,
-                namecheap_username,
-                client_ip,
-                namecheap_page_size,
+                namecheap_config.api_username,
+                namecheap_config.api_key,
+                namecheap_config.username,
+                namecheap_config.client_ip,
+                namecheap_config.page_size,
             )
         )
         # Check if request returned a 200 OK
@@ -974,22 +1010,16 @@ def review_cloud_infrastructure():
     """
     # Digital Ocean API endpoint for droplets
     DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
+
     # Fetch cloud API keys and tokens
-    aws_key = settings.CLOUD_SERVICE_CONFIG["aws_key"]
-    aws_secret = settings.CLOUD_SERVICE_CONFIG["aws_secret"]
-    do_api_key = settings.CLOUD_SERVICE_CONFIG["do_api_key"]
+    cloud_config = CloudServicesConfiguration.objects.get()
 
     # Fetch Slack configuration information
-    slack_config = get_slack_config()
-    if slack_config:
-        slack_emoji = slack_config["slack_emoji"]
-        slack_username = slack_config["slack_username"]
-        slack_default_channel = slack_config["slack_channel"]
-        slack_webhook_url = slack_config["slack_webhook_url"]
-        slack_alert_target = slack_config["slack_alert_target"]
+    slack_config = SlackConfiguration.objects.get()
 
     # Set timezone for dates to UTC
     utc = pytz.UTC
+
     # Create info dict
     vps_info = defaultdict()
     vps_info["errors"] = {}
@@ -1028,8 +1058,8 @@ def review_cloud_infrastructure():
             ec2 = boto3.resource(
                 "ec2",
                 region_name=region,
-                aws_access_key_id=aws_key,
-                aws_secret_access_key=aws_secret,
+                aws_access_key_id=cloud_config.aws_key,
+                aws_secret_access_key=cloud_config.aws_secret,
             )
             # Get all EC2 instances that are running
             running_instances = ec2.instances.filter(
@@ -1174,39 +1204,41 @@ def review_cloud_infrastructure():
         if queryset:
             for result in queryset:
                 if result.project.end_date < instance["launch_time"].date():
-                    if slack_config:
+                    if slack_config.enable:
                         if result.project.slack_channel:
                             slack_data = craft_cloud_message(
-                                slack_username,
-                                slack_emoji,
-                                slack_default_channel,
+                                slack_config.slack_username,
+                                slack_config.slack_emoji,
+                                result.project.slack_channel,
                                 instance["launch_time"],
                                 result.project,
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
+                                ", ".join(pub_addresses),
                                 instance["tags"],
                             )
                             # send_slack_msg(message, slack_channel=result.project.slack_channel)
                             response = requests.post(
-                                slack_webhook_url,
+                                slack_config.webhook_url,
                                 data=slack_data,
                                 headers={"Content-Type": "application/json"},
                             )
                         else:
                             slack_data = craft_cloud_message(
-                                slack_username,
-                                slack_emoji,
-                                slack_default_channel,
+                                slack_config.slack_username,
+                                slack_config.slack_emoji,
+                                slack_config.slack_channel,
                                 instance["launch_time"],
                                 result.project,
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
+                                ", ".join(pub_addresses),
                                 instance["tags"],
                             )
                             response = requests.post(
-                                slack_webhook_url,
+                                slack_config.webhook_url,
                                 data=slack_data,
                                 headers={"Content-Type": "application/json"},
                             )
@@ -1214,27 +1246,36 @@ def review_cloud_infrastructure():
                     # Project is still active, so track these assets for later
                     assets_in_use.append(instance_id)
         else:
-            if "gw_ignore" in instance["tags"]:
+            ignore_tags = []
+            instance_tags = []
+            for tag in cloud_config.ignore_tag.split(","):
+                ignore_tags.append(tag.strip())
+            for tag in instance["tags"].split(","):
+                instance_tags.append(tag.strip())
+            if any(tag in ignore_tags for tag in instance_tags):
+                logger.info(
+                    "Ignoring %s because it is tagged with a configured ignore tag",
+                    instance_name,
+                )
                 assets_in_use.append(instance_id)
             else:
-                if slack_config:
+                if slack_config.enable:
                     slack_data = craft_unknown_asset_message(
-                        slack_username,
-                        slack_emoji,
-                        slack_default_channel,
+                        slack_config.slack_username,
+                        slack_config.slack_emoji,
+                        slack_config.slack_channel,
                         instance["launch_time"],
                         instance["provider"],
                         instance_name,
+                        pub_addresses,
                         instance["tags"],
                     )
                     response = requests.post(
-                        slack_webhook_url,
+                        slack_config.webhook_url,
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
                     )
-    # Drop active assets from the dict
-    for instance_id in assets_in_use:
-        del vps_info[instance_id]
+
     # Return the stale cloud asset data in JSON for the task results
     json_data = json.dumps(dict(vps_info), default=json_datetime_converter, indent=2)
     logger.info("Cloud review completed at %s", datetime.datetime.now())
