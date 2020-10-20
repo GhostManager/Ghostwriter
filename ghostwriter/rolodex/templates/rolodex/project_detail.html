@@ -88,7 +88,13 @@
                         </thead>
                         {% for operator in project.projectassignment_set.all %}
                             <tr>
-                                <td nowrap id="delete-target-content-assignment-{{ operator.id }}">{{ operator.operator.name }}</td>
+                                <td nowrap id="delete-target-content-assignment-{{ operator.id }}">
+                                    {% if operator.operator.name %}
+                                        {{ operator.operator.name }}
+                                    {% else %}
+                                        Missing Name ({{ operator.operator.username }})
+                                    {% endif %}
+                                </td>
                                 <td nowrap>{{ operator.role }}</td>
                                 {% if operator.start_date|date:"d M Y" %}
                                     <td nowrap>{{ operator.start_date|date:"d M Y" }}</td>

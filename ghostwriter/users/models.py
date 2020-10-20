@@ -18,3 +18,15 @@ class User(AbstractUser):
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})
+
+    def get_display_name(self):
+        """
+        Return a display name appropriate for dropdown menus.
+        """
+        if self.name:
+            display_name = "{full_name} ({username})".format(
+                full_name=self.name, username=self.username
+            )
+        else:
+            display_name = self.username.capitalize()
+        return display_name
