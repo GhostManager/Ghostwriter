@@ -190,6 +190,8 @@
         socket.onmessage = function (e) {
             message = JSON.parse(e.data)
             if (message["action"] == "sync") {
+                // Clear table in case it's a reconnect
+                $table.empty()
                 entries = message["data"]
                 entries.forEach(element => {
                     entry = element['fields']
