@@ -12,6 +12,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("findings/", views.findings_list, name="findings"),
     path("reports/", views.reports_list, name="reports"),
+    path("templates/", views.ReportTemplateListView.as_view(), name="templates"),
     path("reports/archive", views.archive_list, name="archived_reports"),
     path(
         "reports/archive/download/<int:pk>/",
@@ -63,9 +64,24 @@ urlpatterns += [
         name="ajax_assign_finding",
     ),
     path(
-        "report/finding/delete/<int:pk>",
+        "ajax/finding/delete/<int:pk>",
         views.ReportFindingLinkDelete.as_view(),
         name="ajax_delete_local_finding",
+    ),
+    path(
+        "ajax/report/template/swap/<int:pk>",
+        views.ReportTemplateSwap.as_view(),
+        name="ajax_swap_report_template",
+    ),
+    path(
+        "ajax/report/template/lint/<int:pk>",
+        views.ReportTemplateLint.as_view(),
+        name="ajax_lint_report_template",
+    ),
+    path(
+        "ajax/report/template/lint/results/<int:pk>",
+        views.ajax_update_template_lint_results,
+        name="ajax_update_template_lint_results",
     ),
 ]
 
@@ -108,6 +124,31 @@ urlpatterns += [
         "reports/create/blank/<int:pk>",
         views.assign_blank_finding,
         name="assign_blank_finding",
+    ),
+    path(
+        "reports/template/<int:pk>",
+        views.ReportTemplateDetailView.as_view(),
+        name="template_detail",
+    ),
+    path(
+        "reports/template/create",
+        views.ReportTemplateCreate.as_view(),
+        name="template_create",
+    ),
+    path(
+        "reports/template/update/<int:pk>",
+        views.ReportTemplateUpdate.as_view(),
+        name="template_update",
+    ),
+    path(
+        "reports/template/delete/<int:pk>",
+        views.ReportTemplateDelete.as_view(),
+        name="template_delete",
+    ),
+    path(
+        "reports/template/download/<int:pk>",
+        views.ReportTemplateDownload.as_view(),
+        name="template_download",
     ),
 ]
 

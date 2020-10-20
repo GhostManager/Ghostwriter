@@ -8,22 +8,16 @@
         <ul class="breadcrumb" style="margin: 0;">
         {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            {% comment %} Check if `project` is in context to determine if this is for a specific project {% endcomment %}
-            {% if project %}
-                <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client.name }}</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' project.id %}">{{ project }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Project Report</li>
-            {% else %}
-                <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
-                <li class="breadcrumb-item active" aria-current="page">New Report Form</li>
-            {% endif %}
+            <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Templates</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Template Form</li>
         </ul>
     </nav>
 {% endblock %}
 
 {% block content %}
     <!-- Instructions Section -->
-    <p>Provide a name for this report below:</p>
+    <p>Provide informatin for this report template:</p>
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -41,4 +35,13 @@
 
     <!-- Form Section -->
     {% crispy form form.helper %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Script for File Upload -->
+    <script>
+        $('input[type=file]').on('change', function() {
+            $("#filename").text($(this).val());
+        });
+    </script>
 {% endblock %}

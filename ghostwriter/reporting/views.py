@@ -17,14 +17,14 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.files import File
 from django.db.models import Q
-from django.db.models.signals import post_init, post_save
-from django.dispatch import receiver
 from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
+from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from docx.opc.exceptions import PackageNotFoundError
@@ -42,6 +42,8 @@ from .forms import (
     LocalFindingNoteForm,
     ReportFindingLinkUpdateForm,
     ReportForm,
+    ReportTemplateForm,
+    SelectReportTemplateForm,
 )
 from .models import (
     Archive,
@@ -52,6 +54,7 @@ from .models import (
     LocalFindingNote,
     Report,
     ReportFindingLink,
+    ReportTemplate,
     Severity,
 )
 from .resources import FindingResource
@@ -64,41 +67,26 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-#####################
-# Signals Functions #
-#####################
-
-
-@receiver(post_init, sender=Evidence)
-def backup_evidence_path(sender, instance, **kwargs):
-    """
-    Backup the file path of the old evidence file in the :model:`reporting.Evidence` instance
-    when a new file is uploaded.
-    """
-    instance._current_evidence = instance.document
-
-
-@receiver(post_save, sender=Evidence)
-def delete_old_evidence(sender, instance, **kwargs):
-    """
-    Delete the old evidence file in the :model:`reporting.Evidence` instance when a new file
-    is uploaded.
-    """
-    if hasattr(instance, "_current_evidence"):
-        if instance._current_evidence:
-            if instance._current_evidence.path not in instance.document.path:
-                try:
-                    os.remove(instance._current_evidence.path)
-                    logger.info(
-                        "Deleted old evidence file %s", instance._current_evidence.path
-                    )
-                except Exception:
-                    pass
-
-
 ##################
 # AJAX Functions #
 ##################
+
+
+@login_required
+def ajax_update_template_lint_results(request, pk):
+    """
+    Return an updated version of the template following a request to update linter results
+    for an individual :model:`reporting.ReportTemplate`.
+
+    **Template**
+
+    :template:`snippets/template_lint_results.html`
+    """
+    template_instance = get_object_or_404(ReportTemplate, pk=pk)
+    html = render_to_string(
+        "snippets/template_lint_results.html", {"reporttemplate": template_instance},
+    )
+    return HttpResponse(html)
 
 
 @login_required
@@ -486,6 +474,120 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
+class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Update the ``template`` value for an individual :model:`reporting.Report`.
+    """
+
+    model = Report
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        template_id = self.request.POST.get("template", None)
+        if template_id:
+            try:
+                template_id = int(template_id)
+                template_query = ReportTemplate.objects.get(pk=template_id)
+                self.object.template = template_query
+                self.object.save()
+                data = {"result": "success", "message": "Template successfully swapped"}
+                # Check template for linting issues
+                try:
+                    template_status = template_query.get_status
+                    data["lint_result"] = template_status
+                    if template_status != "success":
+                        if template_status == "warning":
+                            data[
+                                "lint_message"
+                            ] = "Template has warnings from linter. Check the template before generating a report."
+                        elif template_status == "error":
+                            data[
+                                "lint_message"
+                            ] = "Template has linting errors and cannot be used ti generate a report."
+                        else:
+                            data[
+                                "lint_message"
+                            ] = "Template has an unknown linter status. Check and lint the template before generating a report."
+                except Exception:
+                    logger.exception("Failed to get the template status")
+                    data[
+                        "lint_message"
+                    ] = "Template has an unknown linter status. Check and lint the template before generating a report."
+                logger.info(
+                    "Swapped template for %s %s by request of %s",
+                    self.object.__class__.__name__,
+                    self.object.id,
+                    self.request.user,
+                )
+            except ValueError:
+                data = {
+                    "result": "error",
+                    "message": "Submitted template ID was not an integer",
+                }
+                logger.error(
+                    "Received an invalid (non-integer) template ID (%s) from a request submitted by %s",
+                    template_id,
+                    self.request.user,
+                )
+            except ReportTemplate.DoesNotExist:
+                data = {
+                    "result": "error",
+                    "message": "Submitted template ID does not exist",
+                }
+                logger.error(
+                    "Received an invalid (non-existent) template ID (%s) from a request submitted by %s",
+                    template_id,
+                    self.request.user,
+                )
+            except Exception:
+                data = {
+                    "result": "error",
+                    "message": "An exception prevented the template change",
+                }
+                logger.exception(
+                    "Encountered an error trying to update %s %s with template ID (%s) from a request submitted by %s",
+                    self.object.__class__.__name__,
+                    self.object.id,
+                    template_id,
+                    self.request.user,
+                )
+        else:
+            data = {"result": "error", "message": "Submitted request was incomplete"}
+            logger.warning(
+                "Received a bad template ID (%s) from a request submitted by %s",
+                template_id,
+                self.request.user,
+            )
+        return JsonResponse(data)
+
+
+class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Check an individual :model:`reporting.ReportTemplate` for Jinja2 syntax errors
+    and undefined variables.
+    """
+
+    model = ReportTemplate
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        template_loc = self.object.document.path
+        linter = reportwriter.TemplateLinter(template_loc=template_loc)
+        results = linter.lint_docx()
+        self.object.lint_result = results
+        self.object.save()
+
+        data = json.loads(results)
+        if data["result"] == "success":
+            data[
+                "message"
+            ] = "Template linter returned results with no errors or warnings"
+        else:
+            data["message"] = f"Template linter returned results with {data['result']}s"
+
+        return JsonResponse(data)
+
+
 ##################
 # View Functions #
 ##################
@@ -611,7 +713,7 @@ def assign_blank_finding(request, pk):
     except Exception:
         messages.error(
             request,
-            "A valid report could not be found for this blank finding.",
+            "A valid report could not be found for this blank finding",
             extra_tags="alert-danger",
         )
         return HttpResponseRedirect(reverse("reporting:reports"))
@@ -632,9 +734,7 @@ def assign_blank_finding(request, pk):
     )
     report_link.save()
     messages.success(
-        request,
-        "A blank finding has been successfully added to " "report.",
-        extra_tags="alert-success",
+        request, "Added a blank finding to the report", extra_tags="alert-success",
     )
     return HttpResponseRedirect(reverse("reporting:report_detail", args=(report.id,)))
 
@@ -834,7 +934,9 @@ def generate_docx(request, pk):
     except Exception as error:
         messages.error(
             request,
-            "Encountered an error generating the document: {}".format(error),
+            "Encountered an error generating the document: {}".format(error)
+            .replace('"', "")
+            .replace("'", "`"),
             extra_tags="alert-danger",
         )
     return HttpResponseRedirect(
@@ -1035,7 +1137,7 @@ def archive(request, pk):
     new_archive.save()
     messages.success(
         request,
-        "{} has been archived successfully.".format(report_instance.title),
+        "Successfully archived {}".format(report_instance.title),
         extra_tags="alert-success",
     )
     return HttpResponseRedirect(reverse("reporting:archived_reports"))
@@ -1273,6 +1375,11 @@ class ReportDetailView(LoginRequiredMixin, DetailView):
 
     model = Report
 
+    def get_context_data(self, **kwargs):
+        ctx = super(ReportDetailView, self).get_context_data(**kwargs)
+        ctx["form"] = SelectReportTemplateForm(instance=self.object)
+        return ctx
+
 
 class ReportCreate(LoginRequiredMixin, CreateView):
     """
@@ -1325,7 +1432,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         if not form.fields["project"].queryset:
             messages.error(
                 self.request,
-                "There are no active projects for a new report.",
+                "There are no active projects for a new report",
                 extra_tags="alert-error",
             )
         return form
@@ -1350,7 +1457,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         self.request.session.modified = True
         messages.success(
             self.request,
-            "New report was successfully created and is now your active report.",
+            "Successfully created new report and set it as your active report",
             extra_tags="alert-success",
         )
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
@@ -1400,7 +1507,7 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Report was updated successfully.", extra_tags="alert-success"
+            self.request, "Successfully updated the report", extra_tags="alert-success"
         )
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
 
@@ -1433,7 +1540,7 @@ class ReportDelete(LoginRequiredMixin, DeleteView):
         self.request.session.modified = True
         messages.warning(
             self.request,
-            "Report and associated evidence files were deleted successfully.",
+            "Successfully deleted the report and associated evidence files",
             extra_tags="alert-warning",
         )
         return "{}#reports".format(
@@ -1449,6 +1556,191 @@ class ReportDelete(LoginRequiredMixin, DeleteView):
         ctx["object_type"] = "entire report, evidence and all"
         ctx["object_to_be_deleted"] = queryset.title
         return ctx
+
+
+class ReportTemplateListView(LoginRequiredMixin, generic.ListView):
+    """
+    Display a list of all :model:`reporting.ReportTemplate`.
+
+    **Template**
+
+    :template:`reporting/report_template_list.html`
+    """
+
+    model = ReportTemplate
+    template_name = "reporting/report_templates_list.html"
+
+
+class ReportTemplateDetailView(LoginRequiredMixin, DetailView):
+    """
+    Display an individual :model:`reporting.ReportTemplate`.
+
+    **Template**
+
+    :template:`reporting/report_template_list.html`
+    """
+
+    model = ReportTemplate
+    template_name = "reporting/report_template_detail.html"
+
+
+class ReportTemplateCreate(LoginRequiredMixin, CreateView):
+    """
+    Create an individual instance of :model:`reporting.ReportTemplate`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to template list page
+
+    **Template**
+
+    :template:`report_template_form.html`
+    """
+
+    model = ReportTemplate
+    form_class = ReportTemplateForm
+    template_name = "reporting/report_template_form.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super(ReportTemplateCreate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:templates")
+        return ctx
+
+    def get_initial(self):
+        return {"uploaded_by": self.request.user}
+
+    def get_success_url(self):
+        messages.success(
+            self.request, "Template successfully uploaded", extra_tags="alert-success",
+        )
+        return reverse("reporting:template_detail", kwargs={"pk": self.object.pk})
+
+
+class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+    """
+    Save an individual instance of :model:`reporting.ReportTemplate`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to template list page
+
+    **Template**
+
+    :template:`report_template_form.html`
+    """
+
+    model = ReportTemplate
+    form_class = ReportTemplateForm
+    template_name = "reporting/report_template_form.html"
+    permission_denied_message = "Only an admin can edit this template"
+
+    def has_permission(self):
+        self.object = self.get_object()
+        if self.object.protected:
+            return self.request.user.is_staff
+        else:
+            return self.request.user.is_active
+
+    def get_context_data(self, **kwargs):
+        ctx = super(ReportTemplateUpdate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:templates")
+        return ctx
+
+    def get_success_url(self):
+        messages.success(
+            self.request, "Template successfully updated", extra_tags="alert-success",
+        )
+        return reverse("reporting:template_detail", kwargs={"pk": self.object.pk})
+
+
+class ReportTemplateDelete(LoginRequiredMixin, DeleteView):
+    """
+    Delete an individual instance of :model:`reporting.ReportTemplate`.
+
+    **Context**
+
+    ``object_type``
+        String describing what is to be deleted
+    ``object_to_be_deleted``
+        To-be-deleted instance of :model:`reporting.ReportTemplate`
+    ``cancel_link``
+        Link for the form's Cancel button to return to template's detail page
+
+    **Template**
+
+    :template:`confirm_delete.html`
+    """
+
+    model = ReportTemplate
+    template_name = "confirm_delete.html"
+
+    def get_success_url(self):
+        messages.success(
+            self.request, self.message, extra_tags="alert-success",
+        )
+        return reverse("reporting:templates")
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+        self.message = "Successfully deleted the template and associated file"
+        if os.path.isfile(self.object.document.path):
+            try:
+                os.remove(self.object.document.path)
+                logger.info("Deleted %s", self.object.document.path)
+            except Exception:
+                self.message = "Successfully deleted the template, but could not delete the associated file{}"
+                logger.warning(
+                    "Failed to delete file associated with %s %s: %s",
+                    self.object.__class__.__name__,
+                    self.object.id,
+                    self.object.document.path,
+                )
+        else:
+            logger.info(
+                "Tried to delete template file, but path did not exist: %s",
+                self.object.document.path,
+            )
+        return super(ReportTemplateDelete, self).delete(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super(ReportTemplateDelete, self).get_context_data(**kwargs)
+        queryset = kwargs["object"]
+        ctx["cancel_link"] = reverse(
+            "reporting:template_detail", kwargs={"pk": queryset.pk}
+        )
+        ctx["object_type"] = "report template file (and associated file on disk)"
+        ctx["object_to_be_deleted"] = queryset.filename
+        return ctx
+
+
+class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Return the target :model:`reporting.ReportTemplate` template file for download.
+    """
+
+    model = ReportTemplate
+
+    def get(self, *args, **kwargs):
+        self.object = self.get_object()
+        file_path = os.path.join(settings.MEDIA_ROOT, self.object.document.path)
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as template:
+                response = HttpResponse(
+                    template.read(),
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                response[
+                    "Content-Disposition"
+                ] = "inline; filename=" + os.path.basename(file_path)
+                return response
 
 
 # CBVs related to :model:`reporting.ReportFindingLink`
@@ -1607,7 +1899,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "{} was successfully updated.".format(self.get_object().title),
+            "Successfully updated {}".format(self.get_object().title),
             extra_tags="alert-success",
         )
         return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id})
@@ -1655,7 +1947,7 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "{} was successfully updated.".format(self.get_object().friendly_name),
+            "Successfully updated {}".format(self.get_object().friendly_name),
             extra_tags="alert-success",
         )
         return reverse(
@@ -1737,7 +2029,7 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
         return ctx
 
 
-# CBVs related to :model:`reporting.FindingNote`
+# CBVs related to :model:`reporting.Finding`
 
 
 class FindingNoteCreate(LoginRequiredMixin, CreateView):
@@ -1769,7 +2061,7 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Note successfully added to this finding.",
+            "Successfully added your note to this finding",
             extra_tags="alert-success",
         )
         return "{}#notes".format(
@@ -1809,7 +2101,7 @@ class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Note successfully updated.", extra_tags="alert-success"
+            self.request, "Successfully updated the note", extra_tags="alert-success"
         )
         return reverse(
             "reporting:finding_detail", kwargs={"pk": self.object.finding.pk}
@@ -1850,7 +2142,7 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Note successfully added to this finding.",
+            "Successfully added your note to this finding",
             extra_tags="alert-success",
         )
         return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})
@@ -1891,6 +2183,6 @@ class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Note successfully updated.", extra_tags="alert-success"
+            self.request, "Successfully updated the note", extra_tags="alert-success"
         )
         return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})

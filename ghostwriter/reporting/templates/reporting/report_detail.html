@@ -1,4 +1,5 @@
 {% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
 {% load report_tags %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
@@ -192,6 +193,16 @@
         <!-- Generate Report Sections -->
         <h4 style="margin-top: 40px"><i class="fas fa-cog"></i> Generate Reports</h4>
         <hr>
+
+        <div style="margin: 20px;">
+            Report engine will use this template for Word:
+            <form
+                template-update-url="{% url 'reporting:ajax_swap_report_template' report.id %}"
+                template-update-csrftoken="{{ csrf_token }}"
+            >
+                {% crispy form form.helper %}
+            </form>
+        </div>
 
         <div class="btn-group">
             <a class="btn btn-default" href="{% url 'reporting:generate_docx' report.id %}"><i style="font-size: 35px; color: blue" class="far fa-file-word"></i><br />docx</a>
@@ -510,47 +521,6 @@
         });
     </script>
 
-    <!-- Toggle Report Status with AJAX -->
-    <script>
-        $('.js-toggle-report-status').click(function () {
-            var url = $(this).attr('toggle-report-status-url');
-            var reportId = $(this).attr('toggle-report-status-id');
-            var csrftoken = $(this).attr('toggle-report-status-csrftoken');
-            var statusIcon = $('#js-report-status-icon');
-            var statusText = $('#js-report-status')
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'report': reportId
-                },
-                success: function (data) {
-                    statusText.html(data['status']);
-                    if (data['toggle']) {
-                        statusIcon.removeClass('fa-toggle-off')
-                        statusIcon.addClass('fa-toggle-on')
-                    } else {
-                        statusIcon.removeClass('fa-toggle-on')
-                        statusIcon.addClass('fa-toggle-off')
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
-                    }
-                }
-            });
-        });
-    </script>
-
     <!-- Activate Report with AJAX -->
     <script>
         $('.js-activate-report').click(function () {
@@ -583,6 +553,43 @@
                         displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
                     }
                 }
+            });
+        });
+    </script>
+
+    <!-- Save Template Selection on Change -->
+    <script>
+        $(document).ready(function() {
+            $('#id_template').change( function() {
+                var parent_form = $(this).closest('form');
+                var url = parent_form.attr('template-update-url');
+                var templateId = $(this).val();
+                var csrftoken = parent_form.attr('template-update-csrftoken');
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'template': templateId
+                    },
+                    success: function (data) {
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Template Update'});
+                        }
+                        if (data['lint_message']) {
+                            displayToastTop({type:data['lint_result'], string:data['lint_message'], title:'Template Issue', delay:10});
+                        }
+                    }
+                });
             });
         });
     </script>

@@ -29,6 +29,7 @@ from .models import (
     LocalFindingNote,
     Report,
     ReportFindingLink,
+    ReportTemplate,
 )
 
 
@@ -122,7 +123,7 @@ class FindingForm(forms.ModelForm):
 
 class ReportForm(forms.ModelForm):
     """
-    Create an individual :model:`reporting.Report` associated with an indivudal
+    Save an individual :model:`reporting.Report` associated with an indivudal
     :model:`rolodex.Project`.
     """
 
@@ -148,6 +149,7 @@ class ReportForm(forms.ModelForm):
         self.helper.layout = Layout(
             "title",
             "project",
+            "template",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -457,3 +459,89 @@ class LocalFindingNoteForm(forms.ModelForm):
                 _("You must provide some content for the note"), code="required",
             )
         return note
+
+
+class ReportTemplateForm(forms.ModelForm):
+    """
+    Save an individual :model:`reporting.ReportTemplate`.
+    """
+
+    class Meta:
+        model = ReportTemplate
+        exclude = ("upload_date", "last_update", "lint_result")
+        widgets = {
+            "document": forms.FileInput(attrs={"class": "form-control"}),
+            "uploaded_by": forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(ReportTemplateForm, self).__init__(*args, **kwargs)
+        self.fields["document"].label = ""
+        self.fields["document"].widget.attrs["class"] = "custom-file-input"
+        # Design form layout with Crispy FormHelper
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.form_class = "newitem"
+        self.helper.attrs = {"enctype": "multipart/form-data"}
+        self.helper.layout = Layout(
+            HTML(
+                """
+                <i class="fas fa-signature"></i>Template Information
+                <hr>
+                <p>The name appears in the template dropdown menus in reports.</p>
+                """
+            ),
+            "name",
+            "description",
+            HTML(
+                """
+                <i class="far fa-file"></i>Upload a File
+                <hr>
+                <p>Attach a Microsoft Word docx to use as a report template</p>
+                """
+            ),
+            Div(
+                "document",
+                HTML(
+                    """
+                    <label id="filename" class="custom-file-label" for="customFile">Choose docx file...</label>
+                    """
+                ),
+                css_class="custom-file",
+            ),
+            "client",
+            "protected",
+            "default",
+            "uploaded_by",
+            ButtonHolder(
+                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
+
+
+class SelectReportTemplateForm(forms.ModelForm):
+    """
+    Modify the ``template`` value of an individual :model:`reporting.Report`.
+    """
+
+    class Meta:
+        model = Report
+        fields = ("template",)
+
+    def __init__(self, *args, **kwargs):
+        super(SelectReportTemplateForm, self).__init__(*args, **kwargs)
+        self.fields["template"].help_text = None
+        # Design form layout with Crispy FormHelper
+        self.helper = FormHelper()
+        self.helper.form_show_labels = False
+        self.helper.form_method = "post"
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Field("template", css_class="col-md-4 offset-md-4"),
+        )

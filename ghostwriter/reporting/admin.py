@@ -13,6 +13,7 @@ from .models import (
     LocalFindingNote,
     Report,
     ReportFindingLink,
+    ReportTemplate,
     Severity,
 )
 from .resources import FindingResource
@@ -130,3 +131,25 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
 @admin.register(Severity)
 class SeverityAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(ReportTemplate)
+class ReportTemplateAdmin(admin.ModelAdmin):
+    list_display = (
+        "default",
+        "get_status",
+        "name",
+        "client",
+        "last_update",
+    )
+    readonly_fields = ("get_status",)
+    list_filter = ("client",)
+    list_display_links = ("name",)
+    fieldsets = (
+        (
+            "Report Template",
+            {"fields": ("name", "document", "description", "client",)},
+        ),
+        ("Template Linting", {"fields": ("get_status", "lint_result",)}),
+        ("Admin Settings", {"fields": ("default", "protected",)}),
+    )
