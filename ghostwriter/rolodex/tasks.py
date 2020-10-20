@@ -8,7 +8,9 @@ from datetime import date
 
 # Django & Other 3rd Party Libraries
 import requests
-from django.conf import settings
+
+# Ghostwriter Libraries
+from ghostwriter.commandcenter.models import SlackConfiguration
 
 from .models import Project
 
@@ -18,51 +20,40 @@ logger = logging.getLogger(__name__)
 
 def send_slack_msg(message, slack_channel=None):
     """
-    Accepts message text and sends it to Slack. This requires Slack settings and
-    a webhook be configured in the application's settings.
+    Send a basic Slack message using the global Slack configuration.
 
     **Parameters**
 
     ``message``
         A string to be sent as the Slack message
     ``slack_channel``
-        Defaults to using the global setting. Can be set to any Slack channel name.
+        Defaults to using the global setting. Can be set to any Slack channel name
     """
-    try:
-        enable_slack = settings.SLACK_CONFIG["enable_slack"]
-    except KeyError:
-        enable_slack = False
-    if enable_slack:
-        try:
-            slack_emoji = settings.SLACK_CONFIG["slack_emoji"]
-            slack_username = settings.SLACK_CONFIG["slack_username"]
-            slack_webhook_url = settings.SLACK_CONFIG["slack_webhook_url"]
-            slack_alert_target = settings.SLACK_CONFIG["slack_alert_target"]
-            if not slack_channel:
-                slack_channel = settings.SLACK_CONFIG["slack_channel"]
-            slack_capable = True
-        except KeyError:
-            slack_capable = False
+    slack_config = SlackConfiguration.objects.get()
 
-        if slack_capable:
-            message = slack_alert_target + " " + message
-            slack_data = {
-                "username": slack_username,
-                "icon_emoji": slack_emoji,
-                "channel": slack_channel,
-                "text": message,
-            }
-            response = requests.post(
-                slack_webhook_url,
-                data=json.dumps(slack_data),
-                headers={"Content-Type": "application/json"},
+    if slack_config.enable:
+        message = slack_config.slack_alert_target + " " + message
+        slack_data = {
+            "username": slack_config.slack_username,
+            "icon_emoji": slack_config.slack_emoji,
+            "channel": slack_config.slack_channel,
+            "text": message,
+        }
+        response = requests.post(
+            slack_config.webhook_url,
+            data=json.dumps(slack_data),
+            headers={"Content-Type": "application/json"},
+        )
+        if response.status_code != 200:
+            logger.warning(
+                "Request to Slack returned an error %s, the response was: %s",
+                response.status_code,
+                response.text,
             )
-            if response.status_code != 200:
-                logger.warning(
-                    "[!] Request to Slack returned an error %s, the response was: %s",
-                    response.status_code,
-                    response.text,
-                )
+    else:
+        logger.warning(
+            "Received request to send Slack message, but Slack notifications are disabled in settings"
+        )
 
 
 def check_project_freshness():

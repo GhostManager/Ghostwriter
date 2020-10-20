@@ -13,9 +13,11 @@ import json
 import logging
 import os
 import re
+from datetime import datetime
 
 # Django & Other 3rd Party Libraries
 import docx
+import jinja2
 import pptx
 from bs4 import BeautifulSoup, NavigableString
 from django.conf import settings
@@ -25,9 +27,13 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt, RGBColor
 from docxtpl import DocxTemplate
+from jinja2.exceptions import TemplateSyntaxError
 from pptx import Presentation
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from xlsxwriter.workbook import Workbook
+
+# Ghostwriter Libraries
+from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -36,7 +42,7 @@ logger = logging.getLogger(__name__)
 class Reportwriter:
     """Generate report documents in Microsoft Office formats."""
 
-    # allowlisted HTML tags expected to come from the WYSIWYG
+    # Allowlist for HTML tags expected to come from the WYSIWYG
     tag_allowlist = [
         "code",
         "span",
@@ -52,36 +58,6 @@ class Reportwriter:
         "pre",
     ]
 
-    # Track report type for different Office XML
-    report_type = None
-
-    # Color codes used for finding severity in all reports
-
-    # Blue
-    informational_color = "8eaadb"
-    informational_color_hex = [0x83, 0xAA, 0xDB]
-    # Green
-    low_color = "a8d08d"
-    low_color_hex = [0xA8, 0xD0, 0x8D]
-    # Orange
-    medium_color = "f4b083"
-    medium_color_hex = [0xF4, 0xB0, 0x83]
-    # Red
-    high_color = "ff7e79"
-    high_color_hex = [0xFF, 0x7E, 0x79]
-    # Purple
-    critical_color = "966FD6"
-    critical_color_hex = [0x96, 0x6F, 0xD6]
-
-    # Picture border settings for Word
-
-    # Picture border color
-    border_color = "2d2b6b"
-    border_color_hex = [0x45, 0x43, 0x107]
-
-    # Picture border weight – 12700 is equal to the 1pt weight in Word
-    border_weight = "12700"
-
     # Extensions allowed for evidence
     image_extensions = ["png", "jpeg", "jpg"]
     text_extensions = ["txt", "ps1", "py", "md", "log"]
@@ -92,12 +68,38 @@ class Reportwriter:
         self.evidence_path = evidence_path
         self.report_queryset = report_queryset
 
+        # Get the global report configuration
+        global_report_config = ReportConfiguration.objects.get()
+        self.company_config = CompanyInformation.objects.get()
+
+        # Track report type for different Office XML
+        self.report_type = None
+
+        # Picture border settings for Word
+        self.border_color = global_report_config.border_color
+        self.border_weight = global_report_config.border_weight
+
+        # Setup Jinja2 rendering environment
+        self.jinja_env = jinja2.Environment()
+        self.jinja_env.filters["filter_severity"] = self.filter_severity
+
         logger.info(
             "Generating a report for %s using the template at %s and referencing the evidence in %s",
             self.report_queryset,
             self.template_loc,
             self.evidence_path,
         )
+
+    def filter_severity(self, findings, allowlist):
+        """
+        Filter list of findings to return only those with a severity in the allowlist.
+        """
+        filtered_values = []
+        allowlist = [severity.lower() for severity in allowlist]
+        for finding in findings:
+            if finding["severity"].lower() in allowlist:
+                filtered_values.append(finding)
+        return filtered_values
 
     def valid_xml_char_ordinal(self, c):
         """
@@ -148,19 +150,61 @@ class Reportwriter:
         report_dict["project"] = {}
         report_dict["project"]["id"] = self.report_queryset.project.id
         report_dict["project"]["name"] = project_name
-        report_dict["project"]["start_date"] = self.report_queryset.project.start_date
-        report_dict["project"]["end_date"] = self.report_queryset.project.end_date
         report_dict["project"]["codename"] = self.report_queryset.project.codename
         report_dict["project"][
             "project_type"
         ] = self.report_queryset.project.project_type.project_type
         report_dict["project"]["note"] = self.report_queryset.project.note
+        # Project dates
+        start_datetime = self.report_queryset.project.start_date
+        end_datetime = self.report_queryset.project.end_date
+        start_month = start_datetime.strftime("%B")
+        start_day = start_datetime.day
+        start_year = start_datetime.year
+        end_month = end_datetime.strftime("%B")
+        end_day = end_datetime.day
+        end_year = end_datetime.year
+        if start_month == end_month:
+            if start_year == end_year:
+                execution_window = f"{start_month} {start_day}-{end_day}, {start_year}"
+                execution_window_uk = (
+                    f"{start_day}-{end_day} {start_month} {start_year}"
+                )
+            else:
+                execution_window = f"{start_month} {start_day}, {start_year}-{end_month} {end_day}, {end_year}"
+                execution_window_uk = f"{start_day} {start_month} {start_year}-{end_day} {end_month} {end_year}"
+        else:
+            if start_year == end_year:
+                execution_window = (
+                    f"{start_month} {start_day}-{end_month} {end_day}, {end_year}"
+                )
+                execution_window_uk = (
+                    f"{start_day} {start_month}-{end_day} {end_month} {end_year}"
+                )
+            else:
+                execution_window = f"{start_month} {start_day}, {start_year}-{end_month} {end_day}, {end_year}"
+                execution_window_uk = f"{start_day} {start_month} {start_year}-{end_day} {end_month} {end_year}"
+        report_dict["project"]["start_date"] = start_datetime.strftime("%B %d, %Y")
+        report_dict["project"]["start_date_uk"] = start_datetime.strftime("%d %B %Y")
+        report_dict["project"]["end_date"] = end_datetime.strftime("%B %d, %Y")
+        report_dict["project"]["end_date_uk"] = end_datetime.strftime("%d %B %Y")
+        report_dict["project"]["execution_window"] = execution_window
+        report_dict["project"]["execution_window_uk"] = execution_window_uk
         # Finding data
         report_dict["findings"] = {}
         for finding in self.report_queryset.reportfindinglink_set.all():
             report_dict["findings"][finding.id] = {}
             report_dict["findings"][finding.id]["title"] = finding.title
             report_dict["findings"][finding.id]["severity"] = finding.severity.severity
+            report_dict["findings"][finding.id][
+                "severity_color"
+            ] = finding.severity.color
+            report_dict["findings"][finding.id][
+                "severity_color_rgb"
+            ] = finding.severity.color_rgb
+            report_dict["findings"][finding.id][
+                "severity_color_hex"
+            ] = finding.severity.color_hex
             if finding.affected_entities:
                 report_dict["findings"][finding.id][
                     "affected_entities"
@@ -541,7 +585,7 @@ class Reportwriter:
                     p = self.spenny_doc.add_paragraph("Figure ", style="Caption")
                     self.make_figure(p)
                     run = p.add_run(
-                        u" \u2013 " + finding["evidence"][keyword]["caption"]
+                        " \u2013 " + finding["evidence"][keyword]["caption"]
                     )
         elif extension in self.image_extensions:
             # Drop in the image at the full 6.5" width and add the caption
@@ -567,10 +611,10 @@ class Reportwriter:
 
                 # Set the shape's "effect extent" attributes to the border weight
                 effect_extent = OxmlElement("wp:effectExtent")
-                effect_extent.set("l", self.border_weight)
-                effect_extent.set("t", self.border_weight)
-                effect_extent.set("r", self.border_weight)
-                effect_extent.set("b", self.border_weight)
+                effect_extent.set("l", str(self.border_weight))
+                effect_extent.set("t", str(self.border_weight))
+                effect_extent.set("r", str(self.border_weight))
+                effect_extent.set("b", str(self.border_weight))
                 # Insert just below ``<wp:extent>`` or it will not work
                 inline_class.insert(1, effect_extent)
 
@@ -578,7 +622,7 @@ class Reportwriter:
                 pic_data = run._r.xpath("//pic:spPr")[-1]
                 # Assemble OXML for a solid border
                 ln_xml = OxmlElement("a:ln")
-                ln_xml.set("w", self.border_weight)
+                ln_xml.set("w", str(self.border_weight))
                 solidfill_xml = OxmlElement("a:solidFill")
                 color_xml = OxmlElement("a:srgbClr")
                 color_xml.set("val", self.border_color)
@@ -589,7 +633,7 @@ class Reportwriter:
                 # Create the caption for the image
                 p = self.spenny_doc.add_paragraph("Figure ", style="Caption")
                 self.make_figure(p)
-                run = p.add_run(u" \u2013 " + finding["evidence"][keyword]["caption"])
+                run = p.add_run(" \u2013 " + finding["evidence"][keyword]["caption"])
         # Skip unapproved files
         else:
             p = None
@@ -675,7 +719,7 @@ class Reportwriter:
                 p.style = "Caption"
                 p.text = "Figure "
                 self.make_figure(p)
-                run = p.add_run(u" \u2013 " + text)
+                run = p.add_run(" \u2013 " + text)
             return
 
         # Handle evidence keywords
@@ -846,13 +890,14 @@ class Reportwriter:
                         elif tag_name == "em":
                             italic_font = True
                         elif tag_name == "span":
-                            tag_attrs = tag.attrs["class"]
-                            if "italic" in tag_attrs:
-                                italic_font = True
-                            if "bold" in tag_attrs:
-                                bold_font = True
-                            if "underline" in tag_attrs:
-                                underline = True
+                            if "class" in tag.attrs:
+                                tag_attrs = tag.attrs["class"]
+                                if "italic" in tag_attrs:
+                                    italic_font = True
+                                if "bold" in tag_attrs:
+                                    bold_font = True
+                                if "underline" in tag_attrs:
+                                    underline = True
                         elif tag_name == "a":
                             link_run = True
                             link_url = tag["href"]
@@ -923,9 +968,15 @@ class Reportwriter:
             p.level = level
         else:
             if num:
-                p = self.spenny_doc.add_paragraph(style="Number List")
+                try:
+                    p = self.spenny_doc.add_paragraph(style="Number List")
+                except Exception:
+                    p = self.spenny_doc.add_paragraph(style="List Paragraph")
             else:
-                p = self.spenny_doc.add_paragraph(style="Bullet List")
+                try:
+                    p = self.spenny_doc.add_paragraph(style="Bullet List")
+                except Exception:
+                    p = self.spenny_doc.add_paragraph(style="List Paragraph")
             self.list_number(p, prev=prev_p, level=level, num=num)
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
         return p
@@ -1232,6 +1283,8 @@ class Reportwriter:
             raise
         # Prepare the ``context`` dict for the Word template rendering
         context = {}
+        context["report_date"] = datetime.now().strftime("%B %d, %Y")
+        context["report_date_uk"] = datetime.now().strftime("%d %B %Y")
 
         # Client information
         context["client"] = self.report_json["client"]["full_name"]
@@ -1240,9 +1293,20 @@ class Reportwriter:
 
         # Assessment information
         context["assessment_name"] = self.report_json["project"]["name"]
-        context["project_type"] = self.report_json["project"]["project_type"]
-        context["company"] = settings.COMPANY_NAME
+        context["assessment_type"] = self.report_json["project"]["project_type"]
+        context["company"] = self.company_config.company_name
         context["company_pocs"] = self.report_json["team"].values()
+
+        # Project dates
+        context["project_start_date"] = self.report_json["project"]["start_date"]
+        context["project_start_date_uk"] = self.report_json["project"]["start_date_uk"]
+        context["project_end_date"] = self.report_json["project"]["end_date"]
+        context["project_end_date_uk"] = self.report_json["project"]["end_date_uk"]
+
+        context["execution_window"] = self.report_json["project"]["execution_window"]
+        context["execution_window_uk"] = self.report_json["project"][
+            "execution_window_uk"
+        ]
 
         # Infrastructure information
         context["domains"] = self.report_json["infrastructure"]["domains"].values()
@@ -1258,19 +1322,6 @@ class Reportwriter:
 
         # Findings information
         context["findings"] = self.report_json["findings"].values()
-        for finding in context["findings"]:
-            finding_color = self.informational_color
-            if finding["severity"].lower() == "informational":
-                finding_color = self.informational_color
-            elif finding["severity"].lower() == "low":
-                finding_color = self.low_color
-            elif finding["severity"].lower() == "medium":
-                finding_color = self.medium_color
-            elif finding["severity"].lower() == "high":
-                finding_color = self.high_color
-            elif finding["severity"].lower() == "critical":
-                finding_color = self.critical_color
-            finding["color"] = finding_color
 
         # Generate the subdocument for findings
         self.spenny_doc = self.main_spenny_doc.new_subdoc()
@@ -1278,7 +1329,7 @@ class Reportwriter:
         context["findings_subdoc"] = self.spenny_doc
 
         # Render the Word document + auto-escape any unsafe XML/HTML
-        self.main_spenny_doc.render(context, autoescape=True)
+        self.main_spenny_doc.render(context, self.jinja_env, autoescape=True)
 
         # Return the final rendered document
         return self.main_spenny_doc
@@ -1299,34 +1350,10 @@ class Reportwriter:
             run = p.add_run("Severity – ")
             run = p.add_run("{}".format(finding["severity"]))
             font = run.font
-            if finding["severity"].lower() == "informational":
-                font.color.rgb = RGBColor(
-                    self.informational_color_hex[0],
-                    self.informational_color_hex[1],
-                    self.informational_color_hex[2],
-                )
-            elif finding["severity"].lower() == "low":
-                font.color.rgb = RGBColor(
-                    self.low_color_hex[0], self.low_color_hex[1], self.low_color_hex[2]
-                )
-            elif finding["severity"].lower() == "medium":
-                font.color.rgb = RGBColor(
-                    self.medium_color_hex[0],
-                    self.medium_color_hex[1],
-                    self.medium_color_hex[2],
-                )
-            elif finding["severity"].lower() == "high":
-                font.color.rgb = RGBColor(
-                    self.high_color_hex[0],
-                    self.high_color_hex[1],
-                    self.high_color_hex[2],
-                )
-            else:
-                font.color.rgb = RGBColor(
-                    self.critical_color_hex[0],
-                    self.critical_color_hex[1],
-                    self.critical_color_hex[2],
-                )
+            font.color.rgb = RGBColor(
+                *map(lambda v: int(v, 16), finding["severity_color_hex"])
+            )
+
             # Add an Affected Entities section
             self.spenny_doc.add_heading("Affected Entities", 4)
             self.process_text_xml(finding["affected_entities"], finding)
@@ -1351,7 +1378,7 @@ class Reportwriter:
             if finding["host_detection_techniques"]:
                 # \u2013 is an em-dash
                 self.spenny_doc.add_heading(
-                    u"Adversary Detection Techniques \u2013 Host", 4
+                    "Adversary Detection Techniques \u2013 Host", 4
                 )
                 self.process_text_xml(finding["host_detection_techniques"], finding)
 
@@ -1359,7 +1386,7 @@ class Reportwriter:
             if finding["network_detection_techniques"]:
                 # \u2013 is an em-dash
                 self.spenny_doc.add_heading(
-                    u"Adversary Detection Techniques \u2013 Network", 4
+                    "Adversary Detection Techniques \u2013 Network", 4
                 )
                 self.process_text_xml(finding["network_detection_techniques"], finding)
 
@@ -1402,7 +1429,7 @@ class Reportwriter:
                 text = text.replace(
                     "{{.client}}", self.report_json["client"]["full_name"]
                 )
-        text = text.replace("{{.caption}}", u"Caption \u2013 ")
+        text = text.replace("{{.caption}}", "Caption \u2013 ")
         # Find/replace evidence keywords because they're ugly and don't make sense when read
         match = re.findall(keyword_regex, text)
         if match:
@@ -1411,7 +1438,7 @@ class Reportwriter:
                     # \u2013 is an em-dash
                     text = text.replace(
                         "{{." + keyword + "}}",
-                        u"\n<See Report for Evidence File: {}>\nCaption \u2013 {}".format(
+                        "\n<See Report for Evidence File: {}>\nCaption \u2013 {}".format(
                             finding["evidence"][keyword]["friendly_name"],
                             finding["evidence"][keyword]["caption"],
                         ),
@@ -1483,16 +1510,7 @@ class Reportwriter:
             severity_format.set_align("center")
             severity_format.set_font_color("black")
             # Color the cell based on corresponding severity color
-            if finding["severity"].lower() == "informational":
-                severity_format.set_bg_color(self.informational_color)
-            elif finding["severity"].lower() == "low":
-                severity_format.set_bg_color(self.low_color)
-            elif finding["severity"].lower() == "medium":
-                severity_format.set_bg_color(self.medium_color)
-            elif finding["severity"].lower() == "high":
-                severity_format.set_bg_color(self.high_color)
-            elif finding["severity"].lower() == "critical":
-                severity_format.set_bg_color(self.critical_color)
+            severity_format.set_bg_color(finding["severity_color"])
             self.worksheet.write(self.row, 1, finding["severity"], severity_format)
             self.col += 1
 
@@ -1580,25 +1598,7 @@ class Reportwriter:
                 raise
         else:
             raise
-        self.ppt_color_info = pptx.dml.color.RGBColor(
-            self.informational_color_hex[0],
-            self.informational_color_hex[1],
-            self.informational_color_hex[2],
-        )
-        self.ppt_color_low = pptx.dml.color.RGBColor(
-            self.low_color_hex[0], self.low_color_hex[1], self.low_color_hex[2]
-        )
-        self.ppt_color_medium = pptx.dml.color.RGBColor(
-            self.medium_color_hex[0], self.medium_color_hex[1], self.medium_color_hex[2]
-        )
-        self.ppt_color_high = pptx.dml.color.RGBColor(
-            self.high_color_hex[0], self.high_color_hex[1], self.high_color_hex[2]
-        )
-        self.ppt_color_critical = pptx.dml.color.RGBColor(
-            self.critical_color_hex[0],
-            self.critical_color_hex[1],
-            self.critical_color_hex[2],
-        )
+
         # Loop through the dict of findings to create slides based on findings
         # Initialize findings stats dict
         findings_stats = {
@@ -1622,7 +1622,7 @@ class Reportwriter:
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
-        title_shape.text = settings.COMPANY_NAME
+        title_shape.text = self.company_config.company_name
         text_frame = body_shape.text_frame
         # Use text_frame.text for first line/paragraph or
         # text_frame.paragraphs[0]
@@ -1721,16 +1721,10 @@ class Reportwriter:
                 # Set cell color fill type to solid
                 risk_cell.fill.solid()
                 # Color the risk cell based on corresponding severity color
-                if finding["severity"].lower() == "informational":
-                    risk_cell.fill.fore_color.rgb = self.ppt_color_info
-                elif finding["severity"].lower() == "low":
-                    risk_cell.fill.fore_color.rgb = self.ppt_color_low
-                elif finding["severity"].lower() == "medium":
-                    risk_cell.fill.fore_color.rgb = self.ppt_color_medium
-                elif finding["severity"].lower() == "high":
-                    risk_cell.fill.fore_color.rgb = self.ppt_color_high
-                elif finding["severity"].lower() == "critical":
-                    risk_cell.fill.fore_color.rgb = self.ppt_color_critical
+                cell_color = pptx.dml.color.RGBColor(
+                    *map(lambda v: int(v, 16), finding["severity_color_hex"])
+                )
+                risk_cell.fill.fore_color.rgb = cell_color
                 row_iter += 1
             # Set all cells alignment to center and vertical center
             for cell in table.iter_cells():
@@ -1816,12 +1810,12 @@ class Reportwriter:
         text_frame.clear()
         p = text_frame.paragraphs[0]
         p.line_spacing = 0.7
-        p.text = settings.COMPANY_NAME
+        p.text = self.company_config.company_name
         p = text_frame.add_paragraph()
-        p.text = settings.COMPANY_TWITTER
+        p.text = self.company_config.company_twitter
         p.line_spacing = 0.7
         p = text_frame.add_paragraph()
-        p.text = settings.COMPANY_EMAIL
+        p.text = self.company_config.company_email
         p.line_spacing = 0.7
 
         # Finalize document and return it for an HTTP response
@@ -1858,3 +1852,117 @@ class Reportwriter:
             raise
         # Return each memory object
         return self.report_json, word_stream, excel_stream, ppt_stream
+
+
+class TemplateLinter:
+    """Lint template files to catch undefined variables and syntax errors."""
+
+    def __init__(self, template_loc):
+        self.template_loc = template_loc
+        self.jinja_template_env = jinja2.Environment(undefined=jinja2.DebugUndefined)
+        self.jinja_template_env.filters["filter_severity"] = self.dummy_filter_severity
+
+    def dummy_filter_severity(self, value, allowlist):
+        return []
+
+    def lint_docx(self):
+        """
+        Lint the provided Word docx file from :model:`reporting.ReportTemplate`.
+        """
+        results = {"result": "success", "warnings": [], "errors": []}
+        if self.template_loc:
+            if os.path.exists(self.template_loc):
+                logger.info("Found template file at %s", self.template_loc)
+                try:
+                    # Dummy context data to identify undefined custom variables in template
+                    context = {}
+
+                    context["report_date"] = datetime.now().strftime("%B %d, %Y")
+                    context["report_date_uk"] = datetime.now().strftime("%d %B %Y")
+
+                    # Client information
+                    context["client"] = "Kabletown"
+                    context["client_short"] = "Kabletown"
+                    context["client_pocs"] = ""
+
+                    # Assessment information
+                    context["assessment_name"] = ""
+                    context["assessment_type"] = ""
+                    context["project_type"] = ""
+                    context["company"] = ""
+                    context["company_pocs"] = ""
+
+                    # Project dates
+                    context["project_start_date"] = ""
+                    context["project_start_date_uk"] = ""
+                    context["project_end_date"] = ""
+                    context["project_end_date_uk"] = ""
+
+                    context["execution_window"] = ""
+                    context["execution_window_uk"] = ""
+
+                    # Infrastructure information
+                    context["domains"] = ""
+                    context["static_servers"] = ""
+                    context["cloud_servers"] = ""
+                    context["domains_and_servers"] = ""
+
+                    # Findings information
+                    context["findings"] = ""
+                    context["findings_subdoc"] = ""
+
+                    # Step 1: Load the document as a template
+                    template_document = DocxTemplate(self.template_loc)
+                    logger.info("Template loaded for linting")
+
+                    # Step 2: Check document's styles
+                    document_styles = template_document.styles
+                    if "Bullet List" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Bullet List"
+                        )
+                    if "Number List" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Number List"
+                        )
+                    logger.info("Completed Word style checks")
+
+                    # Step 3: Test rendering the document
+                    try:
+                        template_document.render(
+                            context, self.jinja_template_env, autoescape=True
+                        )
+                        undefined_vars = template_document.undeclared_template_variables
+                        if undefined_vars:
+                            for variable in undefined_vars:
+                                results["warnings"].append(
+                                    f"Undefined variable: {variable}"
+                                )
+                        if results["warnings"]:
+                            results["result"] = "warning"
+                        logger.info("Completed document rendering test")
+                    except TemplateSyntaxError as error:
+                        logger.error("Template syntax error: %s", error)
+                        results = {
+                            "result": "failed",
+                            "errors": [
+                                f"Jinja2 template syntax error: {error.message}"
+                            ],
+                        }
+                except Exception:
+                    logger.exception("Template failed rendering")
+                    results = {
+                        "result": "failed",
+                        "errors": ["Template rendering failed unexpectedly"],
+                    }
+            else:
+                logger.error("Template file path did not exist: %s", self.template_loc)
+                results = {
+                    "result": "failed",
+                    "errors": ["Template file does not exist"],
+                }
+        else:
+            logger.error("Received a `None` value for template location")
+
+        logger.info("Template linting completed")
+        return json.dumps(results)
