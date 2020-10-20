@@ -1,4 +1,4 @@
-@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";
+@import 'https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700';
 
 /* ---------------------------------------------------
     GENERAL STYLES
@@ -71,12 +71,12 @@
 }
 
 body {
-  font-family: 'Poppins', "Font Awesome 5 Free", sans-serif;
+  font-family: 'Poppins', 'Font Awesome 5 Free', sans-serif;
   background: var(--main-bg-color);
 }
 
 p {
-  font-family: 'Poppins', "Font Awesome 5 Free", sans-serif;
+  font-family: 'Poppins', 'Font Awesome 5 Free', sans-serif;
   font-size: var(--main-font-size);
   font-weight: 300;
   line-height: 1.7em;
@@ -182,11 +182,11 @@ h6 {
 }
 
 #scroll-button::before {
-  font-family: "Font Awesome 5 Free";
-  content: "\f062";
+  font-family: 'Font Awesome 5 Free';
+  content: '\f062';
   font-weight: 600;
   font-style: normal;
-  text-rendering: normal;
+  text-rendering: auto;
   font-size: 2em;
   line-height: 50px;
   color: #fff;
@@ -206,7 +206,7 @@ h6 {
     FILE UPLOAD STYLES
 ----------------------------------------------------- */
 
-input[type="file"] {
+input[type='file'] {
   position: absolute;
   left: 0;
   opacity: 0;
@@ -443,7 +443,7 @@ input[type="file"] {
 }
 
 #sidebar ul li.active>#sidebar a,
-#sidebar a[aria-expanded="true"] {
+#sidebar a[aria-expanded='true'] {
   color: var(--sidebar-text-color);
   background: var(--sidebar-active-color);
 }
@@ -453,11 +453,11 @@ input[type="file"] {
   margin: 0;
 }
 
-a[data-toggle="collapse"] {
+a[data-toggle='collapse'] {
   position: relative;
 }
 
-.dropdown-toggle[aria-expanded="true"]:after {
+.dropdown-toggle[aria-expanded='true']:after {
   transform: rotate(180deg);
 }
 
@@ -558,7 +558,7 @@ h1 {
 
 .h1content {
   text-align: center;
-  color: white;
+  color: #fff;
   font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.5em;
 }
@@ -578,7 +578,7 @@ footer {
   height: 125px;
   background-color: var(--main-footer-background-color);
   text-align: center;
-  color: white;
+  color: #fff;
   font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 1em
 }
@@ -606,9 +606,9 @@ footer {
 }
 
 p.severity-box {
-  color: white;
+  color: #fff;
   border-style: solid;
-  border-color: black;
+  border-color: #000;
   border-width: 1px;
   text-align: center;
 }
@@ -707,7 +707,7 @@ p.severity-box.info {
   /* Green */
   border: none;
   border-radius: var(--button-border-radius);
-  color: white;
+  color: #fff;
   padding: 15px 32px;
   text-align: center;
   text-decoration: none;
@@ -721,12 +721,12 @@ p.severity-box.info {
 
 .button:hover {
   background-color: var(--button-hover-color);
-  color: white;
+  color: #fff;
 }
 
 .delete:hover {
   background-color: var(--button-warning-color);
-  color: white;
+  color: #fff;
 }
 
 .disabled {
@@ -767,7 +767,7 @@ p.severity-box.info {
 .btn-primary:hover {
   background-color: var(--button-hover-color);
   border-color: var(--button-hover-color);
-  color: white;
+  color: #fff;
 }
 
 /* ---------------------------------------------------
@@ -798,12 +798,12 @@ p .clickable {
 
 th {
   background-color: var(--table-header-color);
-  color: white;
+  color: #fff;
 }
 
 th.severity_header {
   background-color: var(--secondary-table-header-color);
-  text-align: justified;
+  text-align: justify;
   padding-top: 10px;
   padding-bottom: 10px;
   border-bottom: none;
@@ -891,7 +891,7 @@ tr:hover {
 
 .form-th {
   background-color: #fafafa;
-  color: black;
+  color: #000;
 }
 
 .form-th:hover {
@@ -932,8 +932,8 @@ td p {
 }
 
 .holdme:before {
-  font-family: "Font Awesome 5 Free";
-  content: "\f7a4";
+  font-family: 'Font Awesome 5 Free';
+  content: '\f7a4';
   font-weight: 900;
   font-size: 18px;
 }
@@ -952,7 +952,7 @@ td p {
 
 .dropbtn-info {
   background-color: var(--dropdown-button-main-color);
-  color: white;
+  color: #fff;
 }
 
 .dropdown {
@@ -981,7 +981,7 @@ td p {
 }
 
 .dropdown-content a {
-  color: black;
+  color: #000;
   font-size: 12px;
   padding: 8px 10px;
   text-align: left;
@@ -1021,12 +1021,12 @@ td p {
 
 .nav-tabs .nav-link.active {
   background-color: var(--primary-color);
-  color: white;
+  color: #fff;
 }
 
 .nav-tabs .nav-link {
   background-color: var(--neutral-rating-color);
-  color: white;
+  color: #fff;
 }
 
 .nav-link {
@@ -1034,7 +1034,7 @@ td p {
 }
 
 .tab-icon:before {
-  font-family: "Font Awesome 5 Free";
+  font-family: 'Font Awesome 5 Free';
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
@@ -1048,100 +1048,100 @@ td p {
 }
 
 .search-icon:before {
-  content: "\f002";
+  content: '\f002';
 }
 
 .pencil-icon:before {
-  content: "\f303";
+  content: '\f303';
 }
 
 .shield-icon:before {
-  content: "\f3ed";
+  content: '\f3ed';
 }
 
 .link-icon:before {
-  content: "\f0c1";
+  content: '\f0c1';
 }
 
 .server-icon:before {
-  content: "\f233";
+  content: '\f233';
 }
 
 .list-icon:before {
-  content: "\f0ca";
+  content: '\f0ca';
 }
 
 .file-icon:before {
-  content: "\f15b";
+  content: '\f15b';
 }
 
 .wireless-icon:before {
-  content: "\f1eb";
+  content: '\f1eb';
 }
 
 .cloud-icon:before {
-  content: "\f0c2";
+  content: '\f0c2';
 }
 
 .physical-icon:before {
-  content: "\f084";
+  content: '\f084';
 }
 
 .network-icon:before {
-  content: "\f6ff";
+  content: '\f6ff';
 }
 
 .mobile-icon:before {
-  content: "\f3cd";
+  content: '\f3cd';
 }
 
 .host-icon:before {
-  content: "\f109";
+  content: '\f109';
 }
 
 .bug-icon:before {
-  content: "\f188";
+  content: '\f188';
 }
 
 .code-icon:before {
-  content: "\f121";
+  content: '\f121';
 }
 
 .grip-icon:before {
-  content: "\f7a4";
+  content: '\f7a4';
 }
 
 .comment-icon:before {
-  content: "\f27a";
+  content: '\f27a';
 }
 
 .ol-list-icon:before {
-  content: "\f0cb";
+  content: '\f0cb';
 }
 
 .help-icon:before {
-  content: "\f4c4";
+  content: '\f4c4';
 }
 
 .impact-icon:before {
-  content: "\f1e2";
+  content: '\f1e2';
 }
 
 .writing-icon:before {
-  content: "\f5b7";
+  content: '\f5b7';
 }
 
 .server-icon:before {
-  content: "\f233";
+  content: '\f233';
 }
 
 .route-icon:before {
-  content: "\f4d7";
+  content: '\f4d7';
 }
 
 .project-icon:before {
-  font-family: "Font Awesome 5 Free";
-  content: "\f542";
+  font-family: 'Font Awesome 5 Free';
+  content: '\f542';
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
@@ -1149,8 +1149,8 @@ td p {
 }
 
 .assignment-icon:before {
-  font-family: "Font Awesome 5 Free";
-  content: "\f0c0";
+  font-family: 'Font Awesome 5 Free';
+  content: '\f0c0';
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
@@ -1158,8 +1158,8 @@ td p {
 }
 
 .objective-icon:before {
-  font-family: "Font Awesome 5 Free";
-  content: "\f05b";
+  font-family: 'Font Awesome 5 Free';
+  content: '\f05b';
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
@@ -1167,8 +1167,8 @@ td p {
 }
 
 .poc-icon:before {
-  font-family: "Font Awesome 5 Free";
-  content: "\f2bb";
+  font-family: 'Font Awesome 5 Free';
+  content: '\f2bb';
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
@@ -1176,8 +1176,8 @@ td p {
 }
 
 .client-icon:before {
-  font-family: "Font Awesome 5 Free";
-  content: "\f1ad";
+  font-family: 'Font Awesome 5 Free';
+  content: '\f1ad';
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
@@ -1211,7 +1211,7 @@ td p {
   border: none;
   border-bottom: 1px solid;
   border-color: #f5f5f5;
-  color: white;
+  color: #fff;
   cursor: pointer;
   padding: 18px;
   width: 100%;
@@ -1227,15 +1227,15 @@ td p {
 }
 
 .collapsible:after {
-  content: "\002B";
-  color: white;
+  content: '\002B';
+  color: #fff;
   font-weight: 600;
   float: right;
   margin-left: 5px;
 }
 
 .collapsible.active:after {
-  content: "\2212";
+  content: '\2212';
 }
 
 .collapsiblecontent {
@@ -1287,7 +1287,7 @@ td p {
   border: none;
   border-bottom: 1px solid;
   border-color: #f5f5f5;
-  color: white;
+  color: #fff;
   cursor: pointer;
   padding: 10px;
   text-align: left;
@@ -1306,7 +1306,7 @@ td p {
 
 .myaccordion .btn {
   font-weight: 600;
-  color: white;
+  color: #fff;
   padding: 0;
 }
 
@@ -1321,15 +1321,15 @@ td p {
 }
 
 .card-header:after {
-  content: "\002B";
-  color: white;
+  content: '\002B';
+  color: #fff;
   font-weight: 600;
   float: right;
   margin-left: 5px;
 }
 
 .card-header[aria-expanded=true]:after {
-  content: "\2212";
+  content: '\2212';
 }
 
 .finding-card ul,
@@ -1347,14 +1347,14 @@ ol {
 
 .finding-card pre {
   text-align: justify;
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   padding-left: 20px;
   white-space: pre-wrap;
 }
 
 .finding-card code {
   font-size: var(--main-font-size);
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   color: var(--main-txt-color);
 }
 
@@ -1379,7 +1379,7 @@ ol {
 }
 
 .container::after {
-  content: "";
+  content: '';
   clear: both;
   display: table;
 }
@@ -1508,7 +1508,7 @@ ol {
   /* height: 100vh; */
   grid-template-rows: 70px 1fr 70px;
   grid-template-columns: 250px 1fr;
-  grid-template-areas: "header header""nav    main""footer footer";
+  grid-template-areas: 'header header''nav    main''footer footer';
 }
 
 .admin__main {
@@ -1610,7 +1610,7 @@ img {
 
 #toast-container>.toast:before {
   position: fixed;
-  font-family: "Font Awesome 5 Free";
+  font-family: 'Font Awesome 5 Free';
   font-size: 24px;
   line-height: 18px;
   float: left;
@@ -1620,7 +1620,7 @@ img {
 }
 
 #toast-container>.toast-success:before {
-  content: "\f00c";
+  content: '\f00c';
   font-weight: 600;
   color: #2a562a;
 }
@@ -1632,7 +1632,7 @@ img {
 }
 
 #toast-container>.toast-warning:before {
-  content: "\f071";
+  content: '\f071';
   font-weight: 600;
   color: #806620;
 }
@@ -1644,7 +1644,7 @@ img {
 }
 
 #toast-container>.toast-error:before {
-  content: "\f06a";
+  content: '\f06a';
   font-weight: 600;
   color: #692326;
 }
@@ -1656,7 +1656,7 @@ img {
 }
 
 #toast-container>.toast-info:before {
-  content: "\f129";
+  content: '\f129';
   font-weight: 600;
   color: #51768F;
 }
