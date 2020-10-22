@@ -820,7 +820,10 @@ def update(request):
         cat_last_update_completed = ""
         cat_last_update_time = ""
         cat_last_result = ""
-        expired_status = DomainStatus.objects.get(domain_status="Expired")
+        try:
+            expired_status = DomainStatus.objects.get(domain_status="Expired")
+        except DomainStatus.DoesNotExist:
+            expired_status = None
         total_domains = (
             Domain.objects.all().exclude(domain_status=expired_status).count()
         )
