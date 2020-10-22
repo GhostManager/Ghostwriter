@@ -60,7 +60,8 @@ def update_project_badges(request, pk):
     """
     project_instance = get_object_or_404(Project, pk=pk)
     html = render_to_string(
-        "snippets/project_nav_tabs.html", {"project": project_instance},
+        "snippets/project_nav_tabs.html",
+        {"project": project_instance},
     )
     return HttpResponse(html)
 
@@ -77,7 +78,8 @@ def update_client_badges(request, pk):
     """
     client_instance = get_object_or_404(Client, pk=pk)
     html = render_to_string(
-        "snippets/client_nav_tabs.html", {"client": client_instance},
+        "snippets/client_nav_tabs.html",
+        {"client": client_instance},
     )
     return HttpResponse(html)
 
@@ -520,7 +522,9 @@ class ClientCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Client successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Client successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
@@ -595,7 +599,9 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Client successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Client successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
@@ -820,7 +826,9 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Project successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Project successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
@@ -940,12 +948,6 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             self.request, "Project successfully saved.", extra_tags="alert-success"
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
-
-    # def get_initial(self):
-    #     project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-    #     return {
-    #         "codename": project_instance.codename,
-    #     }
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
