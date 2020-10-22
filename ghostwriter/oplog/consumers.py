@@ -12,11 +12,6 @@ from .models import OplogEntry
 
 
 @database_sync_to_async
-def getAllLogEntries(oplogId):
-    return OplogEntry.objects.filter(oplog_id=oplogId).order_by("start_date")
-
-
-@database_sync_to_async
 def createOplogEntry(oplog_id):
     newEntry = OplogEntry.objects.create(oplog_id_id=oplog_id)
     newEntry.output = ""
@@ -47,6 +42,12 @@ def editOplogEntry(oplogEntryId, modifiedRow):
 
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
+    @database_sync_to_async
+    def getAllLogEntries(self, oplogId):
+        entries = OplogEntry.objects.filter(oplog_id=oplogId).order_by("start_date")
+        serialized_entries = json.loads(serialize("json", entries))
+        return serialized_entries
+
     async def send_oplog_entry(self, event):
         await self.send(text_data=event["text"])
 
@@ -55,8 +56,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(str(oplog_id), self.channel_name)
         await self.accept()
 
-        entries = await getAllLogEntries(oplog_id)
-        serialized_entries = json.loads(serialize("json", entries))
+        serialized_entries = await self.getAllLogEntries(oplog_id)
         message = json.dumps({"action": "sync", "data": serialized_entries})
 
         await self.channel_layer.group_send(
