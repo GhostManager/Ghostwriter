@@ -10,6 +10,8 @@ from collections import defaultdict
 from datetime import date
 
 # Django & Other 3rd Party Libraries
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 import boto3
 import nmap
 import pytz
@@ -22,7 +24,7 @@ from lxml import objectify
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     NamecheapConfiguration,
-    SlackConfiguration,
+    SlackConfiguration, VirusTotalConfiguration,
 )
 from ghostwriter.modules.dns_toolkit import DNSCollector
 from ghostwriter.modules.review import DomainReview
@@ -42,6 +44,8 @@ from .models import (
 
 # Using __name__ resolves to ghostwriter.shepherd.tasks
 logger = logging.getLogger(__name__)
+
+channel_layer = get_channel_layer()
 
 
 def craft_cloud_message(
@@ -238,14 +242,6 @@ def send_slack_msg(message, slack_channel=None):
         logger.warning(
             "Received request to send Slack message, but Slack notifications are disabled in settings"
         )
-
-
-def send_slack_test_msg(slack_channel=None):
-    """
-    Send a test Slack message using the global Slack configuration.
-    """
-    message = "This is a test of your notification system."
-    send_slack_msg(message, slack_channel)
 
 
 def send_slack_complete_msg(task):
@@ -842,21 +838,12 @@ def fetch_namecheap_domains():
                 for domain in root.CommandResponse.DomainGetListResult.Domain:
                     domains_list.append(domain.attrib)
             elif namecheap_api_result == "ERROR":
-                if "Invalid request IP" in req.text:
-                    logger.error(
-                        "You are not connecting to Namecheap using your whitelisted IP address: %s",
-                        req.text,
-                    )
-                    domain_changes["errors"][
-                        "namecheap"
-                    ] = "You are not connecting to Namecheap using your whitelisted IP address"
-                else:
-                    logger.error('Namecheap returned an "ERROR" response: %s', req.text)
-                    domain_changes["errors"][
-                        "namecheap"
-                    ] = "Namecheap returned an `ERROR` response: {response}".format(
-                        response=req.text
-                    )
+                error_id = root.Errors[0].Error[0].attrib["Number"]
+                error_msg = root.Errors[0].Error[0].text
+                logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
+                domain_changes["errors"][
+                    "namecheap"
+                ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
                 return domain_changes
             else:
                 logger.error(
@@ -1110,6 +1097,7 @@ def review_cloud_infrastructure():
 
     # Create AWS client for EC2 using a default region and get a list of all regions
     aws_capable = True
+    regions = []
     try:
         client = boto3.client(
             "ec2",
@@ -1430,3 +1418,316 @@ def check_expiration():
 
     logger.info("Domain expiration update completed at %s", datetime.datetime.now())
     return domain_changes
+
+def test_aws_keys(user):
+    """
+    Test the AWS access keys configured in :model:`commandcenter.CloudServicesConfiguration`.
+    """
+    cloud_config = CloudServicesConfiguration.objects.get()
+    level = "error"
+    logger.info(
+        "Starting a test of the AWS keys at %s", datetime.datetime.now()
+    )
+    try:
+        # Send the STS ``get_caller_identity`` API call to test keys
+        client = boto3.client(
+            "sts",
+            region_name="us-west-2",
+            aws_access_key_id=cloud_config.aws_key,
+            aws_secret_access_key=cloud_config.aws_secret,
+        )
+        client.get_caller_identity()
+        logger.info("Successfully verified the AWS keys")
+        message = "Successfully verified the AWS keys"
+        level = "success"
+    except ClientError:
+        logger.error("AWS could not validate the provided credentials")
+        message = "AWS could not validate the provided credentials"
+    except Exception:
+        logger.exception("Testing authentication to AWS failed")
+        message = "Testing authentication to AWS failed"
+
+    # Send a message to the requesting user
+    async_to_sync(channel_layer.group_send)(
+        "notify_{}".format(user),
+        {
+            "type": "message",
+            "message": {
+                "message": message,
+                "level": level,
+                "title": "AWS Test Complete",
+            },
+        },
+    )
+
+    logger.info("Test of the AWS access keys completed at %s", datetime.datetime.now())
+    return {"result": level, "message": message}
+
+def test_digital_ocean(user):
+    """
+    Test the Digital Ocean API key configured in
+    :model:`commandcenter.CloudServicesConfiguration`.
+    """
+    DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
+    cloud_config = CloudServicesConfiguration.objects.get()
+    level = "error"
+    logger.info(
+        "Starting a test of the Digital Ocean API key at %s", datetime.datetime.now()
+    )
+    try:
+        # Request all active droplets (as done in the real task)
+        headers = {"Content-Type": "application/json"}
+        active_droplets = requests.get(
+            DIGITAL_OCEAN_ENDPOINT,
+            headers=headers,
+            auth=BearerAuth(cloud_config.do_api_key),
+        )
+        if active_droplets.status_code == 200:
+            logger.info(
+                "Digital Ocean credentials are functional, beginning droplet review"
+            )
+            logger.info("Successfully verified the Digital Ocean API key")
+            message = "Successfully verified the Digital Ocean API key"
+            level = "success"
+        else:
+            logger.info(
+                "Digital Ocean denied access with HTTP code %s and this message: %s",
+                active_droplets.status_code,
+                active_droplets.text,
+            )
+            api_response = active_droplets.text
+            try:
+                error_message = active_droplets.json()
+                if "message" in error_message:
+                    api_response = error_message["message"]
+            except ValueError:
+                pass
+            message = f"Digital Ocean denied access with HTTP code {active_droplets.status_code} and this message: {api_response}"
+    except ClientError:
+        logger.error("Digital Ocean could not validate the provided API key")
+        message = "Digital Ocean could not validate the provided API key"
+    except Exception:
+        logger.exception("Testing authentication to Digital Ocean failed")
+        message = "Testing authentication to Digital Ocean failed"
+
+    # Send a message to the requesting user
+    async_to_sync(channel_layer.group_send)(
+        "notify_{}".format(user),
+        {
+            "type": "message",
+            "message": {
+                "message": message,
+                "level": level,
+                "title": "Digital Ocean Test Complete",
+            },
+        },
+    )
+
+    logger.info("Test of the Digital Ocean API key completed at %s", datetime.datetime.now())
+    return {"result": level, "message": message}
+
+def test_namecheap(user):
+    """
+    Test the Namecheap API configuration stored in :model:`commandcenter.NamecheapConfiguration`.
+    """
+    domains_list = []
+    session = requests.Session()
+    get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}"
+    namecheap_config = NamecheapConfiguration.objects.get()
+    level = "error"
+    logger.info(
+        "Starting Namecheap API test at %s", datetime.datetime.now()
+    )
+    try:
+        # The Namecheap API call requires both usernames, a key, and a whitelisted IP
+        req = session.get(
+            get_domain_list_endpoint.format(
+                namecheap_config.api_username,
+                namecheap_config.api_key,
+                namecheap_config.username,
+                namecheap_config.client_ip,
+                namecheap_config.page_size,
+            )
+        )
+        # Check if request returned a 200 OK
+        if req.ok:
+            # Convert Namecheap XML into an easy to use object for iteration
+            root = objectify.fromstring(req.content)
+            # Check the status to make sure it says "OK"
+            namecheap_api_result = root.attrib["Status"]
+            if namecheap_api_result == "OK":
+                level = "success"
+                message = "Successfully authenticated to Namecheap"
+            elif namecheap_api_result == "ERROR":
+                error_id = root.Errors[0].Error[0].attrib["Number"]
+                error_msg = root.Errors[0].Error[0].text
+                logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
+                message = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
+            else:
+                logger.error(
+                    "Namecheap did not return an response: %s", namecheap_api_result, req.text
+                )
+                message = "Namecheap returned a {namecheap_api_result} response: {req.text}"
+        else:
+            logger.error(
+                "Namecheap returned HTTP code %s in its response: %s", req.status_code, req.text
+            )
+            message = f"Namecheap returned HTTP code {req.status_code} in its response: {req.text}"
+    except Exception:
+        trace = traceback.format_exc()
+        logger.exception("Namecheap API request failed")
+        message = f"The Namecheap API request failed: {trace}"
+
+    # Send a message to the requesting user
+    async_to_sync(channel_layer.group_send)(
+        "notify_{}".format(user),
+        {
+            "type": "message",
+            "message": {
+                "message": message,
+                "level": level,
+                "title": "Namecheap Test Complete",
+            },
+        },
+    )
+
+    logger.info("Test of the Namecheap API configuration completed at %s", datetime.datetime.now())
+    return {"result": level, "message": message}
+
+def test_slack_webhook(user):
+    """
+    Test the Slack Webhook configuration stored in :model:`commandcenter.SlackConfiguration`.
+    """
+    slack_config = SlackConfiguration.objects.get()
+    level = "error"
+    logger.info(
+        "Starting Slack Webhook test at %s", datetime.datetime.now()
+    )
+    try:
+        if slack_config.enable:
+            slack_data = {
+                "username": slack_config.slack_username,
+                "icon_emoji": slack_config.slack_emoji,
+                "channel": slack_config.slack_channel,
+                "text": f"{slack_config.slack_alert_target} Hello from Ghostwriter :wave:",
+            }
+            response = requests.post(
+                slack_config.webhook_url,
+                data=json.dumps(slack_data),
+                headers={"Content-Type": "application/json"},
+            )
+            if response.ok:
+                level = "success"
+                message = f"Slack accepted the request and you should see a message posted in {slack_config.slack_channel}"
+            elif response.status_code == 400:
+                message = f"Slack accepted the request, but said the user {slack_config.slack_channel} does not exist"
+            elif response.status_code == 403:
+                if "invalid_token" in response.text:
+                    message = "Slack accepted the request, but said your Webhook token is invalid"
+                elif "action_prohibited" in response.text:
+                    message = f"Slack accepted the request, but said your Webhook token cannot send messages to {slack_config.slack_channel}, or is otherwise restricted"
+                else:
+                    message = f"Slack accepted the request, but said your Webhook token is not permitted to send messages"
+            elif response.status_code == 404:
+                if "channel_not_found" in response.text:
+                    message = f"Slack accepted the request, but said it could not find the {slack_config.slack_channel} channel"
+                else:
+                    message = f"Slack accepted the request, but said it could not find the {slack_config.slack_channel} channel"
+            elif response.status_code == 410:
+                if "channel_is_archived" in response.text:
+                    message = f"Slack accepted the request, but said the {slack_config.slack_channel} channel is archived"
+                else:
+                    message = f"Slack accepted the request, but said the {slack_config.slack_channel} channel is unavailable - possibly archived?"
+            else:
+                logger.warning(
+                    "Request to Slack returned HTTP code %s with this message: %s",
+                    response.status_code,
+                    response.text,
+                )
+                message = f"Request to Slack returned HTTP code {response.status_code} with this message: {response.text}"
+        else:
+            logger.warning(
+                "Received request to send Slack message, but Slack notifications are disabled in settings"
+            )
+            message = "Received request to send Slack message, but Slack notifications are disabled in settings"
+    except Exception:
+        trace = traceback.format_exc()
+        logger.exception("Slack Webhook API request failed")
+        message = f"Slack Webhook API request failed: {trace}"
+
+    # Send a message to the requesting user
+    async_to_sync(channel_layer.group_send)(
+        "notify_{}".format(user),
+        {
+            "type": "message",
+            "message": {
+                "message": message,
+                "level": level,
+                "title": "Slack Test Complete",
+            },
+        },
+    )
+
+    logger.info("Test of the Slack Webhook completed at %s", datetime.datetime.now())
+    return {"result": level, "message": message}
+
+def test_virustotal(user):
+    """
+    Test the VirusTotal API key stored in :model:`commandcenter.VirusTotalConfiguration`.
+    """
+    virustotal_config = VirusTotalConfiguration.objects.get()
+    level = "error"
+    logger.info(
+        "Starting VirusTotal API test at %s", datetime.datetime.now()
+    )
+    try:
+        if virustotal_config.enable:
+            virustotal_url = "https://www.virustotal.com/vtapi/v2/url/report"
+            params = {"apikey": virustotal_config.api_key, "resource": "google.com"}
+            response = requests.get(virustotal_url, params=params)
+            logger.info(response.status_code)
+
+            if response.ok:
+                message = "Successfully authenticated to the VirusTotal API"
+                level = "success"
+                logger.info("VT Test Succeeded")
+            elif response.status_code == 204:
+                message = "Successfully authenticated to the VirusTotal API, but response indicated the API key has hit its rate limit for now"
+                level = "warning"
+            elif response.status_code == 400:
+                message = "VirusTotal did not accept the API request (Bad Request)"
+            elif response.status_code == 403:
+                message = "Successfully authenticated to the VirusTotal API, but response indicated the configured key is restricted"
+                level = "warning"
+            else:
+                logger.warning(
+                    "Request to VirusTotal API returned HTTP code %s with this message: %s",
+                    response.status_code,
+                    response.text,
+                )
+                message = f"Request to VirusTotal API returned HTTP code {response.status_code} with this message: {response.text}"
+        else:
+            logger.warning(
+                "Received request to test the VirusTotal API key, but VirusTotal is disabled in settings"
+            )
+            message = "Received request to test the VirusTotal API key, but VirusTotal is disabled in settings"
+    except Exception:
+        trace = traceback.format_exc()
+        logger.exception("VirusTotal API request failed")
+        message = f"VirusTotal API request failed: {trace}"
+
+    # Send a message to the requesting user
+    async_to_sync(channel_layer.group_send)(
+        "notify_{}".format(user),
+        {
+            "type": "message",
+            "message": {
+                "message": message,
+                "level": level,
+                "title": "VirusTotal Test Complete",
+            },
+        },
+    )
+
+    logger.info("Test of the VirusTotal completed at %s", datetime.datetime.now())
+    return {"result": level, "message": message}
