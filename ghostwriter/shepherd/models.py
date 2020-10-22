@@ -287,7 +287,6 @@ class Domain(models.Model):
             time_delta = date.today() - self.creation
         return "{} days".format(time_delta.days)
 
-    @property
     def is_expired(self):
         """
         Check if the domain's expiration DateField value is in the past.
@@ -298,7 +297,6 @@ class Domain(models.Model):
                 expired = True
         return expired
 
-    @property
     def is_expiring_soon(self):
         """
         Check if the domain's expiration DateField value is in the near future.
@@ -310,7 +308,6 @@ class Domain(models.Model):
                 expiring_soon = True
         return expiring_soon
 
-    @property
     def get_list(self):
         """
         Return an instance's dns_record field value as a list.
