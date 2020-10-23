@@ -195,13 +195,14 @@
         <hr>
 
         <div style="margin: 20px;">
-            Report engine will use this template for Word:
-            <form
+            The report engine will use the selected templates:
+            {% comment %} <form
+                id="report-template-swap"
                 template-update-url="{% url 'reporting:ajax_swap_report_template' report.id %}"
                 template-update-csrftoken="{{ csrf_token }}"
-            >
+            > {% endcomment %}
                 {% crispy form form.helper %}
-            </form>
+            {% comment %} </form> {% endcomment %}
         </div>
 
         <div class="btn-group">
@@ -560,11 +561,17 @@
     <!-- Save Template Selection on Change -->
     <script>
         $(document).ready(function() {
-            $('#id_template').change( function() {
-                var parent_form = $(this).closest('form');
-                var url = parent_form.attr('template-update-url');
-                var templateId = $(this).val();
-                var csrftoken = parent_form.attr('template-update-csrftoken');
+            $('#report-template-swap-form').change( function() {
+                var url = $(this).attr('action');
+                var docxTemplateId = $('#id_docx_template').val();
+                var pptxTemplateId = $('#id_pptx_template').val();
+                var csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+                if ($('#id_pptx_template').val() == '') {
+                    pptxTemplateId = -1
+                }
+                if ($('#id_docx_template').val() == '') {
+                    docxTemplateId = -1
+                }
                 // Prep AJAX request with CSRF token
                 $.ajaxSetup({
                     beforeSend: function(xhr, settings) {
@@ -579,7 +586,9 @@
                     type: 'POST',
                     dataType: 'json',
                     data: {
-                        'template': templateId
+                        'docx_template': docxTemplateId,
+                        'pptx_template': pptxTemplateId,
+                        'csrfmiddlewaretoken': csrftoken,
                     },
                     success: function (data) {
                         if (data['message']) {

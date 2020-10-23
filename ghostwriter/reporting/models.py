@@ -159,8 +159,7 @@ class Finding(models.Model):
         "Finding Guidance",
         null=True,
         blank=True,
-        help_text="Provide notes for your team that describes how the finding is intended to be used or edited"
-        "during editing",
+        help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
     # Foreign Keys
     severity = models.ForeignKey(
@@ -186,6 +185,29 @@ class Finding(models.Model):
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
+
+
+class DocType(models.Model):
+    """
+    Stores an individual document type, related to :model:`reporting.ReportTemplate`.
+    """
+
+    doc_type = models.CharField(
+        "Document Type",
+        max_length=5,
+        unique=True,
+        help_text="Enter a file extension for a report template filetype",
+    )
+
+    class Meta:
+        ordering = [
+            "doc_type",
+        ]
+        verbose_name = "Document type"
+        verbose_name_plural = "Document types"
+
+    def __str__(self):
+        return f"{self.doc_type}"
 
 
 class ReportTemplate(models.Model):
@@ -216,7 +238,9 @@ class ReportTemplate(models.Model):
         help_text="Date and time the report was last modified",
     )
     description = models.TextField(
-        "Description", blank=True, help_text="Provide a description of this template",
+        "Description",
+        blank=True,
+        help_text="Provide a description of this template",
     )
     protected = models.BooleanField(
         "Protected",
@@ -234,6 +258,12 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Results returned by the linter for this template",
     )
+    changelog = models.TextField(
+        "Template Change Log",
+        null=True,
+        blank=True,
+        help_text="Add a line explaining any file changes",
+    )
     # Foreign Keys
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
@@ -245,9 +275,16 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Template will only be displayed for this client",
     )
+    doc_type = models.ForeignKey(
+        "reporting.DocType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Select the filetype for this template",
+    )
 
     class Meta:
-        ordering = ["-default", "client", "name"]
+        ordering = ["-default", "doc_type", "client", "name"]
         verbose_name = "Report template"
         verbose_name_plural = "Report templates"
 
@@ -267,7 +304,6 @@ class ReportTemplate(models.Model):
     def filename(self):
         return os.path.basename(self.document.name)
 
-    @property
     def get_status(self):
         result_code = "unknown"
         if self.lint_result:
@@ -290,7 +326,9 @@ class ReportTemplate(models.Model):
             if self.client:
                 try:
                     default_report_queryset = ReportTemplate.objects.filter(
-                        Q(default=True) & Q(client=self.client)
+                        Q(default=True)
+                        & Q(doc_type=self.doc_type)
+                        & Q(client=self.client)
                     )
                     for template in default_report_queryset:
                         if self != template:
@@ -301,7 +339,9 @@ class ReportTemplate(models.Model):
             else:
                 try:
                     default_report = ReportTemplate.objects.get(
-                        Q(default=True) & Q(client=self.client)
+                        Q(default=True)
+                        & Q(doc_type=self.doc_type)
+                        & Q(client=self.client)
                     )
                     if self != default_report:
                         default_report.default = False
@@ -341,11 +381,23 @@ class Report(models.Model):
         null=True,
         help_text="Select the project tied to this report",
     )
-    template = models.ForeignKey(
+    docx_template = models.ForeignKey(
         "ReportTemplate",
+        related_name="reporttemplate_docx_set",
         on_delete=models.SET_NULL,
+        limit_choices_to={
+            "doc_type__doc_type__iexact": "docx",
+        },
         null=True,
-        help_text="Select the report template to use for ths report",
+        help_text="Select the Word template to use for this report",
+    )
+    pptx_template = models.ForeignKey(
+        "ReportTemplate",
+        related_name="reporttemplate_pptx_set",
+        on_delete=models.SET_NULL,
+        limit_choices_to={"doc_type__doc_type__iexact": "pptx"},
+        null=True,
+        help_text="Select the PowerPoint template to use for this report",
     )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
@@ -377,7 +429,10 @@ class ReportFindingLink(models.Model):
         max_length=255,
         help_text="Enter a title for this finding that will appear in the reports",
     )
-    position = models.IntegerField("Report Position", default=1,)
+    position = models.IntegerField(
+        "Report Position",
+        default=1,
+    )
     affected_entities = models.TextField(
         "Affected Entities",
         null=True,
@@ -513,7 +568,9 @@ class Evidence(models.Model):
         help_text="Provide a one line caption to be used in the report - keep it brief",
     )
     description = models.TextField(
-        "Description", blank=True, help_text="Describe this evidence to your team",
+        "Description",
+        blank=True,
+        help_text="Describe this evidence to your team",
     )
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE)

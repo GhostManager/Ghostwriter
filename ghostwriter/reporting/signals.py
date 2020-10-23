@@ -65,7 +65,8 @@ def clean_template(sender, instance, created, **kwargs):
     if hasattr(instance, "_current_template"):
         if instance._current_template:
             if instance._current_template.path not in instance.document.path:
-                lint_template = True
+                if instance.doc_type.doc_type == "docx":
+                    lint_template = True
                 try:
                     if os.path.exists(instance._current_template.path):
                         try:
@@ -95,18 +96,20 @@ def clean_template(sender, instance, created, **kwargs):
             )
 
     if created or lint_template:
-        logger.info("New template file detected, so starting linter")
-        try:
-            logger.info(
-                "Linting newly uploaded template: %s", instance.document.path,
-            )
-            template_loc = instance.document.path
-            linter = TemplateLinter(template_loc=template_loc)
-            results = linter.lint_docx()
-            instance.lint_result = results
-            # Disconnect signal to save model and avoid infinite loop
-            post_save.disconnect(clean_template, sender=ReportTemplate)
-            instance.save()
-            post_save.connect(clean_template, sender=ReportTemplate)
-        except Exception:
-            logger.exception("Failed to update new template with linting results")
+        if instance.doc_type.doc_type == "docx":
+            logger.info("New template file detected, so starting linter")
+            try:
+                logger.info(
+                    "Linting newly uploaded template: %s",
+                    instance.document.path,
+                )
+                template_loc = instance.document.path
+                linter = TemplateLinter(template_loc=template_loc)
+                results = linter.lint_docx()
+                instance.lint_result = results
+                # Disconnect signal to save model and avoid infinite loop
+                post_save.disconnect(clean_template, sender=ReportTemplate)
+                instance.save()
+                post_save.connect(clean_template, sender=ReportTemplate)
+            except Exception:
+                logger.exception("Failed to update new template with linting results")

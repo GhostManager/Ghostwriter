@@ -29,8 +29,8 @@
                 <tr>
                     <th>Default</th>
                     <th>Status</th>
+                    <th>Doc Type</th>
                     <th>Name</th>
-                    <th>Last Update</th>
                     <th>Client</th>
                     <th>Options</th>
                 </tr>
@@ -44,24 +44,28 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% with template.get_status as status %}
-                            <span class="badge
-                                {% if status == "success" %}
-                                    badge-success
-                                {% elif status == "warning" %}
-                                    badge-warning
-                                {% elif status == "unknown" %}
-                                    badge-secondary
-                                {% else %}
-                                    badge-danger
-                                {% endif %}
-                            ">
-                                {{ status|capfirst }}
-                            </span>
-                        {% endwith %}
+                        {% if template.doc_type.doc_type == "docx" %}
+                            {% with template.get_status as status %}
+                                <span class="badge
+                                    {% if status == "success" %}
+                                        badge-success">Ready</span>
+                                    {% else %}
+                                        {% if status == "warning" %}
+                                            badge-warning
+                                        {% elif status == "unknown" %}
+                                            badge-secondary
+                                        {% else %}
+                                            badge-danger
+                                        {% endif %}
+                                        ">{{ status|capfirst }}</span>
+                                    {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            <span class="badge badge-success">Ready</span>
+                        {% endif %}
                     </td>
+                    <td>{{ template.doc_type }}</td>
                     <td><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>
-                    <td nowrap>{{ template.last_update|date:"d M Y" }}</td>
                     <td>
                         {% if template.client %}
                             {{ template.client }}

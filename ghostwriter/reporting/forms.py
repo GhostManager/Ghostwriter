@@ -174,7 +174,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
         evidence_upload_url = reverse(
-            "reporting:upload_evidence_modal", kwargs={"pk": self.instance.id},
+            "reporting:upload_evidence_modal",
+            kwargs={"pk": self.instance.id},
         )
         self.fields["affected_entities"].widget.attrs[
             "placeholder"
@@ -243,7 +244,10 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             Field("mitigation", css_class="enable-evidence-upload"),
             Field("replication_steps", css_class="enable-evidence-upload"),
             Field("host_detection_techniques", css_class="enable-evidence-upload"),
-            Field("network_detection_techniques", css_class="enable-evidence-upload",),
+            Field(
+                "network_detection_techniques",
+                css_class="enable-evidence-upload",
+            ),
             HTML(
                 """
                 <h6 class="icon link-icon">References</h6>
@@ -414,7 +418,8 @@ class FindingNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note
 
@@ -456,7 +461,8 @@ class LocalFindingNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note
 
@@ -492,27 +498,35 @@ class ReportTemplateForm(forms.ModelForm):
                 <p>The name appears in the template dropdown menus in reports.</p>
                 """
             ),
-            "name",
+            Row(
+                Column("name", css_class="form-group col-md-8 mb-0"),
+                Column("doc_type", css_class="form-group col-md-4 mb-0"),
+                css_class="form-row",
+            ),
             "description",
             HTML(
                 """
                 <i class="far fa-file"></i>Upload a File
                 <hr>
-                <p>Attach a Microsoft Word docx to use as a report template</p>
+                <p>Attach a document that matches your selected filetype to use as a report template</p>
                 """
             ),
             Div(
                 "document",
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">Choose docx file...</label>
+                    <label id="filename" class="custom-file-label" for="customFile">Choose template file...</label>
                     """
                 ),
                 css_class="custom-file",
             ),
+            "changelog",
             "client",
-            "protected",
-            "default",
+            Row(
+                Column("protected", css_class="form-group col-md-6 mb-0"),
+                Column("default", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             "uploaded_by",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
@@ -527,21 +541,30 @@ class ReportTemplateForm(forms.ModelForm):
 
 class SelectReportTemplateForm(forms.ModelForm):
     """
-    Modify the ``template`` value of an individual :model:`reporting.Report`.
+    Modify the ``docx_template`` and ``pptx_template`` values of an individual
+    :model:`reporting.Report`.
     """
 
     class Meta:
         model = Report
-        fields = ("template",)
+        fields = ("docx_template", "pptx_template")
 
     def __init__(self, *args, **kwargs):
         super(SelectReportTemplateForm, self).__init__(*args, **kwargs)
-        self.fields["template"].help_text = None
+        self.fields["docx_template"].help_text = None
+        self.fields["pptx_template"].help_text = None
+        self.fields["docx_template"].empty_label = "-- Select a Word Template --"
+        self.fields["pptx_template"].empty_label = "-- Select a PPT Template --"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = False
         self.helper.form_method = "post"
-        self.helper.form_tag = False
+        self.helper.form_id = "report-template-swap-form"
+        self.helper.form_tag = True
+        self.helper.form_action = reverse(
+            "reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id}
+        )
         self.helper.layout = Layout(
-            Field("template", css_class="col-md-4 offset-md-4"),
+            Field("docx_template", css_class="col-md-4 offset-md-4"),
+            Field("pptx_template", css_class="col-md-4 offset-md-4"),
         )

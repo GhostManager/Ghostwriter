@@ -10,6 +10,7 @@
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ reporttemplate.name }}</li>
         </ul>
@@ -45,50 +46,63 @@
     {% endif %}
 
     <!-- Template Information Section -->
-    <table style="width: 70%; margin-left: 15%;">
-        <tr>
-            <td nowrap style="border-bottom: 0">Uploaded by</td>
-            <td style="border-bottom: 0">
-                {% if reporttemplate.uploaded_by %}
-                    {{ reporttemplate.uploaded_by }}
-                {% else %}
-                    Unknown
-                {% endif %}
-            </td>
-        </tr>
-        <tr>
-            <td nowrap style="border-bottom: 0">Upload Date</td>
-            <td style="border-bottom: 0">{{ reporttemplate.upload_date }}</td>
-        </tr>
-        <tr>
-            <td nowrap style="border-bottom: 0">Last Update</td>
-            <td style="border-bottom: 0">{{ reporttemplate.last_update }}</td>
-        </tr>
-        <tr>
-            <td nowrap style="border-bottom: 0">Client</td>
-            <td style="border-bottom: 0">
-                {% if reporttemplate.client %}
-                    {{ reporttemplate.client }}
-                {% else %}
-                    ---
-                {% endif %}
-            </td>
-        </tr>
-        <tr>
-            <td nowrap style="border-bottom: 0">Description</td>
-            <td style="border-bottom: 0">
-                {% if reporttemplate.description %}
-                    {{ reporttemplate.description|bleach }}
-                {% else %}
-                    ---
-                {% endif %}
-            </td>
-        </tr>
-    </table>
+    <div class="table-responsive" >
+        <table class="table-sm table-borderless" style="width: 50%; margin: auto">
+            <tr>
+                <td class="text-left text-nowrap bold">Template Type</td>
+                <td class="text-center">{{ reporttemplate.doc_type }}</td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Uploaded by</td>
+                <td class="text-center">
+                    {% if reporttemplate.uploaded_by %}
+                        {{ reporttemplate.uploaded_by }}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Upload Date</td>
+                <td class="text-center">{{ reporttemplate.upload_date }}</td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Last Update</td>
+                <td class="text-center">{{ reporttemplate.last_update }}</td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Client</td>
+                <td class="text-center">
+                    {% if reporttemplate.client %}
+                        {{ reporttemplate.client }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div>
+        {% if reporttemplate.description %}
+            {{ reporttemplate.description|bleach }}
+        {% endif %}
+    </div>
 
     <!-- Template Linting Section -->
     <div id="template-lint-results" js-update-results-url="{% url 'reporting:ajax_update_template_lint_results' reporttemplate.id %}">
         {% include "snippets/template_lint_results.html" %}
+    </div>
+
+    <!-- Change Log Section -->
+    <h3><i class="fas fa-file-upload"></i> Template CHANGELOG</h3>
+    <hr>
+    <div id="changelog" class="container">
+        {% if reporttemplate.changelog %}
+            {{ reporttemplate.changelog|bleach }}
+        {% else %}
+            <p style="text-align: center;">No CHANGELOG data</p>
+        {% endif %}
     </div>
 {% endblock %}
 

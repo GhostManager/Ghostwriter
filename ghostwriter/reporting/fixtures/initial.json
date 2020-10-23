@@ -91,5 +91,19 @@
     "fields": {
       "finding_type": "Host"
     }
+  },
+  {
+    "model": "reporting.doctype",
+    "pk": 1,
+    "fields": {
+      "doc_type": "docx"
+    }
+  },
+  {
+    "model": "reporting.doctype",
+    "pk": 2,
+    "fields": {
+      "doc_type": "pptx"
+    }
   }
 ]

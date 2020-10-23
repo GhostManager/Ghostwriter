@@ -6,6 +6,7 @@ from import_export.admin import ImportExportModelAdmin
 
 from .models import (
     Archive,
+    DocType,
     Evidence,
     Finding,
     FindingNote,
@@ -21,6 +22,11 @@ from .resources import FindingResource
 
 @admin.register(Archive)
 class ArchiveAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(DocType)
+class DocTypeAdmin(admin.ModelAdmin):
     pass
 
 

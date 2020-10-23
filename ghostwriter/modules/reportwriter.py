@@ -80,7 +80,7 @@ class Reportwriter:
         self.border_weight = global_report_config.border_weight
 
         # Setup Jinja2 rendering environment
-        self.jinja_env = jinja2.Environment()
+        self.jinja_env = jinja2.Environment(extensions=["jinja2.ext.debug"])
         self.jinja_env.filters["filter_severity"] = self.filter_severity
 
         logger.info(
@@ -171,15 +171,15 @@ class Reportwriter:
                     f"{start_day}-{end_day} {start_month} {start_year}"
                 )
             else:
-                execution_window = f"{start_month} {start_day}, {start_year}-{end_month} {end_day}, {end_year}"
-                execution_window_uk = f"{start_day} {start_month} {start_year}-{end_day} {end_month} {end_year}"
+                execution_window = f"{start_month} {start_day}, {start_year} - {end_month} {end_day}, {end_year}"
+                execution_window_uk = f"{start_day} {start_month} {start_year} - {end_day} {end_month} {end_year}"
         else:
             if start_year == end_year:
                 execution_window = (
-                    f"{start_month} {start_day}-{end_month} {end_day}, {end_year}"
+                    f"{start_month} {start_day} - {end_month} {end_day}, {end_year}"
                 )
                 execution_window_uk = (
-                    f"{start_day} {start_month}-{end_day} {end_month} {end_year}"
+                    f"{start_day} {start_month} - {end_day} {end_month} {end_year}"
                 )
             else:
                 execution_window = f"{start_month} {start_day}, {start_year}-{end_month} {end_day}, {end_year}"
@@ -497,11 +497,11 @@ class Reportwriter:
 
         def get_abstract_id():
             """Select as follows:
-                1. Match single-level by style (get min ID)
-                2. Match exact style and level (get min ID)
-                3. Match single-level decimal/bullet types (get min ID)
-                4. Match decimal/bullet in requested level (get min ID)
-                3. 0
+            1. Match single-level by style (get min ID)
+            2. Match exact style and level (get min ID)
+            3. Match single-level decimal/bullet types (get min ID)
+            4. Match decimal/bullet in requested level (get min ID)
+            3. 0
             """
             for fn in (style_xpath, type_xpath):
                 for prefer_single in (True, False):
@@ -764,7 +764,8 @@ class Reportwriter:
                 # Create the w:hyperlink tag and add needed values
                 hyperlink = docx.oxml.shared.OxmlElement("w:hyperlink")
                 hyperlink.set(
-                    docx.oxml.shared.qn("r:id"), r_id,
+                    docx.oxml.shared.qn("r:id"),
+                    r_id,
                 )
                 # Create a w:r element and a new w:rPr element
                 new_run = docx.oxml.shared.OxmlElement("w:r")
@@ -1274,13 +1275,12 @@ class Reportwriter:
         # Generate the JSON for the report
         self.report_json = json.loads(self.generate_json())
         # Create Word document writer using the specified template file
-        if self.template_loc:
-            try:
-                self.main_spenny_doc = DocxTemplate(self.template_loc)
-            except Exception:
-                raise
-        else:
-            raise
+        try:
+            self.main_spenny_doc = DocxTemplate(self.template_loc)
+        except Exception:
+            logger.exception(
+                "Failed to load the provided template document: %s", self.template_loc
+            )
         # Prepare the ``context`` dict for the Word template rendering
         context = {}
         context["report_date"] = datetime.now().strftime("%B %d, %Y")
@@ -1591,13 +1591,19 @@ class Reportwriter:
         # Generate the JSON for the report
         self.report_json = json.loads(self.generate_json())
         # Create document writer using the specified template
-        if self.template_loc:
-            try:
-                self.spenny_ppt = Presentation(self.template_loc)
-            except Exception:
-                raise
-        else:
-            raise
+        try:
+            self.spenny_ppt = Presentation(self.template_loc)
+        except ValueError:
+            logger.exception(
+                "Failed to load the provided template document because it is not a PowerPoint file: %s",
+                self.template_loc,
+            )
+            raise ValueError
+        except Exception:
+            logger.exception(
+                "Failed to load the provided template document for unknown reason: %s",
+                self.template_loc,
+            )
 
         # Loop through the dict of findings to create slides based on findings
         # Initialize findings stats dict
@@ -1859,7 +1865,9 @@ class TemplateLinter:
 
     def __init__(self, template_loc):
         self.template_loc = template_loc
-        self.jinja_template_env = jinja2.Environment(undefined=jinja2.DebugUndefined)
+        self.jinja_template_env = jinja2.Environment(
+            undefined=jinja2.DebugUndefined, extensions=["jinja2.ext.debug"]
+        )
         self.jinja_template_env.filters["filter_severity"] = self.dummy_filter_severity
 
     def dummy_filter_severity(self, value, allowlist):
@@ -1924,6 +1932,14 @@ class TemplateLinter:
                     if "Number List" not in document_styles:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): Number List"
+                        )
+                    if "CodeBlock" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): CodeBlock"
+                        )
+                    if "Code (inline)" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Code (inline)"
                         )
                     logger.info("Completed Word style checks")
 
