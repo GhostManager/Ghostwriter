@@ -126,7 +126,11 @@ def create_oplog(request):
             return HttpResponseRedirect(reverse("oplog:index"))
     else:
         context["form"] = OplogCreateForm()
-    return render(request, "oplog/oplog_form.html", context=context,)
+    return render(
+        request,
+        "oplog/oplog_form.html",
+        context=context,
+    )
 
 
 ################
