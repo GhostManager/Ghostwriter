@@ -113,7 +113,7 @@ COMPRESS_URL = STATIC_URL  # noqa F405
 # https://github.com/antonagestam/collectfast#installation
 INSTALLED_APPS = ["collectfast"] + INSTALLED_APPS  # noqa F405
 AWS_PRELOAD_METADATA = True
-COLLECTFAST_STRATEGY = "django.core.files.storage.FileSystemStorage"
+COLLECTFAST_STRATEGY = "collectfast.strategies.filesystem.FileSystemStrategy"
 
 # LOGGING
 # ------------------------------------------------------------------------------
