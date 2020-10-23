@@ -12,7 +12,7 @@ from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 # Using __name__ resolves to ghostwriter.reporting.models
 logger = logging.getLogger(__name__)

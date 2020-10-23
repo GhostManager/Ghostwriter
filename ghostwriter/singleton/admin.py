@@ -2,7 +2,7 @@
 from django.conf.urls import url
 from django.contrib import admin
 from django.http import HttpResponseRedirect
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext_lazy as _
 
 from .models import DEFAULT_SINGLETON_INSTANCE_ID
 
