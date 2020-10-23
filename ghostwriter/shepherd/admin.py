@@ -4,6 +4,7 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 
+# Ghostwriter Libraries
 from .models import (
     ActivityType,
     AuxServerAddress,
@@ -48,8 +49,14 @@ class DomainServerConnectionAdmin(admin.ModelAdmin):
     )
     list_display_links = ("subdomain", "domain_name", "endpoint")
     fieldsets = (
-        ("Domain Information", {"fields": ("domain", "subdomain", "endpoint")},),
-        ("Server Connection", {"fields": ("static_server", "transient_server")},),
+        (
+            "Domain Information",
+            {"fields": ("domain", "subdomain", "endpoint")},
+        ),
+        (
+            "Server Connection",
+            {"fields": ("static_server", "transient_server")},
+        ),
     )
 
 
@@ -59,7 +66,10 @@ class HistoryAdmin(admin.ModelAdmin):
     list_filter = ("activity_type", "client")
     list_display_links = ("domain", "client")
     fieldsets = (
-        ("Domain Checkout Information", {"fields": ("domain", "client", "project")},),
+        (
+            "Domain Checkout Information",
+            {"fields": ("domain", "client", "project")},
+        ),
         (
             "Domain Use Information",
             {"fields": ("operator", "activity_type", "start_date", "end_date")},
@@ -146,7 +156,10 @@ class ServerHistoryRoleAdmin(admin.ModelAdmin):
     list_filter = ("activity_type", "client")
     list_display_links = ("server_name", "ip_address", "client")
     fieldsets = (
-        ("Server Checkout Information", {"fields": ("server", "client", "project")},),
+        (
+            "Server Checkout Information",
+            {"fields": ("server", "client", "project")},
+        ),
         (
             "Server Use Information",
             {
@@ -196,7 +209,15 @@ class StaticServerAdmin(ImportExportModelAdmin):
             "Basic Server Information",
             {"fields": ("ip_address", "name", "server_status", "server_provider")},
         ),
-        ("Misc", {"fields": ("last_used_by", "note",)}),
+        (
+            "Misc",
+            {
+                "fields": (
+                    "last_used_by",
+                    "note",
+                )
+            },
+        ),
     )
 
 

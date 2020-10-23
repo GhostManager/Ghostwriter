@@ -8,6 +8,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 from django import forms
 from django.forms.widgets import TextInput
 
+# Ghostwriter Libraries
 from .models import Archive, Finding, FindingType, Report, Severity
 
 
@@ -65,7 +66,8 @@ class FindingFilter(django_filters.FilterSet):
                 ),
                 Row(
                     Column(
-                        InlineCheckboxes("severity"), css_class="form-group col-md-12",
+                        InlineCheckboxes("severity"),
+                        css_class="form-group col-md-12",
                     ),
                     css_class="form-row",
                 ),
@@ -136,7 +138,10 @@ class ReportFilter(django_filters.FilterSet):
                         PrependedText("title", '<i class="fas fa-filter"></i>'),
                         css_class="form-group col-md-6",
                     ),
-                    Column("complete", css_class="form-group col-md-6",),
+                    Column(
+                        "complete",
+                        css_class="form-group col-md-6",
+                    ),
                     css_class="form-row",
                 ),
                 ButtonHolder(

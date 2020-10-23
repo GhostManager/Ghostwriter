@@ -24,7 +24,8 @@ from lxml import objectify
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     NamecheapConfiguration,
-    SlackConfiguration, VirusTotalConfiguration,
+    SlackConfiguration,
+    VirusTotalConfiguration,
 )
 from ghostwriter.modules.dns_toolkit import DNSCollector
 from ghostwriter.modules.review import DomainReview
@@ -173,7 +174,10 @@ def craft_burned_message(
             {
                 "type": "section",
                 "fields": [
-                    {"type": "mrkdwn", "text": "*Domain Name:*\n{}".format(domain),},
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Domain Name:*\n{}".format(domain),
+                    },
                     {
                         "type": "mrkdwn",
                         "text": "*Categories:*\n{}".format(", ".join(categories)),
@@ -391,9 +395,11 @@ def release_domains(no_action=False, reset_dns=False):
                         # Check the status to make sure it says "OK"
                         namecheap_api_result = root.attrib["Status"]
                         if namecheap_api_result == "OK":
-                            is_success = root.CommandResponse.DomainDNSSetHostsResult.attrib[
-                                "IsSuccess"
-                            ]
+                            is_success = (
+                                root.CommandResponse.DomainDNSSetHostsResult.attrib[
+                                    "IsSuccess"
+                                ]
+                            )
                             warnings = (
                                 root.CommandResponse.DomainDNSSetHostsResult.Warnings
                             )
@@ -840,7 +846,9 @@ def fetch_namecheap_domains():
             elif namecheap_api_result == "ERROR":
                 error_id = root.Errors[0].Error[0].attrib["Number"]
                 error_msg = root.Errors[0].Error[0].text
-                logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
+                logger.error(
+                    "Namecheap API returned error #%s: %s", error_id, error_msg
+                )
                 domain_changes["errors"][
                     "namecheap"
                 ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
@@ -1177,6 +1185,7 @@ def review_cloud_infrastructure():
     ###############
 
     # Get all Digital Ocean droplets for the account
+    active_droplets = {}
     do_capable = True
     headers = {"Content-Type": "application/json"}
     try:
@@ -1199,6 +1208,7 @@ def review_cloud_infrastructure():
             )
             try:
                 error_message = active_droplets.json()
+                api_response = error_message
                 if "message" in error_message:
                     api_response = error_message["message"]
             except ValueError:
@@ -1225,7 +1235,7 @@ def review_cloud_infrastructure():
             traceback=trace
         )
     # Loop over the droplets to generate the info dict
-    if do_capable:
+    if do_capable and "droplets" in active_droplets:
         for droplet in active_droplets["droplets"]:
             # Get the networking info
             if "v4" in droplet["networks"]:
@@ -1419,15 +1429,14 @@ def check_expiration():
     logger.info("Domain expiration update completed at %s", datetime.datetime.now())
     return domain_changes
 
+
 def test_aws_keys(user):
     """
     Test the AWS access keys configured in :model:`commandcenter.CloudServicesConfiguration`.
     """
     cloud_config = CloudServicesConfiguration.objects.get()
     level = "error"
-    logger.info(
-        "Starting a test of the AWS keys at %s", datetime.datetime.now()
-    )
+    logger.info("Starting a test of the AWS keys at %s", datetime.datetime.now())
     try:
         # Send the STS ``get_caller_identity`` API call to test keys
         client = boto3.client(
@@ -1462,6 +1471,7 @@ def test_aws_keys(user):
 
     logger.info("Test of the AWS access keys completed at %s", datetime.datetime.now())
     return {"result": level, "message": message}
+
 
 def test_digital_ocean(user):
     """
@@ -1523,8 +1533,11 @@ def test_digital_ocean(user):
         },
     )
 
-    logger.info("Test of the Digital Ocean API key completed at %s", datetime.datetime.now())
+    logger.info(
+        "Test of the Digital Ocean API key completed at %s", datetime.datetime.now()
+    )
     return {"result": level, "message": message}
+
 
 def test_namecheap(user):
     """
@@ -1535,9 +1548,7 @@ def test_namecheap(user):
     get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}"
     namecheap_config = NamecheapConfiguration.objects.get()
     level = "error"
-    logger.info(
-        "Starting Namecheap API test at %s", datetime.datetime.now()
-    )
+    logger.info("Starting Namecheap API test at %s", datetime.datetime.now())
     try:
         # The Namecheap API call requires both usernames, a key, and a whitelisted IP
         req = session.get(
@@ -1561,16 +1572,24 @@ def test_namecheap(user):
             elif namecheap_api_result == "ERROR":
                 error_id = root.Errors[0].Error[0].attrib["Number"]
                 error_msg = root.Errors[0].Error[0].text
-                logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
+                logger.error(
+                    "Namecheap API returned error #%s: %s", error_id, error_msg
+                )
                 message = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
             else:
                 logger.error(
-                    "Namecheap did not return an response: %s", namecheap_api_result, req.text
+                    "Namecheap did not return an response: %s",
+                    namecheap_api_result,
+                    req.text,
                 )
-                message = "Namecheap returned a {namecheap_api_result} response: {req.text}"
+                message = (
+                    "Namecheap returned a {namecheap_api_result} response: {req.text}"
+                )
         else:
             logger.error(
-                "Namecheap returned HTTP code %s in its response: %s", req.status_code, req.text
+                "Namecheap returned HTTP code %s in its response: %s",
+                req.status_code,
+                req.text,
             )
             message = f"Namecheap returned HTTP code {req.status_code} in its response: {req.text}"
     except Exception:
@@ -1591,8 +1610,12 @@ def test_namecheap(user):
         },
     )
 
-    logger.info("Test of the Namecheap API configuration completed at %s", datetime.datetime.now())
+    logger.info(
+        "Test of the Namecheap API configuration completed at %s",
+        datetime.datetime.now(),
+    )
     return {"result": level, "message": message}
+
 
 def test_slack_webhook(user):
     """
@@ -1600,9 +1623,7 @@ def test_slack_webhook(user):
     """
     slack_config = SlackConfiguration.objects.get()
     level = "error"
-    logger.info(
-        "Starting Slack Webhook test at %s", datetime.datetime.now()
-    )
+    logger.info("Starting Slack Webhook test at %s", datetime.datetime.now())
     try:
         if slack_config.enable:
             slack_data = {
@@ -1671,15 +1692,14 @@ def test_slack_webhook(user):
     logger.info("Test of the Slack Webhook completed at %s", datetime.datetime.now())
     return {"result": level, "message": message}
 
+
 def test_virustotal(user):
     """
     Test the VirusTotal API key stored in :model:`commandcenter.VirusTotalConfiguration`.
     """
     virustotal_config = VirusTotalConfiguration.objects.get()
     level = "error"
-    logger.info(
-        "Starting VirusTotal API test at %s", datetime.datetime.now()
-    )
+    logger.info("Starting VirusTotal API test at %s", datetime.datetime.now())
     try:
         if virustotal_config.enable:
             virustotal_url = "https://www.virustotal.com/vtapi/v2/url/report"

@@ -244,6 +244,7 @@ class DomainReview(object):
                 sleep(self.sleep_time)
             else:
                 logger.warning(
-                    "Domain %s is expired, so skipped it", domain.name,
+                    "Domain %s is expired, so skipped it",
+                    domain.name,
                 )
         return lab_results

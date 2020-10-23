@@ -877,6 +877,7 @@ class Reportwriter:
                     tag_name = tag.name
                     if tag_name and tag_name in self.tag_allowlist:
                         tag_contents = tag.contents
+                        content_text = ""
                         # Check for an additional tags in the contents
                         # This happens when a hyperlink is formatted with a font style
                         if tag_contents[0].name:

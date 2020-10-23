@@ -4,8 +4,7 @@
 import json
 
 # Django & Other 3rd Party Libraries
-from channels.generic.websocket import AsyncWebsocketConsumer, WebsocketConsumer
-from django.contrib import messages
+from channels.generic.websocket import AsyncWebsocketConsumer
 
 
 class UserConsumer(AsyncWebsocketConsumer):
@@ -46,7 +45,12 @@ class UserConsumer(AsyncWebsocketConsumer):
         assignments = event["assignments"]
         # Send message to WebSocket
         await self.send(
-            text_data=json.dumps({"message": message, "assignments": assignments,})
+            text_data=json.dumps(
+                {
+                    "message": message,
+                    "assignments": assignments,
+                }
+            )
         )
 
 

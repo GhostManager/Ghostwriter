@@ -2,6 +2,8 @@
 
 # Django & Other 3rd Party Libraries
 from django.db import models
+
+# Ghostwriter Libraries
 from ghostwriter.singleton.models import SingletonModel
 
 

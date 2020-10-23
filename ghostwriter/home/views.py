@@ -6,13 +6,11 @@ import logging
 
 # Django & Other 3rd Party Libraries
 from django.conf import settings
-from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.db.models import Q
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic.edit import View
@@ -142,6 +140,7 @@ class Management(LoginRequiredMixin, PermissionRequiredMixin, View):
 
     :template:`home/management.html`
     """
+
     permission_required = "is_staff"
 
     def get(self, request, *args, **kwargs):
@@ -151,13 +150,13 @@ class Management(LoginRequiredMixin, PermissionRequiredMixin, View):
         return render(request, "home/management.html", context=context)
 
 
-
 class TestAWSConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``AWS Test`` with
     :task:`shepherd.tasks.test_aws_keys` to test AWS keys in
     :model:`commandcenter.CloudServicesConfiguration`.
     """
+
     permission_required = "is_staff"
 
     def post(self, request, *args, **kwargs):
@@ -187,6 +186,7 @@ class TestDOConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
     :task:`shepherd.tasks.test_digital_ocean` to test the Digital Ocean API key stored in
     :model:`commandcenter.CloudServicesConfiguration`.
     """
+
     permission_required = "is_staff"
 
     def post(self, request, *args, **kwargs):
@@ -216,6 +216,7 @@ class TestNamecheapConnection(LoginRequiredMixin, PermissionRequiredMixin, View)
     :task:`shepherd.tasks.test_namecheap` to test the Namecheap API configuration stored
     in :model:`commandcenter.NamecheapConfiguration`.
     """
+
     permission_required = "is_staff"
 
     def post(self, request, *args, **kwargs):
@@ -245,6 +246,7 @@ class TestSlackConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
     :task:`shepherd.tasks.test_slack_webhook` to test the Slack Webhook configuration
     stored in :model:`commandcenter.SlackConfiguration`.
     """
+
     permission_required = "is_staff"
 
     def post(self, request, *args, **kwargs):
@@ -274,6 +276,7 @@ class TestVirusTotalConnection(LoginRequiredMixin, PermissionRequiredMixin, View
     :task:`shepherd.tasks.test_virustotal` to test the VirusTotal API key stored in
     :model:`commandcenter.SlackConfiguration`.
     """
+
     permission_required = "is_staff"
 
     def post(self, request, *args, **kwargs):
