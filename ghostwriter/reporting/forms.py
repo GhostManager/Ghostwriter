@@ -522,11 +522,7 @@ class ReportTemplateForm(forms.ModelForm):
             ),
             "changelog",
             "client",
-            Row(
-                Column("protected", css_class="form-group col-md-6 mb-0"),
-                Column("default", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
+            "protected",
             "uploaded_by",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),

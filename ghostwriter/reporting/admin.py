@@ -151,7 +151,6 @@ class SeverityAdmin(admin.ModelAdmin):
 @admin.register(ReportTemplate)
 class ReportTemplateAdmin(admin.ModelAdmin):
     list_display = (
-        "default",
         "get_status",
         "name",
         "client",
@@ -183,11 +182,6 @@ class ReportTemplateAdmin(admin.ModelAdmin):
         ),
         (
             "Admin Settings",
-            {
-                "fields": (
-                    "default",
-                    "protected",
-                )
-            },
+            {"fields": ("protected",)},
         ),
     )

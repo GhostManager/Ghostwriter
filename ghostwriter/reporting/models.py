@@ -247,11 +247,6 @@ class ReportTemplate(models.Model):
         default=False,
         help_text="Only administrators can edit this template",
     )
-    default = models.BooleanField(
-        "Default",
-        default=False,
-        help_text="Make this the default template for all new reports or just for the selected client",
-    )
     lint_result = models.TextField(
         "Template Linter Results",
         null=True,
@@ -284,7 +279,7 @@ class ReportTemplate(models.Model):
     )
 
     class Meta:
-        ordering = ["-default", "doc_type", "client", "name"]
+        ordering = ["doc_type", "client", "name"]
         verbose_name = "Report template"
         verbose_name_plural = "Report templates"
 
@@ -320,35 +315,6 @@ class ReportTemplate(models.Model):
                     self.lint_result,
                 )
         return result_code
-
-    def save(self, *args, **kwargs):
-        if self.default:
-            if self.client:
-                try:
-                    default_report_queryset = ReportTemplate.objects.filter(
-                        Q(default=True)
-                        & Q(doc_type=self.doc_type)
-                        & Q(client=self.client)
-                    )
-                    for template in default_report_queryset:
-                        if self != template:
-                            template.default = False
-                            template.save()
-                except ReportTemplate.DoesNotExist:
-                    pass
-            else:
-                try:
-                    default_report = ReportTemplate.objects.get(
-                        Q(default=True)
-                        & Q(doc_type=self.doc_type)
-                        & Q(client=self.client)
-                    )
-                    if self != default_report:
-                        default_report.default = False
-                        default_report.save()
-                except ReportTemplate.DoesNotExist:
-                    pass
-        super(ReportTemplate, self).save(*args, **kwargs)
 
 
 class Report(models.Model):

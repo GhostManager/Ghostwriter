@@ -58,6 +58,9 @@ class NamecheapConfiguration(SingletonModel):
 
 
 class ReportConfiguration(SingletonModel):
+    enable_borders = models.BooleanField(
+        default=False, help_text="Enable borders around images in Word documents"
+    )
     border_weight = models.IntegerField(
         default=12700,
         help_text="Weight in EMUs – 12700 is equal to the 1pt weight in Word",
@@ -77,6 +80,29 @@ class ReportConfiguration(SingletonModel):
         max_length=255,
         default=u"\u2013",
         help_text="Unicode character to place between `Table` and your table name in Word reports",
+    )
+    # Foreign Keys
+    default_docx_template = models.ForeignKey(
+        "reporting.reporttemplate",
+        related_name="reportconfiguration_docx_set",
+        on_delete=models.SET_NULL,
+        limit_choices_to={
+            "doc_type__doc_type__iexact": "docx",
+        },
+        null=True,
+        blank=True,
+        help_text="Select a default Word template",
+    )
+    default_pptx_template = models.ForeignKey(
+        "reporting.reporttemplate",
+        related_name="reportconfiguration_pptx_set",
+        on_delete=models.SET_NULL,
+        limit_choices_to={
+            "doc_type__doc_type__iexact": "pptx",
+        },
+        null=True,
+        blank=True,
+        help_text="Select a default PowerPoint template",
     )
 
     def __str__(self):
