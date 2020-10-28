@@ -2,6 +2,7 @@
 
 # Standard Libraries
 # Import Python libraries for various things
+from ghostwriter.commandcenter.models import ReportConfiguration
 import io
 import json
 import logging
@@ -33,6 +34,7 @@ from xlsxwriter.workbook import Workbook
 # Ghostwriter Libraries
 from ghostwriter.modules import reportwriter
 from ghostwriter.rolodex.models import Project, ProjectAssignment
+from ghostwriter.modules.exceptions import MissingTemplate
 
 from .filters import ArchiveFilter, FindingFilter, ReportFilter
 from .forms import (
@@ -520,29 +522,54 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                     if docx_template_query:
                         template_status = docx_template_query.get_status()
                         data["lint_result"] = template_status
-                        logger.info(template_status)
                         if template_status != "success":
                             if template_status == "warning":
                                 data[
-                                    "lint_message"
-                                ] = "Template has warnings from linter. Check the template before generating a report."
+                                    "docx_lint_message"
+                                ] = "Selected Word template has warnings from linter. Check the template before generating a report."
                             elif template_status == "error":
                                 data[
-                                    "lint_message"
-                                ] = "Template has linting errors and cannot be used to generate a report."
+                                    "docx_lint_message"
+                                ] = "Selected Word template has linting errors and cannot be used to generate a report."
                             elif template_status == "failed":
                                 data[
-                                    "lint_message"
+                                    "docx_lint_message"
                                 ] = "Selected Word template failed basic linter checks and can't be used to generate a report."
                             else:
                                 data[
-                                    "lint_message"
-                                ] = "Template has an unknown linter status. Check and lint the template before generating a report."
+                                    "docx_lint_message"
+                                ] = "Selected Word template has an unknown linter status. Check and lint the template before generating a report."
                 except Exception:
                     logger.exception("Failed to get the template status")
                     data[
-                        "lint_message"
-                    ] = "Could not retrieve the template's linter status. Check and lint the template before generating a report."
+                        "docx_lint_message"
+                    ] = "Could not retrieve the Word template's linter status. Check and lint the template before generating a report."
+                try:
+                    if pptx_template_query:
+                        template_status = pptx_template_query.get_status()
+                        data["lint_result"] = template_status
+                        if template_status != "success":
+                            if template_status == "warning":
+                                data[
+                                    "pptx_lint_message"
+                                ] = "Selected PowerPoint template has warnings from linter. Check the template before generating a report."
+                            elif template_status == "error":
+                                data[
+                                    "pptx_lint_message"
+                                ] = "Selected PowerPoint template has linting errors and cannot be used to generate a report."
+                            elif template_status == "failed":
+                                data[
+                                    "pptx_lint_message"
+                                ] = "Selected PowerPoint template failed basic linter checks and can't be used to generate a report."
+                            else:
+                                data[
+                                    "pptx_lint_message"
+                                ] = "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report."
+                except Exception:
+                    logger.exception("Failed to get the template status")
+                    data[
+                        "pptx_lint_message"
+                    ] = "Could not retrieve the PowerPoint template's linter status. Check and lint the template before generating a report."
                 logger.info(
                     "Swapped template for %s %s by request of %s",
                     self.object.__class__.__name__,
@@ -607,7 +634,16 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
         self.object = self.get_object()
         template_loc = self.object.document.path
         linter = reportwriter.TemplateLinter(template_loc=template_loc)
-        results = linter.lint_docx()
+        if self.object.doc_type.doc_type == "docx":
+            results = linter.lint_docx()
+        elif self.object.doc_type.doc_type == "pptx":
+            results = linter.lint_pptx()
+        else:
+            logger.warning(
+                "Template had an unknown filetype not supported by the linter: %s",
+                self.object.doc_type,
+            )
+            results = {}
         self.object.lint_result = results
         self.object.save()
 
@@ -616,8 +652,10 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
             data[
                 "message"
             ] = "Template linter returned results with no errors or warnings"
+        elif not data["result"]:
+            data["message"] = f"Template had an unknown filetype not supported by the linter: {self.object.doc_type}"
         else:
-            data["message"] = f"Template linter returned results with {data['result']}s"
+            data["message"] = f"Template linter returned results with issues that require attention"
 
         return JsonResponse(data)
 
@@ -957,9 +995,10 @@ def generate_docx(request, pk):
         if report_instance.docx_template:
             report_template = report_instance.docx_template
         else:
-            report_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="docx"
-            )
+            report_config = ReportConfiguration.objects.get()
+            report_template = report_config.default_docx_template
+            if not report_template:
+                raise MissingTemplate
         template_loc = report_template.document.path
 
         # Check template's linting status
@@ -986,6 +1025,15 @@ def generate_docx(request, pk):
         response["Content-Disposition"] = f"attachment; filename={report_name}.docx"
         docx.save(response)
         return response
+    except MissingTemplate:
+        messages.error(
+            request,
+            "You do not have a Word template selected and have not configured a default template",
+            extra_tags="alert-danger",
+        )
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": pk})
+        )
     except Report.DoesNotExist:
         messages.error(
             request,
@@ -995,7 +1043,7 @@ def generate_docx(request, pk):
     except ReportTemplate.DoesNotExist:
         messages.error(
             request,
-            "You do not have a Word template selected and have not selected a default template",
+            "You do not have a Word template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
         return HttpResponseRedirect(
@@ -1081,9 +1129,10 @@ def generate_pptx(request, pk):
         if report_instance.docx_template:
             report_template = report_instance.pptx_template
         else:
-            report_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="pptx"
-            )
+            report_config = ReportConfiguration.objects.get()
+            report_template = report_config.default_pptx_template
+            if not report_template:
+                raise MissingTemplate
         template_loc = report_template.document.path
 
         engine = reportwriter.Reportwriter(
@@ -1096,6 +1145,15 @@ def generate_pptx(request, pk):
         response["Content-Disposition"] = f"attachment; filename={report_name}.pptx"
         pptx.save(response)
         return response
+    except MissingTemplate:
+        messages.error(
+            request,
+            "You do not have a PowerPoint template selected and have not configured a default template",
+            extra_tags="alert-danger",
+        )
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": pk})
+        )
     except ValueError as exception:
         messages.error(
             request,
@@ -1111,7 +1169,7 @@ def generate_pptx(request, pk):
     except ReportTemplate.DoesNotExist:
         messages.error(
             request,
-            "You do not have a PowerPoint template selected and have not selected a default template",
+            "You do not have a PowerPoint template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
         return HttpResponseRedirect(

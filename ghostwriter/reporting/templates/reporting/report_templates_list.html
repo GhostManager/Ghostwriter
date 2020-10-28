@@ -44,25 +44,21 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if template.doc_type.doc_type == "docx" %}
-                            {% with template.get_status as status %}
-                                <span class="badge
-                                    {% if status == "success" %}
-                                        badge-success">Ready</span>
+                        {% with template.get_status as status %}
+                            <span class="badge
+                                {% if status == "success" %}
+                                    badge-success">Ready</span>
+                                {% else %}
+                                    {% if status == "warning" %}
+                                        badge-warning
+                                    {% elif status == "unknown" %}
+                                        badge-secondary
                                     {% else %}
-                                        {% if status == "warning" %}
-                                            badge-warning
-                                        {% elif status == "unknown" %}
-                                            badge-secondary
-                                        {% else %}
-                                            badge-danger
-                                        {% endif %}
-                                        ">{{ status|capfirst }}</span>
+                                        badge-danger
                                     {% endif %}
-                            {% endwith %}
-                        {% else %}
-                            <span class="badge badge-success">Ready</span>
-                        {% endif %}
+                                    ">{{ status|capfirst }}</span>
+                                {% endif %}
+                        {% endwith %}
                     </td>
                     <td>{{ template.doc_type }}</td>
                     <td><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>

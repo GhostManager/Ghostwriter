@@ -594,7 +594,10 @@
                         if (data['message']) {
                             displayToastTop({type:data['result'], string:data['message'], title:'Template Update'});
                         }
-                        if (data['lint_message']) {
+                        if (data['docx_message']) {
+                            displayToastTop({type:data['lint_result'], string:data['lint_message'], title:'Template Issue', delay:10});
+                        }
+                        if (data['pptx_message']) {
                             displayToastTop({type:data['lint_result'], string:data['lint_message'], title:'Template Issue', delay:10});
                         }
                     }

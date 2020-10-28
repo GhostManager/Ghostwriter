@@ -47,12 +47,13 @@ def delete_old_evidence(sender, instance, **kwargs):
 
 
 @receiver(post_init, sender=ReportTemplate)
-def backup_template_path(sender, instance, **kwargs):
+def backup_template_attr(sender, instance, **kwargs):
     """
-    Backup the file path of the old template file in the :model:`reporting.ReportTemplate`
-    instance when a new file is uploaded.
+    Backup the file path and document type of the old template file in the
+    :model:`reporting.ReportTemplate` instance when a new file is uploaded.
     """
     instance._current_template = instance.document
+    instance._current_type = instance.doc_type
 
 
 @receiver(post_save, sender=ReportTemplate)
@@ -65,8 +66,7 @@ def clean_template(sender, instance, created, **kwargs):
     if hasattr(instance, "_current_template"):
         if instance._current_template:
             if instance._current_template.path not in instance.document.path:
-                if instance.doc_type.doc_type == "docx":
-                    lint_template = True
+                lint_template = True
                 try:
                     if os.path.exists(instance._current_template.path):
                         try:
@@ -95,21 +95,33 @@ def clean_template(sender, instance, created, **kwargs):
                 "Template file paths match, so will not re-run the linter or delete any files"
             )
 
+    if hasattr(instance, "_current_type"):
+        if instance._current_type != instance.doc_type:
+            lint_template = True
+
     if created or lint_template:
-        if instance.doc_type.doc_type == "docx":
-            logger.info("New template file detected, so starting linter")
-            try:
-                logger.info(
-                    "Linting newly uploaded template: %s",
-                    instance.document.path,
-                )
-                template_loc = instance.document.path
-                linter = TemplateLinter(template_loc=template_loc)
+        logger.info("Template file change detected, so starting linter")
+        logger.info(
+            "Linting newly uploaded template: %s",
+            instance.document.path,
+        )
+        try:
+            template_loc = instance.document.path
+            linter = TemplateLinter(template_loc=template_loc)
+            if instance.doc_type.doc_type == "docx":
                 results = linter.lint_docx()
-                instance.lint_result = results
-                # Disconnect signal to save model and avoid infinite loop
-                post_save.disconnect(clean_template, sender=ReportTemplate)
-                instance.save()
-                post_save.connect(clean_template, sender=ReportTemplate)
-            except Exception:
-                logger.exception("Failed to update new template with linting results")
+            elif instance.doc_type.doc_type == "pptx":
+                results = linter.lint_pptx()
+            else:
+                logger.warning(
+                    "Template had an unknown filetype not supported by the linter: %s",
+                    instance.doc_type,
+                )
+                results = {}
+            instance.lint_result = results
+            # Disconnect signal to save model and avoid infinite loop
+            post_save.disconnect(clean_template, sender=ReportTemplate)
+            instance.save()
+            post_save.connect(clean_template, sender=ReportTemplate)
+        except Exception:
+            logger.exception("Failed to update new template with linting results")

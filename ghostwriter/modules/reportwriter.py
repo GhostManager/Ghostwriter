@@ -389,7 +389,7 @@ class Reportwriter:
         separator between Word document elements.
         """
         # A paragraph must be added and followed by a run
-        p = self.spenny_doc.add_paragraph()
+        p = self.word_doc.add_paragraph()
         run = p.add_run()
         # Add break to run to create the ``<w:r>`` needed for the doc XML
         run.add_break()
@@ -520,7 +520,7 @@ class Reportwriter:
             if level is None:
                 level = 0
             numbering = (
-                self.spenny_doc.part.numbering_part.numbering_definitions._numbering
+                self.word_doc.part.numbering_part.numbering_definitions._numbering
             )
             # Compute the abstract ID first by style, then by num
             abstract = get_abstract_id()
@@ -582,7 +582,7 @@ class Reportwriter:
                     p.text = evidence_text
                     p.style = "CodeBlock"
                     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                    p = self.spenny_doc.add_paragraph("Figure ", style="Caption")
+                    p = self.word_doc.add_paragraph("Figure ", style="Caption")
                     self.make_figure(p)
                     run = p.add_run(
                         " \u2013 " + finding["evidence"][keyword]["caption"]
@@ -631,7 +631,7 @@ class Reportwriter:
                 pic_data.append(ln_xml)
 
                 # Create the caption for the image
-                p = self.spenny_doc.add_paragraph("Figure ", style="Caption")
+                p = self.word_doc.add_paragraph("Figure ", style="Caption")
                 self.make_figure(p)
                 run = p.add_run(" \u2013 " + finding["evidence"][keyword]["caption"])
         # Skip unapproved files
@@ -779,7 +779,7 @@ class Reportwriter:
                 run._r.append(hyperlink)
                 # A workaround for the lack of a hyperlink style (doesn't go purple after using the link)
                 # Delete this if using a template that has the hyperlink style in it
-                if "Hyperlink" in self.spenny_doc.styles:
+                if "Hyperlink" in self.word_doc.styles:
                     run.style = "Hyperlink"
                 else:
                     run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
@@ -971,14 +971,14 @@ class Reportwriter:
         else:
             if num:
                 try:
-                    p = self.spenny_doc.add_paragraph(style="Number List")
+                    p = self.word_doc.add_paragraph(style="Number List")
                 except Exception:
-                    p = self.spenny_doc.add_paragraph(style="List Paragraph")
+                    p = self.word_doc.add_paragraph(style="List Paragraph")
             else:
                 try:
-                    p = self.spenny_doc.add_paragraph(style="Bullet List")
+                    p = self.word_doc.add_paragraph(style="Bullet List")
                 except Exception:
-                    p = self.spenny_doc.add_paragraph(style="List Paragraph")
+                    p = self.word_doc.add_paragraph(style="List Paragraph")
             self.list_number(p, prev=prev_p, level=level, num=num)
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
         return p
@@ -1121,7 +1121,7 @@ class Reportwriter:
                     if self.report_type == "pptx":
                         p = self.finding_body_shape.text_frame.add_paragraph()
                     else:
-                        p = self.spenny_doc.add_paragraph()
+                        p = self.word_doc.add_paragraph()
                     self.process_nested_tags(contents, p, finding)
                 # PRE – Code Blocks
                 elif tag_name == "pre":
@@ -1169,7 +1169,7 @@ class Reportwriter:
                                     for code_line in parts:
                                         # Create paragraph and apply 'CodeBlock' style
                                         # Style is managed in the docx template
-                                        p = self.spenny_doc.add_paragraph(code_line)
+                                        p = self.word_doc.add_paragraph(code_line)
                                         p.style = "CodeBlock"
                                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                 # OL & UL – Ordered/Numbered & Unordered Lists
@@ -1277,11 +1277,43 @@ class Reportwriter:
         self.report_json = json.loads(self.generate_json())
         # Create Word document writer using the specified template file
         try:
-            self.main_spenny_doc = DocxTemplate(self.template_loc)
+            self.main_word_doc = DocxTemplate(self.template_loc)
         except Exception:
             logger.exception(
                 "Failed to load the provided template document: %s", self.template_loc
             )
+
+        # Check for styles
+        styles = self.main_word_doc.styles
+        if "CodeBlock" not in styles:
+            codeblock_style = styles.add_style("CodeBlock", WD_STYLE_TYPE.PARAGRAPH)
+            codeblock_style.base_style = styles["Normal"]
+            codeblock_style.hidden = False
+            codeblock_style.quick_style = True
+            codeblock_style.priority = 2
+            # Set font and size
+            codeblock_font = codeblock_style.font
+            codeblock_font.name = "Courier New"
+            codeblock_font.size = Pt(11)
+            # Set alignment
+            codeblock_par = codeblock_style.paragraph_format
+            codeblock_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            codeblock_par.line_spacing = 1
+            codeblock_par.left_indent = Inches(0.2)
+            codeblock_par.right_indent = Inches(0.2)
+
+        if "Code (inline)" not in styles:
+            codeinline_style = styles.add_style(
+                "Code (inline)", WD_STYLE_TYPE.PARAGRAPH
+            )
+            codeinline_style.hidden = False
+            codeinline_style.quick_style = True
+            codeinline_style.priority = 3
+            # Set font and size
+            codeblock_font = codeinline_style.font
+            codeblock_font.name = "Courier New"
+            codeblock_font.size = Pt(11)
+
         # Prepare the ``context`` dict for the Word template rendering
         context = {}
         context["report_date"] = datetime.now().strftime("%B %d, %Y")
@@ -1323,17 +1355,18 @@ class Reportwriter:
 
         # Findings information
         context["findings"] = self.report_json["findings"].values()
+        context["total_findings"] = len(self.report_json["findings"].values())
 
         # Generate the subdocument for findings
-        self.spenny_doc = self.main_spenny_doc.new_subdoc()
+        self.word_doc = self.main_word_doc.new_subdoc()
         self.generate_finding_subdoc()
-        context["findings_subdoc"] = self.spenny_doc
+        context["findings_subdoc"] = self.word_doc
 
         # Render the Word document + auto-escape any unsafe XML/HTML
-        self.main_spenny_doc.render(context, self.jinja_env, autoescape=True)
+        self.main_word_doc.render(context, self.jinja_env, autoescape=True)
 
         # Return the final rendered document
-        return self.main_spenny_doc
+        return self.main_word_doc
 
     def generate_finding_subdoc(self):
         """
@@ -1341,12 +1374,19 @@ class Reportwriter:
         """
         counter = 0
         total_findings = len(self.report_json["findings"].values())
+        styles = self.word_doc.styles
         for finding in self.report_json["findings"].values():
             # There's a special Heading 3 for the finding title so we don't use ``add_heading()`` here
-            p = self.spenny_doc.add_paragraph(finding["title"])
-            p.style = "Heading 3 - Finding"
+            if "Heading 3 - Finding" in styles:
+                p = self.word_doc.add_paragraph(finding["title"])
+                p.style = "Heading 3 - Finding"
+            else:
+                if "Heading 3" in styles:
+                    self.word_doc.add_heading(finding["title"], 3)
+                else:
+                    self.word_doc.add_heading(finding["title"], 3)
             # This is Heading 4 but we want to make severity a run to color it so we don't use ``add_heading()`` here
-            p = self.spenny_doc.add_paragraph()
+            p = self.word_doc.add_paragraph()
             p.style = "Heading 4"
             run = p.add_run("Severity – ")
             run = p.add_run("{}".format(finding["severity"]))
@@ -1356,29 +1396,29 @@ class Reportwriter:
             )
 
             # Add an Affected Entities section
-            self.spenny_doc.add_heading("Affected Entities", 4)
+            self.word_doc.add_heading("Affected Entities", 4)
             self.process_text_xml(finding["affected_entities"], finding)
 
             # Add a Description section that may also include evidence figures
-            self.spenny_doc.add_heading("Description", 4)
+            self.word_doc.add_heading("Description", 4)
             self.process_text_xml(finding["description"], finding)
 
             # Create Impact section
-            self.spenny_doc.add_heading("Impact", 4)
+            self.word_doc.add_heading("Impact", 4)
             self.process_text_xml(finding["impact"], finding)
 
             # Create Recommendations section
-            self.spenny_doc.add_heading("Recommendation", 4)
+            self.word_doc.add_heading("Recommendation", 4)
             self.process_text_xml(finding["recommendation"], finding)
 
             # Create Replication section
-            self.spenny_doc.add_heading("Replication Steps", 4)
+            self.word_doc.add_heading("Replication Steps", 4)
             self.process_text_xml(finding["replication_steps"], finding)
 
             # Check if techniques are provided before creating a host detection section
             if finding["host_detection_techniques"]:
                 # \u2013 is an em-dash
-                self.spenny_doc.add_heading(
+                self.word_doc.add_heading(
                     "Adversary Detection Techniques \u2013 Host", 4
                 )
                 self.process_text_xml(finding["host_detection_techniques"], finding)
@@ -1386,20 +1426,20 @@ class Reportwriter:
             # Check if techniques are provided before creating a network detection section
             if finding["network_detection_techniques"]:
                 # \u2013 is an em-dash
-                self.spenny_doc.add_heading(
+                self.word_doc.add_heading(
                     "Adversary Detection Techniques \u2013 Network", 4
                 )
                 self.process_text_xml(finding["network_detection_techniques"], finding)
 
             # Create References section
             if finding["references"]:
-                self.spenny_doc.add_heading("References", 4)
+                self.word_doc.add_heading("References", 4)
                 self.process_text_xml(finding["references"], finding)
             counter += 1
 
             # Check if this is the last finding to avoid an extra blank page
             if not counter == total_findings:
-                self.spenny_doc.add_page_break()
+                self.word_doc.add_page_break()
 
     def process_text_xlsx(self, html, text_format, finding):
         """
@@ -1459,21 +1499,21 @@ class Reportwriter:
         self.report_json = json.loads(self.generate_json())
 
         # Create xlsxwriter
-        spenny_doc = memory_object
-        self.worksheet = spenny_doc.add_worksheet("Findings")
+        word_doc = memory_object
+        self.worksheet = word_doc.add_worksheet("Findings")
 
         # Create some basic formats
         # Header format
-        bold_format = spenny_doc.add_format({"bold": True})
+        bold_format = word_doc.add_format({"bold": True})
         bold_format.set_text_wrap()
         bold_format.set_align("vcenter")
         # Affected assets format
-        asset_format = spenny_doc.add_format()
+        asset_format = word_doc.add_format()
         asset_format.set_text_wrap()
         asset_format.set_align("vcenter")
         asset_format.set_align("center")
         # Remaining cells
-        wrap_format = spenny_doc.add_format()
+        wrap_format = word_doc.add_format()
         wrap_format.set_text_wrap()
         wrap_format.set_align("vcenter")
         # Create header row for findings
@@ -1506,7 +1546,7 @@ class Reportwriter:
             self.worksheet.write(self.row, self.col, finding["title"], wrap_format)
             self.col += 1
             # Severity
-            severity_format = spenny_doc.add_format({"bold": True})
+            severity_format = word_doc.add_format({"bold": True})
             severity_format.set_align("vcenter")
             severity_format.set_align("center")
             severity_format.set_font_color("black")
@@ -1581,8 +1621,8 @@ class Reportwriter:
         )
 
         # Finalize document
-        spenny_doc.close()
-        return spenny_doc
+        word_doc.close()
+        return word_doc
 
     def generate_powerpoint_pptx(self):
         """
@@ -1593,7 +1633,7 @@ class Reportwriter:
         self.report_json = json.loads(self.generate_json())
         # Create document writer using the specified template
         try:
-            self.spenny_ppt = Presentation(self.template_loc)
+            self.ppt_presentation = Presentation(self.template_loc)
         except ValueError:
             logger.exception(
                 "Failed to load the provided template document because it is not a PowerPoint file: %s",
@@ -1624,8 +1664,8 @@ class Reportwriter:
         SLD_LAYOUT_FINAL = 12
 
         # Add a title slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
@@ -1640,8 +1680,8 @@ class Reportwriter:
         p.text = self.report_json["client"]["full_name"]
 
         # Add Agenda slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Agenda"
@@ -1649,8 +1689,8 @@ class Reportwriter:
         text_frame = body_shape.text_frame
 
         # Add Introduction slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Introduction"
@@ -1658,8 +1698,8 @@ class Reportwriter:
         text_frame = body_shape.text_frame
 
         # Add Methodology slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Methodology"
@@ -1667,8 +1707,8 @@ class Reportwriter:
         text_frame = body_shape.text_frame
 
         # Add Attack Path Overview slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Attack Path Overview"
@@ -1676,8 +1716,8 @@ class Reportwriter:
         text_frame = body_shape.text_frame
 
         # Add Findings Overview Slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
@@ -1744,8 +1784,10 @@ class Reportwriter:
 
         # Create slide for each finding
         for finding in self.report_json["findings"].values():
-            slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-            self.finding_slide = self.spenny_ppt.slides.add_slide(slide_layout)
+            slide_layout = self.ppt_presentation.slide_layouts[
+                SLD_LAYOUT_TITLE_AND_CONTENT
+            ]
+            self.finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = self.finding_slide.shapes
             title_shape = shapes.title
             self.finding_body_shape = shapes.placeholders[1]
@@ -1782,8 +1824,8 @@ class Reportwriter:
             )
 
         # Add Observations slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
@@ -1791,8 +1833,8 @@ class Reportwriter:
         text_frame = body_shape.text_frame
 
         # Add Recommendations slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
@@ -1800,8 +1842,8 @@ class Reportwriter:
         text_frame = body_shape.text_frame
 
         # Add Conclusion slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
@@ -1809,8 +1851,8 @@ class Reportwriter:
         text_frame = body_shape.text_frame
 
         # Add final slide
-        slide_layout = self.spenny_ppt.slide_layouts[SLD_LAYOUT_FINAL]
-        slide = self.spenny_ppt.slides.add_slide(slide_layout)
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_FINAL]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         body_shape = shapes.placeholders[1]
         text_frame = body_shape.text_frame
@@ -1826,7 +1868,7 @@ class Reportwriter:
         p.line_spacing = 0.7
 
         # Finalize document and return it for an HTTP response
-        return self.spenny_ppt
+        return self.ppt_presentation
 
     def generate_all_reports(self, docx_template, pptx_template):
         """
@@ -1863,7 +1905,6 @@ class Reportwriter:
 
 class TemplateLinter:
     """Lint template files to catch undefined variables and syntax errors."""
-
     def __init__(self, template_loc):
         self.template_loc = template_loc
         self.jinja_template_env = jinja2.Environment(
@@ -1976,7 +2017,53 @@ class TemplateLinter:
                 logger.error("Template file path did not exist: %s", self.template_loc)
                 results = {
                     "result": "failed",
-                    "errors": ["Template file does not exist"],
+                    "errors": ["Template file does not exist – upload it again"],
+                }
+        else:
+            logger.error("Received a `None` value for template location")
+
+        logger.info("Template linting completed")
+        return json.dumps(results)
+
+    def lint_pptx(self):
+        """
+        Lint the provided PowerPoint pptx file from :model:`reporting.ReportTemplate`.
+        """
+        results = {"result": "success", "warnings": [], "errors": []}
+        if self.template_loc:
+            if os.path.exists(self.template_loc):
+                logger.info("Found template file at %s", self.template_loc)
+                try:
+                    # Test 1: Check if the document is a PPTX file
+                    template_document = Presentation(self.template_loc)
+
+                    # Test 2: Check for existing slides
+                    slide_count = len(template_document.slides)
+                    logger.warning("Slide count was %s", slide_count)
+                    if slide_count > 0:
+                        results["warnings"].append(
+                            "Template can be used, but it has slides when it should be empty (see documentation)"
+                        )
+                except ValueError:
+                    logger.exception(
+                        "Failed to load the provided template document because it is not a PowerPoint file: %s",
+                        self.template_loc,
+                    )
+                    results = {
+                        "result": "failed",
+                        "errors": ["Template file is not a PowerPoint presentation"],
+                    }
+                except Exception:
+                    logger.exception("Template failed rendering")
+                    results = {
+                        "result": "failed",
+                        "errors": ["Template rendering failed unexpectedly"],
+                    }
+            else:
+                logger.error("Template file path did not exist: %s", self.template_loc)
+                results = {
+                    "result": "failed",
+                    "errors": ["Template file does not exist – upload it again"],
                 }
         else:
             logger.error("Received a `None` value for template location")
