@@ -438,12 +438,16 @@
             <script>
                 // Connect to channel for individual notifcations
                 var username = '{{ user }}';
+                var protocol = "ws://"
+                if (location.protocol == "https:") {
+                    protocol = "wss://"
+                }
                 var ws_user = new WebSocket(
-                  'ws://' + window.location.host +
+                  protocol + window.location.host +
                   '/ws/users/' + username + '/');
                 // Connect to channel for all user notifications
                 var ws_all = new WebSocket(
-                  'ws://' + window.location.host +
+                  protocol + window.location.host +
                   '/ws/users/all/');
 
                 // Functions for sending messages
