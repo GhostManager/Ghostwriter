@@ -538,16 +538,6 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the client
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Client.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
@@ -575,6 +565,20 @@ class ClientCreate(LoginRequiredMixin, CreateView):
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
             return super(ClientCreate, self).form_invalid(form)
+
+    def get_initial(self):
+        # Generate and assign a unique codename to the project
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=codename)
+            except Exception:
+                codename_verified = True
+        return {
+            "codename": codename,
+        }
 
 
 class ClientUpdate(LoginRequiredMixin, UpdateView):
@@ -619,16 +623,6 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the client
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Client.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
@@ -847,16 +841,6 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the project
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Project.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         objectives = ctx["objectives"]
@@ -892,8 +876,18 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             return super(ProjectCreate, self).form_invalid(form)
 
     def get_initial(self):
+        # Generate and assign a unique codename to the project
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=codename)
+            except Exception:
+                codename_verified = True
         return {
             "client": self.client,
+            "codename": codename,
         }
 
 
