@@ -32,7 +32,7 @@ class Client(models.Model):
         max_length=255,
         null=True,
         blank=True,
-        help_text="A codename for the client that might be used to discuss the client in public",
+        help_text="Give the client a codename (might be a ticket number, CMS reference, or something else)",
     )
     note = models.TextField(
         "Client Note",
@@ -140,7 +140,7 @@ class Project(models.Model):
         max_length=255,
         null=True,
         blank=True,
-        help_text="A codename for the client that might be used to discuss the client in public",
+        help_text="Give the project a codename (might be a ticket number, PMO reference, or something else)",
     )
     start_date = models.DateField(
         "Start Date", max_length=12, help_text="Enter the start date of this project"

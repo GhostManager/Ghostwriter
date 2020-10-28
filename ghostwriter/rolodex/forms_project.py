@@ -419,7 +419,7 @@ class ProjectForm(forms.ModelForm):
 
     class Meta:
         model = Project
-        exclude = ("operator", "codename", "complete")
+        exclude = ("operator", "complete")
 
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
@@ -459,6 +459,7 @@ class ProjectForm(forms.ModelForm):
                         """
                     ),
                     "client",
+                    "codename",
                     Row(
                         Column("start_date", css_class="form-group col-md-6 mb-0"),
                         Column("end_date", css_class="form-group col-md-6 mb-0"),
@@ -591,6 +592,7 @@ class ProjectNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note
