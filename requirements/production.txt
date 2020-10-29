@@ -8,4 +8,4 @@ Collectfast==0.6.2  # https://github.com/antonagestam/collectfast
 
 # Django
 # ------------------------------------------------------------------------------
-django-anymail[mailgun]==6.1.0  # https://github.com/anymail/django-anymail
+django-anymail[mailgun]==8.1  # https://github.com/anymail/django-anymail
