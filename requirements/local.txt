@@ -26,4 +26,4 @@ pylint-django==2.0.11  # https://github.com/PyCQA/pylint-django
 django-debug-toolbar==2.0  # https://github.com/jazzband/django-debug-toolbar
 django-extensions==2.1.9  # https://github.com/django-extensions/django-extensions
 django-coverage-plugin==1.6.0  # https://github.com/nedbat/django_coverage_plugin
-pytest-django==3.5.1  # https://github.com/pytest-dev/pytest-django
+pytest-django==4.1.0  # https://github.com/pytest-dev/pytest-django
