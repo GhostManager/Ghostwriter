@@ -16,7 +16,7 @@ factory-boy==3.0.1  # https://github.com/FactoryBoy/factory_boy
 
 # Code quality
 # ------------------------------------------------------------------------------
-flake8==3.8.3  # https://github.com/PyCQA/flake8
+flake8==3.8.4  # https://github.com/PyCQA/flake8
 coverage==5.2.1  # https://github.com/nedbat/coveragepy
 black==19.10b0  # https://github.com/ambv/black
 pylint-django==2.0.11  # https://github.com/PyCQA/pylint-django
