@@ -24,15 +24,27 @@ function adjust_dialog() {
 
 // Default config for all TinyMCE editors
 var default_config = {
+    branding: false,
     width: '100%',
     height: '300',
     theme: 'silver',
     skin: 'Ghostwriter',
     selector: 'textarea',
     editor_deselector: 'empty-form',
-    menubar: 'file edit tools',
-    plugins: 'lists image hr autosave advlist code wordcount codesample searchreplace paste link',
-    toolbar: 'bold italic link bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
+    menubar: 'file edit insert view format tools',
+    visualchars_default_state: true,
+    menu: {
+        file: { title: 'File', items: 'newdocument restoredraft' },
+        edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
+        view: { title: 'View', items: 'code | visualaid visualchars visualblocks | preview' },
+        insert: { title: 'Insert', items: 'evidenceUpload codesample link' },
+        format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat | formats fontformats fontsizes align | forecolor | removeformat' },
+        tools: { title: 'Tools', items: 'code wordcount' },
+      },
+    toolbar_mode: 'floating',
+    plugins: 'visualaid visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link',
+    toolbar: 'subscript superscript bold italic underline link | bullist numlist | codesample codeInline | evidenceUpload | removeformat save',
+    contextmenu: 'bold italic link removeformat',
     paste_as_text: true,
     paste_data_images: false,
     browser_spellcheck: true,
@@ -65,9 +77,9 @@ var default_config = {
             selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
             classes: 'right'
         },
-        alignfull: {
+        alignjustify: {
             selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-            classes: 'full'
+            classes: 'justify'
         },
         bold: {
             inline: 'span',
@@ -84,8 +96,47 @@ var default_config = {
         },
         strikethrough: {
             inline: 'del'
-        }
+        },
+        subscript: {
+            inline: 'sub'
+        },
+        superscript: {
+            inline: 'sup'
+        },
+        highlight: {
+            inline : 'span',
+            classes : 'highlight',
+            styles : {
+                backgroundColor : 'yellow'
+            }
+        },
     },
+    style_formats: [
+        { title: 'Headings', items: [
+          { title: 'Heading 1', format: 'h1' },
+          { title: 'Heading 2', format: 'h2' },
+          { title: 'Heading 3', format: 'h3' },
+          { title: 'Heading 4', format: 'h4' },
+          { title: 'Heading 5', format: 'h5' },
+          { title: 'Heading 6', format: 'h6' }
+        ]},
+        { title: 'Inline', items: [
+          { title: 'Bold', format: 'bold' },
+          { title: 'Italic', format: 'italic' },
+          { title: 'Underline', format: 'underline' },
+          { title: 'Strikethrough', format: 'strikethrough' },
+          { title: 'Superscript', format: 'superscript' },
+          { title: 'Subscript', format: 'subscript' },
+          { title: 'Code', format: 'code' },
+          { title: 'Highlight', format: 'highlight' }
+        ]},
+        { title: 'Align', items: [
+          { title: 'Left', format: 'alignleft' },
+          { title: 'Center', format: 'aligncenter' },
+          { title: 'Right', format: 'alignright' },
+          { title: 'Justify', format: 'alignjustify' }
+        ]}
+      ]
 }
 
 /*
@@ -98,7 +149,7 @@ basic_config = {
     setup: function (editor) {
         editor.ui.registry.addButton('codeInline', {
             icon: 'sourcecode',
-            text: 'Inline Code',
+            text: '',
             tooltip: 'Format selected text as inline code',
             onAction: function (_) {
                 tinymce.activeEditor.formatter.toggle('code')
@@ -120,7 +171,6 @@ Combine it with the default config above
 
 finding_config = {
     selector: "textarea.enable-evidence-upload",
-    toolbar: 'bold italic link bullist numlist codesample codeBlock codeInline evidenceUpload removeformat searchreplace',
     setup: function (editor) {
         editor.ui.registry.addButton('codeInline', {
             icon: 'sourcecode',
