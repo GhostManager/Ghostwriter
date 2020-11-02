@@ -111,7 +111,7 @@ class FindingForm(forms.ModelForm):
                 css_class="nav-justified",
             ),
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
                     <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
@@ -149,7 +149,8 @@ class ReportForm(forms.ModelForm):
         self.helper.layout = Layout(
             "title",
             "project",
-            "template",
+            "docx_template",
+            "pptx_template",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -256,7 +257,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             ),
             "references",
             ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
                     <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
