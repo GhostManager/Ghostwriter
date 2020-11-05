@@ -221,8 +221,8 @@ class Reportwriter:
                     f"{start_day} {start_month} - {end_day} {end_month} {end_year}"
                 )
             else:
-                execution_window = f"{start_month} {start_day}, {start_year}-{end_month} {end_day}, {end_year}"
-                execution_window_uk = f"{start_day} {start_month} {start_year}-{end_day} {end_month} {end_year}"
+                execution_window = f"{start_month} {start_day}, {start_year} - {end_month} {end_day}, {end_year}"
+                execution_window_uk = f"{start_day} {start_month} {start_year} - {end_day} {end_month} {end_year}"
         report_dict["project"]["start_date"] = start_datetime.strftime("%B %d, %Y")
         report_dict["project"]["start_date_uk"] = start_datetime.strftime("%d %B %Y")
         report_dict["project"]["end_date"] = end_datetime.strftime("%B %d, %Y")
