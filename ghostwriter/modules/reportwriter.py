@@ -39,6 +39,26 @@ from ghostwriter.commandcenter.models import CompanyInformation, ReportConfigura
 logger = logging.getLogger(__name__)
 
 
+class ReportConstants:
+    """Constant values used for report generation."""
+
+    DEFAULT_STYLE_VALUES = {
+        "bold": False,
+        "underline": False,
+        "italic": False,
+        "inline_code": False,
+        "strikethrough": False,
+        "font_family": None,
+        "font_size": None,
+        "font_color": None,
+        "highlight": None,
+        "superscript": False,
+        "subscript": False,
+        "hyperlink": False,
+        "hyperlink_url": None,
+    }
+
+
 class Reportwriter:
     """Generate report documents in Microsoft Office formats."""
 
