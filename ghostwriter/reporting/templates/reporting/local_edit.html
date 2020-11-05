@@ -78,13 +78,17 @@
                                     </td>
                                     <td class="text-left align-middle">On a new line, reference this evidence file, <em>{{ finding.document.name }}</em>, to insert it into the finding.</td>
                                 </tr>
+                                <tr>
+                                    <td class="text-left align-middle">
+                                        {% templatetag openvariable %}.ref {{ finding.friendly_name }}{% templatetag closevariable %}
+                                    </td>
+                                    <td class="text-left align-middle">Add a cross-reference to the caption of thr above evidence file.</td>
+                                </tr>
                             {% endfor %}
                         {% endif %}
                     </table>
-                    <p>Insert evidence by using the above keywords. Image evidence may be inserted and previewed inline by clicking the WYSIWIG editor's image button and entering the evidence image's Ghostwriter URL (e.g., <em>https://ghosttwriter.local/media/evidence/2/ghostwriter.png</em>).</p>
-                    <p>Inserting an external image's URL will work but these images <strong><em><u>will not be</u></em></strong> carried over to the report outputs.</p>
-                    <p>For additional formatting, utilize the WYSIWIG HTML formatting to apply bold, italic, code, and inline code text styles.</p>
-                    <p>These styles will carry over to the Word report output as bold, italic, "CodeBlock," and "Code (Inline)" styles respectively.</p>
+                    <p>Insert evidence by using the above keywords. For additional formatting, utilize the WYSIWIG HTML formatting to apply bold, italic, code, inline code, and other text styles.</p>
+                    <p>These styles will carry over to the Word and PowerPoint reports. See the documentaiton for more details.</p>
                 </div>
             </div>
         </div>
