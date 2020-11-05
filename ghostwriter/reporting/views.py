@@ -28,7 +28,8 @@ from django.urls import reverse, reverse_lazy
 from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
-from docx.opc.exceptions import PackageNotFoundError
+from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
+from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from xlsxwriter.workbook import Workbook
 
 # Ghostwriter Libraries
@@ -653,9 +654,13 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
                 "message"
             ] = "Template linter returned results with no errors or warnings"
         elif not data["result"]:
-            data["message"] = f"Template had an unknown filetype not supported by the linter: {self.object.doc_type}"
+            data[
+                "message"
+            ] = f"Template had an unknown filetype not supported by the linter: {self.object.doc_type}"
         else:
-            data["message"] = f"Template linter returned results with issues that require attention"
+            data[
+                "message"
+            ] = "Template linter returned results with issues that require attention"
 
         return JsonResponse(data)
 
@@ -1049,10 +1054,10 @@ def generate_docx(request, pk):
         return HttpResponseRedirect(
             reverse("reporting:report_detail", kwargs={"pk": pk})
         )
-    except PackageNotFoundError:
+    except DocxPackageNotFoundError:
         messages.error(
             request,
-            "The specified Word docx template could not be found",
+            "Your selected Word template could not be found on the server – try uploading it again",
             extra_tags="alert-danger",
         )
     except FileNotFoundError as error:
@@ -1175,6 +1180,15 @@ def generate_pptx(request, pk):
         return HttpResponseRedirect(
             reverse("reporting:report_detail", kwargs={"pk": pk})
         )
+    except PptxPackageNotFoundError:
+        messages.error(
+            request,
+            "Your selected PowerPoint template could not be found on the server – try uploading it again",
+            extra_tags="alert-danger",
+        )
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": pk})
+        )
     except Exception as error:
         messages.error(
             request,
@@ -1214,15 +1228,20 @@ def generate_all(request, pk):
         if report_instance.docx_template:
             docx_template = report_instance.docx_template
         else:
-            docx_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="docx"
-            )
-        if report_instance.pptx_template:
+            report_config = ReportConfiguration.objects.get()
+            docx_template = report_config.default_docx_template
+            if not docx_template:
+                raise MissingTemplate
+        docx_template = docx_template.document.path
+
+        if report_instance.docx_template:
             pptx_template = report_instance.pptx_template
         else:
-            pptx_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="pptx"
-            )
+            report_config = ReportConfiguration.objects.get()
+            pptx_template = report_config.default_pptx_template
+            if not pptx_template:
+                raise MissingTemplate
+        pptx_template = pptx_template.document.path
 
         engine = reportwriter.Reportwriter(
             report_instance, output_path, evidence_path, template_loc=None
@@ -1249,6 +1268,21 @@ def generate_all(request, pk):
         response["Content-Disposition"] = f"attachment; filename={report_name}.zip"
         response.write(zip_buffer.read())
         return response
+    except MissingTemplate:
+        messages.error(
+            request,
+            "You do not have a PowerPoint template selected and have not configured a default template",
+            extra_tags="alert-danger",
+        )
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": pk})
+        )
+    except ValueError as exception:
+        messages.error(
+            request,
+            f"Your selected template could not be loaded as a PowerPoint template: {exception}",
+            extra_tags="alert-danger",
+        )
     except Report.DoesNotExist:
         messages.error(
             request,
@@ -1258,16 +1292,31 @@ def generate_all(request, pk):
     except ReportTemplate.DoesNotExist:
         messages.error(
             request,
-            "You do not have templates selected for Word and PowerPoint and have not selected default templates",
+            "You do not have a PowerPoint template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
         return HttpResponseRedirect(
             reverse("reporting:report_detail", kwargs={"pk": pk})
         )
-    except Exception:
+    except DocxPackageNotFoundError:
         messages.error(
             request,
-            "Failed to generate one or more documents for the archive",
+            "Your selected Word template could not be found on the server – try uploading it again",
+            extra_tags="alert-danger",
+        )
+    except PptxPackageNotFoundError:
+        messages.error(
+            request,
+            "Your selected PowerPoint template could not be found on the server – try uploading it again",
+            extra_tags="alert-danger",
+        )
+        return HttpResponseRedirect(
+            reverse("reporting:report_detail", kwargs={"pk": pk})
+        )
+    except Exception as error:
+        messages.error(
+            request,
+            "Encountered an error generating the document: {}".format(error),
             extra_tags="alert-danger",
         )
     return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
@@ -1634,7 +1683,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
     **Context**
 
     ``project``
-        Instance of :model:`reporting.Project` associated with this report
+        Instance of :model:`rolodex.Project` associated with this report
     ``cancel_link``
         Link for the form's Cancel button to return to report list or details page
 
@@ -1653,7 +1702,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         # Determine if ``pk`` is in the kwargs
         if "pk" in self.kwargs:
             pk = self.kwargs.get("pk")
-            # Try to get the project from :model:`reporting.Project`
+            # Try to get the project from :model:`rolodex.Project`
             if pk:
                 try:
                     self.project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
@@ -2046,6 +2095,8 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
             old_assignee = old_entry.assigned_to
             # Notify new assignee over WebSockets
             if "assigned_to" in form.changed_data:
+                new_users_assignments = {}
+                old_users_assignments = {}
                 # Only notify if the assignee is not the user who made the change
                 if self.request.user != self.object.assigned_to:
                     # Count the current user's total assignments
@@ -2088,7 +2139,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                             "assignments": new_users_assignments,
                         },
                     )
-                if self.request.user != old_assignee:
+                if self.request.user != old_assignee and old_users_assignments:
                     # Send a message to the unassigned user
                     async_to_sync(channel_layer.group_send)(
                         "notify_{}".format(old_assignee),
