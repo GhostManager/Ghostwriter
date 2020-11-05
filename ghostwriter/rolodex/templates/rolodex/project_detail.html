@@ -170,6 +170,43 @@
                     <p>No objectives have been set for this project yet.</p>
                 {% endif %}
             </div>
+            <div id="activity" class="tab-pane ">
+                <p>
+                    <a href="{% url 'oplog:oplog_create' project.id %}" style="padding-right: 20px;"><i class="far fa-plus-square"></i> Start New Operation Log</a>
+                    OR
+                    <a href="{% url 'oplog:oplog_create_no_project' %}" style="padding-left: 20px;"><i class="fas fa-file-upload"></i> Import Oplog</a>
+                </p>
+                {% if project.oplog_set.all %}
+                    <table id="oplogTable" class="tablesorter">
+                        <thead>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Last Activity</th>
+                            <th>Export CSV</th>
+                        </thead>
+                        {% for log in project.oplog_set.all %}
+                            <tr>
+                                <td class="oplog-id">{{ log.id }}</td>
+                                <td class="clickable"><a href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
+                                <td>
+                                    {% if log.entries.all %}
+                                        {% for entry in log.entries.all %}
+                                            {% if forloop.last %}
+                                                {{ entry.start_date }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        No entries yet
+                                    {% endif %}
+                                </td>
+                                <td class="js-export-oplog"><a href="javascript:void(0);" class="btn btn-secondary col-md-12">Export</a></td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>An operation logs has not been started for this project yet.</p>
+                {% endif %}
+            </div>
             <div id="reports" class="tab-pane ">
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
@@ -729,6 +766,25 @@
                     }
                 }
             });
+        });
+    </script>
+
+    <!-- Export Oplog with JS -->
+    <script>
+        function download(url, filename) {
+            fetch(url).then(function (t) {
+                return t.blob().then((b) => {
+                    var a = document.createElement("a");
+                    a.href = URL.createObjectURL(b);
+                    a.setAttribute("download", filename);
+                    a.click();
+                });
+            });
+        }
+
+        $(".js-export-oplog").on("click", function () {
+            id = $(this).parent().find('.oplog-id').html()
+            download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
         });
     </script>
 
