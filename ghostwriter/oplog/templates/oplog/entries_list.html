@@ -16,7 +16,7 @@
 {% block content %}
 <!-- Oplog Table Section -->
 <div id="connection">
-    <div align="right" id="connectionStatus"><i class="fas fa-network-wired" style="color:red"></i>Disconnected</div>
+    <div align="center" id="connectionStatus"><i class="fas fa-network-wired" style="color:red"></i>Disconnected</div>
 </div>
 <div id="utilBar">
     <div style="float:left;">
@@ -25,8 +25,10 @@
     <div style="float:left;">
 
     </div>
-    <div style="float:right; ">
-        <a href="javascript:void(0)" id="createNewEntry"><i class=" far fa-plus-square"></i> Create a new entry</a>
+    <div style="float:right; text-align: left;">
+        <a href="javascript:void(0)" id="createNewEntry"><i class=" far fa-plus-square"></i> Create a new entry</a><br />
+        <a href="javascript:void(0)" id="importNewEntries"><i class="fas fa-file-upload"></i> Import entries</a><br />
+        <a href="javascript:void(0)" id="exportEntries"><i class="fas fa-download"></i> Export entries</a>
     </div>
 </div>
 <div style="clear: both;"></div>
@@ -480,7 +482,27 @@
                 'action': 'create',
                 'oplog_id': {{ pk }}
             }))
-    })
+        })
+
+        $('#importNewEntries').click(function () {
+            window.open('{% url "oplog:oplog_import" %}', '_self');
+        })
+
+        function download(url, filename) {
+            fetch(url).then(function (t) {
+                return t.blob().then((b) => {
+                    var a = document.createElement("a");
+                    a.href = URL.createObjectURL(b);
+                    a.setAttribute("download", filename);
+                    a.click();
+                });
+            });
+        }
+
+        $('#exportEntries').click(function () {
+            filename = generateDownloadName('{{ name }}-log-export-{{ id }}.csv');
+            download(`/oplog/api/entries?export=csv&&oplog_id={{ pk }}`, filename);
+        })
 
     });
 
