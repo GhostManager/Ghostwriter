@@ -121,6 +121,25 @@ class Reportwriter:
                 filtered_values.append(finding)
         return filtered_values
 
+    def strip_html(self, s):
+        """
+        Strip HTML tags from the provided HTML while preserving newlines created by
+        ``<br />`` and ``<p>`` tags and spaces.
+
+        **Parameters**
+
+        ``s``
+            String of HTML text to strip down
+        """
+        html = BeautifulSoup(s, "lxml")
+        output = ""
+        for tag in html.descendants:
+            if isinstance(tag, str):
+                output += tag
+            elif tag.name == "br" or tag.name == "p":
+                output += "\n"
+        return output
+
     def valid_xml_char_ordinal(self, c):
         """
         Clean string to make all characters XML compatible for Word documents.
