@@ -577,21 +577,72 @@ class Reportwriter:
         par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = num
         par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
 
-    def process_evidence(self, finding, keyword, file_path, extension, p):
+        return par
+
+    def get_styles(self, tag):
+        """
+        Get styles from an BS4 ``Tag`` object's ``styles`` attribute and convert
+        the string to a dictionary.
+
+        **Parameters**
+
+        ``tag`` : Tag
+            BS4 ``Tag`` witth a ``styles`` attribute
+        """
+        tag_styles = {}
+        style_str = tag.attrs["style"]
+        # Filter any blanks from the split
+        style_list = list(filter(None, style_str.split(";")))
+        for style in style_list:
+            temp = style.split(":")
+            key = temp[0].strip()
+            value = temp[1].strip()
+            try:
+                if key == "font-size":
+                    # Remove the "pt" from the font size and convert it to a ``Pt`` object
+                    value = value.replace("pt", "")
+                    value = float(value)
+                    value = Pt(value)
+                if key == "font-family":
+                    # Some fonts include a list of values – get just the first one
+                    font_list = value.split(",")
+                    priority_font = (
+                        font_list[0].replace("'", "").replace('"', "").strip()
+                    )
+                    value = priority_font
+                if key == "color":
+                    # Convert the color hex value to an ``RGCBolor`` object
+                    value = value.replace("#", "")
+                    n = 2
+                    hex_color = [
+                        hex(int(value[i : i + n], 16)) for i in range(0, len(value), n)
+                    ]
+                    if self.report_type == "pptx":
+                        value = PptxRGBColor(*map(lambda v: int(v, 16), hex_color))
+                    else:
+                        value = RGBColor(*map(lambda v: int(v, 16), hex_color))
+                tag_styles[key] = value
+            except Exception:
+                logger.exception(
+                    "Failed to convert one of the inline styles for a text run"
+                )
+        return tag_styles
+
+    def process_evidence(self, finding, keyword, file_path, extension, par):
         """
         Process the specified evidence file for the named finding to add it to the Word document.
 
         **Parameters**
 
-        ``finding``
+        ``finding`` : dict
             Finding currently being processed
-        ``keyword``
+        ``keyword`` : string
             Evidence keyword corresponding to the evidence attached to the finding
-        ``file_path``
+        ``file_path`` : string
             File path for the evidence file
-        ``extension``
+        ``extension`` : string
             Evidence file's extension
-        ``par``
+        ``par`` : Paragraph
             Paragraph meant to hold the evidence
         """
         if extension in self.text_extensions:
