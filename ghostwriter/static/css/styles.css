@@ -827,6 +827,28 @@ th.severity_header {
   padding-bottom: 10px;
   border-bottom: none;
   pointer-events: none;
+  opacity: 0.8;
+  color: #fff;
+}
+
+th.severity_header.critical {
+  background-color: var(--crit-rating-color);
+}
+
+th.severity_header.high {
+  background-color: var(--high-rating-color);
+}
+
+th.severity_header.medium {
+  background-color: var(--med-rating-color);
+}
+
+th.severity_header.low {
+  background-color: var(--low-rating-color);
+}
+
+th.severity_header.informational {
+  background-color: var(--info-rating-color);
 }
 
 .severity_header:hover {
@@ -1057,7 +1079,7 @@ td p {
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .icon:before {
