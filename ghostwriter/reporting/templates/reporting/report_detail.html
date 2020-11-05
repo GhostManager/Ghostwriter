@@ -200,11 +200,11 @@
         </div>
 
         <div class="btn-group">
-            <a class="btn btn-default js-generate-word" href="{% url 'reporting:generate_docx' report.id %}"><i style="font-size: 35px; color: blue" class="far fa-file-word"></i><br />docx</a>
+            <a class="btn btn-default js-generate-report" href="{% url 'reporting:generate_docx' report.id %}"><i style="font-size: 35px; color: blue" class="far fa-file-word"></i><br />docx</a>
             <a class="btn btn-default" href="{% url 'reporting:generate_xlsx' report.id %}"><i style="font-size: 35px; color: green" class="far fa-file-excel"></i><br />xlsx</a>
             <a class="btn btn-default" href="{% url 'reporting:generate_pptx' report.id %}"><i style="font-size: 35px; color: darkorange" class="far fa-file-powerpoint"></i><br />pptx</a>
             <a class="btn btn-default" href="{% url 'reporting:generate_json' report.id %}"><i style="font-size: 35px" class="far fa-file-code"></i><br />JSON</a>
-            <a class="btn btn-default" href="{% url 'reporting:generate_all' report.id %}"><i style="font-size: 35px; color: tan" class="far fa-file-archive"></i><br />All</a>
+            <a class="btn btn-default js-generate-report" href="{% url 'reporting:generate_all' report.id %}"><i style="font-size: 35px; color: tan" class="far fa-file-archive"></i><br />All</a>
         </div>
     </div>
 {% endblock %}
@@ -227,8 +227,9 @@
             </div>
         </div>
     </div>
+
     <script>
-        $('.js-generate-word').click(function () {
+        $('.js-generate-report').click(function () {
             $('#spinner-modal').modal('show');
             setTimeout(() => {  $('#spinner-modal').modal('toggle'); }, 4000);
         });

@@ -149,8 +149,17 @@ class ReportForm(forms.ModelForm):
         self.helper.layout = Layout(
             "title",
             "project",
-            "docx_template",
-            "pptx_template",
+            HTML(
+                """
+                <h6 class="icon file-icon">Assign Templates</h6>
+                <hr />
+                """
+            ),
+            Row(
+                Column("docx_template", css_class="form-group col-md-6 mb-0"),
+                Column("pptx_template", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
