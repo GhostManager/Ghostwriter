@@ -55,7 +55,7 @@
                     <!-- Sidebar Top Section -->
                     <a href="{% url 'home:dashboard' %}">
                         <div class="sidebar-header">
-                            <h3><img src="{% static 'images/font_ghost.png' %}" alt="SpecterOps" style="width:10%"> Ghostwriter</h3>
+                            <h3><img src="{% static 'images/all_white_logo.png' %}" alt="SpecterOps" style="width:10%"> Ghostwriter</h3>
                         </div>
                     </a>
 
@@ -131,7 +131,7 @@
                             <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Operation Logs</a>
                             <ul class="collapse list-unstyled" id="oplogSubmenu">
                                 <li><a href="{% url 'oplog:index' %}">View Oplogs</a></li>
-                                <li><a href="{% url 'oplog:create_oplog' %}">Create Oplog</a></li>
+                                <li><a href="{% url 'oplog:oplog_create_no_project' %}">Start New Oplog</a></li>
                                 <li><a href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
                             </ul>
                         </li>
@@ -436,7 +436,7 @@
         {% if user.is_authenticated %}
             <!-- Script for WebSockets Group for Authenticated Users -->
             <script>
-                // Connect to channel for individual notifcations
+                // Connect to channel for individual notifications
                 var username = '{{ user }}';
                 var protocol = "ws://"
                 if (location.protocol == "https:") {
