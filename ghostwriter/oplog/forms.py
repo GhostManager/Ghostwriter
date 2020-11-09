@@ -35,6 +35,8 @@ class OplogForm(forms.ModelForm):
         else:
             self.fields["project"].empty_label = "-- No Active Projects --"
         self.fields["project"].queryset = active_projects
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -66,6 +68,8 @@ class OplogEntryForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(OplogEntryForm, self).__init__(*args, **kwargs)
         # self.oplog_id = pk
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
         self.helper.form_method = "post"
