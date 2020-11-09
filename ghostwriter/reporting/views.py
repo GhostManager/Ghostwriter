@@ -1000,7 +1000,7 @@ def generate_docx(request, pk):
         if report_instance.docx_template:
             report_template = report_instance.docx_template
         else:
-            report_config = ReportConfiguration.objects.get()
+            report_config = ReportConfiguration.get_solo()
             report_template = report_config.default_docx_template
             if not report_template:
                 raise MissingTemplate
@@ -1134,7 +1134,7 @@ def generate_pptx(request, pk):
         if report_instance.docx_template:
             report_template = report_instance.pptx_template
         else:
-            report_config = ReportConfiguration.objects.get()
+            report_config = ReportConfiguration.get_solo()
             report_template = report_config.default_pptx_template
             if not report_template:
                 raise MissingTemplate
@@ -1228,7 +1228,7 @@ def generate_all(request, pk):
         if report_instance.docx_template:
             docx_template = report_instance.docx_template
         else:
-            report_config = ReportConfiguration.objects.get()
+            report_config = ReportConfiguration.get_solo()
             docx_template = report_config.default_docx_template
             if not docx_template:
                 raise MissingTemplate
@@ -1237,7 +1237,7 @@ def generate_all(request, pk):
         if report_instance.docx_template:
             pptx_template = report_instance.pptx_template
         else:
-            report_config = ReportConfiguration.objects.get()
+            report_config = ReportConfiguration.get_solo()
             pptx_template = report_config.default_pptx_template
             if not pptx_template:
                 raise MissingTemplate
@@ -2038,6 +2038,8 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
     def get(self, *args, **kwargs):
         self.object = self.get_object()
         file_path = os.path.join(settings.MEDIA_ROOT, self.object.document.path)
+        logger.info(file_path)
+        logger.info(self.object.document.path)
         if os.path.exists(file_path):
             with open(file_path, "rb") as template:
                 response = HttpResponse(

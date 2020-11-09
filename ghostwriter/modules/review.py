@@ -32,7 +32,7 @@ class DomainReview(object):
     """
 
     # Get API configuration
-    virustotal_config = VirusTotalConfiguration.objects.get()
+    virustotal_config = VirusTotalConfiguration.get_solo()
     if virustotal_config.enable is False:
         logger.error(
             "Tried to run a domain review without VirusTotal configured and enabled"

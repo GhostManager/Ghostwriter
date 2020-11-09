@@ -26,6 +26,7 @@ from django_q.tasks import async_task
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
+    NamecheapConfiguration,
     VirusTotalConfiguration,
 )
 from ghostwriter.rolodex.models import Project
@@ -268,7 +269,7 @@ class DomainUpdateHealth(LoginRequiredMixin, View):
                     group="Domain Updates",
                     hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
                 )
-            message = "Successfully queud domain category update task (Task ID {task}) ".format(
+            message = "Successfully queued domain category update task (Task ID {task}) ".format(
                 task=task_id
             )
         except Exception:
@@ -817,9 +818,12 @@ def update(request):
     # Check if the request is a GET
     if request.method == "GET":
         # Get relevant configuration settings
-        sleep_time = VirusTotalConfiguration.objects.get().sleep_time
-        enable_cloud_monitor = CloudServicesConfiguration.objects.get().enable
-        enable_namecheap = CloudServicesConfiguration.objects.get().enable
+        vt_config = VirusTotalConfiguration.get_solo()
+        sleep_time = vt_config.sleep_time
+        cloud_config = CloudServicesConfiguration.get_solo()
+        enable_cloud_monitor = cloud_config.enable
+        namecheap_config = NamecheapConfiguration.get_solo()
+        enable_namecheap = namecheap_config.enable
 
         # Collect data for category updates
         cat_last_update_completed = ""

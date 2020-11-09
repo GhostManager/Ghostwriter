@@ -29,7 +29,7 @@ def send_slack_msg(message, slack_channel=None):
     ``slack_channel``
         Defaults to using the global setting. Can be set to any Slack channel name
     """
-    slack_config = SlackConfiguration.objects.get()
+    slack_config = SlackConfiguration.get_solo()
 
     if slack_config.enable:
         message = slack_config.slack_alert_target + " " + message

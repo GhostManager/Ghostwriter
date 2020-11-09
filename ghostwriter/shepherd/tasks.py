@@ -221,7 +221,7 @@ def send_slack_msg(message, slack_channel=None):
     ``slack_channel``
         Defaults to using the global setting. Can be set to any Slack channel name
     """
-    slack_config = SlackConfiguration.objects.get()
+    slack_config = SlackConfiguration.get_solo()
 
     if slack_config.enable:
         message = slack_config.slack_alert_target + " " + message
@@ -299,7 +299,7 @@ def release_domains(no_action=False, reset_dns=False):
     reset_record_template = (
         "&HostName1=@&RecordType1=URL&Address1=http://www.namecheap.com&TTL1=100"
     )
-    namecheap_config = NamecheapConfiguration.objects.get()
+    namecheap_config = NamecheapConfiguration.get_solo()
     if reset_dns is True and namecheap_config.enable is False:
         logger.warning(
             "Received request to reset Namecheap DNS records for released domains, but Namecheap API is disabled in settings"
@@ -549,7 +549,7 @@ def check_domains(domain=None):
         Individual domain's primary key to update only that domain (Default: None)
     """
     # Fetch Slack configuration information
-    slack_config = SlackConfiguration.objects.get()
+    slack_config = SlackConfiguration.get_solo()
 
     # Get target domain(s) from the database
     domain_list = []
@@ -820,7 +820,7 @@ def fetch_namecheap_domains():
         "Starting Namecheap synchronization task at %s", datetime.datetime.now()
     )
 
-    namecheap_config = NamecheapConfiguration.objects.get()
+    namecheap_config = NamecheapConfiguration.get_solo()
 
     try:
         # The Namecheap API call requires both usernames, a key, and a whitelisted IP
@@ -1082,10 +1082,10 @@ def review_cloud_infrastructure():
     DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
 
     # Fetch cloud API keys and tokens
-    cloud_config = CloudServicesConfiguration.objects.get()
+    cloud_config = CloudServicesConfiguration.get_solo()
 
     # Fetch Slack configuration information
-    slack_config = SlackConfiguration.objects.get()
+    slack_config = SlackConfiguration.get_solo()
 
     # Set timezone for dates to UTC
     utc = pytz.UTC
@@ -1434,7 +1434,7 @@ def test_aws_keys(user):
     """
     Test the AWS access keys configured in :model:`commandcenter.CloudServicesConfiguration`.
     """
-    cloud_config = CloudServicesConfiguration.objects.get()
+    cloud_config = CloudServicesConfiguration.get_solo()
     level = "error"
     logger.info("Starting a test of the AWS keys at %s", datetime.datetime.now())
     try:
@@ -1479,7 +1479,7 @@ def test_digital_ocean(user):
     :model:`commandcenter.CloudServicesConfiguration`.
     """
     DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
-    cloud_config = CloudServicesConfiguration.objects.get()
+    cloud_config = CloudServicesConfiguration.get_solo()
     level = "error"
     logger.info(
         "Starting a test of the Digital Ocean API key at %s", datetime.datetime.now()
@@ -1543,10 +1543,9 @@ def test_namecheap(user):
     """
     Test the Namecheap API configuration stored in :model:`commandcenter.NamecheapConfiguration`.
     """
-    domains_list = []
     session = requests.Session()
     get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}"
-    namecheap_config = NamecheapConfiguration.objects.get()
+    namecheap_config = NamecheapConfiguration.get_solo()
     level = "error"
     logger.info("Starting Namecheap API test at %s", datetime.datetime.now())
     try:
@@ -1621,7 +1620,7 @@ def test_slack_webhook(user):
     """
     Test the Slack Webhook configuration stored in :model:`commandcenter.SlackConfiguration`.
     """
-    slack_config = SlackConfiguration.objects.get()
+    slack_config = SlackConfiguration.get_solo()
     level = "error"
     logger.info("Starting Slack Webhook test at %s", datetime.datetime.now())
     try:
@@ -1697,7 +1696,7 @@ def test_virustotal(user):
     """
     Test the VirusTotal API key stored in :model:`commandcenter.VirusTotalConfiguration`.
     """
-    virustotal_config = VirusTotalConfiguration.objects.get()
+    virustotal_config = VirusTotalConfiguration.get_solo()
     level = "error"
     logger.info("Starting VirusTotal API test at %s", datetime.datetime.now())
     try:

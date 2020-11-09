@@ -97,8 +97,8 @@ class Reportwriter:
         self.report_queryset = report_queryset
 
         # Get the global report configuration
-        global_report_config = ReportConfiguration.objects.get()
-        self.company_config = CompanyInformation.objects.get()
+        global_report_config = ReportConfiguration.get_solo()
+        self.company_config = CompanyInformation.get_solo()
 
         # Track report type for different Office XML
         self.report_type = None
@@ -1648,6 +1648,7 @@ class Reportwriter:
         # Assessment information
         context["assessment_name"] = self.report_json["project"]["name"]
         context["assessment_type"] = self.report_json["project"]["project_type"]
+        context["project_type"] = context["assessment_type"]
         context["company"] = self.company_config.company_name
         context["company_pocs"] = self.report_json["team"].values()
 
