@@ -157,6 +157,22 @@ h6 {
   cursor: pointer;
 }
 
+.copy-link:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f0c5';
+  color: #51B071;
+  padding-left: 5px;
+  font-size: 14px;
+}
+
+.copy-link {
+  cursor: copy;
+}
+
 #scroll-button {
   display: inline-block;
   background-color: var(--button-primary-color);
@@ -379,7 +395,6 @@ input[type='file'] {
   position: relative;
   color: var(--search-text-color);
   font-size: 16px;
-  padding-bottom: 10px;
 }
 
 .search input {
@@ -1079,7 +1094,7 @@ td p {
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;
-  font-weight: 400;
+  font-weight: 600;
 }
 
 .icon:before {
@@ -1310,7 +1325,7 @@ td p {
   border: none;
 }
 
-.myaccordion .card {
+.myaccordion>.card {
   padding: 0 0 0 0;
   border-radius: 5px;
   overflow: hidden;
@@ -1357,11 +1372,11 @@ td p {
 }
 
 .myaccordion .card-header:hover,
-.card-header[aria-expanded=true] {
+.myaccordion .card-header[aria-expanded=true] {
   background-color: var(--accordion-expanded-color);
 }
 
-.card-header:after {
+.myaccordion .card-header:after {
   content: '\002B';
   color: #fff;
   font-weight: 600;
@@ -1369,7 +1384,18 @@ td p {
   margin-left: 5px;
 }
 
-.card-header[aria-expanded=true]:after {
+h5 a:after {
+  content: '\002B';
+  color: #000;
+  font-weight: 600;
+  float: right;
+}
+
+h5 a[aria-expanded=true]:after {
+  content: '\2212';
+}
+
+.myaccordion .card-header[aria-expanded=true]:after {
   content: '\2212';
 }
 
@@ -1613,7 +1639,7 @@ img {
   height: auto;
 }
 
-.card {
+.dashboard__item>.card {
   height: 100%;
   padding: 1rem;
   font-size: 2rem;
@@ -1623,14 +1649,7 @@ img {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.card table {
-  margin: 0px;
-  width: 90%;
-  margin-left: 5%;
-  border: none;
-}
-
-.card td {
+.dashboard__item>.card td {
   border-bottom: 0;
   text-align: left;
 }
