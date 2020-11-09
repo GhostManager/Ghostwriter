@@ -64,7 +64,7 @@
                         <p class="sideheader"><i class="fas fa-address-card"></i> Clients & Projects</p>
 
                         <!-- Search Section -->
-                        <div class="search center-block">
+                        <div class="search center-block mb-1">
                             <form action="{% url 'rolodex:clients' %}" method="GET">
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -101,7 +101,7 @@
                         <p class="sideheader"><i class="fas fa-pencil-alt"></i> Findings & Reports</p>
 
                         <!-- Search Section -->
-                        <div class="search center-block">
+                        <div class="search center-block mb-1">
                             <form action="{% url 'reporting:findings' %}" method="GET">
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -142,7 +142,7 @@
                         <p class="sideheader"><i class="fas fa-server"></i> Infrastructure</p>
 
                         <!-- Search Section -->
-                        <div class="search center-block">
+                        <div class="search center-block mb-1">
                             <form action="{% url 'shepherd:domains' %}" method="GET">
                                 <div class="input-group">
                                     <div class="input-group-prepend">
@@ -331,7 +331,7 @@
             function copyToClipboard(element) {
                 var $temp = $("<input>");
                 $("body").append($temp);
-                $temp.val($(element).text()).select();
+                $temp.val($(element).text().trim()).select();
                 document.execCommand("copy");
                 $temp.remove();
             }
