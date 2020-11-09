@@ -140,14 +140,16 @@
 
                 <p>The health of a domain changes if a third-party labels the domain with an undesirable category or the domain has positive detections in VirusTotal.</em><p>
 
-                {% if domain.burned_explanation %}
-                    <p>
-                        This domain has been flagged as <em>Burned</em> for the following reason(s):<br>
-                        <hr>
-                        <p>{{ domain.burned_explanation|bleach }}</p>
-                    </p>
-                {% else %}
-                    <p>This domain has been flagged as <em>Burned</em> with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
+                {% if domain.health_status.health_status == "Burned"%}
+                    {% if domain.burned_explanation %}
+                        <p>
+                            This domain has been flagged as <em>Burned</em> for the following reason(s):<br>
+                            <hr>
+                            <p>{{ domain.burned_explanation|bleach }}</p>
+                        </p>
+                    {% else %}
+                        <p>This domain has been flagged as <em>Burned</em> with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
+                    {% endif %}
                 {% endif %}
 
                 <table>
