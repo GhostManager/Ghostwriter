@@ -216,9 +216,7 @@ class ReportTemplate(models.Model):
     """
 
     # Direct template uploads to ``TEMPLATE_LOC`` instead of ``MEDIA``
-    template_storage = FileSystemStorage(
-        location=settings.TEMPLATE_LOC, base_url="/templates"
-    )
+    template_storage = FileSystemStorage(location=settings.TEMPLATE_LOC)
 
     document = models.FileField(storage=template_storage, blank=True)
     name = models.CharField(
