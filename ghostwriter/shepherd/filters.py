@@ -88,8 +88,8 @@ class DomainFilter(django_filters.FilterSet):
                 css_class="form-row",
             ),
             Accordion(
-                AccordionGroup("Health Statuses", InlineCheckboxes("health_status")),
                 AccordionGroup("Domain Statuses", InlineCheckboxes("domain_status")),
+                AccordionGroup("Health Statuses", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(
                 Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
