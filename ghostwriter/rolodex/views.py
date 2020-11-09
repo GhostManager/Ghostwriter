@@ -829,7 +829,12 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super(ProjectCreate, self).get_context_data(**kwargs)
         ctx["client"] = self.client
-        ctx["cancel_link"] = reverse("rolodex:projects")
+        if self.client:
+            ctx["cancel_link"] = reverse(
+                "rolodex:client_detail", kwargs={"pk": self.client.pk}
+            )
+        else:
+            ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj")
             ctx["assignments"] = ProjectAssignmentFormSet(
