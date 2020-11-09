@@ -24,10 +24,9 @@
 
         <p>This page lists all report templates and their current statuses. To investigate a status, view the template's details page.</p>
 
-        <table id="reportTable" class="tablesorter">
+        <table id="reportTable" class="tablesorter table">
             <thead>
                 <tr>
-                    <th>Default</th>
                     <th>Status</th>
                     <th>Doc Type</th>
                     <th>Name</th>
@@ -38,11 +37,6 @@
 
             {% for template in reporttemplate_list %}
                 <tr>
-                    <td>
-                        {% if template.default %}
-                            <i class="healthy fas fa-check"></i>
-                        {% endif %}
-                    </td>
                     <td>
                         {% with template.get_status as status %}
                             <span class="badge
