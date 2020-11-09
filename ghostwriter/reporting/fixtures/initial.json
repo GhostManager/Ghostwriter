@@ -105,5 +105,31 @@
     "fields": {
       "doc_type": "pptx"
     }
+  },
+  {
+    "model": "reporting.reporttemplate",
+    "pk": 1,
+    "fields": {
+      "name": "Default Word Template",
+      "document": "/app/ghostwriter/media/templates/template.docx",
+      "description": "A sample Word template provided by Ghostwriter.",
+      "upload_date": "2020-11-12",
+      "last_update": "2020-11-12",
+      "doc_type": 1,
+      "lint_result": "{\"result\": \"success\", \"warnings\": [], \"errors\": []}"
+    }
+  },
+  {
+    "model": "reporting.reporttemplate",
+    "pk": 2,
+    "fields": {
+      "name": "Default PowerPoint Template",
+      "document": "/app/ghostwriter/media/templates/template.pptx",
+      "description": "A sample PowerPoint presentation template provided by Ghostwriter.",
+      "upload_date": "2020-11-12",
+      "last_update": "2020-11-12",
+      "doc_type": 2,
+      "lint_result": "{\"result\": \"success\", \"warnings\": [], \"errors\": []}"
+    }
   }
 ]
