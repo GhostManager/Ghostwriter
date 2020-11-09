@@ -107,7 +107,9 @@ ASGI_APPLICATION = "ghostwriter.routing.application"
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [("redis", 6379)],},
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
     },
 }
 
@@ -345,9 +347,7 @@ SOLO_CACHE_TIMEOUT = 60 * 5
 SOLO_CACHE_PREFIX = "solo"
 
 # Default location for report templates
-TEMPLATE_LOC = env(
-    "TEMPLATE_LOC", default=str(APPS_DIR("reporting", "templates", "reports"))
-)
+TEMPLATE_LOC = env("TEMPLATE_LOC", default=str(APPS_DIR("media", "templates")))
 
 # BLEACH
 # ------------------------------------------------------------------------------
@@ -366,6 +366,15 @@ BLEACH_ALLOWED_TAGS = [
     "b",
     "i",
     "pre",
+    "sub",
+    "sup",
+    "del",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
 ]
 # Which HTML attributes are allowed
 BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
