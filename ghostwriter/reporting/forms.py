@@ -333,7 +333,6 @@ class EvidenceForm(forms.ModelForm):
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
-        # Set a special form attribute to provide a URL for the evidence upload modal
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_id = "evidence-upload-form"
         self.helper.layout = Layout(
@@ -358,7 +357,10 @@ class EvidenceForm(forms.ModelForm):
                 """
             ),
             Div(
-                "document",
+                Field(
+                    "document",
+                    id="id_document",
+                ),
                 HTML(
                     """
                     <label id="filename" class="custom-file-label" for="customFile">Choose evidence file...</label>
