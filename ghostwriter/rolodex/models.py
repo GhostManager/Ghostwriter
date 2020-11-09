@@ -319,8 +319,11 @@ class ProjectObjective(models.Model):
 
     def get_status():
         """Get the default status for the status field."""
-        active_status = ObjectiveStatus.objects.get(objective_status="Active")
-        return active_status.id
+        try:
+            active_status = ObjectiveStatus.objects.get(objective_status="Active")
+            return active_status.id
+        except ObjectiveStatus.DoesNotExist:
+            return 1
 
     objective = models.TextField(
         "Objective", null=True, blank=True, help_text="Provide a concise objective"
