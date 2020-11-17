@@ -1161,9 +1161,9 @@ def review_cloud_infrastructure():
                         else:
                             tags.append("{}: {}".format(tag["Key"], tag["Value"]))
                 pub_addresses = []
-                pub_addresses.append(instance.private_ip_address)
+                pub_addresses.append(instance.public_ip_address)
                 priv_addresses = []
-                priv_addresses.append(instance.public_ip_address)
+                priv_addresses.append(instance.private_ip_address)
                 # Add instance info to a dictionary
                 vps_info["instances"][instance.id] = {
                     "id": instance.id,
