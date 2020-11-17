@@ -998,67 +998,65 @@ class Reportwriter:
                 "{{.project_type}}", self.report_json["project"]["project_type"].lower()
             )
         # Transform caption placeholders into figures
-        if "{{.caption}}" in text:
-            text = text.replace("{{.caption}}", "")
+        if keyword.startswith("caption"):
+            logger.info("GOT A CAPTION: %s", repr(keyword))
+            ref_name = keyword.lstrip("caption ")
+            ref_name = re.sub("[^A-Za-z0-9]+", "", ref_name)
+            logger.info(text)
+            text = text.replace("{{.%s}}" % keyword, "")
+            logger.info(text)
             if self.report_type == "pptx":
-                # Only option would be to make the caption a slide bullet and that would be weird - so just pass
-                pass
+                if ref_name:
+                    run = par.add_run()
+                    run.text = f"See {ref_name}"
+                    font = run.font
+                    font.italic = True
             else:
-                # TODO: How to handle ref?
                 par.style = "Caption"
-                self.make_figure(par)
+                if ref_name:
+                    self.make_figure(par, ref_name)
+                else:
+                    self.make_figure(par)
                 par.add_run(self.prefix_figure + text)
+            return par
+
+        # Transform references into bookmarks
+        if keyword and keyword.startswith("ref "):
+            ref_keyword = keyword
+            keyword = keyword.lstrip("ref ")
+            ref_name = re.sub("[^A-Za-z0-9]+", "", keyword)
+            ref_placeholder = "{{.%s}}" % ref_keyword
+            exploded_text = re.split(f"({ref_placeholder})", text)
+            for text in exploded_text:
+                if text == ref_placeholder:
+                    if self.report_type == "pptx":
+                        run = par.add_run()
+                        run.text = f"See {ref_name}"
+                        font = run.font
+                        font.italic = True
+                    else:
+                        self.make_cross_ref(
+                            par,
+                            ref_name,
+                        )
+                else:
+                    self.write_xml(text, par, styles)
             return par
 
         # Handle evidence keywords
         if "evidence" in finding:
-            reference = False
-            ref_keyword = ""
-            if keyword and keyword.startswith("ref "):
-                reference = True
-                ref_keyword = keyword
-                keyword = keyword.lstrip("ref ")
-
             if keyword and keyword in finding["evidence"].keys():
-                if reference:
-                    # Strip all non-alphanumeric characters and spaces
-                    ref_name = re.sub(
-                        "[^A-Za-z0-9]+",
-                        "",
-                        finding["evidence"][keyword]["friendly_name"],
-                    )
-                    ref_placeholder = "{{.%s}}" % ref_keyword
-                    exploded_text = re.split(f"({ref_placeholder})", text)
-                    for text in exploded_text:
-                        if text == ref_placeholder:
-                            if self.report_type == "pptx":
-                                # No cross-references in PowerPoint, so drop-in placeholder text
-                                run = par.add_run()
-                                run.text = "See Evidence"
-                                font = run.font
-                                font.italic = True
-                            else:
-                                self.make_cross_ref(
-                                    par,
-                                    ref_name,
-                                )
-                        else:
-                            self.write_xml(text, par, styles)
+                file_path = (
+                    settings.MEDIA_ROOT
+                    + "/"
+                    + finding["evidence"][keyword]["file_path"]
+                )
+                extension = finding["evidence"][keyword]["url"].split(".")[-1]
+                if os.path.exists(file_path):
+                    self.process_evidence(finding, keyword, file_path, extension, par)
                     return par
                 else:
-                    file_path = (
-                        settings.MEDIA_ROOT
-                        + "/"
-                        + finding["evidence"][keyword]["file_path"]
-                    )
-                    extension = finding["evidence"][keyword]["url"].split(".")[-1]
-                    if os.path.exists(file_path):
-                        self.process_evidence(
-                            finding, keyword, file_path, extension, par
-                        )
-                        return par
-                    else:
-                        raise FileNotFoundError(file_path)
+                    raise FileNotFoundError(file_path)
 
         # If nothing above triggers, write the text
         self.write_xml(text, par, styles)
