@@ -1509,6 +1509,7 @@ def convert_finding(request, pk):
     return render(request, "reporting/finding_form.html", {"form": form})
 
 
+@login_required
 def export_findings_to_csv(request):
     """
     Export all :model:`reporting.Finding` to a csv file for download.
