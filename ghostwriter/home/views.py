@@ -6,9 +6,10 @@ import logging
 
 # Django & Other 3rd Party Libraries
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
@@ -127,7 +128,7 @@ def upload_avatar(request):
     )
 
 
-class Management(LoginRequiredMixin, PermissionRequiredMixin, View):
+class Management(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Display the current Ghostwriter settings.
 
@@ -141,7 +142,12 @@ class Management(LoginRequiredMixin, PermissionRequiredMixin, View):
     :template:`home/management.html`
     """
 
-    permission_required = "is_staff"
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def get(self, request, *args, **kwargs):
         context = {
@@ -150,14 +156,19 @@ class Management(LoginRequiredMixin, PermissionRequiredMixin, View):
         return render(request, "home/management.html", context=context)
 
 
-class TestAWSConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
+class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``AWS Test`` with
     :task:`shepherd.tasks.test_aws_keys` to test AWS keys in
     :model:`commandcenter.CloudServicesConfiguration`.
     """
 
-    permission_required = "is_staff"
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
         # Add an async task grouped as ``AWS Test``
@@ -180,14 +191,19 @@ class TestAWSConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
         return JsonResponse(data)
 
 
-class TestDOConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
+class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Digital Ocean Test`` with
     :task:`shepherd.tasks.test_digital_ocean` to test the Digital Ocean API key stored in
     :model:`commandcenter.CloudServicesConfiguration`.
     """
 
-    permission_required = "is_staff"
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
         # Add an async task grouped as ``Digital Ocean Test``
@@ -210,14 +226,19 @@ class TestDOConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
         return JsonResponse(data)
 
 
-class TestNamecheapConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
+class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Namecheap Test`` with
     :task:`shepherd.tasks.test_namecheap` to test the Namecheap API configuration stored
     in :model:`commandcenter.NamecheapConfiguration`.
     """
 
-    permission_required = "is_staff"
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
         # Add an async task grouped as ``Namecheap Test``
@@ -240,14 +261,19 @@ class TestNamecheapConnection(LoginRequiredMixin, PermissionRequiredMixin, View)
         return JsonResponse(data)
 
 
-class TestSlackConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
+class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Slack Test`` with
     :task:`shepherd.tasks.test_slack_webhook` to test the Slack Webhook configuration
     stored in :model:`commandcenter.SlackConfiguration`.
     """
 
-    permission_required = "is_staff"
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
         # Add an async task grouped as ``Slack Test``
@@ -270,14 +296,19 @@ class TestSlackConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
         return JsonResponse(data)
 
 
-class TestVirusTotalConnection(LoginRequiredMixin, PermissionRequiredMixin, View):
+class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``VirusTotal Test`` with
     :task:`shepherd.tasks.test_virustotal` to test the VirusTotal API key stored in
     :model:`commandcenter.SlackConfiguration`.
     """
 
-    permission_required = "is_staff"
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
         # Add an async task grouped as ``VirusTotal Test``
