@@ -185,7 +185,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
         evidence_upload_url = reverse(
             "reporting:upload_evidence_modal",
-            kwargs={"pk": self.instance.id},
+            kwargs={"pk": self.instance.id, "modal": "modal"},
         )
         self.fields["affected_entities"].widget.attrs[
             "placeholder"
@@ -289,17 +289,14 @@ class EvidenceForm(forms.ModelForm):
             "document",
             "description",
             "caption",
-            "uploaded_by",
-            "finding",
         )
         widgets = {
-            "uploaded_by": forms.HiddenInput(),
-            "finding": forms.HiddenInput(),
             "document": forms.FileInput(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
         self.is_modal = kwargs.pop("is_modal", None)
+        self.evidence_queryset = kwargs.pop("evidence_queryset", None)
         super(EvidenceForm, self).__init__(*args, **kwargs)
         self.fields["caption"].required = True
         self.fields["caption"].widget.attrs["autocomplete"] = "off"
@@ -368,19 +365,14 @@ class EvidenceForm(forms.ModelForm):
                 ),
                 css_class="custom-file",
             ),
-            "uploaded_by",
-            "finding",
             ButtonHolder(submit, cancel_button),
         )
 
     def clean(self):
         cleaned_data = super(EvidenceForm, self).clean()
         friendly_name = cleaned_data.get("friendly_name")
-        finding = cleaned_data.get("finding")
         # Check if provided name has already been used for another file for this report
-        report_queryset = Evidence.objects.filter(finding=finding.id).values_list(
-            "id", "friendly_name"
-        )
+        report_queryset = self.evidence_queryset.values_list("id", "friendly_name")
         for evidence in report_queryset:
             if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
                 raise ValidationError(

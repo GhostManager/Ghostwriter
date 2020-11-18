@@ -819,100 +819,6 @@ def assign_blank_finding(request, pk):
 
 
 @login_required
-def upload_evidence(request, pk):
-    """
-    Create an individual :model:`reporting.Evidence` entry linked to an individual
-    :model:`reporting.ReportFindingLink`.
-
-    **Template**
-
-    :template:`reporting/evidence_form.html`
-    """
-    finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
-    cancel_link = reverse(
-        "reporting:report_detail", kwargs={"pk": finding_instance.report.pk}
-    )
-    if request.method == "POST":
-        form = EvidenceForm(request.POST, request.FILES)
-        if form.is_valid():
-            new_evidence = form.save()
-            if os.path.isfile(new_evidence.document.path):
-                messages.success(
-                    request,
-                    "Evidence uploaded successfully",
-                    extra_tags="alert-success",
-                )
-                return HttpResponseRedirect(
-                    reverse(
-                        "reporting:report_detail",
-                        args=(new_evidence.finding.report.id,),
-                    )
-                )
-            else:
-                messages.error(
-                    request, "Evidence file failed to upload", extra_tags="alert-danger"
-                )
-                return HttpResponseRedirect(
-                    reverse(
-                        "reporting:report_detail",
-                        args=(new_evidence.finding.report.id,),
-                    )
-                )
-    else:
-        form = EvidenceForm(initial={"finding": pk, "uploaded_by": request.user})
-    return render(
-        request,
-        "reporting/evidence_form.html",
-        {"form": form, "cancel_link": cancel_link},
-    )
-
-
-@login_required
-def upload_evidence_modal(request, pk):
-    """
-    Create an individual :model:`reporting.Evidence` entry linked to an individual
-    :model:`reporting.ReportFindingLink` using a TinyMCE URLDialog.
-
-    **Template**
-
-    :template:`reporting/evidence_form_modal.html`
-    """
-    # Get a list of previously used friendly names for this finding
-    report_queryset = Evidence.objects.filter(finding=pk).values_list(
-        "friendly_name", flat=True
-    )
-    used_friendly_names = []
-    # Convert the queryset into a list to pass to JavaScript later
-    for name in report_queryset:
-        used_friendly_names.append(name)
-    # If request is a POST, validate the form and move to success page
-    if request.method == "POST":
-        form = EvidenceForm(request.POST, request.FILES)
-        if form.is_valid():
-            new_evidence = form.save()
-            if os.path.isfile(new_evidence.document.path):
-                messages.success(
-                    request,
-                    "Evidence uploaded successfully",
-                    extra_tags="alert-success",
-                )
-            else:
-                messages.error(
-                    request, "Evidence file failed to upload", extra_tags="alert-danger"
-                )
-            return HttpResponseRedirect(
-                reverse("reporting:upload_evidence_modal_success")
-            )
-    else:
-        # This is for the modal pop-up, so set the ``is_modal`` parameter to hide the usual form buttons
-        form = EvidenceForm(
-            initial={"finding": pk, "uploaded_by": request.user}, is_modal=True
-        )
-    context = {"form": form, "used_friendly_names": used_friendly_names}
-    return render(request, "reporting/evidence_form_modal.html", context=context)
-
-
-@login_required
 def upload_evidence_modal_success(request):
     """
     Display message following the successful creation of an individual
@@ -2232,6 +2138,84 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
     """
 
     model = Evidence
+
+
+class EvidenceCreate(LoginRequiredMixin, CreateView):
+    """
+    Create an individual :model:`reporting.Evidence` entry linked to an individual
+    :model:`reporting.ReportFindingLink`.
+
+    **Template**
+
+    :template:`reporting/evidence_form.html`
+    """
+
+    model = Evidence
+    form_class = EvidenceForm
+
+    def get_template_names(self):
+        if "modal" in self.kwargs:
+            modal = self.kwargs["modal"]
+            if modal:
+                return ["reporting/evidence_form_modal.html"]
+            else:
+                return ["reporting/evidence_form.html"]
+        else:
+            return ["reporting/evidence_form.html"]
+
+    def get_form_kwargs(self):
+        kwargs = super(EvidenceCreate, self).get_form_kwargs()
+        finding_pk = self.kwargs.get("pk")
+        self.evidence_queryset = Evidence.objects.filter(finding=finding_pk)
+        kwargs.update({"evidence_queryset": self.evidence_queryset})
+        self.finding_instance = get_object_or_404(ReportFindingLink, pk=finding_pk)
+        if "modal" in self.kwargs:
+            kwargs.update({"is_modal": True})
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super(EvidenceCreate, self).get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse(
+            "reporting:report_detail", kwargs={"pk": self.finding_instance.report.pk}
+        )
+        if "modal" in self.kwargs:
+            friendly_names = self.evidence_queryset.values_list(
+                "friendly_name", flat=True
+            )
+            used_friendly_names = []
+            # Convert the queryset into a list to pass to JavaScript later
+            for name in friendly_names:
+                used_friendly_names.append(name)
+            ctx["used_friendly_names"] = used_friendly_names
+
+        return ctx
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.uploaded_by = self.request.user
+        self.object.finding = self.finding_instance
+        self.object.save()
+        if os.path.isfile(self.object.document.path):
+            messages.success(
+                self.request,
+                "Evidence uploaded successfully",
+                extra_tags="alert-success",
+            )
+        else:
+            messages.error(
+                self.request,
+                "Evidence file failed to upload",
+                extra_tags="alert-danger",
+            )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        if "modal" in self.kwargs:
+            return reverse("reporting:upload_evidence_modal_success")
+        else:
+            return reverse(
+                "reporting:report_detail", args=(self.object.finding.report.pk,)
+            )
 
 
 class EvidenceUpdate(LoginRequiredMixin, UpdateView):
