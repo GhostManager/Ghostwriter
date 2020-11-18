@@ -1853,6 +1853,17 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         else:
             return self.request.user.is_active
 
+    def handle_no_permission(self):
+        messages.error(
+            self.request, "That template is protected – only an admin can edit it"
+        )
+        return HttpResponseRedirect(
+            reverse(
+                "reporting:template_detail",
+                args=(self.object.pk,),
+            )
+        )
+
     def get_context_data(self, **kwargs):
         ctx = super(ReportTemplateUpdate, self).get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:templates")
