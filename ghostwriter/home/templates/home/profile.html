@@ -1,5 +1,6 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags %}
+{% load custom_tags %}
 
 {% block pagetitle %}User Profile{% endblock %}
 
@@ -23,7 +24,7 @@
     <!-- Users Profile Section -->
     <table style="width: 55%; border: none; margin-left: 23%; margin-top: 20px" align="center">
         <tr class="hidden-table">
-            <th class="form-th"><i class="far fa-user"></i> Username</th>
+            <th class="form-th"><i class="fas fa-user"></i> Username</th>
             <td>{{ user.username }}</td>
         <tr class="hidden-table">
             <th class="form-th"><i class="fas fa-signature"></i> Full Name</th>
@@ -33,7 +34,7 @@
             <td>{{ user.email }}</td>
         </tr>
         <tr class="hidden-table">
-            <th class="form-th"><i class="fas fa-users"></i> Access</th>
+            <th class="form-th"><i class="fas fa-user-cog"></i> Access</th>
             <td>
                 {% if user.is_superuser %}
                     Superuser, Staff
@@ -42,6 +43,12 @@
                 {% else %}
                     Normal User
                {% endif %}
+            </td>
+        </tr>
+        <tr class="hidden-table">
+            <th class="form-th"><i class="fas fa-users"></i> Groups</th>
+            <td>
+                {{ user|get_groups }}
             </td>
         </tr>
     </table>
