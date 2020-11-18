@@ -13,15 +13,22 @@ class UserConsumer(AsyncWebsocketConsumer):
     """
 
     async def connect(self):
-        self.username = self.scope["url_route"]["kwargs"]["username"]
-        self.user_group_name = "notify_%s" % self.username
-        # Join user group
-        await self.channel_layer.group_add(self.user_group_name, self.channel_name)
-        await self.accept()
+        self.user = self.scope["user"]
+        if self.user.is_active:
+            self.username = self.scope["url_route"]["kwargs"]["username"]
+            self.user_group_name = "notify_%s" % self.username
+            # Join user group
+            await self.channel_layer.group_add(self.user_group_name, self.channel_name)
+            await self.accept()
 
     async def disconnect(self, close_code):
-        # Leave user group
-        await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
+        if self.user.is_active:
+            # Leave user group
+            await self.channel_layer.group_discard(
+                self.user_group_name, self.channel_name
+            )
+        else:
+            pass
 
     # Receive message from WebSocket
     async def receive(self, text_data):
@@ -60,11 +67,15 @@ class ProjectConsumer(AsyncWebsocketConsumer):
     """
 
     async def connect(self):
-        self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
-        self.project_group_name = "notify_%s" % self.project_id
-        # Join project group
-        await self.channel_layer.group_add(self.project_group_name, self.channel_name)
-        await self.accept()
+        user = self.scope["user"]
+        if user.is_active:
+            self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
+            self.project_group_name = "notify_%s" % self.project_id
+            # Join project group
+            await self.channel_layer.group_add(
+                self.project_group_name, self.channel_name
+            )
+            await self.accept()
 
     async def disconnect(self, close_code):
         # Leave project group
