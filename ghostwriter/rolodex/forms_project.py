@@ -561,11 +561,7 @@ class ProjectNoteForm(forms.ModelForm):
 
     class Meta:
         model = ProjectNote
-        fields = "__all__"
-        widgets = {
-            "operator": forms.HiddenInput(),
-            "project": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(ProjectNoteForm, self).__init__(*args, **kwargs)
@@ -574,9 +570,7 @@ class ProjectNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            "note",
-            "operator",
-            "project",
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

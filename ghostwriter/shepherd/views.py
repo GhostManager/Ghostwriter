@@ -1769,6 +1769,13 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
         )
         return ctx
 
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.domain_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
+
 
 class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -1846,6 +1853,13 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
             "shepherd:server_detail", kwargs={"pk": self.server_instance.id}
         )
         return ctx
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.server_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class ServerNoteUpdate(LoginRequiredMixin, UpdateView):

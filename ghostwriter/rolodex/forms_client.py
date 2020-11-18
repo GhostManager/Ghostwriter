@@ -304,11 +304,7 @@ class ClientNoteForm(forms.ModelForm):
 
     class Meta:
         model = ClientNote
-        fields = "__all__"
-        widgets = {
-            "operator": forms.HiddenInput(),
-            "client": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(ClientNoteForm, self).__init__(*args, **kwargs)
@@ -317,7 +313,7 @@ class ClientNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            Div("note", "operator", "client"),
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

@@ -400,12 +400,7 @@ class FindingNoteForm(forms.ModelForm):
 
     class Meta:
         model = FindingNote
-        fields = "__all__"
-        widgets = {
-            "timestamp": forms.HiddenInput(),
-            "operator": forms.HiddenInput(),
-            "finding": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(FindingNoteForm, self).__init__(*args, **kwargs)
@@ -414,7 +409,7 @@ class FindingNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            Div("note", "operator", "finding"),
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -444,11 +439,7 @@ class LocalFindingNoteForm(forms.ModelForm):
 
     class Meta:
         model = LocalFindingNote
-        fields = "__all__"
-        widgets = {
-            "operator": forms.HiddenInput(),
-            "finding": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(LocalFindingNoteForm, self).__init__(*args, **kwargs)
@@ -457,7 +448,7 @@ class LocalFindingNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            Div("note", "operator", "finding"),
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

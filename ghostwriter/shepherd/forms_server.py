@@ -335,12 +335,7 @@ class ServerNoteForm(forms.ModelForm):
     class Meta:
 
         model = ServerNote
-        fields = "__all__"
-        widgets = {
-            "timestamp": forms.HiddenInput(),
-            "operator": forms.HiddenInput(),
-            "server": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(ServerNoteForm, self).__init__(*args, **kwargs)
@@ -349,7 +344,7 @@ class ServerNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            Div("note", "operator", "server"),
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -365,7 +360,8 @@ class ServerNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note
 

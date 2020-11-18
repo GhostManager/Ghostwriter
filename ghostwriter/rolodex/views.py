@@ -729,6 +729,13 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         )
         return ctx
 
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.client_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
+
 
 class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -1125,6 +1132,13 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
             reverse("rolodex:project_detail", kwargs={"pk": project_instance.id})
         )
         return ctx
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.project_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):

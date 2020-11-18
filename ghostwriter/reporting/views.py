@@ -2251,6 +2251,12 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
     model = Evidence
     form_class = EvidenceForm
 
+    def get_form_kwargs(self):
+        kwargs = super(EvidenceUpdate, self).get_form_kwargs()
+        evidence_queryset = Evidence.objects.filter(finding=self.object.finding.pk)
+        kwargs.update({"evidence_queryset": evidence_queryset})
+        return kwargs
+
     def get_context_data(self, **kwargs):
         ctx = super(EvidenceUpdate, self).get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
@@ -2385,10 +2391,12 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
             reverse("reporting:finding_detail", kwargs={"pk": self.object.finding.id})
         )
 
-    def get_initial(self):
-        finding_instance = get_object_or_404(Finding, pk=self.kwargs.get("pk"))
-        finding = finding_instance
-        return {"finding": finding, "operator": self.request.user}
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.finding_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
@@ -2448,11 +2456,11 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(LocalFindingNoteCreate, self).get_context_data(**kwargs)
-        finding_instance = get_object_or_404(
+        self.finding_instance = get_object_or_404(
             ReportFindingLink, pk=self.kwargs.get("pk")
         )
         ctx["cancel_link"] = reverse(
-            "reporting:local_edit", kwargs={"pk": finding_instance.pk}
+            "reporting:local_edit", kwargs={"pk": self.finding_instance.pk}
         )
         return ctx
 
@@ -2464,12 +2472,12 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
         )
         return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})
 
-    def get_initial(self):
-        finding_instance = get_object_or_404(
-            ReportFindingLink, pk=self.kwargs.get("pk")
-        )
-        finding = finding_instance
-        return {"finding": finding, "operator": self.request.user}
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.finding_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
