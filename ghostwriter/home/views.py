@@ -14,6 +14,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.views.static import serve
 from django.views.generic.edit import View
 from django_q.models import Task
 from django_q.tasks import async_task
@@ -33,6 +34,14 @@ logger = logging.getLogger(__name__)
 ##################
 # View Functions #
 ##################
+
+
+@login_required
+def protected_serve(request, path, document_root=None, show_indexes=False):
+    """
+    Serve static files from ``MEDIA_ROOT`` for authenticated requests.
+    """
+    return serve(request, path, document_root, show_indexes)
 
 
 @login_required
