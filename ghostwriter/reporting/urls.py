@@ -176,7 +176,11 @@ urlpatterns += [
         views.upload_evidence_modal_success,
         name="upload_evidence_modal_success",
     ),
-    path("reports/evidence/<int:pk>", views.view_evidence, name="evidence_detail"),
+    path(
+        "reports/evidence/<int:pk>",
+        views.EvidenceDetailView.as_view(),
+        name="evidence_detail",
+    ),
     path(
         "reports/evidence/update/<int:pk>",
         views.EvidenceUpdate.as_view(),
