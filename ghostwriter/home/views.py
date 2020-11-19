@@ -68,7 +68,11 @@ def dashboard(request):
     # Get active :model:`reporting.ProjectAssignment` for current :model:`users.User`
     user_projects = ProjectAssignment.objects.select_related(
         "project", "project__client", "role"
-    ).filter(Q(operator=request.user) & Q(start_date__lte=datetime.datetime.now()))
+    ).filter(
+        Q(operator=request.user)
+        & Q(start_date__lte=datetime.datetime.now())
+        & Q(end_date__gte=datetime.datetime.now())
+    )
     # Get future :model:`reporting.ProjectAssignment` for current :model:`users.User`
     upcoming_project = ProjectAssignment.objects.select_related(
         "project", "project__client", "role"
