@@ -831,54 +831,6 @@ def upload_evidence_modal_success(request):
     return render(request, "reporting/evidence_modal_success.html")
 
 
-@login_required
-def view_evidence(request, pk):
-    """
-    Display an individual :model:`reporting.Evidence`.
-
-    **Template**
-
-    :template:`reporting/evidence_detail.html`
-    """
-    evidence_instance = Evidence.objects.get(pk=pk)
-    file_content = None
-    if os.path.isfile(evidence_instance.document.path):
-        if (
-            evidence_instance.document.name.endswith(".txt")
-            or evidence_instance.document.name.endswith(".log")
-            or evidence_instance.document.name.endswith(".ps1")
-            or evidence_instance.document.name.endswith(".py")
-            or evidence_instance.document.name.endswith(".md")
-        ):
-            filetype = "text"
-            file_content = []
-            temp = evidence_instance.document.read().splitlines()
-            for line in temp:
-                try:
-                    file_content.append(line.decode())
-                except Exception:
-                    file_content.append(line)
-
-        elif (
-            evidence_instance.document.name.endswith(".jpg")
-            or evidence_instance.document.name.endswith(".png")
-            or evidence_instance.document.name.endswith(".jpeg")
-        ):
-            filetype = "image"
-        else:
-            filetype = "unknown"
-    else:
-        filetype = "text"
-        file_content = []
-        file_content.append("FILE NOT FOUND")
-    context = {
-        "filetype": filetype,
-        "evidence": evidence_instance,
-        "file_content": file_content,
-    }
-    return render(request, "reporting/evidence_detail.html", context=context)
-
-
 def generate_report_name(report_instance):
     """
     Generate a filename for a report based on the current time and attributes of an
@@ -2149,6 +2101,43 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
     """
 
     model = Evidence
+
+    def get_context_data(self, **kwargs):
+        ctx = super(EvidenceDetailView, self).get_context_data(**kwargs)
+        file_content = None
+        if os.path.isfile(self.object.document.path):
+            if (
+                self.object.document.name.endswith(".txt")
+                or self.object.document.name.endswith(".log")
+                or self.object.document.name.endswith(".md")
+            ):
+                filetype = "text"
+                file_content = []
+                temp = self.object.document.read().splitlines()
+                for line in temp:
+                    try:
+                        file_content.append(line.decode())
+                    except Exception:
+                        file_content.append(line)
+
+            elif (
+                self.object.document.name.endswith(".jpg")
+                or self.object.document.name.endswith(".png")
+                or self.object.document.name.endswith(".jpeg")
+            ):
+                filetype = "image"
+            else:
+                filetype = "unknown"
+        else:
+            filetype = "text"
+            file_content = []
+            file_content.append("FILE NOT FOUND")
+
+        ctx["filetype"] = filetype
+        ctx["evidence"] = self.object
+        ctx["file_content"] = file_content
+
+        return ctx
 
 
 class EvidenceCreate(LoginRequiredMixin, CreateView):
