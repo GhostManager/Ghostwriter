@@ -10,9 +10,11 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 from django.db import models
-from django.db.models import Q
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+
+# Ghostwriter Libraries
+from .validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
 logger = logging.getLogger(__name__)
@@ -513,7 +515,11 @@ class Evidence(models.Model):
         """
         return os.path.join("evidence", str(instance.finding.report.id), filename)
 
-    document = models.FileField(upload_to=set_upload_destination, blank=True)
+    document = models.FileField(
+        upload_to=set_upload_destination,
+        validators=[validate_evidence_extension],
+        blank=True,
+    )
     friendly_name = models.CharField(
         "Friendly Name",
         null=True,

@@ -350,7 +350,7 @@ class EvidenceForm(forms.ModelForm):
                 """
                 <i class="far fa-file"></i>Upload a File
                 <hr>
-                <p>Attach text evidence (*.txt, *.log, *.md, *.ps1, or *.py) or image evidence (*.png, *.jpg, or *.jpeg).</p>
+                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).</p>
                 """
             ),
             Div(
