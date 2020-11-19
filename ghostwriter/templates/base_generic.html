@@ -82,16 +82,16 @@
                                 Clients
                                 <div class="expand_caret caret"></div>
                             </a>
-                            <ul class="collapse list-unstyled" id="clientSubmenu">
-                                <li><a href="{% url 'rolodex:clients' %}">Client List</a></li>
-                                <li><a href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
+                            <ul class="collapse list-unstyled text-left" id="clientSubmenu">
+                                <li><a href="{% url 'rolodex:clients' %}"><i class="fas fa-th-list"></i> Client Library</a></li>
+                                <li><a href="{% url 'rolodex:client_create' %}"><i class="fas fa-plus"></i> Add New Client</a></li>
                             </ul>
                         </li>
                         <li>
                             <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Projects</a>
-                            <ul class="collapse list-unstyled" id="projectSubmenu">
-                                <li><a href="{% url 'rolodex:projects' %}">Projects List</a></li>
-                                <li><a href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
+                            <ul class="collapse list-unstyled text-left" id="projectSubmenu">
+                                <li><a href="{% url 'rolodex:projects' %}"><i class="fas fa-th-list"></i> Projects Library</a></li>
+                                <li><a href="{% url 'rolodex:project_create_no_client' %}"><i class="fas fa-plus"></i> Add New Project</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -116,23 +116,24 @@
                         <!-- Menu Section -->
                         <li>
                             <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Findings</a>
-                            <ul class="collapse list-unstyled" id="findingsSubmenu">
-                                <li><a href="{% url 'reporting:findings' %}">Finding Library</a></li>
-                                <li><a href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
+                            <ul class="collapse list-unstyled text-left" id="findingsSubmenu">
+                                <li><a href="{% url 'reporting:findings' %}"><i class="fas fa-th-list"></i> Finding Library</a></li>
+                                <li><a href="{% url 'reporting:finding_create' %}"><i class="fas fa-plus"></i> Add New Finding</a></li>
                             </ul>
                             <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
-                            <ul class="collapse list-unstyled" id="reportSubmenu">
-                                <li><a href="{% url 'reporting:reports' %}">Report Library</a></li>
-                                <li><a href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
-                                <li><a href="{% url 'reporting:templates' %}">Report Template Library</a></li>
-                                <li><a href="{% url 'reporting:template_create' %}">Add New Report Template</a></li>
-                                <li><a href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
+                            <ul class="collapse list-unstyled text-left" id="reportSubmenu">
+                                <li><a href="{% url 'reporting:reports' %}"><i class="fas fa-th-list"></i> Report Library</a></li>
+                                <li><a href="{% url 'reporting:report_create_no_project' %}"><i class="fas fa-plus"></i> Add New Report</a></li>
+                                <li class="text-center align-middle sidebar-item"><i class="fas fa-ellipsis-h"></i></li>
+                                <li><a href="{% url 'reporting:templates' %}"><i class="fas fa-th-list"></i> Report Template Library</a></li>
+                                <li><a href="{% url 'reporting:template_create' %}"><i class="fas fa-plus"></i> Add New Report Template</a></li>
+                                <li><a href="{% url 'reporting:archived_reports' %}"><i class="fas fa-file-archive"></i> Archived Report Bundles</a></li>
                             </ul>
                             <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Operation Logs</a>
-                            <ul class="collapse list-unstyled" id="oplogSubmenu">
-                                <li><a href="{% url 'oplog:index' %}">View Oplogs</a></li>
-                                <li><a href="{% url 'oplog:oplog_create_no_project' %}">Start New Oplog</a></li>
-                                <li><a href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
+                            <ul class="collapse list-unstyled text-left" id="oplogSubmenu">
+                                <li><a href="{% url 'oplog:index' %}"><i class="fas fa-th-list"></i> View Oplogs</a></li>
+                                <li><a href="{% url 'oplog:oplog_create_no_project' %}"><i class="fas fa-plus"></i> Start New Oplog</a></li>
+                                <li><a href="{% url 'oplog:oplog_import' %}"><i class="fas fa-file-import"></i> Import Oplog Entries</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -160,16 +161,16 @@
                         {% endif %}
                         <li>
                             <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Servers</a>
-                            <ul class="collapse list-unstyled" id="serverSubmenu">
-                                <li><a href="{% url 'shepherd:servers' %}">Server Library</a></li>
-                                <li><a href="{% url 'shepherd:server_create' %}">Add New Server</a></li>
+                            <ul class="collapse list-unstyled text-left" id="serverSubmenu">
+                                <li><a href="{% url 'shepherd:servers' %}"><i class="fas fa-th-list"></i> Server Library</a></li>
+                                <li><a href="{% url 'shepherd:server_create' %}"><i class="fas fa-plus"></i> Add New Server</a></li>
                             </ul>
                         </li>
                         <li>
                             <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domains</a>
-                            <ul class="collapse list-unstyled" id="shepSubmenu">
-                                <li><a href="{% url 'shepherd:domains' %}">Domain Library</a></li>
-                                <li><a href="{% url 'shepherd:domain_create' %}">Add New Domain</a></li>
+                            <ul class="collapse list-unstyled text-left" id="shepSubmenu">
+                                <li><a href="{% url 'shepherd:domains' %}"><i class="fas fa-th-list"></i> Domain Library</a></li>
+                                <li><a href="{% url 'shepherd:domain_create' %}"><i class="fas fa-plus"></i> Add New Domain</a></li>
                             </ul>
                         </li>
                         <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
@@ -178,28 +179,31 @@
                     <!-- Admin Section -->
                     {% if request.user.is_staff %}
                         <ul class="list-unstyled components">
-                            <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Management</p>
+                            <p class="sideheader"  style="margin: 0"><i class="fas fa-tools"></i> Management</p>
                             <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
                             <li>
                                 <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
-                                <ul class="collapse list-unstyled" id="pageSubmenu">
-                                    <li><a href="{% url 'admin:index' %}">Admin Panel</a></li>
-                                    <li><a href="{% url 'admin:users_user_changelist' %}">Users</a></li>
-                                    <li><a href="{% url 'admin:app_list' 'django_q' %}">Scheduled Tasks</a></li>
-                                    <li><a href="{% url 'admin:reporting_finding_import' %}">Upload Bulk Findings</a></li>
-                                    <li><a href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to CSV</a></li>
-                                    <li><a href="{% url 'admin:shepherd_domain_import' %}">Upload Bulk Domains</a></li>
-                                    <li><a href="{% url 'shepherd:export_domains_to_csv' %}">Export Domains to CSV</a></li>
-                                    <li><a href="{% url 'admin:shepherd_staticserver_import' %}">Upload Bulk Servers</a></li>
-                                    <li><a href="{% url 'shepherd:export_servers_to_csv' %}">Export Servers</a></li>
+                                <ul class="collapse list-unstyled text-left" id="pageSubmenu">
+                                    <li><a href="{% url 'admin:index' %}"><i class="fas fa-cogs"></i> Admin Panel</a></li>
+                                    <li><a href="{% url 'admin:users_user_changelist' %}"><i class="fas fa-users"></i> Users</a></li>
+                                    <li><a href="{% url 'admin:app_list' 'django_q' %}"><i class="fas fa-calendar-alt"></i> Scheduled Tasks</a></li>
+                                    <li class="text-center align-middle sidebar-item"><i class="fas fa-ellipsis-h"></i></li>
+                                    <li><a href="{% url 'admin:reporting_finding_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Findings</a></li>
+                                    <li><a href="{% url 'reporting:export_findings_to_csv' %}"><i class="fas fa-file-export"></i> Export Findings to CSV</a></li>
+                                    <li class="text-center align-middle sidebar-item"><i class="fas fa-ellipsis-h"></i></li>
+                                    <li><a href="{% url 'admin:shepherd_domain_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Domains</a></li>
+                                    <li><a href="{% url 'shepherd:export_domains_to_csv' %}"><i class="fas fa-file-export"></i> Export Domains to CSV</a></li>
+                                    <li class="text-center align-middle sidebar-item"><i class="fas fa-ellipsis-h"></i></li>
+                                    <li><a href="{% url 'admin:shepherd_staticserver_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Servers</a></li>
+                                    <li><a href="{% url 'shepherd:export_servers_to_csv' %}"><i class="fas fa-file-export"></i> Export Servers to CSV</a></li>
                                 </ul>
                             </li>
 
                             <!-- Documentation Section -->
                             <li>
                                 <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
-                                <ul class="collapse list-unstyled" id="docsSubmenu">
-                                    <li><a href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
+                                <ul class="collapse list-unstyled text-left" id="docsSubmenu">
+                                    <li><a href="https://ghostwriter.wiki"><i class="fas fa-book"></i> Ghostwriter Wiki</a></li>
                                     <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
                                 </ul>
                             </li>
@@ -207,13 +211,15 @@
                     {% endif %}
 
                     <!-- Sidebar Buttons -->
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'account_logout' %}" class="button">Logout <i class="fas fa-sign-out-alt"></i></a>
-                    {% else %}
-                        <a href="{% url 'account_login' %}" class="button">Login <i class="fas fa-sign-in-alt"></i></a>
-                    {% endif %}
+                    <div style="padding-top: 10px;">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'account_logout' %}" class="btn btn-primary col-md-8">Logout <i class="fas fa-sign-out-alt"></i></a>
+                        {% else %}
+                            <a href="{% url 'account_login' %}" class="btn btn-primary col-md-8">Login <i class="fas fa-sign-in-alt"></i></a>
+                        {% endif %}
 
-                    <a href="https://www.specterops.io"><img src="{% static 'images/domain.png' %}" alt="SpecterOps" style="width:55%"></a>
+                        <a href="https://www.specterops.io"><img src="{% static 'images/domain.png' %}" alt="SpecterOps" style="width:55%"></a>
+                    </div>
                 </nav>
             {% endif %}
 
