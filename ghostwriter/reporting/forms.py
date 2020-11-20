@@ -135,12 +135,19 @@ class ReportForm(forms.ModelForm):
         super(ReportForm, self).__init__(*args, **kwargs)
         self.project_instance = project
         # Limit the list to just projects not marked as complete
-        active_projects = Project.objects.filter(complete=False)
+        active_projects = Project.objects.filter(complete=False).order_by(
+            "start_date", "client", "project_type"
+        )
         if active_projects:
             self.fields["project"].empty_label = "-- Select an Active Project --"
         else:
             self.fields["project"].empty_label = "-- No Active Projects --"
         self.fields["project"].queryset = active_projects
+        self.fields[
+            "project"
+        ].label_from_instance = (
+            lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
+        )
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
