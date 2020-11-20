@@ -2,13 +2,18 @@
 
 # Standard Libraries
 import json
+import logging
 
 # Django & Other 3rd Party Libraries
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.serializers import serialize
 
+# Ghostwriter Libraries
 from .models import OplogEntry
+
+# Using __name__ resolves to ghostwriter.oplog.consumers
+logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
@@ -66,7 +71,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             )
 
     async def disconnect(self, close_code):
-        print(f"[*] Disconnected: {close_code}")
+        logger.info("WebSocket disconnected with close code: %s", close_code)
 
     async def receive(self, text_data=None, bytes_data=None):
         json_data = json.loads(text_data)
