@@ -1,40 +1,39 @@
-pytz==2019.1  # https://github.com/stub42/pytz
-python-slugify==3.0.2  # https://github.com/un33k/python-slugify
-Pillow==6.1.0  # https://github.com/python-pillow/Pillow
+pytz==2020.1  # https://github.com/stub42/pytz
+python-slugify==4.0.1  # https://github.com/un33k/python-slugify
+Pillow==7.2.0  # https://github.com/python-pillow/Pillow
 rcssmin==1.0.6  # https://github.com/ndparker/rcssmin
 argon2-cffi==20.1.0  # https://github.com/hynek/argon2_cffi
-redis==3.2.1  # https://github.com/antirez/redis
+redis==3.5.3  # https://github.com/antirez/redis
 
 # Django
 # ------------------------------------------------------------------------------
-django==2.2.3  # pyup: < 3.0  # https://www.djangoproject.com/
+django==3.0.10  # pyup: < 3.0  # https://www.djangoproject.com/
 django-environ==0.4.5  # https://github.com/joke2k/django-environ
-django-model-utils==3.2.0  # https://github.com/jazzband/django-model-utils
-django-allauth==0.39.1  # https://github.com/pennersr/django-allauth
-django-crispy-forms==1.7.2  # https://github.com/django-crispy-forms/django-crispy-forms
-django-compressor==2.3  # https://github.com/django-compressor/django-compressor
-django-redis==4.10.0  # https://github.com/niwinz/django-redis
+django-model-utils==4.0.0  # https://github.com/jazzband/django-model-utils
+django-allauth==0.42.0  # https://github.com/pennersr/django-allauth
+django-crispy-forms==1.9.2  # https://github.com/django-crispy-forms/django-crispy-forms
+django-compressor==2.4  # https://github.com/django-compressor/django-compressor
+django-redis==4.12.1  # https://github.com/niwinz/django-redis
 channels==2.4.0 # https://channels.readthedocs.io/en/stable/index.html
 channels-redis==2.4.2 # https://github.com/django/channels_redis/
+djangorestframework==3.12.1  # https://github.com/encode/django-rest-framework
 
 # Ghostwriter specific
+boto3==1.15.16
+botocore==1.18.16
 bs4==0.0.1
-django-filter==2.2.0
-django-q==1.0.2
-dnspython==2.0.0
-pytesseract==0.2.7
-python-nmap==0.6.1
-python-docx==0.8.7
-python-pptx==0.6.18
-redis==3.2.1
-requests==2.22.0
-boto3==1.10.8
-botocore==1.13.8
-djangorestframework==3.11.0
-djangorestframework-api-key==2.0.0
-django-import-export==2.2.0
-django-tinymce==2.8.0
-docxtpl==0.6.3
-docutils==0.16
 django-bleach==0.6.1
+django-filter==2.4.0
+django-import-export==2.4.0
+django-q==1.3.3
+djangorestframework-api-key==2.0.0
+django-tinymce==2.8.0  # Deprecated, but kept here for legacy migrations
+docutils==0.16
+docxtpl==0.10.0
+dnspython==2.0.0
 jinja2==2.11.2
+python-docx==0.8.10
+python-nmap==0.6.1
+python-pptx==0.6.18
+redis==3.5.3
+requests==2.24.0

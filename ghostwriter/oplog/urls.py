@@ -15,7 +15,8 @@ router.register("oplogs", views.OplogViewSet)
 urlpatterns = [
     path("", views.index, name="index"),
     path("api/", include(router.urls)),
-    path("create/", views.create_oplog, name="create_oplog"),
+    path("create/<int:pk>", views.OplogCreate.as_view(), name="oplog_create"),
+    path("create/", views.OplogCreate.as_view(), name="oplog_create_no_project"),
     path(
         "<int:pk>/entries/create",
         views.OplogEntryCreate.as_view(),

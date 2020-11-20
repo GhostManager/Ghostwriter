@@ -4,8 +4,10 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 
+# Ghostwriter Libraries
 from .models import (
     Archive,
+    DocType,
     Evidence,
     Finding,
     FindingNote,
@@ -24,6 +26,11 @@ class ArchiveAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(DocType)
+class DocTypeAdmin(admin.ModelAdmin):
+    pass
+
+
 @admin.register(Evidence)
 class EvidenceAdmin(admin.ModelAdmin):
     list_display = ("document", "upload_date", "uploaded_by")
@@ -34,7 +41,15 @@ class EvidenceAdmin(admin.ModelAdmin):
             "Evidence Document",
             {"fields": ("friendly_name", "caption", "description", "document")},
         ),
-        ("Report Information", {"fields": ("finding", "uploaded_by",)},),
+        (
+            "Report Information",
+            {
+                "fields": (
+                    "finding",
+                    "uploaded_by",
+                )
+            },
+        ),
     )
 
 
@@ -136,7 +151,6 @@ class SeverityAdmin(admin.ModelAdmin):
 @admin.register(ReportTemplate)
 class ReportTemplateAdmin(admin.ModelAdmin):
     list_display = (
-        "default",
         "get_status",
         "name",
         "client",
@@ -148,8 +162,26 @@ class ReportTemplateAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Report Template",
-            {"fields": ("name", "document", "description", "client",)},
+            {
+                "fields": (
+                    "name",
+                    "document",
+                    "description",
+                    "client",
+                )
+            },
         ),
-        ("Template Linting", {"fields": ("get_status", "lint_result",)}),
-        ("Admin Settings", {"fields": ("default", "protected",)}),
+        (
+            "Template Linting",
+            {
+                "fields": (
+                    "get_status",
+                    "lint_result",
+                )
+            },
+        ),
+        (
+            "Admin Settings",
+            {"fields": ("protected",)},
+        ),
     )

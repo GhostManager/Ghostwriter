@@ -180,7 +180,7 @@
                             {% endfor %}
                         {% else %}
                             <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder" class="severity-row-placeholder">
-                                <td colspan="7" scope="colgroup">Add a {{ group }} finding or drag-and-drop a finding here to update its severity.</td>
+                                <td colspan="7" scope="colgroup">Add {{ group }} findings or drag-and-drop a finding here to update its severity.</td>
                             </tr>
                         {% endif %}
                     {% endfor %}
@@ -195,21 +195,16 @@
         <hr>
 
         <div style="margin: 20px;">
-            Report engine will use this template for Word:
-            <form
-                template-update-url="{% url 'reporting:ajax_swap_report_template' report.id %}"
-                template-update-csrftoken="{{ csrf_token }}"
-            >
-                {% crispy form form.helper %}
-            </form>
+            The report engine will use the selected templates:
+            {% crispy form form.helper %}
         </div>
 
         <div class="btn-group">
-            <a class="btn btn-default" href="{% url 'reporting:generate_docx' report.id %}"><i style="font-size: 35px; color: blue" class="far fa-file-word"></i><br />docx</a>
+            <a class="btn btn-default js-generate-report" href="{% url 'reporting:generate_docx' report.id %}"><i style="font-size: 35px; color: blue" class="far fa-file-word"></i><br />docx</a>
             <a class="btn btn-default" href="{% url 'reporting:generate_xlsx' report.id %}"><i style="font-size: 35px; color: green" class="far fa-file-excel"></i><br />xlsx</a>
             <a class="btn btn-default" href="{% url 'reporting:generate_pptx' report.id %}"><i style="font-size: 35px; color: darkorange" class="far fa-file-powerpoint"></i><br />pptx</a>
             <a class="btn btn-default" href="{% url 'reporting:generate_json' report.id %}"><i style="font-size: 35px" class="far fa-file-code"></i><br />JSON</a>
-            <a class="btn btn-default" href="{% url 'reporting:generate_all' report.id %}"><i style="font-size: 35px; color: tan" class="far fa-file-archive"></i><br />All</a>
+            <a class="btn btn-default js-generate-report" href="{% url 'reporting:generate_all' report.id %}"><i style="font-size: 35px; color: tan" class="far fa-file-archive"></i><br />All</a>
         </div>
     </div>
 {% endblock %}
@@ -219,6 +214,27 @@
 {% endblock %}
 
 {% block morescripts %}
+    <!-- Modal for Spinner -->
+    <div id="spinner-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Stand By!</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <h3><i class="fa fa-sync fa-spin"></i> Generating your report...</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('.js-generate-report').click(function () {
+            $('#spinner-modal').modal('show');
+            setTimeout(() => {  $('#spinner-modal').modal('toggle'); }, 4000);
+        });
+    </script>
+
     <!-- Script for Sortable Groups of Findings -->
     <script>
         {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
@@ -233,6 +249,10 @@
                 filter: '.severity-row-placeholder',
                 ghostClass: 'sortable-ghost',
                 handle: '.holdme',
+
+                test: function () {
+                    console.log('sorting');
+                },
 
                 // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
                 setData: function (dataTransfer, dragEl) {
@@ -288,6 +308,7 @@
 
                 // Called by any change to the list (add / update / remove)
                 onSort: function (event) {
+                    console.log('sorting?');
                     // Code here triggers twice for the element if dragged to another group (two sorts)
                     [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, index) {
                         //el.setAttribute("data-id",index);
@@ -356,7 +377,7 @@
                         placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder', 0)
                         cell = placeholder_row.insertCell(0);
                         cell.colSpan = 7
-                        cell.innerHTML = 'No {{ group }} findings yet. Add a {{ group }} finding or drag-and-drop a finding here to update its severity.'
+                        cell.innerHTML = 'Add {{ group }} findings or drag-and-drop a finding here to update its severity.'
                     } else {
                         if (placeholder !== undefined) {
                             // Otherwise, delete the placeholder
@@ -560,11 +581,17 @@
     <!-- Save Template Selection on Change -->
     <script>
         $(document).ready(function() {
-            $('#id_template').change( function() {
-                var parent_form = $(this).closest('form');
-                var url = parent_form.attr('template-update-url');
-                var templateId = $(this).val();
-                var csrftoken = parent_form.attr('template-update-csrftoken');
+            $('#report-template-swap-form').change( function() {
+                var url = $(this).attr('action');
+                var docxTemplateId = $('#id_docx_template').val();
+                var pptxTemplateId = $('#id_pptx_template').val();
+                var csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+                if ($('#id_pptx_template').val() == '') {
+                    pptxTemplateId = -1
+                }
+                if ($('#id_docx_template').val() == '') {
+                    docxTemplateId = -1
+                }
                 // Prep AJAX request with CSRF token
                 $.ajaxSetup({
                     beforeSend: function(xhr, settings) {
@@ -579,13 +606,18 @@
                     type: 'POST',
                     dataType: 'json',
                     data: {
-                        'template': templateId
+                        'docx_template': docxTemplateId,
+                        'pptx_template': pptxTemplateId,
+                        'csrfmiddlewaretoken': csrftoken,
                     },
                     success: function (data) {
                         if (data['message']) {
                             displayToastTop({type:data['result'], string:data['message'], title:'Template Update'});
                         }
-                        if (data['lint_message']) {
+                        if (data['docx_message']) {
+                            displayToastTop({type:data['lint_result'], string:data['lint_message'], title:'Template Issue', delay:10});
+                        }
+                        if (data['pptx_message']) {
                             displayToastTop({type:data['lint_result'], string:data['lint_message'], title:'Template Issue', delay:10});
                         }
                     }

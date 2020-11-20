@@ -25,7 +25,6 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         exclude = ("user",)
         widgets = {
-            "user": forms.HiddenInput(),
             "avatar": forms.ClearableFileInput(),
         }
 

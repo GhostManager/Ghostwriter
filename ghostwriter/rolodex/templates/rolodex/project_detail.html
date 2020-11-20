@@ -77,37 +77,42 @@
             <div id="assignments" class="tab-pane in active">
                 <p><a href="{% url 'rolodex:project_update' project.id %}#assignments"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
                 {% if project.projectassignment_set.all %}
-                    <table>
+                    <table id="assignmentTable" class="tablesorter table">
                         <thead>
-                            <th>Operator</th>
-                            <th>Role</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Note</th>
-                            <th style="text-align: center;">Options</th>
+                            <th class="align-middle">Operator</th>
+                            <th class="align-middle">Role</th>
+                            <th class="sorter-date-range-dMMMyyyy align-middle">Dates</th>
+                            {% comment %} <th class="align-middle">Start Date</th>
+                            <th class="align-middle">End Date</th> {% endcomment %}
+                            <th class="align-middle">Note</th>
+                            <th class="text-center align-middle">Options</th>
                         </thead>
                         {% for operator in project.projectassignment_set.all %}
                             <tr>
-                                <td nowrap id="delete-target-content-assignment-{{ operator.id }}">
+                                <td nowrap id="delete-target-content-assignment-{{ operator.id }}" class="align-middle">
                                     {% if operator.operator.name %}
                                         {{ operator.operator.name }}
                                     {% else %}
-                                        Missing Name ({{ operator.operator.username }})
+                                        Missing Full Name ({{ operator.operator.username }})
                                     {% endif %}
                                 </td>
-                                <td nowrap>{{ operator.role }}</td>
-                                {% if operator.start_date|date:"d M Y" %}
-                                    <td nowrap>{{ operator.start_date|date:"d M Y" }}</td>
-                                {% else %}
-                                    <td></td>
-                                {% endif %}
-                                {% if operator.end_date|date:"d M Y" %}
-                                    <td nowrap>{{ operator.end_date|date:"d M Y" }}</td>
-                                {% else %}
-                                    <td></td>
-                                {% endif %}
-
-                                <td style="text-align: justify">{{ operator.note|bleach }}</td>
+                                <td nowrap class="align-middle">{{ operator.role }}</td>
+                                <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
+                                {% comment %} <td nowrap class="align-middle">
+                                    {% if operator.start_date|date:"d M Y" %}
+                                        {{ operator.start_date|date:"d M Y" }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                                <td nowrap class="align-middle">
+                                    {% if operator.end_date|date:"d M Y" %}
+                                        {{ operator.end_date|date:"d M Y" }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td> {% endcomment %}
+                                <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
@@ -127,16 +132,16 @@
             <div id="objectives" class="tab-pane ">
                 <p><a href="{% url 'rolodex:project_update' project.id %}#objectives"><i class="far fa-plus-square"></i> Add an Objective</a></p>
                 {% if project.projectobjective_set.all %}
-                    <table id="objectiveTable" class="tablesorter">
+                    <table id="objectiveTable" class="tablesorter table">
                         <thead>
-                            <th>Status</th>
-                            <th>Objective</th>
-                            <th>Deadline</th>
-                            <th class="sorter-false" style="text-align: center;">Options</th>
+                            <th class="align-middle">Status</th>
+                            <th class="align-middle">Objective</th>
+                            <th class="align-middle">Deadline</th>
+                            <th class="sorter-false test-center align-middle">Options</th>
                         </thead>
                         {% for objective in project.projectobjective_set.all %}
                             <tr>
-                                <td nowrap>
+                                <td nowrap class="align-middle">
                                     <span id="objective-status-{{ objective.id }}" class="badge badge-pill badge-dark
                                         {% if objective.status.objective_status == "Active" %}
                                             low-background
@@ -149,9 +154,9 @@
                                         {{ objective.status }}
                                     </span>
                                 </td>
-                                <td nowrap id="delete-target-content-objective-{{ objective.id }}">{{ objective.objective|bleach }}</td>
-                                <td nowrap>{{ objective.deadline }}</td>
-                                <td>
+                                <td id="delete-target-content-objective-{{ objective.id }}" class="text-left align-middle">{{ objective.objective|bleach }}</td>
+                                <td nowrap class="align-middle">{{ objective.deadline }}</td>
+                                <td class="align-middle">
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
@@ -170,6 +175,43 @@
                     <p>No objectives have been set for this project yet.</p>
                 {% endif %}
             </div>
+            <div id="activity" class="tab-pane ">
+                <p>
+                    <a href="{% url 'oplog:oplog_create' project.id %}" style="padding-right: 20px;"><i class="far fa-plus-square"></i> Start New Operation Log</a>
+                    OR
+                    <a href="{% url 'oplog:oplog_create_no_project' %}" style="padding-left: 20px;"><i class="fas fa-file-upload"></i> Import Oplog</a>
+                </p>
+                {% if project.oplog_set.all %}
+                    <table id="oplogTable" class="tablesorter table">
+                        <thead>
+                            <th class="align-middle">ID</th>
+                            <th class="align-middle">Name</th>
+                            <th class="align-middle">Last Activity</th>
+                            <th class="align-middle">Export CSV</th>
+                        </thead>
+                        {% for log in project.oplog_set.all %}
+                            <tr>
+                                <td class="oplog-id align-middle">{{ log.id }}</td>
+                                <td class="clickable align-middle"><a href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
+                                <td class="align-middle">
+                                    {% if log.entries.all %}
+                                        {% for entry in log.entries.all %}
+                                            {% if forloop.last %}
+                                                {{ entry.start_date }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        No entries yet
+                                    {% endif %}
+                                </td>
+                                <td class="js-export-oplog align-middle"><a href="javascript:void(0);" class="btn btn-secondary col-md-12">Export</a></td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>An operation logs has not been started for this project yet.</p>
+                {% endif %}
+            </div>
             <div id="reports" class="tab-pane ">
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
@@ -178,31 +220,31 @@
                 {% endif %}
 
                 {% if project.report_set.all %}
-                    <table id="reportTable" class="tablesorter">
+                    <table id="reportTable" class="tablesorter table">
                         <thead>
-                            <th>Creation</th>
-                            <th>Title</th>
-                            <th>Last Update</th>
-                            <th>Status</th>
-                            <th>Created by</th>
-                            <th class="sorter-false" style="text-align: center;">Options</th>
+                            <th class="align-middle">Creation</th>
+                            <th class="align-middle">Title</th>
+                            <th class="align-middle">Last Update</th>
+                            <th class="align-middle">Status</th>
+                            <th class="align-middle">Created by</th>
+                            <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
                         {% for report in project.report_set.all %}
                             <tr>
-                                <td>{{ report.creation }}</td>
-                                <td><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                                <td>{{ report.last_update|date:"d M Y" }}</td>
+                                <td class="align-middle">{{ report.creation }}</td>
+                                <td class="align-middle"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                                <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
                                 {% if report.complete %}
                                     {% if report.delivered %}
-                                        <td>Delivered</td>
+                                        <td class="align-middle">Delivered</td>
                                     {% else %}
-                                        <td>Complete, Awaiting Delivery</td>
+                                        <td class="align-middle">Complete, Awaiting Delivery</td>
                                     {% endif %}
                                 {% else %}
-                                    <td>In Progress</td>
+                                    <td class="align-middle">In Progress</td>
                                 {% endif %}
-                                <td>{{ report.created_by }}</td>
-                                <td>
+                                <td class="align-middle">{{ report.created_by }}</td>
+                                <td class="align-middle">
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
@@ -220,40 +262,40 @@
                     {% for report in project.report_set.all %}
                         {% if report.reportfindinglink_set.all %}
                             <h4>{{ report.title }}</h4>
-                            <table>
+                            <table class="table">
                                 <thead>
-                                    <th>Severity</th>
-                                    <th>Finding</th>
-                                    <th>Owner</th>
-                                    <th>Status</th>
+                                    <th class="align-middle">Severity</th>
+                                    <th class="align-middle">Finding</th>
+                                    <th class="align-middle">Owner</th>
+                                    <th class="align-middle">Status</th>
                                 </thead>
                                 {% for finding in report.reportfindinglink_set.all %}
                                     <tr>
                                         {% if finding.severity.severity == "Critical" %}
-                                            <td class="critical">{{ finding.severity }}</td>
+                                            <td class="critical align-middle">{{ finding.severity }}</td>
                                         {% elif finding.severity.severity == "High" %}
-                                            <td class="high">{{ finding.severity }}</td>
+                                            <td class="high align-middle">{{ finding.severity }}</td>
                                         {% elif finding.severity.severity == "Medium" %}
-                                            <td class="medium">{{ finding.severity }}</td>
+                                            <td class="medium align-middle">{{ finding.severity }}</td>
                                         {% elif finding.severity.severity == "Low" %}
-                                            <td class="low">{{ finding.severity }}</td>
+                                            <td class="low align-middle">{{ finding.severity }}</td>
                                         {% else %}
-                                            <td class="info">{{ finding.severity }}</td>
+                                            <td class="info align-middle">{{ finding.severity }}</td>
                                         {% endif %}
-                                        <td class="clickable"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                        <td class="align-middle"><a class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                         {% if finding.assigned_to == request.user %}
                                             {% if finding.complete %}
-                                                <td class="low">You</td>
+                                                <td class="low align-middle">You</td>
                                             {% else %}
-                                                <td class="high">You</td>
+                                                <td class="high align-middle">You</td>
                                             {% endif %}
                                         {% else %}
-                                            <td class="neutral">{{ finding.assigned_to }}</td>
+                                            <td class="neutral align-middle">{{ finding.assigned_to }}</td>
                                         {% endif %}
                                         {% if finding.complete %}
-                                            <td class="low">Ready for Review</td>
+                                            <td class="low align-middle">Ready for Review</td>
                                         {% else %}
-                                            <td class="high">Needs Editing</td>
+                                            <td class="high align-middle">Needs Editing</td>
                                         {% endif %}
                                     </tr>
                                 {% endfor %}
@@ -267,7 +309,8 @@
                 {% endif %}
 
             </div>
-            <div id="infrastructure" class="tab-pane ">
+            <div id="infrastructure" class="tab-pane">
+                <p>Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project. Associate your domains and subdomains with servers by creating connections.</p>
                 <!-- Domain Section -->
                 <h4>Domains</h4>
 
@@ -285,28 +328,27 @@
                 </div>
 
                 {% if project.history_set.all %}
-                    <table id="domainTable" class="tablesorter">
+                    <table id="domainTable" class="tablesorter table">
                         <thead>
-                            <th>Domain Name</th>
-                            <th>Purpose</th>
-                            <th class="sorter-date-range-dMMMyyyy">Date Range</th>
-                            <th class="sorter-false">Note</th>
-                            <th class="sorter-false">Options</th>
+                            <th class="align-middle">Domain Name</th>
+                            <th class="align-middle">Purpose</th>
+                            <th class="sorter-date-range-dMMMyyyy align-middle">Date Range</th>
+                            <th class="sorter-false align-middle">Note</th>
+                            <th class="sorter-false align-middle">Options</th>
                         </thead>
                         {% for domain in project.history_set.all %}
                             <tr>
-                                <td nowrap style="text-align: left;">
-                                    <button type="button" class="btn" data-toggle="tooltip" data-placement="top" title="Copy {{ domain.domain.name }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')">
-                                        <i class="far fa-copy"></i>
-                                    </button>
-                                    <a id="domain_{{ domain.domain.id }}" class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">
-                                        {{ domain.domain.name }}
-                                    </a>
+                                <td nowrap class="text-left align-middle">
+                                    <span data-toggle="tooltip" data-placement="top" title="Copy {{ domain.domain.name }}" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')" class="copy-link">
+                                        <a id="domain_{{ domain.domain.id }}" class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">
+                                            {{ domain.domain.name }}
+                                        </a>
+                                    </span>
                                 </td>
-                                <td>{{ domain.activity_type }}</td>
-                                <td>{{ domain.start_date|date:"d M Y" }} – {{ domain.end_date|date:"d M Y" }}</td>
-                                <td style="text-align: justify;">{{ domain.note|bleach }}</td>
-                                <td>
+                                <td class="align-middle">{{ domain.activity_type }}</td>
+                                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
+                                <td clss="text-justify align-middle">{{ domain.note|bleach }}</td>
+                                <td class="align-middle">
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
@@ -323,22 +365,13 @@
                 {% endif %}
 
                 <!-- Server Section -->
-                <div class="dropdown">
-                    <h4 style="float: left; margin-right: 5px;">
-                        Servers
-                        <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
-                    </h4>
-
-                    <div class="dropdown-content dropdown-content-info">
-                        <p>Checked-out servers will appear here. Add transient servers (i.e. virtual private servers) here as they are spun up for the project so they can be easily tracked and associated with domains and activities.
-                    </div>
-                </div>
+                <h4>Servers</h4>
 
                 <!-- Search Section -->
                 <div class="search" style="width: 35%; margin-left: 32.5%;">
                     <form action="{% url 'shepherd:server_search' %}" method="POST">
                         {% csrf_token %}
-                        <div class="input-group mb-3">
+                        <div class="input-group">
                             <div class="input-group-prepend">
                                 <span class="fa fa-search input-group-text" id="inner-server-search-addon"></span>
                             </div>
@@ -351,10 +384,10 @@
 
                 <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Cloud Server</a></p>
                 {% if project.serverhistory_set.all or project.transientserver_set.all %}
-                    <table id="serverTable" class="tablesorter">
+                    <table id="serverTable" class="tablesorter table">
                         <thead>
-                            <th>
-                                Primary IP Address
+                            <th class="align-middle">
+                                Primary IP
                                 <div class="dropdown-right">
                                     <button class="dropbtn dropbtn-info far fa-question-circle"></button>
                                     <div class="dropdown-content dropdown-content-info">
@@ -363,58 +396,41 @@
                                     </div>
                                 </div>
                             </th>
-                            <th>All IP Addresses</th>
-                            <th>Name</th>
-                            <th>Purpose</th>
-                            <th>Role</th>
-                            <th>Provider</th>
-                            <th class="sorter-false">Note</th>
-                            <th class="sorter-false">Options</th>
+                            <th class="align-middle">Other Addresses</th>
+                            <th class="align-middle">Name</th>
+                            <th class="align-middle">Purpose</th>
+                            <th class="align-middle">Role</th>
+                            <th class="align-middle">Provider</th>
+                            <th class="sorter-false align-middle">Note</th>
+                            <th class="sorter-false align-middle">Options</th>
                         </thead>
                         {% for server in project.serverhistory_set.all %}
                             {% get_primary_address server.server as primary_address%}
                             <tr>
-                                <td nowrap style="text-align: left;">
-                                    <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ primary_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#server_{{ server.server.id }}')">
-                                        <i class="far fa-copy"></i>
-                                    </button>
-                                    <a id="server_{{ server.server.id }}" class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">{{ primary_address }}</a>
+                                <td nowrap class="text-left align-middle">
+                                    <span data-toggle="tooltip" data-placement="top" title="Copy {{ primary_address }}" onclick="copyToClipboard('#server_{{ server.server.id }}')" class="copy-link">
+                                        <a id="server_{{ server.server.id }}" class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">
+                                            {{ primary_address }}
+                                        </a>
+                                    </span>
                                 </td>
-                                <td nowrap style="text-align: left;">
-                                    <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ server.server.id }}')">
-                                        <i class="far fa-copy"></i>
-                                    </button>
-                                    <span id="address_{{ server.server.id }}">{{ server.server.ip_address }}</span>
+                                <td nowrap class="text-left align-middle">
                                     {% if server.server.auxserveraddress_set %}
-                                        <br />
                                         {% for addy in server.server.auxserveraddress_set.all %}
-                                            {% if forloop.last %}
-                                                <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
-                                                    <i class="far fa-copy"></i>
-                                                </button>
-                                                <span id="address_{{ addy.id }}">{{ addy }}</span>
-                                            {% elif forloop.first %}
-                                                <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
-                                                    <i class="far fa-copy"></i>
-                                                </button>
-                                                <span id="address_{{ addy.id }}">{{ addy }}</span>
-                                                <br />
-                                            {% else %}
-                                                <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ addy }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#address_{{ addy.id }}')">
-                                                    <i class="far fa-copy"></i>
-                                                </button>
-                                                <span id="address_{{ addy.id }}">{{ addy }}</span>
-                                                <br />
-                                            {% endif %}
+                                            <div id="address_{{ addy.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ addy }}" onclick="copyToClipboard('#address_{{ addy.id }}')" class="copy-link">
+                                                {{ addy }}
+                                            </div>
                                         {% endfor %}
+                                    {% else %}
+                                        --
                                     {% endif %}
                                 </td>
-                                <td>{{ server.server.name }}</td>
-                                <td>{{ server.activity_type }}</td>
-                                <td>{{ server.server_role }}</td>
-                                <td>{{ server.server.server_provider }}</td>
-                                <td style="text-align: justify;">{{ server.note|bleach }}</td>
-                                <td>
+                                <td class="align-middle">{{ server.server.name }}</td>
+                                <td class="align-middle">{{ server.activity_type }}</td>
+                                <td class="align-middle">{{ server.server_role }}</td>
+                                <td class="align-middle">{{ server.server.server_provider }}</td>
+                                <td class="text-justify align-middle">{{ server.note|bleach }}</td>
+                                <td class="align-middle">
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content">
@@ -427,19 +443,18 @@
                         {% endfor %}
                         {% for server in project.transientserver_set.all %}
                             <tr>
-                                <td style="text-align: left;">
-                                    <button class="btn" data-toggle="tooltip"  data-placement="top" title="Copy {{ server.ip_address }}" style="color: #51B071; padding-left: 5px; font-size: 14px;" onclick="copyToClipboard('#vps_{{ server.id }}')">
-                                        <i class="far fa-copy"></i>
-                                    </button>
-                                    <span id="vps_{{ server.id }}">{{ server.ip_address }}</span>
+                                <td nowrap class="text-left align-middle">
+                                    <div id="vps_{{ server.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ server.ip_address }}" onclick="copyToClipboard('#vps_{{ server.id }}')" class="copy-link">
+                                        {{ server.ip_address }}
+                                    </div>
                                 </td>
-                                <td style="text-align: left;"></td>
-                                <td id="delete-target-content-server-{{ server.id }}">{{ server.name }}</td>
-                                <td>{{ server.activity_type }}</td>
-                                <td>{{ server.server_role }}</td>
-                                <td>{{ server.server_provider }}</td>
-                                <td style="text-align: justify;">{{ server.note|bleach }}</td>
-                                <td>
+                                <td class="align-middle"> -- </td>
+                                <td id="delete-target-content-server-{{ server.id }}" class="align-middle">{{ server.name }}</td>
+                                <td class="align-middle">{{ server.activity_type }}</td>
+                                <td class="align-middle">{{ server.server_role }}</td>
+                                <td class="align-middle">{{ server.server_provider }}</td>
+                                <td class="text-justify align-middle">{{ server.note|bleach }}</td>
+                                <td class="align-middle">
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
@@ -456,15 +471,7 @@
                 {% endif %}
 
                 <!-- DNS Section -->
-                <div class="dropdown">
-                    <h4 style="float: left; margin-right: 5px;">
-                        Domains and Servers
-                        <button style="background-color: #f1f1f1; color: black;" class="dropbtn dropbtn-info far fa-question-circle"></button>
-                    </h4>
-                    <div class="dropdown-content dropdown-content-info">
-                        <p>Add an association to track which of this project's currently checked-out domains is being used with which project server.</p>
-                    </div>
-                </div>
+                <h4>Domains and Servers</h4>
 
                 <!-- Determine if at least one server and one domain -->
                 {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
@@ -472,30 +479,30 @@
                         <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Associate a Domain + Server</a>
                     </p>
                     {% if project.domainserverconnection_set.all %}
-                        <table>
+                        <table class="table">
                             <tr>
-                                <th>Domain</th>
-                                <th>Server IP</th>
-                                <th>Server name</ht>
-                                <th>CDN Endpoint</th>
-                                <th>Options</th>
+                                <th class="align-middle">Domain</th>
+                                <th class="align-middle">Server IP</th>
+                                <th class="align-middle">Server name</ht>
+                                <th class="align-middle">CDN Endpoint</th>
+                                <th class="align-middle">Options</th>
                             </tr>
                             {% for connection in project.domainserverconnection_set.all %}
                                 <tr>
-                                    <td id="delete-target-content-connection-{{ connection.id }}">{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
+                                    <td id="delete-target-content-connection-{{ connection.id }}" class="align-middle">{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
                                     {% if connection.static_server %}
-                                        <td>{{ connection.static_server.server.ip_address }}</td>
-                                        <td>{{ connection.static_server.server.name }}</td>
+                                        <td class="align-middle">{{ connection.static_server.server.ip_address }}</td>
+                                        <td class="align-middle">{{ connection.static_server.server.name }}</td>
                                     {% else %}
-                                        <td>{{ connection.transient_server.ip_address }}</td>
-                                        <td>{{ connection.transient_server.name }}</td>
+                                        <td class="align-middle">{{ connection.transient_server.ip_address }}</td>
+                                        <td class="align-middle">{{ connection.transient_server.name }}</td>
                                     {% endif %}
                                     {% if connection.endpoint %}
-                                        <td>{{ connection.endpoint }}</td>
+                                        <td class="align-middle">{{ connection.endpoint }}</td>
                                     {% else %}
-                                        <td>No Endpoint</td>
+                                        <td class="align-middle">No Endpoint</td>
                                     {% endif %}
-                                    <td>
+                                    <td class="align-middle">
                                         <div class="dropdown">
                                             <button class="dropbtn far fa-caret-square-down"></button>
                                             <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
@@ -552,6 +559,13 @@
     <!-- jQuery Tablesorter Script -->
     <script>
         $(document).ready(function()  {
+            $("#assignmentTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
             $("#serverTable").tablesorter(
                             {
                                 cssAsc: 'down',
@@ -729,6 +743,25 @@
                     }
                 }
             });
+        });
+    </script>
+
+    <!-- Export Oplog with JS -->
+    <script>
+        function download(url, filename) {
+            fetch(url).then(function (t) {
+                return t.blob().then((b) => {
+                    var a = document.createElement("a");
+                    a.href = URL.createObjectURL(b);
+                    a.setAttribute("download", filename);
+                    a.click();
+                });
+            });
+        }
+
+        $(".js-export-oplog").on("click", function () {
+            id = $(this).parent().find('.oplog-id').html()
+            download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
         });
     </script>
 

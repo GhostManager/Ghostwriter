@@ -157,6 +157,19 @@ class Domain(models.Model):
     expiration = models.DateField(
         "Expiration Date", help_text="Select the date the domain will expire"
     )
+    last_health_check = models.DateField(
+        "Last Health Check",
+        help_text="The date and time of the latest health check for this domain name",
+        blank=True,
+        null=True,
+    )
+    vt_permalink = models.CharField(
+        "VirusTotal Permalink",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="VirusTotal's permalink for scan results of this domain",
+    )
     all_cat = models.TextField(
         "All Categories",
         null=True,
@@ -287,7 +300,6 @@ class Domain(models.Model):
             time_delta = date.today() - self.creation
         return "{} days".format(time_delta.days)
 
-    @property
     def is_expired(self):
         """
         Check if the domain's expiration DateField value is in the past.
@@ -298,7 +310,6 @@ class Domain(models.Model):
                 expired = True
         return expired
 
-    @property
     def is_expiring_soon(self):
         """
         Check if the domain's expiration DateField value is in the near future.
@@ -310,7 +321,6 @@ class Domain(models.Model):
                 expiring_soon = True
         return expiring_soon
 
-    @property
     def get_list(self):
         """
         Return an instance's dns_record field value as a list.

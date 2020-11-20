@@ -8,7 +8,7 @@
         <ul class="breadcrumb" style="margin: 0;">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Templates</li>
+            <li class="breadcrumb-item active" aria-current="page">Report Templates</li>
         </ul>
     </nav>
 {% endblock %}
@@ -24,13 +24,12 @@
 
         <p>This page lists all report templates and their current statuses. To investigate a status, view the template's details page.</p>
 
-        <table id="reportTable" class="tablesorter">
+        <table id="reportTable" class="tablesorter table">
             <thead>
                 <tr>
-                    <th>Default</th>
                     <th>Status</th>
+                    <th>Doc Type</th>
                     <th>Name</th>
-                    <th>Last Update</th>
                     <th>Client</th>
                     <th>Options</th>
                 </tr>
@@ -39,29 +38,24 @@
             {% for template in reporttemplate_list %}
                 <tr>
                     <td>
-                        {% if template.default %}
-                            <i class="healthy fas fa-check"></i>
-                        {% endif %}
-                    </td>
-                    <td>
                         {% with template.get_status as status %}
                             <span class="badge
                                 {% if status == "success" %}
-                                    badge-success
-                                {% elif status == "warning" %}
-                                    badge-warning
-                                {% elif status == "unknown" %}
-                                    badge-secondary
+                                    badge-success">Ready</span>
                                 {% else %}
-                                    badge-danger
+                                    {% if status == "warning" %}
+                                        badge-warning
+                                    {% elif status == "unknown" %}
+                                        badge-secondary
+                                    {% else %}
+                                        badge-danger
+                                    {% endif %}
+                                    ">{{ status|capfirst }}</span>
                                 {% endif %}
-                            ">
-                                {{ status|capfirst }}
-                            </span>
                         {% endwith %}
                     </td>
+                    <td>{{ template.doc_type }}</td>
                     <td><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>
-                    <td nowrap>{{ template.last_update|date:"d M Y" }}</td>
                     <td>
                         {% if template.client %}
                             {{ template.client }}

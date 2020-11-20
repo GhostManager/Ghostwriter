@@ -2,6 +2,8 @@
 
 # Django & Other 3rd Party Libraries
 from django.db import models
+
+# Ghostwriter Libraries
 from ghostwriter.singleton.models import SingletonModel
 
 
@@ -56,6 +58,9 @@ class NamecheapConfiguration(SingletonModel):
 
 
 class ReportConfiguration(SingletonModel):
+    enable_borders = models.BooleanField(
+        default=False, help_text="Enable borders around images in Word documents"
+    )
     border_weight = models.IntegerField(
         default=12700,
         help_text="Weight in EMUs – 12700 is equal to the 1pt weight in Word",
@@ -68,13 +73,48 @@ class ReportConfiguration(SingletonModel):
         "Character Before Figure Captions",
         max_length=255,
         default=u"\u2013",
-        help_text="Unicode character to place between `Figure` and your caption in Word reports",
+        help_text="Unicode character to place between the label and your figure caption in Word reports",
+    )
+    label_figure = models.CharField(
+        "Label Used for Figures",
+        max_length=255,
+        default="Figure",
+        help_text="The label that comes before the figure number and caption in Word reports",
     )
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
         default=u"\u2013",
-        help_text="Unicode character to place between `Table` and your table name in Word reports",
+        help_text="Unicode character to place between the label and your table caption in Word reports",
+    )
+    label_table = models.CharField(
+        "Label Used for Tables",
+        max_length=255,
+        default="Table",
+        help_text="The label that comes before the table number and caption in Word reports",
+    )
+    # Foreign Keys
+    default_docx_template = models.ForeignKey(
+        "reporting.reporttemplate",
+        related_name="reportconfiguration_docx_set",
+        on_delete=models.SET_NULL,
+        limit_choices_to={
+            "doc_type__doc_type__iexact": "docx",
+        },
+        null=True,
+        blank=True,
+        help_text="Select a default Word template",
+    )
+    default_pptx_template = models.ForeignKey(
+        "reporting.reporttemplate",
+        related_name="reportconfiguration_pptx_set",
+        on_delete=models.SET_NULL,
+        limit_choices_to={
+            "doc_type__doc_type__iexact": "pptx",
+        },
+        null=True,
+        blank=True,
+        help_text="Select a default PowerPoint template",
     )
 
     def __str__(self):

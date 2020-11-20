@@ -17,7 +17,7 @@ from crispy_forms.layout import (
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
@@ -419,7 +419,7 @@ class ProjectForm(forms.ModelForm):
 
     class Meta:
         model = Project
-        exclude = ("operator", "codename", "complete")
+        exclude = ("operator", "complete")
 
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
@@ -459,6 +459,7 @@ class ProjectForm(forms.ModelForm):
                         """
                     ),
                     "client",
+                    "codename",
                     Row(
                         Column("start_date", css_class="form-group col-md-6 mb-0"),
                         Column("end_date", css_class="form-group col-md-6 mb-0"),
@@ -560,11 +561,7 @@ class ProjectNoteForm(forms.ModelForm):
 
     class Meta:
         model = ProjectNote
-        fields = "__all__"
-        widgets = {
-            "operator": forms.HiddenInput(),
-            "project": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(ProjectNoteForm, self).__init__(*args, **kwargs)
@@ -573,9 +570,7 @@ class ProjectNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            "note",
-            "operator",
-            "project",
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -591,6 +586,7 @@ class ProjectNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note

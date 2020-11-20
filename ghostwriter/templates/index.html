@@ -7,7 +7,7 @@
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb" style="padding-left: 20px;">
         <ul class="breadcrumb" style="margin: 0;">
-            <li class="breadcrumb-item active" aria-current="page">Hi, {{ user }}!</li>
+            <li class="breadcrumb-item active" aria-current="page">Welcome, {{ user|capfirst }}!</li>
         </ul>
     </nav>
 {% endblock %}
@@ -15,7 +15,7 @@
 {% block content %}
     {% load static %}
     <div style="margin: 35px;">
-        <img src="{% static 'images/ghost.png' %}" alt="Ghostwriter Logo" style="width: 25%; min-width: 450px;">
+        <img src="{% static 'images/logo_name.png' %}" alt="Ghostwriter Logo" style="">
     </div>
 
     <div class="admin">
@@ -52,7 +52,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td style="text-align: center;">You are not currently assigned to any projects in the next week.</td>
+                                    <td style="text-align: center;">You are not currently assigned to any future projects.</td>
                                 </tr>
                             {% endif %}
                         </table>

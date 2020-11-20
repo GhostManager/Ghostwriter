@@ -14,20 +14,23 @@
 {% endblock %}
 
 {% block content %}
-<p>Provide a name for your logs:</p>
+    <!-- Instructions Section -->
+    <p>Provide a meaningful name for your log and select the project to which it should associated:</p>
 
-<!-- Form Section -->
-<form class="newitem" method="post">
-    {% csrf_token %}
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
 
-    <!-- General Section -->
-    <strong><i class="fas fa-database"></i> Operation Log Details</strong>
-    <hr>
-
-    {{ form.name|as_crispy_field }}
-    {{ form.project|as_crispy_field }}
-
-    <input type="submit" class="btn btn-primary" value="Save">
-    <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-</form>
+    <!-- Form Section -->
+    {% crispy form form.helper %}
 {% endblock %}

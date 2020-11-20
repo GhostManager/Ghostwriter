@@ -2,8 +2,9 @@
 from django.conf.urls import url
 from django.contrib import admin
 from django.http import HttpResponseRedirect
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext_lazy as _
 
+# Ghostwriter Libraries
 from .models import DEFAULT_SINGLETON_INSTANCE_ID
 
 try:
@@ -65,7 +66,10 @@ class SingletonModelAdmin(admin.ModelAdmin):
         if object_id == str(self.singleton_instance_id):
             self.model.objects.get_or_create(pk=self.singleton_instance_id)
         return super(SingletonModelAdmin, self).change_view(
-            request, object_id, form_url=form_url, extra_context=extra_context,
+            request,
+            object_id,
+            form_url=form_url,
+            extra_context=extra_context,
         )
 
     @property

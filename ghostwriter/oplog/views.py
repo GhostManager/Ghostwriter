@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from rest_framework import viewsets
@@ -18,8 +18,11 @@ from rest_framework_api_key.models import APIKey
 from rest_framework_api_key.permissions import HasAPIKey
 from tablib import Dataset
 
+# Ghostwriter Libraries
+from ghostwriter.rolodex.models import Project
+
 from .admin import OplogEntryResource
-from .forms import OplogCreateEntryForm, OplogCreateForm
+from .forms import OplogEntryForm, OplogForm
 from .models import Oplog, OplogEntry
 from .serializers import OplogEntrySerializer, OplogSerializer
 
@@ -65,9 +68,27 @@ def OplogEntriesImport(request):
         imported_data = dataset.load(new_entries, format="csv")
         result = oplog_entry_resource.import_data(imported_data, dry_run=True)
 
-        if not result.has_errors():
+        if result.has_errors():
+            row_errors = result.row_errors()
+            for exc in row_errors:
+                messages.error(
+                    request,
+                    f"There was an error in row {exc[0]}: {exc[1][0].error}",
+                    extra_tags="alert-danger",
+                )
+            return HttpResponseRedirect(reverse("oplog:oplog_import"))
+        else:
             oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
-            return HttpResponseRedirect(reverse("oplog:index"))
+            # Get the first ``oplog_id`` value to use for a redirect
+            oplog_id = imported_data["oplog_id"][0]
+            messages.success(
+                request,
+                "Successfully imported log data",
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(
+                reverse("oplog:oplog_entries", kwargs={"pk": oplog_id})
+            )
 
     return render(request, "oplog/oplog_import.html")
 
@@ -88,50 +109,113 @@ def OplogListEntries(request, pk):
     return render(request, "oplog/entries_list.html", context=context)
 
 
-@login_required
-def create_oplog(request):
-    """
-    Create an individual :model:`oplog.Oplog`.
-    """
-    context = {}
-    context["cancel_link"] = reverse("oplog:index")
-    if request.method == "POST":
-        form = OplogCreateForm(request.POST)
-        if form.is_valid():
-            # Save the new :model:`oplog.Oplog` instance
-            form.save()
-            messages.success(
-                request,
-                "New operation log was successfully created",
-                extra_tags="alert-success",
-            )
-            # Create new API key for this oplog
-            try:
-                oplog_name = form.instance.name
-                api_key_name = oplog_name
-                api_key, key = APIKey.objects.create_key(name=api_key_name)
-                # Pass the API key via the messages framework
-                messages.info(
-                    request,
-                    f"The API key for your log is { api_key }: { key }\r\nPlease store it somewhere safe: you will not be able to see it again.",
-                    extra_tags="api-key no-toast",
-                )
-            except Exception:
-                logger.exception("Failed to create new API key")
-                messages.error(
-                    request,
-                    "Could not generate an API key for your new operation log – contact your admin!",
-                    extra_tags="alert-danger",
-                )
-            return HttpResponseRedirect(reverse("oplog:index"))
-    else:
-        context["form"] = OplogCreateForm()
-    return render(request, "oplog/oplog_form.html", context=context,)
-
-
 ################
 # View Classes #
 ################
+
+
+class OplogCreate(LoginRequiredMixin, CreateView):
+    """
+    Create an individual instance of :model:`oplog.Oplog`.
+
+    **Context**
+
+    ``project``
+        Instance of :model:`rolodex.Project` associated with this log
+    ``cancel_link``
+        Link for the form's Cancel button to return to oplog list or details page
+
+    **Template**
+
+    :template:`oplog/oplog_form.html`
+    """
+
+    model = Oplog
+    form_class = OplogForm
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        # Check if this request is for a specific project or not
+        self.project = ""
+        # Determine if ``pk`` is in the kwargs
+        if "pk" in self.kwargs:
+            pk = self.kwargs.get("pk")
+            # Try to get the project from :model:`rolodex.Project`
+            if pk:
+                try:
+                    self.project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+                except Project.DoesNotExist:
+                    logger.info(
+                        "Received report create request for Project ID %s, but that Project does not exist",
+                        pk,
+                    )
+
+    def get_form_kwargs(self):
+        kwargs = super(OplogCreate, self).get_form_kwargs()
+        kwargs.update({"project": self.project})
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super(OplogCreate, self).get_context_data(**kwargs)
+        ctx["project"] = self.project
+        if self.project:
+            ctx["cancel_link"] = reverse(
+                "rolodex:project_detail", kwargs={"pk": self.project.pk}
+            )
+        else:
+            ctx["cancel_link"] = reverse("oplog:index")
+        return ctx
+
+    def get_form(self, form_class=None):
+        form = super(OplogCreate, self).get_form(form_class)
+        if not form.fields["project"].queryset:
+            messages.error(
+                self.request,
+                "There are no active projects for a new operation log",
+                extra_tags="alert-error",
+            )
+        return form
+
+    def form_valid(self, form):
+        # Save the new :model:`oplog.Oplog` instance
+        form.save()
+        messages.success(
+            self.request,
+            "New operation log was successfully created",
+            extra_tags="alert-success",
+        )
+        # Create new API key for this oplog
+        try:
+            oplog_name = form.instance.name
+            api_key_name = oplog_name
+            api_key, key = APIKey.objects.create_key(name=api_key_name)
+            # Pass the API key via the messages framework
+            messages.info(
+                self.request,
+                f"The API key for your log is { api_key }: { key }\r\nPlease store it somewhere safe: you will not be able to see it again.",
+                extra_tags="api-key no-toast",
+            )
+        except Exception:
+            logger.exception("Failed to create new API key")
+            messages.error(
+                self.request,
+                "Could not generate an API key for your new operation log – contact your admin!",
+                extra_tags="alert-danger",
+            )
+        return super().form_valid(form)
+
+    def get_initial(self):
+        if self.project:
+            name = f"{self.project.client} {self.project.project_type} Log"
+            return {"name": name, "project": self.project.id}
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Successfully created new operation log",
+            extra_tags="alert-success",
+        )
+        return reverse("oplog:index")
 
 
 class OplogEntryCreate(LoginRequiredMixin, CreateView):
@@ -144,7 +228,7 @@ class OplogEntryCreate(LoginRequiredMixin, CreateView):
     """
 
     model = OplogEntry
-    form_class = OplogCreateEntryForm
+    form_class = OplogEntryForm
 
     def get_success_url(self):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))

@@ -3,6 +3,7 @@
 # Django & Other 3rd Party Libraries
 from django.contrib import admin
 
+# Ghostwriter Libraries
 from .models import (
     Client,
     ClientContact,
@@ -76,7 +77,10 @@ class ProjectAssignmentAdmin(admin.ModelAdmin):
     list_display_links = ("operator", "project")
     fieldsets = (
         ("Operator Information", {"fields": ("operator", "role", "project")}),
-        ("Assignment Dates", {"fields": ("start_date", "end_date")},),
+        (
+            "Assignment Dates",
+            {"fields": ("start_date", "end_date")},
+        ),
         ("Misc", {"fields": ("note",)}),
     )
 

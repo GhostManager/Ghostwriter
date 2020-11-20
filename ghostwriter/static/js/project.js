@@ -4,55 +4,55 @@
 function displayToastTop({
   type,
   string,
-  title = "",
+  title = '',
   delay = 4,
   escapeHTML = true,
   context = null,
 }) {
   if (context !== null) {
-    if (context == "form") {
-      title = "Form Validation Error";
+    if (context == 'form') {
+      title = 'Form Validation Error';
     }
   }
   delay = delay * 1000;
-  if (type === "error" && delay === 4000) {
+  if (type === 'error' && delay === 4000) {
     delay = 0;
   }
   toastr.options.timeOut = delay.toString();
   toastr.options.extendedTimeOut = delay.toString();
   toastr.options.escapeHtml = escapeHTML;
   let msg;
-  if (type === "success") {
-    if (title == "") {
-      title = "Great Success";
+  if (type === 'success') {
+    if (title == '') {
+      title = 'Great Success';
     }
     msg = toastr.success(string, title);
-  } else if (type === "warning") {
-    if (title == "") {
-      title = "Beware";
+  } else if (type === 'warning') {
+    if (title == '') {
+      title = 'Beware';
     }
     msg = toastr.warning(string, title);
-  } else if (type === "error") {
-    if (title == "") {
-      title = "Great Failure";
+  } else if (type === 'error') {
+    if (title == '') {
+      title = 'Great Failure';
     }
     msg = toastr.error(string, title);
-  } else if (type === "info") {
-    if (title == "") {
-      title = "FYI";
+  } else if (type === 'info') {
+    if (title == '') {
+      title = 'FYI';
     }
     msg = toastr.info(string, title);
   } else {
-    if (title == "") {
-      title = "Beware";
+    if (title == '') {
+      title = 'Beware';
     }
     msg = toastr.warning(string, title);
   }
   if (msg !== undefined) {
     msg.css({
-      width: "100%",
-      "min-width": "400px",
-      "white-space": "pre-wrap",
+      width: '100%',
+      'min-width': '400px',
+      'white-space': 'pre-wrap',
     });
   }
 }
@@ -61,4 +61,22 @@ function displayToastTop({
 function csrfSafeMethod(method) {
   // These HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
+}
+
+function generateDownloadName(name) {
+    var d = new Date();
+    var year = d.getFullYear()
+    var month = d.getMonth()
+    var day = d.getDay()
+    var hour = d.getHours()
+    var minutes = d.getMinutes()
+    var sec = d.getSeconds()
+    if (hour < 10) {
+        hour = '0' + hour;
+    }
+    if (minutes < 10) {
+        minutes = '0' + minutes;
+    }
+    filename = year + month + day + '_' + hour + minutes + day + '_' + name
+    return filename
 }

@@ -117,4 +117,12 @@
             $('.tablesorter').trigger('update');
         });
     </script>
+
+    <!-- Fix for Accordion Markers -->
+    <script>
+        // Fix second accordion being marked as expanded from crispy forms
+        $(document).ready(function(){
+            $('h5 a:eq(1)').attr('aria-expanded', 'false');
+        });
+    </script>
 {% endblock %}

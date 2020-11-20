@@ -13,7 +13,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
@@ -60,7 +60,8 @@ def update_project_badges(request, pk):
     """
     project_instance = get_object_or_404(Project, pk=pk)
     html = render_to_string(
-        "snippets/project_nav_tabs.html", {"project": project_instance},
+        "snippets/project_nav_tabs.html",
+        {"project": project_instance},
     )
     return HttpResponse(html)
 
@@ -77,7 +78,8 @@ def update_client_badges(request, pk):
     """
     client_instance = get_object_or_404(Client, pk=pk)
     html = render_to_string(
-        "snippets/client_nav_tabs.html", {"client": client_instance},
+        "snippets/client_nav_tabs.html",
+        {"client": client_instance},
     )
     return HttpResponse(html)
 
@@ -520,7 +522,9 @@ class ClientCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Client successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Client successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
@@ -534,16 +538,6 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the client
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Client.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
@@ -572,6 +566,20 @@ class ClientCreate(LoginRequiredMixin, CreateView):
             logger.error(message)
             return super(ClientCreate, self).form_invalid(form)
 
+    def get_initial(self):
+        # Generate and assign a unique codename to the project
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=codename)
+            except Exception:
+                codename_verified = True
+        return {
+            "codename": codename,
+        }
+
 
 class ClientUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -595,7 +603,9 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Client successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Client successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
@@ -613,16 +623,6 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the client
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Client.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
@@ -729,6 +729,13 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         )
         return ctx
 
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.client_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
+
 
 class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -820,14 +827,21 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Project successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Project successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super(ProjectCreate, self).get_context_data(**kwargs)
         ctx["client"] = self.client
-        ctx["cancel_link"] = reverse("rolodex:projects")
+        if self.client:
+            ctx["cancel_link"] = reverse(
+                "rolodex:client_detail", kwargs={"pk": self.client.pk}
+            )
+        else:
+            ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj")
             ctx["assignments"] = ProjectAssignmentFormSet(
@@ -839,16 +853,6 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the project
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Project.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         objectives = ctx["objectives"]
@@ -884,8 +888,18 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             return super(ProjectCreate, self).form_invalid(form)
 
     def get_initial(self):
+        # Generate and assign a unique codename to the project
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=codename)
+            except Exception:
+                codename_verified = True
         return {
             "client": self.client,
+            "codename": codename,
         }
 
 
@@ -940,12 +954,6 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             self.request, "Project successfully saved.", extra_tags="alert-success"
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
-
-    # def get_initial(self):
-    #     project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-    #     return {
-    #         "codename": project_instance.codename,
-    #     }
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
@@ -1124,6 +1132,13 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
             reverse("rolodex:project_detail", kwargs={"pk": project_instance.id})
         )
         return ctx
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.project_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):

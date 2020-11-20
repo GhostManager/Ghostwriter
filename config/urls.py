@@ -2,13 +2,15 @@
 
 # Django & Other 3rd Party Libraries
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views import defaults as default_views
 from django.views.generic import RedirectView
 
 # Ghostwriter Libraries
+from ghostwriter.home.views import (
+    protected_serve,
+)
 from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
@@ -38,9 +40,14 @@ urlpatterns = [
     path("reporting/", include("ghostwriter.reporting.urls", namespace="reporting")),
     path("", RedirectView.as_view(pattern_name="home:dashboard"), name="home"),
     path("oplog/", include("ghostwriter.oplog.urls", namespace="oplog")),
+    re_path(
+        r"^%s(?P<path>.*)$" % settings.MEDIA_URL[1:],
+        protected_serve,
+        {"document_root": settings.MEDIA_ROOT},
+    )
     # Add additional custom paths below this line...
     # Your stuff: custom urls includes go here
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
 
 if settings.DEBUG:
     # This allows the error pages to be debugged during development, just visit

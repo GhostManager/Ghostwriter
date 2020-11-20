@@ -1,6 +1,6 @@
 # Django & Other 3rd Party Libraries
 from django import template
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext_lazy as _
 
 try:
     from django.apps import apps

@@ -1,8 +1,10 @@
 """This contains all of the URL mappings used by the Reporting application."""
 
 # Django & Other 3rd Party Libraries
+from ghostwriter.reporting.views import EvidenceCreate
 from django.urls import path
 
+# Ghostwriter Libraries
 from . import views
 
 app_name = "reporting"
@@ -161,12 +163,12 @@ urlpatterns += [
     ),
     path(
         "reports/evidence/upload/<int:pk>",
-        views.upload_evidence,
+        views.EvidenceCreate.as_view(),
         name="upload_evidence",
     ),
     path(
-        "reports/evidence/modal/<int:pk>",
-        views.upload_evidence_modal,
+        "reports/evidence/upload/<int:pk>/<str:modal>",
+        views.EvidenceCreate.as_view(),
         name="upload_evidence_modal",
     ),
     path(
@@ -174,7 +176,11 @@ urlpatterns += [
         views.upload_evidence_modal_success,
         name="upload_evidence_modal_success",
     ),
-    path("reports/evidence/<int:pk>", views.view_evidence, name="evidence_detail"),
+    path(
+        "reports/evidence/<int:pk>",
+        views.EvidenceDetailView.as_view(),
+        name="evidence_detail",
+    ),
     path(
         "reports/evidence/update/<int:pk>",
         views.EvidenceUpdate.as_view(),

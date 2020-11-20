@@ -23,6 +23,19 @@ def has_group(user, group_name):
     return True if group in user.groups.all() else False
 
 
+@register.filter(name="get_groups")
+def get_groups(user):
+    """
+    Collect a list of all memberships in :model:`django.contrib.auth.Group` for
+    an individual :model:`users.User`.
+    """
+    groups = Group.objects.filter(user=user)
+    group_list = []
+    for group in groups:
+        group_list.append(group.name)
+    return ", ".join(group_list)
+
+
 @register.simple_tag
 def count_assignments(request):
     """
