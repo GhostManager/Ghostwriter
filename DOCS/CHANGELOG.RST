@@ -6,7 +6,6 @@ Changelog
 * Tagged release v2.0
     * More details: https://posts.specterops.io/ghostwriter-v2-0-release-638cef16deb7
 * Upgraded to Django 3 and updated all dependencies
-* Implemented authenticated WebSockets
 * Initial commit of CommandCenter application and related configuration options
     * VirusTotal Configuration
     * Global Report Configuration
@@ -19,8 +18,11 @@ Changelog
     * Domain check-out: alert if domain will expire soon and is not set to auto-renew
     * Domain check-out: alert if domain is marked as burned
     * Domain check-out: alert if domain has been previously used with selected client
-* New tabbed dashboards for clients, projects, and domains
-* New inline forms for clients and projects
+* Updated user interface elements
+    * New tabbed dashboards for clients, projects, and domains
+    * New inline forms for creating and managing clients and projects and related items
+    * New sidebar menu to improve legibility
+    * Migrated buttons and background tasks to WebSockets and AJAX for a more seamless experience
 * Initial release of refactored reporting engine
     * New drag-and-drop report management interface
     * Added many more options to the WYSIWYG editor's formatting menus
@@ -32,6 +34,14 @@ Changelog
     * New template linter to check and verify templates
     * Closes #28
     * Closes #90
+* Security updates and fixes
+    * Resolved potential stored cross-site scripting in operational logs
+    * Resolved unvalidated evidence file uploads and new note creation
+        * Associated user account is now set server-side
+    * Resolved issues with WebSocket authentication
+    * Locked-down evidence uploads to close potential loopholes
+        * Evidence form now only allows specific filetypes: md, txt, log, jpg, jpeg, png
+        * Requesting an evidence file requires an active user session
 * Removed web scraping from domain health checks
     * Checks now use VirusTotal and link to the results
     * Closes #50
