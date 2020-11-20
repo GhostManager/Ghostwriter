@@ -7,7 +7,6 @@ from datetime import datetime
 
 # Django & Other 3rd Party Libraries
 from django import forms
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -18,13 +17,18 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from django_q.models import Task
 from django_q.tasks import async_task
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import (
+    CloudServicesConfiguration,
+    NamecheapConfiguration,
+    VirusTotalConfiguration,
+)
 from ghostwriter.rolodex.models import Project
 
 from .filters import DomainFilter, ServerFilter
@@ -73,7 +77,8 @@ def update_domain_badges(request, pk):
     """
     domain_instance = get_object_or_404(Domain, pk=pk)
     html = render_to_string(
-        "snippets/domain_nav_tabs.html", {"domain": domain_instance},
+        "snippets/domain_nav_tabs.html",
+        {"domain": domain_instance},
     )
     return HttpResponse(html)
 
@@ -94,6 +99,7 @@ def ajax_load_projects(request):
     """
     client_id = request.GET.get("client")
     projects = Project.objects.filter(client_id=client_id).order_by("codename")
+
     return render(
         request, "shepherd/project_dropdown_list.html", {"projects": projects}
     )
@@ -112,6 +118,49 @@ def ajax_load_project(request):
     project_id = request.GET.get("project")
     project = Project.objects.filter(id=project_id)
     data = serializers.serialize("json", project)
+    return HttpResponse(data, content_type="application/json")
+
+
+@login_required
+def ajax_domain_overwatch(request):
+    """
+    Retrieve an individual :model:`shepherd.History` to check domain's past history
+    prior to checkout.
+    """
+    client_id = None
+    domain_id = None
+    try:
+        client_id = int(request.GET.get("client"))
+        domain_id = int(request.GET.get("domain"))
+    except Exception:
+        logger.exception("Received bad primary key values")
+
+    if client_id and domain_id:
+        domain_history = History.objects.filter(
+            Q(domain=domain_id) & Q(client=client_id)
+        )
+        if domain_history:
+            data = {
+                "result": "warning",
+                "message": "Domain has been used with this client in the past",
+            }
+        else:
+            data = {"result": "success", "message": ""}
+    else:
+        data = {"result": "error"}
+
+    return JsonResponse(data)
+
+
+@login_required
+def ajax_project_domains(request, pk):
+    """
+    Retrieve all :model:`shepherd.History` related to an individual
+    :model:`rolodex.Project`.
+    """
+    domain_history = History.objects.filter(project=pk)
+    data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
+
     return HttpResponse(data, content_type="application/json")
 
 
@@ -220,7 +269,7 @@ class DomainUpdateHealth(LoginRequiredMixin, View):
                     group="Domain Updates",
                     hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
                 )
-            message = "Domain category update task (Task ID {task}) has been successfully queued".format(
+            message = "Successfully queued domain category update task (Task ID {task}) ".format(
                 task=task_id
             )
         except Exception:
@@ -267,7 +316,7 @@ class DomainUpdateDNS(LoginRequiredMixin, View):
                     group="DNS Updates",
                     hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
                 )
-            message = "DNS update task (Task ID {task}) has been successfully queued".format(
+            message = "Successfully queued DNS update task (Task ID {task})".format(
                 task=task_id
             )
         except Exception:
@@ -296,8 +345,10 @@ class RegistrarSyncNamecheap(LoginRequiredMixin, View):
                 "ghostwriter.shepherd.tasks.fetch_namecheap_domains",
                 group="Namecheap Update",
             )
-            message = "Namecheap update task (Task ID {task}) has been successfully queued.".format(
-                task=task_id
+            message = (
+                "Successfully queued Namecheap update task (Task ID {task})".format(
+                    task=task_id
+                )
             )
         except Exception:
             result = "error"
@@ -324,8 +375,10 @@ class MonitorCloudInfrastructure(LoginRequiredMixin, View):
                 "ghostwriter.shepherd.tasks.review_cloud_infrastructure",
                 group="Cloud Infrastructure Review",
             )
-            message = "Cloud monitor task (Task ID {task}) has been successfully queued.".format(
-                task=task_id
+            message = (
+                "Successfully queued the cloud monitor task (Task ID {task})".format(
+                    task=task_id
+                )
             )
         except Exception:
             result = "error"
@@ -448,7 +501,7 @@ def domain_list(request):
     # Check if a search parameter is in the request
     search_term = ""
     if "domain_search" in request.GET:
-        search_term = request.GET.get("domain_search")
+        search_term = request.GET.get("domain_search").strip()
         if search_term is None or search_term == "":
             search_term = ""
     # If there is a search term, filter the query by domain name or category
@@ -655,7 +708,7 @@ def burn(request, pk):
     **Context**
 
     ``form``
-        Instance of :form:`shepjerd.BurnForm`
+        Instance of :form:`shepherd.BurnForm`
     ``domain_instance``
         Instance of :model:`shepherd.Domain` to be updated
     ``domain_name``
@@ -686,7 +739,7 @@ def burn(request, pk):
             domain_instance.save()
             # Redirect to the user's checked-out domains
             messages.warning(
-                request, "Domain has been marked as burned.", extra_tags="alert-warning"
+                request, "Domain has been marked as burned", extra_tags="alert-warning"
             )
             return HttpResponseRedirect(
                 "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
@@ -720,7 +773,7 @@ def update(request):
     ``update_time``
         Calculated time estimate for updating health of all :model:`shepherd.Domain`
     ``sleep_time``
-        The associated value from ``settings.DOMAINCHECK_CONFIG``
+        The associated value from :model:`commandcenter.VirusTotalConfiguration`
     ``cat_last_update_requested``
         Start time of latest :model:`django_q.Task` for group "Domain Updates"
     ``cat_last_update_completed``
@@ -738,7 +791,7 @@ def update(request):
     ``dns_last_result``
         Result of latest :model:`django_q.Task` for group "DNS Updates"
     ``enable_namecheap``
-        The associated value from ``settings.NAMECHEAP_CONFIG``
+        The associated value from :model:`commandcenter.NamecheapConfiguration`
     ``namecheap_last_update_requested``
         Start time of latest :model:`django_q.Task` for group "Namecheap Update"
     ``namecheap_last_update_completed``
@@ -748,7 +801,7 @@ def update(request):
     ``namecheap_last_result``
         Result of latest :model:`django_q.Task` for group "Namecheap Update"
     ``enable_cloud_monitor``
-        The associated value from ``settings.CLOUD_SERVICE_CONFIG``
+        The associated value from :model:`commandcenter.CloudServicesConfiguration`
     ``cloud_last_update_requested``
         Start time of latest :model:`django_q.Task` for group "Cloud Infrastructure Review"
     ``cloud_last_update_completed``
@@ -764,10 +817,26 @@ def update(request):
     """
     # Check if the request is a GET
     if request.method == "GET":
+        # Get relevant configuration settings
+        vt_config = VirusTotalConfiguration.get_solo()
+        sleep_time = vt_config.sleep_time
+        cloud_config = CloudServicesConfiguration.get_solo()
+        enable_cloud_monitor = cloud_config.enable
+        namecheap_config = NamecheapConfiguration.get_solo()
+        enable_namecheap = namecheap_config.enable
+
         # Collect data for category updates
-        total_domains = Domain.objects.all().count()
+        cat_last_update_completed = ""
+        cat_last_update_time = ""
+        cat_last_result = ""
         try:
-            sleep_time = settings.DOMAINCHECK_CONFIG["sleep_time"]
+            expired_status = DomainStatus.objects.get(domain_status="Expired")
+        except DomainStatus.DoesNotExist:
+            expired_status = None
+        total_domains = (
+            Domain.objects.all().exclude(domain_status=expired_status).count()
+        )
+        try:
             update_time = round(total_domains * sleep_time / 60, 2)
         except Exception:
             sleep_time = 20
@@ -785,13 +854,13 @@ def update(request):
                 cat_last_update_time = round(queryset.time_taken() / 60, 2)
             else:
                 cat_last_update_completed = "Failed"
-                cat_last_update_time = ""
         except Exception:
             cat_last_update_requested = "Updates Have Not Been Run Yet"
-            cat_last_update_completed = ""
-            cat_last_update_time = ""
-            cat_last_result = ""
+
         # Collect data for DNS updates
+        dns_last_update_completed = ""
+        dns_last_update_time = ""
+        dns_last_result = ""
         try:
             queryset = Task.objects.filter(group="DNS Updates")[0]
             dns_last_update_requested = queryset.started
@@ -801,46 +870,46 @@ def update(request):
                 dns_last_update_time = round(queryset.time_taken() / 60, 2)
             else:
                 dns_last_update_completed = "Failed"
-                dns_last_update_time = ""
         except Exception:
             dns_last_update_requested = "Updates Have Not Been Run Yet"
-            dns_last_update_completed = ""
-            dns_last_update_time = ""
-            dns_last_result = ""
+
         # Collect data for Namecheap updates
-        enable_namecheap = settings.NAMECHEAP_CONFIG["enable_namecheap"]
-        try:
-            queryset = Task.objects.filter(group="Namecheap Update")[0]
-            namecheap_last_update_requested = queryset.started
-            namecheap_last_result = queryset.result
-            if queryset.success:
-                namecheap_last_update_completed = queryset.stopped
-                namecheap_last_update_time = round(queryset.time_taken() / 60, 2)
-            else:
-                namecheap_last_update_completed = "Failed"
-                namecheap_last_update_time = ""
-        except Exception:
-            namecheap_last_update_requested = "A Namecheap Update Has Not Been Run Yet"
-            namecheap_last_update_completed = ""
-            namecheap_last_update_time = ""
-            namecheap_last_result = ""
+        namecheap_last_update_completed = ""
+        namecheap_last_update_time = ""
+        namecheap_last_result = ""
+        if enable_namecheap:
+            try:
+                queryset = Task.objects.filter(group="Namecheap Update")[0]
+                namecheap_last_update_requested = queryset.started
+                namecheap_last_result = queryset.result
+                if queryset.success:
+                    namecheap_last_update_completed = queryset.stopped
+                    namecheap_last_update_time = round(queryset.time_taken() / 60, 2)
+                else:
+                    namecheap_last_update_completed = "Failed"
+            except Exception:
+                namecheap_last_update_requested = "Namecheap Sync Has Not Been Run Yet"
+        else:
+            namecheap_last_update_requested = "Namecheap Syncing is Disabled"
+
         # Collect data for cloud monitoring
-        enable_cloud_monitor = settings.CLOUD_SERVICE_CONFIG["enable_cloud_monitor"]
-        try:
-            queryset = Task.objects.filter(group="Cloud Infrastructure Review")[0]
-            cloud_last_update_requested = queryset.started
-            cloud_last_result = queryset.result
-            if queryset.success:
-                cloud_last_update_completed = queryset.stopped
-                cloud_last_update_time = round(queryset.time_taken() / 60, 2)
-            else:
-                cloud_last_update_completed = "Failed"
-                cloud_last_update_time = ""
-        except Exception:
-            cloud_last_update_requested = "A Namecheap Update Has Not Been Run Yet"
-            cloud_last_update_completed = ""
-            cloud_last_update_time = ""
-            cloud_last_result = ""
+        cloud_last_update_completed = ""
+        cloud_last_update_time = ""
+        cloud_last_result = ""
+        if enable_cloud_monitor:
+            try:
+                queryset = Task.objects.filter(group="Cloud Infrastructure Review")[0]
+                cloud_last_update_requested = queryset.started
+                cloud_last_result = queryset.result
+                if queryset.success:
+                    cloud_last_update_completed = queryset.stopped
+                    cloud_last_update_time = round(queryset.time_taken() / 60, 2)
+                else:
+                    cloud_last_update_completed = "Failed"
+            except Exception:
+                cloud_last_update_requested = "Cloud Review Has Not Been Run Yet"
+        else:
+            cloud_last_update_requested = "Cloud Services are Disabled"
         # Assemble context for the page
         context = {
             "total_domains": total_domains,
@@ -874,7 +943,7 @@ def export_domains_to_csv(request):
     """
     Export all :model:`shepherd.Domain` to a csv file for download.
     """
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     domain_resource = DomainResource()
     dataset = domain_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
@@ -887,7 +956,7 @@ def export_servers_to_csv(request):
     """
     Export all :model:`shepherd.Server` to a csv file for download.
     """
-    timestamp = datetime.now().isoformat()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     server_resource = StaticServerResource()
     dataset = server_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
@@ -952,7 +1021,7 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Domain successfully checked-out.", extra_tags="alert-success"
+            self.request, "Domain successfully checked-out", extra_tags="alert-success"
         )
         return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
@@ -961,6 +1030,7 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super(HistoryCreate, self).get_context_data(**kwargs)
         ctx["domain_name"] = self.domain.name.upper()
+        ctx["domain"] = self.domain
         ctx["cancel_link"] = reverse(
             "shepherd:domain_detail", kwargs={"pk": self.kwargs.get("pk")}
         )
@@ -990,7 +1060,7 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Domain history successfully updated.",
+            "Domain history successfully updated",
             extra_tags="alert-success",
         )
         return "{}#history".format(
@@ -1030,7 +1100,7 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.warning(
             self.request,
-            "Project history successfully deleted.",
+            "Project history successfully deleted",
             extra_tags="alert-warning",
         )
         return "{}#history".format(
@@ -1080,7 +1150,7 @@ class DomainCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Domain successfully created.", extra_tags="alert-success"
+            self.request, "Domain successfully created", extra_tags="alert-success"
         )
         return reverse("shepherd:domain_detail", kwargs={"pk": self.object.pk})
 
@@ -1109,7 +1179,7 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Domain successfully updated.", extra_tags="alert-success"
+            self.request, "Domain successfully updated", extra_tags="alert-success"
         )
         return reverse("shepherd:domain_detail", kwargs={"pk": self.object.id})
 
@@ -1144,7 +1214,7 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
 
     def get_success_url(self):
         messages.warning(
-            self.request, "Domain successfully deleted.", extra_tags="alert-warning"
+            self.request, "Domain successfully deleted", extra_tags="alert-warning"
         )
         return reverse("shepherd:domains")
 
@@ -1342,7 +1412,7 @@ class ServerDelete(LoginRequiredMixin, DeleteView):
 
     def get_success_url(self):
         messages.warning(
-            self.request, "Server successfully deleted.", extra_tags="alert-warning"
+            self.request, "Server successfully deleted", extra_tags="alert-warning"
         )
         return reverse("shepherd:servers")
 
@@ -1394,7 +1464,7 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Server successfully checked-out.", extra_tags="alert-success"
+            self.request, "Server successfully checked-out", extra_tags="alert-success"
         )
         # return reverse('shepherd:user_assets')
         return "{}#infrastructure".format(
@@ -1403,8 +1473,9 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(ServerHistoryCreate, self).get_context_data(**kwargs)
+        ctx["server_instance"] = self.server
         ctx["cancel_link"] = reverse(
-            "shepherd:server_detail", kwargs={"pk": self.get_object().id}
+            "shepherd:server_detail", kwargs={"pk": self.kwargs.get("pk")}
         )
         return ctx
 
@@ -1430,7 +1501,7 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server history successfully updated.",
+            "Server history successfully updated",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(
@@ -1470,7 +1541,7 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.warning(
             self.request,
-            "Server history successfully deleted.",
+            "Server history successfully deleted",
             extra_tags="alert-warning",
         )
         return "{}#infrastructure".format(
@@ -1511,7 +1582,7 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server successfully added to the project.",
+            "Server successfully added to the project",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(
@@ -1551,7 +1622,7 @@ class TransientServerUpdate(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server information successfully updated.",
+            "Server information successfully updated",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(
@@ -1587,7 +1658,7 @@ class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server successfully associated with domain.",
+            "Server successfully associated with domain",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(
@@ -1634,7 +1705,7 @@ class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Connection information successfully updated.",
+            "Connection information successfully updated",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(
@@ -1677,7 +1748,6 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         messages.success(
             self.request,
             "Note successfully added to this domain",
@@ -1698,6 +1768,13 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
             reverse("shepherd:domain_detail", kwargs={"pk": self.domain_instance.id})
         )
         return ctx
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.domain_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
@@ -1776,6 +1853,13 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
             "shepherd:server_detail", kwargs={"pk": self.server_instance.id}
         )
         return ctx
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.server_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class ServerNoteUpdate(LoginRequiredMixin, UpdateView):

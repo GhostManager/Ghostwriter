@@ -1,6 +1,59 @@
 Changelog
 =========
 
+20 November 2020
+----------------
+* Tagged release v2.0
+    * More details: https://posts.specterops.io/ghostwriter-v2-0-release-638cef16deb7
+* Upgraded to Django 3 and updated all dependencies
+* Initial commit of CommandCenter application and related configuration options
+    * VirusTotal Configuration
+    * Global Report Configuration
+    * Slack Configuration
+    * Company information
+    * Namecheap Configuration
+* Initial support for adding users to groups for Role-Based Access Controls
+* Automated Acitivty Logging (Oplog application) moved out of beta
+* Implemented initial "overwatch" notifications
+    * Domain check-out: alert if domain will expire soon and is not set to auto-renew
+    * Domain check-out: alert if domain is marked as burned
+    * Domain check-out: alert if domain has been previously used with selected client
+* Updated user interface elements
+    * New tabbed dashboards for clients, projects, and domains
+    * New inline forms for creating and managing clients and projects and related items
+    * New sidebar menu to improve legibility
+    * Migrated buttons and background tasks to WebSockets and AJAX for a more seamless experience
+* Initial release of refactored reporting engine
+    * New drag-and-drop report management interface
+    * Added many more options to the WYSIWYG editor's formatting menus
+    * Initial support for rich text objects for Word documents
+    * Added new `filter_severity` filter for Word templates
+    * Closes #89
+* Initial support for report template and management
+    * Upload report tempalte files for Word and PowerPoint
+    * New template linter to check and verify templates
+    * Closes #28
+    * Closes #90
+* Security updates and fixes
+    * Resolved potential stored cross-site scripting in operational logs
+    * Resolved unvalidated evidence file uploads and new note creation
+        * Associated user account is now set server-side
+    * Resolved issues with WebSocket authentication
+    * Locked-down evidence uploads to close potential loopholes
+        * Evidence form now only allows specific filetypes: md, txt, log, jpg, jpeg, png
+        * Requesting an evidence file requires an active user session
+* Removed web scraping from domain health checks
+    * Checks now use VirusTotal and link to the results
+    * Closes #50
+    * Closes #84
+* Numerous bug fixes and enhancements to address reported issues
+    * Closes #54
+    * Closes #55
+    * Closes #69
+    * Closes #92
+    * Closes #93
+    * Closes #98
+
 25 August 2020
 --------------
 * Cleaned and refactored each application to improve UI/UX and performance

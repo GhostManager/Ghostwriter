@@ -9,7 +9,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex.models import Project
@@ -40,6 +40,7 @@ class CheckoutForm(forms.ModelForm):
         super(CheckoutForm, self).__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
+        overwatch_url = reverse("shepherd:ajax_domain_overwatch")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["client"].empty_label = "-- Select a Client --"
@@ -64,6 +65,7 @@ class CheckoutForm(forms.ModelForm):
         self.helper.attrs = {
             "data-projects-url": data_projects_url,
             "data-project-url": data_project_url,
+            "overwatch-url": overwatch_url,
         }
         self.helper.form_id = "checkout-form"
         self.helper.layout = Layout(
@@ -314,16 +316,34 @@ class DomainLinkForm(forms.ModelForm):
         if project:
             self.fields["static_server"].queryset = ServerHistory.objects.filter(
                 project=project
-            )
+            ).order_by("activity_type", "server_role")
             self.fields["transient_server"].queryset = TransientServer.objects.filter(
                 project=project
-            )
+            ).order_by("activity_type", "server_role")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["domain"].queryset = History.objects.filter(project=project)
+        self.fields["domain"].queryset = History.objects.filter(
+            project=project
+        ).order_by("activity_type")
         self.fields["domain"].empty_label = "-- Select a Domain [Required] --"
+        self.fields[
+            "domain"
+        ].label_from_instance = lambda obj: f"{obj.domain.name} ({obj.activity_type})"
+
         self.fields["static_server"].empty_label = "-- Select Static Server --"
+        self.fields[
+            "static_server"
+        ].label_from_instance = (
+            lambda obj: f"{obj.server.ip_address} ({obj.server_role} | {obj.activity_type})"
+        )
+
         self.fields["transient_server"].empty_label = "-- Select VPS --"
+        self.fields[
+            "transient_server"
+        ].label_from_instance = (
+            lambda obj: f"{obj.ip_address} ({obj.server_role} | {obj.activity_type})"
+        )
+
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -387,12 +407,7 @@ class DomainNoteForm(forms.ModelForm):
     class Meta:
 
         model = DomainNote
-        fields = "__all__"
-        widgets = {
-            "timestamp": forms.HiddenInput(),
-            "operator": forms.HiddenInput(),
-            "domain": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(DomainNoteForm, self).__init__(*args, **kwargs)
@@ -401,7 +416,7 @@ class DomainNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            Div("note", "operator", "domain"),
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -417,7 +432,8 @@ class DomainNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note
 

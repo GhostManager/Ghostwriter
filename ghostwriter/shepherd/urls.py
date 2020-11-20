@@ -3,6 +3,7 @@
 # Django & Other 3rd Party Libraries
 from django.urls import path
 
+# Ghostwriter Libraries
 from . import views
 
 app_name = "shepherd"
@@ -84,6 +85,16 @@ urlpatterns += [
         "ajax/domain/refresh/<int:pk>",
         views.update_domain_badges,
         name="ajax_update_domain_badges",
+    ),
+    path(
+        "ajax/domain/overwatch",
+        views.ajax_domain_overwatch,
+        name="ajax_domain_overwatch",
+    ),
+    path(
+        "ajax/project/<int:pk>/domains",
+        views.ajax_project_domains,
+        name="ajax_project_domains",
     ),
 ]
 

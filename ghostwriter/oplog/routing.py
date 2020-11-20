@@ -1,4 +1,4 @@
-"""This contains all of the WebSocket routes used by the Home application."""
+"""This contains all of the WebSocket routes used by the Oplog application."""
 
 # Django & Other 3rd Party Libraries
 from django.urls import path

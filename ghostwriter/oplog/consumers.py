@@ -2,18 +2,18 @@
 
 # Standard Libraries
 import json
+import logging
 
 # Django & Other 3rd Party Libraries
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.serializers import serialize
 
+# Ghostwriter Libraries
 from .models import OplogEntry
 
-
-@database_sync_to_async
-def getAllLogEntries(oplogId):
-    return OplogEntry.objects.filter(oplog_id=oplogId).order_by("start_date")
+# Using __name__ resolves to ghostwriter.oplog.consumers
+logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
@@ -25,10 +25,8 @@ def createOplogEntry(oplog_id):
 
 @database_sync_to_async
 def deleteOplogEntry(oplogEntryId):
-    try:
-        OplogEntry.objects.get(pk=oplogEntryId).delete()
-    except OplogEntry.DoesNotExist:
-        pass
+    OplogEntry.objects.get(pk=oplogEntryId).delete()
+
 
 @database_sync_to_async
 def copyOplogEntry(oplogEntryId):
@@ -49,24 +47,31 @@ def editOplogEntry(oplogEntryId, modifiedRow):
 
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
+    @database_sync_to_async
+    def getAllLogEntries(self, oplogId):
+        entries = OplogEntry.objects.filter(oplog_id=oplogId).order_by("start_date")
+        serialized_entries = json.loads(serialize("json", entries))
+        return serialized_entries
+
     async def send_oplog_entry(self, event):
         await self.send(text_data=event["text"])
 
     async def connect(self):
-        oplog_id = self.scope["url_route"]["kwargs"]["pk"]
-        await self.channel_layer.group_add(str(oplog_id), self.channel_name)
-        await self.accept()
+        user = self.scope["user"]
+        if user.is_active:
+            oplog_id = self.scope["url_route"]["kwargs"]["pk"]
+            await self.channel_layer.group_add(str(oplog_id), self.channel_name)
+            await self.accept()
 
-        entries = await getAllLogEntries(oplog_id)
-        serialized_entries = json.loads(serialize("json", entries))
-        message = json.dumps({"action": "sync", "data": serialized_entries})
+            serialized_entries = await self.getAllLogEntries(oplog_id)
+            message = json.dumps({"action": "sync", "data": serialized_entries})
 
-        await self.channel_layer.group_send(
-            str(oplog_id), {"type": "send_oplog_entry", "text": message}
-        )
+            await self.channel_layer.group_send(
+                str(oplog_id), {"type": "send_oplog_entry", "text": message}
+            )
 
     async def disconnect(self, close_code):
-        print(f"[*] Disconnected: {close_code}")
+        logger.info("WebSocket disconnected with close code: %s", close_code)
 
     async def receive(self, text_data=None, bytes_data=None):
         json_data = json.loads(text_data)

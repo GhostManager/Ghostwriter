@@ -151,7 +151,23 @@
                     }
                     // If that was the last row, hide the empty table
                     if (targetTbody.find('tr').length == 0) {
-                        targetTable.hide();
+                        // Special handling of the findings table for report pages
+                        if (targetTable.attr('id') == 'findings-table') {
+                            var tbody_id = targetTbody.attr('id')
+                            // Get the severity group based on the ``tbody```
+                            var placeholder_group = tbody_id.split('_')[0]
+                            placeholder_group = placeholder_group.charAt(0).toUpperCase() + placeholder_group.slice(1)
+                            // Add a placeholder row to the now empty group
+                            var placeholder_row = document.getElementById(tbody_id).insertRow(0)
+                            placeholder_row.id = placeholder_group + '_placeholder'
+                            placeholder_row.className = 'severity-row-placeholder'
+                            placeholder_row.setAttribute('data-id', placeholder_group + '_placeholder', 0)
+                            cell = placeholder_row.insertCell(0);
+                            cell.colSpan = 7
+                            cell.innerHTML = 'Add ' + placeholder_group + ' findings or drag-and-drop a finding here to update its severity.'
+                        } else {
+                            targetTable.hide();
+                        }
                     }
                     update_badges();
                 }

@@ -1,0 +1,86 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Report Template List{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Report Templates</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <p>
+        <a href="{% url 'reporting:template_create' %}"><i class="far fa-plus-square"></i> Upload a Report Template</a>
+    </p>
+
+    <!-- Report Templates Table Section -->
+    {% if reporttemplate_list %}
+        <p><strong>Note:</strong> Only admins may edit protected report templates.</p>
+
+        <p>This page lists all report templates and their current statuses. To investigate a status, view the template's details page.</p>
+
+        <table id="reportTable" class="tablesorter table">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Doc Type</th>
+                    <th>Name</th>
+                    <th>Client</th>
+                    <th>Options</th>
+                </tr>
+            </thead>
+
+            {% for template in reporttemplate_list %}
+                <tr>
+                    <td>
+                        {% with template.get_status as status %}
+                            <span class="badge
+                                {% if status == "success" %}
+                                    badge-success">Ready</span>
+                                {% else %}
+                                    {% if status == "warning" %}
+                                        badge-warning
+                                    {% elif status == "unknown" %}
+                                        badge-secondary
+                                    {% else %}
+                                        badge-danger
+                                    {% endif %}
+                                    ">{{ status|capfirst }}</span>
+                                {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td>{{ template.doc_type }}</td>
+                    <td><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>
+                    <td>
+                        {% if template.client %}
+                            {{ template.client }}
+                        {% else%}
+                            --
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="dropdown">
+                            <button onclick="dropdownFunc()" class="dropbtn far fa-caret-square-down"></button>
+                            <div id="myDropdown" class="dropdown-content">
+                                <a href="{% url 'reporting:template_download' template.id %}"><i style="font-size:15px; color:black" class="fas fa-file-download"></i> Download</a>
+                                {% if template.protected and request.user.is_staff or not template.protected %}
+                                    <a href="{% url 'reporting:template_update' template.id %}"><i style="font-size:15px; color:black" class="far fa-edit"></i> Edit</a>
+                                    <a href="{% url 'reporting:template_delete' template.id %}"><i style="font-size:15px; color:red" class="far fa-trash-alt"></i> Delete</a>
+                                {% else %}
+                                    <a href="javascript:void(0)"><i style="font-size:15px; color:red" class="fas fa-lock"></i> Editing Locked</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>You have not uploaded any templates yet!</p>
+    {% endif %}
+{% endblock %}

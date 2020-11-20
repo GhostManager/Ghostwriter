@@ -17,7 +17,7 @@ from crispy_forms.layout import (
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
@@ -178,12 +178,9 @@ class ProjectAssignmentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ProjectAssignmentForm, self).__init__(*args, **kwargs)
         self.fields["operator"].queryset = self.fields["operator"].queryset.order_by(
-            "name"
+            "username", "name"
         )
-        self.fields["operator"].label_from_instance = lambda obj: "%s (%s)" % (
-            obj.name,
-            obj.username,
-        )
+        self.fields["operator"].label_from_instance = lambda obj: obj.get_display_name
         self.fields["start_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
@@ -413,9 +410,16 @@ class ProjectForm(forms.ModelForm):
     with an individual :model:`rolodex.Client`.
     """
 
+    update_checkouts = forms.BooleanField(
+        label="Update Domain & Server Checkouts",
+        help_text="Update domain and server checkout if the project dates change",
+        required=False,
+        initial=True,
+    )
+
     class Meta:
         model = Project
-        exclude = ("operator", "codename", "complete")
+        exclude = ("operator", "complete")
 
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
@@ -431,11 +435,17 @@ class ProjectForm(forms.ModelForm):
         self.fields["note"].widget.attrs[
             "placeholder"
         ] = "This project is intended to assess ..."
+        # Hide labels for specific fields because ``form_show_labels`` takes priority
+        self.fields["start_date"].label = False
+        self.fields["end_date"].label = False
+        self.fields["note"].label = False
+        self.fields["slack_channel"].label = False
+        self.fields["project_type"].label = False
+        self.fields["client"].label = False
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
-        self.helper.form_show_labels = False
         self.helper.form_class = "form-inline justify-content-center"
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -449,6 +459,7 @@ class ProjectForm(forms.ModelForm):
                         """
                     ),
                     "client",
+                    "codename",
                     Row(
                         Column("start_date", css_class="form-group col-md-6 mb-0"),
                         Column("end_date", css_class="form-group col-md-6 mb-0"),
@@ -459,6 +470,7 @@ class ProjectForm(forms.ModelForm):
                         Column("slack_channel", css_class="form-group col-md-6 mb-0"),
                         css_class="form-row",
                     ),
+                    "update_checkouts",
                     "note",
                     link_css_class="project-icon",
                     css_id="project",
@@ -535,7 +547,7 @@ class ProjectForm(forms.ModelForm):
             if not slack_channel.startswith("#"):
                 slack_channel = "#" + slack_channel
                 raise ValidationError(
-                    _("Slack channels should start with '#' – check this channel name"),
+                    _("Slack channels should start with # – check this channel name"),
                     code="invalid_channel",
                 )
         return slack_channel
@@ -549,11 +561,7 @@ class ProjectNoteForm(forms.ModelForm):
 
     class Meta:
         model = ProjectNote
-        fields = "__all__"
-        widgets = {
-            "operator": forms.HiddenInput(),
-            "project": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(ProjectNoteForm, self).__init__(*args, **kwargs)
@@ -562,9 +570,7 @@ class ProjectNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            "note",
-            "operator",
-            "project",
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -580,6 +586,7 @@ class ProjectNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note

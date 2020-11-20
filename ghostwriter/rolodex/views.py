@@ -13,7 +13,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
@@ -60,7 +60,8 @@ def update_project_badges(request, pk):
     """
     project_instance = get_object_or_404(Project, pk=pk)
     html = render_to_string(
-        "snippets/project_nav_tabs.html", {"project": project_instance},
+        "snippets/project_nav_tabs.html",
+        {"project": project_instance},
     )
     return HttpResponse(html)
 
@@ -77,7 +78,8 @@ def update_client_badges(request, pk):
     """
     client_instance = get_object_or_404(Client, pk=pk)
     html = render_to_string(
-        "snippets/client_nav_tabs.html", {"client": client_instance},
+        "snippets/client_nav_tabs.html",
+        {"client": client_instance},
     )
     return HttpResponse(html)
 
@@ -403,7 +405,7 @@ def client_list(request):
     """
     # Check if a search parameter is in the request
     try:
-        search_term = request.GET.get("client_search")
+        search_term = request.GET.get("client_search").strip()
     except Exception:
         search_term = ""
     if search_term:
@@ -520,7 +522,9 @@ class ClientCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Client successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Client successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
@@ -534,16 +538,6 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the client
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Client.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
@@ -572,6 +566,20 @@ class ClientCreate(LoginRequiredMixin, CreateView):
             logger.error(message)
             return super(ClientCreate, self).form_invalid(form)
 
+    def get_initial(self):
+        # Generate and assign a unique codename to the project
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=codename)
+            except Exception:
+                codename_verified = True
+        return {
+            "codename": codename,
+        }
+
 
 class ClientUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -595,7 +603,9 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Client successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Client successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
@@ -613,16 +623,6 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the client
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Client.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         contacts = ctx["contacts"]
@@ -729,6 +729,13 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         )
         return ctx
 
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.client_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
+
 
 class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -820,14 +827,21 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         messages.success(
-            self.request, "Project successfully saved.", extra_tags="alert-success",
+            self.request,
+            "Project successfully saved.",
+            extra_tags="alert-success",
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super(ProjectCreate, self).get_context_data(**kwargs)
         ctx["client"] = self.client
-        ctx["cancel_link"] = reverse("rolodex:projects")
+        if self.client:
+            ctx["cancel_link"] = reverse(
+                "rolodex:client_detail", kwargs={"pk": self.client.pk}
+            )
+        else:
+            ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj")
             ctx["assignments"] = ProjectAssignmentFormSet(
@@ -839,16 +853,6 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        # Generate and assign a unique codename to the project
-        codename_verified = False
-        while not codename_verified:
-            new_codename = codenames.codename(uppercase=True)
-            try:
-                Project.objects.filter(codename__iequal=new_codename)
-            except Exception:
-                codename_verified = True
-        form.instance.codename = new_codename
-
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         objectives = ctx["objectives"]
@@ -876,7 +880,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                 else:
                     # Raise an error to rollback transactions
                     raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return `form_invalid` and display errors
+        # Otherwise return ``form_invalid`` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
@@ -884,8 +888,18 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             return super(ProjectCreate, self).form_invalid(form)
 
     def get_initial(self):
+        # Generate and assign a unique codename to the project
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=codename)
+            except Exception:
+                codename_verified = True
         return {
             "client": self.client,
+            "codename": codename,
         }
 
 
@@ -941,22 +955,79 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
-    def get_initial(self):
-        project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        return {
-            "codename": project_instance.codename,
-        }
-
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
+        from ghostwriter.shepherd.models import History, ServerHistory
+
         # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, `BaseProjectInlineFormSet`
+        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
+                # Update infrastructure if project's dates changed
+                update = form.cleaned_data["update_checkouts"]
+                if update:
+                    if (
+                        "end_date" in form.changed_data
+                        or "start_date" in form.changed_data
+                    ):
+                        logger.info(
+                            "Date changed on Project %s, so updating domain and server checkouts",
+                            self.object.pk,
+                        )
+                        # Get the project's current dates
+                        old_project_data = Project.objects.get(pk=self.object.pk)
+                        old_start_date = old_project_data.start_date
+                        old_end_date = old_project_data.end_date
+                        # Form dates
+                        new_start_date = form.cleaned_data["start_date"]
+                        new_end_date = form.cleaned_data["end_date"]
+                        # Timedelta changes
+                        start_timedelta = new_start_date - old_start_date
+                        end_timedelta = new_end_date - old_end_date
+                        try:
+                            # Update checkouts based on deltas
+                            domain_checkouts = History.objects.filter(
+                                project=self.object.pk
+                            )
+                            server_checkouts = ServerHistory.objects.filter(
+                                project=self.object.pk
+                            )
+                            for checkout in domain_checkouts:
+                                logger.info(
+                                    "Updating checkout for %s from %s - %s to %s - %s",
+                                    checkout.domain,
+                                    checkout.start_date,
+                                    checkout.end_date,
+                                    checkout.start_date + start_timedelta,
+                                    checkout.end_date + end_timedelta,
+                                )
+                                checkout.start_date = (
+                                    checkout.start_date + start_timedelta
+                                )
+                                checkout.end_date = checkout.end_date + end_timedelta
+                                checkout.save()
+                            for checkout in server_checkouts:
+                                logger.info(
+                                    "Updating checkout for %s from %s-%s to %s-%s",
+                                    checkout.server,
+                                    checkout.start_date,
+                                    checkout.end_date,
+                                    checkout.start_date + start_timedelta,
+                                    checkout.end_date + end_timedelta,
+                                )
+                                checkout.start_date = (
+                                    checkout.start_date + start_timedelta
+                                )
+                                checkout.end_date = checkout.end_date + end_timedelta
+                                checkout.save()
+                        except Exception:
+                            message = "Could not update checkouts with your changed project dates. Review your checkouts or uncheck the box for automatic updates."
+                            form.add_error("update_checkouts", message)
+
                 # Save the parent form – will rollback if a child fails validation
                 self.object = form.save()
 
@@ -969,17 +1040,15 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                 if assignments_valid:
                     assignments.instance = self.object
                     assignments.save()
-
+                # Proceed with form submission
                 if form.is_valid() and objectives_valid and assignments_valid:
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions
                     raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return `form_invalid` and display errors
-        except Exception as exception:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
+        # Otherwise return ``form_invalid`` and display errors
+        except Exception:
+            logger.exception("Failed to update the project")
             return super(ProjectUpdate, self).form_invalid(form)
 
 
@@ -1063,6 +1132,13 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
             reverse("rolodex:project_detail", kwargs={"pk": project_instance.id})
         )
         return ctx
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.project_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
 
 
 class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):

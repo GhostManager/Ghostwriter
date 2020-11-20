@@ -14,6 +14,7 @@
                 <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' project.id %}">{{ project }}</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Project Report</li>
             {% else %}
+                <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
                 <li class="breadcrumb-item active" aria-current="page">New Report Form</li>
             {% endif %}
         </ul>
@@ -22,7 +23,7 @@
 
 {% block content %}
     <!-- Instructions Section -->
-    <p>Provide a name for this report below:</p>
+    <p>Provide a meaningful name for this report, select the project to which it should be associated, and optionally select report templates to use:</p>
 
     <!-- Form Error Section -->
     {% if form.errors %}

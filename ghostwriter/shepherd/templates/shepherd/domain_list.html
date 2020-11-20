@@ -45,15 +45,6 @@
                                 </div>
                             </div>
                         </th>
-                        <th>
-                            DNS Flags
-                            <div class="dropdown">
-                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                <div class="dropdown-content dropdown-content-info">
-                                    <p>DNS Flags are more abstract than Health. These are based on the domain's past and present DNS records and VirusTotal passive DNS hits. If the domain can be linked to a VirusTotal entry the VirusTotal results are recorded below as "flags" in the table.</p>
-                                </div>
-                            </div>
-                        </th>
                         <th>Whois Privacy</th>
                         <th>Domain Age</th>
                         <th>Categories</th>
@@ -67,6 +58,8 @@
 
                         {% if domain.domain_status.domain_status == "Available" %}
                             <td class="healthy">{{ domain.domain_status }}</td>
+                        {% elif domain.domain_status.domain_status == "Unavailable" %}
+                            <td class="burned">Checked Out</td>
                         {% else %}
                             <td class="burned">{{ domain.domain_status }}</td>
                         {% endif %}
@@ -76,12 +69,6 @@
                         {% else %}
                             <td class="burned">{{ domain.health_status }}</td>
                         {% endif %}
-
-                        {% ifequal domain.health_dns "Healthy" %}
-                            <td class="healthy">{{ domain.health_dns }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.health_dns }}</td>
-                        {% endifequal %}
 
                         {% ifequal domain.whois_status.whois_status "Enabled" %}
                             <td class="healthy">{{ domain.whois_status }}</td>
@@ -128,6 +115,14 @@
                             }
                         );
             $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    <!-- Fix for Accordion Markers -->
+    <script>
+        // Fix second accordion being marked as expanded from crispy forms
+        $(document).ready(function(){
+            $('h5 a:eq(1)').attr('aria-expanded', 'false');
         });
     </script>
 {% endblock %}

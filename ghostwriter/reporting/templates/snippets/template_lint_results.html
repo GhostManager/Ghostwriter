@@ -1,0 +1,59 @@
+{% load report_tags %}
+
+<h3><i class="fas fa-bug"></i> Linting Results</h3>
+<hr>
+{% if reporttemplate.lint_result %}
+    {% with reporttemplate.lint_result|load_json as lint_result %}
+        <div
+            {% if lint_result.result == "success" %}
+                class="alert alert-success"
+            {% elif lint_result.result == "warning" %}
+                class="alert alert-warning"
+            {% else %}
+                class="alert alert-danger"
+            {% endif %}
+        role="alert">
+            <h4 style="margin-top: 0px;" class="alert-heading">{{ lint_result.result|capfirst }}</h4>
+            {% if lint_result.result == "success" %}
+                Template passed all linter checks, but try using it for a report to test it
+            {% else %}
+                To correct these issues, make changes and re-upload this template
+            {% endif %}
+        </div>
+
+        {% if lint_result.warnings %}
+            <table class="table table-borderless">
+                {% for warning in lint_result.warnings %}
+                    <tr>
+                        <td >
+                            <span class="badge badge-warning">Warning</span>
+                        </td>
+                        <td class="text-left">
+                            {{ warning }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+
+        {% if lint_result.errors %}
+            <table class="table table-borderless">
+                {% for error in lint_result.errors %}
+                    <tr>
+                        <td>
+                            <span class="badge badge-danger">Error</span>
+                        </td>
+                        <td class="text-left">
+                            {{ error }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+    {% endwith %}
+{% else %}
+    <div class="alert alert-secondary" role="alert">
+        <h4 style="margin-top: 0px;" class="alert-heading">Unknown</h4>
+        Run the linter on this template to get new results
+    </div>
+{% endif %}

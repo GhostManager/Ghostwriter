@@ -3,19 +3,19 @@
 {% block pagetitle %}Domain Entry{% endblock %}
 
 {% block breadcrumbs %}
-<nav aria-label="breadcrumb" style="padding-left: 20px;">
-    <ul class="breadcrumb" style="margin: 0;">
-        <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Oplogs</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Oplog Entries Import</li>
-    </ul>
-</nav>
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Operation Logs</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Log Import</li>
+        </ul>
+    </nav>
 {% endblock %}
 
 {% block content %}
 <!-- File Upload -->
-<h2>Upload Oplog Entries CSV</h2>
-<p>Upload a csv file containing oplog entries to be imported:</p>
+<h2>Upload Operation Log Entries CSV</h2>
+<p>Upload a csv file containing log entries to be imported:</p>
 <form action="{% url 'oplog:oplog_import'%}" method="POST" enctype="multipart/form-data" class="form-horizontal">
     {% csrf_token %}
     <div class="form-group">
@@ -38,20 +38,23 @@
 <!-- Section for Instructions -->
 <h3>Instructions</h3>
 <div>
-    <p>Your csv file must have these headers:</p>
-    <div style="width: 50%; margin: 0 auto">
-        <p>
+    <div class="row">
+        <div class="alert alert-success offset-md-2 col-md-8 mt-1" role="alert">
+            <h4 class="alert-heading">CSV Headers</h4>
+            <p>Your csv file must have these headers:</p>
             <em>
                 oplog_id, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
                 comments, operator_name
             </em>
-        </p>
+        </div>
     </div>
 
-    <p>
-        To avoid "KeyError" errors, ensure the csv file was saved without a Byte Order Marker (BOM).<br>
-        Download a template with the headers and an example entry:
-    </p>
+    <div class="row">
+        <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
+            <h4 class="alert-heading">Note on Timestamps</h4>
+            <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format.</p>
+        </div>
+    </div>
 </div>
 {% endblock %}
 

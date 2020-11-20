@@ -1,14 +1,23 @@
 """This contains all of the database models used by the Reporting application."""
 
 # Standard Libraries
+import json
+import logging
 import os
 
 # Django & Other 3rd Party Libraries
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+
+# Ghostwriter Libraries
+from .validators import validate_evidence_extension
+
+# Using __name__ resolves to ghostwriter.reporting.models
+logger = logging.getLogger(__name__)
 
 
 class Severity(models.Model):
@@ -20,13 +29,18 @@ class Severity(models.Model):
         "Severity",
         max_length=255,
         unique=True,
-        help_text="Severity rating (e.g. High, Low)",
+        help_text="Name for this severity rating (e.g. High, Low)",
     )
     weight = models.IntegerField(
         "Severity Weight",
         default=1,
-        help_text="Used for custom sorting in reports. Lower numbers are "
-        "more severe.",
+        help_text="Weight for sorting severity categories in reports (lower numbers are more severe)",
+    )
+    color = models.CharField(
+        "Severity Color",
+        max_length=6,
+        default="7A7A7A",
+        help_text="Six character hex color code associated with this severity for reports (e.g., FF7E79)",
     )
 
     def count_findings(self):
@@ -34,6 +48,23 @@ class Severity(models.Model):
         Return the number of :model:`reporting.Finding` associated with an instance.
         """
         return Finding.objects.filter(severity=self).count()
+
+    @property
+    def color_rgb(self):
+        """
+        Return the severity color code as a list of RGB values.
+        """
+        return tuple(int(self.color[i : i + 2], 16) for i in (0, 2, 4))
+
+    @property
+    def color_hex(self):
+        """
+        Return the severity color code as a list of hexadecimal.
+        """
+        n = 2
+        return tuple(
+            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
+        )
 
     count = property(count_findings)
 
@@ -130,8 +161,7 @@ class Finding(models.Model):
         "Finding Guidance",
         null=True,
         blank=True,
-        help_text="Provide notes for your team that describes how the finding is intended to be used or edited"
-        "during editing",
+        help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
     # Foreign Keys
     severity = models.ForeignKey(
@@ -157,6 +187,134 @@ class Finding(models.Model):
 
     def __str__(self):
         return f"[{self.severity}] {self.title}"
+
+
+class DocType(models.Model):
+    """
+    Stores an individual document type, related to :model:`reporting.ReportTemplate`.
+    """
+
+    doc_type = models.CharField(
+        "Document Type",
+        max_length=5,
+        unique=True,
+        help_text="Enter a file extension for a report template filetype",
+    )
+
+    class Meta:
+        ordering = [
+            "doc_type",
+        ]
+        verbose_name = "Document type"
+        verbose_name_plural = "Document types"
+
+    def __str__(self):
+        return f"{self.doc_type}"
+
+
+class ReportTemplate(models.Model):
+    """
+    Stores an individual report template file, related to :model:`reporting.Report`.
+    """
+
+    # Direct template uploads to ``TEMPLATE_LOC`` instead of ``MEDIA``
+    template_storage = FileSystemStorage(location=settings.TEMPLATE_LOC)
+
+    document = models.FileField(storage=template_storage, blank=True)
+    name = models.CharField(
+        "Template Name",
+        null=True,
+        max_length=255,
+        help_text="Provide a name to be used when selecting this template",
+    )
+    upload_date = models.DateField(
+        "Upload Date",
+        auto_now=True,
+        help_text="Date and time the template was first uploaded",
+    )
+    last_update = models.DateField(
+        "Last Modified",
+        auto_now=True,
+        help_text="Date and time the report was last modified",
+    )
+    description = models.TextField(
+        "Description",
+        blank=True,
+        help_text="Provide a description of this template",
+    )
+    protected = models.BooleanField(
+        "Protected",
+        default=False,
+        help_text="Only administrators can edit this template",
+    )
+    lint_result = models.TextField(
+        "Template Linter Results",
+        null=True,
+        blank=True,
+        help_text="Results returned by the linter for this template",
+    )
+    changelog = models.TextField(
+        "Template Change Log",
+        null=True,
+        blank=True,
+        help_text="Add a line explaining any file changes",
+    )
+    # Foreign Keys
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    client = models.ForeignKey(
+        "rolodex.Client",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Template will only be displayed for this client",
+    )
+    doc_type = models.ForeignKey(
+        "reporting.DocType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Select the filetype for this template",
+    )
+
+    class Meta:
+        ordering = ["doc_type", "client", "name"]
+        verbose_name = "Report template"
+        verbose_name_plural = "Report templates"
+
+    def get_absolute_url(self):
+        return reverse("reporting:template_file", args=[str(self.id)])
+
+    def __str__(self):
+        return f"{self.name}"
+
+    def clean(self, *args, **kwargs):
+        super(ReportTemplate, self).clean(*args, **kwargs)
+        # Validate here in the model so there is always a file asociated with the entry
+        if not self.document:
+            raise ValidationError(_("You must provide a template file"), "incomplete")
+
+    @property
+    def filename(self):
+        return os.path.basename(self.document.name)
+
+    def get_status(self):
+        result_code = "unknown"
+        if self.lint_result:
+            try:
+                lint_result = json.loads(self.lint_result)
+                result_code = lint_result["result"]
+            except json.decoder.JSONDecodeError:
+                logger.exception(
+                    "Could not decode data in model as JSON: %s", self.lint_result
+                )
+            except Exception:
+                logger.exception(
+                    "Encountered an exceptio while trying to decode this as JSON: %s",
+                    self.lint_result,
+                )
+        return result_code
 
 
 class Report(models.Model):
@@ -189,6 +347,24 @@ class Report(models.Model):
         null=True,
         help_text="Select the project tied to this report",
     )
+    docx_template = models.ForeignKey(
+        "ReportTemplate",
+        related_name="reporttemplate_docx_set",
+        on_delete=models.SET_NULL,
+        limit_choices_to={
+            "doc_type__doc_type__iexact": "docx",
+        },
+        null=True,
+        help_text="Select the Word template to use for this report",
+    )
+    pptx_template = models.ForeignKey(
+        "ReportTemplate",
+        related_name="reporttemplate_pptx_set",
+        on_delete=models.SET_NULL,
+        limit_choices_to={"doc_type__doc_type__iexact": "pptx"},
+        null=True,
+        help_text="Select the PowerPoint template to use for this report",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -219,7 +395,10 @@ class ReportFindingLink(models.Model):
         max_length=255,
         help_text="Enter a title for this finding that will appear in the reports",
     )
-    position = models.IntegerField("Report Position", default=1,)
+    position = models.IntegerField(
+        "Report Position",
+        default=1,
+    )
     affected_entities = models.TextField(
         "Affected Entities",
         null=True,
@@ -336,7 +515,11 @@ class Evidence(models.Model):
         """
         return os.path.join("evidence", str(instance.finding.report.id), filename)
 
-    document = models.FileField(upload_to=set_upload_destination, blank=True)
+    document = models.FileField(
+        upload_to=set_upload_destination,
+        validators=[validate_evidence_extension],
+        blank=True,
+    )
     friendly_name = models.CharField(
         "Friendly Name",
         null=True,
@@ -355,7 +538,9 @@ class Evidence(models.Model):
         help_text="Provide a one line caption to be used in the report - keep it brief",
     )
     description = models.TextField(
-        "Description", blank=True, help_text="Describe this evidence to your team",
+        "Description",
+        blank=True,
+        help_text="Describe this evidence to your team",
     )
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE)
@@ -379,6 +564,10 @@ class Evidence(models.Model):
         # Validate here in the model so there is always a file asociated with the entry
         if not self.document:
             raise ValidationError(_("You must provide an evidence file"), "incomplete")
+
+    @property
+    def filename(self):
+        return os.path.basename(self.document.name)
 
 
 class Archive(models.Model):
@@ -424,8 +613,8 @@ class FindingNote(models.Model):
 
     class Meta:
         ordering = ["finding", "-timestamp"]
-        verbose_name = "Local finding note"
-        verbose_name_plural = "Local finding notes"
+        verbose_name = "Finding note"
+        verbose_name_plural = "Finding notes"
 
     def __str__(self):
         return f"{self.finding} {self.timestamp}: {self.note}"

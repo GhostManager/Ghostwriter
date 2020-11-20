@@ -23,13 +23,15 @@ logger = logging.getLogger(__name__)
 
 
 def zip_directory(path, zip_handler):
-    """Zip the target directory and all of its contents, for archiving purposes.
+    """
+    Zip the target directory and all of its contents to create a project archive.
 
-    Parameters:
+    **Parameters**
 
-    path            The file path to archive.
-
-    zip_handler     A `zipfile.ZipFile()` object.
+    ``path``
+        File path to archive
+    ``zip_handler``
+        A ``zipfile.ZipFile()`` object to create the archive
     """
     # Walk the target directory
     abs_src = os.path.abspath(path)
@@ -42,9 +44,10 @@ def zip_directory(path, zip_handler):
 
 
 def archive_projects():
-    """Collect all completed projects that have not yet been archived and
-    archive the associated reports. The archived reports are deleted and
-    the new archive file is logged in the `Archive` model.
+    """
+    Collect all completed :model:`rolodex.Project` that have not yet been archived and
+    archive the associated reports. The archived reports are deleted and the new archive
+    file is logged in the :model:`rolodex.Archive`.
     """
     # Get the non-archived reports for all projects marked as complete
     report_queryset = Report.objects.select_related("project").filter(

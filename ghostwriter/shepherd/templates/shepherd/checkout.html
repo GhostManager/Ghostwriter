@@ -36,6 +36,39 @@
 {% endblock %}
 
 {% block morescripts %}
+    <!-- Domain Overwatch Checks -->
+    {% if domain.health_status.health_status == "Burned" %}
+        <script>
+            displayToastTop({type:'warning', string:'Domain is flagged as Burned', delay:0});
+        </script>
+    {% endif %}
+
+    {% if domain.is_expiring_soon %}
+        <script>
+            displayToastTop({type:'warning', string:'Domain expires within the next 30 days and will not auto-renew', delay:0});
+        </script>
+    {% endif %}
+
+    <script>
+        $("#id_client").change(function () {
+            var url = $("#checkout-form").attr("overwatch-url");
+            var clientId = $(this).val();
+            var domainId = $("#checkout-form").find('input[name="domain"]').val();
+            $.ajax({
+                url: url,
+                data: {
+                    'client': clientId,
+                    'domain': domainId
+                },
+                success: function (data) {
+                    if (data['result'] == 'warning') {
+                        displayToastTop({type:'warning', string:data['message'], delay:0});
+                    }
+                }
+            });
+        });
+    </script>
+
     <!-- Script for Project Dropdown Filtering -->
     <script>
         $("#id_client").change(function () {

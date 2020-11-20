@@ -4,8 +4,10 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 
+# Ghostwriter Libraries
 from .models import (
     Archive,
+    DocType,
     Evidence,
     Finding,
     FindingNote,
@@ -13,6 +15,7 @@ from .models import (
     LocalFindingNote,
     Report,
     ReportFindingLink,
+    ReportTemplate,
     Severity,
 )
 from .resources import FindingResource
@@ -20,6 +23,11 @@ from .resources import FindingResource
 
 @admin.register(Archive)
 class ArchiveAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(DocType)
+class DocTypeAdmin(admin.ModelAdmin):
     pass
 
 
@@ -33,7 +41,15 @@ class EvidenceAdmin(admin.ModelAdmin):
             "Evidence Document",
             {"fields": ("friendly_name", "caption", "description", "document")},
         ),
-        ("Report Information", {"fields": ("finding", "uploaded_by",)},),
+        (
+            "Report Information",
+            {
+                "fields": (
+                    "finding",
+                    "uploaded_by",
+                )
+            },
+        ),
     )
 
 
@@ -130,3 +146,42 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
 @admin.register(Severity)
 class SeverityAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(ReportTemplate)
+class ReportTemplateAdmin(admin.ModelAdmin):
+    list_display = (
+        "get_status",
+        "name",
+        "client",
+        "last_update",
+    )
+    readonly_fields = ("get_status",)
+    list_filter = ("client",)
+    list_display_links = ("name",)
+    fieldsets = (
+        (
+            "Report Template",
+            {
+                "fields": (
+                    "name",
+                    "document",
+                    "description",
+                    "client",
+                )
+            },
+        ),
+        (
+            "Template Linting",
+            {
+                "fields": (
+                    "get_status",
+                    "lint_result",
+                )
+            },
+        ),
+        (
+            "Admin Settings",
+            {"fields": ("protected",)},
+        ),
+    )

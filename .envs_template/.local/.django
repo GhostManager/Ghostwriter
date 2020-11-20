@@ -9,38 +9,3 @@ DJANGO_ACCOUNT_EMAIL_VERIFICATION=none
 # ------------------------------------------------------------------------------
 QCLUSTER_NAME=soar
 # QCLUSTER_CONNECTION=
-
-# Virustotal
-# ------------------------------------------------------------------------------
-VIRUSTOTAL_API_KEY=None
-
-# Slack
-# ------------------------------------------------------------------------------
-SLACK_ENABLE=True
-SLACK_EMOJI=:ghost:
-SLACK_CHANNEL=#ghostwriter
-SLACK_ALERT_TARGET=<!here>
-SLACK_USERNAME=ghostwriter
-SLACK_URL=https://hooks.slack.com/services/<your_webhook_url>
-
-# Company Info
-# ------------------------------------------------------------------------------
-COMPANY_NAME=Ghostwriter
-COMPANY_TWITTER=@ghostwriter
-COMPANY_EMAIL=info@ghostwriter.local
-
-# Namecheap
-# ------------------------------------------------------------------------------
-NAMECHEAP_ENABLE=False
-NAMECHEAP_API_KEY=
-NAMECHEAP_USERNAME=
-NAMECHEAP_API_USERNAME=
-CLIENT_IP=
-NAMECHEAP_PAGE_SIZE=100
-
-# Cloud Services
-# ------------------------------------------------------------------------------
-ENABLE_CLOUD_MONITOR=False
-AWS_KEY=
-AWS_SECRET=
-DO_API_KEY=

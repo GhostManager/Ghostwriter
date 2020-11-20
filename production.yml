@@ -43,6 +43,7 @@ services:
     depends_on:
       - django
     volumes:
+      - production_data:/app/media
       - production_staticfiles:/app/staticfiles
       - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./ssl:/ssl
@@ -53,7 +54,7 @@ services:
   redis:
     image: redis:5-alpine
     restart: unless-stopped
-    
+
   queue:
     <<: *django
     image: ghostwriter_production_queue

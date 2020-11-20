@@ -55,6 +55,8 @@
         </form>
     {% endif %}
 
+    <span class="form-spacer" />
+
     <!-- Domain Categories Section -->
     <h6><i class="fas fa-heartbeat"></i> Domain Categories</h6>
     <hr>
@@ -82,13 +84,15 @@
         {% endif %}
     {% endif %}
 
-    <p>Note that updates will require <em>at least</em> <strong>{{ update_time }}</strong> minutes ({{ total_domains }} domains * {{ sleep_time }} second sleep configured in settings).</p>
+    <p>Note that updates will require <em>at least</em> <strong>{{ update_time }}</strong> minutes ({{ total_domains }} non-expired domains * {{ sleep_time }} second sleep configured in settings).</p>
 
     <form class="js-queue-task" queue-task-url="{% url 'shepherd:ajax_update_cat' %}" method="POST">
         {% csrf_token %}
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
         <button type="submit" class="btn btn-primary col-md-4">Start Update</button>
     </form>
+
+    <span class="form-spacer" />
 
     <!-- DNS Section -->
     <h6><i class="fas fa-server"></i> DNS Records</h6>
@@ -118,13 +122,13 @@
         {% endif %}
     {% endif %}
 
-    <p>An individual update may take up to 60 seconds, so expect this to take some time.</p>
-
     <form class="js-queue-task" queue-task-url="{% url 'shepherd:ajax_update_dns' %}" method="POST">
         {% csrf_token %}
         <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
         <button type="submit" class="btn btn-primary col-md-4">Start Update</button>
     </form>
+
+    <span class="form-spacer" />
 
     <!-- Cloud Section -->
     {% if enable_cloud_monitor %}
@@ -164,7 +168,6 @@
         <button type="submit" class="btn btn-primary col-md-4">Start Cloud Review</button>
     </form>
 {% endblock %}
-
 
 {% block morescripts %}
     <!-- Queue Tasks with AJAX -->

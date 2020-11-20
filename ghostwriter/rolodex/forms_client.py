@@ -18,7 +18,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
@@ -86,7 +86,8 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "name",
                             ValidationError(
-                                _("Your contact is missing a name"), code="incomplete",
+                                _("Your contact is missing a name"),
+                                code="incomplete",
                             ),
                         )
                     # Raise an error if a form only has a value for the note
@@ -224,7 +225,6 @@ class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
         fields = "__all__"
-        widgets = {"codename": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
         super(ClientForm, self).__init__(*args, **kwargs)
@@ -256,8 +256,8 @@ class ClientForm(forms.ModelForm):
                         Column("short_name", css_class="form-group col-md-6 mb-0"),
                         css_class="form-row",
                     ),
-                    "note",
                     "codename",
+                    "note",
                     link_css_class="client-icon",
                     css_id="client",
                 ),
@@ -304,11 +304,7 @@ class ClientNoteForm(forms.ModelForm):
 
     class Meta:
         model = ClientNote
-        fields = "__all__"
-        widgets = {
-            "operator": forms.HiddenInput(),
-            "client": forms.HiddenInput(),
-        }
+        fields = ("note",)
 
     def __init__(self, *args, **kwargs):
         super(ClientNoteForm, self).__init__(*args, **kwargs)
@@ -317,7 +313,7 @@ class ClientNoteForm(forms.ModelForm):
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
-            Div("note", "operator", "client"),
+            Div("note"),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -333,6 +329,7 @@ class ClientNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"), code="required",
+                _("You must provide some content for the note"),
+                code="required",
             )
         return note

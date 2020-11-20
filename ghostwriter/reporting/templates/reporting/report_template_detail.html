@@ -1,0 +1,154 @@
+{% extends 'base_generic.html' %}
+
+{% load report_tags %}
+
+{% load bleach_tags %}
+
+{% block pagetitle %}Report Template Detail{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ reporttemplate.name }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <h2>
+        {{ reporttemplate.name }}
+        <div class="dropdown">
+            <button onclick="dropdownFunc()" class="dropbtn far fa-caret-square-down"></button>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="{% url 'reporting:template_download' reporttemplate.id %}"><i style="font-size:15px; color:black" class="fas fa-file-download"></i> Download</a>
+                <a class="js-lint-template" href="javascript:void(0)" lint-template-csrftoken="{{ csrf_token }}" lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}"><i style="font-size:15px; color:black" class="fas fa-bug"></i> Lint</a>
+                {% if reporttemplate.protected and request.user.is_staff or not reporttemplate.protected %}
+                    <a href="{% url 'reporting:template_update' reporttemplate.id %}"><i style="font-size:15px; color:black" class="far fa-edit"></i> Edit</a>
+                    <a href="{% url 'reporting:template_delete' reporttemplate.id %}"><i style="font-size:15px; color:red" class="far fa-trash-alt"></i> Delete</a>
+                {% endif %}
+            </div>
+        </div>
+    </h2>
+
+    {% if reporttemplate.protected %}
+        <div
+            {% if request.user.is_staff %}
+                class="alert alert-secondary" role="alert">
+                <i class="fas fa-lock-open"></i> You may edit this template as an admin
+            {% else %}
+                class="alert alert-danger" role="alert">
+                <i class="fas fa-lock"></i> This template is protected – only admins may edit it
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <!-- Template Information Section -->
+    <div class="table-responsive" >
+        <table class="table-sm table-borderless" style="width: 50%; margin: auto">
+            <tr>
+                <td class="text-left text-nowrap bold">Template Type</td>
+                <td class="text-center">{{ reporttemplate.doc_type }}</td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Uploaded by</td>
+                <td class="text-center">
+                    {% if reporttemplate.uploaded_by %}
+                        {{ reporttemplate.uploaded_by }}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Upload Date</td>
+                <td class="text-center">{{ reporttemplate.upload_date }}</td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Last Update</td>
+                <td class="text-center">{{ reporttemplate.last_update }}</td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Client</td>
+                <td class="text-center">
+                    {% if reporttemplate.client %}
+                        {{ reporttemplate.client }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div>
+        {% if reporttemplate.description %}
+            {{ reporttemplate.description|bleach }}
+        {% endif %}
+    </div>
+
+    <!-- Template Linting Section -->
+    <div id="template-lint-results" js-update-results-url="{% url 'reporting:ajax_update_template_lint_results' reporttemplate.id %}">
+        {% include "snippets/template_lint_results.html" %}
+    </div>
+
+    <!-- Change Log Section -->
+    <h3><i class="fas fa-file-upload"></i> Template CHANGELOG</h3>
+    <hr>
+    <div id="changelog" class="container">
+        {% if reporttemplate.changelog %}
+            {{ reporttemplate.changelog|bleach }}
+        {% else %}
+            <p style="text-align: center;">No CHANGELOG data</p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Lint Template with AJAX -->
+    <script>
+        $('.js-lint-template').click(function () {
+            var url = $(this).attr('lint-template-url');
+            var templateId = $(this).attr('lint-template-id');
+            var csrftoken = $(this).attr('lint-template-csrftoken')
+            displayToastTop({type:'success', string:'Template linting request submitted', title:'Template Update'});
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'template': templateId
+                },
+                success: function (data) {
+                    if (data['result']) {
+                        var lintResults = $('#template-lint-results');
+                        console.log(lintResults);
+                        var update_url = lintResults.attr('js-update-results-url');
+                        console.log(update_url);
+                        if (update_url != null) {
+                            console.log("Updating linter results...");
+                            // Refresh the HTML from the update URL
+                            lintResults.html('').load(update_url, function() {
+                                // Do something
+                            });
+                        }
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Template Update'});
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

@@ -1,8 +1,10 @@
 """This contains all of the URL mappings used by the Reporting application."""
 
 # Django & Other 3rd Party Libraries
+from ghostwriter.reporting.views import EvidenceCreate
 from django.urls import path
 
+# Ghostwriter Libraries
 from . import views
 
 app_name = "reporting"
@@ -12,6 +14,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("findings/", views.findings_list, name="findings"),
     path("reports/", views.reports_list, name="reports"),
+    path("templates/", views.ReportTemplateListView.as_view(), name="templates"),
     path("reports/archive", views.archive_list, name="archived_reports"),
     path(
         "reports/archive/download/<int:pk>/",
@@ -63,9 +66,24 @@ urlpatterns += [
         name="ajax_assign_finding",
     ),
     path(
-        "report/finding/delete/<int:pk>",
+        "ajax/finding/delete/<int:pk>",
         views.ReportFindingLinkDelete.as_view(),
         name="ajax_delete_local_finding",
+    ),
+    path(
+        "ajax/report/template/swap/<int:pk>",
+        views.ReportTemplateSwap.as_view(),
+        name="ajax_swap_report_template",
+    ),
+    path(
+        "ajax/report/template/lint/<int:pk>",
+        views.ReportTemplateLint.as_view(),
+        name="ajax_lint_report_template",
+    ),
+    path(
+        "ajax/report/template/lint/results/<int:pk>",
+        views.ajax_update_template_lint_results,
+        name="ajax_update_template_lint_results",
     ),
 ]
 
@@ -109,6 +127,31 @@ urlpatterns += [
         views.assign_blank_finding,
         name="assign_blank_finding",
     ),
+    path(
+        "reports/template/<int:pk>",
+        views.ReportTemplateDetailView.as_view(),
+        name="template_detail",
+    ),
+    path(
+        "reports/template/create",
+        views.ReportTemplateCreate.as_view(),
+        name="template_create",
+    ),
+    path(
+        "reports/template/update/<int:pk>",
+        views.ReportTemplateUpdate.as_view(),
+        name="template_update",
+    ),
+    path(
+        "reports/template/delete/<int:pk>",
+        views.ReportTemplateDelete.as_view(),
+        name="template_delete",
+    ),
+    path(
+        "reports/template/download/<int:pk>",
+        views.ReportTemplateDownload.as_view(),
+        name="template_download",
+    ),
 ]
 
 # URLs for local edits
@@ -120,12 +163,12 @@ urlpatterns += [
     ),
     path(
         "reports/evidence/upload/<int:pk>",
-        views.upload_evidence,
+        views.EvidenceCreate.as_view(),
         name="upload_evidence",
     ),
     path(
-        "reports/evidence/modal/<int:pk>",
-        views.upload_evidence_modal,
+        "reports/evidence/upload/<int:pk>/<str:modal>",
+        views.EvidenceCreate.as_view(),
         name="upload_evidence_modal",
     ),
     path(
@@ -133,7 +176,11 @@ urlpatterns += [
         views.upload_evidence_modal_success,
         name="upload_evidence_modal_success",
     ),
-    path("reports/evidence/<int:pk>", views.view_evidence, name="evidence_detail"),
+    path(
+        "reports/evidence/<int:pk>",
+        views.EvidenceDetailView.as_view(),
+        name="evidence_detail",
+    ),
     path(
         "reports/evidence/update/<int:pk>",
         views.EvidenceUpdate.as_view(),

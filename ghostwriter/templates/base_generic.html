@@ -54,164 +54,154 @@
                 <nav id="sidebar">
                     <!-- Sidebar Top Section -->
                     <a href="{% url 'home:dashboard' %}">
-                        <div class="sidebar-header">
-                            <h3><img src="{% static 'images/font_ghost.png' %}" alt="SpecterOps" style="width:10%"> Ghostwriter</h3>
+                        <div class="sidebar-header col d-flex align-items-center justify-content-center">
+                            <img src="{% static 'images/all_white_header.png' %}" alt="Ghostwriter">
                         </div>
                     </a>
 
-                    <!-- Rolodex Section -->
-                    <ul class="list-unstyled components">
-                        <p class="sideheader"><i class="fas fa-address-card"></i> Clients & Projects</p>
-
-                        <!-- Search Section -->
-                        <div class="search center-block">
-                            <form action="{% url 'rolodex:clients' %}" method="GET">
-                                <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text fa fa-search" id="client-search-addon"></span>
-                                    </div>
-                                    <input autocomplete="off" type="text" class="form-control" name="client_search" placeholder="Search clients" aria-label="client" aria-describedby="client-search-addon">
-                                </div>
-                                <input type="submit" style="display: none" />
-                            </form>
-                        </div>
-
-                        <!-- Menu Section -->
-                        <li>
-                            <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle" data-target="#clientSubmenu">
-                                Clients
-                                <div class="expand_caret caret"></div>
-                            </a>
-                            <ul class="collapse list-unstyled" id="clientSubmenu">
-                                <li><a href="{% url 'rolodex:clients' %}">Client List</a></li>
-                                <li><a href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Projects</a>
-                            <ul class="collapse list-unstyled" id="projectSubmenu">
-                                <li><a href="{% url 'rolodex:projects' %}">Projects List</a></li>
-                                <li><a href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-
-                    <!-- Ghostwriter Section -->
-                    <ul class="list-unstyled components">
-                        <p class="sideheader"><i class="fas fa-pencil-alt"></i> Findings & Reports</p>
-
-                        <!-- Search Section -->
-                        <div class="search center-block">
-                            <form action="{% url 'reporting:findings' %}" method="GET">
-                                <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text fa fa-search" id="findings-search-addon"></span>
-                                    </div>
-                                    <input autocomplete="off" type="text" class="form-control" name="finding_search" placeholder="Search findings" aria-label="findings" aria-describedby="findings-search-addon">
-                                </div>
-                                <input type="submit" style="display: none" />
-                            </form>
-                        </div>
-
-                        <!-- Menu Section -->
-                        <li>
-                            <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Findings</a>
-                            <ul class="collapse list-unstyled" id="findingsSubmenu">
-                                <li><a href="{% url 'reporting:findings' %}">Finding Library</a></li>
-                                <li><a href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
-                            </ul>
-                            <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
-                            <ul class="collapse list-unstyled" id="reportSubmenu">
-                                <li><a href="{% url 'reporting:reports' %}">Report Library</a></li>
-                                <li><a href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
-                                <li><a href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
-                            </ul>
-                            <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Operation Logs</a>
-                            <ul class="collapse list-unstyled" id="oplogSubmenu">
-                                <li><a href="{% url 'oplog:index' %}">View Oplogs</a></li>
-                                <li><a href="{% url 'oplog:oplog_create' %}">Create Oplog</a></li>
-                                <li><a href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-
-                    <!-- Shepherd Section -->
-                    <ul class="list-unstyled components">
-                        <p class="sideheader"><i class="fas fa-server"></i> Infrastructure</p>
-
-                        <!-- Search Section -->
-                        <div class="search center-block">
-                            <form action="{% url 'shepherd:domains' %}" method="GET">
-                                <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text fa fa-search" id="domain-search-addon"></span>
-                                    </div>
-                                    <input autocomplete="off" type="text" class="form-control" name="domain_search" placeholder="Search domains" aria-label="domain" aria-describedby="domain-search-addon">
-                                </div>
-                                <input type="submit" style="display: none" />
-                            </form>
-                        </div>
-
-                        <!-- Menu Section -->
-                        {% if user.is_authenticated %}
-                            <li><a href="{% url 'shepherd:user_assets' %}">My Active Assets</a></li>
-                        {% endif %}
-                        <li>
-                            <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Servers</a>
-                            <ul class="collapse list-unstyled" id="serverSubmenu">
-                                <li><a href="{% url 'shepherd:servers' %}">Server Library</a></li>
-                                <li><a href="{% url 'shepherd:server_create' %}">Add New Server</a></li>
-                            </ul>
-                        </li>
-                        <li>
-                            <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domains</a>
-                            <ul class="collapse list-unstyled" id="shepSubmenu">
-                                <li><a href="{% url 'shepherd:domains' %}">Domain Library</a></li>
-                                <li><a href="{% url 'shepherd:domain_create' %}">Add New Domain</a></li>
-                            </ul>
-                        </li>
-                        <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
-                    </ul>
-
-                    <!-- Admin Section -->
-                    {% if request.user.is_staff %}
+                    <div class="sidebar-body">
+                        <!-- Rolodex Section -->
                         <ul class="list-unstyled components">
-                            <p class="sideheader"  style="margin: 0"><i class="fas fa-cogs"></i> Management</p>
-                            <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
+                            <p class="sideheader"><i class="fas fa-tasks"></i> Pre-engagement</p>
+
+                            <!-- Menu Section -->
                             <li>
-                                <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
-                                <ul class="collapse list-unstyled" id="pageSubmenu">
-                                    <li><a href="{% url 'admin:index' %}">Admin Panel</a></li>
-                                    <li><a href="{% url 'admin:users_user_changelist' %}">Users</a></li>
-                                    <li><a href="{% url 'admin:app_list' 'django_q' %}">Scheduled Tasks</a></li>
-                                    <li><a href="{% url 'admin:reporting_finding_import' %}">Upload Bulk Findings</a></li>
-                                    <li><a href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to CSV</a></li>
-                                    <li><a href="{% url 'admin:shepherd_domain_import' %}">Upload Bulk Domains</a></li>
-                                    <li><a href="{% url 'shepherd:export_domains_to_csv' %}">Export Domains to CSV</a></li>
-                                    <li><a href="{% url 'admin:shepherd_staticserver_import' %}">Upload Bulk Servers</a></li>
-                                    <li><a href="{% url 'shepherd:export_servers_to_csv' %}">Export Servers</a></li>
+                                <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle" data-target="#clientSubmenu">
+                                    Manage Clients
+                                    <div class="expand_caret caret"></div>
+                                </a>
+                                <ul class="collapse list-unstyled text-left" id="clientSubmenu">
+                                    {% comment %} Search for Clients {% endcomment %}
+                                    <form class="px-6 py-2" action="{% url 'rolodex:clients' %}" method="GET">
+                                        <input type="search" autocomplete="off" class="form-control" id="client-search" name="client_search" placeholder="Search clients..." autofocus="autofocus">
+                                    </form>
+                                    {% comment %} Clients Submenu Items {% endcomment %}
+                                    <li><a href="{% url 'rolodex:clients' %}"><i class="fas fa-th-list"></i> Client Library</a></li>
+                                    <li><a href="{% url 'rolodex:client_create' %}"><i class="fas fa-plus"></i> Add New Client</a></li>
                                 </ul>
                             </li>
-
-                            <!-- Documentation Section -->
                             <li>
-                                <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
-                                <ul class="collapse list-unstyled" id="docsSubmenu">
-                                    <li><a href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
-                                    <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
+                                <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Manage Findings</a>
+                                <ul class="collapse list-unstyled text-left" id="findingsSubmenu">
+                                {% comment %} Search for Findings {% endcomment %}
+                                    <form class="px-6 py-2" action="{% url 'reporting:findings' %}" method="GET">
+                                        <input type="search" autocomplete="off" class="form-control" id="finding-search" name="finding_search" placeholder="Search findings..." autofocus="autofocus">
+                                    </form>
+                                    {% comment %} Findings Submenu Items {% endcomment %}
+                                    <li><a href="{% url 'reporting:findings' %}"><i class="fas fa-th-list"></i> Finding Library</a></li>
+                                    <li><a href="{% url 'reporting:finding_create' %}"><i class="fas fa-plus"></i> Add New Finding</a></li>
                                 </ul>
                             </li>
                         </ul>
-                    {% endif %}
 
-                    <!-- Sidebar Buttons -->
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'account_logout' %}" class="button">Logout <i class="fas fa-sign-out-alt"></i></a>
-                    {% else %}
-                        <a href="{% url 'account_login' %}" class="button">Login <i class="fas fa-sign-in-alt"></i></a>
-                    {% endif %}
+                        <!-- Operations Section -->
+                        <ul class="list-unstyled components">
+                            <p class="sideheader"><i class="fas fa-running"></i> Execution</p>
 
-                    <a href="https://www.specterops.io"><img src="{% static 'images/domain.png' %}" alt="SpecterOps" style="width:55%"></a>
+                            <!-- Menu Section -->
+                            {% if user.is_authenticated %}
+                                <li><a href="{% url 'shepherd:user_assets' %}">My Active Assets</a></li>
+                            {% endif %}
+                            <li>
+                                <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Projects</a>
+                                <ul class="collapse list-unstyled text-left" id="projectSubmenu">
+                                    <li><a href="{% url 'rolodex:projects' %}"><i class="fas fa-th-list"></i> Projects Library</a></li>
+                                    <li><a href="{% url 'rolodex:project_create_no_client' %}"><i class="fas fa-plus"></i> Add New Project</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
+                                <ul class="collapse list-unstyled text-left" id="reportSubmenu">
+                                    <li><a href="{% url 'reporting:reports' %}"><i class="fas fa-th-list"></i> Report Library</a></li>
+                                    <li><a href="{% url 'reporting:report_create_no_project' %}"><i class="fas fa-plus"></i> Add New Report</a></li>
+                                    <hr>
+                                    <li><a href="{% url 'reporting:templates' %}"><i class="fas fa-th-list"></i> Report Template Library</a></li>
+                                    <li><a href="{% url 'reporting:template_create' %}"><i class="fas fa-plus"></i> Add New Report Template</a></li>
+                                    <li><a href="{% url 'reporting:archived_reports' %}"><i class="fas fa-file-archive"></i> Archived Report Bundles</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Operation Logs</a>
+                                <ul class="collapse list-unstyled text-left" id="oplogSubmenu">
+                                    <li><a href="{% url 'oplog:index' %}"><i class="fas fa-th-list"></i> View Oplogs</a></li>
+                                    <li><a href="{% url 'oplog:oplog_create_no_project' %}"><i class="fas fa-plus"></i> Start New Oplog</a></li>
+                                    <li><a href="{% url 'oplog:oplog_import' %}"><i class="fas fa-file-import"></i> Import Oplog Entries</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                        <!-- Shepherd Section -->
+                        <ul class="list-unstyled components">
+                            <p class="sideheader"><i class="fas fa-wrench"></i> Maintain</p>
+
+                            <!-- Menu Section -->
+                            <li>
+                                <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Servers</a>
+                                <ul class="collapse list-unstyled text-left" id="serverSubmenu">
+                                    <li><a href="{% url 'shepherd:servers' %}"><i class="fas fa-th-list"></i> Server Library</a></li>
+                                    <li><a href="{% url 'shepherd:server_create' %}"><i class="fas fa-plus"></i> Add New Server</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domains</a>
+                                <ul class="collapse list-unstyled text-left" id="shepSubmenu">
+                                    {% comment %} Search for Domains {% endcomment %}
+                                    <form class="px-6 py-2" action="{% url 'shepherd:domains' %}" method="GET">
+                                        <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain_search" placeholder="Search domains..." autofocus="autofocus">
+                                    </form>
+                                    {% comment %} Domains Submenu Items {% endcomment %}
+                                    <li><a href="{% url 'shepherd:domains' %}"><i class="fas fa-th-list"></i> Domain Library</a></li>
+                                    <li><a href="{% url 'shepherd:domain_create' %}"><i class="fas fa-plus"></i> Add New Domain</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
+                        </ul>
+
+                        <!-- Admin Section -->
+                        {% if request.user.is_staff %}
+                            <ul class="list-unstyled components">
+                                <p class="sideheader"><i class="fas fa-tools"></i> Administration</p>
+                                <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
+                                <li>
+                                    <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
+                                    <ul class="collapse list-unstyled text-left" id="pageSubmenu">
+                                        <li><a href="{% url 'admin:index' %}"><i class="fas fa-cogs"></i> Admin Panel</a></li>
+                                        <li><a href="{% url 'admin:users_user_changelist' %}"><i class="fas fa-users"></i> Users</a></li>
+                                        <li><a href="{% url 'admin:app_list' 'django_q' %}"><i class="fas fa-calendar-alt"></i> Scheduled Tasks</a></li>
+                                        <hr>
+                                        <li><a href="{% url 'admin:reporting_finding_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Findings</a></li>
+                                        <li><a href="{% url 'reporting:export_findings_to_csv' %}"><i class="fas fa-file-export"></i> Export Findings to CSV</a></li>
+                                        <hr>
+                                        <li><a href="{% url 'admin:shepherd_domain_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Domains</a></li>
+                                        <li><a href="{% url 'shepherd:export_domains_to_csv' %}"><i class="fas fa-file-export"></i> Export Domains to CSV</a></li>
+                                        <hr>
+                                        <li><a href="{% url 'admin:shepherd_staticserver_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Servers</a></li>
+                                        <li><a href="{% url 'shepherd:export_servers_to_csv' %}"><i class="fas fa-file-export"></i> Export Servers to CSV</a></li>
+                                    </ul>
+                                </li>
+
+                                <!-- Documentation Section -->
+                                <li>
+                                    <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
+                                    <ul class="collapse list-unstyled text-left" id="docsSubmenu">
+                                        <li><a href="https://ghostwriter.wiki"><i class="fas fa-book"></i> Ghostwriter Wiki</a></li>
+                                        <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        {% endif %}
+
+                        <!-- Sidebar Buttons -->
+                        <div style="padding-top: 10px;">
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'account_logout' %}" class="btn btn-primary col-md-8">Logout <i class="fas fa-sign-out-alt"></i></a>
+                            {% else %}
+                                <a href="{% url 'account_login' %}" class="btn btn-primary col-md-8">Login <i class="fas fa-sign-in-alt"></i></a>
+                            {% endif %}
+
+                            <a href="https://www.specterops.io"><img src="{% static 'images/domain.png' %}" alt="SpecterOps" style="width:55%"></a>
+                        </div>
+                    </div>
                 </nav>
             {% endif %}
 
@@ -329,7 +319,7 @@
             function copyToClipboard(element) {
                 var $temp = $("<input>");
                 $("body").append($temp);
-                $temp.val($(element).text()).select();
+                $temp.val($(element).text().trim()).select();
                 document.execCommand("copy");
                 $temp.remove();
             }
@@ -414,16 +404,18 @@
 
             // Display toast notification for each message on page load
             {% for message in messages %}
-                {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-                    displayToastTop({type:'success', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-                    displayToastTop({type:'warning', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-                    displayToastTop({type:'error', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-                    displayToastTop({type:'info', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
-                    displayToastTop({type:'info', string:'{{ message }}'});
+                {% if "no-toast" not in message.tags %}
+                    {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+                        displayToastTop({type:'success', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+                        displayToastTop({type:'warning', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                        displayToastTop({type:'error', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+                        displayToastTop({type:'info', string:'{{ message }}'});
+                    {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
+                        displayToastTop({type:'info', string:'{{ message }}'});
+                    {% endif %}
                 {% endif %}
             {% endfor %}
         </script>
@@ -432,14 +424,18 @@
         {% if user.is_authenticated %}
             <!-- Script for WebSockets Group for Authenticated Users -->
             <script>
-                // Connect to channel for individual notifcations
+                // Connect to channel for individual notifications
                 var username = '{{ user }}';
+                var protocol = "ws://"
+                if (location.protocol == "https:") {
+                    protocol = "wss://"
+                }
                 var ws_user = new WebSocket(
-                  'ws://' + window.location.host +
+                  protocol + window.location.host +
                   '/ws/users/' + username + '/');
                 // Connect to channel for all user notifications
                 var ws_all = new WebSocket(
-                  'ws://' + window.location.host +
+                  protocol + window.location.host +
                   '/ws/users/all/');
 
                 // Functions for sending messages
@@ -470,11 +466,11 @@
                   if (data.assignments !== undefined) {
                     document.getElementById('assignment-count').innerHTML = data.assignments
                   }
-                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
+                  displayToastTop({type:data.level, string:data.message, title:data.title});
                 }
                 ws_all.onmessage = function (e) {
                   var data = JSON.parse(e.data);
-                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
+                  displayToastTop({type:data.message, string:data.message, title:data.message});
                 };
 
                 // Handle unexpected WebSocket closures

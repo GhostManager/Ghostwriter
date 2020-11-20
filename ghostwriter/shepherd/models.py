@@ -116,6 +116,11 @@ class ActivityType(models.Model):
         return self.activity
 
 
+class DomainManager(models.Manager):
+    def get_by_natural_key(self, name):
+        return self.get(name=name)
+
+
 class Domain(models.Model):
     """
     Stores an individual domain, related to :model:`shepherd.WhoisStatus`,
@@ -151,6 +156,19 @@ class Domain(models.Model):
     )
     expiration = models.DateField(
         "Expiration Date", help_text="Select the date the domain will expire"
+    )
+    last_health_check = models.DateField(
+        "Last Health Check",
+        help_text="The date and time of the latest health check for this domain name",
+        blank=True,
+        null=True,
+    )
+    vt_permalink = models.CharField(
+        "VirusTotal Permalink",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="VirusTotal's permalink for scan results of this domain",
     )
     all_cat = models.TextField(
         "All Categories",
@@ -259,10 +277,15 @@ class Domain(models.Model):
         help_text="The last user to checkout this domain",
     )
 
+    objects = DomainManager()
+
     class Meta:
         ordering = ["health_status", "name", "expiration"]
         verbose_name = "Domain"
         verbose_name_plural = "Domains"
+
+    def natural_key(self):
+        return (self.name,)
 
     def get_absolute_url(self):
         return reverse("shepherd:domain_detail", args=[str(self.id)])
@@ -274,7 +297,7 @@ class Domain(models.Model):
         if self.is_expired:
             time_delta = self.expiration - self.creation
         else:
-            time_delta = datetime.date.today() - self.creation
+            time_delta = date.today() - self.creation
         return "{} days".format(time_delta.days)
 
     def is_expired(self):
@@ -282,19 +305,31 @@ class Domain(models.Model):
         Check if the domain's expiration DateField value is in the past.
         """
         expired = False
-        if datetime.date.today() > self.expiration:
+        if date.today() > self.expiration:
             if not self.auto_renew:
                 expired = True
         return expired
 
-    @property
+    def is_expiring_soon(self):
+        """
+        Check if the domain's expiration DateField value is in the near future.
+        """
+        expiring_soon = False
+        delta = date.today() + datetime.timedelta(days=30)
+        if self.expiration <= delta:
+            if not self.auto_renew:
+                expiring_soon = True
+        return expiring_soon
+
     def get_list(self):
         """
         Return an instance's dns_record field value as a list.
         """
         if self.dns_record:
             try:
-                json_acceptable_string = self.dns_record.replace("'", '"')
+                json_acceptable_string = self.dns_record.replace('"', "").replace(
+                    "'", '"'
+                )
                 if json_acceptable_string:
                     return json.loads(json_acceptable_string)
                 else:

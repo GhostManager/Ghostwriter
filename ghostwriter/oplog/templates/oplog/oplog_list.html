@@ -1,63 +1,89 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags %}
+{% load bleach_tags %}
 
-{% block pagetitle %}Report List{% endblock %}
+{% block pagetitle %}Operation Logs{% endblock %}
 
 {% block breadcrumbs %}
-<nav aria-label="breadcrumb" style="padding-left: 20px;">
-    <ul class="breadcrumb" style="margin: 0;">
-        <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Operation Logs</li>
-    </ul>
-</nav>
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Operation Logs</li>
+        </ul>
+    </nav>
 {% endblock %}
 
 {% block content %}
-<!-- Reports Table Section -->
-<table id="oplogTable" class="tablesorter">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Project</th>
-            <th>ID</th>
-            <th>Export to CSV</th>
-        </tr>
-    </thead>
-    {% for log in op_logs %}
-    <tr>
-        <td class='clickable'><a href={% url 'oplog:oplog_entries' log.pk %}>{{ log.name }}</a></td>
-        <td nowrap>{{ log.project }}</td>
-        <td nowrap class="oplogId">{{ log.id }}</td>
-        <td class='exportOplog'><a href='#'>Export</a></td>
-    </tr>
+    {% comment %} Conditional display of API key for newly created oplogs {% endcomment %}
+    {% for message in messages %}
+        {% if "api-key" in message.tags %}
+            <div class="alert alert-success" role="alert">
+                <h4 style="margin-top: 0;" class="alert-heading">Hey You!</h4>
+                {{ message|linebreaks }}
+            </div>
+        {% endif %}
     {% endfor %}
-</table>
-<p><a href="{% url 'oplog:oplog_create' %}"><i class="far fa-plus-square"></i> Create new oplog</a></p>
+
+    <!-- Oplog Table Section -->
+    <p>
+        <a href="{% url 'oplog:oplog_create_no_project' %}" style="padding-right: 20px;"><i class="far fa-plus-square"></i> Start New Operation Log</a>
+        OR
+        <a href="{% url 'oplog:oplog_import' %}" style="padding-left: 20px;"><i class="fas fa-file-upload"></i> Import Oplog</a>
+    </p>
+    {% if op_logs %}
+        <table id="oplogTable" class="tablesorter">
+            <thead>
+                <tr>
+                    <th><span style="padding-right: 10px;">ID</span></th>
+                    <th>Name</th>
+                    <th>Project</th>
+                    <th>Export CSV</th>
+                </tr>
+            </thead>
+            {% for log in op_logs %}
+            <tr>
+                <td nowrap>{{ log.id }}</td>
+                <td class="clickable"><a href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
+                <td nowrap>{{ log.project.client }} {{ log.project.project_type }} ({{ log.project.start_date }})</td>
+                <td class="js-export-oplog" oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}"><a href="javascript:void(0);" class="btn btn-secondary col-md-12">Export</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>There are no logs to see here, yet.</p>
+    {% endif %}
 {% endblock %}
 
 {% block morescripts %}
-<!-- jQuery Tablesorter Script -->
-<script>
-    function download(url, filename) {
-        fetch(url).then(function (t) {
-            return t.blob().then((b) => {
-                var a = document.createElement("a");
-                a.href = URL.createObjectURL(b);
-                a.setAttribute("download", filename);
-                a.click();
-            });
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function () {
+            $("#oplogTable").tablesorter(
+                {
+                    cssAsc: ' down', cssDesc: 'up', cssNone: 'none',
+                }); $('.tablesorter').trigger('update');
         });
-    }
+    </script>
 
-    $(document).ready(function () {
-        $("#oplogTable").tablesorter(
-            {
-                cssAsc: ' down', cssDesc: 'up', cssNone: 'none',
-            }); $('.tablesorter').trigger('update');
-    });
-    $(".exportOplog").on("click", function () {
-        id = $(this).parent().find('.oplogId').html()
-        download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
-    });
-</script>
+    <!-- Export Oplog with JS -->
+    <script>
+        function download(url, filename) {
+            fetch(url).then(function (t) {
+                return t.blob().then((b) => {
+                    var a = document.createElement("a");
+                    a.href = URL.createObjectURL(b);
+                    a.setAttribute("download", filename);
+                    a.click();
+                });
+            });
+        }
+
+        $(".js-export-oplog").on("click", function () {
+            id = $(this).attr('oplog-id')
+            name = $(this).attr('oplog-name')
+            base_name = `${name}-log-export-${id}.csv`
+            filename = generateDownloadName(base_name);
+            download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, filename);
+        });
+    </script>
 {% endblock %}

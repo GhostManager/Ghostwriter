@@ -1,12 +1,14 @@
 """This contains customizations for displaying the Users application models in the admin panel."""
 
+# Django & Other 3rd Party Libraries
 from django.contrib import admin
 from django.contrib.auth import admin as auth_admin
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext
+from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 
-from ghostwriter.users.forms import UserChangeForm, UserCreationForm
+# Ghostwriter libaries
+from ghostwriter.users.forms import GroupAdminForm
 
 User = get_user_model()
 
@@ -32,14 +34,23 @@ class UserAdmin(auth_admin.UserAdmin):
         (_("Personal Information"), {"fields": ("name", "email")}),
         (
             _("User Permissions"),
-            {"fields": ("is_active", "is_staff", "is_superuser",),},
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                ),
+            },
         ),
         (_("Important Dates"), {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
         (
             None,
-            {"classes": ("wide",), "fields": ("username", "password1", "password2"),},
+            {
+                "classes": ("wide",),
+                "fields": ("username", "password1", "password2"),
+            },
         ),
     )
     search_fields = ("username", "name", "email")
@@ -48,3 +59,16 @@ class UserAdmin(auth_admin.UserAdmin):
 
 
 admin.site.register(User, UserAdmin)
+
+
+# Unregister the original Group admin
+admin.site.unregister(Group)
+
+
+class GroupAdmin(admin.ModelAdmin):
+    form = GroupAdminForm
+    filter_horizontal = ["permissions"]
+
+
+# Register the new Group ModelAdmin
+admin.site.register(Group, GroupAdmin)

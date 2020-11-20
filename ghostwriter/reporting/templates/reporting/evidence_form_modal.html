@@ -13,22 +13,25 @@
             if (event.data.mceAction ==='evidence_upload'){
                 var used_friendly_names = [];
                 {% for name in used_friendly_names %}
-                used_friendly_names.push('{{ name|escapejs }}')
+                    used_friendly_names.push('{{ name|escapejs }}')
                 {% endfor %}
-                var value = {
-                    friendly_name: document.getElementById('id_friendly_name').value,
-                    evidence_file: document.getElementById('id_document').value,
-                    caption: document.getElementById('id_caption').value,
-                    used_friendly_names: used_friendly_names
-                };
+                try{
+                    var value = {
+                        friendly_name: document.getElementById('id_friendly_name').value,
+                        evidence_file: document.getElementById('id_document').value,
+                        caption: document.getElementById('id_caption').value,
+                        used_friendly_names: used_friendly_names
+                    };
+                    document.getElementById('evidence-upload-form').submit();
 
-                document.getElementById('evidence-upload-form').submit();
-
-                window.parent.postMessage({
-                    mceAction: 'execCommand',
-                    cmd: 'upload_and_insert',
-                    value
-                }, origin);
+                    window.parent.postMessage({
+                        mceAction: 'execCommand',
+                        cmd: 'upload_and_insert',
+                        value
+                    }, origin);
+                } catch(err) {
+                    displayToastTop({type:'error', string:'You must provide a friendly name, caption, and evidence file', context:'form'});
+                }
             }
         });
     </script>

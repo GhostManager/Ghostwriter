@@ -54,7 +54,7 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = True
 ROOT_URLCONF = "config.urls"
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
-#WSGI_APPLICATION = "config.wsgi.application"
+# WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.routing.application"
 
 # APPS
@@ -93,6 +93,8 @@ LOCAL_APPS = [
     "ghostwriter.shepherd.apps.ShepherdConfig",
     "ghostwriter.reporting.apps.ReportingConfig",
     "ghostwriter.oplog.apps.OplogConfig",
+    "ghostwriter.commandcenter.apps.CommandCenterConfig",
+    "ghostwriter.singleton.apps.SingletonConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -105,7 +107,9 @@ ASGI_APPLICATION = "ghostwriter.routing.application"
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [("redis", 6379)],},
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
     },
 }
 
@@ -245,7 +249,7 @@ EMAIL_TIMEOUT = 5
 
 # ADMIN
 # ------------------------------------------------------------------------------
-# Django Admin URL.
+# Django Admin URL
 ADMIN_URL = "admin/"
 # https://docs.djangoproject.com/en/dev/ref/settings/#admins
 ADMINS = []
@@ -330,54 +334,20 @@ Q_CLUSTER = {
     ),
 }
 
-# DOMAIN HEALTH CHECKS
+# SETTINGS
 # ------------------------------------------------------------------------------
-# Enter a VirusTotal API key (free or paid)
-DOMAINCHECK_CONFIG = {
-    "virustotal_api_key": env("VIRUSTOTAL_API_KEY", default=None),
-    "sleep_time": 20,
-}
+# All settings are stored in singleton models in the CommandCenter app
+# Settings can be cached to avoid repeated database queries
 
-# SLACK
-# ------------------------------------------------------------------------------
-SLACK_CONFIG = {
-    "enable_slack": env("SLACK_ENABLE", default=False),
-    "slack_emoji": env("SLACK_EMOJI", default=":ghost:"),
-    "slack_channel": env("SLACK_CHANNEL", default="#ghostwriter"),
-    "slack_alert_target": env("SLACK_ALERT_TARGET", default="<@ghostwriter>"),
-    "slack_username": env("SLACK_USERNAME", default="Ghostwriter"),
-    "slack_webhook_url": env("SLACK_URL", default=""),
-}
+# The cache that should be used, e.g. 'default'
+# Set to ``None`` to disable caching
+# Ghostwriter does not use a cache by default
+SOLO_CACHE = None
+SOLO_CACHE_TIMEOUT = 60 * 5
+SOLO_CACHE_PREFIX = "solo"
 
-# GLOBAL COMPANY SETTINGS
-# ------------------------------------------------------------------------------
-COMPANY_NAME = env("COMPANY_NAME", default="Ghostwriter")
-COMPANY_TWITTER = env("COMPANY_TWITTER", default="@ghostwriter")
-COMPANY_EMAIL = env("COMPANY_EMAIL", default="info@ghostwriter.local")
-
-TEMPLATE_LOC = env(
-    "TEMPLATE_LOC", default=str(APPS_DIR("reporting", "templates", "reports"))
-)
-
-# NAMECHEAP
-# ------------------------------------------------------------------------------
-NAMECHEAP_CONFIG = {
-    "enable_namecheap": env("NAMECHEAP_ENABLE", default=False),
-    "namecheap_api_key": env("NAMECHEAP_API_KEY", default=None),
-    "namecheap_username": env("NAMECHEAP_USERNAME", default=None),
-    "namecheap_api_username": env("NAMECHEAP_API_USERNAME", default=None),
-    "client_ip": env("CLIENT_IP", default=None),
-    "namecheap_page_size": env("NAMECHEAP_PAGE_SIZE", default="100"),
-}
-
-# CLOUD SERVICES
-# ------------------------------------------------------------------------------
-CLOUD_SERVICE_CONFIG = {
-    "enable_cloud_monitor": env("ENABLE_CLOUD_MONITOR", default=False),
-    "aws_key": env("AWS_KEY", default=None),
-    "aws_secret": env("AWS_SECRET", default=None),
-    "do_api_key": env("DO_API_KEY", default=None),
-}
+# Default location for report templates
+TEMPLATE_LOC = env("TEMPLATE_LOC", default=str(APPS_DIR("media", "templates")))
 
 # BLEACH
 # ------------------------------------------------------------------------------
@@ -396,6 +366,15 @@ BLEACH_ALLOWED_TAGS = [
     "b",
     "i",
     "pre",
+    "sub",
+    "sup",
+    "del",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
 ]
 # Which HTML attributes are allowed
 BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
@@ -417,21 +396,19 @@ BLEACH_STRIP_COMMENTS = True
 # Django REST Configuration
 # ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        #'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        # 'rest_framework.authentication.TokenAuthentication',
+        "rest_framework.authentication.SessionAuthentication",
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated', 
-        #'rest_framework_api_key.permissions.HasAPIKey',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+        # 'rest_framework_api_key.permissions.HasAPIKey',
     ],
 }
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("redis", "6379")]
-        }
+        "CONFIG": {"hosts": [("redis", "6379")]},
     }
 }
