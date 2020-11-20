@@ -4,13 +4,13 @@
 {% block pagetitle %}{{ name }} Entries{% endblock %}
 
 {% block breadcrumbs %}
-<nav aria-label="breadcrumb" style="padding-left: 20px;">
-    <ul class="breadcrumb" style="margin: 0;">
-        <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}"">Operational Logs</a></li>
-            <li class=" breadcrumb-item active" aria-current="page">{{ name }}</li>
-    </ul>
-</nav>
+    <nav aria-label="breadcrumb" style="padding-left: 20px;">
+        <ul class="breadcrumb" style="margin: 0;">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}"">Operational Logs</a></li>
+                <li class=" breadcrumb-item active" aria-current="page">{{ name }}</li>
+        </ul>
+    </nav>
 {% endblock %}
 
 {% block content %}
@@ -92,6 +92,14 @@
         $("#oplogTableDiv").height($height);
         $width = $("#content").width();
         $("#oplogTableDiv").width($width);
+    }
+
+    function jsEscape(s){
+        if (typeof s !== 'undefined') {
+            return s.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        } else {
+            return '';
+        }
     }
 
     function coupleCheckboxColumn(checkboxId, columnClass) {
@@ -199,18 +207,18 @@
                     entry = element['fields']
                     id = element['pk']
                     var newRow = `<tr>
-                            <td class="${columnInfo[0][1]} editableCell">${entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                            <td class="${columnInfo[1][1]} editableCell">${entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                            <td class="${columnInfo[2][1]}">${id}</td>
-                            <td class="${columnInfo[3][1]} editableCell">${entry["source_ip"]}</td>
-                            <td class="${columnInfo[4][1]} editableCell">${entry["dest_ip"]}</td>
-                            <td class="${columnInfo[5][1]} editableCell">${entry["tool"]}</td>
-                            <td class="${columnInfo[6][1]} editableCell">${entry["user_context"]}</td>
-                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["command"]}<div></td>
-                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["description"]}</div></td>
-                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["output"]}</div></td>
-                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["comments"]}</div></td>
-                            <td class="${columnInfo[11][1]} editableCell">${entry["operator_name"]}</td>
+                            <td class="${columnInfo[0][1]} editableCell">${jsEscape(entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                            <td class="${columnInfo[1][1]} editableCell">${jsEscape(entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                            <td class="${columnInfo[2][1]}">${jsEscape(id)}</td>
+                            <td class="${columnInfo[3][1]} editableCell">${jsEscape(entry["source_ip"])}</td>
+                            <td class="${columnInfo[4][1]} editableCell">${jsEscape(entry["dest_ip"])}</td>
+                            <td class="${columnInfo[5][1]} editableCell">${jsEscape(entry["tool"])}</td>
+                            <td class="${columnInfo[6][1]} editableCell">${jsEscape(entry["user_context"])}</td>
+                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["command"])}<div></td>
+                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["description"])}</div></td>
+                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["output"])}</div></td>
+                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["comments"])}</div></td>
+                            <td class="${columnInfo[11][1]} editableCell">${jsEscape(entry["operator_name"])}</td>
                             <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
                             <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
                             </tr>`
@@ -225,18 +233,18 @@
                     entry = element['fields']
                     id = element['pk']
                     var newRow = `<tr>
-                            <td class="${columnInfo[0][1]} editableCell">${entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                            <td class="${columnInfo[1][1]} editableCell">${entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                            <td class="${columnInfo[2][1]}">${id}</td>
-                            <td class="${columnInfo[3][1]} editableCell">${entry["source_ip"]}</td>
-                            <td class="${columnInfo[4][1]} editableCell">${entry["dest_ip"]}</td>
-                            <td class="${columnInfo[5][1]} editableCell">${entry["tool"]}</td>
-                            <td class="${columnInfo[6][1]} editableCell">${entry["user_context"]}</td>
-                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["command"]}<div></td>
-                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["description"]}</div></td>
-                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["output"]}</div></td>
-                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${entry["comments"]}</div></td>
-                            <td class="${columnInfo[11][1]} editableCell">${entry["operator_name"]}</td>
+                            <td class="${columnInfo[0][1]} editableCell">${jsEscape(entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                            <td class="${columnInfo[1][1]} editableCell">${jsEscape(entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                            <td class="${columnInfo[2][1]}">${jsEscape(id)}</td>
+                            <td class="${columnInfo[3][1]} editableCell">${jsEscape(entry["source_ip"])}</td>
+                            <td class="${columnInfo[4][1]} editableCell">${jsEscape(entry["dest_ip"])}</td>
+                            <td class="${columnInfo[5][1]} editableCell">${jsEscape(entry["tool"])}</td>
+                            <td class="${columnInfo[6][1]} editableCell">${jsEscape(entry["user_context"])}</td>
+                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["command"])}<div></td>
+                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["description"])}</div></td>
+                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["output"])}</div></td>
+                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["comments"])}</div></td>
+                            <td class="${columnInfo[11][1]} editableCell">${jsEscape(entry["operator_name"])}</td>
                             <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
                             <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
                             </tr>`
