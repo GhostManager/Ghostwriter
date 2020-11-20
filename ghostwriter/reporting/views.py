@@ -21,7 +21,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.files import File
 from django.db.models import Q
-from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpResponse,
+    HttpResponseRedirect,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
@@ -1908,18 +1914,12 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
     def get(self, *args, **kwargs):
         self.object = self.get_object()
         file_path = os.path.join(settings.MEDIA_ROOT, self.object.document.path)
-        logger.info(file_path)
-        logger.info(self.object.document.path)
         if os.path.exists(file_path):
-            with open(file_path, "rb") as template:
-                response = HttpResponse(
-                    template.read(),
-                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                )
-                response[
-                    "Content-Disposition"
-                ] = "inline; filename=" + os.path.basename(file_path)
-                return response
+            return FileResponse(
+                open(file_path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_path),
+            )
         else:
             raise Http404
 
