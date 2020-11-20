@@ -610,6 +610,7 @@ def check_domains(domain=None):
                 domain.all_cat = ", ".join(lab_results[domain]["categories"]).title()
             else:
                 domain.all_cat = "Uncategorized"
+            domain.last_health_check = datetime.datetime.now()
             domain.save()
             domain_updates[domain.id]["change"] = change
         except Exception:

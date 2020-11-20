@@ -157,6 +157,7 @@
                         <th>Status</th>
                         <th>Health</th>
                         <th>Whois Privacy</th>
+                        <th>Last Update</th>
                         <th>VirusTotal Categories</th>
                     </tr>
                     <tr>
@@ -179,11 +180,20 @@
                         {% endifequal %}
 
                         <td>
+                            {% if domain.last_health_check %}
+                                {{ domain.last_health_check|date:"d M Y" }}
+                            {% else %}
+                                No Record
+                            {% endif %}
+                        </td>
+
+                        <td>
                             {% if domain.all_cat %}
                                 {{ domain.all_cat }}
                             {% else %}
                                 Refresh categories to poll VirusTotal
                             {% endif %}
+                        </td>
                     </tr>
                 </table>
 

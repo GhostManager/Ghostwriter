@@ -157,6 +157,19 @@ class Domain(models.Model):
     expiration = models.DateField(
         "Expiration Date", help_text="Select the date the domain will expire"
     )
+    last_health_check = models.DateField(
+        "Last Health Check",
+        help_text="The date and time of the latest health check for this domain name",
+        blank=True,
+        null=True,
+    )
+    vt_permalink = models.CharField(
+        "VirusTotal Permalink",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="VirusTotal's permalink for scan results of this domain",
+    )
     all_cat = models.TextField(
         "All Categories",
         null=True,
