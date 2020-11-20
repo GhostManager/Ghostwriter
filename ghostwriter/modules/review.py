@@ -91,8 +91,12 @@ class DomainReview(object):
                         api_key=self.virustotal_config.api_key, domain=domain
                     )
                 )
-                vt_data = req.json()
-                results["data"] = vt_data
+                if req.ok:
+                    vt_data = req.json()
+                    results["data"] = vt_data
+                else:
+                    results["result"] = "error"
+                    results["error"] = "VirusTotal rejected the API key in settings"
             except Exception:
                 trace = traceback.format_exc()
                 logger.exception("Failed to contact VirusTotal")
@@ -142,11 +146,9 @@ class DomainReview(object):
         """
         lab_results = {}
         malware_domains = self.download_malware_domains()
-
         for domain in self.domain_queryset:
             burned = False
-
-            if domain.is_expired is False:
+            if domain.is_expired() is False:
                 domain_categories = []
                 burned_explanations = []
                 lab_results[domain] = {}
@@ -166,7 +168,7 @@ class DomainReview(object):
                         )
                         burned = True
                         burned_explanations.append(
-                            "<p>Flagged for malware by <em>malwaredomains.com</em></p>"
+                            f"<p>Flagged for malware by <em>malwaredomains.com</em>. See {self.malwaredomains_url} for the list.</p>"
                         )
 
                 # Check domain name with VirusTotal
@@ -192,24 +194,34 @@ class DomainReview(object):
                     # Check if VirusTotal has any detections for URLs or malware samples
                     if "detected_downloaded_samples" in vt_results["data"]:
                         if len(vt_results["data"]["detected_downloaded_samples"]) > 0:
+                            total_detections = len(vt_results["data"]["detected_downloaded_samples"])
                             logger.warning(
-                                "Domain %s is tied to a VirusTotal malware sample",
+                                "Domain %s is tied to {total_detections} VirusTotal malware sample(s)",
                                 domain_name,
                             )
                             burned = True
                             burned_explanations.append(
-                                "<p>Tied to a VirusTotal malware sample</p>"
+                                f"<p>Tied to {total_detections} VirusTotal malware sample(s):</p>"
                             )
+                            for detection in vt_results["data"]["detected_downloaded_samples"]:
+                                burned_explanations.append(
+                                    f"<p>SHA256 hash {detection['sha256']} flagged by {detection['positives']} vendors on {detection['date']}</p>"
+                                )
                     if "detected_urls" in vt_results["data"]:
                         if len(vt_results["data"]["detected_urls"]) > 0:
+                            total_detections = len(vt_results["data"]["detected_urls"])
                             logger.warning(
-                                "Domain %s has a positive malware detection on VirusTotal",
+                                "Domain %s has a positive malware detection on VirusTotal.",
                                 domain_name,
                             )
                             burned = True
                             burned_explanations.append(
-                                "<p>Tied to a malware detection on VirusTotal</p>"
+                                f"<p>Domain has {total_detections} malware detections on VirusTotal:</p>"
                             )
+                            for detection in vt_results["data"]["detected_urls"]:
+                                burned_explanations.append(
+                                    f"<p>{detection['url']} flagged by {detection['positives']} vendors on {detection['scan_date']}</p>"
+                                )
                 else:
                     lab_results[domain]["vt_results"] = "none"
                     logger.warning(
