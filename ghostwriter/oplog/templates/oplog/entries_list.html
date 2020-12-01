@@ -95,7 +95,7 @@
     }
 
     function jsEscape(s){
-        if (typeof s !== 'undefined') {
+        if (s !== null) {
             return s.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         } else {
             return '';
