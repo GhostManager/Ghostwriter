@@ -120,4 +120,11 @@
             });
         });
     </script>
+
+    <!-- Submit Filter when Clicking Bootstrap Icon -->
+    <script>
+        $('.input-group-text').on('click', function (event) {
+            $('.input-group-text').closest('form').submit();
+        });
+    </script>
 {% endblock %}
