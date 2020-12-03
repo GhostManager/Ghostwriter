@@ -125,4 +125,11 @@
             $('h5 a:eq(1)').attr('aria-expanded', 'false');
         });
     </script>
+
+    <!-- Submit Filter when Clicking Bootstrap Icon -->
+    <script>
+        $('.input-group-text').on('click', function (event) {
+            $('.input-group-text').closest('form').submit();
+        });
+    </script>
 {% endblock %}
