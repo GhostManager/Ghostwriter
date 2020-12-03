@@ -1,6 +1,15 @@
 Changelog
 =========
 
+03 December 2020
+----------------
+* Added project objectives to the report template variables
+    * New template keywords: `objectives` (List), `objectives_total` (Int), `objectives_complete` (Int)
+* Modified project "complete" toggle and instructions for clarity
+* Set all domain names to lowercase and strip any spaces before creating or updating
+    * Addressed cases where a user error could create a duplicate entry
+* Clicking prepended text (e.g., filter icon) on filter form fields will now submit the filter
+
 20 November 2020
 ----------------
 * Tagged release v2.0
@@ -13,7 +22,7 @@ Changelog
     * Company information
     * Namecheap Configuration
 * Initial support for adding users to groups for Role-Based Access Controls
-* Automated Acitivty Logging (Oplog application) moved out of beta
+* Automated Activity Logging (Oplog application) moved out of beta
 * Implemented initial "overwatch" notifications
     * Domain check-out: alert if domain will expire soon and is not set to auto-renew
     * Domain check-out: alert if domain is marked as burned
@@ -30,7 +39,7 @@ Changelog
     * Added new `filter_severity` filter for Word templates
     * Closes #89
 * Initial support for report template and management
-    * Upload report tempalte files for Word and PowerPoint
+    * Upload report template files for Word and PowerPoint
     * New template linter to check and verify templates
     * Closes #28
     * Closes #90
