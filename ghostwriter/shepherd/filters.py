@@ -92,7 +92,7 @@ class DomainFilter(django_filters.FilterSet):
                 AccordionGroup("Health Statuses", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(
-                Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                 HTML(
                     """
                     <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:domains' %}">Reset</a>
@@ -159,7 +159,7 @@ class ServerFilter(django_filters.FilterSet):
                 AccordionGroup("Server Status", InlineCheckboxes("server_status")),
             ),
             ButtonHolder(
-                Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                 HTML(
                     """
                     <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:servers' %}">Reset</a>
