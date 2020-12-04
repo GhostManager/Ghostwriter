@@ -9,6 +9,8 @@ Changelog
 * Set all domain names to lowercase and strip any spaces before creating or updating
     * Addressed cases where a user error could create a duplicate entry
 * Clicking prepended text (e.g., filter icon) on filter form fields will now submit the filter
+* Fixed error that could cause Oplog entries to not display
+* Oplog entries list now shows loading messages and properly displays "no entries" messages
 
 20 November 2020
 ----------------
