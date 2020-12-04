@@ -68,7 +68,9 @@ class ClientFilter(django_filters.FilterSet):
                     css_class="form-row",
                 ),
                 ButtonHolder(
-                    Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                    Submit(
+                        "submit_btn", "Filter", css_class="btn btn-primary col-md-2"
+                    ),
                     HTML(
                         """
                         <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'rolodex:clients' %}">Reset</a>
@@ -176,7 +178,9 @@ class ProjectFilter(django_filters.FilterSet):
                     css_class="form-row",
                 ),
                 ButtonHolder(
-                    Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                    Submit(
+                        "submit_btn", "Filter", css_class="btn btn-primary col-md-2"
+                    ),
                     HTML(
                         """
                         <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'rolodex:projects' %}">Reset</a>

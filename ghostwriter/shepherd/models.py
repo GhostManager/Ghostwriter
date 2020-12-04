@@ -290,6 +290,10 @@ class Domain(models.Model):
     def get_absolute_url(self):
         return reverse("shepherd:domain_detail", args=[str(self.id)])
 
+    def clean(self, *args, **kwargs):
+        self.name = self.name.lower().replace(" ", "")
+        super(Domain, self).clean(*args, **kwargs)
+
     def get_domain_age(self):
         """
         Calculate the domain's age based on the current date and the instance's creation DateField.

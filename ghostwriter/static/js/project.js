@@ -77,6 +77,6 @@ function generateDownloadName(name) {
     if (minutes < 10) {
         minutes = '0' + minutes;
     }
-    filename = year + month + day + '_' + hour + minutes + day + '_' + name
+    filename = '' + year + month + day + '_' + hour + minutes + sec + '_' + name
     return filename
 }

@@ -1220,6 +1220,7 @@ def review_cloud_infrastructure():
     # Catch a JSON decoding error with the response
     except ValueError:
         logger.exception("Could not decode the response from Digital Ocean")
+        do_capable = False
         vps_info["errors"][
             "digital_ocean"
         ] = f"Could not decode this response from Digital Ocean: {active_droplets.text}"
@@ -1326,10 +1327,9 @@ def review_cloud_infrastructure():
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
-                                ", ".join(pub_addresses),
+                                ", ".join(instance["public_ip"]),
                                 instance["tags"],
                             )
-                            # send_slack_msg(message, slack_channel=result.project.slack_channel)
                             response = requests.post(
                                 slack_config.webhook_url,
                                 data=slack_data,
@@ -1345,7 +1345,7 @@ def review_cloud_infrastructure():
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
-                                ", ".join(pub_addresses),
+                                ", ".join(instance["public_ip"]),
                                 instance["tags"],
                             )
                             response = requests.post(
@@ -1378,7 +1378,7 @@ def review_cloud_infrastructure():
                         instance["launch_time"],
                         instance["provider"],
                         instance_name,
-                        pub_addresses,
+                        ", ".join(instance["public_ip"]),
                         instance["tags"],
                     )
                     response = requests.post(

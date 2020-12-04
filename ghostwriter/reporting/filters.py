@@ -79,7 +79,9 @@ class FindingFilter(django_filters.FilterSet):
                     css_class="form-row",
                 ),
                 ButtonHolder(
-                    Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                    Submit(
+                        "submit_btn", "Filter", css_class="btn btn-primary col-md-2"
+                    ),
                     HTML(
                         """
                         <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
@@ -145,7 +147,9 @@ class ReportFilter(django_filters.FilterSet):
                     css_class="form-row",
                 ),
                 ButtonHolder(
-                    Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                    Submit(
+                        "submit_btn", "Filter", css_class="btn btn-primary col-md-2"
+                    ),
                     HTML(
                         """
                         <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:reports' %}">Reset</a>
@@ -196,7 +200,9 @@ class ArchiveFilter(django_filters.FilterSet):
                     ),
                 ),
                 ButtonHolder(
-                    Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                    Submit(
+                        "submit_btn", "Filter", css_class="btn btn-primary col-md-2"
+                    ),
                     HTML(
                         """
                         <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:archived_reports' %}">Reset</a>
