@@ -17,6 +17,7 @@ import re
 from datetime import datetime
 
 # Django & Other 3rd Party Libraries
+import bleach
 import docx
 import jinja2
 import pptx
@@ -254,6 +255,22 @@ class Reportwriter:
         report_dict["project"]["end_date_uk"] = end_datetime.strftime("%d %B %Y")
         report_dict["project"]["execution_window"] = execution_window
         report_dict["project"]["execution_window_uk"] = execution_window_uk
+        # Project objectives
+        report_dict["project"]["objectives"] = {}
+        for objective in self.report_queryset.project.projectobjective_set.all():
+            report_dict["project"]["objectives"][objective.id] = {}
+            report_dict["project"]["objectives"][objective.id][
+                "objective"
+            ] = bleach.clean(objective.objective, tags=[], strip=True)
+            report_dict["project"]["objectives"][objective.id][
+                "complete"
+            ] = objective.complete
+            report_dict["project"]["objectives"][objective.id][
+                "deadline"
+            ] = objective.deadline
+            report_dict["project"]["objectives"][objective.id][
+                "status"
+            ] = objective.status.objective_status
         # Finding data
         report_dict["findings"] = {}
         for finding in self.report_queryset.reportfindinglink_set.all():
@@ -861,7 +878,6 @@ class Reportwriter:
                 run.text = text
                 run.hyperlink.address = styles["hyperlink_url"]
             else:
-                logger.info("Text is: %s, styles: %s", text, styles)
                 # For Word, this code is modified from this issue:
                 #   https://github.com/python-openxml/python-docx/issues/384
                 # Get an ID from the ``document.xml.rels`` file
@@ -999,12 +1015,9 @@ class Reportwriter:
             )
         # Transform caption placeholders into figures
         if keyword.startswith("caption"):
-            logger.info("GOT A CAPTION: %s", repr(keyword))
             ref_name = keyword.lstrip("caption ")
             ref_name = re.sub("[^A-Za-z0-9]+", "", ref_name)
-            logger.info(text)
             text = text.replace("{{.%s}}" % keyword, "")
-            logger.info(text)
             if self.report_type == "pptx":
                 if ref_name:
                     run = par.add_run()
@@ -1675,7 +1688,19 @@ class Reportwriter:
 
         # Findings information
         context["findings"] = self.report_json["findings"].values()
-        context["total_findings"] = len(self.report_json["findings"].values())
+        context["findings_total"] = len(self.report_json["findings"].values())
+
+        # Project objectives
+        context["objectives"] = self.report_json["project"]["objectives"].values()
+        context["objectives_total"] = len(
+            self.report_json["project"]["objectives"].values()
+        )
+        objectives_completed = 0
+        for objective in self.report_json["project"]["objectives"].values():
+            if objective["status"].lower() == "complete":
+                objectives_completed += 1
+        context["objectives_complete"] = objectives_completed
+        context["objectives_completed"] = context["objectives_complete"]
 
         # Generate the XML for the styled findings
         context = self.process_findings(context)
@@ -2298,6 +2323,12 @@ class TemplateLinter:
                     # Findings information
                     context["findings"] = ""
                     context["findings_subdoc"] = ""
+
+                    # Objectives information
+                    context["objectives"] = ""
+                    context["objectives_total"] = ""
+                    context["objectives_complete"] = ""
+                    context["objectives_completed"] = ""
 
                     # Step 1: Load the document as a template
                     template_document = DocxTemplate(self.template_loc)
