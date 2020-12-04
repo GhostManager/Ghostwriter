@@ -249,7 +249,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 data = {
                     "result": "success",
                     "message": "Project successfully marked as incomplete",
-                    "status": "Active",
+                    "status": "In Progress",
                     "toggle": 0,
                 }
             else:
