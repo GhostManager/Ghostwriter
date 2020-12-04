@@ -14,505 +14,519 @@
 {% endblock %}
 
 {% block content %}
-<!-- Oplog Table Section -->
-<div id="connection">
-    <div align="center" id="connectionStatus"><i class="fas fa-network-wired" style="color:red"></i>Disconnected</div>
-</div>
-<div id="utilBar">
-    <div style="float:left;">
-        <input id="searchInput" type="text" placeholder="Filter..." />
+    <!-- Oplog Table Section -->
+    <div id="connection">
+        <div align="center" id="connectionStatus"><i class="fas fa-network-wired" style="color:red"></i>Disconnected</div>
     </div>
-    <div style="float:left;">
 
+    <div id="utilBar">
+        <div style="float:left;">
+            <input id="searchInput" type="text" placeholder="Filter..." />
+        </div>
+        <div style="float:left;">
+
+        </div>
+        <div style="float:right; text-align: left;">
+            <a href="javascript:void(0)" id="createNewEntry"><i class=" far fa-plus-square"></i> Create a new entry</a><br />
+            <a href="javascript:void(0)" id="importNewEntries"><i class="fas fa-file-upload"></i> Import entries</a><br />
+            <a href="javascript:void(0)" id="exportEntries"><i class="fas fa-download"></i> Export entries</a>
+        </div>
     </div>
-    <div style="float:right; text-align: left;">
-        <a href="javascript:void(0)" id="createNewEntry"><i class=" far fa-plus-square"></i> Create a new entry</a><br />
-        <a href="javascript:void(0)" id="importNewEntries"><i class="fas fa-file-upload"></i> Import entries</a><br />
-        <a href="javascript:void(0)" id="exportEntries"><i class="fas fa-download"></i> Export entries</a>
+
+    <div style="clear: both;"></div>
+        <a href="javascript:void(0);" id="columnSelectDropdown"><i class="far fa-plus-square"></i>Select Columns</a>
     </div>
-</div>
-<div style="clear: both;"></div>
-<a href="javascript:void(0);" id="columnSelectDropdown"><i class="far fa-plus-square"></i>Select Columns</a>
 
-<div id="columnSelect" style="display:none;">
-    <ul class="list-group-row" id="checkboxList">
-    </ul>
-</div>
+    <div id="columnSelect" style="display:none;">
+        <ul class="list-group-row" id="checkboxList">
+        </ul>
+    </div>
 
-<div id="oplogTableDiv" style="overflow-x:auto;">
-<table id="oplogTable">
-    <thead>
-        <tr id="oplogTableHeader">
-        </tr>
-    </thead>
-    <tbody id="oplogTableBody">
-    </tbody>
-    <tbody id="oplogTableNoEntries" style="display:none">
-        <tr>
-            <td colspan="100%">No entries to display</td>
-        <tr>
-    </tbody>
-</table>
-</div>
+    <div id="oplogTableDiv" style="overflow-x:auto;">
+        <table id="oplogTable">
+            <thead>
+                <tr id="oplogTableHeader">
+                </tr>
+            </thead>
+            <tbody id="oplogTableBody">
+                <tr id="oplogTableNoEntries" >
+                    <td colspan="100%">No entries to display</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 {% endblock %}
 
 
 {% block morescripts %}
-<!-- jQuery Tablesorter Script -->
-<script>
-    var protocol = "ws://"
-    if (location.protocol == "https:") {
-        protocol = "wss://"
-    }
-    var $selectedCell = null;
-    var $table = $("#oplogTable tbody")
-    var socket = null;
-    var errorDisplayed = false;
+    <!-- Modal for Spinner -->
+    <div id="spinner-modal" class="modal " tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Stand By!</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <h3><i class="fa fa-sync fa-spin"></i> Loading the log entries...</h3>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    let columnInfo = []
-    columnInfo = [
-        ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date'],
-        ['endDateCheckbox', 'endDateColumn', 'End Date', 'end_date'],
-        ['idCheckbox', 'idColumn', 'ID', 'oplog_id'],
-        ['sourceIPCheckbox', 'sourceIPColumn', 'Source', 'source_ip'],
-        ['destIPCheckbox', 'destIPColumn', 'Destination', 'dest_ip'],
-        ['toolNameCheckbox', 'toolNameColumn', 'Tool Name', 'tool'],
-        ['userContextCheckbox', 'userContextColumn', 'User Context', 'user_context'],
-        ['commandCheckbox', 'commandColumn', 'Command', 'command'],
-        ['descriptionCheckbox', 'descriptionColumn', 'Description', 'description'],
-        ['outputCheckbox', 'outputColumn', 'Output', 'output'],
-        ['commentsCheckbox', 'commentsColumn', 'Comments', 'comments'],
-        ['operatorCheckbox', 'operatorColumn', 'Operator', 'operator_name'],
-        ['deleteCheckbox', 'deleteColumn', 'Delete', ''],
-        ['copyCheckbox', 'copyColumn', 'Copy', '']
-    ]
-
-    function resizeContent() {
-        $height = $(window).height() - 250;
-        $("#oplogTableDiv").height($height);
-        $width = $("#content").width();
-        $("#oplogTableDiv").width($width);
-    }
-
-    function jsEscape(s){
-        if (s !== null) {
-            return s.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-        } else {
-            return '';
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        var protocol = "ws://"
+        if (location.protocol == "https:") {
+            protocol = "wss://"
         }
-    }
+        var $selectedCell = null;
+        var $table = $("#oplogTable tbody")
+        var socket = null;
+        var errorDisplayed = false;
 
-    function coupleCheckboxColumn(checkboxId, columnClass) {
-        $(checkboxId).change(function (e) {
-            if (!this.checked) {
-                $(columnClass).hide()
-            }
-            else {
-                $(columnClass).show()
-            }
-        });
-    }
+        let columnInfo = []
+        columnInfo = [
+            ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date'],
+            ['endDateCheckbox', 'endDateColumn', 'End Date', 'end_date'],
+            ['idCheckbox', 'idColumn', 'ID', 'oplog_id'],
+            ['sourceIPCheckbox', 'sourceIPColumn', 'Source', 'source_ip'],
+            ['destIPCheckbox', 'destIPColumn', 'Destination', 'dest_ip'],
+            ['toolNameCheckbox', 'toolNameColumn', 'Tool Name', 'tool'],
+            ['userContextCheckbox', 'userContextColumn', 'User Context', 'user_context'],
+            ['commandCheckbox', 'commandColumn', 'Command', 'command'],
+            ['descriptionCheckbox', 'descriptionColumn', 'Description', 'description'],
+            ['outputCheckbox', 'outputColumn', 'Output', 'output'],
+            ['commentsCheckbox', 'commentsColumn', 'Comments', 'comments'],
+            ['operatorCheckbox', 'operatorColumn', 'Operator', 'operator_name'],
+            ['deleteCheckbox', 'deleteColumn', 'Delete', ''],
+            ['copyCheckbox', 'copyColumn', 'Copy', '']
+        ]
 
-    function hideColumns() {
-        columnInfo.forEach(function (value, index, array) {
-            $checkbox = $("#" + value[0])
-            if (!$checkbox.prop("checked")) {
-                $("." + value[1]).hide()
-            }
-        })
-    }
-
-    function getKeyName(cell) {
-        var className = cell.attr("class")
-        for (column of columnInfo) {
-            if (className.indexOf(column[1]) >= 0) {
-                return column[3]
-            }
-        }
-    }
-
-    function clearBorder($cell) {
-        $cell.css('border', '#000 solid 0px');
-    }
-
-    function selectCell($cell) {
-        if ($selectedCell != null) {
-            clearBorder($selectedCell)
-        }
-        $selectedCell = $cell
-        $selectedCell.css({
-            "border-color": "#666666",
-            "border-width": "2px",
-            "border-style": "solid"
-        })
-    }
-
-    function editCell($cell) {
-        if (socket.readyState == WebSocket.OPEN) {
-            var oldText = $cell.text()
-            clearBorder($cell)
-            var input = $('<textarea style="height:200px;"/>');
-            $cell.html(input);
-            $textArea = $cell.find("textarea")
-            $textArea.focus()
-            $textArea.val(oldText)
-        }
-    }
-
-    function closeAndSend($cell) {
-        var $textArea = $cell.find("textarea")
-
-        var value = $textArea.val()
-        var keyName = getKeyName($cell)
-
-        var id = $cell.parent().find(".idColumn").html()
-
-        var element = document.createElement('div');
-        element.innerText = value
-        var sanitizedValue = element.innerHTML;
-
-        socket.send(JSON.stringify({
-            'action': 'edit',
-            'oplogEntryId': id,
-            'modifiedRow': {
-                [keyName]: sanitizedValue
-            }
-        }))
-    }
-
-    function updateRow($existingRow, newRow) {
-        $(newRow).children().each(function () {
-            var className = $(this).attr("class").split(" ")[0]
-            $existingRow.find("." + className).html($(this).html())
-        });
-        selectCell($selectedCell)
-    }
-
-    function connect() {
-        var endpoint = protocol + window.location.host + "/ws" + window.location.pathname
-        socket = new WebSocket(endpoint)
-
-        socket.onopen = function (e) {
-            $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: green'></i>Connected</div>")
-            errorDisplayed = false;
+        function resizeContent() {
+            $height = $(window).height() - 250;
+            $("#oplogTableDiv").height($height);
+            $width = $("#content").width();
+            $("#oplogTableDiv").width($width);
         }
 
-        socket.onmessage = function (e) {
-            message = JSON.parse(e.data)
-            if (message["action"] == "sync") {
-                // Clear table in case it's a reconnect
-                $table.empty()
-                entries = message["data"]
-                entries.forEach(element => {
-                    entry = element['fields']
-                    id = element['pk']
-                    var newRow = `<tr>
-                            <td class="${columnInfo[0][1]} editableCell">${jsEscape(entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
-                            <td class="${columnInfo[1][1]} editableCell">${jsEscape(entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
-                            <td class="${columnInfo[2][1]}">${jsEscape(id)}</td>
-                            <td class="${columnInfo[3][1]} editableCell">${jsEscape(entry["source_ip"])}</td>
-                            <td class="${columnInfo[4][1]} editableCell">${jsEscape(entry["dest_ip"])}</td>
-                            <td class="${columnInfo[5][1]} editableCell">${jsEscape(entry["tool"])}</td>
-                            <td class="${columnInfo[6][1]} editableCell">${jsEscape(entry["user_context"])}</td>
-                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["command"])}<div></td>
-                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["description"])}</div></td>
-                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["output"])}</div></td>
-                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["comments"])}</div></td>
-                            <td class="${columnInfo[11][1]} editableCell">${jsEscape(entry["operator_name"])}</td>
-                            <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
-                            <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
-                            </tr>`
-                    $table.prepend(newRow)
-                    $newRow = $table.children('tr:first');
-
-                })
+        function jsEscape(s){
+            if (s !== null) {
+                return s.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            } else {
+                return '';
             }
-            if (message["action"] == "create") {
-                entries = message["data"]
-                entries.forEach(element => {
-                    entry = element['fields']
-                    id = element['pk']
-                    var newRow = `<tr>
-                            <td class="${columnInfo[0][1]} editableCell">${jsEscape(entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
-                            <td class="${columnInfo[1][1]} editableCell">${jsEscape(entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
-                            <td class="${columnInfo[2][1]}">${jsEscape(id)}</td>
-                            <td class="${columnInfo[3][1]} editableCell">${jsEscape(entry["source_ip"])}</td>
-                            <td class="${columnInfo[4][1]} editableCell">${jsEscape(entry["dest_ip"])}</td>
-                            <td class="${columnInfo[5][1]} editableCell">${jsEscape(entry["tool"])}</td>
-                            <td class="${columnInfo[6][1]} editableCell">${jsEscape(entry["user_context"])}</td>
-                            <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["command"])}<div></td>
-                            <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["description"])}</div></td>
-                            <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["output"])}</div></td>
-                            <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["comments"])}</div></td>
-                            <td class="${columnInfo[11][1]} editableCell">${jsEscape(entry["operator_name"])}</td>
-                            <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
-                            <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
-                            </tr>`
+        }
 
+        function coupleCheckboxColumn(checkboxId, columnClass) {
+            $(checkboxId).change(function (e) {
+                if (!this.checked) {
+                    $(columnClass).hide()
+                }
+                else {
+                    $(columnClass).show()
+                }
+            });
+        }
 
-                    var rowFound = false
+        function hideColumns() {
+            columnInfo.forEach(function (value, index, array) {
+                $checkbox = $("#" + value[0])
+                if (!$checkbox.prop("checked")) {
+                    $("." + value[1]).hide()
+                }
+            })
+        }
+
+        function getKeyName(cell) {
+            var className = cell.attr("class")
+            for (column of columnInfo) {
+                if (className.indexOf(column[1]) >= 0) {
+                    return column[3]
+                }
+            }
+        }
+
+        function clearBorder($cell) {
+            $cell.css('border', '#000 solid 0px');
+        }
+
+        function selectCell($cell) {
+            if ($selectedCell != null) {
+                clearBorder($selectedCell)
+            }
+            $selectedCell = $cell
+            $selectedCell.css({
+                "border-color": "#666666",
+                "border-width": "2px",
+                "border-style": "solid"
+            })
+        }
+
+        function editCell($cell) {
+            if (socket.readyState == WebSocket.OPEN) {
+                var oldText = $cell.text()
+                clearBorder($cell)
+                var input = $('<textarea style="height:200px;"/>');
+                $cell.html(input);
+                $textArea = $cell.find("textarea")
+                $textArea.focus()
+                $textArea.val(oldText)
+            }
+        }
+
+        function closeAndSend($cell) {
+            var $textArea = $cell.find("textarea")
+
+            var value = $textArea.val()
+            var keyName = getKeyName($cell)
+
+            var id = $cell.parent().find(".idColumn").html()
+
+            var element = document.createElement('div');
+            element.innerText = value
+            var sanitizedValue = element.innerHTML;
+
+            socket.send(JSON.stringify({
+                'action': 'edit',
+                'oplogEntryId': id,
+                'modifiedRow': {
+                    [keyName]: sanitizedValue
+                }
+            }))
+        }
+
+        function updateRow($existingRow, newRow) {
+            $(newRow).children().each(function () {
+                var className = $(this).attr("class").split(" ")[0]
+                $existingRow.find("." + className).html($(this).html())
+            });
+            selectCell($selectedCell)
+        }
+
+        function connect() {
+            var endpoint = protocol + window.location.host + "/ws" + window.location.pathname
+            socket = new WebSocket(endpoint)
+
+            socket.onopen = function (e) {
+                $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: green'></i>Connected</div>")
+                errorDisplayed = false;
+            }
+
+            socket.onmessage = function (e) {
+                message = JSON.parse(e.data)
+                console.log(message["action"])
+                if (message["action"] == "sync") {
+                    $('#spinner-modal').modal('toggle');
+                    entries = message["data"]
+                    if (entries.length !== 0) {
+                        // Clear table in case it's a reconnect
+                        $table.empty()
+                        entries.forEach(element => {
+                            entry = element['fields']
+                            id = element['pk']
+                            var newRow = `<tr>
+                                    <td class="${columnInfo[0][1]} editableCell">${jsEscape(entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                                    <td class="${columnInfo[1][1]} editableCell">${jsEscape(entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                                    <td class="${columnInfo[2][1]}">${jsEscape(id)}</td>
+                                    <td class="${columnInfo[3][1]} editableCell">${jsEscape(entry["source_ip"])}</td>
+                                    <td class="${columnInfo[4][1]} editableCell">${jsEscape(entry["dest_ip"])}</td>
+                                    <td class="${columnInfo[5][1]} editableCell">${jsEscape(entry["tool"])}</td>
+                                    <td class="${columnInfo[6][1]} editableCell">${jsEscape(entry["user_context"])}</td>
+                                    <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["command"])}<div></td>
+                                    <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["description"])}</div></td>
+                                    <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["output"])}</div></td>
+                                    <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["comments"])}</div></td>
+                                    <td class="${columnInfo[11][1]} editableCell">${jsEscape(entry["operator_name"])}</td>
+                                    <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
+                                    <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
+                                    </tr>`
+                            $table.prepend(newRow)
+                            $newRow = $table.children('tr:first');
+                        })
+                    } else {
+                        $('#oplogTableNoEntries').show()
+                    }
+                    $('#spinner-modal').modal('toggle');
+                }
+                if (message["action"] == "create") {
+                    $('#oplogTableNoEntries').hide()
+                    entries = message["data"]
+                    entries.forEach(element => {
+                        entry = element['fields']
+                        id = element['pk']
+                        var newRow = `<tr>
+                                <td class="${columnInfo[0][1]} editableCell">${jsEscape(entry["start_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                                <td class="${columnInfo[1][1]} editableCell">${jsEscape(entry["end_date"].replace(/\.\d+/, "").replace("Z", "").replace("T", " "))}</td>
+                                <td class="${columnInfo[2][1]}">${jsEscape(id)}</td>
+                                <td class="${columnInfo[3][1]} editableCell">${jsEscape(entry["source_ip"])}</td>
+                                <td class="${columnInfo[4][1]} editableCell">${jsEscape(entry["dest_ip"])}</td>
+                                <td class="${columnInfo[5][1]} editableCell">${jsEscape(entry["tool"])}</td>
+                                <td class="${columnInfo[6][1]} editableCell">${jsEscape(entry["user_context"])}</td>
+                                <td class="${columnInfo[7][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["command"])}<div></td>
+                                <td class="${columnInfo[8][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["description"])}</div></td>
+                                <td class="${columnInfo[9][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["output"])}</div></td>
+                                <td class="${columnInfo[10][1]} editableCell"><div class="overflow-auto" style="max-height: 200px;">${jsEscape(entry["comments"])}</div></td>
+                                <td class="${columnInfo[11][1]} editableCell">${jsEscape(entry["operator_name"])}</td>
+                                <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
+                                <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
+                                </tr>`
+
+                        var rowFound = false
+                        $('#oplogTable tr').each(function () {
+                            if ($(this).find('td').eq(2).text() == id) {
+                                updateRow($(this), newRow)
+                                rowFound = true;
+                            }
+                        })
+                        if (!rowFound) {
+                            $table.prepend(newRow)
+                            $newRow = $table.children('tr:first');
+                            $newRow.hide()
+                        }
+
+                        hideColumns()
+                        $newRow.fadeIn("slow");
+                    })
+                }
+                if (message["action"] == "delete") {
+                    var id = message["data"]
                     $('#oplogTable tr').each(function () {
                         if ($(this).find('td').eq(2).text() == id) {
-                            updateRow($(this), newRow)
-                            rowFound = true;
+                            $(this).fadeOut('slow', function () {
+                                $(this).remove()
+                                if ($("#oplogTableBody tr").length == 1){
+                                    $('#oplogTableNoEntries').show()
+                                }
+                            });
                         }
                     })
-                    if (!rowFound) {
-                        $table.prepend(newRow)
-                        $newRow = $table.children('tr:first');
-                        $newRow.hide()
-                    }
-
-                    hideColumns()
-                    $newRow.fadeIn("slow");
-                })
+                }
             }
-            if (message["action"] == "delete") {
-                var id = message["data"]
-                console.log(id)
-                $('#oplogTable tr').each(function () {
-                    if ($(this).find('td').eq(2).text() == id) {
-                        $(this).fadeOut('slow', function () {
-                            $(this).remove()
-                            if ($("#oplogTableBody tr").length == 0){
-                                $('#oplogTableNoEntries').show()
-                            }
-                        });
-                    }
-                })
 
-
+            socket.onerror = function (e) {
+                $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
+                console.log("[!] error: ", e)
+                socket.close()
+                if (!errorDisplayed) {
+                    displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
+                    errorDisplayed = true;
+                }
             }
-            else {
-                $('#oplogTableNoEntries').hide()
+
+            socket.onclose = function (e) {
+                $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
+                if (!errorDisplayed) {
+                    displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
+                    errorDisplayed = true;
+                }
+                setTimeout(function () {
+                    console.log("Retrying connection");
+                    connect()
+                }, 5000)
             }
         }
 
-        socket.onerror = function (e) {
-            $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
-            console.log("[!] error: ", e)
-            socket.close()
-            if (!errorDisplayed) {
-                displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
-                errorDisplayed = true;
-            }
-        }
-
-        socket.onclose = function (e) {
-            $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: red'></i>Disconnected</div>")
-            if (!errorDisplayed) {
-                displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
-                errorDisplayed = true;
-            }
-            setTimeout(function () {
-                console.log("Retrying connection");
-                connect()
-            }, 5000)
-        }
-
-    }
-
-    // This is the filter function to search through row entries
-    $(document).ready(function () {
-        resizeContent();
-
-        $(window).resize(function() {
+        // This is the filter function to search through row entries
+        $(document).ready(function () {
             resizeContent();
-        });
 
-        connect()
-        // Populate the table info
-        $checkboxList = $("#checkboxList")
-        $tableHeader = $("#oplogTableHeader")
-
-        columnInfo.forEach(function (value, index, array) {
-            checkboxEntry = `
-            <input type="checkbox" id="${value[0]}" checked/>
-            <lablel>${value[2]}</label>
-            `
-            $checkboxList.append(checkboxEntry)
-            headerColumn = `
-            <th class="${value[1]}">${value[2]}</th>
-            `
-            $tableHeader.append(headerColumn)
-            coupleCheckboxColumn("#" + value[0], "." + value[1])
-        })
-
-        $("#searchInput").on("keyup", function () {
-            var value = $(this).val().toLowerCase();
-            $("#oplogTableBody tr").filter(function () {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+            $(window).resize(function() {
+                resizeContent();
             });
-        });
 
-        $("body").keydown(function (e) {
-            if ($selectedCell != null) {
-                if (e.keyCode == 37) { // left
-                    e.preventDefault()
-                    $newCell = $selectedCell.prev('.editableCell');
+            connect()
+            // Populate the table info
+            $checkboxList = $("#checkboxList")
+            $tableHeader = $("#oplogTableHeader")
 
-                    while ($newCell.is(":hidden")) {
-                        $newCell = $newCell.prev('.editableCell');
-                        if ($newCell.length == 0) {
-                            return;
-                        }
-                    }
-                    if ($newCell.length != 0) {
-                        selectCell($newCell);
-                    }
-                }
-                if (e.keyCode == 38) { // up
-                    e.preventDefault()
-                    $newRow = $selectedCell.parent('tr').prev()
+            columnInfo.forEach(function (value, index, array) {
+                checkboxEntry = `
+                <input type="checkbox" id="${value[0]}" checked/>
+                <lablel>${value[2]}</label>
+                `
+                $checkboxList.append(checkboxEntry)
+                headerColumn = `
+                <th class="${value[1]}">${value[2]}</th>
+                `
+                $tableHeader.append(headerColumn)
+                coupleCheckboxColumn("#" + value[0], "." + value[1])
+            })
 
-                    while ($newRow.is(":hidden")) {
-                        $newRow = $newRow.parent('tr').prev()
-                        if ($newRow.length == 0) {
-                            return
-                        }
-                    }
-
-                    if ($newRow.length != 0) {
-                        className = $selectedCell.attr("class").split(" ")[0]
-                        $newCell = $newRow.find("." + className)
-                        selectCell($newCell);
-                    }
-                }
-
-                else if (e.keyCode == 39 || e.keyCode == 9) { // right & tab
-                    e.preventDefault()
-                    $newCell = $selectedCell.next('.editableCell');
-
-                    while ($newCell.is(":hidden")) {
-                        $newCell = $newCell.next('.editableCell');
-                        if ($newCell.length == 0) {
-                            return;
-                        }
-                    }
-                    if ($newCell.length != 0) {
-                        selectCell($newCell);
-                    }
-                }
-                if (e.keyCode == 40) { // down
-                    e.preventDefault()
-                    $newRow = $selectedCell.parent('tr').next()
-
-                    while ($newRow.is(":hidden")) {
-                        $newRow = $newRow.parent('tr').next()
-                        if ($newRow.length == 0) {
-                            return
-                        }
-                    }
-
-                    if ($newRow.length != 0) {
-                        className = $selectedCell.attr("class").split(" ")[0]
-                        $newCell = $newRow.find("." + className)
-                        selectCell($newCell);
-                    }
-                }
-                else if (e.keyCode == 13) { // enter
-                    e.preventDefault()
-                    editCell($selectedCell)
-                }
-            }
-        });
-
-        $("#columnSelectDropdown").click(function () {
-            $("#columnSelect").toggle("slow");
-            $("#columnSelectDropdown").find("i").toggleClass("fa-plus-square fa-minus-square")
-        });
-
-        $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
-            // This is super janky, but we get the id of the entry by appending
-            // it to the button id
-            var $column = $(this).closest('td')
-            var buttonName = $column.attr('id')
-            var id = buttonName.split("_")[1]
-            socket.send(JSON.stringify({
-                'action': 'delete',
-                'oplogEntryId': id
-            }))
-        });
-
-
-        $('#oplogTable').on('click', '[id^="copyButton_"]', function (event) {
-            var $column = $(this).closest('td')
-            var buttonName = $column.attr('id')
-            var id = buttonName.split("_")[1]
-            socket.send(JSON.stringify({
-                'action': 'copy',
-                'oplogEntryId': id
-            }))
-        });
-
-        $("#oplogTable").on('mouseenter', '.editableCell', function (e) {
-            if (!$(this).is($selectedCell)) {
-                $(this).css({
-                    "border-color": "#666666",
-                    "border-width": "1px",
-                    "border-style": "dotted"
-                });
-            }
-        });
-
-        $("#oplogTable").on('mouseleave', '.editableCell', function (e) {
-            if (!$(this).is($selectedCell)) {
-                $(this).css('border', '#000 solid 0px');
-            }
-        });
-
-        $('#oplogTable').on('click', '.editableCell', function (e) {
-            if ($(this).find("textarea").length == 0) {
-                selectCell($(this))
-            }
-        });
-
-        $('#oplogTable').on('dblclick', '.editableCell', function (e) {
-            if ($(this).find("textarea").length == 0) {
-                editCell($(this))
-            }
-        });
-
-        $('#oplogTable').on('focusout', '.editableCell', function (e) {
-            closeAndSend($(this))
-        });
-
-        $("#oplogTable").on('keydown', 'textarea', function (e) {
-            var keyCode = e.keyCode || e.which;
-            e.stopPropagation()
-            if (keyCode == 9) {
-                closeAndSend($(this).parent())
-            }
-        });
-
-        $("#createNewEntry").click(function () {
-            socket.send(JSON.stringify({
-                'action': 'create',
-                'oplog_id': {{ pk }}
-            }))
-        })
-
-        $('#importNewEntries').click(function () {
-            window.open('{% url "oplog:oplog_import" %}', '_self');
-        })
-
-        function download(url, filename) {
-            fetch(url).then(function (t) {
-                return t.blob().then((b) => {
-                    var a = document.createElement("a");
-                    a.href = URL.createObjectURL(b);
-                    a.setAttribute("download", filename);
-                    a.click();
+            $("#searchInput").on("keyup", function () {
+                var value = $(this).val().toLowerCase();
+                $("#oplogTableBody tr").filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
                 });
             });
-        }
 
-        $('#exportEntries').click(function () {
-            filename = generateDownloadName('{{ name }}-log-export-{{ id }}.csv');
-            download(`/oplog/api/entries?export=csv&&oplog_id={{ pk }}`, filename);
-        })
+            $("body").keydown(function (e) {
+                if ($selectedCell != null) {
+                    if (e.keyCode == 37) { // left
+                        e.preventDefault()
+                        $newCell = $selectedCell.prev('.editableCell');
 
-    });
+                        while ($newCell.is(":hidden")) {
+                            $newCell = $newCell.prev('.editableCell');
+                            if ($newCell.length == 0) {
+                                return;
+                            }
+                        }
+                        if ($newCell.length != 0) {
+                            selectCell($newCell);
+                        }
+                    }
+                    if (e.keyCode == 38) { // up
+                        e.preventDefault()
+                        $newRow = $selectedCell.parent('tr').prev()
 
-</script>
+                        while ($newRow.is(":hidden")) {
+                            $newRow = $newRow.parent('tr').prev()
+                            if ($newRow.length == 0) {
+                                return
+                            }
+                        }
+
+                        if ($newRow.length != 0) {
+                            className = $selectedCell.attr("class").split(" ")[0]
+                            $newCell = $newRow.find("." + className)
+                            selectCell($newCell);
+                        }
+                    }
+
+                    else if (e.keyCode == 39 || e.keyCode == 9) { // right & tab
+                        e.preventDefault()
+                        $newCell = $selectedCell.next('.editableCell');
+
+                        while ($newCell.is(":hidden")) {
+                            $newCell = $newCell.next('.editableCell');
+                            if ($newCell.length == 0) {
+                                return;
+                            }
+                        }
+                        if ($newCell.length != 0) {
+                            selectCell($newCell);
+                        }
+                    }
+                    if (e.keyCode == 40) { // down
+                        e.preventDefault()
+                        $newRow = $selectedCell.parent('tr').next()
+
+                        while ($newRow.is(":hidden")) {
+                            $newRow = $newRow.parent('tr').next()
+                            if ($newRow.length == 0) {
+                                return
+                            }
+                        }
+
+                        if ($newRow.length != 0) {
+                            className = $selectedCell.attr("class").split(" ")[0]
+                            $newCell = $newRow.find("." + className)
+                            selectCell($newCell);
+                        }
+                    }
+                    else if (e.keyCode == 13) { // enter
+                        e.preventDefault()
+                        editCell($selectedCell)
+                    }
+                }
+            });
+
+            $("#columnSelectDropdown").click(function () {
+                $("#columnSelect").toggle("slow");
+                $("#columnSelectDropdown").find("i").toggleClass("fa-plus-square fa-minus-square")
+            });
+
+            $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
+                // This is super janky, but we get the id of the entry by appending
+                // it to the button id
+                var $column = $(this).closest('td')
+                var buttonName = $column.attr('id')
+                var id = buttonName.split("_")[1]
+                socket.send(JSON.stringify({
+                    'action': 'delete',
+                    'oplogEntryId': id
+                }))
+            });
+
+
+            $('#oplogTable').on('click', '[id^="copyButton_"]', function (event) {
+                var $column = $(this).closest('td')
+                var buttonName = $column.attr('id')
+                var id = buttonName.split("_")[1]
+                socket.send(JSON.stringify({
+                    'action': 'copy',
+                    'oplogEntryId': id
+                }))
+            });
+
+            $("#oplogTable").on('mouseenter', '.editableCell', function (e) {
+                if (!$(this).is($selectedCell)) {
+                    $(this).css({
+                        "border-color": "#666666",
+                        "border-width": "1px",
+                        "border-style": "dotted"
+                    });
+                }
+            });
+
+            $("#oplogTable").on('mouseleave', '.editableCell', function (e) {
+                if (!$(this).is($selectedCell)) {
+                    $(this).css('border', '#000 solid 0px');
+                }
+            });
+
+            $('#oplogTable').on('click', '.editableCell', function (e) {
+                if ($(this).find("textarea").length == 0) {
+                    selectCell($(this))
+                }
+            });
+
+            $('#oplogTable').on('dblclick', '.editableCell', function (e) {
+                if ($(this).find("textarea").length == 0) {
+                    editCell($(this))
+                }
+            });
+
+            $('#oplogTable').on('focusout', '.editableCell', function (e) {
+                closeAndSend($(this))
+            });
+
+            $("#oplogTable").on('keydown', 'textarea', function (e) {
+                var keyCode = e.keyCode || e.which;
+                e.stopPropagation()
+                if (keyCode == 9) {
+                    closeAndSend($(this).parent())
+                }
+            });
+
+            $("#createNewEntry").click(function () {
+                socket.send(JSON.stringify({
+                    'action': 'create',
+                    'oplog_id': {{ pk }}
+                }))
+            })
+
+            $('#importNewEntries').click(function () {
+                window.open('{% url "oplog:oplog_import" %}', '_self');
+            })
+
+            function download(url, filename) {
+                fetch(url).then(function (t) {
+                    return t.blob().then((b) => {
+                        var a = document.createElement("a");
+                        a.href = URL.createObjectURL(b);
+                        a.setAttribute("download", filename);
+                        a.click();
+                    });
+                });
+            }
+
+            $('#exportEntries').click(function () {
+                filename = generateDownloadName('{{ name }}-log-export-{{ id }}.csv');
+                download(`/oplog/api/entries?export=csv&&oplog_id={{ pk }}`, filename);
+            })
+
+        });
+
+    </script>
 {% endblock %}
