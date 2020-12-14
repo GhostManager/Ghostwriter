@@ -38,7 +38,7 @@ class DomainFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Domain Name Contains",
-        widget=TextInput(attrs={"placeholder": "specterops.io", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "Domain Name", "autocomplete": "off"}),
     )
     all_cat = django_filters.CharFilter(
         lookup_expr="icontains",
@@ -119,7 +119,7 @@ class ServerFilter(django_filters.FilterSet):
     ip_address = django_filters.CharFilter(
         lookup_expr="icontains",
         label="IP Address Contains",
-        widget=TextInput(attrs={"placeholder": "104.31.5.75", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "IP Address", "autocomplete": "off"}),
     )
     name = django_filters.CharFilter(
         lookup_expr="icontains",

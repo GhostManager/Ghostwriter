@@ -44,7 +44,7 @@ class FindingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(FindingForm, self).__init__(*args, **kwargs)
-        self.fields["title"].widget.attrs["placeholder"] = "SQL Injection"
+        self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
@@ -196,8 +196,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         )
         self.fields["affected_entities"].widget.attrs[
             "placeholder"
-        ] = "DC01.TEXTLAB.LOCAL"
-        self.fields["title"].widget.attrs["placeholder"] = "SQL Injection"
+        ] = "List of Hostnames or IP Addresses"
+        self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
@@ -307,15 +307,11 @@ class EvidenceForm(forms.ModelForm):
         super(EvidenceForm, self).__init__(*args, **kwargs)
         self.fields["caption"].required = True
         self.fields["caption"].widget.attrs["autocomplete"] = "off"
-        self.fields["caption"].widget.attrs[
-            "placeholder"
-        ] = "Brief one-line caption for the report"
+        self.fields["caption"].widget.attrs["placeholder"] = "Report Caption"
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
-        self.fields["friendly_name"].widget.attrs["placeholder"] = "BloodHound Graph 1"
-        self.fields["description"].widget.attrs[
-            "placeholder"
-        ] = "Description of the evidence file for your team"
+        self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
+        self.fields["description"].widget.attrs["placeholder"] = ""
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         # Don't set form buttons for a modal pop-up

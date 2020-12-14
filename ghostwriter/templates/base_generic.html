@@ -73,7 +73,7 @@
                                 <ul class="collapse list-unstyled text-left" id="clientSubmenu">
                                     {% comment %} Search for Clients {% endcomment %}
                                     <form class="px-6 py-2" action="{% url 'rolodex:clients' %}" method="GET">
-                                        <input type="search" autocomplete="off" class="form-control" id="client-search" name="client_search" placeholder="Search clients..." autofocus="autofocus">
+                                        <input type="search" autocomplete="off" class="form-control" id="client-search" name="client_search" placeholder="Search Clients..." autofocus="autofocus">
                                     </form>
                                     {% comment %} Clients Submenu Items {% endcomment %}
                                     <li><a href="{% url 'rolodex:clients' %}"><i class="fas fa-th-list"></i> Client Library</a></li>
@@ -85,7 +85,7 @@
                                 <ul class="collapse list-unstyled text-left" id="findingsSubmenu">
                                 {% comment %} Search for Findings {% endcomment %}
                                     <form class="px-6 py-2" action="{% url 'reporting:findings' %}" method="GET">
-                                        <input type="search" autocomplete="off" class="form-control" id="finding-search" name="finding_search" placeholder="Search findings..." autofocus="autofocus">
+                                        <input type="search" autocomplete="off" class="form-control" id="finding-search" name="finding_search" placeholder="Search Findings..." autofocus="autofocus">
                                     </form>
                                     {% comment %} Findings Submenu Items {% endcomment %}
                                     <li><a href="{% url 'reporting:findings' %}"><i class="fas fa-th-list"></i> Finding Library</a></li>
@@ -147,7 +147,7 @@
                                 <ul class="collapse list-unstyled text-left" id="shepSubmenu">
                                     {% comment %} Search for Domains {% endcomment %}
                                     <form class="px-6 py-2" action="{% url 'shepherd:domains' %}" method="GET">
-                                        <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain_search" placeholder="Search domains..." autofocus="autofocus">
+                                        <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain_search" placeholder="Search Domains..." autofocus="autofocus">
                                     </form>
                                     {% comment %} Domains Submenu Items {% endcomment %}
                                     <li><a href="{% url 'shepherd:domains' %}"><i class="fas fa-th-list"></i> Domain Library</a></li>

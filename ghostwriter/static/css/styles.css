@@ -249,6 +249,33 @@ h6 {
 }
 
 /* ---------------------------------------------------
+    FORM STYLES
+----------------------------------------------------- */
+
+.form-control::placeholder {
+  color: var(--primary-color);
+  opacity: 0.75;
+}
+
+.form-control::-webkit-input-placeholder {
+  color: var(--primary-color);
+}
+
+.form-control:-moz-placeholder {
+  /* Firefox 18- */
+  color: var(--primary-color);
+}
+
+.form-control::-moz-placeholder {
+  /* Firefox 19+ */
+  color: var(--primary-color);
+}
+
+.form-control:-ms-input-placeholder {
+  color: var(--primary-color);
+}
+
+/* ---------------------------------------------------
     FILE UPLOAD STYLES
 ----------------------------------------------------- */
 

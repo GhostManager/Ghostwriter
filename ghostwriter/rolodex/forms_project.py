@@ -187,9 +187,7 @@ class ProjectAssignmentForm(forms.ModelForm):
         self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This assignment is only for 3 of the 4 weeks ..."
+        self.fields["note"].widget.attrs["placeholder"] = ""
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -302,9 +300,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["deadline"].widget.attrs["autocomplete"] = "off"
         self.fields["deadline"].widget.input_type = "date"
-        self.fields["objective"].widget.attrs[
-            "placeholder"
-        ] = "Obtain commit privileges to git"
+        self.fields["objective"].widget.attrs["placeholder"] = ""
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -431,10 +427,8 @@ class ProjectForm(forms.ModelForm):
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["slack_channel"].widget.attrs["placeholder"] = "#client-rt-2020"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This project is intended to assess ..."
+        self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
+        self.fields["note"].widget.attrs["placeholder"] = ""
         # Hide labels for specific fields because ``form_show_labels`` takes priority
         self.fields["start_date"].label = False
         self.fields["end_date"].label = False

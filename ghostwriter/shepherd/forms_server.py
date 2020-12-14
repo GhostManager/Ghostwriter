@@ -107,7 +107,7 @@ class AuxServerAddressForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "chrome-off"
         self.fields["primary"].label = "Make Primary Address"
         self.fields["ip_address"].label = ""
-        self.fields["ip_address"].widget.attrs["placeholder"] = "172.10.10.236"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
         self.fields["ip_address"].widget.attrs["autocomplete"] = "off"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
@@ -200,11 +200,11 @@ class ServerForm(forms.ModelForm):
         super(ServerForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["ip_address"].widget.attrs["placeholder"] = "172.10.10.236"
-        self.fields["name"].widget.attrs["placeholder"] = "hostname"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
+        self.fields["name"].widget.attrs["placeholder"] = "Hostname"
         self.fields["server_status"].empty_label = "-- Select Status --"
         self.fields["server_provider"].empty_label = "-- Select Provider --"
-        self.fields["note"].widget.attrs["placeholder"] = "This server is used for..."
+        self.fields["note"].widget.attrs["placeholder"] = ""
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
@@ -282,7 +282,7 @@ class TransientServerForm(forms.ModelForm):
         super(TransientServerForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["ip_address"].widget.attrs["placeholder"] = "104.131.1.100"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
         self.fields["name"].widget.attrs["placeholder"] = "Hostname"
         self.fields["activity_type"].empty_label = "-- Select Activity --"
         self.fields["server_role"].empty_label = "-- Select Role --"
@@ -396,9 +396,7 @@ class ServerCheckoutForm(forms.ModelForm):
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This server will be used for C2 with ..."
+        self.fields["note"].widget.attrs["placeholder"] = ""
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"

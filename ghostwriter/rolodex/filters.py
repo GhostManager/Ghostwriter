@@ -28,7 +28,7 @@ class ClientFilter(django_filters.FilterSet):
         lookup_expr="icontains",
         widget=TextInput(
             attrs={
-                "placeholder": "Enter full or partial name...",
+                "placeholder": "Part of Name",
                 "autocomplete": "off",
             }
         ),
@@ -37,7 +37,7 @@ class ClientFilter(django_filters.FilterSet):
         lookup_expr="icontains",
         widget=TextInput(
             attrs={
-                "placeholder": "Enter full or codename...",
+                "placeholder": "Part of Codename",
                 "autocomplete": "off",
             }
         ),
@@ -104,7 +104,7 @@ class ProjectFilter(django_filters.FilterSet):
         lookup_expr="icontains",
         widget=TextInput(
             attrs={
-                "placeholder": "Enter full or codename...",
+                "placeholder": "Part of Codename",
                 "autocomplete": "off",
             }
         ),

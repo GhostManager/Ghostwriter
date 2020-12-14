@@ -29,9 +29,7 @@ class FindingFilter(django_filters.FilterSet):
     title = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Title Contains",
-        widget=TextInput(
-            attrs={"placeholder": "Enter partial title...", "autocomplete": "off"}
-        ),
+        widget=TextInput(attrs={"placeholder": "Part of Title", "autocomplete": "off"}),
     )
     severity = django_filters.ModelMultipleChoiceFilter(
         queryset=Severity.objects.all().order_by("weight"),
@@ -108,9 +106,7 @@ class ReportFilter(django_filters.FilterSet):
     title = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Title Contains",
-        widget=TextInput(
-            attrs={"placeholder": "Enter partial title...", "autocomplete": "off"}
-        ),
+        widget=TextInput(attrs={"placeholder": "Part of Title", "autocomplete": "off"}),
     )
 
     STATUS_CHOICES = (
@@ -175,9 +171,7 @@ class ArchiveFilter(django_filters.FilterSet):
         field_name="project__client__name",
         label="Client Name",
         lookup_expr="icontains",
-        widget=TextInput(
-            attrs={"placeholder": "Enter partial client name...", "autocomplete": "off"}
-        ),
+        widget=TextInput(attrs={"placeholder": "Part of Name", "autocomplete": "off"}),
     )
 
     class Meta:

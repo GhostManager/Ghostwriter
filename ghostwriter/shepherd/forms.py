@@ -170,9 +170,9 @@ class DomainForm(forms.ModelForm):
         super(DomainForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["name"].widget.attrs["placeholder"] = "specterops.io"
+        self.fields["name"].widget.attrs["placeholder"] = "Domain"
         self.fields["name"].label = ""
-        self.fields["registrar"].widget.attrs["placeholder"] = "Namecheap"
+        self.fields["registrar"].widget.attrs["placeholder"] = "Registrar"
         self.fields["registrar"].label = ""
         self.fields["creation"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["domain_status"].empty_label = "-- Select Status --"
@@ -451,7 +451,7 @@ class BurnForm(forms.ModelForm):
         super(BurnForm, self).__init__(*args, **kwargs)
         self.fields["burned_explanation"].widget.attrs[
             "placeholder"
-        ] = "This domain was flagged for spam after being used for phishing..."
+        ] = "This domain was flagged for..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"

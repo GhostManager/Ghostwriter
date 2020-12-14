@@ -127,17 +127,15 @@ class ClientContactForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ClientContactForm, self).__init__(*args, **kwargs)
-        self.fields["name"].widget.attrs["placeholder"] = "David McQuire"
+        self.fields["name"].widget.attrs["placeholder"] = "Full Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["email"].widget.attrs["placeholder"] = "info@specterops.io"
+        self.fields["email"].widget.attrs["placeholder"] = "Email Address"
         self.fields["email"].widget.attrs["autocomplete"] = "off"
-        self.fields["job_title"].widget.attrs["placeholder"] = "CEO"
+        self.fields["job_title"].widget.attrs["placeholder"] = "Job Title"
         self.fields["job_title"].widget.attrs["autocomplete"] = "off"
-        self.fields["phone"].widget.attrs["placeholder"] = "(800) 444-4444"
+        self.fields["phone"].widget.attrs["placeholder"] = "Phone Number"
         self.fields["phone"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Additional notes for the contact"
+        self.fields["note"].widget.attrs["placeholder"] = ""
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
         self.helper.form_tag = False
@@ -228,13 +226,11 @@ class ClientForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ClientForm, self).__init__(*args, **kwargs)
-        self.fields["name"].widget.attrs["placeholder"] = "SpecterOps, Inc."
+        self.fields["name"].widget.attrs["placeholder"] = "Full Company Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["short_name"].widget.attrs["placeholder"] = "SpecterOps"
+        self.fields["short_name"].widget.attrs["placeholder"] = "Short Company Name"
         self.fields["short_name"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "SpecterOps was founded in 2017 and ..."
+        self.fields["note"].widget.attrs["placeholder"] = ""
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
