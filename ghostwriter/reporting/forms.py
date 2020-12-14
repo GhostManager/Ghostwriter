@@ -1,7 +1,6 @@
 """This contains all of the forms used by the Reporting application."""
 
 # Django & Other 3rd Party Libraries
-from crispy_forms.bootstrap import TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -19,7 +18,6 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
-from ghostwriter.modules.custom_layout_object import CustomTab
 from ghostwriter.rolodex.models import Project
 
 from .models import (
@@ -72,44 +70,45 @@ class FindingForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.layout = Layout(
-            TabHolder(
-                CustomTab(
-                    "Categorization",
-                    "title",
-                    Row(
-                        Column("finding_type", css_class="form-group col-md-6 mb-0"),
-                        Column("severity", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
-                    ),
-                    link_css_class="tab-icon  search-icon",
-                    css_id="general-tab",
-                ),
-                CustomTab(
-                    "Description",
-                    "description",
-                    "impact",
-                    link_css_class="tab-icon pencil-icon",
-                    css_id="description-tab",
-                ),
-                CustomTab(
-                    "Defense",
-                    "mitigation",
-                    "replication_steps",
-                    "host_detection_techniques",
-                    "network_detection_techniques",
-                    link_css_class="tab-icon shield-icon",
-                    css_id="defense-tab",
-                ),
-                CustomTab(
-                    "References",
-                    "references",
-                    "finding_guidance",
-                    link_css_class="tab-icon link-icon",
-                    css_id="reference-tab",
-                ),
-                template="tab.html",
-                css_class="nav-justified",
+            HTML(
+                """
+                <h4 class="icon search-icon">Categorization</h4>
+                <hr />
+                """
             ),
+            "title",
+            Row(
+                Column("finding_type", css_class="form-group col-md-6 mb-0"),
+                Column("severity", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            HTML(
+                """
+                <h4 class="icon pencil-icon">General Information</h4>
+                <hr />
+                """
+            ),
+            Field("description", css_class="enable-evidence-upload"),
+            Field("impact", css_class="enable-evidence-upload"),
+            HTML(
+                """
+                <h4 class="icon shield-icon">Defense</h4>
+                <hr />
+                """
+            ),
+            Field("mitigation"),
+            Field("replication_steps"),
+            Field("host_detection_techniques"),
+            Field(
+                "network_detection_techniques",
+            ),
+            HTML(
+                """
+                <h4 class="icon link-icon">Reference Links</h4>
+                <hr />
+                """
+            ),
+            "references",
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -158,7 +157,7 @@ class ReportForm(forms.ModelForm):
             "project",
             HTML(
                 """
-                <h6 class="icon file-icon">Assign Templates</h6>
+                <h4 class="icon file-icon">Assign Templates</h4>
                 <hr />
                 """
             ),
@@ -226,7 +225,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <h6 class="icon list-icon">Affected Entities</h6>
+                <h4 class="icon list-icon">Affected Entities</h4>
                 <hr />
                 """
             ),
@@ -234,7 +233,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             "affected_entities",
             HTML(
                 """
-                <h6 class="icon search-icon">Categorization</h6>
+                <h4 class="icon search-icon">Categorization</h4>
                 <hr />
                 """
             ),
@@ -246,7 +245,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             ),
             HTML(
                 """
-                <h6 class="icon pencil-icon">Description</h6>
+                <h4 class="icon pencil-icon">Description</h4>
                 <hr />
                 """
             ),
@@ -254,7 +253,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             Field("impact", css_class="enable-evidence-upload"),
             HTML(
                 """
-                <h6 class="icon shield-icon">Defense</h6>
+                <h4 class="icon shield-icon">Defense</h4>
                 <hr />
                 """
             ),
@@ -267,7 +266,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             ),
             HTML(
                 """
-                <h6 class="icon link-icon">References</h6>
+                <h4 class="icon link-icon">References</h4>
                 <hr />
                 """
             ),
