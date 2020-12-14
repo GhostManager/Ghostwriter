@@ -440,7 +440,7 @@ class TransientServerDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
-        # self.object.delete()
+        self.object.delete()
         data = {"result": "success", "message": "VPS successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
