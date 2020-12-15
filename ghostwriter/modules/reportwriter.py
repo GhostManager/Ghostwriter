@@ -2205,7 +2205,7 @@ class Reportwriter:
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
-        title_shape.text = "Positive Observations"
+        title_shape.text = "Conclusion"
         text_frame = get_textframe(body_shape)
 
         # Add final slide
