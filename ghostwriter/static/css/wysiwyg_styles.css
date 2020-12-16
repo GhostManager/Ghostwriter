@@ -1,0 +1,11 @@
+@import 'https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700';
+@import '/static/css/base_styles.css';
+
+/* ---------------------------------------------------
+    GENERAL STYLES
+----------------------------------------------------- */
+
+.mce-content-body[data-mce-placeholder]:not(.mce-visualblocks)::before {
+  color: var(--primary-color);
+  opacity: 0.75;
+}

@@ -30,6 +30,7 @@ var default_config = {
     theme: 'silver',
     skin: 'Ghostwriter',
     selector: 'textarea',
+    content_css: '/static/css/wysiwyg_styles.css',
     editor_deselector: 'empty-form',
     menubar: 'file edit insert view format tools',
     visualchars_default_state: false,
