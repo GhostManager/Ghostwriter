@@ -1531,11 +1531,11 @@ class ReportDetailView(LoginRequiredMixin, DetailView):
         form = SelectReportTemplateForm(instance=self.object)
         form.fields["docx_template"].queryset = ReportTemplate.objects.filter(
             Q(doc_type__doc_type="docx") & Q(client=self.object.project.client)
-            | Q(client__isnull=True)
+            | Q(doc_type__doc_type="docx") & Q(client__isnull=True)
         )
         form.fields["pptx_template"].queryset = ReportTemplate.objects.filter(
             Q(doc_type__doc_type="pptx") & Q(client=self.object.project.client)
-            | Q(client__isnull=True)
+            | Q(doc_type__doc_type="pptx") & Q(client__isnull=True)
         )
         ctx["form"] = form
         return ctx
