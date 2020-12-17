@@ -970,19 +970,11 @@ class Reportwriter:
         ``styles`` : dict
             Copy of ``ReportConstants.DEFAULT_STYLE_VALUES`` with styles for the text
         """
+        # Remove any newlines to avoid creating unwanted blank lines
         text = text.replace("\r\n", "")
-        # Regex for searching for bracketed template placeholders, e.g. ``{{.client}}``
-        keyword_regex = r"\{\{\.(.*?)\}\}"
-        # Search for ``{{. }}`` keywords
-        match = re.search(keyword_regex, text)
-        if match:
-            # Get just the first match, set it as the ``keyword``, and remove it from the line
-            # There should never be - or need to be - multiple matches
-            match = match[0]
-            keyword = match.replace("}}", "").replace("{{.", "").strip()
-        else:
-            keyword = ""
-        # Perform static client name replacement
+
+        # Perform static text replacements
+        # Do this first so strings are not detected as potential expressions–e.g., ``{{.ref ...}}``
         if "{{.client}}" in text:
             if self.report_json["client"]["short_name"]:
                 text = text.replace(
@@ -992,7 +984,6 @@ class Reportwriter:
                 text = text.replace(
                     "{{.client}}", self.report_json["client"]["full_name"]
                 )
-        # Perform replacement of project-related placeholders
         if "{{.project_start}}" in text:
             text = text.replace(
                 "{{.project_start}}", self.report_json["project"]["start_date"]
@@ -1003,45 +994,107 @@ class Reportwriter:
             )
         if "{{.project_start_uk}}" in text:
             text = text.replace(
-                "{{.project_start_uk}}", self.report_json["project"]["start_date_uk"]
+                "{{.project_start_uk}}",
+                self.report_json["project"]["start_date_uk"],
             )
         if "{{.project_end_uk}}" in text:
             text = text.replace(
-                "{{.project_end_uk}}", self.report_json["project"]["end_date_uk"]
+                "{{.project_end_uk}}",
+                self.report_json["project"]["end_date_uk"],
             )
         if "{{.project_type}}" in text:
             text = text.replace(
-                "{{.project_type}}", self.report_json["project"]["project_type"].lower()
+                "{{.project_type}}",
+                self.report_json["project"]["project_type"].lower(),
             )
-        # Transform caption placeholders into figures
-        if keyword.startswith("caption"):
-            ref_name = keyword.lstrip("caption ")
-            ref_name = re.sub("[^A-Za-z0-9]+", "", ref_name)
-            text = text.replace("{{.%s}}" % keyword, "")
-            if self.report_type == "pptx":
-                if ref_name:
-                    run = par.add_run()
-                    run.text = f"See {ref_name}"
-                    font = run.font
-                    font.italic = True
-            else:
-                par.style = "Caption"
-                if ref_name:
-                    self.make_figure(par, ref_name)
-                else:
-                    self.make_figure(par)
-                par.add_run(self.prefix_figure + text)
-            return par
 
-        # Transform references into bookmarks
-        if keyword and keyword.startswith("ref "):
-            ref_keyword = keyword
-            keyword = keyword.lstrip("ref ")
-            ref_name = re.sub("[^A-Za-z0-9]+", "", keyword)
-            ref_placeholder = "{{.%s}}" % ref_keyword
-            exploded_text = re.split(f"({ref_placeholder})", text)
-            for text in exploded_text:
-                if text == ref_placeholder:
+        # Use regex to search for expressions to process
+        keyword_regex = r"\{\{\.(.*?)\}\}"
+        # Find all strings like ``{{. foo}}``
+        match = re.findall(keyword_regex, text)
+
+        # Loop over all regex matches to determine if they are expressions
+        cross_refs = []
+        if match:
+            for var in match:
+                logger.info("Processing a potential template expression: %s", var)
+
+                # Check for and track cross-references separately for later action
+                if var.startswith("ref "):
+                    logger.info("Tracking a cross-reference: %s", var)
+                    # Track reference with the curly braces restored for later
+                    cross_refs.append("{{.%s}}" % var)
+                # Process anything that is not a cross-reference now in the match loop
+                else:
+                    keyword = var.replace("}}", "").replace("{{.", "").strip()
+
+                    # Transform caption placeholders into figures
+                    if keyword.startswith("caption"):
+                        ref_name = keyword.lstrip("caption ")
+                        ref_name = re.sub("[^A-Za-z0-9]+", "", ref_name)
+                        text = text.replace("{{.%s}}" % keyword, "")
+                        if self.report_type == "pptx":
+                            if ref_name:
+                                run = par.add_run()
+                                run.text = f"See {ref_name}"
+                                font = run.font
+                                font.italic = True
+                        else:
+                            par.style = "Caption"
+                            if ref_name:
+                                self.make_figure(par, ref_name)
+                            else:
+                                self.make_figure(par)
+                            par.add_run(self.prefix_figure + text)
+                        # Captions are on their own line so return
+                        return par
+
+                    # Handle evidence files
+                    if "evidence" in finding:
+                        if (
+                            keyword
+                            and keyword in finding["evidence"].keys()
+                            and not keyword.startswith("ref ")
+                        ):
+                            logger.info(
+                                "Identified `%s` as an evidence file attached to this finding",
+                                keyword,
+                            )
+
+                            file_path = (
+                                settings.MEDIA_ROOT
+                                + "/"
+                                + finding["evidence"][keyword]["file_path"]
+                            )
+                            extension = finding["evidence"][keyword]["url"].split(".")[
+                                -1
+                            ]
+                            # Return after this block b/c not further processing is required
+                            if os.path.exists(file_path):
+                                self.process_evidence(
+                                    finding, keyword, file_path, extension, par
+                                )
+                                return par
+                            else:
+                                raise FileNotFoundError(file_path)
+                        else:
+                            self.write_xml(text, par, styles)
+                    else:
+                        self.write_xml(text, par, styles)
+        else:
+            self.write_xml(text, par, styles)
+
+        # Transform any cross-references into bookmarks
+        if cross_refs:
+            # Split-up line while keeping cross-references intact
+            cross_ref_regex = r"({{.ref.*?}})"
+            exploded_text = re.split(cross_ref_regex, text)
+            # Loop over the text to replace cross-reference expressions with OXML bookmarks
+            for part in exploded_text:
+                if part in cross_refs:
+                    # Assemble an alphanumeric (no spaces) bookmark name from the tag
+                    part = part.replace("}}", "").replace("{{.", "").strip()
+                    ref_name = re.sub("[^A-Za-z0-9]+", "", part.lstrip("ref "))
                     if self.report_type == "pptx":
                         run = par.add_run()
                         run.text = f"See {ref_name}"
@@ -1053,26 +1106,9 @@ class Reportwriter:
                             ref_name,
                         )
                 else:
-                    self.write_xml(text, par, styles)
-            return par
+                    self.write_xml(part, par, styles)
+            # return par
 
-        # Handle evidence keywords
-        if "evidence" in finding:
-            if keyword and keyword in finding["evidence"].keys():
-                file_path = (
-                    settings.MEDIA_ROOT
-                    + "/"
-                    + finding["evidence"][keyword]["file_path"]
-                )
-                extension = finding["evidence"][keyword]["url"].split(".")[-1]
-                if os.path.exists(file_path):
-                    self.process_evidence(finding, keyword, file_path, extension, par)
-                    return par
-                else:
-                    raise FileNotFoundError(file_path)
-
-        # If nothing above triggers, write the text
-        self.write_xml(text, par, styles)
         return par
 
     def process_nested_tags(self, contents, par, finding):
