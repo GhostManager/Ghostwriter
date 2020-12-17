@@ -245,7 +245,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             ),
             HTML(
                 """
-                <h4 class="icon pencil-icon">Description</h4>
+                <h4 class="icon pencil-icon">General Information</h4>
                 <hr />
                 """
             ),
@@ -266,7 +266,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             ),
             HTML(
                 """
-                <h4 class="icon link-icon">References</h4>
+                <h4 class="icon link-icon">Reference Links</h4>
                 <hr />
                 """
             ),
