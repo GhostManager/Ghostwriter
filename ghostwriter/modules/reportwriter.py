@@ -1698,6 +1698,7 @@ class Reportwriter:
         context["project_type"] = context["assessment_type"]
         context["company"] = self.company_config.company_name
         context["company_pocs"] = self.report_json["team"].values()
+        context["project_codename"] = self.report_json["project"]["codename"]
 
         # Project dates
         context["project_start_date"] = self.report_json["project"]["start_date"]
@@ -2340,6 +2341,7 @@ class TemplateLinter:
                     context["project_type"] = ""
                     context["company"] = ""
                     context["company_pocs"] = ""
+                    context["project_codename"] = ""
 
                     # Project dates
                     context["project_start_date"] = ""
