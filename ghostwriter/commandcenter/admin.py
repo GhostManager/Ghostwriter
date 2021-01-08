@@ -14,6 +14,7 @@ from .models import (
     ReportConfiguration,
     SlackConfiguration,
     VirusTotalConfiguration,
+    Route53Configuration,
 )
 
 admin.site.register(CloudServicesConfiguration, SingletonModelAdmin)
@@ -21,6 +22,7 @@ admin.site.register(CompanyInformation, SingletonModelAdmin)
 admin.site.register(NamecheapConfiguration, SingletonModelAdmin)
 admin.site.register(SlackConfiguration, SingletonModelAdmin)
 admin.site.register(VirusTotalConfiguration, SingletonModelAdmin)
+admin.site.register(Route53Configuration, SingletonModelAdmin)
 
 
 class ReportConfigurationAdmin(SingletonModelAdmin):
