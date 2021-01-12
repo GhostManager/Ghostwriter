@@ -182,15 +182,11 @@
 
             var id = $cell.parent().find(".idColumn").html()
 
-            var element = document.createElement('div');
-            element.innerText = value
-            var sanitizedValue = element.innerHTML;
-
             socket.send(JSON.stringify({
                 'action': 'edit',
                 'oplogEntryId': id,
                 'modifiedRow': {
-                    [keyName]: sanitizedValue
+                    [keyName]: value
                 }
             }))
         }
@@ -210,6 +206,8 @@
             socket.onopen = function (e) {
                 $("#connectionStatus").html("<i class='fas fa-network-wired' style='color: green'></i>Connected</div>")
                 errorDisplayed = false;
+                // Clear table in case it's a reconnect
+                $table.empty()
             }
 
             socket.onmessage = function (e) {
@@ -219,8 +217,6 @@
                     $('#spinner-modal').modal('toggle');
                     entries = message["data"]
                     if (entries.length !== 0) {
-                        // Clear table in case it's a reconnect
-                        $table.empty()
                         entries.forEach(element => {
                             entry = element['fields']
                             id = element['pk']
@@ -240,7 +236,7 @@
                                     <td class="${columnInfo[12][1]}" id="deleteButton_${id}"><a href="javascript:void(0);"><i class="fa fa-times" ></i></a></td>
                                     <td class="${columnInfo[13][1]}" id="copyButton_${id}"><a href="javascript:void(0);"><i class="fa">&#xf0c5;</i></a></td>
                                     </tr>`
-                            $table.prepend(newRow)
+                            $table.append(newRow)
                             $newRow = $table.children('tr:first');
                         })
                     } else {
