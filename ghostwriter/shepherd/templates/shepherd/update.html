@@ -57,6 +57,43 @@
 
     <span class="form-spacer" />
 
+    <!-- Domain Library Route53 Update Section -->
+    {% if enable_route53 %}
+        <h6><i class="fas fa-cloud-download-alt"></i> Pull Domains from Route53</h6>
+        <hr>
+
+        <p>The domain library sync with Route53 was last requested on:</p>
+        <p style="font-size: 20px; padding: 10 10 10 10">
+            <strong>{{ route53_last_update_requested }}</strong>
+        </p>
+
+        {% if route53_last_update_completed %}
+            {% if route53_last_update_completed == 'Failed' %}
+                <p>Request Status: <span class="badge badge-pill badge-danger">{{ route53_last_update_completed }}</span></p>
+                {% if cat_last_result %}
+                    <div style="border: 1px solid black;width: 50%; margin: 0 auto; border-radius: 5px; background-color: #f1f1f1">
+                        <strong>Error: </strong>
+                        <em style="color: red">
+                            {{ route53_last_result }}
+                        </em>
+                    </div>
+                {% endif %}
+            {% else %}
+                {% if route53_last_update_completed %}
+                    <p>Request Status: <span class="badge badge-pill badge-success">Completed on {{ route53_last_update_completed }} in {{ route53_last_update_time }} minutes</span></p>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+
+        <form class="js-queue-task" queue-task-url="{% url 'shepherd:ajax_update_route53' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" id="user_id" name="user_id" value='{{ user.get_username }}'>
+            <button type="submit" class="btn btn-primary col-md-4">Pull from Route53</button>
+        </form>
+    {% endif %}
+
+    <span class="form-spacer" />
+
     <!-- Domain Categories Section -->
     <h6><i class="fas fa-heartbeat"></i> Domain Categories</h6>
     <hr>

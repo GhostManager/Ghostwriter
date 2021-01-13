@@ -27,6 +27,7 @@ from django_q.tasks import async_task
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     NamecheapConfiguration,
+    Route53Configuration,
     VirusTotalConfiguration,
 )
 from ghostwriter.rolodex.models import Project
@@ -353,6 +354,37 @@ class RegistrarSyncNamecheap(LoginRequiredMixin, View):
         except Exception:
             result = "error"
             message = "Namecheap update task could not be queued"
+
+        data = {
+            "result": result,
+            "message": message,
+        }
+        return JsonResponse(data)
+
+
+class RegistrarSyncRoute53(LoginRequiredMixin, View):
+    """
+    Create an individual :model:`django_q.Task` under group ``Route53 Update`` with
+    :task:`shepherd.tasks.fetch_route53_domains` to create or update one or more
+    :model:`shepherd.Domain`.
+    """
+
+    def post(self, request, *args, **kwargs):
+        # Add an async task grouped as ``Route53 Update``
+        result = "success"
+        try:
+            task_id = async_task(
+                "ghostwriter.shepherd.tasks.fetch_route53_domains",
+                group="Route53 Update",
+            )
+            message = (
+                "Successfully queued Route53 update task (Task ID {task})".format(
+                    task=task_id
+                )
+            )
+        except Exception:
+            result = "error"
+            message = "Route53 update task could not be queued"
 
         data = {
             "result": result,
@@ -800,6 +832,16 @@ def update(request):
         End time of latest :model:`django_q.Task` for group "Namecheap Update"
     ``namecheap_last_result``
         Result of latest :model:`django_q.Task` for group "Namecheap Update"
+    ``enable_route53``
+        The associated value from :model:`commandcenter.Route53Configuration`
+    ``route53_last_update_requested``
+        Start time of latest :model:`django_q.Task` for group "Route53 Update"
+    ``route53_last_update_completed``
+        End time of latest :model:`django_q.Task` for group "Route53 Update"
+    ``route53_last_update_time``
+        End time of latest :model:`django_q.Task` for group "Route53 Update"
+    ``route53_last_result``
+        Result of latest :model:`django_q.Task` for group "Route53 Update"
     ``enable_cloud_monitor``
         The associated value from :model:`commandcenter.CloudServicesConfiguration`
     ``cloud_last_update_requested``
@@ -824,6 +866,8 @@ def update(request):
         enable_cloud_monitor = cloud_config.enable
         namecheap_config = NamecheapConfiguration.get_solo()
         enable_namecheap = namecheap_config.enable
+        route53_config = Route53Configuration.get_solo()
+        enable_route53 = route53_config.enable
 
         # Collect data for category updates
         cat_last_update_completed = ""
@@ -892,6 +936,25 @@ def update(request):
         else:
             namecheap_last_update_requested = "Namecheap Syncing is Disabled"
 
+        # Collect data for Route53 updates
+        route53_last_update_completed = ""
+        route53_last_update_time = ""
+        route53_last_result = ""
+        if enable_route53:
+            try:
+                queryset = Task.objects.filter(group="Route53 Update")[0]
+                route53_last_update_requested = queryset.started
+                route53_last_result = queryset.result
+                if queryset.success:
+                    route53_last_update_completed = queryset.stopped
+                    route53_last_update_time = round(queryset.time_taken() / 60, 2)
+                else:
+                    route53_last_update_completed = "Failed"
+            except Exception:
+                route53_last_update_requested = "Route53 Sync Has Not Been Run Yet"
+        else:
+            route53_last_update_requested = "Route53 Syncing is Disabled"
+
         # Collect data for cloud monitoring
         cloud_last_update_completed = ""
         cloud_last_update_time = ""
@@ -928,6 +991,11 @@ def update(request):
             "namecheap_last_update_completed": namecheap_last_update_completed,
             "namecheap_last_update_time": namecheap_last_update_time,
             "namecheap_last_result": namecheap_last_result,
+            "enable_route53": enable_route53,
+            "route53_last_update_requested": route53_last_update_requested,
+            "route53_last_update_completed": route53_last_update_completed,
+            "route53_last_update_time": route53_last_update_time,
+            "route53_last_result": route53_last_result,
             "enable_cloud_monitor": enable_cloud_monitor,
             "cloud_last_update_requested": cloud_last_update_requested,
             "cloud_last_update_completed": cloud_last_update_completed,

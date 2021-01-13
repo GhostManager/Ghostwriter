@@ -77,6 +77,11 @@ urlpatterns += [
         name="ajax_update_namecheap",
     ),
     path(
+        "ajax/update/route53",
+        views.RegistrarSyncRoute53.as_view(),
+        name="ajax_update_route53",
+    ),
+    path(
         "ajax/update/cloud",
         views.MonitorCloudInfrastructure.as_view(),
         name="ajax_cloud_monitor",
