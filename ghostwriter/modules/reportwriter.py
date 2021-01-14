@@ -798,8 +798,20 @@ class Reportwriter:
             else:
                 par.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = par.add_run()
-                # Add the picture to the document and then add a border
-                run.add_picture(file_path, width=Inches(6.5))
+                try:
+                    # Add the picture to the document and then add a border
+                    run.add_picture(file_path, width=Inches(6.5))
+                except docx.image.exceptions.UnrecognizedImageError:
+                    logger.exception(
+                        "Evidence file known as %s (%s) was not reognized as a %s file.",
+                        keyword,
+                        file_path,
+                        extension,
+                    )
+                    raise docx.image.exceptions.UnrecognizedImageError(
+                        f"The evidence file, `{keyword},` was not recognized as a {extension} file and could not be inserted. \
+Try opening it, exporting as desired type, and re-uploading it."
+                    )
 
                 if self.enable_borders:
                     # Add the border – see Ghostwriter Wiki for documentation
