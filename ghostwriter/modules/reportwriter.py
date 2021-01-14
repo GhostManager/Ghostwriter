@@ -1228,7 +1228,7 @@ Try opening it, exporting as desired type, and re-uploading it."
                                     styles["underline"] = True
                                 if "highlight" in tag_attrs:
                                     styles["highlight"] = True
-                            if "style" in part.attrs:
+                            if "style" in tag.attrs:
                                 tag_style = self.get_styles(tag)
                                 # Check existence of supported styles
                                 if "font-size" in tag_style:
