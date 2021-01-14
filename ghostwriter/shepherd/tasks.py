@@ -24,6 +24,7 @@ from lxml import objectify
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     NamecheapConfiguration,
+    Route53Configuration,
     SlackConfiguration,
     VirusTotalConfiguration,
 )
@@ -1167,8 +1168,8 @@ def fetch_route53_domains():
         "Starting Route53 synchronization task at %s", datetime.datetime.now()
     )
 
-    # Fetch cloud API keys and tokens
-    cloud_config = CloudServicesConfiguration.get_solo()
+    # Fetch route53 API keys and tokens
+    route53_config = Route53Configuration.get_solo()
 
     # Set timezone for dates to UTC
     utc = pytz.UTC
@@ -1177,8 +1178,8 @@ def fetch_route53_domains():
         client = boto3.client(
             "route53domains",
             region_name="us-east-1",
-            aws_access_key_id=cloud_config.aws_key,
-            aws_secret_access_key=cloud_config.aws_secret,
+            aws_access_key_id=route53_config.access_key,
+            aws_secret_access_key=route53_config.secret_access_key,
         )
 
         domain_req = client.list_domains(MaxItems=100)
@@ -1290,23 +1291,6 @@ def fetch_route53_domains():
                     )
                     entry["whois_status"] = WhoisStatus.objects.get(pk=3)
 
-            # Check if the domain is locked - locked generally means it's burned
-            newly_burned = False
-            if domain["TransferLock"]:
-                logger.warning(
-                    "Domain %s is marked as LOCKED by Route53", domain["DomainName"]
-                )
-                newly_burned = True
-                entry["health_status"] = HealthStatus.objects.get(
-                    health_status="Burned"
-                )
-                entry["domain_status"] = DomainStatus.objects.get(
-                    domain_status="Burned"
-                )
-                entry[
-                    "burned_explanation"
-                ] = "<p>Route53 has locked the domain. This is usually the result of a legal complaint related to phishing/malicious activities.</p>"
-
             # Set AutoRenew status
             if not domain["AutoRenew"]:
                 entry["auto_renew"] = False
@@ -1331,17 +1315,10 @@ def fetch_route53_domains():
                 # Add entry to domain change tracking dict
                 domain_changes["updates"][instance.id] = {}
                 domain_changes["updates"][instance.id]["domain"] = domain["DomainName"]
-                if created and domain["TransferLock"]:
-                    domain_changes["updates"][instance.id][
-                        "change"
-                    ] = "created & burned"
-                elif created:
+                if created:
                     domain_changes["updates"][instance.id]["change"] = "created"
                 else:
-                    if newly_burned:
-                        domain_changes["updates"][instance.id]["change"] = "burned"
-                    else:
-                        domain_changes["updates"][instance.id]["change"] = "updated"
+                    domain_changes["updates"][instance.id]["change"] = "updated"
             except Exception:
                 trace = traceback.format_exc()
                 logger.exception(
