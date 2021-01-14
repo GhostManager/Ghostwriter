@@ -4,8 +4,8 @@
 {% block pagetitle %}Project Form{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             {% comment %} Check if `object` is in context to determine if this is a ProjectUpdate` request {% endcomment %}
@@ -25,7 +25,7 @@
 {% endblock %}
 
 {% block content %}
-    <strong><i class="fas fa-project-diagram"></i> Setup a Project</strong>
+    <strong class="icon project-icon">Setup a Project</strong>
     <hr>
     <p>Use the tabs to provide basic project parameters, notes, assignments, and objectives:</p>
 

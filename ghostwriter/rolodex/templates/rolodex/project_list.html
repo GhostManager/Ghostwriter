@@ -7,8 +7,8 @@
 {% block pagetitle %}Project List{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">Projects</li>
         </ul>
@@ -22,7 +22,7 @@
     </div>
 
     <p>
-        <a href="{% url 'rolodex:project_create_no_client' %}"><i class="far fa-plus-square"></i> Create a Project</a>
+        <a class="icon add-icon" href="{% url 'rolodex:project_create_no_client' %}">Create a Project</a>
     </p>
 
     {% if filter.qs|length == 0 %}

@@ -5,8 +5,8 @@
 {% block pagetitle %}{{ finding.title }} Details{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ finding.title }}</li>
@@ -21,22 +21,21 @@
         }
     </style>
 
-    <h2>
-        {{ finding.title }}
         <div class="dropdown">
-            <button class="dropbtn far fa-caret-square-down"></button>
-            <div id="myDropdown" class="dropdown-content">
-                <a href="{% url 'reporting:finding_update' finding.id %}"><i class="far fa-edit"></i> Edit</a>
-                <a class="js-assign-finding" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"><i style="color: green" class="far fa-plus-square"></i> Add to Report</a>
-                <a href="{% url 'reporting:findings' %}"><i class="fas fa-arrow-left"></i> Return to Findings</a>
-                <a href="{% url 'reporting:finding_delete' finding.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+            <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="finding-dropdown-btn">
+                <a class="dropdown-item icon edit-icon" href="{% url 'reporting:finding_update' finding.id %}">Edit</a>
+                <a class="dropdown-item icon add-icon js-assign-finding" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}">Add to Report</a>
+                <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:findings' %}">Return to Findings</a>
+                <a class="dropdown-item icon trash-icon" href="{% url 'reporting:finding_delete' finding.id %}">Delete</a>
             </div>
         </div>
-    </h2>
+
+    <h2>{{ finding.title }}</h2>
 
     <!-- Finding Severity Badge -->
-    <div style="width: 15%; margin: 0 auto">
-        <span style="font-size: 18px;" class="badge badge-pill badge-dark
+    <div>
+        <span class="badge badge-pill badge-dark severity-badge
             {% if finding.severity.severity == "Critical" %}
                 critical-background
             {% elif finding.severity.severity == "High" %}
@@ -215,26 +214,26 @@
             </div>
             <div id="collapseNotes" class="finding-collapse collapse show" aria-labelledby="notes">
                 <div class="finding-card card-body">
-                    <p style="text-align: center;">
-                        <a href="{% url 'reporting:finding_note_add' finding.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    <p class="text-center">
+                        <a class="icon add-icon" href="{% url 'reporting:finding_note_add' finding.id %}">Add a Note</a>
                     </p>
                     {% if finding.findingnote_set.all %}
                         {% for note in finding.findingnote_set.all reversed %}
                             <div id="note-container-{{ note.id }}">
-                                <p style="text-align: center;">{{ note.timestamp }}</p>
-                                <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                                <p class="text-center">{{ note.timestamp }}</p>
+                                <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
                                     <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
                                     {% if request.user == note.operator or request.user.is_staff %}
-                                        <div class="dropdown right">
-                                            <button class="dropbtn far fa-caret-square-down"></button>
-                                            <div id="note-dropdown-{{ note.id }}" class="dropdown-content">
-                                                <a href="{% url 'reporting:finding_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                    <div class="dropdown dropleft right">
+                                        <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
+                                                <a class="dropdown-item icon edit-icon" href="{% url 'reporting:finding_note_edit' note.id %}">Edit</a>
+                                                <a id="note-delete-button-{{ note.id }}" class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
                                             </div>
                                         </div>
                                     {% endif %}
                                     {{ note.note|bleach }}
-                                    <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                                    <span class="time-right">{{ note.operator.username }}</span>
                                 </div>
                             </div>
                         {% endfor %}

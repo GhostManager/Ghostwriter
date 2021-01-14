@@ -4,8 +4,8 @@
 {% block pagetitle %}Report List{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">Reports</li>
         </ul>
@@ -21,11 +21,9 @@
     {% if filter.qs|length == 0 %}
         <p>There are no reports to see here.</p>
     {% else %}
-        <!-- Instructions -->
-        <p>Click <i class="far fa-edit"></i> to begin editing a report and enable adding findings to it.</p>
 
         <p>
-            <a href="{% url 'reporting:report_create_no_project' %}"><i class="far fa-plus-square"></i> Create a Report</a>
+            <a class="icon add-icon" href="{% url 'reporting:report_create_no_project' %}">Create a Report</a>
         </p>
 
         <!-- Reports Table Section -->
@@ -37,11 +35,10 @@
                     <th>Last Update</th>
                     <th>Status</th>
                     <th>Owner</th>
-                    <th class="sorter-false" style="text-align: center">
-                        Start Editing
-                        <div class="dropdown">
-                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                            <div class="dropdown-content dropdown-content-info">
+                    <th class="sorter-false align-middle">
+                        <div class="dropdown dropleft">
+                            <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Start Editing</span>
+                            <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
                                 <p>Click the below buttons to make the associated report your active report. Your active report is displayed at the top of your browser window and is the report that will receive a finding when you add one to the report.</p>
                             </div>
                         </div>

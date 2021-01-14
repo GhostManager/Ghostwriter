@@ -7,8 +7,8 @@
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ project.start_date|date:"d M Y" }} {{ project.project_type }}</li>
@@ -17,29 +17,28 @@
 {% endblock %}
 
 {% block content %}
-    <h2>
-        {{ project.client }} {{ project.project_type }} ({{ project.start_date }})
-        <div class="dropdown">
-            <button class="dropbtn far fa-caret-square-down"></button>
-            <div id="myDropdown" class="dropdown-content">
-                <a href="{% url 'rolodex:project_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
-                <a href="{% url 'rolodex:client_detail' project.client.id %}"><i class="far fa-user-circle"></i> Jump to Client</a>
-                <a href="javascript:void(0)" class="clickable-link js-roll-codename" roll-codename-csrftoken="{{ csrf_token }}" roll-codename-url="{% url 'rolodex:ajax_roll_project_codename' project.id %}" roll-codename-project="{{ project.id }}"><i class="fas fa-redo-alt"></i> Re-roll codename</a>
-                <a href="{% url 'rolodex:project_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
-            </div>
+    <div class="dropdown">
+        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
+            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
+            <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to Client</a>
+            <a class="dropdown-item icon redo-icon" href="javascript:void(0)" class="clickable-link js-roll-codename" roll-codename-csrftoken="{{ csrf_token }}" roll-codename-url="{% url 'rolodex:ajax_roll_project_codename' project.id %}" roll-codename-project="{{ project.id }}">Re-roll codename</a>
+            <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
         </div>
-    </h2>
+    </div>
 
-    <h6><span id="project-codename" style="font-style: italic;">{{ project.codename }}</span></h6>
+    <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
+
+    <h6><span id="project-codename">{{ project.codename }}</span></h6>
 
     <!-- Project Status & Toggles -->
     <div data-toggle="tooltip" title="Toggle the project's status between executing and complete">
         <h6>Project Status:
             {% if project.complete %}
-                <span id="js-project-status" style="font-style: italic;">Complete!</span>
+                <span id="js-project-status">Complete!</span>
                 <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}"><i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i></a>
             {% else %}
-                <span id="js-project-status" style="font-style: italic;">In Progress</span>
+                <span id="js-project-status">In Progress</span>
                 <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}"><i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i></a>
             {% endif %}
         </h6>
@@ -50,7 +49,7 @@
         <hr>
 
         <div>
-            <span style="margin-right: 40px;">
+            <span>
                 {{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}
             </span>
             <span>
@@ -76,17 +75,15 @@
 
         <div class="tab-content">
             <div id="assignments" class="tab-pane in active">
-                <p><a href="{% url 'rolodex:project_update' project.id %}#assignments"><i class="far fa-plus-square"></i> Assign an Operator</a></p>
+                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Assign an Operator</a></p>
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
                             <th class="align-middle">Operator</th>
                             <th class="align-middle">Role</th>
                             <th class="sorter-date-range-dMMMyyyy align-middle">Dates</th>
-                            {% comment %} <th class="align-middle">Start Date</th>
-                            <th class="align-middle">End Date</th> {% endcomment %}
-                            <th class="align-middle">Note</th>
-                            <th class="text-center align-middle">Options</th>
+                            <th class="sorter-false align-middle">Note</th>
+                            <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
                         {% for operator in project.projectassignment_set.all %}
                             <tr>
@@ -99,27 +96,13 @@
                                 </td>
                                 <td nowrap class="align-middle">{{ operator.role }}</td>
                                 <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
-                                {% comment %} <td nowrap class="align-middle">
-                                    {% if operator.start_date|date:"d M Y" %}
-                                        {{ operator.start_date|date:"d M Y" }}
-                                    {% else %}
-                                        --
-                                    {% endif %}
-                                </td>
-                                <td nowrap class="align-middle">
-                                    {% if operator.end_date|date:"d M Y" %}
-                                        {{ operator.end_date|date:"d M Y" }}
-                                    {% else %}
-                                        --
-                                    {% endif %}
-                                </td> {% endcomment %}
                                 <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:project_update' project.id %}#assignments"><i class="far fa-edit"></i> Edit Assignment</a>
-                                            <a id="assignment-delete-button-{{ operator.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}" delete-target-id="{{ operator.id }}" delete-target-type="assignment"><i style="color: red;" class="far fa-minus-square"></i> Unassign</a>
+                                <td class="align-middle">
+                                    <div class="dropdown dropleft">
+                                        <button id="assignment-dropdown-btn-{{ assignment.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="assignment-dropdown-menu-{{ assignment.id }}" class="dropdown-menu" aria-labelledby="assignment-dropdown-btn_{{ assignment.id }}">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Edit Assignment</a>
+                                            <a id="assignment-delete-button-{{ operator.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}" delete-target-id="{{ operator.id }}" delete-target-type="assignment">Unassign</a>
                                         </div>
                                     </div>
                                 </td>
@@ -131,7 +114,7 @@
                 {% endif %}
             </div>
             <div id="objectives" class="tab-pane ">
-                <p><a href="{% url 'rolodex:project_update' project.id %}#objectives"><i class="far fa-plus-square"></i> Add an Objective</a></p>
+                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add an Objective</a></p>
                 {% if project.projectobjective_set.all %}
                     <table id="objectiveTable" class="tablesorter table">
                         <thead>
@@ -158,14 +141,14 @@
                                 <td id="delete-target-content-objective-{{ objective.id }}" class="text-left align-middle">{{ objective.objective|bleach }}</td>
                                 <td nowrap class="align-middle">{{ objective.deadline }}</td>
                                 <td class="align-middle">
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
-                                            <a class="js-set-objective-status" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'active' %}" set-objective-status="active" set-objective-status-id="{{ objective.id }}"><i class="low fas fa-running"></i> Set Active</a>
-                                            <a class="js-set-objective-status" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'on hold' %}" set-objective-status="onhold" set-objective-status-id="{{ objective.id }}"><i class="medium far fa-pause-circle"></i> Set On Hold</a>
-                                            <a class="js-set-objective-status" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'complete' %}" set-objective-status="complete" set-objective-status-id="{{ objective.id }}"><i class="info fas fa-check"></i> Set Complete</a>
-                                            <a href="{% url 'rolodex:project_update' project.id %}#objectives"><i class="far fa-edit"></i> Edit Objective</a>
-                                            <a id="objective-delete-button-{{ objective.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_objective' objective.id %}" delete-target-id="{{ objective.id }}" delete-target-type="objective"><i style="color: red;" class="far fa-minus-square"></i> Remove</a>
+                                    <div class="dropdown dropleft">
+                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div class="dropdown-menu" aria-labelledby="objective-dropdown-btn_{{ objective.id }}">
+                                            <a class="dropdown-item js-set-objective-status icon run-icon" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'active' %}" set-objective-status="active" set-objective-status-id="{{ objective.id }}">Set Active</a>
+                                            <a class="dropdown-item js-set-objective-status icon pause-icon" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'on hold' %}" set-objective-status="onhold" set-objective-status-id="{{ objective.id }}">Set On Hold</a>
+                                            <a class="dropdown-item js-set-objective-status icon done-icon" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'complete' %}" set-objective-status="complete" set-objective-status-id="{{ objective.id }}">Set Complete</a>
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Edit Objective</a>
+                                            <a id="objective-delete-button-{{ objective.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_objective' objective.id %}" delete-target-id="{{ objective.id }}" delete-target-type="objective">Remove</a>
                                         </div>
                                     </div>
                                 </td>
@@ -178,9 +161,9 @@
             </div>
             <div id="activity" class="tab-pane ">
                 <p>
-                    <a href="{% url 'oplog:oplog_create' project.id %}" style="padding-right: 20px;"><i class="far fa-plus-square"></i> Start New Operation Log</a>
-                    OR
-                    <a href="{% url 'oplog:oplog_create_no_project' %}" style="padding-left: 20px;"><i class="fas fa-file-upload"></i> Import Oplog</a>
+                    <a class="icon add-icon" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
+                    <span style="padding-right: 20px; padding-left: 20px;">OR</span>
+                    <a class="icon upload-icon" href="{% url 'oplog:oplog_create_no_project' %}">Import Oplog</a>
                 </p>
                 {% if project.oplog_set.all %}
                     <table id="oplogTable" class="tablesorter table">
@@ -217,7 +200,7 @@
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
                 {% else %}
-                    <p><a href="{% url 'reporting:report_create' project.id %}"><i class="far fa-plus-square"></i> Add a Report</a></p>
+                    <p><a class="icon add-icon" href="{% url 'reporting:report_create' project.id %}">Add a Report</a></p>
                 {% endif %}
 
                 {% if project.report_set.all %}
@@ -246,13 +229,13 @@
                                 {% endif %}
                                 <td class="align-middle">{{ report.created_by }}</td>
                                 <td class="align-middle">
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" style="bottom: 100%;">
-                                            <a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}"><i class="fas fa-power-off"></i> Activate</a>
-                                            <a href="{% url 'reporting:report_clone' report.id %}"><i class="far fa-clone"></i> Clone</a>
-                                            <a href="{% url 'reporting:archive' report.id %}"><i style="color: darkorange;" class="far fa-file-archive"></i> Archive</a>
-                                            <a href="{% url 'reporting:report_delete' report.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                    <div class="dropdown dropleft">
+                                        <button id="report-dropdown-btn_{{ report.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div class="dropdown-menu" aria-labelledby="report-dropdown-btn_{{ report.id }}">
+                                            <a title="Set this report as your active report" href="javascript:void(0)" class="dropdown-item clickable-link js-activate-report icon power-icon" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Activate</a>
+                                            <a class="dropdown-item icon clone-icon" href="{% url 'reporting:report_clone' report.id %}">Clone</a>
+                                            <a class="dropdown-item icon archive-icon" href="{% url 'reporting:archive' report.id %}">Archive</a>
+                                            <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
                                         </div>
                                     </div>
                                 </td>
@@ -316,7 +299,7 @@
                 <h4>Domains</h4>
 
                 <!-- Search Section -->
-                <div class="search" style="width: 35%; margin-left: 32.5%;">
+                <div class="search inline-search-bar">
                     <form action="{% url 'shepherd:domains' %}" method="GET">
                         <div class="input-group">
                             <div class="input-group-prepend">
@@ -350,11 +333,11 @@
                                 <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
                                 <td clss="text-justify align-middle">{{ domain.note|bleach }}</td>
                                 <td class="align-middle">
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'shepherd:history_update' domain.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                            <a href="{% url 'shepherd:history_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                    <div class="dropdown dropleft">
+                                        <button id="domain-dropdown-btn-{{ domain.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="domain-dropdown-menu-{{ domain.id }}" class="dropdown-menu" aria-labelledby="domain-dropdown-btn-{{ domain.id }}">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' domain.id %}">Edit Checkout</a>
+                                            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' domain.id %}">Delete Checkout</a>
                                         </div>
                                     </div>
                                 </td>
@@ -369,7 +352,7 @@
                 <h4>Servers</h4>
 
                 <!-- Search Section -->
-                <div class="search" style="width: 35%; margin-left: 32.5%;">
+                <div class="search inline-search-bar">
                     <form action="{% url 'shepherd:server_search' %}" method="POST">
                         {% csrf_token %}
                         <div class="input-group">
@@ -383,15 +366,14 @@
                     </form>
                 </div>
 
-                <p><a href="{% url 'shepherd:vps_create' project.id %}"><i class="far fa-plus-square"></i> Add a Cloud Server</a></p>
+                <p><a class="icon add-icon" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
                 {% if project.serverhistory_set.all or project.transientserver_set.all %}
                     <table id="serverTable" class="tablesorter table">
                         <thead>
                             <th class="align-middle">
-                                Primary IP
-                                <div class="dropdown-right">
-                                    <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                    <div class="dropdown-content dropdown-content-info">
+                                <div class="dropdown dropleft">
+                                    <span id="address-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
+                                    <div id="address-info" class="dropdown-menu dropdown-info-content" aria-labelledby="address-info-btn">
                                         <p>The primary IP address is set in the database and used only to allow users to determine which IP address is used globally to refer to the server.<br />
                                         Only <em>static servers</em> will be links.</p>
                                     </div>
@@ -432,11 +414,11 @@
                                 <td class="align-middle">{{ server.server.server_provider }}</td>
                                 <td class="text-justify align-middle">{{ server.note|bleach }}</td>
                                 <td class="align-middle">
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content">
-                                            <a href="{% url 'shepherd:server_history_update' server.id %}"><i class="far fa-edit"></i> Edit Checkout</a>
-                                            <a href="{% url 'shepherd:server_history_delete' server.id %}"><i style="color: red;" class="far fa-trash-alt"></i> Delete Checkout</a>
+                                    <div class="dropdown dropleft">
+                                        <button id="server-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="server-dropdown-menu-{{ server.id }}" class="dropdown-menu" aria-labelledby="server-dropdown-btn_{{ server.id }}">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' server.id %}">Edit Checkout</a>
+                                            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_history_delete' server.id %}">Delete Checkout</a>
                                         </div>
                                     </div>
                                 </td>
@@ -456,11 +438,11 @@
                                 <td class="align-middle">{{ server.server_provider }}</td>
                                 <td class="text-justify align-middle">{{ server.note|bleach }}</td>
                                 <td class="align-middle">
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'shepherd:vps_update' server.id %}"><i class="far fa-edit"></i> Edit VPS</a>
-                                            <a id="server-delete-button-{{ server.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id%}" delete-target-id="{{ server.id }}" delete-target-type="server"><i style="color: red;" class="far fa-trash-alt"></i> Delete VPS</a>
+                                    <div class="dropdown dropleft">
+                                        <button id="vps-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="vps-dropdown-menu-{{ server.id }}" class="dropdown-menu" aria-labelledby="vps-dropdown-btn_{{ server.id }}">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:vps_update' server.id %}">Edit VPS</a>
+                                            <a class="dropdown-item icon trash-icon" id="server-delete-button-{{ server.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id%}" delete-target-id="{{ server.id }}" delete-target-type="server">Delete VPS</a>
                                         </div>
                                     </div>
                                 </td>
@@ -477,7 +459,7 @@
                 <!-- Determine if at least one server and one domain -->
                 {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
                     <p>
-                        <a href="{% url 'shepherd:link_create' project.id %}"><i class="far fa-plus-square"></i> Associate a Domain + Server</a>
+                        <a class="icon add-icon" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
                     </p>
                     {% if project.domainserverconnection_set.all %}
                         <table class="table">
@@ -486,7 +468,7 @@
                                 <th class="align-middle">Server IP</th>
                                 <th class="align-middle">Server name</ht>
                                 <th class="align-middle">CDN Endpoint</th>
-                                <th class="align-middle">Options</th>
+                                <th class="sorter-false align-middle">Options</th>
                             </tr>
                             {% for connection in project.domainserverconnection_set.all %}
                                 <tr>
@@ -504,11 +486,11 @@
                                         <td class="align-middle">No Endpoint</td>
                                     {% endif %}
                                     <td class="align-middle">
-                                        <div class="dropdown">
-                                            <button class="dropbtn far fa-caret-square-down"></button>
-                                            <div id="myDropdown" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                                <a href="{% url 'shepherd:link_update' connection.id %}"><i class="far fa-edit"></i> Edit Link</a>
-                                                <a id="connection-delete-button-{{ connection.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_link' connection.id%}" delete-target-id="{{ connection.id }}" delete-target-type="connection"><i style="color: red;" class="far fa-trash-alt"></i> Delete Link</a>
+                                        <div class="dropdown dropleft">
+                                            <button id="dns-dropdown-btn-{{ connection.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                            <div id="dns-dropdown-menu-{{ connection.id }}" class="dropdown-menu" aria-labelledby="dns-dropdown-btn_{{ connection.id }}">
+                                                <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:link_update' connection.id %}">Edit Link</a>
+                                                <a class="dropdown-item icon trash-icon" id="connection-delete-button-{{ connection.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_link' connection.id%}" delete-target-id="{{ connection.id }}" delete-target-type="connection">Delete Link</a>
                                             </div>
                                         </div>
                                     </td>
@@ -522,25 +504,25 @@
             </div>
             <div id="notes" class="tab-pane ">
                 <p>
-                    <a href="{% url 'rolodex:project_note_add' project.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    <a class="icon add-icon" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
                 </p>
                 {% if project.projectnote_set.all %}
                     {% for note in project.projectnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
                             <p>{{ note.timestamp }}</p>
-                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
                                 <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
                                 {% if request.user == note.operator or request.user.is_staff %}
-                                    <div class="dropdown right">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content">
-                                            <a href="{% url 'rolodex:project_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                    <div class="dropdown dropleft right">
+                                        <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
+                                            <a class="icon edit-icon" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a>
+                                            <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
                                         </div>
                                     </div>
                                 {% endif %}
                                 {{ note.note|bleach }}
-                                <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                                <span class="time-right">{{ note.operator.username }}</span>
                             </div>
                         </div>
                     {% endfor %}

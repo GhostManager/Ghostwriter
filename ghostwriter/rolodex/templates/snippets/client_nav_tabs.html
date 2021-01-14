@@ -1,20 +1,20 @@
 <li class="nav-item">
-    <a id="id_contacts" class="nav-link active" data-toggle="tab" href="#contacts">
-        <i class="far fa-user-circle"></i> Points of Contact <span class="badge badge-pill badge-light">{{ client.clientcontact_set.all.count }}</span>
+    <a id="id_contacts" class="nav-link active tab-icon user-icon-circle" data-toggle="tab" href="#contacts">
+        Points of Contact <span class="badge badge-pill badge-light">{{ client.clientcontact_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_projects" class="nav-link" data-toggle="tab" href="#project-history">
-        <i class="fas fa-history"></i> Project History <span class="badge badge-pill badge-light">{{ client.project_set.all.count }}</span>
+    <a id="id_projects" class="nav-link tab-icon history-icon" data-toggle="tab" href="#project-history">
+        Project History <span class="badge badge-pill badge-light">{{ client.project_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_infrastructure" class="nav-link" data-toggle="tab" href="#infrastructure-history">
-        <i class="fas fa-comments"></i> Infrastructure History <span class="badge badge-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
+    <a id="id_infrastructure" class="nav-link tab-icon history-icon" data-toggle="tab" href="#infrastructure-history">
+        Infrastructure History <span class="badge badge-pill badge-light">{{ client.project_set.history_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_notes" class="nav-link" data-toggle="tab" href="#notes">
-        <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>
+    <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
+        Notes <span class="badge badge-pill badge-light">{{ client.clientnote_set.all.count }}</span>
     </a>
 </li>
