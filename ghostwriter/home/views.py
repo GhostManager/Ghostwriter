@@ -274,6 +274,41 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
+class TestRoute53Connection(LoginRequiredMixin, UserPassesTestMixin, View):
+    """
+    Create an individual :model:`django_q.Task` under group ``Route53 Test`` with
+    :task:`shepherd.tasks.test_route53` to test the Route53 API configuration stored
+    in :model:`commandcenter.Route53Configuration`.
+    """
+
+    def test_func(self):
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
+
+    def post(self, request, *args, **kwargs):
+        # Add an async task grouped as ``Route53 Test``
+        result = "success"
+        try:
+            task_id = async_task(
+                "ghostwriter.shepherd.tasks.test_route53",
+                self.request.user,
+                group="Route53 Test",
+            )
+            message = "Route53 API test has been successfully queued"
+        except Exception:
+            result = "error"
+            message = "Route53 API test could not be queued"
+
+        data = {
+            "result": result,
+            "message": message,
+        }
+        return JsonResponse(data)
+
+
 class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Slack Test`` with

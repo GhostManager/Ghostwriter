@@ -34,6 +34,11 @@ urlpatterns += [
         name="ajax_test_namecheap",
     ),
     path(
+        "ajax/management/test/route53",
+        views.TestRoute53Connection.as_view(),
+        name="ajax_test_route53",
+    ),
+    path(
         "ajax/management/test/slack",
         views.TestSlackConnection.as_view(),
         name="ajax_test_slack",

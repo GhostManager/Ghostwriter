@@ -18,6 +18,7 @@
     {% get_solo "commandcenter.CompanyInformation" as company_config %}
     {% get_solo "commandcenter.CloudServicesConfiguration" as cloud_config %}
     {% get_solo "commandcenter.NamecheapConfiguration" as namecheap_config %}
+    {% get_solo "commandcenter.Route53Configuration" as route53_config %}
     {% get_solo "commandcenter.ReportConfiguration" as report_config %}
     {% get_solo "commandcenter.SlackConfiguration" as slack_config %}
     {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
@@ -122,6 +123,25 @@
                 <td>Disabled</td>
             </tr>
         {% endif %}
+        {% if route53_config.enable %}
+            <tr>
+                <td><i class="fas fa-toggle-on"></i> Route53 API Enabled</td>
+                <td>{{ route53_config.enable }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-key"></i> Route53 Access Key</td>
+                <td>{{ route53_config.access_key }}</td>
+            </tr>
+            <tr>
+                <td><i class="fas fa-key"></i> Route53 Secret Access Key</td>
+                <td>{{ route53_config.sanitized_secret_access_key }}</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td><i class="fas fa-toggle-off"></i> Route53 API Enabled</td>
+                <td>Disabled</td>
+            </tr>
+        {% endif %}
 
         <!-- Spacer -->
         <tr>
@@ -212,6 +232,7 @@
 
         <div class="btn-group mr-2" role="group" aria-label="API Tests">
                 <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_namecheap' %}" queue-task-csrf-token="{{ csrf_token }}">Test Namecheap API</button>
+                <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_route53' %}" queue-task-csrf-token="{{ csrf_token }}">Test Route53 API</button>
                 <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_virustotal' %}" queue-task-csrf-token="{{ csrf_token }}">Test VirusTotal API</button>
         </div>
 

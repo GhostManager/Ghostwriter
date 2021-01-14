@@ -1925,6 +1925,59 @@ def test_namecheap(user):
     return {"result": level, "message": message}
 
 
+def test_route53(user):
+    """
+    Test the Route53 API configuration stored in :model:`commandcenter.Route53Configuration`.
+    """
+    route53_config = Route53Configuration.get_solo()
+    level = "error"
+    logger.info("Starting Route53 API test at %s", datetime.datetime.now())
+    try:
+        client = boto3.client(
+            "route53domains",
+            region_name="us-east-1",
+            aws_access_key_id=route53_config.access_key,
+            aws_secret_access_key=route53_config.secret_access_key,
+        )
+
+        domain_req = client.list_domains(MaxItems=100)
+
+        # Check if request returned a 200 OK
+        status_code = domain_req["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code == 200:
+            level = "success"
+            message = "Successfully authenticated to Route53"
+        else:
+            logger.error(
+                "Route53 returned HTTP code %s in its response",
+                status_code
+            )
+            message = f"Route53 returned HTTP code {status_code} in its response"
+    except Exception:
+        trace = traceback.format_exc()
+        logger.exception("Route53 API request failed")
+        message = f"The Route53 API request failed: {trace}"
+
+    # Send a message to the requesting user
+    async_to_sync(channel_layer.group_send)(
+        "notify_{}".format(user),
+        {
+            "type": "message",
+            "message": {
+                "message": message,
+                "level": level,
+                "title": "Route53 Test Complete",
+            },
+        },
+    )
+
+    logger.info(
+        "Test of the Route53 API configuration completed at %s",
+        datetime.datetime.now(),
+    )
+    return {"result": level, "message": message}
+
+
 def test_slack_webhook(user):
     """
     Test the Slack Webhook configuration stored in :model:`commandcenter.SlackConfiguration`.
