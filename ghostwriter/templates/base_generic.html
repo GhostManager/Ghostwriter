@@ -462,7 +462,7 @@
 
                 // Handle receiving messages on channels
                 ws_user.onmessage = function (e) {
-                  var data = JSON.parse(e.data);
+                  var data = JSON.parse(e.data).message;
                   if (data.assignments !== undefined) {
                     document.getElementById('assignment-count').innerHTML = data.assignments
                   }
