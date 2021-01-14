@@ -35,6 +35,7 @@ from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
+from docx.image.exceptions import UnrecognizedImageError
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from xlsxwriter.workbook import Workbook
 
@@ -930,6 +931,14 @@ def generate_docx(request, pk):
             "Halted document generation because an evidence file is missing: {}".format(
                 error
             ),
+            extra_tags="alert-danger",
+        )
+    except UnrecognizedImageError as error:
+        messages.error(
+            request,
+            "Encountered an error generating the document: {}".format(error)
+            .replace('"', "")
+            .replace("'", "`"),
             extra_tags="alert-danger",
         )
     except Exception as error:
