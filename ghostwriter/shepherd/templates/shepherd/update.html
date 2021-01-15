@@ -3,8 +3,8 @@
 {% block pagetitle %}Infrastructure Update Control Panel{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">Control Panel</li>
         </ul>
@@ -22,11 +22,11 @@
 
     <!-- Domain Library Update Section -->
     {% if enable_namecheap %}
-        <h6><i class="fas fa-cloud-download-alt"></i> Pull Domains from Namecheap</h6>
+        <h4 class="icon cloud-sync-icon">Pull Domains from Namecheap</h4>
         <hr>
 
         <p>The domain library sync with Namecheap was last requested on:</p>
-        <p style="font-size: 20px; padding: 10 10 10 10">
+        <p>
             <strong>{{ namecheap_last_update_requested }}</strong>
         </p>
 
@@ -58,11 +58,11 @@
     <span class="form-spacer" />
 
     <!-- Domain Categories Section -->
-    <h6><i class="fas fa-heartbeat"></i> Domain Categories</h6>
+    <h4 class="icon heartbeat-icon">Domain Categories</h4>
     <hr>
 
     <p>An update for the domain health statuses and categories was last requested on:</p>
-    <p style="font-size: 20px; padding: 10 10 10 10">
+    <p>
         <strong>{{ cat_last_update_requested }}</strong>
     </p>
 
@@ -95,12 +95,12 @@
     <span class="form-spacer" />
 
     <!-- DNS Section -->
-    <h6><i class="fas fa-server"></i> DNS Records</h6>
+    <h4 class="icon server-icon">DNS Records</h4>
     <hr>
 
     <p>A DNS record update for all domains was last requested on:</p>
 
-    <p style="font-size: 20px; padding: 10 10 10 10">
+    <p>
         <strong>{{ dns_last_update_requested }}</strong>
     </p>
 
@@ -132,12 +132,12 @@
 
     <!-- Cloud Section -->
     {% if enable_cloud_monitor %}
-        <h6><i class="fa fa-cloud"></i> Cloud Infrastructure</h6>
+        <h4 class="icon cloud-icon">Cloud Infrastructure</h4>
         <hr>
 
         <p>A cloud infrastructure check-up was last requested on:</p>
 
-        <p style="font-size: 20px; padding: 10 10 10 10">
+        <p>
             <strong>{{ cloud_last_update_requested }}</strong>
         </p>
 

@@ -4,8 +4,8 @@
 {% block pagetitle %}Domain Check-out{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
             <li class="breadcrumb-item"><a href="{% url 'shepherd:domain_detail' form.domain.value %}">{{ domain_name }}</a></li>

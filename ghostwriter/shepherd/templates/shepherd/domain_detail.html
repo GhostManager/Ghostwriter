@@ -5,8 +5,8 @@
 {% block pagetitle %}{{ domain.name }} Details{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ domain.name }}</li>
@@ -15,30 +15,29 @@
 {% endblock %}
 
 {% block content %}
-    <h2>
-        {{ domain.name }}
-        <div class="dropdown">
-            <button class="dropbtn far fa-caret-square-down"></button>
-            <div id="myDropdown" class="dropdown-content">
-                <a href="{% url 'shepherd:domain_update' domain.id %}"><i class="far fa-edit"></i> Edit</a>
-                {% if domain.is_expired %}
-                    <a href="#"><i style="color: red" class="fas fa-skull"></i> Domain Expired</a>
+    <div class="dropdown">
+        <button id="domain-dropdown-btn" class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="domain-dropdown-btn">
+            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
+            {% if domain.is_expired %}
+                <a class="dropdown-item icon skull-icon" href="#">Domain Expired</a>
+            {% else %}
+                {% if domain.domain_status.domain_status == "Available" %}
+                    <a class="dropdown-item icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}">Checkout Domain</a>
                 {% else %}
-                    {% if domain.domain_status.domain_status == "Available" %}
-                        <a href="{% url 'shepherd:checkout' domain.id %}"><i style="color: green" class="far fa-calendar-check"></i> Checkout Domain</a>
-                    {% else %}
-                        <a href="#"><i style="color: red" class="fas fa-ban"></i> Domain Unavailable</a>
-                    {% endif %}
+                    <a class="dropdown-item icon block-icon" href="#">Domain Unavailable</a>
                 {% endif %}
-                {% if domain.health_status.health_status == "Healthy" %}
-                    <a href="{% url 'shepherd:burn' domain.id %}"><i style="color: orange" class="fas fa-fire-alt"></i> Mark Burned</a>
-                {% endif %}
-                <a href="{% url 'shepherd:domain_delete' domain.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
-            </div>
+            {% endif %}
+            {% if domain.health_status.health_status == "Healthy" %}
+                <a class="dropdown-item icon burn-icon" href="{% url 'shepherd:burn' domain.id %}">Mark Burned</a>
+            {% endif %}
+            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:domain_delete' domain.id %}">Delete</a>
         </div>
-    </h2>
+    </div>
 
-    <div style="margin-left: 20px; margin-top: 20px;">
+    <h2>{{ domain.name }}</h2>
+
+    <div>
         <!-- Description Section -->
         <h3>Domain Description</h3>
         <hr>
@@ -82,9 +81,9 @@
                             <td>{{ domain.expiration }}</td>
                         {% endif %}
                         {% if domain.auto_renew %}
-                            <td class="healthy"><i class="fas fa-check"></i></td>
+                            <td class="icon check-icon healthy"></td>
                         {% else %}
-                            <td class="burned"><i style="color: red" class="fas fa-times"></i></td>
+                            <td class="icon cross-icon burned"></td>
                         {% endif %}
                         <td>{{ domain.get_domain_age }}</td>
                     </tr>
@@ -95,7 +94,7 @@
             <div id="dns" class="tab-pane">
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}"><i class="fas fa-sync-alt"></i> Refresh DNS Records</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
                     </p>
                 {% endif %}
 
@@ -108,8 +107,8 @@
                         {% if domain.get_list.items %}
                             {% for record, value in domain.get_list.items %}
                                 <tr>
-                                    <td style="text-align: center">{{ record|upper }}</td>
-                                    <td style="text-align: left">
+                                    <td class="text-center">{{ record|upper }}</td>
+                                    <td class="table-note">
                                         {% if value != "NoAnswer" and value != "NXDOMAIN" %}
                                             {{ value }}
                                         {% else %}
@@ -120,8 +119,8 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td style="text-align: center">Record Dictionary</td>
-                                <td style="text-align: left">{{ domain.get_list }}</td>
+                                <td class="text-center">Record Dictionary</td>
+                                <td class="table-note">{{ domain.get_list }}</td>
                             </tr>
                         {% endif %}
                     </table>
@@ -134,7 +133,7 @@
             <div id="health" class="tab-pane">
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}"><i class="fas fa-sync-alt"></i> Refresh Categorization</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
                     </p>
                 {% endif %}
 
@@ -252,7 +251,7 @@
             <!-- Project History Tab -->
             <div id="history" class="tab-pane">
                 {% if domain.history_set.all %}
-                    <table id="projectTable" class="tablesorter" style="margin-top: 10px;">
+                    <table id="projectTable" class="tablesorter">
                         <thead>
                             <tr>
                                 <th>Client</th>
@@ -269,13 +268,13 @@
                                 <td>{{ project.activity_type }}</td>
                                 <td>{{ project.project.project_type }}</td>
                                 <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
-                                <td style="text-align: justify">{{ project.note|bleach}}</td>
+                                <td class="table-note">{{ project.note|bleach}}</td>
                                 <td>
-                                    <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content" {% if forloop.last or forloop.revcounter0 == 1 %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'shepherd:history_update' project.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="{% url 'shepherd:history_delete' project.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
+                                    <div class="dropdown dropleft">
+                                        <button id="history-dropdown-btn_{{ project.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div class="dropdown-menu" aria-labelledby="history-dropdown-btn_{{ project.id }}">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' project.id %}">Edit</a>
+                                            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' project.id %}">Delete</a>
                                         </div>
                                     </div>
                                 </td>
@@ -290,25 +289,25 @@
             <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
                 <p>
-                    <a href="{% url 'shepherd:domain_note_add' domain.id %}"><i class="far fa-plus-square"></i> Add a Note</a>
+                    <a class="icon add-icon" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
                 </p>
                 {% if domain.domainnote_set.all %}
                     {% for note in domain.domainnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
                             <p>{{ note.timestamp }}</p>
-                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}" style="margin-bottom: 10px;">
+                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
                                 <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
                                 {% if request.user == note.operator or request.user.is_staff %}
-                                    <div class="dropdown right">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content">
-                                            <a href="{% url 'shepherd:domain_note_edit' note.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id %}" delete-target-id="{{ note.id }}" delete-target-type="note"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
+                                    <div class="dropdown dropleft right">
+                                        <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
+                                            <a class="icon edit-icon" href="{% url 'shepherd:domain_note_edit' note.id %}">Edit</a>
+                                            <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
                                         </div>
                                     </div>
                                 {% endif %}
                                 {{ note.note|bleach }}
-                                <span class="time-right" style="font-size: 14px;">{{ note.operator.username }}</span>
+                                <span class="time-right">{{ note.operator.username }}</span>
                             </div>
                         </div>
                     {% endfor %}

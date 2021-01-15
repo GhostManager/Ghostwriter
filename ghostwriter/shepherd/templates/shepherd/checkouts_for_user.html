@@ -3,8 +3,8 @@
 {% block pagetitle %}Your Checked-out Assets{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">User Infra</li>
         </ul>
@@ -37,21 +37,21 @@
                                 {% if entry.domain.health_status.health_status == "Healthy" %}
                                     <td class="healthy">{{ entry.domain.health_status }}</td>
                                 {% else %}
-                                    <td class="text-danger burned">{{ entry.domain.health_status }}</td>
+                                    <td class="burned">{{ entry.domain.health_status }}</td>
                                 {% endif %}
 
                                 <td class="clickable"><a href="{{ entry.project.get_absolute_url }}">{{ entry.project}}</a></td>
 
                                 <td>{{ entry.activity_type}}</td>
 
-                                <td class="{% if entry.will_be_released %}text-danger burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
+                                <td class="{% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
 
                                 <td>
                                     <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content">
-                                            <a href="{% url 'shepherd:history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_domain_release' entry.id %}" release-asset-id="{{ entry.id }}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' entry.id %}">Edit</a>
+                                            <a class="dropdown-item icon redo-icon" href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_domain_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
                                         </div>
                                     </div>
                                 </td>
@@ -93,14 +93,14 @@
 
                                 <td>{{ entry.server_role}}</td>
 
-                                <td class="{% if entry.will_be_released %}text-danger burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
+                                <td class="{% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
 
                                 <td>
                                     <div class="dropdown">
-                                        <button class="dropbtn far fa-caret-square-down"></button>
-                                        <div id="myDropdown" class="dropdown-content">
-                                            <a href="{% url 'shepherd:server_history_update' entry.id %}"><i class="far fa-edit"></i> Edit</a>
-                                            <a href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_server_release' entry.id %}" release-asset-id="{{ entry.id }}"><i style="color: green;" class="fas fa-recycle"></i> Release</a>
+                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' entry.id %}">Edit</a>
+                                            <a class="dropdown-item icon redo-icon" href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_server_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
                                         </div>
                                     </div>
                                 </td>
