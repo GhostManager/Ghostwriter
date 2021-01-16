@@ -223,12 +223,15 @@ def send_slack_msg(message, slack_channel=None):
     """
     slack_config = SlackConfiguration.get_solo()
 
+    if not slack_channel:
+        slack_channel = slack_config.slack_channel
+
     if slack_config.enable:
         message = slack_config.slack_alert_target + " " + message
         slack_data = {
             "username": slack_config.slack_username,
             "icon_emoji": slack_config.slack_emoji,
-            "channel": slack_config.slack_channel,
+            "channel": slack_channel,
             "text": message,
         }
         response = requests.post(
