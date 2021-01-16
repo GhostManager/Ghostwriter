@@ -2116,9 +2116,9 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
         file_content = None
         if os.path.isfile(self.object.document.path):
             if (
-                self.object.document.name.endswith(".txt")
-                or self.object.document.name.endswith(".log")
-                or self.object.document.name.endswith(".md")
+                self.object.document.name.lower().endswith(".txt")
+                or self.object.document.name.lower().endswith(".log")
+                or self.object.document.name.lower().endswith(".md")
             ):
                 filetype = "text"
                 file_content = []
@@ -2128,11 +2128,10 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
                         file_content.append(line.decode())
                     except Exception:
                         file_content.append(line)
-
             elif (
-                self.object.document.name.endswith(".jpg")
-                or self.object.document.name.endswith(".png")
-                or self.object.document.name.endswith(".jpeg")
+                self.object.document.name.lower().endswith(".jpg")
+                or self.object.document.name.lower().endswith(".png")
+                or self.object.document.name.lower().endswith(".jpeg")
             ):
                 filetype = "image"
             else:
