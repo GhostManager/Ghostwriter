@@ -1,6 +1,25 @@
 Changelog
 =========
 
+15 January 2020
+---------------
+* Fixed notifications going to the global Slack channel when project channels were available
+* Fixed uppercase file extensions blocking evidence files from appearing on pages
+* Fixed rare `style` exception with specific nested HTML elements
+* Added error handling for cases where an image file has a corrupted file header and can't be recognized for inserting into Word
+* Moved 99% of icons and style elements to the _styles.css_ file
+
+18 December 2020
+----------------
+* Updated styles and forms to make it clear what is placeholder text
+* Reverted the new finding form to a one-page form–i.e., no tabbed sections–to make it easier to use
+* Broke-up stylesheets for easier management of global variables
+* Fixed error in cloud monitor notification messages that caused messages to contain the same external IP addresses for all VPS instances
+* Fixed bug that caused delete actions on cloud server entries to not be committed
+* Fixed `ref` tags in findings that were ingored if they followed a `ref` tag with a different target
+* Fixed PowerPoint "Conclusion" slide's title
+* Fixed filtering for report template selection dropdowns that caused both document types to appear in all dropdown menus
+
 03 December 2020
 ----------------
 * Added project objectives to the report template variables
@@ -11,6 +30,7 @@ Changelog
 * Clicking prepended text (e.g., filter icon) on filter form fields will now submit the filter
 * Fixed error that could cause Oplog entries to not display
 * Oplog entries list now shows loading messages and properly displays "no entries" messages
+* Fixed incorrect filenames for CSV exports of Oplogs
 
 20 November 2020
 ----------------
