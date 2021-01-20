@@ -1646,6 +1646,7 @@ class Reportwriter:
         # Assessment information
         context["assessment_name"] = self.report_json["project"]["name"]
         context["assessment_type"] = self.report_json["project"]["project_type"]
+        context["project_codename"] = self.report_json["project"]["codename"]
         context["project_type"] = context["assessment_type"]
         context["company"] = self.company_config.company_name
         context["company_pocs"] = self.report_json["team"].values()
@@ -2276,6 +2277,7 @@ class TemplateLinter:
                     # Assessment information
                     context["assessment_name"] = ""
                     context["assessment_type"] = ""
+                    context["project_codename"] = ""
                     context["project_type"] = ""
                     context["company"] = ""
                     context["company_pocs"] = ""
