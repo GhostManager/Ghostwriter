@@ -80,7 +80,7 @@
                                     <div class="dropdown">
                                         <button class="dropbtn far fa-caret-square-down"></button>
                                         <div id="poc-dropdown-{{ poc.id }}" class="dropdown-content" {% if forloop.last %} style="bottom: 100%;"{% endif %}>
-                                            <a href="{% url 'rolodex:client_update' poc.id %}#contacts"><i class="far fa-edit"></i> Edit</a>
+                                            <a href="{% url 'rolodex:client_update' client.id %}#contacts"><i class="far fa-edit"></i> Edit</a>
                                             <a id="poc-delete-button-{{ poc.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id%}" delete-target-id="{{ poc.id }}" delete-target-type="contact"><i style="color: red;" class="far fa-trash-alt"></i> Delete</a>
                                         </div>
                                     </div>
