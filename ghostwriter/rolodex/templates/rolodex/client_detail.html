@@ -131,57 +131,61 @@
 
             <!-- Infrastructure History Tab -->
             <div id="infrastructure-history" class="tab-pane">
-                {% if domains %}
-                    <h4>Domains Used with {{ client.name }}</h4>
-                    <table id="domainTable" class="tablesorter">
-                        <thead>
-                            <tr>
-                                <th>Project</th>
-                                <th>Domain</th>
-                                <th>Activity Type</th>
-                                <th>End Date</th>
-                            </tr>
-                        </thead>
-                        {% for domain in domains %}
-                            <tr>
-                                <td><a class="clickable" href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a></td>
-                                <td><a class="clickable" href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a></td>
-                                <td>{{ domain.activity_type }}</td>
-                                <td>{{ domain.end_date|date:"d M Y" }}</td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% endif %}
+                {% if domains or servers or vps %}
+                    {% if domains %}
+                        <h4>Domains Used with {{ client.name }}</h4>
+                        <table id="domainTable" class="tablesorter">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Domain</th>
+                                    <th>Activity Type</th>
+                                    <th>End Date</th>
+                                </tr>
+                            </thead>
+                            {% for domain in domains %}
+                                <tr>
+                                    <td><a class="clickable" href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a></td>
+                                    <td><a class="clickable" href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a></td>
+                                    <td>{{ domain.activity_type }}</td>
+                                    <td>{{ domain.end_date|date:"d M Y" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
 
-                {% if servers or vps %}
-                    <h4>Servers Used with {{ client.name }}</h4>
-                    <table id="serverTable" class="tablesorter">
-                        <thead>
-                            <tr>
-                                <th>Project</th>
-                                <th>Server</th>
-                                <th>Activity Type</th>
-                                <th>End Date</th>
-                            </tr>
-                        </thead>
-                        {% for server in servers %}
-                            <tr>
-                                <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
-                                <td><a class="clickable" href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a></td>
-                                <td>{{ server.activity_type }}</td>
-                                <td>{{ server.end_date|date:"d M Y" }}</td>
-                            </tr>
-                        {% endfor %}
+                    {% if servers or vps %}
+                        <h4>Servers Used with {{ client.name }}</h4>
+                        <table id="serverTable" class="tablesorter">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Server</th>
+                                    <th>Activity Type</th>
+                                    <th>End Date</th>
+                                </tr>
+                            </thead>
+                            {% for server in servers %}
+                                <tr>
+                                    <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
+                                    <td><a class="clickable" href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a></td>
+                                    <td>{{ server.activity_type }}</td>
+                                    <td>{{ server.end_date|date:"d M Y" }}</td>
+                                </tr>
+                            {% endfor %}
 
-                        {% for server in vps %}
-                            <tr>
-                                <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
-                                <td>{{ server.ip_address }}</td>
-                                <td>{{ server.activity_type }}</td>
-                                <td> {{ server.project.end_date|date:"d M Y" }}</td>
-                            </tr>
-                        {% endfor %}
-                    </table>
+                            {% for server in vps %}
+                                <tr>
+                                    <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
+                                    <td>{{ server.ip_address }}</td>
+                                    <td>{{ server.activity_type }}</td>
+                                    <td> {{ server.project.end_date|date:"d M Y" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    {% endif %}
+                {% else %}
+                        <p>No infrastructure history for this client, yet.</p>
                 {% endif %}
             </div>
 
