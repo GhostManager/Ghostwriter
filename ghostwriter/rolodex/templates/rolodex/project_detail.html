@@ -323,10 +323,8 @@
                         {% for domain in project.history_set.all %}
                             <tr>
                                 <td nowrap class="text-left align-middle">
-                                    <span data-toggle="tooltip" data-placement="top" title="Copy {{ domain.domain.name }}" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')" class="copy-link">
-                                        <a id="domain_{{ domain.domain.id }}" class="clickable" href="{% url 'shepherd:domain_detail' domain.domain.id %}">
-                                            {{ domain.domain.name }}
-                                        </a>
+                                    <span id="domain_{{ domain.domain.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ domain.domain.name }}" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')" class="copy-link">
+                                        {{ domain.domain.name }}
                                     </span>
                                 </td>
                                 <td class="align-middle">{{ domain.activity_type }}</td>
@@ -336,6 +334,7 @@
                                     <div class="dropdown dropleft">
                                         <button id="domain-dropdown-btn-{{ domain.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div id="domain-dropdown-menu-{{ domain.id }}" class="dropdown-menu" aria-labelledby="domain-dropdown-btn-{{ domain.id }}">
+                                            <a class="dropdown-item icon view-icon" href="{% url 'shepherd:domain_detail' domain.domain.id %}">View Details</a>
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' domain.id %}">Edit Checkout</a>
                                             <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' domain.id %}">Delete Checkout</a>
                                         </div>
@@ -361,7 +360,7 @@
                             </div>
                             <input autocomplete="off" type="text" class="form-control" name="server_search" placeholder="Search for a Server to Checkout..." aria-label="servers" aria-describedby="inner-server-search-addon">
                         </div>
-                        <input type="hidden" name="project_id" value="{{ project.id }}"
+                        <input type="hidden" name="project_id" value="{{ project.id }}" />
                         <input type="submit" style="display: none" />
                     </form>
                 </div>
@@ -391,10 +390,8 @@
                             {% get_primary_address server.server as primary_address%}
                             <tr>
                                 <td nowrap class="text-left align-middle">
-                                    <span data-toggle="tooltip" data-placement="top" title="Copy {{ primary_address }}" onclick="copyToClipboard('#server_{{ server.server.id }}')" class="copy-link">
-                                        <a id="server_{{ server.server.id }}" class="clickable" href="{% url 'shepherd:server_detail' server.server.id %}">
-                                            {{ primary_address }}
-                                        </a>
+                                    <span id="server_{{ server.server.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ primary_address }}" onclick="copyToClipboard('#server_{{ server.server.id }}')" class="copy-link">
+                                        {{ primary_address }}
                                     </span>
                                 </td>
                                 <td nowrap class="text-left align-middle">
@@ -417,6 +414,7 @@
                                     <div class="dropdown dropleft">
                                         <button id="server-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div id="server-dropdown-menu-{{ server.id }}" class="dropdown-menu" aria-labelledby="server-dropdown-btn_{{ server.id }}">
+                                            <a class="dropdown-item icon view-icon" href="{% url 'shepherd:server_detail' server.server.id %}">View Details</a>
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' server.id %}">Edit Checkout</a>
                                             <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_history_delete' server.id %}">Delete Checkout</a>
                                         </div>
@@ -427,9 +425,9 @@
                         {% for server in project.transientserver_set.all %}
                             <tr>
                                 <td nowrap class="text-left align-middle">
-                                    <div id="vps_{{ server.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ server.ip_address }}" onclick="copyToClipboard('#vps_{{ server.id }}')" class="copy-link">
+                                    <span id="vps_{{ server.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ server.ip_address }}" onclick="copyToClipboard('#vps_{{ server.id }}')" class="copy-link">
                                         {{ server.ip_address }}
-                                    </div>
+                                    </span>
                                 </td>
                                 <td class="align-middle"> -- </td>
                                 <td id="delete-target-content-server-{{ server.id }}" class="align-middle">{{ server.name }}</td>
