@@ -166,8 +166,12 @@
                                     <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Administration</a>
                                     <ul class="collapse list-unstyled text-left" id="pageSubmenu">
                                         <li><a class="icon gears-icon" href="{% url 'admin:index' %}">Admin Panel</a></li>
-                                        <li><a class="icon users-icon" href="{% url 'admin:users_user_changelist' %}">Users</a></li>
-                                        <li><a class="icon calendar-icon" href="{% url 'admin:app_list' 'django_q' %}">Scheduled Tasks</a></li>
+                                        {% if perms.users.view_user %}
+                                            <li><a class="icon users-icon" href="{% url 'admin:users_user_changelist' %}">Users</a></li>
+                                        {% endif %}
+                                        {% if perms.django_q.view_task %}
+                                            <li><a class="icon calendar-icon" href="{% url 'admin:app_list' 'django_q' %}">Scheduled Tasks</a></li>
+                                        {% endif %}
                                         <hr>
                                         <li><a class="icon import-icon" href="{% url 'admin:reporting_finding_import' %}">Upload Bulk Findings</a></li>
                                         <li><a class="icon export-icon" href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to CSV</a></li>
