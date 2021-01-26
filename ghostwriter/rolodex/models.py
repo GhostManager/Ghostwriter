@@ -93,9 +93,7 @@ class ClientContact(models.Model):
         help_text="Provide additional information about the contact",
     )
     # Foreign keys
-    client = models.ForeignKey(
-        Client, on_delete=models.CASCADE, null=False, blank=False
-    )
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
 
@@ -371,9 +369,7 @@ class ClientNote(models.Model):
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -402,9 +398,7 @@ class ProjectNote(models.Model):
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -425,3 +419,65 @@ class ProjectNote(models.Model):
 
     def __str__(self):
         return f"{self.project}: {self.timestamp} - {self.note}"
+
+
+class ProjectScope(models.Model):
+    """
+    Stores an individual scope list, related to :model:`rolodex.Project`.
+    """
+
+    name = models.CharField(
+        "Scope Name",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Provide a descriptive name for this list (e.g., External IPs, Cardholder Data Environment)",
+    )
+    scope = models.TextField(
+        "Scope",
+        null=True,
+        blank=True,
+        help_text="Provide a list of IP addresses, ranges, hostnames, or a mix with each entry on a new line",
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a brief description of this list",
+    )
+    disallowed = models.BooleanField(
+        "Disallowed", default=False, help_text="Flag this list as off limits / not to be touched"
+    )
+    requires_caution = models.BooleanField(
+        "Requires Caution",
+        default=False,
+        help_text="Flag this list as requiring caution or prior warning before testing",
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+
+        ordering = ["project", "name"]
+        verbose_name = "Project scope list"
+        verbose_name_plural = "Project scope lists"
+
+    def __str__(self):
+        return f"{self.project}: {self.name}"
+
+    def count_lines(self):
+        """Returns the number of lines in the scope list."""
+        count = 0
+        for line in self.scope.splitlines():
+            count += 1
+        return count
+
+    def count_lines_str(self):
+        """Returns the number of lines in the scope list."""
+        count = 0
+        for line in self.scope.splitlines():
+            count += 1
+        if count > 1:
+            return f"{count} Lines"
+        else:
+            return f"{count} Line"
