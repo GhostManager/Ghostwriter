@@ -231,6 +231,15 @@ h6 {
   }
 }
 
+.scope-modal-dialog {
+  overflow-y: initial;
+}
+
+.scope-modal-body {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
 /* ---------------------------------------------------
     FORM STYLES
 ----------------------------------------------------- */
@@ -1297,9 +1306,28 @@ td p {
   font-size: 1em;
 }
 
+.scope-warning-icon:after {
+  content: '\f071';
+  color: var(--warning-color);
+}
+
+.scope-block-icon:after {
+  content: '\f05e';
+  color: var(--blocked-color);
+}
+
+.warning-icon:before {
+  content: '\f071';
+  color: var(--warning-color);
+}
+
+.planning-icon:before {
+  content: '\f546';
+}
+
 .burn-icon:before {
   content: '\f06d';
-  color: orange;
+  color: var(--warning-color);
 }
 
 .check-icon:before {
@@ -1394,12 +1422,12 @@ td p {
 
 .skull-icon:before {
   content: '\f54c';
-  color: red;
+  color: var(--blocked-color);
 }
 
 .block-icon:before {
   content: '\f05e';
-  color: red;
+  color: var(--blocked-color);
 }
 
 .lock-icon:before {
