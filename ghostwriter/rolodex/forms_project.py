@@ -22,7 +22,7 @@ from django.utils.translation import gettext_lazy as _
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
 
-from .models import Project, ProjectAssignment, ProjectNote, ProjectObjective
+from .models import Project, ProjectAssignment, ProjectNote, ProjectObjective, ProjectScope
 
 
 class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
@@ -112,9 +112,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if an operator is selected provided without any required details
-                    if operator and any(
-                        x is None for x in [start_date, end_date, role]
-                    ):
+                    if operator and any(x is None for x in [start_date, end_date, role]):
                         if not start_date:
                             form.add_error(
                                 "start_date",
@@ -135,9 +133,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "role",
                                 ValidationError(
-                                    _(
-                                        "Your assigned operator is missing a project role"
-                                    ),
+                                    _("Your assigned operator is missing a project role"),
                                     code="incomplete",
                                 ),
                             )
@@ -153,14 +149,45 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if a form only has a value for the note
-                    elif note and any(
-                        x is None for x in [operator, start_date, end_date, role]
-                    ):
+                    elif note and any(x is None for x in [operator, start_date, end_date, role]):
                         form.add_error(
                             "note",
                             ValidationError(
                                 _("This note is part of an incomplete assignment form"),
                                 code="incomplete",
+                            ),
+                        )
+
+
+class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
+    """
+    BaseInlineFormset template for :model:`rolodex.ProjectScope` that adds validation
+    for this model.
+    """
+
+    def clean(self):
+        names = []
+        duplicates = False
+        super(BaseProjectScopeInlineFormSet, self).clean()
+        if any(self.errors):
+            return
+        for form in self.forms:
+            if form.cleaned_data:
+                # Only validate if the form is NOT marked for deletion
+                if form.cleaned_data["DELETE"] is False:
+                    name = form.cleaned_data["name"]
+
+                    # Check that no two names are the same
+                    if name:
+                        if name in names:
+                            duplicates = True
+                        names.append(name)
+                    if duplicates:
+                        form.add_error(
+                            "name",
+                            ValidationError(
+                                _("Your names must be unique"),
+                                code="duplicate",
                             ),
                         )
 
@@ -378,6 +405,86 @@ class ProjectObjectiveForm(forms.ModelForm):
         )
 
 
+class ProjectScopeForm(forms.ModelForm):
+    """
+    Save an individual :model:`rolodex.ProjectScope` associated with an individual
+    :model:`rolodex.Project`.
+    """
+
+    class Meta:
+        model = ProjectScope
+        fields = ("name", "scope", "description", "disallowed", "requires_caution")
+
+    def __init__(self, *args, **kwargs):
+        super(ProjectScopeForm, self).__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["name"].widget.attrs["placeholder"] = "Scope Name"
+        self.fields["scope"].widget.attrs["placeholder"] = "Scope List"
+        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.helper = FormHelper()
+        # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
+        self.helper.form_tag = False
+        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
+        self.helper.disable_csrf = True
+        # Hide the field labels from the model
+        self.helper.form_show_labels = False
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            # Wrap form in a div so Django renders form instances in their own element
+            Div(
+                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
+                Alert(
+                    content=(
+                        """
+                        <strong>List Deleted!</strong>
+                        Deletion will be permanent once the form is submitted. Click this alert to undo.
+                        """
+                    ),
+                    css_class="alert alert-danger show formset-undo-button",
+                    style="display:none; cursor:pointer;",
+                    template="alert.html",
+                    block=False,
+                    dismiss=False,
+                ),
+                Div(
+                    HTML(
+                        """
+                        <p><strong>Scope List #<span class="counter">{{ forloop.counter }}</span></strong></p>
+                        <hr>
+                        """
+                    ),
+                    "name",
+                    Field("scope", css_class="empty-form"),
+                    "description",
+                    Row(
+                        Column("requires_caution", css_class="col-md-6"),
+                        Column("disallowed", css_class="col-md-6"),
+                    ),
+                    Row(
+                        Column(
+                            Field("DELETE", style="display: none;"),
+                            Button(
+                                "formset-del-button",
+                                "Delete List",
+                                css_class="btn-sm btn-danger formset-del-button",
+                            ),
+                            css_class="form-group col-md-12 text-center",
+                        ),
+                        css_class="form-row",
+                    ),
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    css_class="formset",
+                ),
+                css_class="formset-container",
+            )
+        )
+
+
 # Create the `inlineformset_factory()` objects for `ProjectForm()`
 
 ProjectAssignmentFormSet = inlineformset_factory(
@@ -394,6 +501,15 @@ ProjectObjectiveFormSet = inlineformset_factory(
     ProjectObjective,
     form=ProjectObjectiveForm,
     formset=BaseProjectObjectiveInlineFormSet,
+    extra=1,
+    can_delete=True,
+)
+
+ProjectScopeFormSet = inlineformset_factory(
+    Project,
+    ProjectScope,
+    form=ProjectScopeForm,
+    formset=BaseProjectScopeInlineFormSet,
     extra=1,
     can_delete=True,
 )
@@ -510,6 +626,27 @@ class ProjectForm(forms.ModelForm):
                     ),
                     link_css_class="objective-icon",
                     css_id="objectives",
+                ),
+                CustomTab(
+                    "Scope Lists",
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    Formset("scopes", object_context_name="Scope"),
+                    Button(
+                        "add-scope",
+                        "Add Scope List",
+                        css_class="btn-block btn-secondary formset-add-scope",
+                    ),
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    link_css_class="tab-icon list-icon",
+                    css_id="scopes",
                 ),
                 template="tab.html",
                 css_class="nav-justified",

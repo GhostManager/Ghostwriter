@@ -80,6 +80,9 @@
 
         <div class="tab-content">
             <div id="assignments" class="tab-pane in active">
+                <!-- Assignment Section -->
+                <h4>Project Assignments</h4>
+
                 <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Assign an Operator</a></p>
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
@@ -118,8 +121,52 @@
                     <p>No operators have been assigned to this project yet.</p>
                 {% endif %}
             </div>
+            <div id="scopes" class="tab-pane">
+                <!-- Scope Section -->
+                <h4>Scope Lists</h4>
+
+                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a></p>
+
+                <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External, Internal, CDE) or by objectives.</p>
+
+                {% if project.projectscope_set.all %}
+                    <table id="scopeTable" class="tablesorter table">
+                        <thead>
+                            <th class="align-middle">Name</th>
+                            <th class="align-middle">Scope</th>
+                            <th class="sorter-false align-middle">Description</th>
+                        </thead>
+                        {% for list in project.projectscope_set.all %}
+                            <tr>
+                                <td class="text-left icon
+                                    {% if list.requires_caution %}
+                                        scope-warning-icon
+                                    {% endif %}
+                                    {% if list.disallowed %}
+                                        scope-block-icon
+                                    {% endif %}
+                                ">
+                                    {{ list.name }}
+                                </td>
+                                <td class="align-middle">
+                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
+                                        View
+                                    </button>
+                                </td>
+                                <td class="text-justify align-middle">{{ list.description|bleach }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>No scope lists have been set up to this project yet.</p>
+                {% endif %}
+            </div>
             <div id="objectives" class="tab-pane ">
-                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add an Objective</a></p>
+                <!-- Objectives Section -->
+                <h4>Project Objectives</h4>
+
+                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add & Edit Objectives</a></p>
+
                 {% if project.projectobjective_set.all %}
                     <table id="objectiveTable" class="tablesorter table">
                         <thead>
@@ -165,11 +212,15 @@
                 {% endif %}
             </div>
             <div id="activity" class="tab-pane ">
+                <!-- Logging Section -->
+                <h4>Operational Logs</h4>
+
                 <p>
                     <a class="icon add-icon" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
                     <span style="padding-right: 20px; padding-left: 20px;">OR</span>
                     <a class="icon upload-icon" href="{% url 'oplog:oplog_create_no_project' %}">Import Oplog</a>
                 </p>
+
                 {% if project.oplog_set.all %}
                     <table id="oplogTable" class="tablesorter table">
                         <thead>
@@ -202,6 +253,9 @@
                 {% endif %}
             </div>
             <div id="reports" class="tab-pane ">
+                <!-- Reporting Section -->
+                <h4>Reports & Findings</h4>
+
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
                 {% else %}
@@ -299,6 +353,9 @@
 
             </div>
             <div id="infrastructure" class="tab-pane">
+                <!-- Infrastructure Section -->
+                <h4>Project Infrastructure</h4>
+
                 <p>Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project. Associate your domains and subdomains with servers by creating connections.</p>
                 <!-- Domain Section -->
                 <h4>Domains</h4>
@@ -506,9 +563,13 @@
                 {% endif %}
             </div>
             <div id="notes" class="tab-pane ">
+                <!-- Notes Section -->
+                <h4>Project Notes</h4>
+
                 <p>
                     <a class="icon add-icon" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
                 </p>
+
                 {% if project.projectnote_set.all %}
                     {% for note in project.projectnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
@@ -750,6 +811,28 @@
             download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
         });
     </script>
+
+    {% comment %} Generate modals for displaying the scope lists {% endcomment %}
+    {% for list in project.projectscope_set.all %}
+        <div class="modal" id="id_scope_{{ list.id }}" tabindex="-1" role="dialog" aria-labelledby="scope_modal_{{ list.id }}" aria-hidden="true">
+            <div class="modal-dialog scope-modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">{{ list.name }} – {{ list.count_lines_str }}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div id="scope_{{ list.id }}" class="modal-body scope-modal-body">
+                        {{ list.scope|bleach|linebreaks }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
 
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
     {% include "confirm_delete_modal.html" %}

@@ -27,6 +27,7 @@ from .forms_project import (
     ProjectForm,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
+    ProjectScopeFormSet,
 )
 from .models import (
     Client,
@@ -37,6 +38,7 @@ from .models import (
     ProjectAssignment,
     ProjectNote,
     ProjectObjective,
+    ProjectScope
 )
 
 # Using __name__ resolves to ghostwriter.rolodex.views
@@ -802,6 +804,8 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``
         Instance of the `ProjectAssignmentFormSet()` formset
+    ``scopes``
+        Instance of the `ProjectScopeFormSet()` formset
     ``cancel_link``
         Link for the form's Cancel button to return to projects list page
 
@@ -847,14 +851,17 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             ctx["assignments"] = ProjectAssignmentFormSet(
                 self.request.POST, prefix="assign"
             )
+            ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
         else:
             ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj")
             ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign")
+            ctx["scopes"] = ProjectScopeFormSet(prefix="scope")
         return ctx
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
+        scopes = ctx["scopes"]
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
@@ -868,14 +875,19 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
                     objectives.instance = self.object
-                    objectives_object = objectives.save()
+                    objectives.save()
 
                 assignments_valid = assignments.is_valid()
                 if assignments_valid:
                     assignments.instance = self.object
                     assignments.save()
 
-                if form.is_valid() and objectives_valid and assignments_valid:
+                scopes_valid = scopes.is_valid()
+                if scopes_valid:
+                    scopes.instance = self.object
+                    scopes.save()
+
+                if form.is_valid() and objectives_valid and assignments_valid and scopes_valid:
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions
@@ -940,6 +952,9 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             ctx["assignments"] = ProjectAssignmentFormSet(
                 self.request.POST, prefix="assign", instance=self.object
             )
+            ctx["scopes"] = ProjectScopeFormSet(
+                self.request.POST, prefix="scope", instance=self.object
+            )
         else:
             ctx["objectives"] = ProjectObjectiveFormSet(
                 prefix="obj", instance=self.object
@@ -947,6 +962,8 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             ctx["assignments"] = ProjectAssignmentFormSet(
                 prefix="assign", instance=self.object
             )
+            ctx["scopes"] = ProjectScopeFormSet(
+                prefix="scope", instance=self.object)
         return ctx
 
     def get_success_url(self):
@@ -958,6 +975,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
+        scopes = ctx["scopes"]
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
@@ -1034,14 +1052,20 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
                     objectives.instance = self.object
-                    objectives_object = objectives.save()
+                    objectives.save()
 
                 assignments_valid = assignments.is_valid()
                 if assignments_valid:
                     assignments.instance = self.object
                     assignments.save()
+
+                scopes_valid = scopes.is_valid()
+                if scopes_valid:
+                    scopes.instance = self.object
+                    scopes.save()
+
                 # Proceed with form submission
-                if form.is_valid() and objectives_valid and assignments_valid:
+                if form.is_valid() and objectives_valid and assignments_valid and scopes_valid:
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions

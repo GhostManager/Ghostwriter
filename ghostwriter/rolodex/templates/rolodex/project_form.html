@@ -92,5 +92,16 @@
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
         });
+
+        $('.formset-add-{{ scopes.prefix }}').click(function() {
+            tinymce.remove();
+            var form_idx = $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val();
+            $('#formset-{{ scopes.prefix }}').append($('#empty-form-{{ scopes.prefix }}').html().replace(/__prefix__/g, form_idx));
+            $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+            tinyInit();
+            var new_form = $('#formset-{{ scopes.prefix }}').find('div.formset-container').last()
+            new_form.find('span.counter').html(parseInt(form_idx) + 1);
+            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+        });
     </script>
 {% endblock %}

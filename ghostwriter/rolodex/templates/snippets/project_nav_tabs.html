@@ -1,10 +1,15 @@
 <li class="nav-item">
-    <a id="id_assignments" class="nav-link active tab-icon user-icon-plus" data-toggle="tab" href="#assignments">
-        Project Assignments <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
+    <a id="id_assignments" class="nav-link active tab-icon planning-icon" data-toggle="tab" href="#assignments">
+        Planning <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_objectives" class="nav-link tab-icon objective-icon" data-toggle="tab" href="#objectives">
+    <a id="id_scopes" class="nav-link tab-icon objective-icon" data-toggle="tab" href="#scopes">
+        Scope
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_objectives" class="nav-link tab-icon tasks-icon" data-toggle="tab" href="#objectives">
         Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
     </a>
 </li>
@@ -15,12 +20,14 @@
 </li>
 <li class="nav-item">
     <a id="id_reports" class="nav-link tab-icon search-icon" data-toggle="tab" href="#reports">
-        Reports & Findings <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
+        Reporting <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
     </a>
 </li>
 <li class="nav-item">
     <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
-    Infrastructure</a></li>
+        Infrastructure
+    </a>
+</li>
 <li class="nav-item">
     <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
         Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
