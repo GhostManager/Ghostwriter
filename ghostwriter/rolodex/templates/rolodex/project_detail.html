@@ -91,7 +91,7 @@
                                     {% if operator.operator.name %}
                                         {{ operator.operator.name }}
                                     {% else %}
-                                        Missing Full Name ({{ operator.operator.username }})
+                                        Missing Full Name ({{ operator.operator.username|capfirst }})
                                     {% endif %}
                                 </td>
                                 <td nowrap class="align-middle">{{ operator.role }}</td>
