@@ -1009,6 +1009,44 @@ tr:hover {
 }
 
 /* ---------------------------------------------------
+    CALENDAR STYLES
+----------------------------------------------------- */
+
+.calendar-user-icon .fc-event-title:before, .calendar-user-icon .fc-list-event-title:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 5px;
+  padding-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f2bd';
+}
+
+.calendar-exec-icon .fc-event-title:before, .calendar-exec-icon .fc-list-event-title:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 5px;
+  padding-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f70c';
+}
+
+.calendar-task-icon .fc-event-title:before, .calendar-task-icon .fc-list-event-title:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 5px;
+  padding-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f00c';
+}
+
+.fc-list-table tbody tr th .fc-list-day-cushion {
+  background-color: var(--secondary-color);
+}
+
+/* ---------------------------------------------------
     TABLE STYLES FOR TABLESORTER
 ----------------------------------------------------- */
 
@@ -1261,6 +1299,9 @@ td p {
 .nav-tabs .nav-link {
   background-color: var(--neutral-color);
   color: #fff;
+  margin: 0.5px;
+  border: 0.5px solid white;
+  border-radius: 10px 10px 0px 0px;
 }
 
 .nav-link {

@@ -311,8 +311,8 @@ class ObjectiveStatus(models.Model):
 
 class ProjectObjective(models.Model):
     """
-    Stores an individual project objective, related to :model:`rolodex.Project` and
-    :model:`rolodex.ObjectiveStatus`.
+    Stores an individual project objective, related to an individual :model:`rolodex.Project`
+    and :model:`rolodex.ObjectiveStatus`.
     """
 
     def get_status():
@@ -365,7 +365,7 @@ class ProjectObjective(models.Model):
 
 class ClientNote(models.Model):
     """
-    Stores an individual note, related to :model:`rolodex.Client` and :model:`users.User`.
+    Stores an individual note, related to an individual :model:`rolodex.Client` and :model:`users.User`.
     """
 
     # This field is automatically filled with the current date
@@ -423,7 +423,7 @@ class ProjectNote(models.Model):
 
 class ProjectScope(models.Model):
     """
-    Stores an individual scope list, related to :model:`rolodex.Project`.
+    Stores an individual scope list, related to an indiviudal :model:`rolodex.Project`.
     """
 
     name = models.CharField(

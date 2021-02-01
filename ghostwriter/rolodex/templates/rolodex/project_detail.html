@@ -27,9 +27,10 @@
         </div>
     </div>
 
+    {% comment %} Project title constructed from attributes {% endcomment %}
     <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
 
-    <h6><span id="project-codename">{{ project.codename }}</span></h6>
+    <p class="form-spacer"></p>
 
     <!-- Project Status & Toggles -->
     <div>
@@ -48,30 +49,10 @@
             </span>
         </h6>
     </div>
+
+    <p class="form-spacer"></p>
+
     <div>
-        <!-- Description Section -->
-        <h3>Project Description</h3>
-        <hr>
-
-        <div>
-            <span>
-                {{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}
-            </span>
-            <span>
-                {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
-            </span>
-        </div>
-
-        <p class="form-spacer"></p>
-
-        {% if project.note %}
-           {{ project.note|bleach }}
-        {% else %}
-            <p>No additional information provided for this project.</p>
-        {% endif %}
-
-        <p class="form-spacer"></p>
-
         <!-- Navigation Tabs -->
         {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
         <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'rolodex:ajax_update_project_badges' project.id %}">
@@ -79,11 +60,36 @@
         </ul>
 
         <div class="tab-content">
-            <div id="assignments" class="tab-pane in active">
+            <!-- Planning Tab -->
+            <div id="planning" class="tab-pane in active">
+                <!-- Details Section -->
+                <h4>Project Details</h4>
+
+                <table class="table table-borderless table-centered">
+                    <tr>
+                        <td class="text-left bold">Execution Dates</td>
+                        <td class="text-left">{{ project.start_date|date:"d F Y" }} – {{ project.end_date|date:"d F Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-left bold">Slack Channel</td>
+                        <td class="text-left">
+                            {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
+                        </td>
+                    </tr>
+                </table>
+
+                {% if project.note %}
+                    {{ project.note|bleach }}
+                {% else %}
+                    <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+                {% endif %}
+
+                <p class="form-spacer"></p>
+
                 <!-- Assignment Section -->
                 <h4>Project Assignments</h4>
 
-                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Assign an Operator</a></p>
+                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a></p>
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
@@ -120,6 +126,13 @@
                 {% else %}
                     <p>No operators have been assigned to this project yet.</p>
                 {% endif %}
+
+                <!-- Calendar Section -->
+                <h4>Project Calendar</h4>
+
+                <div id='calendar'></div>
+
+                <!-- {{ calendar }} -->
             </div>
             <div id="scopes" class="tab-pane">
                 <!-- Scope Section -->
@@ -809,6 +822,58 @@
         $(".js-export-oplog").on("click", function () {
             id = $(this).parent().find('.oplog-id').html()
             download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
+        });
+    </script>
+
+    <!-- FullCalendar Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                height: 'auto',
+                headerToolbar: {
+                    left: 'today prev,next',
+                    center: 'title',
+                    right: 'dayGridWeek dayGridMonth listWeek'
+                },
+            });
+            calendar.render();
+            // Add project execution window
+            var event = {
+                title: 'Execution',
+                allDay: true,
+                start: '{{ project.start_date|date:"Y-m-d" }}',
+                end: '{{ project.end_date|plus_days:1|date:"Y-m-d" }}',
+                color: 'var(--primary-color)',
+                className: 'calendar-exec-icon'
+            };
+            calendar.addEvent(event);
+            // Add project assignments
+            {% for operator in project.projectassignment_set.all %}
+                var event = {
+                    title: '{{ operator.operator.name|bleach }}',
+                    allDay: true,
+                    startRecur: '{{ operator.start_date|date:"Y-m-d" }}',
+                    endRecur: '{{ operator.end_date|plus_days:1|date:"Y-m-d" }}',
+                    daysOfWeek: [1,2,3,4,5],
+                    color: 'var(--neutral-color)',
+                    className: 'calendar-user-icon'
+                };
+                calendar.addEvent(event);
+            {% endfor %}
+            // Add project tasks
+            {% for objective in project.projectobjective_set.all %}
+                var event = {
+                    title: '{{ objective.objective|striptags }}',
+                    allDay: true,
+                    start: '{{ objective.deadline|date:"Y-m-d" }}',
+                    end: '{{ objective.deadline|date:"Y-m-d" }}',
+                    color: 'var(--secondary-color-fade)',
+                    className: 'calendar-task-icon'
+                };
+                calendar.addEvent(event);
+            {% endfor %}
         });
     </script>
 

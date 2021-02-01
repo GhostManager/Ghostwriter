@@ -1,5 +1,8 @@
 """This contains the custom template tags used by he Rolodex application."""
 
+# Standard Libraries
+import datetime
+
 # Django & Other 3rd Party Libraries
 from django import template
 
@@ -21,3 +24,16 @@ def get_primary_address(value):
         if address.primary:
             primary_address = address.ip_address
     return primary_address
+
+
+@register.filter
+def plus_days(value, days):
+    """
+    Add some number of days to a ``datetime`` value within a template.
+
+    **Parameters**
+
+    ``days``
+        A whole integer to add to the day value of a ``datetime`` value.
+    """
+    return value + datetime.timedelta(days=days)
