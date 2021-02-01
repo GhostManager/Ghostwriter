@@ -83,6 +83,8 @@
         var $table = $("#oplogTable tbody")
         var socket = null;
         var errorDisplayed = false;
+        var tableSynced = false;
+        var pendingResult = false;
 
         let columnInfo = []
         columnInfo = [
@@ -212,7 +214,6 @@
 
             socket.onmessage = function (e) {
                 message = JSON.parse(e.data)
-                console.log(message["action"])
                 if (message["action"] == "sync") {
                     $('#spinner-modal').modal('toggle');
                     entries = message["data"]
@@ -239,8 +240,9 @@
                             $table.append(newRow)
                             $newRow = $table.children('tr:first');
                         })
+                        pendingResult = false
                     } else {
-                        $('#oplogTableNoEntries').show()
+                        tableSynced = true
                     }
                     $('#spinner-modal').modal('toggle');
                 }
@@ -492,6 +494,21 @@
                 e.stopPropagation()
                 if (e.ctrlKey && e.keyCode == 13) {
                     closeAndSend($(this).parent())
+                }
+            });
+
+            $("#oplogTableDiv").scroll(function() {
+                if (pendingResult == false) {
+                    if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) { 
+                        if (tableSynced == false) {
+                            pendingResult = true
+                            socket.send(JSON.stringify({
+                                'action': 'sync',
+                                'oplog_id': {{ pk }},
+                                'offset': $("#oplogTable tr").length - 1
+                            }))
+                        }
+                    }
                 }
             });
 
