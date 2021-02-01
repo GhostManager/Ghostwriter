@@ -32,6 +32,17 @@ class Oplog(models.Model):
     def __str__(self):
         return f"{self.name} : {self.project}"
 
+    def delete(self, *args, **kwargs):
+        # Disconnect the Signal for entries
+        post_delete.disconnect(delete_oplog_entry, sender=OplogEntry)
+        all_entries = OplogEntry.objects.filter(oplog_id=self.id)
+        # Recursively delete instances of :model:`OplogEntry` to avoid recursive errors
+        for entry in all_entries:
+            entry.delete()
+        # Reconnect the Signal
+        post_delete.connect(delete_oplog_entry, sender=OplogEntry)
+        super(Oplog, self).delete(*args, **kwargs)
+
 
 # Create your models here.
 class OplogEntry(models.Model):
@@ -71,7 +82,9 @@ class OplogEntry(models.Model):
     )
 
     command = models.TextField(
-        "Command", blank=True, help_text="The command that was executed",
+        "Command",
+        blank=True,
+        help_text="The command that was executed",
     )
 
     description = models.TextField(
@@ -81,7 +94,10 @@ class OplogEntry(models.Model):
     )
 
     output = models.TextField(
-        "Output", null=True, blank=True, help_text="The output of the executed command",
+        "Output",
+        null=True,
+        blank=True,
+        help_text="The output of the executed command",
     )
 
     comments = models.TextField(
@@ -118,7 +134,12 @@ def signal_oplog_entry(sender, instance, **kwargs):
     """
     channel_layer = get_channel_layer()
     oplog_id = instance.oplog_id.id
-    serialized_entry = serialize("json", [instance,])
+    serialized_entry = serialize(
+        "json",
+        [
+            instance,
+        ],
+    )
     entry = json.loads(serialized_entry)
     json_message = json.dumps({"action": "create", "data": entry})
 
