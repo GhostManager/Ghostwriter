@@ -131,8 +131,6 @@
                 <h4>Project Calendar</h4>
 
                 <div id='calendar'></div>
-
-                <!-- {{ calendar }} -->
             </div>
             <div id="scopes" class="tab-pane">
                 <!-- Scope Section -->
@@ -140,18 +138,19 @@
 
                 <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a></p>
 
-                <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External, Internal, CDE) or by objectives.</p>
+                <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by objectives.</p>
 
                 {% if project.projectscope_set.all %}
                     <table id="scopeTable" class="tablesorter table">
                         <thead>
                             <th class="align-middle">Name</th>
-                            <th class="align-middle">Scope</th>
+                            <th class="sorter-false align-middle">Preview</th>
+                            <th class="sorter-false align-middle"></th>
                             <th class="sorter-false align-middle">Description</th>
                         </thead>
                         {% for list in project.projectscope_set.all %}
                             <tr>
-                                <td class="text-left icon
+                                <td class="text-left align-middle icon
                                     {% if list.requires_caution %}
                                         scope-warning-icon
                                     {% endif %}
@@ -161,9 +160,10 @@
                                 ">
                                     {{ list.name }}
                                 </td>
+                                <td class="align-middle">{{ list.scope|get_scope_preview:5|linebreaks }}</td>
                                 <td class="align-middle">
                                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
-                                        View
+                                        Expand
                                     </button>
                                 </td>
                                 <td class="text-justify align-middle">{{ list.description|bleach }}</td>
@@ -178,7 +178,9 @@
                 <!-- Objectives Section -->
                 <h4>Project Objectives</h4>
 
-                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add & Edit Objectives</a></p>
+                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add & Edit Objectives</a></p>
+
+                <p>Create specific objectives to pursue, track their status, and view deadlines in the calendar.</p>
 
                 {% if project.projectobjective_set.all %}
                     <table id="objectiveTable" class="tablesorter table">
@@ -274,6 +276,8 @@
                 {% else %}
                     <p><a class="icon add-icon" href="{% url 'reporting:report_create' project.id %}">Add a Report</a></p>
                 {% endif %}
+
+                <p>View and edit findings by opening the related report (click the link).</p>
 
                 {% if project.report_set.all %}
                     <table id="reportTable" class="tablesorter table">
@@ -883,21 +887,26 @@
             <div class="modal-dialog scope-modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalLabel">{{ list.name }} – {{ list.count_lines_str }}</h5>
+                        <h5 class="modal-title" id="scopeModal_{{ list.id }}">{{ list.name }} – {{ list.count_lines_str }}</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
-                    <div id="scope_{{ list.id }}" class="modal-body scope-modal-body">
+                    <div id="modal_scope_{{ list.id }}" class="modal-body scope-modal-body">
                         {{ list.scope|bleach|linebreaks }}
                     </div>
                     <div class="modal-footer">
+                        <button type="button" class="btn btn-primary js-copy-scope" data-clipboard-target="#modal_scope_{{ list.id }}">Copy to Clipboard</button>
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
         </div>
     {% endfor %}
+
+    <script>
+        new ClipboardJS('.js-copy-scope');
+    </script>
 
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
     {% include "confirm_delete_modal.html" %}
