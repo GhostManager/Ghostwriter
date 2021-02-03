@@ -51,6 +51,9 @@
         <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/locales-all.min.js"></script>
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.css">
 
+        <!-- ClipbaordJS -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script>
+
     </head>
 
     <body>
@@ -327,10 +330,10 @@
         <!-- Script for Copying Text to Clipboard-->
         <script>
             function copyToClipboard(element) {
-                var $temp = $("<input>");
+                var $temp = $('<input>');
                 $("body").append($temp);
                 $temp.val($(element).text().trim()).select();
-                document.execCommand("copy");
+                document.execCommand('copy');
                 $temp.remove();
             }
         </script>
