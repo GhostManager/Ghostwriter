@@ -31,7 +31,7 @@ from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from docx.oxml.shared import OxmlElement, qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import Inches, Pt, RGBColor
-from jinja2.exceptions import TemplateSyntaxError
+from jinja2.exceptions import TemplateSyntaxError, UndefinedError
 from pptx import Presentation
 from pptx.dml.color import RGBColor as PptxRGBColor
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
@@ -2308,6 +2308,12 @@ class TemplateLinter:
                             results["result"] = "warning"
                         logger.info("Completed document rendering test")
                     except TemplateSyntaxError as error:
+                        logger.error("Template syntax error: %s", error)
+                        results = {
+                            "result": "failed",
+                            "errors": [f"Jinja2 template syntax error: {error.message}"],
+                        }
+                    except UndefinedError as error:
                         logger.error("Template syntax error: %s", error)
                         results = {
                             "result": "failed",
