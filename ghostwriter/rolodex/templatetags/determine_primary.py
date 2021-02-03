@@ -27,6 +27,14 @@ def get_primary_address(value):
 
 
 @register.filter
+def get_scope_preview(value, n):
+    """
+    Get the top N lines of a ``scope`` list for an individual :model:`rolodex.ProjectScope`.
+    """
+    return "\n".join(value.split("\r\n")[0:n])
+
+
+@register.filter
 def plus_days(value, days):
     """
     Add some number of days to a ``datetime`` value within a template.
