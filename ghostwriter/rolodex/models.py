@@ -481,3 +481,48 @@ class ProjectScope(models.Model):
             return f"{count} Lines"
         else:
             return f"{count} Line"
+
+
+class ProjectTarget(models.Model):
+    """
+    Stores an individual target host, related to an indiviudal :model:`rolodex.Project`.
+    """
+
+    ip_address = models.GenericIPAddressField(
+        "IP Address",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Enter the target's IP address",
+    )
+    hostname = models.CharField(
+        "Hostname / FQDN",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Provide the target's hostname or fully qualified domain name",
+    )
+    note = models.TextField(
+        "Scope",
+        null=True,
+        blank=True,
+        help_text="Provide a list of IP addresses, ranges, hostnames, or a mix with each entry on a new line",
+    )
+    compromised = models.BooleanField(
+        "Compromised", default=False, help_text="Flag this host as compromised"
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+
+        ordering = ["project", "compromised", "ip_address", "hostname"]
+        verbose_name = "Project target"
+        verbose_name_plural = "Project targets"
+
+    def __str__(self):
+        return f"{self.hostname} ({self.ip_address})"
+
+    # Link to Oplog
+    # Link to Obj
+    # Link to open port/service
