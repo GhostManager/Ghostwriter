@@ -26,10 +26,9 @@ function adjust_dialog() {
 var default_config = {
     branding: false,
     width: '100%',
-    height: '300',
     theme: 'silver',
     skin: 'Ghostwriter',
-    selector: 'textarea:not(.empty-form)',
+    selector: 'textarea:not(.empty-form textarea, .empty-form)',
     content_css: '/static/css/wysiwyg_styles.css',
     editor_deselector: 'empty-form',
     menubar: 'file edit insert view format tools',
