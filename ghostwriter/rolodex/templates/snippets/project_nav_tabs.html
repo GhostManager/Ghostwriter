@@ -4,13 +4,18 @@
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_scopes" class="nav-link tab-icon objective-icon" data-toggle="tab" href="#scopes">
+    <a id="id_scopes" class="nav-link tab-icon bullseye-icon" data-toggle="tab" href="#scopes">
         Scope
     </a>
 </li>
 <li class="nav-item">
     <a id="id_objectives" class="nav-link tab-icon tasks-icon" data-toggle="tab" href="#objectives">
         Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_targets" class="nav-link tab-icon objective-icon" data-toggle="tab" href="#targets">
+        Targets <span class="badge badge-pill badge-light">{{ project.projecttarget_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">

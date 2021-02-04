@@ -28,6 +28,7 @@ from .forms_project import (
     ProjectNoteForm,
     ProjectObjectiveFormSet,
     ProjectScopeFormSet,
+    ProjectTargetFormSet,
 )
 from .models import (
     Client,
@@ -38,6 +39,7 @@ from .models import (
     ProjectAssignment,
     ProjectNote,
     ProjectObjective,
+    ProjectTarget,
 )
 
 # Using __name__ resolves to ghostwriter.rolodex.views
@@ -372,6 +374,66 @@ class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, View):
             self.object.id,
             self.request.user,
         )
+        return JsonResponse(data)
+
+
+class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.ProjectTarget`.
+    """
+
+    model = ProjectTarget
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+        data = {"result": "success", "message": "Target successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``compromised`` field of an individual :model:`rolodex.ProjecTarget`.
+    """
+
+    model = ProjectTarget
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.compromised:
+                self.object.compromised = False
+                data = {
+                    "result": "success",
+                    "message": "Target successfully marked as NOT compromised",
+                    "toggle": 0,
+                }
+            else:
+                self.object.compromised = True
+                data = {
+                    "result": "success",
+                    "message": "Target successfully marked as compromised",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update target's status"}
+
         return JsonResponse(data)
 
 
@@ -791,6 +853,8 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         Instance of the `ProjectAssignmentFormSet()` formset
     ``scopes``
         Instance of the `ProjectScopeFormSet()` formset
+    ``targets``
+        Instance of the `ProjectTargetFormSet()` formset
     ``cancel_link``
         Link for the form's Cancel button to return to projects list page
 
@@ -833,16 +897,19 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj")
             ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign")
             ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
+            ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target")
         else:
             ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj")
             ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign")
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope")
+            ctx["targets"] = ProjectTargetFormSet(prefix="target")
         return ctx
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         scopes = ctx["scopes"]
+        targets = ctx["targets"]
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
@@ -868,7 +935,18 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     scopes.instance = self.object
                     scopes.save()
 
-                if form.is_valid() and objectives_valid and assignments_valid and scopes_valid:
+                targets_valid = targets.is_valid()
+                if targets_valid:
+                    targets.instance = self.object
+                    targets.save()
+
+                if (
+                    form.is_valid()
+                    and objectives_valid
+                    and assignments_valid
+                    and scopes_valid
+                    and targets_valid
+                ):
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions
@@ -934,10 +1012,14 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             ctx["scopes"] = ProjectScopeFormSet(
                 self.request.POST, prefix="scope", instance=self.object
             )
+            ctx["targets"] = ProjectTargetFormSet(
+                self.request.POST, prefix="target", instance=self.object
+            )
         else:
             ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
             ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
+            ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
         return ctx
 
     def get_success_url(self):
@@ -948,6 +1030,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
         scopes = ctx["scopes"]
+        targets = ctx["targets"]
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
@@ -1025,8 +1108,19 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     scopes.instance = self.object
                     scopes.save()
 
+                targets_valid = targets.is_valid()
+                if targets_valid:
+                    targets.instance = self.object
+                    targets.save()
+
                 # Proceed with form submission
-                if form.is_valid() and objectives_valid and assignments_valid and scopes_valid:
+                if (
+                    form.is_valid()
+                    and objectives_valid
+                    and assignments_valid
+                    and scopes_valid
+                    and targets_valid
+                ):
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions

@@ -125,8 +125,9 @@ h4 {
 }
 
 h6 {
-  font-size: 1em;
-  padding-top: 20px;
+  font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 1.15em;
+  padding-top: 10px;
 }
 
 .bold {
@@ -877,7 +878,7 @@ table {
 }
 
 table .clickable {
-  text-decoration: underline dotted var(--clickable-underline-color);
+  text-decoration: underline wavy var(--clickable-underline-color);
 }
 
 p .clickable {
@@ -1778,6 +1779,15 @@ td p {
 .objective-icon:before {
   font-family: 'Font Awesome 5 Free';
   content: '\f05b';
+  display: inline-block;
+  padding-right: 10px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+
+.bullseye-icon:before {
+  font-family: 'Font Awesome 5 Free';
+  content: '\f140';
   display: inline-block;
   padding-right: 10px;
   vertical-align: middle;

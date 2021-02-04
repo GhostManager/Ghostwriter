@@ -22,7 +22,6 @@
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
             <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
             <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to Client</a>
-            <a class="dropdown-item icon redo-icon" href="javascript:void(0)" class="clickable-link js-roll-codename" roll-codename-csrftoken="{{ csrf_token }}" roll-codename-url="{% url 'rolodex:ajax_roll_project_codename' project.id %}" roll-codename-project="{{ project.id }}">Re-roll codename</a>
             <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
         </div>
     </div>
@@ -66,6 +65,12 @@
                 <h4>Project Details</h4>
 
                 <table class="table table-borderless table-centered">
+                    <tr>
+                        <td class="text-left bold">Codename</td>
+                        <td class="text-left">
+                            {% if project.codename %} {{ project.codename }} {% else %} No Codename {% endif %}
+                        </td>
+                    </tr>
                     <tr>
                         <td class="text-left bold">Execution Dates</td>
                         <td class="text-left">{{ project.start_date|date:"d F Y" }} – {{ project.end_date|date:"d F Y" }}</td>
@@ -226,7 +231,58 @@
                     <p>No objectives have been set for this project yet.</p>
                 {% endif %}
             </div>
-            <div id="activity" class="tab-pane ">
+            <div id="targets" class="tab-pane">
+                <!-- Targets Section -->
+                <h4>Targets</h4>
+
+                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a></p>
+
+                <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are interesting.</p>
+
+                {% if project.projecttarget_set.all %}
+                    <table id="targetTable" class="tablesorter table">
+                        <thead>
+                            <th class="align-middle">Owned</th>
+                            <th class="align-middle">Target</th>
+                            <th class="align-middle">Note</th>
+                            <th class="sorter-false test-center align-middle">Options</th>
+                        </thead>
+                        {% for target in project.projecttarget_set.all %}
+                            <tr>
+                                <td id="target-status-{{ target.id }}" class="align-middle icon
+                                    {% if target.compromised %}
+                                        skull-icon
+                                    {% endif %}
+                                ">
+                                </td>
+                                <td id="delete-target-content-target-{{ target.id }}" class="align-middle">
+                                    {% if target.ip_address and target.hostname %}
+                                        {{ target.hostname }} ({{ target.ip_address }})
+                                    {% elif target.ip_address %}
+                                        {{ target.ip_address }}
+                                    {% elif target.hostname %}
+                                        {{ target.hostname }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-justify align-middle">{{ target.note|bleach }}</td>
+                                <td class="align-middle">
+                                    <div class="dropdown dropleft">
+                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div class="dropdown-menu" aria-labelledby="target-dropdown-btn_{{ target.id }}">
+                                            <a class="dropdown-item icon burn-icon js-compromise-target" href="javascript:void(0);" compromise-target-csrftoken="{{ csrf_token }}" compromise-target-id="{{ target.id }}" compromise-target-url="{% url 'rolodex:ajax_toggle_project_target' target.id %}">Toggle Compromised Status</a>
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#targets">Edit Target</a>
+                                            <a id="target-delete-button-{{ target.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_target' target.id %}" delete-target-id="{{ target.id }}" delete-target-type="target">Remove</a>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% else %}
+                    <p>No targets have been set for this project yet.</p>
+                {% endif %}
+            </div>
+            <div id="activity" class="tab-pane">
                 <!-- Logging Section -->
                 <h4>Operational Logs</h4>
 
@@ -658,36 +714,21 @@
                                 cssNone: 'none',
                             }
                         );
+            $("#scopeTable").tablesorter(
+                {
+                    cssAsc: 'down',
+                    cssDesc: 'up',
+                    cssNone: 'none',
+                }
+            );
+            $("#targetTable").tablesorter(
+                {
+                    cssAsc: 'down',
+                    cssDesc: 'up',
+                    cssNone: 'none',
+                }
+            );
             $('.tablesorter').trigger('update');
-        });
-    </script>
-
-    <!-- Roll Codename with AJAX -->
-    <script>
-        $(".js-roll-codename").click(function () {
-            var url = $(this).attr('roll-codename-url');
-            var projectId = $(this).attr('roll-codename-project');
-            var csrftoken = $(this).attr('roll-codename-csrftoken')
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'project': projectId
-                },
-                success: function (data) {
-                    $("#project-codename").html(data['codename']);
-                }
-            });
         });
     </script>
 
@@ -767,6 +808,48 @@
                         }
                         if (data['message']) {
                             displayToastTop({type:data['result'], string:data['message'], title:'Objective Update'});
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- Set Project Target Status with AJAX -->
+    <script>
+        $('.js-compromise-target').each(function(index) {
+            $(this).click(function () {
+                var url = $(this).attr('compromise-target-url');
+                var targetId = $(this).attr('compromise-target-id');
+                var csrftoken = $(this).attr('compromise-target-csrftoken');
+                var statusCellId = '#target-status-' + targetId;
+                var statusCell = $(statusCellId);
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'target': targetId,
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            if (data['toggle'] == 0) {
+                                statusCell.removeClass('skull-icon')
+                            } else {
+                                statusCell.addClass('skull-icon')
+                            }
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Target Update'});
                         }
                     }
                 });
@@ -904,6 +987,7 @@
         </div>
     {% endfor %}
 
+    <!-- Clipboard Events -->
     <script>
         new ClipboardJS('.js-copy-scope');
     </script>

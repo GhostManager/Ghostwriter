@@ -72,6 +72,16 @@ urlpatterns += [
         views.update_client_badges,
         name="ajax_update_client_badges",
     ),
+    path(
+        "ajax/project/target/compromise/<int:pk>",
+        views.ProjectTargetToggle.as_view(),
+        name="ajax_toggle_project_target",
+    ),
+    path(
+        "ajax/project/target/delete/<int:pk>",
+        views.ProjectTargetDelete.as_view(),
+        name="ajax_delete_project_target",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views
@@ -100,9 +110,7 @@ urlpatterns += [
         views.ProjectCreate.as_view(),
         name="project_create_no_client",
     ),
-    path(
-        "projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"
-    ),
+    path("projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"),
     path(
         "projects/update/<int:pk>",
         views.ProjectUpdate.as_view(),
