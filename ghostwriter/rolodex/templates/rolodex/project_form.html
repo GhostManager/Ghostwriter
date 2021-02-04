@@ -72,36 +72,80 @@
     <!-- Formset Manipulation Buttons -->
     <script>
         $('.formset-add-{{ objectives.prefix }}').click(function() {
-            tinymce.remove();
             var form_idx = $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val();
             $('#formset-{{ objectives.prefix }}').append($('#empty-form-{{ objectives.prefix }}').html().replace(/__prefix__/g, form_idx));
             $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            tinyInit();
             var new_form = $('#formset-{{ objectives.prefix }}').find('div.formset-container').last()
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+            // Re-initialize WYSIWYG editor for the new form
+            target = 'id_{{ objectives.prefix }}-' + parseInt(form_idx) + '-objective'
+            tinymce.execCommand('mceAddEditor', false, target);
         });
 
         $('.formset-add-{{ assignments.prefix }}').click(function() {
-            tinymce.remove();
             var form_idx = $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val();
             $('#formset-{{ assignments.prefix }}').append($('#empty-form-{{ assignments.prefix }}').html().replace(/__prefix__/g, form_idx));
             $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            tinyInit();
             var new_form = $('#formset-{{ assignments.prefix }}').find('div.formset-container').last()
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+            // Re-initialize WYSIWYG editor for the new form
+            target = 'id_{{ assignments.prefix }}-' + parseInt(form_idx) + '-note'
+            tinymce.execCommand('mceAddEditor', false, target);
         });
 
         $('.formset-add-{{ scopes.prefix }}').click(function() {
-            tinymce.remove();
             var form_idx = $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val();
             $('#formset-{{ scopes.prefix }}').append($('#empty-form-{{ scopes.prefix }}').html().replace(/__prefix__/g, form_idx));
             $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            tinyInit();
             var new_form = $('#formset-{{ scopes.prefix }}').find('div.formset-container').last()
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+            // Re-initialize WYSIWYG editor for the new form
+            target = 'id_{{ scopes.prefix }}-' + parseInt(form_idx) + '-description'
+            tinymce.execCommand('mceAddEditor', false, target);
+        });
+
+        $('.formset-add-{{ targets.prefix }}').click(function() {
+            var form_idx = $('#id_{{ targets.prefix }}-TOTAL_FORMS').val();
+            $('#formset-{{ targets.prefix }}').append($('#empty-form-{{ targets.prefix }}').html().replace(/__prefix__/g, form_idx));
+            $('#id_{{ targets.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+            var new_form = $('#formset-{{ targets.prefix }}').find('div.formset-container').last()
+            new_form.find('span.counter').html(parseInt(form_idx) + 1);
+            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+            // Re-initialize WYSIWYG editor for the new form
+            target = 'id_{{ targets.prefix }}-' + parseInt(form_idx) + '-note'
+            tinymce.execCommand('mceAddEditor', false, target);
+        });
+    </script>
+
+    <!-- Roll Codename with AJAX -->
+    <script>
+        $(".js-roll-codename").click(function () {
+            var url = $(this).attr('roll-codename-url');
+            var projectId = $(this).attr('roll-codename-project');
+            var csrftoken = $(this).attr('roll-codename-csrftoken')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'project': projectId
+                },
+                success: function (data) {
+                    $("#id_codename").val(data['codename']);
+                }
+            });
         });
     </script>
 {% endblock %}
