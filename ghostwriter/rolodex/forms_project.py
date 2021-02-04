@@ -22,7 +22,14 @@ from django.utils.translation import gettext_lazy as _
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
 
-from .models import Project, ProjectAssignment, ProjectNote, ProjectObjective, ProjectScope
+from .models import (
+    Project,
+    ProjectAssignment,
+    ProjectNote,
+    ProjectObjective,
+    ProjectScope,
+    ProjectTarget,
+)
 
 
 class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
@@ -179,9 +186,9 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
 
                     # Check that no two names are the same
                     if name:
-                        if name in names:
+                        if name.lower() in names:
                             duplicates = True
-                        names.append(name)
+                        names.append(name.lower())
                     if duplicates:
                         form.add_error(
                             "name",
@@ -190,6 +197,64 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
                                 code="duplicate",
                             ),
                         )
+
+
+class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
+    """
+    BaseInlineFormset template for :model:`rolodex.ProjectTarget` that adds validation
+    for this model.
+    """
+
+    def clean(self):
+        hostnames = []
+        ip_addresses = []
+        duplicate_fqdn = False
+        duplicate_addy = False
+        super(BaseProjectTargetInlineFormSet, self).clean()
+        if any(self.errors):
+            return
+        for form in self.forms:
+            if form.cleaned_data:
+                # Only validate if the form is NOT marked for deletion
+                if form.cleaned_data["DELETE"] is False:
+                    hostname = form.cleaned_data["hostname"]
+                    ip_address = form.cleaned_data["ip_address"]
+                    note = form.cleaned_data["note"]
+
+                    # Check that no two names are the same
+                    if hostname:
+                        if hostname.lower() in hostnames:
+                            duplicate_fqdn = True
+                        hostnames.append(hostname.lower())
+                    if duplicate_fqdn:
+                        form.add_error(
+                            "hostname",
+                            ValidationError(
+                                _("Your targets should be unique"),
+                                code="duplicate",
+                            ),
+                        )
+                    if ip_address:
+                        if ip_address in ip_addresses:
+                            duplicate_addy = True
+                        ip_addresses.append(ip_address)
+                    if duplicate_addy:
+                        form.add_error(
+                            "ip_address",
+                            ValidationError(
+                                _("Your targets should be unique"),
+                                code="duplicate",
+                            ),
+                        )
+                    if note:
+                        if not hostname or not ip_address:
+                            form.add_error(
+                                "note",
+                                ValidationError(
+                                    _("You must provide a hostname or IP address with your note"),
+                                    code="duplicate",
+                                ),
+                            )
 
 
 class ProjectAssignmentForm(forms.ModelForm):
@@ -214,7 +279,8 @@ class ProjectAssignmentForm(forms.ModelForm):
         self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs["placeholder"] = ""
+        self.fields["note"].widget.attrs["rows"] = 5
+        self.fields["note"].widget.attrs["placeholder"] = "Additional Information or Notes"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -243,7 +309,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                 Div(
                     HTML(
                         """
-                        <p><strong>Assignment #<span class="counter">{{ forloop.counter }}</span></strong></p>
+                        <h6>Assignment #<span class="counter">{{ forloop.counter }}</span></h6>
                         <hr>
                         """
                     ),
@@ -291,19 +357,18 @@ class ProjectAssignmentForm(forms.ModelForm):
                     "note",
                     Row(
                         Column(
-                            Field("DELETE", style="display: none;"),
                             Button(
                                 "formset-del-button",
                                 "Delete Assignment",
                                 css_class="btn-sm btn-danger formset-del-button",
                             ),
-                            css_class="form-group col-md-12 text-center",
+                            css_class="form-group col-md-4 offset-md-4",
                         ),
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        Column(
+                            Field("DELETE", style="display: none;"),
+                            css_class="form-group col-md-4 text-center",
+                        ),
+                        css_class="form-row",
                     ),
                     css_class="formset",
                 ),
@@ -327,7 +392,8 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["deadline"].widget.attrs["autocomplete"] = "off"
         self.fields["deadline"].widget.input_type = "date"
-        self.fields["objective"].widget.attrs["placeholder"] = ""
+        self.fields["objective"].widget.attrs["rows"] = 5
+        self.fields["objective"].widget.attrs["placeholder"] = "High-level Objective"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -356,7 +422,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                 Div(
                     HTML(
                         """
-                        <p><strong>Objective #<span class="counter">{{ forloop.counter }}</span></strong></p>
+                        <h6>Objective #<span class="counter">{{ forloop.counter }}</span></h6>
                         <hr>
                         """
                     ),
@@ -383,20 +449,18 @@ class ProjectObjectiveForm(forms.ModelForm):
                     "objective",
                     Row(
                         Column(
-                            Field("DELETE", style="display: none;"),
                             Button(
                                 "formset-del-button",
                                 "Delete Objective",
                                 css_class="btn-sm btn-danger formset-del-button",
                             ),
-                            css_class="form-group col-md-12 text-center",
+                            css_class="form-group col-md-4 offset-md-4",
+                        ),
+                        Column(
+                            Field("DELETE", style="display: none;"),
+                            css_class="form-group col-md-4 text-center",
                         ),
                         css_class="form-row",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
                     ),
                     css_class="formset",
                 ),
@@ -420,7 +484,9 @@ class ProjectScopeForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Scope Name"
+        self.fields["scope"].widget.attrs["rows"] = 5
         self.fields["scope"].widget.attrs["placeholder"] = "Scope List"
+        self.fields["description"].widget.attrs["rows"] = 5
         self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
@@ -450,7 +516,7 @@ class ProjectScopeForm(forms.ModelForm):
                 Div(
                     HTML(
                         """
-                        <p><strong>Scope List #<span class="counter">{{ forloop.counter }}</span></strong></p>
+                        <h6>Scope List #<span class="counter">{{ forloop.counter }}</span></h6>
                         <hr>
                         """
                     ),
@@ -463,20 +529,99 @@ class ProjectScopeForm(forms.ModelForm):
                     ),
                     Row(
                         Column(
-                            Field("DELETE", style="display: none;"),
                             Button(
                                 "formset-del-button",
                                 "Delete List",
                                 css_class="btn-sm btn-danger formset-del-button",
                             ),
-                            css_class="form-group col-md-12 text-center",
+                            css_class="form-group col-md-4 offset-md-4",
+                        ),
+                        Column(
+                            Field("DELETE", style="display: none;"),
+                            css_class="form-group col-md-4 text-center",
                         ),
                         css_class="form-row",
                     ),
+                    css_class="formset",
+                ),
+                css_class="formset-container",
+            )
+        )
+
+
+class ProjectTargetForm(forms.ModelForm):
+    """
+    Save an individual :model:`rolodex.ProjectTarget` associated with an individual
+    :model:`rolodex.Project`.
+    """
+
+    class Meta:
+        model = ProjectTarget
+        fields = (
+            "ip_address",
+            "hostname",
+            "note",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super(ProjectTargetForm, self).__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
+        self.fields["hostname"].widget.attrs["placeholder"] = "FQDN"
+        self.fields["note"].widget.attrs["rows"] = 5
+        self.fields["note"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.helper = FormHelper()
+        # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
+        self.helper.form_tag = False
+        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
+        self.helper.disable_csrf = True
+        # Hide the field labels from the model
+        self.helper.form_show_labels = False
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            # Wrap form in a div so Django renders form instances in their own element
+            Div(
+                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
+                Alert(
+                    content=(
+                        """
+                        <strong>Target Deleted!</strong>
+                        Deletion will be permanent once the form is submitted. Click this alert to undo.
+                        """
+                    ),
+                    css_class="alert alert-danger show formset-undo-button",
+                    style="display:none; cursor:pointer;",
+                    template="alert.html",
+                    block=False,
+                    dismiss=False,
+                ),
+                Div(
                     HTML(
                         """
-                        <p class="form-spacer"></p>
+                        <h6>Target #<span class="counter">{{ forloop.counter }}</span></h6>
+                        <hr>
                         """
+                    ),
+                    Row(
+                        Column("ip_address", css_class="col-md-6"),
+                        Column("hostname", css_class="col-md-6"),
+                    ),
+                    "note",
+                    Row(
+                        Column(
+                            Button(
+                                "formset-del-button",
+                                "Delete Target",
+                                css_class="btn-sm btn-danger formset-del-button",
+                            ),
+                            css_class="form-group col-md-4 offset-md-4",
+                        ),
+                        Column(
+                            Field("DELETE", style="display: none;"),
+                            css_class="form-group col-md-4 text-center",
+                        ),
+                        css_class="form-row",
                     ),
                     css_class="formset",
                 ),
@@ -514,6 +659,15 @@ ProjectScopeFormSet = inlineformset_factory(
     can_delete=True,
 )
 
+ProjectTargetFormSet = inlineformset_factory(
+    Project,
+    ProjectTarget,
+    form=ProjectTargetForm,
+    formset=BaseProjectTargetInlineFormSet,
+    extra=1,
+    can_delete=True,
+)
+
 
 class ProjectForm(forms.ModelForm):
     """
@@ -544,7 +698,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
         self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
-        self.fields["note"].widget.attrs["placeholder"] = ""
+        self.fields["note"].widget.attrs["placeholder"] = "Description of the Project"
         # Hide labels for specific fields because ``form_show_labels`` takes priority
         self.fields["start_date"].label = False
         self.fields["end_date"].label = False
@@ -570,6 +724,12 @@ class ProjectForm(forms.ModelForm):
                     ),
                     "client",
                     "codename",
+                    HTML(
+                        """
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-roll-codename" roll-codename-csrftoken="{{ csrf_token }}" roll-codename-url="{% url 'rolodex:ajax_roll_project_codename' project.id %}" roll-codename-project="{{ project.id }}">Re-roll codename</a>
+                        <p class="form-spacer"></p>
+                        """
+                    ),
                     Row(
                         Column("start_date", css_class="form-group col-md-6 mb-0"),
                         Column("end_date", css_class="form-group col-md-6 mb-0"),
@@ -647,6 +807,27 @@ class ProjectForm(forms.ModelForm):
                     ),
                     link_css_class="tab-icon list-icon",
                     css_id="scopes",
+                ),
+                CustomTab(
+                    "Targets",
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    Formset("targets", object_context_name="Target"),
+                    Button(
+                        "add-target",
+                        "Add Target",
+                        css_class="btn-block btn-secondary formset-add-target",
+                    ),
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    link_css_class="tab-icon list-icon",
+                    css_id="targets",
                 ),
                 template="tab.html",
                 css_class="nav-justified",
