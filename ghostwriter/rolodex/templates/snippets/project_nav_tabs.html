@@ -5,7 +5,7 @@
 </li>
 <li class="nav-item">
     <a id="id_scopes" class="nav-link tab-icon bullseye-icon" data-toggle="tab" href="#scopes">
-        Scope
+        Scope <span class="badge badge-pill badge-light">{{ project.projectscope_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
@@ -20,7 +20,7 @@
 </li>
 <li class="nav-item">
     <a id="id_activity" class="nav-link tab-icon history-icon" data-toggle="tab" href="#activity">
-        Logs</span>
+        Logs <span class="badge badge-pill badge-light">{{ project.oplog_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
@@ -30,7 +30,7 @@
 </li>
 <li class="nav-item">
     <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
-        Infrastructure
+        Infrastructure <span class="badge badge-pill badge-light">{{ project.history_set.all.count|add:project.serverhistory_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
