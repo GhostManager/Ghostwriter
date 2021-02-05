@@ -39,6 +39,7 @@ from .models import (
     ProjectAssignment,
     ProjectNote,
     ProjectObjective,
+    ProjectScope,
     ProjectTarget,
 )
 
@@ -388,6 +389,26 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
             logger.error(log_message)
             data = {"result": "error", "message": "Could not update target's status"}
 
+        return JsonResponse(data)
+
+
+class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.ProjectScope`.
+    """
+
+    model = ProjectScope
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+        data = {"result": "success", "message": "Scope list successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
         return JsonResponse(data)
 
 
