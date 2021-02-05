@@ -80,9 +80,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                                 ),
                             )
                     # Raise an error if details are present without a name
-                    elif name is None and any(
-                        x is not None for x in [job_title, email, phone]
-                    ):
+                    elif name is None and any(x is not None for x in [job_title, email, phone]):
                         form.add_error(
                             "name",
                             ValidationError(
@@ -91,9 +89,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if a form only has a value for the note
-                    elif note and any(
-                        x is None for x in [name, job_title, email, phone]
-                    ):
+                    elif note and any(x is None for x in [name, job_title, email, phone]):
                         form.add_error(
                             "note",
                             ValidationError(
@@ -253,6 +249,12 @@ class ClientForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     "codename",
+                    HTML(
+                        """
+                        <a href="javascript:void(0)" class="icon dice-icon clickable-link js-roll-codename" roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}">Generate a Codename</a>
+                        <p class="form-spacer"></p>
+                        """
+                    ),
                     "note",
                     link_css_class="client-icon",
                     css_id="client",

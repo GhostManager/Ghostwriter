@@ -65,4 +65,19 @@
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
         });
     </script>
+
+    <!-- Roll Codename with AJAX -->
+    <script>
+        $(".js-roll-codename").click(function () {
+            var url = $(this).attr('roll-codename-url');
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (data) {
+                    $("#id_codename").val(data['codename']);
+                }
+            });
+        });
+    </script>
 {% endblock %}

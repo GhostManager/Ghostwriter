@@ -1508,6 +1508,11 @@ td p {
   content: '\f01e';
 }
 
+.dice-icon:before {
+  content: '\f522';
+  font-size: 1.2em;
+}
+
 .add-icon:before {
   content: '\f0fe';
   font-weight: 400;

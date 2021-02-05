@@ -18,14 +18,9 @@ urlpatterns = [
 # URLs for AJAX requests – deletion and toggle views
 urlpatterns += [
     path(
-        "ajax/codename/client/<int:pk>",
-        views.ClientCodenameRoll.as_view(),
-        name="ajax_roll_client_codename",
-    ),
-    path(
-        "ajax/codename/project/<int:pk>",
-        views.ProjectCodenameRoll.as_view(),
-        name="ajax_roll_project_codename",
+        "ajax/codename/roll",
+        views.roll_codename,
+        name="ajax_roll_codename",
     ),
     path(
         "ajax/project/toggle/<int:pk>",

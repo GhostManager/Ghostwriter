@@ -87,6 +87,44 @@ def update_client_badges(request, pk):
     return HttpResponse(html)
 
 
+@login_required
+def roll_codename(request):
+    """
+    Fetch a unique codename for use with a model.
+    """
+
+    try:
+        codename_verified = False
+        while not codename_verified:
+            new_codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=new_codename)
+                codename_verified = False
+            except Exception:
+                codename_verified = True
+            try:
+                Client.objects.filter(codename__iequal=new_codename)
+                codename_verified = False
+            except Exception:
+                codename_verified = True
+        data = {
+            "result": "success",
+            "message": "Codename successfuly generated",
+            "codename": new_codename,
+        }
+        logger.info(
+            "Generated new codename at request of %s",
+            request.user,
+        )
+    except Exception as exception:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        log_message = template.format(type(exception).__name__, exception.args)
+        logger.error(log_message)
+        data = {"result": "error", "message": "Could not generate a codename"}
+
+    return JsonResponse(data)
+
+
 class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
     """
     Update the ``status`` field of an individual :model:`rolodex.ProjectObjective`.
@@ -147,90 +185,6 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
             data = {"result": "error", "message": "Could not update objective's status"}
-
-        return JsonResponse(data)
-
-
-class ClientCodenameRoll(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Roll a new codename for an individual :model:`rolodex.Client`.
-    """
-
-    model = Client
-
-    def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        try:
-            old_codename = self.object.codename
-            codename_verified = False
-            while not codename_verified:
-                new_codename = codenames.codename(uppercase=True)
-                try:
-                    Client.objects.filter(codename__iequal=new_codename)
-                except Exception:
-                    codename_verified = True
-            self.object.codename = new_codename
-            self.object.save()
-            data = {
-                "result": "success",
-                "message": "Codename successfuly updated",
-                "codename": new_codename,
-            }
-            logger.info(
-                "Updated codename of %s %s from %s to %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                old_codename,
-                new_codename,
-                self.request.user,
-            )
-        except Exception as exception:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
-            data = {"result": "error", "message": "Could not update project's codename"}
-
-        return JsonResponse(data)
-
-
-class ProjectCodenameRoll(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Roll a new codename for an individual :model:`rolodex.Project`.
-    """
-
-    model = Project
-
-    def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        try:
-            old_codename = self.object.codename
-            codename_verified = False
-            while not codename_verified:
-                new_codename = codenames.codename(uppercase=True)
-                try:
-                    Project.objects.filter(codename__iequal=new_codename)
-                except Exception:
-                    codename_verified = True
-            self.object.codename = new_codename
-            self.object.save()
-            data = {
-                "result": "success",
-                "message": "Codename successfuly updated",
-                "codename": new_codename,
-            }
-            logger.info(
-                "Updated codename of %s %s from %s to %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                old_codename,
-                new_codename,
-                self.request.user,
-            )
-        except Exception as exception:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
-            data = {"result": "error", "message": "Could not update project's codename"}
 
         return JsonResponse(data)
 
@@ -986,6 +940,10 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``
         Instance of the `ProjectAssignmentFormSet()` formset
+    ``scopes``
+        Instance of the `ProjectScopeFormSet()` formset
+    ``targets``
+        Instance of the `ProjectTargetFormSet()` formset
     ``cancel_link``
         Link for the form's Cancel button to return to project's detail page
 
