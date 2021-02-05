@@ -77,6 +77,11 @@ urlpatterns += [
         views.ProjectTargetDelete.as_view(),
         name="ajax_delete_project_target",
     ),
+    path(
+        "ajax/project/scope/delete/<int:pk>",
+        views.ProjectScopeDelete.as_view(),
+        name="ajax_delete_project_scope",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views
