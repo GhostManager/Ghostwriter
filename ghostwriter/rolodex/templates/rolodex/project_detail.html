@@ -106,14 +106,14 @@
                         </thead>
                         {% for operator in project.projectassignment_set.all %}
                             <tr>
-                                <td nowrap id="delete-target-content-assignment-{{ operator.id }}" class="align-middle">
+                                <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle">
                                     {% if operator.operator.name %}
                                         {{ operator.operator.name }}
                                     {% else %}
                                         Missing Full Name ({{ operator.operator.username|capfirst }})
                                     {% endif %}
                                 </td>
-                                <td nowrap class="align-middle">{{ operator.role }}</td>
+                                <td class="align-middle">{{ operator.role }}</td>
                                 <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
                                 <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
                                 <td class="align-middle">
@@ -152,10 +152,11 @@
                             <th class="sorter-false align-middle">Preview</th>
                             <th class="sorter-false align-middle"></th>
                             <th class="sorter-false align-middle">Description</th>
+                            <th class="sorter-false align-middle">Options</th>
                         </thead>
                         {% for list in project.projectscope_set.all %}
                             <tr>
-                                <td class="text-left align-middle icon
+                                <td id="delete-target-content-scope-{{ list.id }}" class="text-left align-middle icon
                                     {% if list.requires_caution %}
                                         scope-warning-icon
                                     {% endif %}
@@ -172,6 +173,15 @@
                                     </button>
                                 </td>
                                 <td class="text-justify align-middle">{{ list.description|bleach }}</td>
+                                <td class="align-middle">
+                                    <div class="dropdown dropleft">
+                                        <button id="scope-dropdown-btn-{{ list.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                        <div id="scope-dropdown-menu-{{ list.id }}" class="dropdown-menu" aria-labelledby="assignment-dropdown-btn_{{ list.id }}">
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#scopes">Edit Scope</a>
+                                            <a id="scope-delete-button-{{ list.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_scope' list.id %}" delete-target-id="{{ list.id }}" delete-target-type="scope">Delete Scope</a>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                         {% endfor %}
                     </table>
