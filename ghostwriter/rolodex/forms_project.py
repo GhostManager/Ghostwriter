@@ -726,7 +726,7 @@ class ProjectForm(forms.ModelForm):
                     "codename",
                     HTML(
                         """
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-roll-codename" roll-codename-csrftoken="{{ csrf_token }}" roll-codename-url="{% url 'rolodex:ajax_roll_project_codename' project.id %}" roll-codename-project="{{ project.id }}">Re-roll codename</a>
+                        <a href="javascript:void(0)" class="icon dice-icon clickable-link js-roll-codename" roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}">Generate a Codename</a>
                         <p class="form-spacer"></p>
                         """
                     ),
