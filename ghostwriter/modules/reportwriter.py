@@ -121,6 +121,7 @@ class Reportwriter:
         self.jinja_env = jinja2.Environment(extensions=["jinja2.ext.debug"])
         self.jinja_env.filters["filter_severity"] = self.filter_severity
         self.jinja_env.filters["strip_html"] = self.strip_html
+        self.jinja_env.filters["compromised"] = self.compromised
 
         logger.info(
             "Generating a report for %s using the template at %s and referencing the evidence in %s",
@@ -165,6 +166,21 @@ class Reportwriter:
             elif tag.name == "br" or tag.name == "p":
                 output += "\n"
         return output
+
+    def compromised(self, targets):
+        """
+        Filter list of targets to return only those marked as compromised.
+
+        **Parameters**
+
+        ``targets``
+            List of dictionary objects (JSON) for targets
+        """
+        filtered_targets = []
+        for target in targets:
+            if target["compromised"]:
+                filtered_targets.append(target)
+        return filtered_targets
 
     def valid_xml_char_ordinal(self, c):
         """
@@ -430,6 +446,26 @@ class Reportwriter:
             report_dict["team"][operator.operator.id]["start_date"] = operator.start_date
             report_dict["team"][operator.operator.id]["end_date"] = operator.end_date
             report_dict["team"][operator.operator.id]["note"] = operator.note
+        # Project scope lists
+        report_dict["scope"] = {}
+        for scope_list in self.report_queryset.project.projectscope_set.all():
+            report_dict["scope"][scope_list.id] = {}
+            report_dict["scope"][scope_list.id]["id"] = scope_list.id
+            report_dict["scope"][scope_list.id]["name"] = scope_list.name
+            report_dict["scope"][scope_list.id]["scope"] = scope_list.scope
+            report_dict["scope"][scope_list.id]["description"] = scope_list.description
+            report_dict["scope"][scope_list.id]["requires_caution"] = scope_list.requires_caution
+            report_dict["scope"][scope_list.id]["disallowed"] = scope_list.disallowed
+            report_dict["scope"][scope_list.id]["total"] = scope_list.count_lines()
+        # Project targets
+        report_dict["targets"] = {}
+        for target in self.report_queryset.project.projecttarget_set.all():
+            report_dict["targets"][target.id] = {}
+            report_dict["targets"][target.id]["id"] = target.id
+            report_dict["targets"][target.id]["ip_address"] = target.ip_address
+            report_dict["targets"][target.id]["hostname"] = target.hostname
+            report_dict["targets"][target.id]["note"] = target.note
+            report_dict["targets"][target.id]["compromised"] = target.compromised
         return json.dumps(report_dict, indent=2, cls=DjangoJSONEncoder)
 
     def make_figure(self, par, ref=None):
@@ -1672,6 +1708,10 @@ Try opening it, exporting as desired type, and re-uploading it."
         context["objectives_complete"] = objectives_completed
         context["objectives_completed"] = context["objectives_complete"]
 
+        # Project scope lists and targets
+        context["scope"] = self.report_json["scope"].values()
+        context["targets"] = self.report_json["targets"].values()
+
         # Generate the XML for the styled findings
         context = self.process_findings(context)
 
@@ -2205,11 +2245,15 @@ class TemplateLinter:
         )
         self.jinja_template_env.filters["filter_severity"] = self.dummy_filter_severity
         self.jinja_template_env.filters["strip_html"] = self.dummy_strip_html
+        self.jinja_template_env.filters["compromised"] = self.dummy_compromised
 
     def dummy_filter_severity(self, value, allowlist):
         return []
 
     def dummy_strip_html(self, value):
+        return []
+
+    def dummy_compromised(self, value):
         return []
 
     def lint_docx(self):
@@ -2264,6 +2308,10 @@ class TemplateLinter:
                     context["objectives_total"] = ""
                     context["objectives_complete"] = ""
                     context["objectives_completed"] = ""
+
+                    # Project targets and scope
+                    context["targets"] = ""
+                    context["scope"] = ""
 
                     # Step 1: Load the document as a template
                     template_document = DocxTemplate(self.template_loc)
