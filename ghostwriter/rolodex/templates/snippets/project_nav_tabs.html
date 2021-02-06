@@ -30,7 +30,7 @@
 </li>
 <li class="nav-item">
     <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
-        Infrastructure <span class="badge badge-pill badge-light">{{ project.history_set.all.count|add:project.serverhistory_set.all.count }}</span>
+        Infrastructure <span class="badge badge-pill badge-light">{{ project.history_set.all.count|add:project.serverhistory_set.all.count|add:project.transientserver_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
