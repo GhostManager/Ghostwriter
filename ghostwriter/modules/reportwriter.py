@@ -1668,6 +1668,7 @@ Try opening it, exporting as desired type, and re-uploading it."
         context["client"] = self.report_json["client"]["full_name"]
         context["client_short"] = self.report_json["client"]["short_name"]
         context["client_pocs"] = self.report_json["client"]["poc"].values()
+        context["client_codename"] = self.report_json["client"]["codename"]
 
         # Assessment information
         context["assessment_name"] = self.report_json["project"]["name"]
