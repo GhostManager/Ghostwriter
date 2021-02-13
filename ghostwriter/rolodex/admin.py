@@ -14,6 +14,9 @@ from .models import (
     ProjectNote,
     ProjectObjective,
     ProjectRole,
+    ProjectScope,
+    ProjectSubTask,
+    ProjectTarget,
     ProjectType,
 )
 
@@ -111,4 +114,19 @@ class ObjectiveStatusAdmin(admin.ModelAdmin):
 
 @admin.register(ProjectObjective)
 class ProjectObjectiveAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ProjectTarget)
+class ProjectTargetAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ProjectScope)
+class ProjectScopeAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(ProjectSubTask)
+class ProjectSubTaskAdmin(admin.ModelAdmin):
     pass
