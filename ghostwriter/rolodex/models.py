@@ -296,7 +296,7 @@ class ObjectiveStatus(models.Model):
         "Objective Status",
         max_length=255,
         unique=True,
-        help_text="Enter an objective status (e.g. Active, On Hold)",
+        help_text="Objective's status",
     )
 
     class Meta:
@@ -324,7 +324,10 @@ class ProjectObjective(models.Model):
             return 1
 
     objective = models.TextField(
-        "Objective", null=True, blank=True, help_text="Provide a concise objective"
+        "Objective",
+        null=True,
+        blank=True,
+        help_text="Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles",
     )
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark the objective as complete"
@@ -334,7 +337,10 @@ class ProjectObjective(models.Model):
         max_length=12,
         null=True,
         blank=True,
-        help_text="Provide a deadline for this objective",
+        help_text="Objective's deadline/due date",
+    )
+    marked_complete = models.DateField(
+        "Marked Complete", null=True, blank=True, help_text="Date the objective was marked complete"
     )
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
@@ -361,6 +367,61 @@ class ProjectObjective(models.Model):
 
     def __str__(self):
         return f"{self.project} - {self.objective} {self.status})"
+
+
+class ProjectSubTask(models.Model):
+    """
+    Stores an individual sub-task, related to an individual :model:`rolodex.ProjectObjective`
+    and :model:`rolodex.ObjectiveStatus`.
+    """
+
+    def get_status():
+        """Get the default status for the status field."""
+        try:
+            active_status = ObjectiveStatus.objects.get(objective_status="Active")
+            return active_status.id
+        except ObjectiveStatus.DoesNotExist:
+            return 1
+
+    task = models.TextField("Task", null=True, blank=True, help_text="Provide a concise objective")
+    complete = models.BooleanField(
+        "Completed", default=False, help_text="Mark the objective as complete"
+    )
+    deadline = models.DateField(
+        "Due Date",
+        max_length=12,
+        null=True,
+        blank=True,
+        help_text="Provide a deadline for this objective",
+    )
+    marked_complete = models.DateField(
+        "Marked Complete", null=True, blank=True, help_text="Date the task was marked complete"
+    )
+    # Foreign Keys
+    parent = models.ForeignKey(ProjectObjective, on_delete=models.CASCADE, null=False)
+    status = models.ForeignKey(
+        ObjectiveStatus,
+        on_delete=models.PROTECT,
+        default=get_status,
+        help_text="Set the status for this objective",
+    )
+
+    class Meta:
+
+        ordering = ["parent", "complete", "deadline", "status", "task"]
+        verbose_name = "Objective sub-task"
+        verbose_name_plural = "Objective sub-tasks"
+
+    def save(self, *args, **kwargs):
+        # Move a deadline outside of the project's window into the window
+        if self.deadline < self.parent.project.start_date:
+            self.deadline = self.parent.project.start_date
+        elif self.deadline > self.parent.deadline:
+            self.deadline = self.parent.deadline
+        super(ProjectSubTask, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.parent.project} : {self.task} ({self.status})"
 
 
 class ClientNote(models.Model):
@@ -473,7 +534,7 @@ class ProjectScope(models.Model):
         return count
 
     def count_lines_str(self):
-        """Returns the number of lines in the scope list."""
+        """Returns the number of lines in the scope list as a string."""
         count = 0
         for line in self.scope.splitlines():
             count += 1
