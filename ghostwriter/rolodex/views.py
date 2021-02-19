@@ -1,6 +1,7 @@
 """This contains all of the views used by the Rolodex application."""
 
 # Standard Libraries
+import datetime
 import logging
 
 # Django & Other 3rd Party Libraries
@@ -15,7 +16,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
-from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.views.generic.edit import CreateView, DeleteView, FormView, UpdateView, View
 
 # Ghostwriter Libraries
 from ghostwriter.modules import codenames
@@ -27,7 +28,9 @@ from .forms_project import (
     ProjectForm,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
+    ProjectObjectivesWithTasksForm,
     ProjectScopeFormSet,
+    ProjectSubTaskFormSet,
     ProjectTargetFormSet,
 )
 from .models import (
@@ -40,6 +43,7 @@ from .models import (
     ProjectNote,
     ProjectObjective,
     ProjectScope,
+    ProjectSubTask,
     ProjectTarget,
 )
 
@@ -410,6 +414,179 @@ class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, View):
             self.request.user,
         )
         return JsonResponse(data)
+
+
+class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Create a new :model:`rolodex.ProjectSubTask` for an individual :model:`ProjectObjective`.
+    """
+
+    model = ProjectObjective
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        task = self.request.POST.get("task", None)
+        deadline = self.request.POST.get("deadline", None)
+        try:
+            if task and deadline:
+                deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
+
+                new_task = ProjectSubTask(
+                    parent=self.object,
+                    task=task,
+                    deadline=deadline.date(),
+                )
+                new_task.save()
+                data = {
+                    "result": "success",
+                    "message": "Task successfully saved",
+                }
+                logger.info(
+                    "Created new %s %s under %s %s by request of %s",
+                    new_task.__class__.__name__,
+                    new_task.id,
+                    self.object.__class__.__name__,
+                    self.object.id,
+                    self.request.user,
+                )
+            else:
+                data = {
+                    "result": "error",
+                    "message": "Your new task must have a valid task and due date",
+                }
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not create new task with provided values"}
+
+        return JsonResponse(data)
+
+
+class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``complete`` field of an individual :model:`rolodex.ProjectSubTask`.
+    """
+
+    model = ProjectSubTask
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.complete:
+                self.object.complete = False
+                self.object.marked_complete = None
+                data = {
+                    "result": "success",
+                    "message": "Task successfully marked as incomplete",
+                    "toggle": 0,
+                }
+            else:
+                self.object.complete = True
+                self.object.marked_complete = datetime.date.today()
+                data = {
+                    "result": "success",
+                    "message": "Task successfully marked as complete",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update task's status"}
+
+        return JsonResponse(data)
+
+
+class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.ProjectSubTask`.
+    """
+
+    model = ProjectSubTask
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+        data = {"result": "success", "message": "Task successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Update an individual :model:`rolodex.ProjectSubTask`.
+    """
+
+    model = ProjectSubTask
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        task = self.request.POST.get("task", None)
+        deadline = self.request.POST.get("deadline", None)
+        try:
+            if task and deadline:
+                deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
+
+                self.object.task = task
+                self.object.deadline = deadline.date()
+                self.object.save()
+                data = {
+                    "result": "success",
+                    "message": "Task successfully updated",
+                }
+                logger.info(
+                    "Updated %s %s by request of %s",
+                    self.object.__class__.__name__,
+                    self.object.id,
+                    self.request.user,
+                )
+            else:
+                data = {
+                    "result": "error",
+                    "message": "Task cannot be updated without a valid task and due date",
+                }
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update the task with provided values"}
+
+        return JsonResponse(data)
+
+
+class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Return an updated version of the template following an update ordelete action related
+    to an individual :model:`rolodex.Project`.
+
+    **Template**
+
+    :template:`snippets/project_objective_subtasks.html`
+    """
+
+    model = ProjectObjective
+
+    def get(self, *args, **kwargs):
+        self.object = self.get_object()
+        html = render_to_string(
+            "snippets/project_objective_subtasks.html",
+            {"objective": self.object},
+            request=self.request,
+        )
+        return HttpResponse(html)
 
 
 ##################
@@ -1232,3 +1409,75 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
+
+
+class ProjectObjectiveUpdate(LoginRequiredMixin, UpdateView):
+    """
+    Update an individual :model:`rolodex.ProjectObjective` and related
+    :model:`ProjectSubTask`.
+
+    **Context**
+
+    ``object``
+        Instance of :model:`rolodex.Project` being updated
+    ``objectives``
+        Instance of the `ProjectObjectiveFormSet()` formset
+    ``tasks``
+        Instance of the `ProjectSubTaskFormSet()` formset
+    ``cancel_link``
+        Link for the form's Cancel button to return to project's detail page
+
+    **Template**
+
+    :template:`rolodex/project_form.html`
+    """
+
+    model = ProjectObjective
+    form_class = ProjectObjectivesWithTasksForm
+    template_name = "rolodex/project_objectives_update.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super(ProjectObjectiveUpdate, self).get_context_data(**kwargs)
+        ctx["object"] = self.get_object()
+        ctx["cancel_link"] = "{}#objectives".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        )
+        if self.request.POST:
+            ctx["tasks"] = ProjectSubTaskFormSet(
+                self.request.POST, prefix="task", instance=self.object
+            )
+        else:
+            ctx["tasks"] = ProjectSubTaskFormSet(prefix="task", instance=self.object)
+        return ctx
+
+    def get_success_url(self):
+        messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
+        return reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+
+    def form_valid(self, form):
+        # Get form context data – used for validation of inline forms
+        ctx = self.get_context_data()
+        tasks = ctx["tasks"]
+
+        # Now validate inline formsets
+        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
+        try:
+            with transaction.atomic():
+                # Save the parent form – will rollback if a child fails validation
+                self.object = form.save()
+
+                tasks_valid = tasks.is_valid()
+                if tasks_valid:
+                    tasks.instance = self.object
+                    tasks.save()
+
+                # Proceed with form submission
+                if form.is_valid() and tasks_valid:
+                    return super().form_valid(form)
+                else:
+                    # Raise an error to rollback transactions
+                    raise forms.ValidationError(_("Invalid form data"))
+        # Otherwise return ``form_invalid`` and display errors
+        except Exception:
+            logger.exception("Failed to update the project objective")
+            return super(ProjectObjectiveUpdate, self).form_invalid(form)
