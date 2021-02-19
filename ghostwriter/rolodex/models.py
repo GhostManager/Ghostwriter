@@ -368,6 +368,21 @@ class ProjectObjective(models.Model):
     def __str__(self):
         return f"{self.project} - {self.objective} {self.status})"
 
+    def calculate_status(self):
+        """
+        Calculate and return a percentage complete estimate based on ``complete`` value
+        and any status of related :model:`ProjectSubTask` entries.
+        """
+        total_tasks = self.projectsubtask_set.all().count()
+        completed_tasks = 0
+        if self.complete:
+            return 100
+        else:
+            for task in self.projectsubtask_set.all():
+                if task.complete:
+                    completed_tasks += 1
+            return round(completed_tasks / total_tasks * 100, 1)
+
 
 class ProjectSubTask(models.Model):
     """
