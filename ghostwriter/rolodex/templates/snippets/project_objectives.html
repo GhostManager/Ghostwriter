@@ -1,0 +1,52 @@
+{% load bleach_tags %}
+
+{% load determine_primary %}
+
+<!-- Objectives Section -->
+<h4>Project Objectives</h4>
+
+<p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add & Edit Objectives</a></p>
+
+<p>Create specific objectives to pursue, track their status, and view deadlines in the calendar.</p>
+
+{% if project.projectobjective_set.all %}
+    {% for objective in project.projectobjective_set.all %}
+        <div class="card mb-4">
+            <div class="card-header task-header" id="objective-{{ objective.id }}">
+                <a class="icon objective-icon">
+                    <span id="objective-status-{{ objective.id }}" class="badge badge-pill badge-dark
+                        {% if objective.status.objective_status == "Active" %}
+                            low-background
+                        {% elif objective.status.objective_status == "On Hold" %}
+                            medium-background
+                        {% elif objective.status.objective_status == "Complete" %}
+                            info-background
+                        {% elif objective.status.objective_status == "Incomplete" %}
+                            high-background
+                        {% endif %}
+                    ">
+                        {{ objective.status }}
+                    </span>
+                    <span class="objective-status">
+                        {{ objective.objective|striptags }}
+                    </span>
+                    <span class="objective-deadline
+                        {% if not task.complete and task.deadline|days_left <= 1 %}
+                            task-imminent
+                        {% elif not task.complete and task.deadline|days_left <= 5 %}
+                            task-due-soon
+                        {% endif %}
+                    ">
+                        {{ objective.deadline|date:"d M Y" }}
+                    </span>
+                </a>
+            </div>
+
+            <div id="task-list-{{ objective.id }}">
+                {% include "snippets/project_objective_subtasks.html" %}
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No objectives have been set for this project yet.</p>
+{% endif %}

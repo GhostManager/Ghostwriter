@@ -17,12 +17,14 @@
 {% endblock %}
 
 {% block content %}
-    <div class="dropdown">
-        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
-            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
-            <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to Client</a>
-            <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
+    <div>
+        <div class="dropdown">
+            <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
+                <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
+                <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to Client</a>
+                <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
+            </div>
         </div>
     </div>
 
@@ -94,7 +96,7 @@
                 <!-- Assignment Section -->
                 <h4>Project Assignments</h4>
 
-                <p><a class="icon add-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a></p>
+                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a></p>
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
@@ -137,6 +139,7 @@
 
                 <div id='calendar'></div>
             </div>
+
             <div id="scopes" class="tab-pane">
                 <!-- Scope Section -->
                 <h4>Scope Lists</h4>
@@ -189,58 +192,11 @@
                     <p>No scope lists have been set up to this project yet.</p>
                 {% endif %}
             </div>
+
             <div id="objectives" class="tab-pane ">
-                <!-- Objectives Section -->
-                <h4>Project Objectives</h4>
-
-                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add & Edit Objectives</a></p>
-
-                <p>Create specific objectives to pursue, track their status, and view deadlines in the calendar.</p>
-
-                {% if project.projectobjective_set.all %}
-                    <table id="objectiveTable" class="tablesorter table">
-                        <thead>
-                            <th class="align-middle">Status</th>
-                            <th class="align-middle">Objective</th>
-                            <th class="align-middle">Deadline</th>
-                            <th class="sorter-false test-center align-middle">Options</th>
-                        </thead>
-                        {% for objective in project.projectobjective_set.all %}
-                            <tr>
-                                <td nowrap class="align-middle">
-                                    <span id="objective-status-{{ objective.id }}" class="badge badge-pill badge-dark
-                                        {% if objective.status.objective_status == "Active" %}
-                                            low-background
-                                        {% elif objective.status.objective_status == "On Hold" %}
-                                            medium-background
-                                        {% elif objective.status.objective_status == "Complete" %}
-                                            info-background
-                                        {% endif %}
-                                        ">
-                                        {{ objective.status }}
-                                    </span>
-                                </td>
-                                <td id="delete-target-content-objective-{{ objective.id }}" class="text-left align-middle">{{ objective.objective|bleach }}</td>
-                                <td nowrap class="align-middle">{{ objective.deadline }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu" aria-labelledby="objective-dropdown-btn_{{ objective.id }}">
-                                            <a class="dropdown-item js-set-objective-status icon run-icon" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'active' %}" set-objective-status="active" set-objective-status-id="{{ objective.id }}">Set Active</a>
-                                            <a class="dropdown-item js-set-objective-status icon pause-icon" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'on hold' %}" set-objective-status="onhold" set-objective-status-id="{{ objective.id }}">Set On Hold</a>
-                                            <a class="dropdown-item js-set-objective-status icon done-icon" href="javascript:void(0);" set-objective-status-csrftoken="{{ csrf_token }}" set-objective-status-url="{% url 'rolodex:ajax_set_objective_status' objective.id 'complete' %}" set-objective-status="complete" set-objective-status-id="{{ objective.id }}">Set Complete</a>
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Edit Objective</a>
-                                            <a id="objective-delete-button-{{ objective.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_objective' objective.id %}" delete-target-id="{{ objective.id }}" delete-target-type="objective">Remove</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>No objectives have been set for this project yet.</p>
-                {% endif %}
+                {% include "snippets/project_objectives.html"  %}
             </div>
+
             <div id="targets" class="tab-pane">
                 <!-- Targets Section -->
                 <h4>Targets</h4>
@@ -1000,6 +956,259 @@
     <!-- Clipboard Events -->
     <script>
         new ClipboardJS('.js-copy-scope');
+    </script>
+
+    <!-- Objective Task Management -->
+    <script>
+        // Example code: https://www.bootdey.com/snippets/view/bs4-todo-list#preview
+        // Toggle a task's ``complete`` value
+        function toggleTodo(ele) {
+            var url = ele.attr('toggle-task-url');
+            var taskId = ele.attr('task-id');
+            var csrftoken = ele.attr('task-csrftoken');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'task': taskId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        ele.toggleClass('complete');
+                        updateTodoList(ele);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Task Update'});
+                    }
+                }
+            });
+        };
+
+        // Create a new task below an objective
+        function createTodo(ele) {
+            var url = ele.attr('new-task-url');
+            var csrftoken = ele.attr('new-task-csrftoken');
+            var objectiveId = ele.attr('objective-id');
+            var task = ele.find('input[name="task"]').val()
+            var deadline = ele.find('input[name="deadline"]').val()
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'objectiveId': objectiveId,
+                    'task': task,
+                    'deadline': deadline,
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        // Reset form
+                        ele.trigger('reset');
+                        updateTodoList(ele);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Task Update'});
+                    }
+                }
+            });
+        };
+
+        // Delete a task
+        function deleteTodo(ele) {
+            var url = ele.attr('delete-task-url');
+            var csrftoken = ele.attr('task-csrftoken');
+            var taskId = ele.attr('task-id');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'taskId': taskId,
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        updateTodoList(ele);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Task Deleted'});
+                    }
+                }
+            });
+        };
+
+        // Update a task
+        function updateTodo(ele) {
+            var url = ele.attr('update-task-url');
+            var csrftoken = ele.attr('task-csrftoken');
+            var taskId = ele.attr('task-id');
+            var task = $('textarea[name="task-' + taskId + '"]').val();
+            var deadline = $('input[name="task-deadline-' + taskId + '"]').val();
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'taskId': taskId,
+                    'task': task,
+                    'deadline': deadline,
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        // Do Something
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Task Updated'});
+                    }
+                }
+            });
+        };
+
+        function updateTodoList(ele) {
+            var objectiveId = ele.attr('objective-id');
+            var taskList = $('#task-list-' + objectiveId);
+            var url = ele.attr('refresh-task-url');
+            console.log(ele)
+            console.log(url)
+            if (url != null) {
+                console.log("Updating task list...");
+                // Refresh the HTML from the update URL
+                taskList.html('').load(url, function() {
+                    prepareTodoList();
+                });
+            }
+        };
+
+        // Prepare task list's click events
+        var todo = function() {
+            $('.todo-list .todo-item :checkbox').click(function() {
+                toggleTodo($(this).parent().parent().parent());
+            });
+
+            $('.todo-nav .all-task').click(function() {
+                $('.todo-list').removeClass('only-active');
+                $('.todo-list').removeClass('only-complete');
+                $('.todo-nav li.active').removeClass('active');
+                $(this).addClass('active');
+            });
+
+            $('.todo-nav .active-task').click(function() {
+                $('.todo-list').removeClass('only-complete');
+                $('.todo-list').addClass('only-active');
+                $('.todo-nav li.active').removeClass('active');
+                $(this).addClass('active');
+            });
+
+            $('.todo-nav .completed-task').click(function() {
+                $('.todo-list').removeClass('only-active');
+                $('.todo-list').addClass('only-complete');
+                $('.todo-nav li.active').removeClass('active');
+                $(this).addClass('active');
+            });
+
+            $('#uniform-all-complete input').click(function() {
+                if($(this).is(':checked')) {
+                    $('.todo-item .checker span:not(.checked) input').click();
+                } else {
+                    $('.todo-item .checker span.checked input').click();
+                }
+            });
+
+            $('.remove-todo-item').click(function() {
+                deleteTodo($(this).parent().parent());
+            });
+        };
+
+        function prepareTodoList() {
+            $('.edit-todo-input').textareaAutoSize();
+
+            todo();
+
+            // Get current date with timezone offset
+            Date.prototype.toDateInputValue = (function() {
+                var local = new Date(this);
+                local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
+                return local.toJSON().slice(0,10);
+            });
+
+            // Set current date as placeholder value for deadline fields
+            $('[name=deadline').val(new Date().toDateInputValue());
+
+            // Handle key presses and clicks for creating and editing tasks
+            $('.add-task').keypress(function (e) {
+                if ((e.which == 13)&&(!$(this).val().length == 0)&&(!$(this).closest('form').find('input[name="deadline"]').val() == 0)) {
+                    createTodo($(this).closest('form'));
+                } else if(e.which == 13) {
+                    alert('Please enter a task and a due date');
+                }
+            });
+            $('.add-deadline').keypress(function (e) {
+                if ((e.which == 13)&&(!$(this).val().length == 0)&&(!$(this).closest('form').find('input[name="task"]').val() == 0)) {
+                    createTodo($(this).closest('form'));
+                } else if(e.which == 13) {
+                    alert('Please enter a task and a due date');
+                }
+            });
+
+            // Toggle ``readonly`` attribute on fields and save
+            $('.edit-todo-input').click(function() {
+                $(this).removeAttr('readonly');
+            });
+
+            $('.edit-todo-input').blur(function() {
+                $(this).attr('readonly', true);
+                var currentValue = $(this).val();
+                var previousValue = $(this).attr('value');
+                $(this).attr('readonly', true);
+                if (currentValue != previousValue) {
+                    updateTodo($(this).parent().parent());
+                    updateTodoList($(this).parent().parent());
+                }
+            });
+        };
+
+        $( document ).ready(function() {
+
+            "use strict";
+
+            prepareTodoList();
+        });
     </script>
 
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
