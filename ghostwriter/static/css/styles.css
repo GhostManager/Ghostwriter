@@ -2561,7 +2561,7 @@ li[role="presentation"].active a{
   resize: none !important;
   box-sizing: border-box;
   max-height: 150px; /* optional, but recommended */
-  min-height: 1.5rem;
+  min-height: 2.25rem;
   overflow-x: hidden; /* for Firefox (issue #5) */
 }
 
