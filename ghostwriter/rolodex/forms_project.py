@@ -20,7 +20,7 @@ from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
-from ghostwriter.modules.custom_layout_object import CustomTab, Formset
+from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 
 from .models import (
     Project,
@@ -28,6 +28,7 @@ from .models import (
     ProjectNote,
     ProjectObjective,
     ProjectScope,
+    ProjectSubTask,
     ProjectTarget,
 )
 
@@ -78,6 +79,33 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             "deadline",
                             ValidationError(
                                 _("Your objective still needs a deadline"),
+                                code="incomplete",
+                            ),
+                        )
+
+
+class BaseProjectSubTaskInlineFormSet(BaseInlineFormSet):
+    """
+    BaseInlineFormset template for :model:`rolodex.ProjectSubTask` that adds validation
+    for this model.
+    """
+
+    def clean(self):
+        super(BaseProjectSubTaskInlineFormSet, self).clean()
+        if any(self.errors):
+            return
+        for form in self.forms:
+            if form.cleaned_data:
+                # Only validate if the form is NOT marked for deletion
+                if form.cleaned_data["DELETE"] is False:
+                    task = form.cleaned_data["task"]
+                    deadline = form.cleaned_data["deadline"]
+
+                    if deadline and not task:
+                        form.add_error(
+                            "deadline",
+                            ValidationError(
+                                _("Your deadline is missing a task"),
                                 code="incomplete",
                             ),
                         )
@@ -183,6 +211,8 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
                 # Only validate if the form is NOT marked for deletion
                 if form.cleaned_data["DELETE"] is False:
                     name = form.cleaned_data["name"]
+                    scope = form.cleaned_data["scope"]
+                    description = form.cleaned_data["description"]
 
                     # Check that no two names are the same
                     if name:
@@ -195,6 +225,23 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
                             ValidationError(
                                 _("Your names must be unique"),
                                 code="duplicate",
+                            ),
+                        )
+                    if name or description:
+                        if not scope:
+                            form.add_error(
+                                "scope",
+                                ValidationError(
+                                    _("You scope list is missing"),
+                                    code="incomplete",
+                                ),
+                            )
+                    if scope and not name:
+                        form.add_error(
+                            "name",
+                            ValidationError(
+                                _("Your scope list is missing a name"),
+                                code="incomplete",
                             ),
                         )
 
@@ -385,7 +432,7 @@ class ProjectObjectiveForm(forms.ModelForm):
 
     class Meta:
         model = ProjectObjective
-        fields = ("deadline", "objective")
+        fields = ("deadline", "objective", "complete", "status")
 
     def __init__(self, *args, **kwargs):
         super(ProjectObjectiveForm, self).__init__(*args, **kwargs)
@@ -393,7 +440,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["deadline"].widget.attrs["autocomplete"] = "off"
         self.fields["deadline"].widget.input_type = "date"
         self.fields["objective"].widget.attrs["rows"] = 5
-        self.fields["objective"].widget.attrs["placeholder"] = "High-level Objective"
+        self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -428,30 +475,146 @@ class ProjectObjectiveForm(forms.ModelForm):
                     ),
                     Row(
                         Column(
-                            FieldWithButtons(
-                                "deadline",
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary"
-                                        type="button"
-                                        onclick="copyEndDate($(this).closest('div').find('input'))"
-                                    >
-                                    Copy
-                                    </button>
-                                    """
+                            Row(
+                                FieldWithButtons(
+                                    "deadline",
+                                    HTML(
+                                        """
+                                        <button
+                                            class="btn btn-secondary"
+                                            type="button"
+                                            onclick="copyEndDate($(this).closest('div').find('input'))"
+                                        >
+                                        Copy
+                                        </button>
+                                        """
+                                    ),
+                                    css_class="col-md-12",
                                 ),
                             ),
-                            css_class="form-group col-md-6 mb-0",
+                            Row(
+                                Field("status", css_class="form-select"),
+                                css_class="col-md-12 p-0 m-0",
+                            ),
+                            Row(
+                                SwitchToggle(
+                                    "complete",
+                                    css_class="offset-md-4",
+                                ),
+                            ),
+                            css_class="col-md-4",
                         ),
-                        css_class="form-row",
+                        Column(
+                            "objective",
+                            css_class="col-md-8",
+                        ),
                     ),
-                    "objective",
                     Row(
                         Column(
                             Button(
                                 "formset-del-button",
                                 "Delete Objective",
+                                css_class="btn-sm btn-danger formset-del-button",
+                            ),
+                            css_class="form-group col-md-4 offset-md-4",
+                        ),
+                        Column(
+                            Field("DELETE", style="display: none;"),
+                            css_class="form-group col-md-4 text-center",
+                        ),
+                        css_class="form-row",
+                    ),
+                    css_class="formset",
+                ),
+                css_class="formset-container",
+            )
+        )
+
+
+class ProjectSubTaskForm(forms.ModelForm):
+    """
+    Save an individual :model:`rolodex.ProjectSubTask` associated with an individual
+    :model:`rolodex.ProjectObjective`.
+    """
+
+    class Meta:
+        model = ProjectSubTask
+        fields = ("deadline", "task", "complete", "status")
+
+    def __init__(self, *args, **kwargs):
+        super(ProjectSubTaskForm, self).__init__(*args, **kwargs)
+        self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
+        self.fields["deadline"].widget.attrs["autocomplete"] = "off"
+        self.fields["deadline"].widget.input_type = "date"
+        self.fields["task"].widget.attrs["rows"] = 5
+        self.fields["task"].widget.attrs["placeholder"] = "Mid-Level Task"
+        self.helper = FormHelper()
+        # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
+        self.helper.form_tag = False
+        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
+        self.helper.disable_csrf = True
+        # Hide the field labels from the model
+        self.helper.form_show_labels = False
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            # Wrap form in a div so Django renders form instances in their own element
+            Div(
+                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
+                Alert(
+                    content=(
+                        """
+                        <strong>Task Deleted!</strong>
+                        Deletion will be permanent once the form is submitted. Click this alert to undo.
+                        """
+                    ),
+                    css_class="alert alert-danger show formset-undo-button",
+                    style="display:none; cursor:pointer;",
+                    template="alert.html",
+                    block=False,
+                    dismiss=False,
+                ),
+                Div(
+                    Row(
+                        Column(
+                            Row(
+                                FieldWithButtons(
+                                    "deadline",
+                                    HTML(
+                                        """
+                                        <button
+                                            class="btn btn-secondary"
+                                            type="button"
+                                            onclick="copyDeadline($(this).closest('div').find('input'))"
+                                        >
+                                        Copy
+                                        </button>
+                                        """
+                                    ),
+                                    css_class="col-md-12",
+                                ),
+                            ),
+                            Row(
+                                Field("status", css_class="form-select"),
+                                css_class="col-md-12 p-0 m-0",
+                            ),
+                            Row(
+                                SwitchToggle(
+                                    "complete",
+                                    css_class="col-md-12",
+                                ),
+                            ),
+                            css_class="col-md-4",
+                        ),
+                        Column(
+                            "task",
+                            css_class="col-md-8",
+                        ),
+                    ),
+                    Row(
+                        Column(
+                            Button(
+                                "formset-del-button",
+                                "Delete Task",
                                 css_class="btn-sm btn-danger formset-del-button",
                             ),
                             css_class="form-group col-md-4 offset-md-4",
@@ -641,11 +804,21 @@ ProjectAssignmentFormSet = inlineformset_factory(
     can_delete=True,
 )
 
+
 ProjectObjectiveFormSet = inlineformset_factory(
     Project,
     ProjectObjective,
     form=ProjectObjectiveForm,
     formset=BaseProjectObjectiveInlineFormSet,
+    extra=1,
+    can_delete=True,
+)
+
+ProjectSubTaskFormSet = inlineformset_factory(
+    ProjectObjective,
+    ProjectSubTask,
+    form=ProjectSubTaskForm,
+    formset=BaseProjectSubTaskInlineFormSet,
     extra=1,
     can_delete=True,
 )
@@ -902,3 +1075,92 @@ class ProjectNoteForm(forms.ModelForm):
                 code="required",
             )
         return note
+
+
+class ProjectObjectivesWithTasksForm(forms.ModelForm):
+    """
+    Update an individual :model:`rolodex.ProjectObjective` and related instances of
+    :model:`rolodex.ProjectSubTask`.
+    """
+
+    class Meta:
+        model = ProjectObjective
+        fields = ("deadline", "objective", "status", "complete")
+
+    def __init__(self, *args, **kwargs):
+        super(ProjectObjectivesWithTasksForm, self).__init__(*args, **kwargs)
+        self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
+        self.fields["deadline"].widget.attrs["autocomplete"] = "off"
+        self.fields["deadline"].widget.input_type = "date"
+        self.fields["objective"].widget.attrs["rows"] = 5
+        self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
+        self.helper = FormHelper()
+        # Turn on <form> tags for this parent form
+        self.helper.form_tag = True
+        self.helper.form_class = "form-inline justify-content-center"
+        self.helper.form_method = "post"
+        self.helper.form_class = "newitem"
+        # Hide the field labels from the model
+        self.helper.form_show_labels = False
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            Row(
+                Column(
+                    Row(
+                        FieldWithButtons(
+                            "deadline",
+                            HTML(
+                                """
+                                <button
+                                    class="btn btn-secondary"
+                                    type="button"
+                                    onclick="copyDeadline($(this).closest('div').find('input'))"
+                                >
+                                Copy
+                                </button>
+                                """
+                            ),
+                            css_class="col-md-12",
+                        ),
+                    ),
+                    Row(Field("status", css_class="form-select"), css_class="col-md-12 p-0 m-0"),
+                    Row(
+                        SwitchToggle(
+                            "complete",
+                            css_class="offset-md-4",
+                        ),
+                    ),
+                    css_class="col-md-4",
+                ),
+                Column(
+                    "objective",
+                    css_class="col-md-8",
+                ),
+            ),
+            HTML(
+                """
+                <p class="form-spacer"></p>
+                <h6>Mid-Level Tasks</h6>
+                <p>Add & update mid-level tasks for tracking the progress of your objective.</p>
+                """
+            ),
+            Formset("tasks", object_context_name="Task"),
+            Button(
+                "add-task",
+                "Add Task",
+                css_class="btn-block btn-secondary formset-add-task",
+            ),
+            HTML(
+                """
+                <p class="form-spacer"></p>
+                """
+            ),
+            ButtonHolder(
+                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
