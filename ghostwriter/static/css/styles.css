@@ -194,6 +194,7 @@ h2 {
   color: var(--h2-font-color);
   font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 3em;
+  margin-right: 20px
 }
 
 h3 {
@@ -1386,9 +1387,9 @@ td p {
 .nav-tabs .nav-link {
   background-color: var(--neutral-color);
   color: #fff;
-  margin: 0.5px;
-  border: 0.5px solid white;
-  border-radius: 10px 10px 0px 0px;
+  margin: 0.25px;
+  border: 0.25px solid white;
+  border-radius: 7px 7px 0px 0px;
 }
 
 .nav-link {
@@ -2441,6 +2442,10 @@ img {
   margin: 10px 0;
 }
 
+.todo-list .form-control {
+  font-size: .85em;
+}
+
 .todo-list .todo-item {
   padding: 15px;
   margin: 5px 0;
@@ -2449,26 +2454,29 @@ img {
 }
 
 .todo-list.only-active .todo-item.complete {
-  display: none;
+  display: none  !important;
 }
 
 .todo-list.only-active .todo-item:not(.complete) {
-  display: visible;
+  display: visible !important;
 }
 
 .todo-list.only-complete .todo-item:not(.complete) {
-  display: none;
+  display: none  !important;
 }
 
 .todo-list.only-complete .todo-item.complete {
-  display: visible;
+  display: visible  !important;
 }
 
-.todo-list .todo-item.complete div {
+.todo-list .todo-item.complete div.task-description {
   text-decoration: line-through;
   color: var(--main-txt-color);
   font-style: italic;
   font-weight: normal;
+  font-size: .85em;
+  text-align: left;
+  padding-left: 27px;
 }
 
 .remove-todo-item {
@@ -2493,8 +2501,8 @@ div.checker span {
 }
 
 div.checker input, div.checker span {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
 }
 
 div.button, div.button *, div.checker, div.checker *, div.radio, div.radio *, div.selector, div.selector *, div.uploader, div.uploader * {
@@ -2523,14 +2531,40 @@ li[role="presentation"].active a{
 
 .task-deadline {
   text-align: center;
-  color: var(--primary-color);
   font-weight: 600;
+  font-size: .85em;
+}
+
+.task-future {
+  color: var(--primary-color);
+}
+
+.task-due-soon {
+  color: var(--warning-color);
 }
 
 .task-imminent {
   color: var(--blocked-color);
 }
 
-.task-due-soon {
-  color: var(--warning-color);
+.task-header {
+  text-align: left;
+}
+
+.objective-deadline {
+  float: right;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.edit-todo-input {
+  resize: none !important;
+  box-sizing: border-box;
+  max-height: 150px; /* optional, but recommended */
+  min-height: 1rem;
+  overflow-x: hidden; /* for Firefox (issue #5) */
+}
+
+.todo-progressbar {
+  background-color: var(--primary-color);
 }
