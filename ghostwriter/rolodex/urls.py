@@ -82,6 +82,31 @@ urlpatterns += [
         views.ProjectScopeDelete.as_view(),
         name="ajax_delete_project_scope",
     ),
+    path(
+        "ajax/project/task/create/<int:pk>",
+        views.ProjectTaskCreate.as_view(),
+        name="ajax_create_project_task",
+    ),
+    path(
+        "ajax/project/task/toggle/<int:pk>",
+        views.ProjectTaskToggle.as_view(),
+        name="ajax_toggle_project_task",
+    ),
+    path(
+        "ajax/project/task/delete/<int:pk>",
+        views.ProjectTaskDelete.as_view(),
+        name="ajax_delete_project_task",
+    ),
+    path(
+        "ajax/project/task/update/<int:pk>",
+        views.ProjectTaskUpdate.as_view(),
+        name="ajax_update_project_task",
+    ),
+    path(
+        "ajax/project/task/refresh/<int:pk>",
+        views.ProjectTaskRefresh.as_view(),
+        name="ajax_update_objective_tasks",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views
