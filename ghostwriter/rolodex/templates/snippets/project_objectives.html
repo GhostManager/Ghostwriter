@@ -42,6 +42,12 @@
                 </a>
             </div>
 
+            {%  if objective.description %}
+                <div class="objective-description">
+                    {{ objective.description|bleach }}
+                </div>
+            {% endif %}
+
             <div id="task-list-{{ objective.id }}">
                 {% include "snippets/project_objective_subtasks.html" %}
             </div>

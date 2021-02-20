@@ -51,6 +51,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                 if form.cleaned_data["DELETE"] is False:
                     objective = form.cleaned_data["objective"]
                     deadline = form.cleaned_data["deadline"]
+                    description = form.cleaned_data["description"]
 
                     # Check that no two objectives are the same
                     if objective:
@@ -79,6 +80,15 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             "deadline",
                             ValidationError(
                                 _("Your objective still needs a deadline"),
+                                code="incomplete",
+                            ),
+                        )
+                    # Check if a description has been filled-out for an empty objective
+                    if description and not objective:
+                        form.add_error(
+                            "description",
+                            ValidationError(
+                                _("Your description is missing an objective"),
                                 code="incomplete",
                             ),
                         )
@@ -432,7 +442,7 @@ class ProjectObjectiveForm(forms.ModelForm):
 
     class Meta:
         model = ProjectObjective
-        fields = ("deadline", "objective", "complete", "status")
+        fields = ("deadline", "objective", "complete", "status", "description")
 
     def __init__(self, *args, **kwargs):
         super(ProjectObjectiveForm, self).__init__(*args, **kwargs)
@@ -441,6 +451,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["deadline"].widget.input_type = "date"
         self.fields["objective"].widget.attrs["rows"] = 5
         self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
+        self.fields["description"].widget.attrs["placeholder"] = "Description, Notes, and Context"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -473,6 +484,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                         <hr>
                         """
                     ),
+                    Field("objective"),
                     Row(
                         Column(
                             Row(
@@ -505,7 +517,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                             css_class="col-md-4",
                         ),
                         Column(
-                            "objective",
+                            "description",
                             css_class="col-md-8",
                         ),
                     ),

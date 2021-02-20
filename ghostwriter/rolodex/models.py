@@ -323,11 +323,18 @@ class ProjectObjective(models.Model):
         except ObjectiveStatus.DoesNotExist:
             return 1
 
-    objective = models.TextField(
+    objective = models.CharField(
         "Objective",
+        max_length=255,
         null=True,
         blank=True,
         help_text="Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles",
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a more detailed description, purpose, or context",
     )
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark the objective as complete"
