@@ -1120,6 +1120,16 @@ tr:hover {
   content: '\f70c';
 }
 
+.calendar-objective-icon .fc-event-title:before, .calendar-task-icon .fc-list-event-title:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 5px;
+  padding-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f05b';
+}
+
 .calendar-task-icon .fc-event-title:before, .calendar-task-icon .fc-list-event-title:before {
   font-family: 'Font Awesome 5 Free';
   display: inline-block;

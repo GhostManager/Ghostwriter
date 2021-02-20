@@ -923,9 +923,22 @@
                     start: '{{ objective.deadline|date:"Y-m-d" }}',
                     end: '{{ objective.deadline|date:"Y-m-d" }}',
                     color: 'var(--secondary-color-fade)',
-                    className: 'calendar-task-icon'
+                    className: 'calendar-objective-icon'
                 };
                 calendar.addEvent(event);
+                {% if objective.projectsubtask_set.all %}
+                    {% for task in objective.projectsubtask_set.all %}
+                        var event = {
+                            title: '{{ task.task|striptags }}',
+                            allDay: true,
+                            start: '{{ task.deadline|date:"Y-m-d" }}',
+                            end: '{{ task.deadline|date:"Y-m-d" }}',
+                            color: 'var(--secondary-color-med)',
+                            className: 'calendar-task-icon'
+                        };
+                        calendar.addEvent(event);
+                    {% endfor %}
+                {% endif %}
             {% endfor %}
         });
     </script>

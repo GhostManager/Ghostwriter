@@ -10,9 +10,13 @@
   --primary-color: #51b071;
   --secondary-color: #2B2C66;
   --secondary-color-fade: #7386D5;
+  --secondary-color-med: #947BD3;
+  --secondary-color-light: #E1E2EF;
   --neutral-color: #7a7a7a;
   --blocked-color: #FF7E79;
   --warning-color: #F4B083;
+  --ghost-white: #F0EFF4;
+  --ghost-grey: #6C809A;
 
   /* TEXT */
   --h1-font-color: #2B2C66;
