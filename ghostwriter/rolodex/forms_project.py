@@ -326,8 +326,12 @@ class ProjectAssignmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ProjectAssignmentForm, self).__init__(*args, **kwargs)
-        self.fields["operator"].queryset = self.fields["operator"].queryset.order_by(
-            "username", "name"
+        self.fields["operator"].queryset = (
+            self.fields["operator"]
+            .queryset.filter(
+                is_active=True,
+            )
+            .order_by("username", "name")
         )
         self.fields["operator"].label_from_instance = lambda obj: obj.get_display_name
         self.fields["start_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
