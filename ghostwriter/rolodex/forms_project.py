@@ -911,8 +911,13 @@ class ProjectForm(forms.ModelForm):
                     "codename",
                     HTML(
                         """
-                        <a href="javascript:void(0)" class="icon dice-icon clickable-link js-roll-codename" roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}">Generate a Codename</a>
+                        <a href="javascript:void(0)" class="icon dice-icon clickable-link js-roll-codename" roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}">Generate a Random Codename</a>
                         <p class="form-spacer"></p>
+                        """
+                    ),
+                    HTML(
+                        """
+                        <p>Set your execution dates below. These are the dates you'll be actively testing, not prepping or reporting.</p>
                         """
                     ),
                     Row(
