@@ -283,6 +283,9 @@ class Reportwriter:
             report_dict["project"]["objectives"][objective.id]["complete"] = objective.complete
             report_dict["project"]["objectives"][objective.id]["deadline"] = objective.deadline
             report_dict["project"]["objectives"][objective.id][
+                "description"
+            ] = objective.description
+            report_dict["project"]["objectives"][objective.id][
                 "status"
             ] = objective.status.objective_status
         # Finding data
@@ -448,15 +451,18 @@ class Reportwriter:
             report_dict["team"][operator.operator.id]["note"] = operator.note
         # Project scope lists
         report_dict["scope"] = {}
+        total_scope_lines = 0
         for scope_list in self.report_queryset.project.projectscope_set.all():
             report_dict["scope"][scope_list.id] = {}
             report_dict["scope"][scope_list.id]["id"] = scope_list.id
             report_dict["scope"][scope_list.id]["name"] = scope_list.name
-            report_dict["scope"][scope_list.id]["scope"] = scope_list.scope
+            report_dict["scope"][scope_list.id]["scope"] = scope_list.scope.split("\r\n")
             report_dict["scope"][scope_list.id]["description"] = scope_list.description
             report_dict["scope"][scope_list.id]["requires_caution"] = scope_list.requires_caution
             report_dict["scope"][scope_list.id]["disallowed"] = scope_list.disallowed
             report_dict["scope"][scope_list.id]["total"] = scope_list.count_lines()
+            total_scope_lines += scope_list.count_lines()
+        report_dict["scope"]["total"] = total_scope_lines
         # Project targets
         report_dict["targets"] = {}
         for target in self.report_queryset.project.projecttarget_set.all():
@@ -1671,6 +1677,7 @@ Try opening it, exporting as desired type, and re-uploading it."
         context["client_codename"] = self.report_json["client"]["codename"]
 
         # Assessment information
+        context["project"] = self.report_json["project"].values()
         context["assessment_name"] = self.report_json["project"]["name"]
         context["assessment_type"] = self.report_json["project"]["project_type"]
         context["project_type"] = context["assessment_type"]
@@ -1714,7 +1721,7 @@ Try opening it, exporting as desired type, and re-uploading it."
         context["targets"] = self.report_json["targets"].values()
 
         # Generate the XML for the styled findings
-        context = self.process_findings(context)
+        context = self.process_richtext(context)
 
         # Render the Word document + auto-escape any unsafe XML/HTML
         self.word_doc.render(context, self.jinja_env, autoescape=True)
@@ -1722,10 +1729,10 @@ Try opening it, exporting as desired type, and re-uploading it."
         # Return the final rendered document
         return self.word_doc
 
-    def process_findings(self, context: dict) -> dict:
+    def process_richtext(self, context: dict) -> dict:
         """
         Update the document context with ``RichText`` and ``Subdocument`` objects for
-        each finding. This
+        each finding and any other values editable with a WYSIWYG editor.
 
         **Parameters**
 
@@ -1738,6 +1745,7 @@ Try opening it, exporting as desired type, and re-uploading it."
             self.process_text_xml(section, finding)
             return self.sacrificial_doc
 
+        # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
             # Create ``RichText()`` object for a colored severity category
@@ -1759,6 +1767,28 @@ Try opening it, exporting as desired type, and re-uploading it."
                 finding["network_detection_techniques"], finding
             )
             finding["references_rt"] = render_subdocument(finding["references"], finding)
+
+        # Objectives
+        for objective in context["objectives"]:
+            if isinstance(objective, dict):
+                if objective["description"]:
+                    objective["description_rt"] = render_subdocument(
+                        objective["description"], finding=None
+                    )
+
+        # Scope Lists
+        for scope_list in context["scope"]:
+            if isinstance(scope_list, dict):
+                if scope_list["description"]:
+                    scope_list["description_rt"] = render_subdocument(
+                        scope_list["description"], finding=None
+                    )
+
+        # Targets
+        for target in context["targets"]:
+            if isinstance(target, dict):
+                if target["note"]:
+                    target["note_rt"] = render_subdocument(target["note"], finding=None)
 
         return context
 
