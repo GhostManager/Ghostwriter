@@ -79,7 +79,7 @@
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
             // Re-initialize WYSIWYG editor for the new form
-            target = 'id_{{ objectives.prefix }}-' + parseInt(form_idx) + '-objective'
+            target = 'id_{{ objectives.prefix }}-' + parseInt(form_idx) + '-description'
             tinymce.execCommand('mceAddEditor', false, target);
         });
 
