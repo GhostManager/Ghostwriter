@@ -16,7 +16,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
-from django.views.generic.edit import CreateView, DeleteView, FormView, UpdateView, View
+from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # Ghostwriter Libraries
 from ghostwriter.modules import codenames
@@ -28,9 +28,7 @@ from .forms_project import (
     ProjectForm,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
-    ProjectObjectivesWithTasksForm,
     ProjectScopeFormSet,
-    ProjectSubTaskFormSet,
     ProjectTargetFormSet,
 )
 from .models import (
@@ -741,7 +739,11 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc")
         else:
-            ctx["contacts"] = ClientContactFormSet(prefix="poc")
+            # Add extra forms to aid in configuration of a new client
+            contacts = ClientContactFormSet(prefix="poc")
+            contacts.extra = 1
+            # Assign the re-configured formsets to context vars
+            ctx["contacts"] = contacts
         return ctx
 
     def form_valid(self, form):
@@ -1051,10 +1053,20 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
             ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target")
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj")
-            ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign")
-            ctx["scopes"] = ProjectScopeFormSet(prefix="scope")
-            ctx["targets"] = ProjectTargetFormSet(prefix="target")
+            # Add extra forms to aid in configuration of a new project
+            objectives = ProjectObjectiveFormSet(prefix="obj")
+            objectives.extra = 1
+            assignments = ProjectAssignmentFormSet(prefix="assign")
+            assignments.extra = 1
+            scopes = ProjectScopeFormSet(prefix="scope")
+            scopes.extra = 1
+            targets = ProjectTargetFormSet(prefix="target")
+            targets.extra = 1
+            # Assign the re-configured formsets to context vars
+            ctx["objectives"] = objectives
+            ctx["assignments"] = assignments
+            ctx["scopes"] = scopes
+            ctx["targets"] = targets
         return ctx
 
     def form_valid(self, form):
@@ -1409,75 +1421,3 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
-
-
-class ProjectObjectiveUpdate(LoginRequiredMixin, UpdateView):
-    """
-    Update an individual :model:`rolodex.ProjectObjective` and related
-    :model:`ProjectSubTask`.
-
-    **Context**
-
-    ``object``
-        Instance of :model:`rolodex.Project` being updated
-    ``objectives``
-        Instance of the `ProjectObjectiveFormSet()` formset
-    ``tasks``
-        Instance of the `ProjectSubTaskFormSet()` formset
-    ``cancel_link``
-        Link for the form's Cancel button to return to project's detail page
-
-    **Template**
-
-    :template:`rolodex/project_form.html`
-    """
-
-    model = ProjectObjective
-    form_class = ProjectObjectivesWithTasksForm
-    template_name = "rolodex/project_objectives_update.html"
-
-    def get_context_data(self, **kwargs):
-        ctx = super(ProjectObjectiveUpdate, self).get_context_data(**kwargs)
-        ctx["object"] = self.get_object()
-        ctx["cancel_link"] = "{}#objectives".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
-        )
-        if self.request.POST:
-            ctx["tasks"] = ProjectSubTaskFormSet(
-                self.request.POST, prefix="task", instance=self.object
-            )
-        else:
-            ctx["tasks"] = ProjectSubTaskFormSet(prefix="task", instance=self.object)
-        return ctx
-
-    def get_success_url(self):
-        messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
-        return reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
-
-    def form_valid(self, form):
-        # Get form context data – used for validation of inline forms
-        ctx = self.get_context_data()
-        tasks = ctx["tasks"]
-
-        # Now validate inline formsets
-        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
-        try:
-            with transaction.atomic():
-                # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
-
-                tasks_valid = tasks.is_valid()
-                if tasks_valid:
-                    tasks.instance = self.object
-                    tasks.save()
-
-                # Proceed with form submission
-                if form.is_valid() and tasks_valid:
-                    return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return ``form_invalid`` and display errors
-        except Exception:
-            logger.exception("Failed to update the project objective")
-            return super(ProjectObjectiveUpdate, self).form_invalid(form)

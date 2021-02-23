@@ -33,6 +33,11 @@ from .models import (
 )
 
 
+# Number of "extra" formsets created by default
+# Higher numbers can increase page load times with WYSIWYG editors
+EXTRAS = 0
+
+
 class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
     """
     BaseInlineFormset template for :model:`rolodex.ProjectObjective` that adds validation
@@ -484,7 +489,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                         <hr>
                         """
                     ),
-                    Field("objective"),
+                    "objective",
                     Row(
                         Column(
                             Row(
@@ -812,7 +817,7 @@ ProjectAssignmentFormSet = inlineformset_factory(
     ProjectAssignment,
     form=ProjectAssignmentForm,
     formset=BaseProjectAssignmentInlineFormSet,
-    extra=1,
+    extra=EXTRAS,
     can_delete=True,
 )
 
@@ -822,16 +827,7 @@ ProjectObjectiveFormSet = inlineformset_factory(
     ProjectObjective,
     form=ProjectObjectiveForm,
     formset=BaseProjectObjectiveInlineFormSet,
-    extra=1,
-    can_delete=True,
-)
-
-ProjectSubTaskFormSet = inlineformset_factory(
-    ProjectObjective,
-    ProjectSubTask,
-    form=ProjectSubTaskForm,
-    formset=BaseProjectSubTaskInlineFormSet,
-    extra=1,
+    extra=EXTRAS,
     can_delete=True,
 )
 
@@ -840,7 +836,7 @@ ProjectScopeFormSet = inlineformset_factory(
     ProjectScope,
     form=ProjectScopeForm,
     formset=BaseProjectScopeInlineFormSet,
-    extra=1,
+    extra=EXTRAS,
     can_delete=True,
 )
 
@@ -849,7 +845,7 @@ ProjectTargetFormSet = inlineformset_factory(
     ProjectTarget,
     form=ProjectTargetForm,
     formset=BaseProjectTargetInlineFormSet,
-    extra=1,
+    extra=EXTRAS,
     can_delete=True,
 )
 
@@ -891,6 +887,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["slack_channel"].label = False
         self.fields["project_type"].label = False
         self.fields["client"].label = False
+        self.fields["codename"].label = False
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -1102,92 +1099,3 @@ class ProjectNoteForm(forms.ModelForm):
                 code="required",
             )
         return note
-
-
-class ProjectObjectivesWithTasksForm(forms.ModelForm):
-    """
-    Update an individual :model:`rolodex.ProjectObjective` and related instances of
-    :model:`rolodex.ProjectSubTask`.
-    """
-
-    class Meta:
-        model = ProjectObjective
-        fields = ("deadline", "objective", "status", "complete")
-
-    def __init__(self, *args, **kwargs):
-        super(ProjectObjectivesWithTasksForm, self).__init__(*args, **kwargs)
-        self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
-        self.fields["deadline"].widget.attrs["autocomplete"] = "off"
-        self.fields["deadline"].widget.input_type = "date"
-        self.fields["objective"].widget.attrs["rows"] = 5
-        self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
-        self.helper = FormHelper()
-        # Turn on <form> tags for this parent form
-        self.helper.form_tag = True
-        self.helper.form_class = "form-inline justify-content-center"
-        self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
-        # Layout the form for Bootstrap
-        self.helper.layout = Layout(
-            Row(
-                Column(
-                    Row(
-                        FieldWithButtons(
-                            "deadline",
-                            HTML(
-                                """
-                                <button
-                                    class="btn btn-secondary"
-                                    type="button"
-                                    onclick="copyDeadline($(this).closest('div').find('input'))"
-                                >
-                                Copy
-                                </button>
-                                """
-                            ),
-                            css_class="col-md-12",
-                        ),
-                    ),
-                    Row(Field("status", css_class="form-select"), css_class="col-md-12 p-0 m-0"),
-                    Row(
-                        SwitchToggle(
-                            "complete",
-                            css_class="offset-md-4",
-                        ),
-                    ),
-                    css_class="col-md-4",
-                ),
-                Column(
-                    "objective",
-                    css_class="col-md-8",
-                ),
-            ),
-            HTML(
-                """
-                <p class="form-spacer"></p>
-                <h6>Mid-Level Tasks</h6>
-                <p>Add & update mid-level tasks for tracking the progress of your objective.</p>
-                """
-            ),
-            Formset("tasks", object_context_name="Task"),
-            Button(
-                "add-task",
-                "Add Task",
-                css_class="btn-block btn-secondary formset-add-task",
-            ),
-            HTML(
-                """
-                <p class="form-spacer"></p>
-                """
-            ),
-            ButtonHolder(
-                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
-                HTML(
-                    """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
-                    """
-                ),
-            ),
-        )
