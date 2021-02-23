@@ -31,7 +31,7 @@
         <a class="icon upload-icon" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
     </p>
     {% if op_logs %}
-        <table id="oplogTable" class="tablesorter">
+        <table id="oplogTable" class="tablesorter table table-sm">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -50,7 +50,7 @@
             {% endfor %}
         </table>
     {% else %}
-        <p>There are no logs to see here, yet.</p>
+        <p class="mt-3">There are no logs to see here yet. Start or import a log up above.</p>
     {% endif %}
 {% endblock %}
 

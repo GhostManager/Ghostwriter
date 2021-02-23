@@ -21,18 +21,18 @@
         {% crispy filter.form filter.helper %}
     </div>
 
-    <p>
+    <p class="mt-3">
         <a class="icon add-icon" href="{% url 'rolodex:project_create_no_client' %}">Create a Project</a>
     </p>
 
     {% if filter.qs|length == 0 %}
-        <p>There are no projects to display.</p>
+        <p class="mt-3">There are no projects yet, or your search returned no results. Create one up above or from a client's page.</p>
     {% else %}
-        <table id="projectTable" class="tablesorter table">
+        <table id="projectTable" class="tablesorter table table-striped table-sm">
             <thead>
                 <tr>
                     <th class="align-middle">Client</th>
-                    <th class="align-middle">Codename</th>
+                    <th class="align-middle">Project</th>
                     <th class="align-middle">Project Type</th>
                     <th class="sorter-date-range-dMMMyyyy align-middle">Execution Window</th>
                     <th class="sorter-false align-middle">Team</th>

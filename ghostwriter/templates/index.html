@@ -23,12 +23,12 @@
             <div class="dashboard">
                 <div class="dashboard__item">
                     <div class="card">
-                        <p class="dashboard-header">Your Current Projects</p>
+                        <p class="dashboard-header text-center">Your Current Projects</p>
                         <table>
                             {% if user_projects %}
                                 {% for project in user_projects %}
                                     <tr>
-                                        <td class="align-middle"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
+                                        <td class="align-middle text-justify"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
                                     </tr>
                                 {% endfor %}
                             {% else %}
@@ -42,12 +42,12 @@
 
                 <div class="dashboard__item">
                     <div class="card">
-                        <p class="dashboard-header">Your Future Projects</p>
+                        <p class="dashboard-header text-center text-center">Your Future Projects</p>
                         <table>
                             {% if upcoming_project %}
                                 {% for project in upcoming_project %}
                                     <tr>
-                                        <td class="align-middle"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
+                                        <td class="align-middle text-justify"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
                                     </tr>
                                 {% endfor %}
                             {% else %}
@@ -61,21 +61,25 @@
 
                 <div class="dashboard__item">
                     <div class="card">
-                        <p class="dashboard-header">Your Top Reporting Tasks</p>
+                        <p class="dashboard-header text-center">Your Top Reporting Tasks</p>
                         {% count_assignments request as assignment_count %}
-                        {% if assignment_count > 0 %}
-                            <span class="notify-badge badge badge-warning">{{ assignment_count }} Tasks</span>
-                        {% elif assignment_count > 5 %}
-                            <span class="notify-badge badge badge-danger">{{ assignment_count }} Tasks</span>
-                        {% else %}
-                            <span class="notify-badge badge badge-success">0 Tasks</span>
-                        {% endif %}
+                        <span class="notify-badge badge
+                            {% if assignment_count > 0 %}
+                                badge-warning
+                            {% elif assignment_count > 5 %}
+                                badge-danger
+                            {% else %}
+                                badge-success
+                            {% endif %}
+                        ">
+                            Tasks: {{ assignment_count }}
+                        </span>
                         <table>
                             {% if user_tasks %}
                                 {% for finding in user_tasks %}
                                     <tr>
-                                        <td><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
-                                        <td class="text-center"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.report.project.codename }}</a></td>
+                                        <td class="align-middle text-justify"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                        <td class="align-middle text-right"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.report.project.codename }}</a></td>
                                     </tr>
                                 {% endfor %}
                             {% else %}
@@ -89,14 +93,14 @@
 
                 <div class="dashboard__item">
                     <div class="card">
-                        <p class="dashboard-header">Recent Background Tasks</p>
+                        <p class="dashboard-header text-center">Recent Background Tasks</p>
                         <table>
                             {% if recent_tasks %}
                                 {% for task in recent_tasks %}
                                     <tr>
                                         {% if task.success %}
-                                            <td class="text-center healthy">SUCCESS</td>
-                                            <td class="align-middle">{{ task.group }}</td>
+                                            <td class="text-center healthy align-middle">SUCCESS</td>
+                                            <td class="align-middle text-center">{{ task.group }}</td>
                                         {% else %}
                                             <td class="text-center burned">
                                                 {% if task.result %}

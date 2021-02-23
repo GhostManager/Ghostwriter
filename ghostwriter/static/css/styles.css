@@ -9,6 +9,8 @@
 body {
   font-family: 'Poppins', 'Font Awesome 5 Free', sans-serif;
   background: var(--main-bg-color);
+  color: var(--main-txt-color);
+  font-weight: 300;
 }
 
 p {
@@ -17,8 +19,12 @@ p {
   font-weight: 300;
   line-height: 1.7em;
   color: var(--main-txt-color);
-  margin-top: 20px;
-  margin-bottom: 20px;
+}
+
+ul:not(.list-unstyled):not(.nav):not(.breadcrumb), ol:not(.list-unstyled):not(.nav):not(.breadcrumb) {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  list-style-position: inside;
 }
 
 pre {
@@ -72,10 +78,6 @@ hr {
   font-style: italic;
   margin-left: 30px;
   padding: 0px;
-}
-
-.completed {
-  text-decoration: line-through;
 }
 
 .form-check-label{
@@ -337,11 +339,6 @@ form.newitem {
   margin-left: 15%;
 }
 
-form.filterform {
-  width: 35%;
-  margin-left: 32.5%;
-}
-
 .form-control::placeholder {
   color: var(--primary-color);
   opacity: 0.75;
@@ -363,6 +360,10 @@ form.filterform {
 
 .form-control:-ms-input-placeholder {
   color: var(--primary-color);
+}
+
+.filter-form .card-body .form-group {
+  margin-bottom: 0px;
 }
 
 /* ---------------------------------------------------
@@ -966,10 +967,20 @@ table {
 
 table .clickable {
   text-decoration: underline wavy var(--clickable-underline-color);
+  text-decoration-thickness: 1px;
+}
+
+table .clickable::after {
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 600;
+  content: '\f35d';
+  padding-left: 5px;
+  font-size: .75em;
 }
 
 p .clickable {
   text-decoration: underline wavy var(--clickable-underline-color);
+  text-decoration-thickness: 1px;
 }
 
 th {
@@ -977,38 +988,39 @@ th {
   color: #fff;
 }
 
-th.severity_header {
+th.severity-header {
   background-color: var(--secondary-table-header-color);
   text-align: justify;
   padding-top: 10px;
   padding-bottom: 10px;
   border-bottom: none;
+  padding-left: 30px;
   pointer-events: none;
   opacity: 0.8;
   color: #fff;
 }
 
-th.severity_header.critical {
+th.severity-header.critical {
   background-color: var(--crit-rating-color);
 }
 
-th.severity_header.high {
+th.severity-header.high {
   background-color: var(--high-rating-color);
 }
 
-th.severity_header.medium {
+th.severity-header.medium {
   background-color: var(--med-rating-color);
 }
 
-th.severity_header.low {
+th.severity-header.low {
   background-color: var(--low-rating-color);
 }
 
-th.severity_header.informational {
+th.severity-header.informational {
   background-color: var(--info-rating-color);
 }
 
-.severity_header:hover {
+.severity-header:hover {
   background-color: var(--main-bg-color);
 }
 
@@ -2102,15 +2114,7 @@ h5 a[aria-expanded=true]:after {
 
 .finding-card ul,
 ol {
-  text-align: justify;
-  font-family: 'Poppins', sans-serif;
-  font-size: var(--main-font-size);
-  font-weight: 300;
-  line-height: 1.7em;
-  color: var(--main-txt-color);
-  ;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  text-align: left;
 }
 
 .finding-card pre {
@@ -2445,7 +2449,7 @@ img {
 }
 
 .objective-description, .objective-description p {
-  margin-top: 10px;
+  /* margin-top: 10px; */
   margin-bottom: 0px;
 }
 

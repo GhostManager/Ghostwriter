@@ -18,16 +18,15 @@
         {% crispy filter.form filter.helper %}
     </div>
 
+    <p class="mt-3">
+        <a class="icon add-icon" href="{% url 'reporting:report_create_no_project' %}">Start a Report</a>
+    </p>
+
     {% if filter.qs|length == 0 %}
-        <p>There are no reports to see here.</p>
+        <p class="mt-3">There are no reports to see here yet, or your search returned no results. Start a new report up above or from a project page.</p>
     {% else %}
-
-        <p>
-            <a class="icon add-icon" href="{% url 'reporting:report_create_no_project' %}">Create a Report</a>
-        </p>
-
         <!-- Reports Table Section -->
-        <table id="reportTable" class="tablesorter">
+        <table id="reportTable" class="tablesorter table table-sm">
             <thead>
                 <tr>
                     <th>Creation Date</th>
@@ -47,20 +46,20 @@
             </thead>
             {% for report in filter.qs %}
                 <tr>
-                    <td nowrap>{{ report.creation|date:"d M Y" }}</td>
-                    <td class="clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                    <td nowrap>{{ report.last_update|date:"d M Y" }}</td>
+                    <td class="align-middle">{{ report.creation|date:"d M Y" }}</td>
+                    <td class="align-middle clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                    <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
                     {% if report.complete %}
                         {% if report.delivered %}
-                            <td><span class="badge badge-success">Delivered</span></td>
+                            <td class="align-middle"><span class="badge badge-success">Delivered</span></td>
                         {% else %}
-                            <td><span class="badge badge-warning">Awaiting Delivery</span></td>
+                            <td class="align-middle"><span class="badge badge-warning">Awaiting Delivery</span></td>
                         {% endif %}
                     {% else %}
-                        <td><span class="badge badge-primary">In Progress</span></td>
+                        <td class="align-middle"><span class="badge badge-primary">In Progress</span></td>
                     {% endif %}
-                    <td >{{ report.created_by }}</td>
-                    <td><a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report btn btn-secondary" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Select Report</a></td>
+                    <td class="align-middle">{{ report.created_by }}</td>
+                    <td class="align-middle"><a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report btn btn-secondary" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Select Report</a></td>
                 </tr>
             {% endfor %}
         </table>

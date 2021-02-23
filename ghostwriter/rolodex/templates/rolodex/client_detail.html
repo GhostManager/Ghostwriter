@@ -50,7 +50,7 @@
                 <p><a class="icon add-icon" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a></p>
                 <!-- POC Tab -->
                 {% if client.clientcontact_set.all %}
-                    <table id="clientTable" class="tablesorter">
+                    <table id="clientTable" class="tablesorter table table-striped">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -98,7 +98,7 @@
                     <table id="projectTable" class="tablesorter">
                         <thead>
                             <tr>
-                                <th nowrap>Project Codename</th>
+                                <th nowrap>Codename</th>
                                 <th>Project Type</th>
                                 <th nowrap class="sorter-date-range-dMMMyyyy">Execution Window</th>
                                 <th class="sorter-false">Note</th>
@@ -133,7 +133,7 @@
                 {% if domains or servers or vps %}
                     {% if domains %}
                         <h4>Domains Used with {{ client.name }}</h4>
-                        <table id="domainTable" class="tablesorter">
+                        <table id="domainTable" class="tablesorter table table-striped">
                             <thead>
                                 <tr>
                                     <th>Project</th>
@@ -155,7 +155,7 @@
 
                     {% if servers or vps %}
                         <h4>Servers Used with {{ client.name }}</h4>
-                        <table id="serverTable" class="tablesorter">
+                        <table id="serverTable" class="tablesorter table table-striped">
                             <thead>
                                 <tr>
                                     <th>Project</th>
