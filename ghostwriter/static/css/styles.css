@@ -966,21 +966,13 @@ table {
 }
 
 table .clickable {
-  text-decoration: underline wavy var(--clickable-underline-color);
-  text-decoration-thickness: 1px;
-}
-
-table .clickable::after {
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 600;
-  content: '\f35d';
-  padding-left: 5px;
-  font-size: .75em;
+  text-decoration: underline dotted var(--clickable-underline-color);
+  text-decoration-thickness: 2.5px;
 }
 
 p .clickable {
-  text-decoration: underline wavy var(--clickable-underline-color);
-  text-decoration-thickness: 1px;
+  text-decoration: underline dotted var(--clickable-underline-color);
+  text-decoration-thickness: 2.5px;
 }
 
 th {
@@ -2449,7 +2441,7 @@ img {
 }
 
 .objective-description, .objective-description p {
-  /* margin-top: 10px; */
+  margin-top: 10px;
   margin-bottom: 0px;
 }
 
@@ -2554,6 +2546,12 @@ li[role="presentation"].active a{
   font-size: .85em;
 }
 
+.objective-deadline {
+  float: right;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
 .task-future {
   color: var(--primary-color);
 }
@@ -2568,12 +2566,6 @@ li[role="presentation"].active a{
 
 .task-header {
   text-align: left;
-}
-
-.objective-deadline {
-  float: right;
-  color: var(--primary-color);
-  font-weight: 600;
 }
 
 .edit-todo-input {
