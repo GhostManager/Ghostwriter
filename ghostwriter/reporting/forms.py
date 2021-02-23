@@ -46,9 +46,7 @@ class FindingForm(forms.ModelForm):
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["mitigation"].widget.attrs[
-            "placeholder"
-        ] = "What needs to be done ..."
+        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
         self.fields["replication_steps"].widget.attrs[
             "placeholder"
         ] = "How to reproduce/find this issue ..."
@@ -200,9 +198,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["mitigation"].widget.attrs[
-            "placeholder"
-        ] = "What needs to be done ..."
+        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
         self.fields["replication_steps"].widget.attrs[
             "placeholder"
         ] = "How to reproduce/find this issue ..."
@@ -318,9 +314,7 @@ class EvidenceForm(forms.ModelForm):
             submit = None
             cancel_button = None
         else:
-            submit = Submit(
-                "submit-button", "Submit", css_class="btn btn-primary col-md-4"
-            )
+            submit = Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4")
             cancel_button = HTML(
                 """
                 <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
@@ -558,6 +552,31 @@ class SelectReportTemplateForm(forms.ModelForm):
             "reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id}
         )
         self.helper.layout = Layout(
-            Field("docx_template", css_class="col-md-4 offset-md-4"),
-            Field("pptx_template", css_class="col-md-4 offset-md-4"),
+            Row(
+                Column(
+                    HTML(
+                        """
+                        <p class="text-left">Template for Word Reports</p>
+                        """
+                    ),
+                    css_class="col-md-4 offset-md-2",
+                ),
+                Column("docx_template", css_class="col-md-4"),
+            ),
+            Row(
+                Column(
+                    HTML(
+                        """
+                        <p class="text-left">Template for PowerPoint Decks</p>
+                        """
+                    ),
+                    css_class="col-md-4 offset-md-2",
+                ),
+                Column("pptx_template", css_class="col-md-4"),
+            ),
+            HTML(
+                """
+                <p>Other report types do not use templates.</p>
+                """
+            ),
         )
