@@ -243,17 +243,27 @@ class ClientForm(forms.ModelForm):
                         <p class="form-spacer"></p>
                         """
                     ),
+                    "name",
                     Row(
-                        Column("name", css_class="form-group col-md-6 mb-0"),
                         Column("short_name", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
-                    ),
-                    "codename",
-                    HTML(
-                        """
-                        <a href="javascript:void(0)" class="icon dice-icon clickable-link js-roll-codename" roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}">Generate a Codename</a>
-                        <p class="form-spacer"></p>
-                        """
+                        Column(
+                            FieldWithButtons(
+                                "codename",
+                                HTML(
+                                    """
+                                    <button
+                                        class="btn btn-secondary js-roll-codename"
+                                        roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
+                                        type="button"
+                                        onclick="copyStartDate($(this).closest('div').find('input'))"
+                                    >
+                                    <i class="fas fa-dice"></i>
+                                    </button>
+                                    """
+                                ),
+                            ),
+                            css_class="col-md-6",
+                        ),
                     ),
                     "note",
                     link_css_class="client-icon",

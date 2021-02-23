@@ -907,18 +907,28 @@ class ProjectForm(forms.ModelForm):
                         <p class="form-spacer"></p>
                         """
                     ),
-                    "client",
-                    "codename",
-                    HTML(
-                        """
-                        <a href="javascript:void(0)" class="icon dice-icon clickable-link js-roll-codename" roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}">Generate a Random Codename</a>
-                        <p class="form-spacer"></p>
-                        """
-                    ),
-                    HTML(
-                        """
-                        <p>Set your execution dates below. These are the dates you'll be actively testing, not prepping or reporting.</p>
-                        """
+                    Row(
+                        Column(
+                            "client",
+                        ),
+                        Column(
+                            FieldWithButtons(
+                                "codename",
+                                HTML(
+                                    """
+                                    <button
+                                        class="btn btn-secondary js-roll-codename"
+                                        roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
+                                        type="button"
+                                        onclick="copyStartDate($(this).closest('div').find('input'))"
+                                    >
+                                    <i class="fas fa-dice"></i>
+                                    </button>
+                                    """
+                                ),
+                            ),
+                            css_class="col-md-6",
+                        ),
                     ),
                     Row(
                         Column("start_date", css_class="form-group col-md-6 mb-0"),
