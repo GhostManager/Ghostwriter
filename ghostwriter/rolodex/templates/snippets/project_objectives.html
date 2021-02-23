@@ -27,13 +27,15 @@
                     ">
                         {{ objective.status }}
                     </span>
+
                     <span class="objective-status">
                         {{ objective.objective|striptags }}
                     </span>
+
                     <span class="objective-deadline
-                        {% if not task.complete and task.deadline|days_left <= 1 %}
+                        {% if not objective.complete and objective.deadline|days_left <= 1 %}
                             task-imminent
-                        {% elif not task.complete and task.deadline|days_left <= 5 %}
+                        {% elif not objective.complete and objective.deadline|days_left <= 5 %}
                             task-due-soon
                         {% endif %}
                     ">
