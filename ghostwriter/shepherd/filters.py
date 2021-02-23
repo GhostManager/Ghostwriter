@@ -88,8 +88,8 @@ class DomainFilter(django_filters.FilterSet):
                 css_class="form-row",
             ),
             Accordion(
-                AccordionGroup("Domain Statuses", InlineCheckboxes("domain_status")),
-                AccordionGroup("Health Statuses", InlineCheckboxes("health_status")),
+                AccordionGroup("Domain Status", InlineCheckboxes("domain_status")),
+                AccordionGroup("Health Status", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(
                 Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
@@ -129,7 +129,7 @@ class ServerFilter(django_filters.FilterSet):
     server_status = django_filters.ModelMultipleChoiceFilter(
         queryset=ServerStatus.objects.all(),
         widget=forms.CheckboxSelectMultiple,
-        label="Server Status",
+        label="",
     )
 
     class Meta:
