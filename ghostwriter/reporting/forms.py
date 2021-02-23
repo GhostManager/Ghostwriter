@@ -1,6 +1,7 @@
 """This contains all of the forms used by the Reporting application."""
 
 # Django & Other 3rd Party Libraries
+from crispy_forms.bootstrap import FieldWithButtons
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -18,6 +19,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
+from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
 
 from .models import (
@@ -221,24 +223,26 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <h4 class="icon list-icon">Affected Entities</h4>
-                <hr />
-                """
-            ),
-            "assigned_to",
-            "affected_entities",
-            HTML(
-                """
                 <h4 class="icon search-icon">Categorization</h4>
                 <hr />
                 """
             ),
-            "title",
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("severity", css_class="form-group col-md-6 mb-0"),
+            ),
             Row(
                 Column("finding_type", css_class="form-group col-md-6 mb-0"),
-                Column("severity", css_class="form-group col-md-6 mb-0"),
+                Column("assigned_to", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
+            HTML(
+                """
+                <h4 class="icon list-icon">Affected Entities</h4>
+                <hr />
+                """
+            ),
+            "affected_entities",
             HTML(
                 """
                 <h4 class="icon pencil-icon">General Information</h4>
@@ -306,8 +310,7 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
-        self.fields["description"].widget.attrs["placeholder"] = ""
-        self.fields["document"].label = ""
+        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         # Don't set form buttons for a modal pop-up
         if self.is_modal:
@@ -323,7 +326,7 @@ class EvidenceForm(forms.ModelForm):
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_errors = False
-        self.helper.form_show_labels = True
+        self.helper.form_show_labels = False
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.attrs = {"enctype": "multipart/form-data"}
@@ -331,7 +334,7 @@ class EvidenceForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <i class="fas fa-signature"></i>Report Information
+                <h4 class="icon signature-icon">Report Information</h4>
                 <hr>
                 <p>The friendly name is used to reference this evidence in the report and the caption appears below the figures in the generated reports.</p>
                 """
@@ -344,7 +347,7 @@ class EvidenceForm(forms.ModelForm):
             "description",
             HTML(
                 """
-                <i class="far fa-file"></i>Upload a File
+                <h4 class="icon upload-icon">Upload a File</h4>
                 <hr>
                 <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).</p>
                 """
@@ -361,7 +364,7 @@ class EvidenceForm(forms.ModelForm):
                 ),
                 css_class="custom-file",
             ),
-            ButtonHolder(submit, cancel_button),
+            ButtonHolder(submit, cancel_button, css_class="mt-3"),
         )
 
     def clean(self):
@@ -465,7 +468,7 @@ class ReportTemplateForm(forms.ModelForm):
 
     class Meta:
         model = ReportTemplate
-        exclude = ("upload_date", "last_update", "lint_result")
+        exclude = ("upload_date", "last_update", "lint_result", "uploaded_by")
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
             "uploaded_by": forms.HiddenInput(),
@@ -475,29 +478,45 @@ class ReportTemplateForm(forms.ModelForm):
         super(ReportTemplateForm, self).__init__(*args, **kwargs)
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
+        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Brief Description on Tempalte Usage"
+        self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
+        self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
+        self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
-        self.helper.form_show_labels = True
+        self.helper.form_show_labels = False
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.layout = Layout(
             HTML(
                 """
-                <i class="fas fa-signature"></i>Template Information
+                <h4 class="icon file-icon">Template Information</h4>
                 <hr>
                 <p>The name appears in the template dropdown menus in reports.</p>
                 """
             ),
             Row(
-                Column("name", css_class="form-group col-md-8 mb-0"),
-                Column("doc_type", css_class="form-group col-md-4 mb-0"),
+                Column("name", css_class="form-group col-md-7 mb-0"),
+                Column("doc_type", css_class="form-group col-md-5 mb-0"),
                 css_class="form-row",
+            ),
+            Row(
+                Column("client", css_class="form-group col-md-7 mb-0"),
+                Column(
+                    SwitchToggle(
+                        "protected",
+                    ),
+                    css_class="form-group col-md-5 mb-0",
+                ),
             ),
             "description",
             HTML(
                 """
-                <i class="far fa-file"></i>Upload a File
+                <h4 class="icon upload-icon">Upload a File</h4>
                 <hr>
                 <p>Attach a document that matches your selected filetype to use as a report template</p>
                 """
@@ -512,9 +531,6 @@ class ReportTemplateForm(forms.ModelForm):
                 css_class="custom-file",
             ),
             "changelog",
-            "client",
-            "protected",
-            "uploaded_by",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -540,8 +556,8 @@ class SelectReportTemplateForm(forms.ModelForm):
         super(SelectReportTemplateForm, self).__init__(*args, **kwargs)
         self.fields["docx_template"].help_text = None
         self.fields["pptx_template"].help_text = None
-        self.fields["docx_template"].empty_label = "-- Select a Word Template --"
-        self.fields["pptx_template"].empty_label = "-- Select a PPT Template --"
+        self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"
+        self.fields["pptx_template"].empty_label = "-- Select a PPTX Template --"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = False
@@ -556,27 +572,62 @@ class SelectReportTemplateForm(forms.ModelForm):
                 Column(
                     HTML(
                         """
-                        <p class="text-left">Template for Word Reports</p>
+                        <p class="text-left m-0">Template for DOCX Documents</p>
                         """
                     ),
                     css_class="col-md-4 offset-md-2",
                 ),
-                Column("docx_template", css_class="col-md-4"),
+                Column(
+                    FieldWithButtons(
+                        "docx_template",
+                        HTML(
+                            """
+                            <a
+                                class="btn btn-default word-btn js-generate-report"
+                                type="button"
+                                href="{% url 'reporting:generate_docx' report.id %}"
+                            >
+                            </a>
+                            """
+                        ),
+                    ),
+                    css_class="col-md-4",
+                ),
             ),
             Row(
                 Column(
                     HTML(
                         """
-                        <p class="text-left">Template for PowerPoint Decks</p>
+                        <p class="text-left m-0">Template for PPTX Documents</p>
                         """
                     ),
                     css_class="col-md-4 offset-md-2",
                 ),
-                Column("pptx_template", css_class="col-md-4"),
+                Column(
+                    FieldWithButtons(
+                        "pptx_template",
+                        HTML(
+                            """
+                            <a
+                                class="btn btn-default pptx-btn"
+                                type="button"
+                                href="{% url 'reporting:generate_pptx' report.id %}"
+                            >
+                            </a>
+                            """
+                        ),
+                    ),
+                    css_class="col-md-4",
+                ),
             ),
             HTML(
                 """
-                <p>Other report types do not use templates.</p>
+                <p class="mb-2">Other report types do not use templates:</p>
+                <div class="btn-group">
+                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}"></i><br />xlsx</a>
+                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}"><br />JSON</a>
+                    <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}"><br />All</a>
+                </div>
                 """
             ),
         )

@@ -873,6 +873,15 @@ def generate_docx(request, pk):
         )
         response["Content-Disposition"] = f"attachment; filename={report_name}.docx"
         docx.save(response)
+
+        async_to_sync(channel_layer.group_send)(
+            "notify_{}".format(request.user.username),
+            {
+                "type": "report_status",
+                "message": {"status": "success"},
+            },
+        )
+
         return response
     except MissingTemplate:
         messages.error(

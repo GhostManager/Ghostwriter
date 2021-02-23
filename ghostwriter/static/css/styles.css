@@ -50,10 +50,6 @@ a:focus {
   font-size: var(--main-font-size);
 }
 
-i {
-  margin-right: 5px;
-}
-
 hr {
   width: 70%;
 }
@@ -1928,16 +1924,40 @@ td p {
   color: #01A6F0;
 }
 
+.word-btn {
+  background-color: #01A6F0;
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+.word-btn:before {
+  content: '\f1c2';
+  color: white;
+  font-size: 1.5em;
+}
+
+.pptx-btn-icon:before {
+  content: '\f1c4';
+  font-size: 2em;
+  color: #D04423;
+}
+
+.pptx-btn {
+  background-color: #D04423;
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+.pptx-btn:before {
+  content: '\f1c4';
+  color: white;
+  font-size: 1.5em;
+}
+
 .excel-btn-icon:before {
   content: '\f1c3';
   font-size: 2em;
   color: #7FBC00;
-}
-
-.ppt-btn-icon:before {
-  content: '\f1c4';
-  font-size: 2em;
-  color: #D04423;
 }
 
 .archive-btn-icon:before {

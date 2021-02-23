@@ -9,6 +9,7 @@
             <label for="{{ field.id_for_label }}" class="custom-control-label form-check-label{% if field.field.required %} requiredField{% endif %}">
                 {{ field.label|safe }}
             </label>
+            {% include 'bootstrap4/layout/help_text_and_errors.html' %}
         </div>
     {% else %}
         <div id="div_{{ field.auto_id }}" class="input-group{% if wrapper_class %} {{ wrapper_class }}{% endif %}">
@@ -16,6 +17,7 @@
                 {{ field.label|safe }}
             </label>
             {% crispy_field field 'placeholder' field.label %}
+            {% include 'bootstrap4/layout/help_text_and_errors.html' %}
         </div>
     {% endif %}
 {% endif %}

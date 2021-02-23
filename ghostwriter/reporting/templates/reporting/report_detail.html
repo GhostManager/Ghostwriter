@@ -118,7 +118,7 @@
                             {% for finding in severity_groups|get_item:group %}
                                 <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
                                     <td class="holdme align-middle"></td>
-                                    <td class="clickable align-middle"><a id="delete-target-content-finding-{{ finding.id }}" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                    <td class="align-middle"><a id="delete-target-content-finding-{{ finding.id }}" class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                     {% if finding.evidence_set.all %}
                                         <td class="align-middle">
                                             {% for evidence_file in finding.evidence_set.all %}
@@ -190,18 +190,11 @@
         <h4 class="icon gear-icon">Generate Reports</h4>
         <hr>
 
-        <p>The report engine will use the selected templates:</p>
+        <p class="mb-2">For Word (docx) and PowerPoint (pptx), select a template to determine the type and style of your document:</p>
+        <p class="mb-3">Click the icon of the type of document you want to generate.</p>
 
         <div>
             {% crispy form form.helper %}
-        </div>
-
-        <div class="btn-group">
-            <a class="btn btn-default word-btn-icon js-generate-report" href="{% url 'reporting:generate_docx' report.id %}"></i><br />docx</a>
-            <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}"></i><br />xlsx</a>
-            <a class="btn btn-default ppt-btn-icon" href="{% url 'reporting:generate_pptx' report.id %}"><br />pptx</a>
-            <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}"><br />JSON</a>
-            <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}"><br />All</a>
         </div>
     </div>
 {% endblock %}
