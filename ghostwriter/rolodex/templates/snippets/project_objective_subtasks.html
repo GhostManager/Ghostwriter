@@ -8,7 +8,7 @@
         <form action="javascript:void(0);" id="new-task-form-{{ objective.id }}" objective-id="{{ objective.id }}" new-task-url="{% url 'rolodex:ajax_create_project_task' objective.id %}" new-task-csrftoken="{{ csrf_token }}" refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}"">
             <div class="form-row my-auto">
                 <div class="pr-1 col-md-6">
-                    <input type="text" name="task" class="form-control add-task" placeholder="Add a New Task...">
+                    <input type="text" name="task" class="form-control add-task" placeholder="Add a New Task..." autocomplete="off">
                 </div>
                 <div class="col-md-6">
                     <input type="date" name="deadline" class="form-control add-deadline" placeholder="dd/mm/yy">
