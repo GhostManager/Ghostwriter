@@ -874,10 +874,11 @@ def generate_docx(request, pk):
         response["Content-Disposition"] = f"attachment; filename={report_name}.docx"
         docx.save(response)
 
+        # Send WebSocket message to update user's webpage
         async_to_sync(channel_layer.group_send)(
-            "notify_{}".format(request.user.username),
+            "report_{}".format(pk),
             {
-                "type": "report_status",
+                "type": "status_update",
                 "message": {"status": "success"},
             },
         )

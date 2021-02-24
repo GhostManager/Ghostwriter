@@ -221,8 +221,52 @@
     <script>
         $('.js-generate-report').click(function () {
             $('#spinner-modal').modal('show');
-            setTimeout(() => {  $('#spinner-modal').modal('toggle'); }, 4000);
         });
+    </script>
+
+    <!-- Script for WebSocket Notifications & Updates -->
+    <script>
+        // WS available for dev environments without HTTPS
+        var protocol = "ws://"
+        if (location.protocol == "https:") {
+            protocol = "wss://"
+        }
+        var ws_report = new WebSocket(
+            protocol + window.location.host +
+            '/ws/reports/' + {{ report.id }} + '/');
+
+        function sendMessage(socket, msg) {
+            waitForSocketConnection(socket, function () {
+                socket.send(msg);
+            });
+        }
+
+        function waitForSocketConnection(socket, callback) {
+            setTimeout(
+                function () {
+                    if (socket.readyState === 1) {
+                    if (callback != null) {
+                        callback();
+                    }
+                    } else {
+                        console.log('Waiting for connection...')
+                        waitForSocketConnection(socket, callback);
+                    }
+            }, 5); // wait 5 milisecond for the connection...
+        }
+
+        // Handle receiving messages on channels
+        ws_report.onmessage = function (e) {
+            var data = JSON.parse(e.data);
+            if (data.message['status'] == 'success') {
+                setTimeout(() => {  $('#spinner-modal').modal('toggle'); }, 1000);
+            }
+        };
+
+        // Handle unexpected WebSocket closures
+        ws_report.onclose = function (e) {
+            console.error('Report notification WebSocket closed unexpectedly');
+        };
     </script>
 
     <!-- Script for Sortable Groups of Findings -->
