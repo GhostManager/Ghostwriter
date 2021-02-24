@@ -159,7 +159,7 @@
                         </thead>
                         {% for list in project.projectscope_set.all %}
                             <tr>
-                                <td id="delete-target-content-scope-{{ list.id }}" class="text-left align-middle icon
+                                <td id="delete-target-content-scope-{{ list.id }}" class="text-center align-middle icon
                                     {% if list.requires_caution %}
                                         scope-warning-icon
                                     {% endif %}
@@ -169,12 +169,27 @@
                                 ">
                                     {{ list.name }}
                                 </td>
-                                <td class="align-middle">{{ list.scope|get_scope_preview:5|linebreaks }}</td>
+
+                                {% with scope_limit=5 %}
+                                    <td class="align-middle"
+                                        {% if list.count_lines > scope_limit %}
+                                            title="The first {{ scope_limit }} of {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
+                                        {% else %}
+                                            title="The full scope, {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
+                                        {% endif %}
+                                    >
+                                        {{ list.scope|get_scope_preview:scope_limit|linebreaks }}
+                                        {% if list.count_lines > scope_limit %}
+                                            Expand for more ...
+                                        {% endif %}
+                                    </td>
                                 <td class="align-middle">
-                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
+                                    <button type="button" class="btn btn-primary icon expand-icon" data-toggle="modal" data-target="#id_scope_{{ list.id }}" title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope">
                                         Expand
                                     </button>
                                 </td>
+                                {% endwith %}
+
                                 <td class="text-justify align-middle">{{ list.description|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">

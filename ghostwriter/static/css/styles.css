@@ -1708,6 +1708,10 @@ td p {
   content: '\f2f5';
 }
 
+.expand-icon:after {
+  content: '\f35d';
+}
+
 .calendar-icon:before {
   content: '\f133';
   font-weight: 400;
