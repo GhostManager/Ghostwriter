@@ -147,6 +147,8 @@ class ReportForm(forms.ModelForm):
         ].label_from_instance = (
             lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
         )
+        self.fields["docx_template"].label = "DOCX Template"
+        self.fields["pptx_template"].label = "PPTX Template"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
