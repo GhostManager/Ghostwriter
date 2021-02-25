@@ -984,7 +984,7 @@ th.severity-header {
   border-bottom: none;
   padding-left: 30px;
   pointer-events: none;
-  opacity: 0.8;
+  opacity: 0.75;
   color: #fff;
 }
 
@@ -1049,12 +1049,8 @@ th:last-child {
 
 th,
 td {
-  padding: 8px;
   margin-right: 10px;
   text-align: center;
-  border-bottom: 1px solid #ddd;
-  font-size: var(--main-font-size);
-  word-wrap: break-word;
   max-width: 500px;
 }
 
@@ -1147,6 +1143,10 @@ tr:hover {
 /* ---------------------------------------------------
     TABLE STYLES FOR TABLESORTER
 ----------------------------------------------------- */
+
+tr, .table tbody+tbody {
+  border: none;
+}
 
 thead th {
   background-repeat: no-repeat;
@@ -1447,6 +1447,21 @@ td p {
 
 .minus-icon:after {
   content: '\f068';
+}
+
+.priority-icon:before {
+  content: '\f12a';
+  color: var(--high-rating-color);
+}
+
+.secondary-icon:before {
+  content: '\f005';
+  color: var(--med-rating-color);
+}
+
+.tertiary-icon:before {
+  content: '\f063';
+  color: var(--info-rating-color);
 }
 
 .scope-warning-icon:after {
@@ -2459,6 +2474,13 @@ img {
 /* ---------------------------------------------------
     TASK LIST STYLES
 ----------------------------------------------------- */
+
+.objective-badge {
+  cursor: pointer;
+  font-size: var(--main-font-size);
+  display: inline-block;
+  width: 125px;
+}
 
 .objective-status {
   padding-left: 20px;
