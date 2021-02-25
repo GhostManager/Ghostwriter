@@ -9,36 +9,39 @@
 
 <p>Create specific objectives to pursue, track their status, and view deadlines in the calendar.</p>
 
+<p>Click the status badges to cycle and set status.</p>
+
 {% if project.projectobjective_set.all %}
     {% for objective in project.projectobjective_set.all %}
         <div class="card mb-4">
             <div class="card-header task-header" id="objective-{{ objective.id }}">
-                <a class="icon objective-icon">
-                    <span id="objective-status-{{ objective.id }}" class="badge badge-pill badge-dark
-                        {% if objective.status.objective_status == "Active" %}
-                            low-background
-                        {% elif objective.status.objective_status == "On Hold" %}
-                            medium-background
-                        {% elif objective.status.objective_status == "Complete" %}
-                            info-background
-                        {% elif objective.status.objective_status == "Incomplete" %}
-                            high-background
-                        {% endif %}
-                    ">
+                <a class="icon
+                    {% if objective.priority.id == 1 %}
+                        priority-icon
+                    {% elif objective.priority.id == 2 %}
+                        secondary-icon
+                    {% elif objective.priority.id == 3 %}
+                        tertiary-icon
+                    {% else %}
+                        info-icon
+                    {% endif %}
+                ">
+                    <div
+                        id="objective-status-{{ objective.id }}"
+                        status-id="{{ objective.status.id }}"
+                        objective-id="{{ objective.id }}"
+                        obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
+                        obj-status-csrftoken="{{ csrf_token }}"
+                        class="objective-badge badge badge-secondary"
+                    >
                         {{ objective.status }}
-                    </span>
+            </div>
 
                     <span class="objective-status">
                         {{ objective.objective|striptags }}
                     </span>
 
-                    <span class="objective-deadline
-                        {% if not objective.complete and objective.deadline|days_left <= 1 %}
-                            task-imminent
-                        {% elif not objective.complete and objective.deadline|days_left <= 5 %}
-                            task-due-soon
-                        {% endif %}
-                    ">
+                    <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
                         {{ objective.deadline|date:"d M Y" }}
                     </span>
                 </a>

@@ -221,7 +221,7 @@
                 <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are interesting.</p>
 
                 {% if project.projecttarget_set.all %}
-                    <table id="targetTable" class="tablesorter table">
+                    <table id="targetTable" class="tablesorter table table-sm">
                         <thead>
                             <th class="align-middle">Owned</th>
                             <th class="align-middle">Target</th>
@@ -713,6 +713,39 @@
         });
     </script>
 
+    <!-- Cycle Project Objective Status with AJAX -->
+    <script>
+        $('.objective-badge').click(function () {
+            var badge = $(this);
+            var url = $(this).attr('obj-status-update-url');
+            var statusId = $(this).attr('status-id');
+            var objectiveId = $(this).attr('objective-id');
+            var csrftoken = $(this).attr('obj-status-csrftoken');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'status': statusId,
+                    'objective': objectiveId
+                },
+                success: function (data) {
+                    console.log(data);
+                    badge.html(data['status']);
+                }
+            });
+        });
+    </script>
+
     <!-- Toggle Project Status with AJAX -->
     <script>
         $('.js-toggle-project-status').click(function () {
@@ -750,48 +783,6 @@
                         displayToastTop({type:data['result'], string:data['message'], title:'Project Update'});
                     }
                 }
-            });
-        });
-    </script>
-
-    <!-- Set Project Objective Status with AJAX -->
-    <script>
-        $('.js-set-objective-status').each(function(index) {
-            $(this).click(function () {
-                var url = $(this).attr('set-objective-status-url');
-                var newStatus = $(this).attr('set-objective-status');
-                var objectiveId = $(this).attr('set-objective-status-id');
-                var csrftoken = $(this).attr('set-objective-status-csrftoken');
-                var statusPillId = '#objective-status-' + objectiveId;
-                var statusPill = $(statusPillId);
-                // Prep AJAX request with CSRF token
-                $.ajaxSetup({
-                    beforeSend: function(xhr, settings) {
-                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                        }
-                    }
-                });
-                // Send AJAX POST request
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        'objective': objectiveId,
-                        'status': newStatus
-                    },
-                    success: function (data) {
-                        if (data['result'] == 'success') {
-                            statusPill.html(data['status']);
-                            statusPill.removeClass()
-                            statusPill.addClass(data['classes'])
-                        }
-                        if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Objective Update'});
-                        }
-                    }
-                });
             });
         });
     </script>

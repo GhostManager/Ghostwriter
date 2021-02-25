@@ -28,7 +28,7 @@ urlpatterns += [
         name="ajax_toggle_project",
     ),
     path(
-        "ajax/project/objective/status/<int:pk>/<str:status>",
+        "ajax/project/objective/status/<int:pk>",
         views.ProjectObjectiveStatusUpdate.as_view(),
         name="ajax_set_objective_status",
     ),

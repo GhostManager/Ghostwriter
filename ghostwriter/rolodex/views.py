@@ -137,52 +137,52 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         data = {}
-        # Get ``status`` kwargs from the URL
-        status = self.kwargs["status"]
         self.object = self.get_object()
-        # Base CSS classes for the status pill badges
-        classes = "badge badge-pill badge-dark "
         try:
+            success = False
             # Save the old status
             old_status = self.object.status
-            # Try to get the requested :model:`rolodex.ProjectObjective`
-            objective_status = ObjectiveStatus.objects.get(objective_status__icontains=status)
-            # Update the :model:`rolodex.ProjectObjective` entry
-            self.object.status = objective_status
-            self.object.save()
-            # Update CSS classes based on the new status
-            status_str = str(objective_status)
-            if status_str.lower() == "active":
-                classes += "low-background"
-            elif status_str.lower() == "on hold":
-                classes += "medium-background"
-            elif status_str.lower() == "complete":
-                classes += "info-background"
+            # Get all available status
+            all_status = ObjectiveStatus.objects.all()
+            total_status = all_status.count()
+            for index, status in enumerate(all_status):
+                if status == old_status:
+                    logger.info("Matched %s with %s", status, old_status)
+
+                    # Check if we're at the last status
+                    next_index = index + 1
+                    if total_status - 1 >= next_index:
+                        new_status = all_status[next_index]
+                    # If at end, roll-over to the first status
+                    else:
+                        new_status = all_status[0]
+
+                    self.object.status = new_status
+                    logger.info("Switching to %s", new_status)
+                    self.object.save()
+                    success = True
+
+            if not success:
+                logger.warning(
+                    "Failed to match old status, %s, with any existing status, so set status to ``0``"
+                )
+                new_status = all_status[0]
+                self.object.status = new_status
+                self.object.save()
+
             # Prepare the JSON response data
             data = {
                 "result": "success",
-                "status": status_str,
-                "classes": classes,
-                "message": "Objective status is now set to: {status}".format(
-                    status=self.object.status
-                ),
+                "status": new_status.objective_status,
             }
             logger.info(
                 "Updated status of %s %s from %s to %s by request of %s",
                 self.object.__class__.__name__,
                 self.object.id,
                 old_status,
-                objective_status,
+                new_status,
                 self.request.user,
             )
-        # Return an error message if the query for the requested status returned DoesNotExist
-        except ObjectiveStatus.DoesNotExist:
-            data = {
-                "result": "error",
-                "message": "Desired objective status was not found: {status}".format(
-                    status=status.title()
-                ),
-            }
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
