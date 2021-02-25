@@ -303,10 +303,37 @@ class ObjectiveStatus(models.Model):
 
         ordering = ["objective_status"]
         verbose_name = "Objective status"
-        verbose_name_plural = "Objective statuses"
+        verbose_name_plural = "Objective status"
 
     def __str__(self):
         return self.objective_status
+
+
+class ObjectivePriority(models.Model):
+    """
+    Stores an individual objective priority category.
+    """
+
+    weight = models.IntegerField(
+        "Priority Weight",
+        default=1,
+        help_text="Weight for sorting this priority when viewing objectives (lower numbers are higher priority)",
+    )
+    priority = models.CharField(
+        "Objective Priority",
+        max_length=255,
+        unique=True,
+        help_text="Objective's priority",
+    )
+
+    class Meta:
+
+        ordering = ["weight", "priority"]
+        verbose_name = "Objective priority"
+        verbose_name_plural = "Objective priorities"
+
+    def __str__(self):
+        return self.priority
 
 
 class ProjectObjective(models.Model):
@@ -357,10 +384,16 @@ class ProjectObjective(models.Model):
         default=get_status,
         help_text="Set the status for this objective",
     )
+    priority = models.ForeignKey(
+        ObjectivePriority,
+        on_delete=models.PROTECT,
+        null=True,
+        help_text="Assign a priority category",
+    )
 
     class Meta:
 
-        ordering = ["project", "complete", "deadline", "status", "objective"]
+        ordering = ["project", "complete", "priority__weight", "deadline", "status", "objective"]
         verbose_name = "Project objective"
         verbose_name_plural = "Project objectives"
 
