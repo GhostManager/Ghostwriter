@@ -125,7 +125,6 @@ def ajax_update_report_findings(request):
             severity = None
         if severity:
             counter = 1
-            logger.info(order)
             for finding_id in order:
                 if "placeholder" not in finding_id:
                     finding_instance = ReportFindingLink.objects.get(id=finding_id)
@@ -871,7 +870,7 @@ def generate_docx(request, pk):
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-        response["Content-Disposition"] = f"attachment; filename={report_name}.docx"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.docx"'
         docx.save(response)
 
         # Send WebSocket message to update user's webpage
@@ -957,7 +956,7 @@ def generate_xlsx(request, pk):
             output.read(),
             content_type="application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = f"attachment; filename={report_name}.xlsx"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.xlsx"'
         output.close()
         return response
     except Report.DoesNotExist:
@@ -1003,7 +1002,7 @@ def generate_pptx(request, pk):
         response = HttpResponse(
             content_type="application/application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
-        response["Content-Disposition"] = f"attachment; filename={report_name}.pptx"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.pptx"'
         pptx.save(response)
         return response
     except MissingTemplate:
@@ -1115,7 +1114,7 @@ def generate_all(request, pk):
 
         # Return the buffer in the HTTP response
         response = HttpResponse(content_type="application/x-zip-compressed")
-        response["Content-Disposition"] = f"attachment; filename={report_name}.zip"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.zip"'
         response.write(zip_buffer.read())
         return response
     except MissingTemplate:
@@ -1342,7 +1341,7 @@ def export_findings_to_csv(request):
     fiinding_resource = FindingResource()
     dataset = fiinding_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+    response["Content-Disposition"] = f'attachment; filename="{timestamp}_findings.csv"'
 
     return response
 
