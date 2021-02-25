@@ -447,7 +447,7 @@ class ProjectObjectiveForm(forms.ModelForm):
 
     class Meta:
         model = ProjectObjective
-        fields = ("deadline", "objective", "complete", "status", "description")
+        fields = ("deadline", "objective", "complete", "status", "description", "priority")
 
     def __init__(self, *args, **kwargs):
         super(ProjectObjectiveForm, self).__init__(*args, **kwargs)
@@ -457,6 +457,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["objective"].widget.attrs["rows"] = 5
         self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
         self.fields["description"].widget.attrs["placeholder"] = "Description, Notes, and Context"
+        self.fields["priority"].empty_label = "-- Prioritize Objective --"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -489,51 +490,51 @@ class ProjectObjectiveForm(forms.ModelForm):
                         <hr>
                         """
                     ),
-                    "objective",
                     Row(
+                        Column("objective", css_class="col-md-6"),
                         Column(
-                            Row(
-                                FieldWithButtons(
-                                    "deadline",
-                                    HTML(
-                                        """
-                                        <button
-                                            class="btn btn-secondary"
-                                            type="button"
-                                            onclick="copyEndDate($(this).closest('div').find('input'))"
-                                        >
-                                        Copy
-                                        </button>
-                                        """
-                                    ),
-                                    css_class="col-md-12",
+                            FieldWithButtons(
+                                "deadline",
+                                HTML(
+                                    """
+                                    <button
+                                        class="btn btn-secondary"
+                                        type="button"
+                                        onclick="copyEndDate($(this).closest('div').find('input'))"
+                                    >
+                                    Copy
+                                    </button>
+                                    """
                                 ),
                             ),
-                            Row(
-                                Field("status", css_class="form-select"),
-                                css_class="col-md-12 p-0 m-0",
-                            ),
-                            Row(
-                                SwitchToggle(
-                                    "complete",
-                                    css_class="offset-md-4",
-                                ),
-                            ),
-                            css_class="col-md-4",
-                        ),
-                        Column(
-                            "description",
-                            css_class="col-md-8",
+                            css_class="col-md-6",
                         ),
                     ),
                     Row(
+                        Column(
+                            Field("status", css_class="form-select"),
+                            css_class="col-md-6",
+                        ),
+                        Column(
+                            Field("priority", css_class="form-select"),
+                            css_class="col-md-6",
+                        ),
+                    ),
+                    "description",
+                    Row(
+                        Column(
+                            SwitchToggle(
+                                "complete",
+                            ),
+                            css_class="col-md-4",
+                        ),
                         Column(
                             Button(
                                 "formset-del-button",
                                 "Delete Objective",
                                 css_class="btn-sm btn-danger formset-del-button",
                             ),
-                            css_class="form-group col-md-4 offset-md-4",
+                            css_class="form-group col-md-4",
                         ),
                         Column(
                             Field("DELETE", style="display: none;"),
