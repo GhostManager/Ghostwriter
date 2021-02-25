@@ -107,7 +107,7 @@ class DomainAdmin(ImportExportModelAdmin):
     fieldsets = (
         (None, {"fields": ("name", "domain_status", "creation", "expiration")}),
         (
-            "Health Statuses",
+            "Health status",
             {
                 "fields": (
                     "whois_status",
