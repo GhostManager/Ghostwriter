@@ -172,6 +172,8 @@
 
                                 {% with scope_limit=5 %}
                                     <td class="align-middle"
+                                        data-toggle="tooltip"
+                                        data-placement="right"
                                         {% if list.count_lines > scope_limit %}
                                             title="The first {{ scope_limit }} of {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
                                         {% else %}
@@ -183,8 +185,12 @@
                                             Expand for more ...
                                         {% endif %}
                                     </td>
-                                <td class="align-middle">
-                                    <button type="button" class="btn btn-primary icon expand-icon" data-toggle="modal" data-target="#id_scope_{{ list.id }}" title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope">
+                                <td class="align-middle"
+                                    data-toggle="tooltip"
+                                    data-placement="right"
+                                    title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
+                                >
+                                    <button type="button" class="btn btn-primary icon expand-icon" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
                                         Expand
                                     </button>
                                 </td>
