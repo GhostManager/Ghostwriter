@@ -342,7 +342,6 @@
 
                 // Called by any change to the list (add / update / remove)
                 onSort: function (event) {
-                    console.log('sorting?');
                     // Code here triggers twice for the element if dragged to another group (two sorts)
                     [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, index) {
                         var cell = el.getElementsByClassName('holdme')[0];
@@ -396,7 +395,6 @@
                             'positions': JSON.stringify(positions)
                         },
                         success: function (data) {
-                            console.log("Updated on remove");
                             console.log(data);
                         }
                     });
@@ -436,15 +434,7 @@
 
                 // Element dragging ended
                 onEnd: function (event) {
-                    var itemEl = event.item; // dragged HTMLElement
-                    event.to; // target list
-                    event.from; // previous list
-                    event.oldIndex; // element's old index within old parent
-                    event.newIndex; // element's new index within new parent
-                    event.oldDraggableIndex; // element's old index within old parent, only counting draggable elements
-                    event.newDraggableIndex; // element's new index within new parent, only counting draggable elements
-                    event.clone // the clone element
-                    event.pullMode; // when item is in another sortable: `"clone"` if cloning, `true` if moving
+                    // Code here triggers when element is dropped
                 },
             });
         {% endfor %}
