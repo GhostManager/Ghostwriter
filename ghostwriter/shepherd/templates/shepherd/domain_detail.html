@@ -64,7 +64,7 @@
         <div class="tab-content">
             <div id="details" class="tab-pane in active">
                 <!-- General Domain Section -->
-                <table>
+                <table class="table">
                     <tr>
                         <th>Registrar</th>
                         <th>Purchase Date</th>
@@ -99,7 +99,7 @@
                 {% endif %}
 
                 {% if domain.dns_record %}
-                    <table>
+                    <table class="table">
                         <tr>
                             <th>Record</th>
                             <th>Value</th>
@@ -151,7 +151,7 @@
                     {% endif %}
                 {% endif %}
 
-                <table>
+                <table class="table">
                     <tr>
                         <th>Status</th>
                         <th>Health</th>
@@ -198,7 +198,7 @@
 
                 <!-- Categories Section -->
                 <p>These third-parties categorize domains, so you may wish to check these services and track the results. These fields are never automatically updated.</p>
-                <table>
+                <table class="table">
                     <tr>
                         <th>IBM X-Force</th>
                         <th>Cisco Talos</th>
@@ -251,7 +251,7 @@
             <!-- Project History Tab -->
             <div id="history" class="tab-pane">
                 {% if domain.history_set.all %}
-                    <table id="projectTable" class="tablesorter">
+                    <table id="projectTable" class="tablesorter table">
                         <thead>
                             <tr>
                                 <th>Client</th>
