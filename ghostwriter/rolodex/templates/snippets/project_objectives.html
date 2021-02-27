@@ -12,52 +12,87 @@
 <p>Click the status badges to cycle and set status.</p>
 
 {% if project.projectobjective_set.all %}
-    {% for objective in project.projectobjective_set.all %}
-        <div class="card mb-4">
-            <div class="card-header task-header" id="objective-{{ objective.id }}">
-                <a class="icon
-                    {% if objective.priority.id == 1 %}
-                        priority-icon
-                    {% elif objective.priority.id == 2 %}
-                        secondary-icon
-                    {% elif objective.priority.id == 3 %}
-                        tertiary-icon
-                    {% else %}
-                        info-icon
-                    {% endif %}
-                ">
-                    <div
-                        id="objective-status-{{ objective.id }}"
-                        status-id="{{ objective.status.id }}"
-                        objective-id="{{ objective.id }}"
-                        obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
-                        obj-status-csrftoken="{{ csrf_token }}"
-                        class="objective-badge badge badge-secondary"
-                    >
-                        {{ objective.status }}
-            </div>
+    <table id="objectives-table" class="table" objectives-update-url="{% url 'rolodex:ajax_update_objective_order' %}" objectives-update-csrftoken="{{ csrf_token }}" project-id="{{ project.id }}">
+        <thead>
+            <tr>
+                <th class="align-middle">Order</th>
+                <th class="align-middle">Expand</th>
+                <th class="align-middle">Status</th>
+                <th class="align-middle">Progress</th>
+                <th class="align-middle">High-Level Objective</th>
+                <th class="align-middle">Deadline</th>
+            </tr>
+        </thead>
 
-                    <span class="objective-status">
-                        {{ objective.objective|striptags }}
-                    </span>
 
-                    <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
-                        {{ objective.deadline|date:"d M Y" }}
-                    </span>
-                </a>
-            </div>
+        {% group_by_priority project.projectobjective_set.all as priority_groups %}
+        {% for group in priority_groups %}
+            <tbody>
+                <th id="{{ group|lower }}-header" class="priority-header {{ group|lower }} icon" colspan="7" scope="colgroup">{{ group }}</th>
+            </tbody>
+            <tbody id="{{ group|lower }}_priority" class="sortable_list connected_sortable">
+                {% if priority_groups|get_item:group %}
+                    {% for objective in priority_groups|get_item:group %}
+                        <!-- Objective Table Row -->
+                        <tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row">
+                            <td class="holdme align-middle"></td>
+                            <td class="expandme align-middle"></td>
+                            <td class="align-middle">
+                                <div
+                                    id="objective-status-{{ objective.id }}"
+                                    status-id="{{ objective.status.id }}"
+                                    objective-id="{{ objective.id }}"
+                                    obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
+                                    obj-status-csrftoken="{{ csrf_token }}"
+                                    class="objective-badge badge badge-secondary"
+                                    data-toggle="tooltip"
+                                    data-placement="top"
+                                    title="Click to change the status"
+                                >
+                                    {{ objective.status }}
+                                </div>
+                            </td>
+                            <td class="align-middle">
+                                {% with percentage=objective.calculate_status %}
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped todo-progressbar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <div class="todo-progressbar-title">{{ percentage }}%</div>
+                                </div>
+                            {% endwith %}
+                            </td>
+                            <td class="align-middle">{{ objective.objective|striptags }}</td>
+                            <td class="align-middle">
+                                <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
+                                    {{ objective.deadline|date:"d M Y" }}
+                                </span>
+                            </td>
+                        </tr>
 
-            {%  if objective.description %}
-                <div class="objective-description">
-                    {{ objective.description|bleach }}
-                </div>
-            {% endif %}
+                        <!-- Collapsible Task Container -->
+                        <tr id="tasks-objective-row-{{ objective.id }}" data-id="ignore-{{ objective.id }}" class="accordion">
+                            <td colspan="7">
+                                <div class="accordion-content">
+                                    {%  if objective.description %}
+                                        <div class="objective-description">
+                                            {{ objective.description|bleach }}
+                                        </div>
+                                    {% endif %}
 
-            <div id="task-list-{{ objective.id }}">
-                {% include "snippets/project_objective_subtasks.html" %}
-            </div>
-        </div>
-    {% endfor %}
+                                    <div id="task-list-{{ objective.id }}">
+                                        {% include "snippets/project_objective_subtasks.html" %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder" class="priority-row-placeholder">
+                        <td colspan="7" scope="colgroup">Create a {{ group }} objective or drag-and-drop an objective here to update its priority.</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
 {% else %}
     <p>No objectives have been set for this project yet.</p>
 {% endif %}

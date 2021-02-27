@@ -367,23 +367,23 @@
                             <h4>{{ report.title }}</h4>
                             <table class="table">
                                 <thead>
-                                    <th class="align-middle">Severity</th>
+                                    <th class="align-middle">priority</th>
                                     <th class="align-middle">Finding</th>
                                     <th class="align-middle">Owner</th>
                                     <th class="align-middle">Status</th>
                                 </thead>
                                 {% for finding in report.reportfindinglink_set.all %}
                                     <tr>
-                                        {% if finding.severity.severity == "Critical" %}
-                                            <td class="critical align-middle">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "High" %}
-                                            <td class="high align-middle">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "Medium" %}
-                                            <td class="medium align-middle">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "Low" %}
-                                            <td class="low align-middle">{{ finding.severity }}</td>
+                                        {% if finding.priority.priority == "Critical" %}
+                                            <td class="critical align-middle">{{ finding.priority }}</td>
+                                        {% elif finding.priority.priority == "High" %}
+                                            <td class="high align-middle">{{ finding.priority }}</td>
+                                        {% elif finding.priority.priority == "Medium" %}
+                                            <td class="medium align-middle">{{ finding.priority }}</td>
+                                        {% elif finding.priority.priority == "Low" %}
+                                            <td class="low align-middle">{{ finding.priority }}</td>
                                         {% else %}
-                                            <td class="info align-middle">{{ finding.severity }}</td>
+                                            <td class="info align-middle">{{ finding.priority }}</td>
                                         {% endif %}
                                         <td class="align-middle"><a class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                         {% if finding.assigned_to == request.user %}
@@ -717,6 +717,219 @@
             );
             $('.tablesorter').trigger('update');
         });
+    </script>
+
+    <!-- Toggle Task Lists Under Objectives -->
+    <script>
+        $('.expandme').on('click',
+            function() {
+                $(this).parent().toggleClass('open');
+                var accordionRow = $(this).parent().next('.accordion');
+                if (!accordionRow.is(':visible')) {
+                    accordionRow.show().find('.accordion-content').slideDown();
+                } else {
+                    accordionRow.find('.accordion-content').slideUp(function() {
+                        if (!$(this).is(':visible')) {
+                            accordionRow.hide();
+                        }
+                    });
+                }
+            });
+    </script>
+
+   <!-- Script for Sortable Groups of Objectives -->
+   <script>
+        {% group_by_priority project.projectobjective_set.all as priority_groups %}
+        {% for group in priority_groups %}
+            var update_url = $('#objectives-table').attr('objectives-update-url');
+            var project_id = $('#objectives-table').attr('project-id');
+            var csrftoken = $('#objectives-table').attr('objectives-update-csrftoken');
+            var {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_priority, {
+                items: 'tbody > tr',
+                group: 'priority',
+                animation: 150,
+                filter: '.priority-row-placeholder',
+                ghostClass: 'sortable-ghost',
+                handle: '.holdme',
+
+                // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
+                setData: function (dataTransfer, dragEl) {
+                    dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+                },
+
+                // Element is chosen
+                onChoose: function (event) {
+                    // Close the tasks view on pick-up
+                    if ($('#' + event.item.id).hasClass('open')) {
+                        $('#' + event.item.id).toggleClass('open');
+                        var accordionRow = $('#' + event.item.id).next('.accordion');
+                        if (!accordionRow.is(':visible')) {
+                            accordionRow.show().find('.accordion-content').slideDown();
+                        } else {
+                            accordionRow.find('.accordion-content').slideUp(function() {
+                                if (!$(this).is(':visible')) {
+                                    accordionRow.hide();
+                                }
+                            });
+                        }
+                    }
+                },
+
+                // Element is unchosen
+                onUnchoose: function (event) {},
+
+                // Element dragging started
+                onStart: function (event) {
+                    event.item.startPos = event.oldIndex;
+                },
+
+                // Element dragging started
+                onEnd: function (event) {
+                    // Check if objective was moved to be after another objective
+                    if(event.item.startPos < event.newIndex){
+                        // Remove and clone the objective's tasks row
+                        var child = $('#tasks-' + event.item.id).remove().clone();
+                        // Place the tasks row after the objective in its new position
+                        $('#' + event.item.id).after(child);
+                        // Move the orphaned tasks row before the moved objective
+                        var child = $('#tasks-' + event.item.id).next('tr').remove().clone();
+                        $('#' + event.item.id).before(child);
+                    }else{
+                        var child = $('#tasks-' + event.item.id).remove().clone();
+                        $('#' + event.item.id).after(child);
+                    }
+                    // Re-init the click functions for task lists following removals and clones
+                    prepareTodoList();
+                },
+
+                // Element is dropped into the list from another list
+                onAdd: function (event) {
+                    // Get the placeholder `tr` if it exists
+                    placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
+                    var positions = {{ group | lower }}_sortable.toArray();
+                    // Prep AJAX request with CSRF token
+                    $.ajaxSetup({
+                        beforeSend: function(xhr, settings) {
+                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                            }
+                        }
+                    });
+                    // Send AJAX POST request
+                    $.ajax(update_url, {
+                        type: 'POST',
+                        data: {
+                            'project': project_id,
+                            'priority': event.to.id,
+                            'positions': JSON.stringify(positions)
+                        },
+                        success: function (data) {
+                            console.log(data)
+                        }
+                    });
+                    // An "empty" group will have one row, the placeholder row
+                    if (event.to.rows.length > 0) {
+                        if (placeholder !== undefined) {
+                            // Group contains at least one finding, delete the placeholder
+                            placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                        };
+                    };
+                },
+
+                // Called by any change to the list (add / update / remove)
+                onSort: function (event) {
+                    // Code here triggers twice for the element if dragged to another group (two sorts)
+                    [].forEach.call(event.item.parentNode.getElementsByClassName('priority_row'), function (el, index) {
+                        var cell = el.getElementsByClassName('holdme')[0];
+                    });
+                },
+
+                // Changed sorting within list
+                onUpdate: function (event) {
+                    var positions = {{ group | lower }}_sortable.toArray();
+                    // Prep AJAX request with CSRF token
+                    $.ajaxSetup({
+                        beforeSend: function(xhr, settings) {
+                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                            }
+                        }
+                    });
+                    // Send AJAX POST request
+                    $.ajax(update_url, {
+                        type: 'POST',
+                        data: {
+                            'project': project_id,
+                            'priority': event.item.parentNode.id,
+                            'positions': JSON.stringify(positions)
+                        },
+                        success: function (data) {
+                            console.log(data);
+                        }
+                    });
+                },
+
+                // Element is removed from the list into another list
+                onRemove: function (event) {
+                    // Get the placeholder `tr` if it exists
+                    placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
+                    var positions = {{ group | lower }}_sortable.toArray();
+                    // Prep AJAX request with CSRF token
+                    $.ajaxSetup({
+                        beforeSend: function(xhr, settings) {
+                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                            }
+                        }
+                    });
+                    // Send AJAX POST request
+                    $.ajax(update_url, {
+                        type: 'POST',
+                        data: {
+                            'project': project_id,
+                            'priority': event.from.id,
+                            'positions': JSON.stringify(positions)
+                        },
+                        success: function (data) {
+                            console.log(data);
+                        }
+                    });
+                    // This fires before ``onEnd()` where we adjust the hidden tasks lists so
+                    // an "empty" row will still have the hidden row during the remove
+                    if (event.from.rows.length == 1) {
+                        // Add a placeholder row
+                        var placeholder_row = event.from.insertRow(0)
+                        placeholder_row.id = '{{ group|lower }}_placeholder'
+                        placeholder_row.className = 'priority-row-placeholder'
+                        placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder', 0)
+                        cell = placeholder_row.insertCell(0);
+                        cell.colSpan = 7
+                        cell.innerHTML = 'Create a {{ group }} objective or drag-and-drop an objective here to update its priority.'
+                    } else {
+                        if (placeholder !== undefined) {
+                            // Otherwise, delete the placeholder
+                            placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                        };
+                    };
+                },
+
+                // Event when you move an item in the list or between lists
+                onMove: function (event, originalEvent) {
+                    // Code here triggers with every drag to a new position
+                },
+
+                // Attempt to drag a filtered element
+                onFilter: function (event) {},
+
+                // Called when creating a clone of element
+                onClone: function (event) {},
+
+                // Called when dragging element changes position
+                onChange: function (event) {
+                    // Code here triggers with every move while drag is in progress
+                },
+            });
+        {% endfor %}
     </script>
 
     <!-- Cycle Project Objective Status with AJAX -->
