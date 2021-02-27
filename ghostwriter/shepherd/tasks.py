@@ -1091,9 +1091,8 @@ def review_cloud_infrastructure():
                 name = "Blank"
                 if instance.tags:
                     for tag in instance.tags:
-                        if "name" in tag["Key"]:
-                            name = tag["Value"]
-                        elif "Name" in tag["Key"]:
+                        # AWS assigns names to instances via a ``Name`` key`
+                        if tag["Key"] == "Name":
                             name = tag["Value"]
                         else:
                             tags.append("{}: {}".format(tag["Key"], tag["Value"]))
