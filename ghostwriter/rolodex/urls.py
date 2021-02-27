@@ -33,6 +33,11 @@ urlpatterns += [
         name="ajax_set_objective_status",
     ),
     path(
+        "ajax/project/objective/order",
+        views.ajax_update_project_objectives,
+        name="ajax_update_objective_order",
+    ),
+    path(
         "ajax/project/objective/delete/<int:pk>",
         views.ProjectObjectiveDelete.as_view(),
         name="ajax_delete_project_objective",

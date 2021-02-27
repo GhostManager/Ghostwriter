@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import datetime
+import json
 import logging
 
 # Django & Other 3rd Party Libraries
@@ -35,6 +36,7 @@ from .models import (
     Client,
     ClientContact,
     ClientNote,
+    ObjectivePriority,
     ObjectiveStatus,
     Project,
     ProjectAssignment,
@@ -125,6 +127,56 @@ def roll_codename(request):
         logger.error(log_message)
         data = {"result": "error", "message": "Could not generate a codename"}
 
+    return JsonResponse(data)
+
+
+@login_required
+def ajax_update_project_objectives(request):
+    """
+    Update the ``position`` and ``status`` fields of all :model:`rolodex.ProjectObjective`
+    entries attached to an individual :model:`rolodex.Project`.
+    """
+    if request.method == "POST" and request.is_ajax():
+        data = request.POST.get("positions")
+        project_id = request.POST.get("project")
+        priority_class = request.POST.get("priority").replace("_priority", "")
+        order = json.loads(data)
+
+        logger.info(
+            "Received AJAX POST to update project %s's %s objectives in this order: %s",
+            project_id,
+            priority_class,
+            ", ".join(order),
+        )
+
+        try:
+            priority = ObjectivePriority.objects.get(priority__iexact=priority_class)
+        except ObjectivePriority.DoesNotExist:
+            priority = None
+        if priority:
+            ignore = ["placeholder", "ignore"]
+            counter = 1
+            for objective_id in order:
+                if not any(name in objective_id for name in ignore):
+                    obj_instance = ProjectObjective.objects.get(id=objective_id)
+                    if obj_instance:
+                        obj_instance.priority = priority
+                        obj_instance.position = counter
+                        obj_instance.save()
+                        counter += 1
+                    else:
+                        logger.error(
+                            "Received an objective ID, %s, that did not match an existing objective",
+                            objective_id,
+                        )
+                else:
+                    logger.info("Ignored data-id value %s", objective_id)
+        else:
+            data = {"result": "specified priority, {}, is invalid".format(priority_class)}
+        # If all went well, return success
+        data = {"result": "success"}
+    else:
+        data = {"result": "error"}
     return JsonResponse(data)
 
 
