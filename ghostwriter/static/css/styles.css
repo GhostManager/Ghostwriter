@@ -1058,9 +1058,9 @@ td {
   color: var(--main-txt-color);
 }
 
-tr:hover {
+/* tr:hover {
   background-color: #f5f5f5;
-}
+} */
 
 .collapsiblecontent,
 .hidden-table:hover {
@@ -2480,6 +2480,7 @@ img {
   font-size: var(--main-font-size);
   display: inline-block;
   width: 125px;
+  z-index: 100;
 }
 
 .objective-status {
@@ -2487,7 +2488,7 @@ img {
 }
 
 .objective-description, .objective-description p {
-  margin-top: 10px;
+  margin-top: 0px;
   margin-bottom: 0px;
 }
 
@@ -2593,7 +2594,7 @@ li[role="presentation"].active a{
 }
 
 .objective-deadline {
-  float: right;
+  /* float: right; */
   color: var(--primary-color);
   font-weight: 600;
 }
@@ -2622,6 +2623,83 @@ li[role="presentation"].active a{
   overflow-x: hidden; /* for Firefox (issue #5) */
 }
 
+.progress {
+  position: relative;
+  background-color: var(--neutral-color);
+}
+
 .todo-progressbar {
   background-color: var(--primary-color);
+}
+
+.todo-progressbar-title {
+  position: absolute;
+  text-align: center;
+  line-height: 20px; /* line-height should be equal to bar height */
+  overflow: hidden;
+  color: #fff;
+  right: 0;
+  left: 0;
+  top: 0;
+}
+
+.expandme:before {
+  font-family: 'Font Awesome 5 Free';
+  content: '\f101';
+  font-weight: 900;
+  font-size: 1.5em;
+  cursor: pointer;
+}
+
+tr.accordion-row.open td:first-child + td {
+  transform: rotate(90deg);
+}
+
+.accordion {
+  display: none;
+}
+
+.accoridon-content {
+  display: none;
+}
+
+th.priority-header {
+  background-color: var(--secondary-table-header-color);
+  text-align: justify;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom: none;
+  padding-left: 30px;
+  pointer-events: none;
+  opacity: 0.75;
+  color: #fff;
+}
+
+tr.priority-row-placeholder>td {
+  font-style: italic;
+  border-bottom: none;
+}
+
+th.priority-header.primary {
+  background-color: var(--high-rating-color);
+}
+
+th.priority-header.primary:before {
+  content: '\f12a';
+}
+
+th.priority-header.secondary {
+  background-color: var(--med-rating-color);
+}
+
+th.priority-header.secondary:before {
+  content: '\f005';
+}
+
+th.priority-header.tertiary {
+  background-color: var(--low-rating-color);
+}
+
+th.priority-header.tertiary:before {
+  content: '\f063';
 }
