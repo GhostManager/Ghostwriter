@@ -376,6 +376,10 @@ class ProjectObjective(models.Model):
     marked_complete = models.DateField(
         "Marked Complete", null=True, blank=True, help_text="Date the objective was marked complete"
     )
+    position = models.IntegerField(
+        "List Position",
+        default=1,
+    )
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
     status = models.ForeignKey(
@@ -393,7 +397,15 @@ class ProjectObjective(models.Model):
 
     class Meta:
 
-        ordering = ["project", "complete", "priority__weight", "deadline", "status", "objective"]
+        ordering = [
+            "project",
+            "position",
+            "complete",
+            "priority__weight",
+            "deadline",
+            "status",
+            "objective",
+        ]
         verbose_name = "Project objective"
         verbose_name_plural = "Project objectives"
 
