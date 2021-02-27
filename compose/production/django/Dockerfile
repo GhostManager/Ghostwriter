@@ -13,7 +13,10 @@ RUN apk update \
     # CFFI dependencies
     && apk add libffi-dev py-cffi \
     # XLSX dependencies
-    && apk add libxml2-dev libxslt-dev
+    && apk add libxml2-dev libxslt-dev \
+    # Rust and Cargo required by the ``cryptography`` Python package
+    && apk add rust \
+    && apk add cargo
 
 RUN addgroup -S django \
     && adduser -S -G django django
