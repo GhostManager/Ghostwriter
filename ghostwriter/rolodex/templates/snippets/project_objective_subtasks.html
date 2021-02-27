@@ -26,12 +26,6 @@
                 <li role="presentation" class="nav-item completed-task"><a href="#" class="pt-0 nav-link">Completed</a></li>
             </ul>
 
-            {% with percentage=objective.calculate_status %}
-                <div class="progress">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated todo-progressbar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">{{ percentage }}% Complete</div>
-                </div>
-            {% endwith %}
-
             <!-- Task List -->
             <div class="todo-list">
                 {% for task in objective.projectsubtask_set.all %}
