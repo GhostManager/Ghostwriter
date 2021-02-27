@@ -1,12 +1,14 @@
 """This contains the custom template tags used by he Rolodex application."""
 
 # Standard Libraries
+from collections import defaultdict
 import datetime
 
 # Django & Other 3rd Party Libraries
 from django import template
 
 # Ghostwriter Libraries
+from ghostwriter.rolodex.models import ObjectivePriority
 from ghostwriter.shepherd.models import AuxServerAddress
 
 register = template.Library()
@@ -72,3 +74,39 @@ def days_left(value):
     today = datetime.date.today()
     delta = value - today
     return delta.days
+
+
+@register.filter
+def get_item(dictionary, key):
+    """
+    Return a key value from a dictionary object.
+
+    **Parameters**
+
+    ``dictonary``
+        Python dictionary object to parse
+    ``key``
+        Key name tor etrieve from the dictionary
+    """
+    # Use `get` to return `None` if not found
+    return dictionary.get(key)
+
+
+@register.simple_tag
+def group_by_priority(queryset):
+    """
+    Group a queryset by the ``Priority`` field.
+
+    **Parameters**
+
+    ``queryset``
+        Instance of :model:`rolodex.ProjectObjective`
+    """
+    all_priorities = ObjectivePriority.objects.all().order_by("weight")
+    priority_dict = defaultdict(list)
+    for priority in all_priorities:
+        priority_dict[str(priority)] = []
+    for objective in queryset:
+        priority_dict[str(objective.priority)].append(objective)
+    # Return a basic dict because templates can't handle defaultdict
+    return dict(priority_dict)
