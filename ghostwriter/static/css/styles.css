@@ -69,20 +69,13 @@ hr {
   font-weight: 300;
 }
 
-.sub-objective p, .sub-objective td {
-  font-size: var(--secondary-font-size);
-  font-style: italic;
-  margin-left: 30px;
-  padding: 0px;
-}
+/* ---------------------------------------------------
+    CUSTOM BOOTSTRAP INPUT STYLES
+----------------------------------------------------- */
 
-.form-check-label{
+.form-check-label {
   cursor: pointer;
 }
-
-/* ---------------------------------------------------
-    SELECT INPUT STYLES
------------------------------------------------------ */
 
 .form-select {
   cursor: pointer;
@@ -150,7 +143,6 @@ hr {
 .form-select:disabled:hover, .form-select[aria-disabled=true] {
   border-color: #aaa;
 }
-
 
 /* ---------------------------------------------------
     IMAGE STYLES
@@ -225,12 +217,6 @@ h6 {
 
 .underline {
   text-decoration: underline;
-}
-
-.float-right-top {
-  position: absolute;
-  right: 5px;
-  top: 0;
 }
 
 .clickable-link {
@@ -535,12 +521,6 @@ input[type='file'] {
   margin-right: auto;
 }
 
-.center-block {
-  display: table;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .search input {
   text-indent: .5em;
 }
@@ -665,29 +645,6 @@ ul ul a {
   font-size: 0.9em !important;
   padding-left: 30px !important;
   color: var(--sidebar-link-text-color);
-}
-
-ul.CTAs {
-  padding: 20px;
-}
-
-ul.CTAs a {
-  text-align: center;
-  font-size: 0.9em !important;
-  display: block;
-  border-radius: 5px;
-  margin-bottom: 5px;
-}
-
-a.download {
-  background: var(--sidebar-text-color);
-  color: rgb(136, 139, 150);
-}
-
-a.article,
-a.article:hover {
-  background: #6d7fcc !important;
-  color: var(--sidebar-text-color) !important;
 }
 
 /* ---------------------------------------------------
@@ -941,6 +898,11 @@ table {
   margin-bottom: 20px;
 }
 
+.table-config th {
+  background-color: transparent;
+  color: var(--main-txt-color);
+}
+
 .table-centered {
   width: 50%;
   margin: auto;
@@ -1058,19 +1020,6 @@ td {
   color: var(--main-txt-color);
 }
 
-/* tr:hover {
-  background-color: #f5f5f5;
-} */
-
-.collapsiblecontent,
-.hidden-table:hover {
-  background-color: #f1f1f1;
-}
-
-.hidden-table:hover {
-  background-color: #fafafa;
-}
-
 .healthy {
   color: var(--healthy-color) !important;
   font-weight: 600;
@@ -1081,15 +1030,6 @@ td {
   color: var(--burned-color);
   font-weight: 600;
   text-align: center;
-}
-
-.form-th {
-  background-color: #fafafa;
-  color: #000;
-}
-
-.form-th:hover {
-  background-color: #fafafa;
 }
 
 /* ---------------------------------------------------
@@ -1445,6 +1385,14 @@ td p {
   font-size: 1em;
 }
 
+.avatar-upload-icon:before {
+  content: '\f302';
+}
+
+.domain-icon:before {
+  content: '\f02e';
+}
+
 .minus-icon:after {
   content: '\f068';
 }
@@ -1492,6 +1440,10 @@ td p {
   content: '\f00c';
 }
 
+.clock-icon:before {
+  content: '\f017';
+}
+
 .cross-icon:before {
   content: '\f00d';
 }
@@ -1514,6 +1466,10 @@ td p {
 
 .key-icon:before {
   content: '\f084';
+}
+
+.sync-icon:before {
+  content: '\f021';
 }
 
 .aws-icon:before {
@@ -1650,6 +1606,10 @@ td p {
   content: '\f234';
 }
 
+.user-gear-icon:before {
+  content: '\f4fe';
+}
+
 .company-icon:before {
   content: '\f1ad';
 }
@@ -1750,12 +1710,10 @@ td p {
 
 .toggle-on-icon:before {
   content: '\f205';
-  color: var(--healthy-color);
 }
 
 .toggle-off-icon:before {
   content: '\f204';
-  color: var(--med-rating-color);
 }
 
 .pencil-icon:before {
@@ -2005,59 +1963,6 @@ td p {
   display: block;
 }
 
-.collapsible {
-  border-radius: 5px;
-  background-color: var(--collapsible-main-color);
-  border: none;
-  border-bottom: 1px solid;
-  border-color: #f5f5f5;
-  color: #fff;
-  cursor: pointer;
-  padding: 18px;
-  width: 100%;
-  text-align: left;
-  outline: none;
-  font-size: 15px;
-  position: relative;
-}
-
-.collapsible.active,
-.collapsible:hover {
-  background-color: var(--collapsible-hover-color);
-}
-
-.collapsible:after {
-  content: '\002B';
-  color: #fff;
-  font-weight: 600;
-  float: right;
-  margin-left: 5px;
-}
-
-.collapsible.active:after {
-  content: '\2212';
-}
-
-.collapsiblecontent {
-  border-radius: 5px;
-  padding: 0 18px;
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.2s ease-out;
-  background-color: #f1f1f1;
-}
-
-.collapsiblecontent_inner {
-  margin-top: 40px;
-  margin-bottom: 100px;
-}
-
-.commentbody {
-  margin: 0 auto;
-  max-width: 800px;
-  padding: 0 20px;
-}
-
 .myaccordion {
   max-width: 100%;
   margin: 10px auto;
@@ -2165,7 +2070,11 @@ ol {
     NOTE STYLES
 ----------------------------------------------------- */
 
-.container {
+.profile-container {
+  max-width: 550px;
+}
+
+.note-container {
   width: 70%;
   border: 2px solid #dedede;
   background-color: #f1f1f1;
@@ -2181,13 +2090,13 @@ ol {
   background-color: #ddd;
 }
 
-.container::after {
+.note-container::after {
   content: '';
   clear: both;
   display: table;
 }
 
-.container img {
+.note-container img {
   float: left;
   max-width: 60px;
   max-height: 60px;
@@ -2196,15 +2105,15 @@ ol {
   border-radius: 10%;
 }
 
-.container .dropdown {
+.note-container .dropdown {
   float: left;
 }
 
-.container .dropdown.right {
+.note-container .dropdown.right {
   float: right;
 }
 
-.container img.right {
+.note-container img.right {
   float: right;
   margin-left: 20px;
   margin-right: 0;
@@ -2342,7 +2251,7 @@ ol {
 
 .dashboard-header {
   font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-  font-size: .9em;
+  font-size: 2em;
   color: var(--primary-color)
 }
 
@@ -2386,7 +2295,6 @@ img {
 .dashboard__item>.card {
   height: 100%;
   padding: 1rem;
-  font-size: 2rem;
   font-weight: 300;
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
