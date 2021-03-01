@@ -8,6 +8,7 @@ from .models import (
     Client,
     ClientContact,
     ClientNote,
+    ObjectivePriority,
     ObjectiveStatus,
     Project,
     ProjectAssignment,
@@ -130,3 +131,9 @@ class ProjectScopeAdmin(admin.ModelAdmin):
 @admin.register(ProjectSubTask)
 class ProjectSubTaskAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(ObjectivePriority)
+class ObjectivePriorityAdmin(admin.ModelAdmin):
+    list_display = ("priority", "weight")
+    list_display_links = ("priority",)
