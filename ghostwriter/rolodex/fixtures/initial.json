@@ -103,7 +103,7 @@
     "model": "rolodex.objectivepriority",
     "pk": 3,
     "fields": {
-      "weight": "3",
+      "weight": "2",
       "priority": "Tertiary"
     }
   }
