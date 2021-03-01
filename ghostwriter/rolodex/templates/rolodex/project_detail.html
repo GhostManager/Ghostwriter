@@ -634,7 +634,7 @@
                     {% for note in project.projectnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
                             <p>{{ note.timestamp }}</p>
-                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                            <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
                                 <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
                                 {% if request.user == note.operator or request.user.is_staff %}
                                     <div class="dropdown dropleft right">

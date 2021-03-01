@@ -63,17 +63,17 @@
                         </thead>
                         {% for poc in client.clientcontact_set.all %}
                             <tr>
-                                <td id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
-                                <td>{{ poc.job_title }}</td>
-                                <td>{{ poc.email }}</td>
-                                <td nowrap>
+                                <td class="align-middle" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
+                                <td class="align-middle">{{ poc.job_title }}</td>
+                                <td class="align-middle">{{ poc.email }}</td>
+                                <td class="align-middle">
                                     {% if poc.phone %}
                                         {{ poc.phone }}
                                     {% else %}
                                         --
                                     {% endif %}
                                 </td>
-                                <td class="table-note">{{ poc.note|bleach }}</td>
+                                <td class="align-middle table-note">{{ poc.note|bleach }}</td>
                                 <td>
                                     <div class="dropdown dropleft">
                                         <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
@@ -95,7 +95,7 @@
             <div id="project-history" class="tab-pane">
                 <p><a class="icon add-icon" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a></p>
                 {% if client.project_set.all %}
-                    <table id="projectTable" class="tablesorter">
+                    <table id="projectTable" class="tablesorter table">
                         <thead>
                             <tr>
                                 <th nowrap>Codename</th>
@@ -107,11 +107,11 @@
                         </thead>
                         {% for project in client.project_set.all %}
                             <tr>
-                                <td><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
-                                <td>{{ project.project_type }}</td>
-                                <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
-                                <td class="table-note">{{ project.note|bleach }}</td>
-                                <td>
+                                <td class="align-middle"><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
+                                <td class="align-middle">{{ project.project_type }}</td>
+                                <td class="align-middle">{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
+                                <td class="align-middle table-note">{{ project.note|bleach }}</td>
+                                <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div class="dropdown-menu" aria-labelledby="project-dropdown-btn_{{ project.id }}">
@@ -144,10 +144,10 @@
                             </thead>
                             {% for domain in domains %}
                                 <tr>
-                                    <td><a class="clickable" href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a></td>
-                                    <td><a class="clickable" href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a></td>
-                                    <td>{{ domain.activity_type }}</td>
-                                    <td>{{ domain.end_date|date:"d M Y" }}</td>
+                                    <td class="align-middle"><a class="clickable" href="{{ domain.project.get_absolute_url }}">{{ domain.project.codename }}</a></td>
+                                    <td class="align-middle"><a class="clickable" href="{{ domain.domain.get_absolute_url }}">{{ domain.domain.name }}</a></td>
+                                    <td class="align-middle">{{ domain.activity_type }}</td>
+                                    <td class="align-middle">{{ domain.end_date|date:"d M Y" }}</td>
                                 </tr>
                             {% endfor %}
                         </table>
@@ -166,19 +166,19 @@
                             </thead>
                             {% for server in servers %}
                                 <tr>
-                                    <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
-                                    <td><a class="clickable" href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a></td>
-                                    <td>{{ server.activity_type }}</td>
-                                    <td>{{ server.end_date|date:"d M Y" }}</td>
+                                    <td class="align-middle"><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
+                                    <td class="align-middle"><a class="clickable" href="{{ server.server.get_absolute_url }}">{{ server.server.ip_address }}</a></td>
+                                    <td class="align-middle">{{ server.activity_type }}</td>
+                                    <td class="align-middle">{{ server.end_date|date:"d M Y" }}</td>
                                 </tr>
                             {% endfor %}
 
                             {% for server in vps %}
                                 <tr>
-                                    <td><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
-                                    <td>{{ server.ip_address }}</td>
-                                    <td>{{ server.activity_type }}</td>
-                                    <td> {{ server.project.end_date|date:"d M Y" }}</td>
+                                    <td class="align-middle"><a class="clickable" href="{{ server.project.get_absolute_url }}">{{ server.project.codename }}</a></td>
+                                    <td class="align-middle">{{ server.ip_address }}</td>
+                                    <td class="align-middle">{{ server.activity_type }}</td>
+                                    <td class="align-middle"> {{ server.project.end_date|date:"d M Y" }}</td>
                                 </tr>
                             {% endfor %}
                         </table>
@@ -197,7 +197,7 @@
                     {% for note in client.clientnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
                             <p>{{ note.timestamp }}</p>
-                            <div class="container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                            <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
                                 <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
                                 {% if request.user == note.operator or request.user.is_staff %}
                                     <div class="dropdown dropleft right">
