@@ -83,9 +83,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "primary",
                             ValidationError(
-                                _(
-                                    "You can not mark two addresses as the primary address"
-                                ),
+                                _("You can not mark two addresses as the primary address"),
                                 code="duplicate",
                             ),
                         )
@@ -294,7 +292,7 @@ class TransientServerForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <strong><i class="fas fa-server"></i> Server Information</strong>
+                <h4 class="icon server-icon">Server Information</h4>
                 <hr>
                 """
             ),
@@ -308,7 +306,7 @@ class TransientServerForm(forms.ModelForm):
             "server_provider",
             HTML(
                 """
-                <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+                <h4 class="icon comment-icon">Additional Information</h4>
                 <hr>
                 """
             ),
@@ -410,17 +408,11 @@ class ServerCheckoutForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <strong><i class="far fa-building"></i> Client Information</strong>
+                <h4 class="icon project-icon">Project & Activity Information</h4>
                 <hr>
                 """
             ),
             "client",
-            HTML(
-                """
-                <strong><i class="fas fa-tasks"></i> Usage Information</strong>
-                <hr>
-                """
-            ),
             "project",
             Row(
                 Column("start_date", css_class="form-group col-md-6 mb-0"),
@@ -431,7 +423,7 @@ class ServerCheckoutForm(forms.ModelForm):
             "server_role",
             HTML(
                 """
-                <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+                <h4 class="icon comment-icon">Additional Information</h4>
                 <hr>
                 """
             ),
@@ -458,9 +450,7 @@ class ServerCheckoutForm(forms.ModelForm):
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
-            self.fields["project"].queryset = self.instance.client.project_set.order_by(
-                "codename"
-            )
+            self.fields["project"].queryset = self.instance.client.project_set.order_by("codename")
 
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]

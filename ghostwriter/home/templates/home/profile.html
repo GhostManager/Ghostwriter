@@ -6,12 +6,12 @@
 
 {% block content %}
     <style>
-        th, tr, td {
+        th, tr, p {
             text-align: justify;
             border-bottom: 0;
         }
 
-        td {
+        p {
             border-bottom: 0;
         }
     </style>
@@ -22,36 +22,53 @@
     </a>
 
     <!-- Users Profile Section -->
-    <table class="table table-borderless user-profile-table">
-        <tr class="hidden-table">
-            <th class="align-middle form-th icon user-icon">Username</th>
-            <td class="align-middle">{{ user.username }}</td>
-        <tr class="hidden-table">
-            <th class="align-middle form-th icon signature-icon">Display Name</th>
-            <td class="align-middle">{{ user.name }}</td>
-        <tr class="hidden-table">
-            <th class="align-middle form-th icon email-icon">Email</th>
-            <td class="align-middle ">{{ user.email }}</td>
-        </tr>
-        <tr class="hidden-table">
-            <th class="align-middle form-th icon access-icon">Access</th>
-            <td class="align-middle">
-                {% if user.is_superuser %}
-                    Superuser, Staff
-                {% elif user.is_staff %}
-                    Staff
-                {% else %}
-                    Normal User
-               {% endif %}
-            </td>
-        </tr>
-        <tr class="hidden-table">
-            <th class="align-middle form-th icon groups-icon">Groups</th>
-            <td class="align-middle ">
-                {{ user|get_groups }}
-            </td>
-        </tr>
-    </table>
+    <div class="container profile-container mt-4">
+        <div class="row align-items-center">
+            <div class="col-sm">
+                <p class="bold icon user-icon">Username</p>
+            </div>
+            <div class="col-sm">
+                <p class="text-center">{{ user.username }}</p>
+            </div>
+        </div>
+
+        <div class="row align-items-center">
+            <div class="col-sm">
+                <p class="bold icon signature-icon">Display Name</p>
+            </div>
+            <div class="col-sm">
+                <p class="text-center">{{ user.name }}</p>
+            </div>
+        </div>
+
+        <div class="row align-items-center">
+            <div class="col-sm">
+                <p class="bold icon email-icon">Email</p>
+            </div>
+            <div class="col-sm">
+                <p class="text-center">{{ user.email }}</p>
+            </div>
+        </div>
+
+        <div class="row align-items-center">
+            <div class="col-sm">
+                <p class="bold icon access-icon">Access</p>
+            </div>
+            <div class="col-sm">
+                <p class="text-center">
+                    {% if user.is_superuser %}Superuser{% elif user.is_staff %}Staff{% else %}Normal User{% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="row align-items-center">
+            <div class="col-sm">
+                <p class="bold icon groups-icon">Groups</p>
+            </div>
+            <div class="col-sm">
+                <p class="text-center">{{ user|get_groups }}</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Account Information Update -->
     <h4 class="icon user-edit-icon">Update Account Details</h4>
