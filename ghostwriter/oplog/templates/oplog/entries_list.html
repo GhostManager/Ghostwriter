@@ -7,7 +7,7 @@
     <nav aria-label="breadcrumb">
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}"">Operational Logs</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}"">Operation Logs</a></li>
                 <li class=" breadcrumb-item active" aria-current="page">{{ name }}</li>
         </ul>
     </nav>
@@ -499,7 +499,7 @@
 
             $("#oplogTableDiv").scroll(function() {
                 if (pendingResult == false) {
-                    if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) { 
+                    if($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
                         if (tableSynced == false) {
                             pendingResult = true
                             socket.send(JSON.stringify({
