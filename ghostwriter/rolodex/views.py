@@ -237,7 +237,7 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update objective's status"}
+            data = {"result": "error", "message": "Could not update objective status"}
 
         return JsonResponse(data)
 
@@ -279,7 +279,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update project's status"}
+            data = {"result": "error", "message": "Could not update project status"}
 
         return JsonResponse(data)
 
@@ -445,7 +445,7 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update target's status"}
+            data = {"result": "error", "message": "Could not update target status"}
 
         return JsonResponse(data)
 
@@ -555,7 +555,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update task's status"}
+            data = {"result": "error", "message": "Could not update task status"}
 
         return JsonResponse(data)
 
@@ -597,7 +597,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update objective's status"}
+            data = {"result": "error", "message": "Could not update objective status"}
 
         return JsonResponse(data)
 
