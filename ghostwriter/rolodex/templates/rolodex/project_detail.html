@@ -935,12 +935,12 @@
 
     <!-- Cycle Project Objective Status with AJAX -->
     <script>
-        $('.objective-badge').click(function () {
-            var badge = $(this);
-            var url = $(this).attr('obj-status-update-url');
-            var statusId = $(this).attr('status-id');
-            var objectiveId = $(this).attr('objective-id');
-            var csrftoken = $(this).attr('obj-status-csrftoken');
+        function cycleStatus(ele) {
+            var badge = ele;
+            var url = ele.attr('obj-status-update-url');
+            var statusId = ele.attr('status-id');
+            var objectiveId = ele.attr('objective-id');
+            var csrftoken = ele.attr('obj-status-csrftoken');
             // Prep AJAX request with CSRF token
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -963,7 +963,7 @@
                     badge.html(data['status']);
                 }
             });
-        });
+        };
     </script>
 
     <!-- Toggle Project Status with AJAX -->
