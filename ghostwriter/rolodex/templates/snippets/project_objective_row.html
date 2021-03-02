@@ -7,7 +7,7 @@
         <span>
             <input
                 type="checkbox"
-                onclick="toggleObjective($(this).parent().parent().parent());"
+                onclick="$(this).tooltip('hide'); toggleObjective($(this).parent().parent().parent());"
                 data-toggle="tooltip"
                 data-placement="top"
                 title="Toggle objective's completed status"

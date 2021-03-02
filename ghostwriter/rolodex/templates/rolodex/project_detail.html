@@ -1381,8 +1381,10 @@
                 console.log("Updating objective row...");
                 // Refresh the HTML from the update URL
                 ele.load(url, function(data) {
+                    data = $(data);
                     ele.replaceWith(data);
-                    // prepareTodoList();
+                    checker = data.find('input:checkbox:first');
+                    checker.tooltip('enable');
                 });
             }
         };
