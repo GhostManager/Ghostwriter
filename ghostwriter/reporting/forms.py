@@ -588,6 +588,9 @@ class SelectReportTemplateForm(forms.ModelForm):
                                 class="btn btn-default word-btn js-generate-report"
                                 type="button"
                                 href="{% url 'reporting:generate_docx' report.id %}"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Generate a DOCX report"
                             >
                             </a>
                             """
@@ -614,6 +617,9 @@ class SelectReportTemplateForm(forms.ModelForm):
                                 class="btn btn-default pptx-btn"
                                 type="button"
                                 href="{% url 'reporting:generate_pptx' report.id %}"
+                                data-toggle="tooltip"
+                                data-placement="top"
+                                title="Generate a PPTX report"
                             >
                             </a>
                             """
@@ -626,9 +632,9 @@ class SelectReportTemplateForm(forms.ModelForm):
                 """
                 <p class="mb-2">Other report types do not use templates:</p>
                 <div class="btn-group">
-                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}"></i><br />xlsx</a>
-                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}"><br />JSON</a>
-                    <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}"><br />All</a>
+                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i><br />xlsx</a>
+                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"><br />JSON</a>
+                    <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate and package all report types and evidence in a Zip"><br />All</a>
                 </div>
                 """
             ),
