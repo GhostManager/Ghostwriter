@@ -1,6 +1,57 @@
 Changelog
 =========
 
+2 March 2021
+----------------
+* Tagged release, v2.1
+    * Release will require database migrations
+    * New features will require reloading the `seed_data` file
+        * e.g., `docker-compose -f local.yml run --rm django /seed_data`
+* Implemented project scope tracking
+    * Enabled tracking of one or more scope lists flagged as allowed/disallowed or requiring caution
+    * Closes #59
+* Implemented project target tracking
+    * Enabled tracking of specific hosts with notes
+* Committed redesigned project dashboards
+    * Notable changes and adjustments:
+        * Added a project calendar to track assignments, objectives, tasks, and project dates
+        * Added new objective tracker with task management, prioritization, and sorting
+* Added template linting checks for additional styles that may not be present in a report
+    * Closes #139
+* Fixed downloads of document names that included periods and commas
+    * Closes #149
+* Fixed evidence filenames with all uppercase extensions not appearing in reports
+    * Closes #74
+* Fixed a recursive HTML/JavaScript escape in log entries
+    * Closes #133
+* Fixed incorrect link in the menu for a point of contact under a client
+    * Closes $141
+    * Closes #142
+        * Bug was inadvertently resolved with the new menus
+        * Closing PR because it is no longer compatible
+* Fixed `docker-compose` errors related to latest verison of the `crytpography` library
+    * Closes #147
+* Fixed possible issue with assigning a name to an AWS asset in the cloud monitor task
+* Closed loophole that could allow a non-unique domain name
+    * Could lead to conflicting check-outs
+* Updated TinyMCE WYSIWYG editor and related JavaScript to v5.7.0
+    * Resolved potential Cross-Site Scripting vulnerability discovered in previous version
+* Added Clipboard.js to support better, more flexible "click to copy to clipboard" in the UI
+* Added several new Jinja2 expressions, statements, and filters for Word DOCX reports
+    * Added `project_codename` and `client_codename` (Closes #138)
+    * Added expressions and filters for new objectives, targets, and scope lists
+    * See wiki documentation
+* Improved page loading with certain large forms
+    * WYSIWYG editor is now loaded much more selectively
+    * Extra forms are no longer created by default when _editing_ a project or client
+        * Extra forms can still be added as needed
+        * Extra forms still load automatically when _creating_ a new project or client
+* Improved performance of operation log entry views with pagination
+    * Very large logs could push browsers to their limits
+* Implemented initial support for WebSocket channels for reports
+    * Groundwork for futurue enhancement – e.g., syncing updates between users editing the same report
+* Numerous minor bug fixes and style updates throughout
+
 15 January 2020
 ---------------
 * Fixed notifications going to the global Slack channel when project channels were available
