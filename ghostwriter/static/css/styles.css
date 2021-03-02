@@ -317,8 +317,8 @@ h6 {
 ----------------------------------------------------- */
 
 form.newitem {
-  width: 70%;
-  margin-left: 15%;
+  width: 80%;
+  margin: auto;
 }
 
 .form-control::placeholder {
@@ -944,7 +944,7 @@ th.severity-header {
   padding-top: 10px;
   padding-bottom: 10px;
   border-bottom: none;
-  padding-left: 30px;
+  padding-left: 18px;
   pointer-events: none;
   opacity: 0.75;
   color: #fff;
