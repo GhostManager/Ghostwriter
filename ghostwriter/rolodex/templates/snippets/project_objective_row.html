@@ -5,11 +5,31 @@
 <tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row {% if objective.complete %}complete{% endif %}" objective-id="{{ objective.id }}" data-id="{{ objective.id }}" toggle-objective-url="{% url 'rolodex:ajax_toggle_project_objective' objective.id %}" objective-csrftoken="{{ csrf_token }}" refresh-objective-url="{% url 'rolodex:ajax_update_objective_row' objective.id %}">
     <td class="align-middle">
         <span>
-            <input type="checkbox" onclick="toggleObjective($(this).parent().parent().parent());" {% if objective.complete %}checked{% endif %}>
+            <input
+                type="checkbox"
+                onclick="toggleObjective($(this).parent().parent().parent());"
+                data-toggle="tooltip"
+                data-placement="top"
+                title="Toggle objective's completed status"
+                {% if objective.complete %}checked{% endif %}
+            >
         </span>
     </td>
-    <td class="holdme align-middle"></td>
-    <td class="align-middle"><button class="expandme btn btn-transaprent" onclick="expandObjective($(this))"></button></td>
+    <td
+        class="holdme align-middle"
+        data-toggle="tooltip"
+        data-placement="top"
+        title="Click-n-drag to reposition or categorize"
+    ></td>
+    <td class="align-middle">
+        <button
+            class="expandme btn btn-transaprent"
+            onclick="expandObjective($(this))"
+            data-toggle="tooltip"
+            data-placement="top"
+            title="Expand to view task list"
+        ></button>
+    </td>
     <td class="align-middle">{{ objective.objective|striptags }}</td>
     <td class="align-middle">
         <div
