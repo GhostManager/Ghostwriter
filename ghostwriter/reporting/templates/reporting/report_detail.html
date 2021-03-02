@@ -79,9 +79,9 @@
         {% if report.reportfindinglink_set.all %}
             <table id="findings-table" class="table table-sm" findings-update-url="{% url 'reporting:update_report_findings' %}">
                 <tr>
-                    <th>Order</th>
-                    <th>Finding</th>
-                    <th>
+                    <th class="icon ol-list-icon text-center"></th>
+                    <th class="align-middle">Finding</th>
+                    <th class="align-middle">
                         <div class="dropdown dropleft">
                             <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Evidence</span>
                             <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
@@ -89,7 +89,7 @@
                             </div>
                         </div>
                     </th>
-                    <th>
+                    <th class="align-middle">
                         <div class="dropdown dropleft">
                             <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Owner</span>
                             <div id="owner-info" class="dropdown-menu dropdown-info-content" aria-labelledby="owner-info-btn">
@@ -97,7 +97,7 @@
                             </div>
                         </div>
                     </th>
-                    <th>
+                    <th class="align-middle">
                         <div class="dropdown dropleft">
                             <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Status</span>
                             <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
@@ -105,7 +105,7 @@
                             </div>
                         </div>
                     </th>
-                    <th>Options</th>
+                    <th class="align-middle">Options</th>
                 </tr>
 
                 {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
