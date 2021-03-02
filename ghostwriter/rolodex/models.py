@@ -273,13 +273,6 @@ class ProjectAssignment(models.Model):
         verbose_name = "Project assignment"
         verbose_name_plural = "Project assignments"
 
-    def save(self, *args, **kwargs):
-        if self.start_date < self.project.start_date:
-            self.start_date = self.project.start_date
-        elif self.end_date > self.project.end_date:
-            self.end_date = self.project.end_date
-        super(ProjectAssignment, self).save(*args, **kwargs)
-
     def get_absolute_url(self):
         return reverse("rolodex:project_detail", args=[str(self.project.id)])
 
@@ -413,14 +406,6 @@ class ProjectObjective(models.Model):
         verbose_name = "Project objective"
         verbose_name_plural = "Project objectives"
 
-    def save(self, *args, **kwargs):
-        # Move a deadline outside of the project's window into the window
-        if self.deadline < self.project.start_date:
-            self.deadline = self.project.start_date
-        elif self.deadline > self.project.end_date:
-            self.deadline = self.project.end_date
-        super(ProjectObjective, self).save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.project} - {self.objective} {self.status})"
 
@@ -484,14 +469,6 @@ class ProjectSubTask(models.Model):
         ordering = ["parent", "complete", "deadline", "status", "task"]
         verbose_name = "Objective sub-task"
         verbose_name_plural = "Objective sub-tasks"
-
-    def save(self, *args, **kwargs):
-        # Move a deadline outside of the project's window into the window
-        if self.deadline < self.parent.project.start_date:
-            self.deadline = self.parent.project.start_date
-        elif self.deadline > self.parent.deadline:
-            self.deadline = self.parent.deadline
-        super(ProjectSubTask, self).save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.parent.project} : {self.task} ({self.status})"

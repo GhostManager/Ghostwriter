@@ -97,31 +97,21 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                                 code="incomplete",
                             ),
                         )
-
-
-class BaseProjectSubTaskInlineFormSet(BaseInlineFormSet):
-    """
-    BaseInlineFormset template for :model:`rolodex.ProjectSubTask` that adds validation
-    for this model.
-    """
-
-    def clean(self):
-        super(BaseProjectSubTaskInlineFormSet, self).clean()
-        if any(self.errors):
-            return
-        for form in self.forms:
-            if form.cleaned_data:
-                # Only validate if the form is NOT marked for deletion
-                if form.cleaned_data["DELETE"] is False:
-                    task = form.cleaned_data["task"]
-                    deadline = form.cleaned_data["deadline"]
-
-                    if deadline and not task:
+                    # Raise an error if dates are out of bounds
+                    if deadline < self.instance.start_date:
                         form.add_error(
                             "deadline",
                             ValidationError(
-                                _("Your deadline is missing a task"),
-                                code="incomplete",
+                                _("Your selected date is before the project start date"),
+                                code="invalid_date",
+                            ),
+                        )
+                    if deadline > self.instance.end_date:
+                        form.add_error(
+                            "deadline",
+                            ValidationError(
+                                _("Your selected date is after the project end date"),
+                                code="invalid_date",
                             ),
                         )
 
@@ -205,6 +195,23 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ValidationError(
                                 _("This note is part of an incomplete assignment form"),
                                 code="incomplete",
+                            ),
+                        )
+                    # Raise an error if dates are out of bounds
+                    if start_date < self.instance.start_date:
+                        form.add_error(
+                            "start_date",
+                            ValidationError(
+                                _("Your selected date is before the project start date"),
+                                code="invalid_date",
+                            ),
+                        )
+                    if end_date > self.instance.end_date:
+                        form.add_error(
+                            "end_date",
+                            ValidationError(
+                                _("Your selected date is after the project end date"),
+                                code="invalid_date",
                             ),
                         )
 
@@ -535,107 +542,6 @@ class ProjectObjectiveForm(forms.ModelForm):
                                 css_class="btn-sm btn-danger formset-del-button",
                             ),
                             css_class="form-group col-md-4",
-                        ),
-                        Column(
-                            Field("DELETE", style="display: none;"),
-                            css_class="form-group col-md-4 text-center",
-                        ),
-                        css_class="form-row",
-                    ),
-                    css_class="formset",
-                ),
-                css_class="formset-container",
-            )
-        )
-
-
-class ProjectSubTaskForm(forms.ModelForm):
-    """
-    Save an individual :model:`rolodex.ProjectSubTask` associated with an individual
-    :model:`rolodex.ProjectObjective`.
-    """
-
-    class Meta:
-        model = ProjectSubTask
-        fields = ("deadline", "task", "complete", "status")
-
-    def __init__(self, *args, **kwargs):
-        super(ProjectSubTaskForm, self).__init__(*args, **kwargs)
-        self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
-        self.fields["deadline"].widget.attrs["autocomplete"] = "off"
-        self.fields["deadline"].widget.input_type = "date"
-        self.fields["task"].widget.attrs["rows"] = 5
-        self.fields["task"].widget.attrs["placeholder"] = "Mid-Level Task"
-        self.helper = FormHelper()
-        # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
-        self.helper.form_tag = False
-        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
-        self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
-        # Layout the form for Bootstrap
-        self.helper.layout = Layout(
-            # Wrap form in a div so Django renders form instances in their own element
-            Div(
-                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
-                Alert(
-                    content=(
-                        """
-                        <strong>Task Deleted!</strong>
-                        Deletion will be permanent once the form is submitted. Click this alert to undo.
-                        """
-                    ),
-                    css_class="alert alert-danger show formset-undo-button",
-                    style="display:none; cursor:pointer;",
-                    template="alert.html",
-                    block=False,
-                    dismiss=False,
-                ),
-                Div(
-                    Row(
-                        Column(
-                            Row(
-                                FieldWithButtons(
-                                    "deadline",
-                                    HTML(
-                                        """
-                                        <button
-                                            class="btn btn-secondary"
-                                            type="button"
-                                            onclick="copyDeadline($(this).closest('div').find('input'))"
-                                        >
-                                        Copy
-                                        </button>
-                                        """
-                                    ),
-                                    css_class="col-md-12",
-                                ),
-                            ),
-                            Row(
-                                Field("status", css_class="form-select"),
-                                css_class="col-md-12 p-0 m-0",
-                            ),
-                            Row(
-                                SwitchToggle(
-                                    "complete",
-                                    css_class="col-md-12",
-                                ),
-                            ),
-                            css_class="col-md-4",
-                        ),
-                        Column(
-                            "task",
-                            css_class="col-md-8",
-                        ),
-                    ),
-                    Row(
-                        Column(
-                            Button(
-                                "formset-del-button",
-                                "Delete Task",
-                                css_class="btn-sm btn-danger formset-del-button",
-                            ),
-                            css_class="form-group col-md-4 offset-md-4",
                         ),
                         Column(
                             Field("DELETE", style="display: none;"),
