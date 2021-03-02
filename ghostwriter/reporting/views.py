@@ -819,12 +819,17 @@ def upload_evidence_modal_success(request):
 def generate_report_name(report_instance):
     """
     Generate a filename for a report based on the current time and attributes of an
-    individual :model:`reporting.Report`.
+    individual :model:`reporting.Report`. All periods and commas are removed to keep
+    the filename browser-friendly.
     """
+
+    def replace_chars(report_name):
+        return report_name.replace(".", "").replace(",", "")
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     client_name = report_instance.project.client
     assessment_type = report_instance.project.project_type
-    report_name = f"{timestamp}_{client_name}_{assessment_type}"
+    report_name = replace_chars(f"{timestamp}_{client_name}_{assessment_type}")
     return report_name
 
 
