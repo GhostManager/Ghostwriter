@@ -190,7 +190,7 @@
                                     data-placement="right"
                                     title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
                                 >
-                                    <button type="button" class="btn btn-primary icon expand-icon" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
+                                    <button type="button" class="btn btn-primary icon expand-btn-btn" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
                                         Expand
                                     </button>
                                 </td>
@@ -721,20 +721,21 @@
 
     <!-- Toggle Task Lists Under Objectives -->
     <script>
-        $('.expandme').on('click',
-            function() {
-                $(this).parent().toggleClass('open');
-                var accordionRow = $(this).parent().next('.accordion');
-                if (!accordionRow.is(':visible')) {
-                    accordionRow.show().find('.accordion-content').slideDown();
-                } else {
-                    accordionRow.find('.accordion-content').slideUp(function() {
-                        if (!$(this).is(':visible')) {
-                            accordionRow.hide();
-                        }
-                    });
-                }
-            });
+        // $('.expandme').on('click', function() {
+        function expandObjective(ele) {
+            ele.parent().parent().toggleClass('open');
+            var accordionRow = ele.parent().parent().next('.accordion');
+            if (!accordionRow.is(':visible')) {
+                accordionRow.show().find('.accordion-content').slideDown();
+            } else {
+                accordionRow.find('.accordion-content').slideUp(function() {
+                    if (!$(this).is(':visible')) {
+                        accordionRow.hide();
+                    }
+                });
+            }
+        };
+        // });
     </script>
 
    <!-- Script for Sortable Groups of Objectives -->
@@ -1198,12 +1199,46 @@
 
     <!-- Objective Task Management -->
     <script>
+        // Toggle an objective's ``complete`` value
+        function toggleObjective(ele) {
+            var url = ele.attr('toggle-objective-url');
+            var objectiveId = ele.attr('objective-id');
+            var csrftoken = ele.attr('objective-csrftoken');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'objective': objectiveId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        updateObjectiveRow(ele);
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Objective Update'});
+                    }
+                }
+            });
+        };
+
         // Example code: https://www.bootdey.com/snippets/view/bs4-todo-list#preview
         // Toggle a task's ``complete`` value
         function toggleTodo(ele) {
             var url = ele.attr('toggle-task-url');
             var taskId = ele.attr('task-id');
             var csrftoken = ele.attr('task-csrftoken');
+            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+            var objectiveRow = $(objectiveRowId);
             // Prep AJAX request with CSRF token
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -1223,6 +1258,7 @@
                 success: function (data) {
                     if (data['result'] == 'success') {
                         ele.toggleClass('complete');
+                        updateObjectiveRow(objectiveRow);
                         updateTodoList(ele);
                     }
                     if (data['message']) {
@@ -1338,12 +1374,23 @@
             });
         };
 
+        function updateObjectiveRow(ele) {
+            var objectiveId = ele.attr('objective-id');
+            var url = ele.attr('refresh-objective-url');
+            if (url != null) {
+                console.log("Updating objective row...");
+                // Refresh the HTML from the update URL
+                ele.load(url, function(data) {
+                    ele.replaceWith(data);
+                    // prepareTodoList();
+                });
+            }
+        };
+
         function updateTodoList(ele) {
             var objectiveId = ele.attr('objective-id');
             var taskList = $('#task-list-' + objectiveId);
             var url = ele.attr('refresh-task-url');
-            console.log(ele)
-            console.log(url)
             if (url != null) {
                 console.log("Updating task list...");
                 // Refresh the HTML from the update URL
@@ -1355,10 +1402,6 @@
 
         // Prepare task list's click events
         var todo = function() {
-            $('.todo-list .todo-item :checkbox').click(function() {
-                toggleTodo($(this).parent().parent().parent());
-            });
-
             $('.todo-nav .all-task').click(function() {
                 $('.todo-list').removeClass('only-active');
                 $('.todo-list').removeClass('only-complete');
@@ -1388,9 +1431,9 @@
                 }
             });
 
-            $('.remove-todo-item').click(function() {
-                deleteTodo($(this).parent().parent());
-            });
+            // $('.remove-todo-item').click(function() {
+            //     deleteTodo($(this).parent().parent());
+            // });
         };
 
         function prepareTodoList() {

@@ -1,0 +1,42 @@
+{% load bleach_tags %}
+
+{% load determine_primary %}
+
+<tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row {% if objective.complete %}complete{% endif %}" objective-id="{{ objective.id }}" data-id="{{ objective.id }}" toggle-objective-url="{% url 'rolodex:ajax_toggle_project_objective' objective.id %}" objective-csrftoken="{{ csrf_token }}" refresh-objective-url="{% url 'rolodex:ajax_update_objective_row' objective.id %}">
+    <td class="align-middle">
+        <span>
+            <input type="checkbox" onclick="toggleObjective($(this).parent().parent().parent());" {% if objective.complete %}checked{% endif %}>
+        </span>
+    </td>
+    <td class="holdme align-middle"></td>
+    <td class="align-middle"><button class="expandme btn btn-transaprent" onclick="expandObjective($(this))"></button></td>
+    <td class="align-middle">{{ objective.objective|striptags }}</td>
+    <td class="align-middle">
+        <div
+            id="objective-status-{{ objective.id }}"
+            status-id="{{ objective.status.id }}"
+            objective-id="{{ objective.id }}"
+            obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
+            obj-status-csrftoken="{{ csrf_token }}"
+            class="objective-badge badge badge-secondary"
+            data-toggle="tooltip"
+            data-placement="top"
+            title="Click to change the status"
+        >
+            {{ objective.status }}
+        </div>
+    </td>
+    <td class="align-middle">
+        {% with percentage=objective.calculate_status %}
+        <div class="progress">
+            <div class="progress-bar progress-bar-striped todo-progressbar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+            <div class="todo-progressbar-title">{{ percentage }}%</div>
+        </div>
+    {% endwith %}
+    </td>
+    <td class="align-middle">
+        <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
+            {{ objective.deadline|date:"d M Y" }}
+        </span>
+    </td>
+</tr>

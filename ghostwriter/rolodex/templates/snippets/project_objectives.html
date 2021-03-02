@@ -15,11 +15,12 @@
     <table id="objectives-table" class="table" objectives-update-url="{% url 'rolodex:ajax_update_objective_order' %}" objectives-update-csrftoken="{{ csrf_token }}" project-id="{{ project.id }}">
         <thead>
             <tr>
-                <th class="align-middle">Order</th>
-                <th class="align-middle">Expand</th>
+                <th class="align-middle icon check-icon"></th>
+                <th class="align-middle icon ol-list-icon"></th>
+                <th class="align-middle icon expand-icon"></th>
+                <th class="align-middle">High-Level Objective</th>
                 <th class="align-middle">Status</th>
                 <th class="align-middle">Progress</th>
-                <th class="align-middle">High-Level Objective</th>
                 <th class="align-middle">Deadline</th>
             </tr>
         </thead>
@@ -34,39 +35,7 @@
                 {% if priority_groups|get_item:group %}
                     {% for objective in priority_groups|get_item:group %}
                         <!-- Objective Table Row -->
-                        <tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row">
-                            <td class="holdme align-middle"></td>
-                            <td class="expandme align-middle"></td>
-                            <td class="align-middle">
-                                <div
-                                    id="objective-status-{{ objective.id }}"
-                                    status-id="{{ objective.status.id }}"
-                                    objective-id="{{ objective.id }}"
-                                    obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
-                                    obj-status-csrftoken="{{ csrf_token }}"
-                                    class="objective-badge badge badge-secondary"
-                                    data-toggle="tooltip"
-                                    data-placement="top"
-                                    title="Click to change the status"
-                                >
-                                    {{ objective.status }}
-                                </div>
-                            </td>
-                            <td class="align-middle">
-                                {% with percentage=objective.calculate_status %}
-                                <div class="progress">
-                                    <div class="progress-bar progress-bar-striped todo-progressbar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-                                    <div class="todo-progressbar-title">{{ percentage }}%</div>
-                                </div>
-                            {% endwith %}
-                            </td>
-                            <td class="align-middle">{{ objective.objective|striptags }}</td>
-                            <td class="align-middle">
-                                <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
-                                    {{ objective.deadline|date:"d M Y" }}
-                                </span>
-                            </td>
-                        </tr>
+                        {% include "snippets/project_objective_row.html" %}
 
                         <!-- Collapsible Task Container -->
                         <tr id="tasks-objective-row-{{ objective.id }}" data-id="ignore-{{ objective.id }}" class="accordion">

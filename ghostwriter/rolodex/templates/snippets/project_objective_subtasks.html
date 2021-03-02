@@ -42,7 +42,7 @@
                     >
                         <div class="checker col-sm-1 my-auto">
                             <span>
-                                <input type="checkbox" {% if task.complete %}checked{% endif %}>
+                                <input type="checkbox" onclick="toggleTodo($(this).parent().parent().parent());" {% if task.complete %}checked{% endif %}>
                             </span>
                         </div>
 
@@ -59,7 +59,7 @@
                         </div>
 
                         <div class="col-sm-1 my-auto p-0">
-                            <a href="javascript:void(0);" class="remove-todo-item float-right"><i class="fas fa-times"></i></a>
+                            <button class="btn btn-transparent float-right" onclick="deleteTodo($(this).parent().parent());"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
                 {% endfor %}

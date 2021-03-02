@@ -38,6 +38,16 @@ urlpatterns += [
         name="ajax_update_objective_order",
     ),
     path(
+        "ajax/project/objective/toggle/<int:pk>",
+        views.ProjectObjectiveToggle.as_view(),
+        name="ajax_toggle_project_objective",
+    ),
+    path(
+        "ajax/project/objective/refresh/<int:pk>",
+        views.ProjectObjectiveRefresh.as_view(),
+        name="ajax_update_objective_row",
+    ),
+    path(
         "ajax/project/objective/delete/<int:pk>",
         views.ProjectObjectiveDelete.as_view(),
         name="ajax_delete_project_objective",

@@ -381,7 +381,11 @@ class ProjectObjective(models.Model):
         default=1,
     )
     # Foreign Keys
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        null=False,
+    )
     status = models.ForeignKey(
         ObjectiveStatus,
         on_delete=models.PROTECT,
@@ -428,7 +432,7 @@ class ProjectObjective(models.Model):
         total_tasks = self.projectsubtask_set.all().count()
         completed_tasks = 0
         if self.complete:
-            return 100
+            return 100.0
         elif total_tasks > 0:
             for task in self.projectsubtask_set.all():
                 if task.complete:

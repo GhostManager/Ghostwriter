@@ -199,8 +199,6 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             total_status = all_status.count()
             for index, status in enumerate(all_status):
                 if status == old_status:
-                    logger.info("Matched %s with %s", status, old_status)
-
                     # Check if we're at the last status
                     next_index = index + 1
                     if total_status - 1 >= next_index:
@@ -295,12 +293,13 @@ class ProjectObjectiveDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Objective successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -315,12 +314,13 @@ class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Assignment successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -335,12 +335,13 @@ class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -355,12 +356,13 @@ class ClientNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -375,12 +377,13 @@ class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Contact successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -395,12 +398,13 @@ class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Target successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -455,12 +459,13 @@ class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Scope list successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -555,6 +560,48 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
+class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``complete`` field of an individual :model:`rolodex.ProjectObjective`.
+    """
+
+    model = ProjectObjective
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.complete:
+                self.object.complete = False
+                self.object.marked_complete = None
+                data = {
+                    "result": "success",
+                    "message": "Objective successfully marked as incomplete",
+                    "toggle": 0,
+                }
+            else:
+                self.object.complete = True
+                self.object.marked_complete = datetime.date.today()
+                data = {
+                    "result": "success",
+                    "message": "Objective successfully marked as complete",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update objective's status"}
+
+        return JsonResponse(data)
+
+
 class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, View):
     """
     Delete an individual :model:`rolodex.ProjectSubTask`.
@@ -564,12 +611,13 @@ class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Task successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -619,8 +667,8 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
 
 class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, View):
     """
-    Return an updated version of the template following an update ordelete action related
-    to an individual :model:`rolodex.Project`.
+    Return an updated version of the template following an update or delete action related
+    to an individual :model:`rolodex.ProjectSubTask.
 
     **Template**
 
@@ -633,6 +681,28 @@ class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, View):
         self.object = self.get_object()
         html = render_to_string(
             "snippets/project_objective_subtasks.html",
+            {"objective": self.object},
+            request=self.request,
+        )
+        return HttpResponse(html)
+
+
+class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Return an updated version of the template following an update action related
+    to an individual :model:`rolodex.ProjectObjective`.
+
+    **Template**
+
+    :template:`snippets/project_objective_row.html`
+    """
+
+    model = ProjectObjective
+
+    def get(self, *args, **kwargs):
+        self.object = self.get_object()
+        html = render_to_string(
+            "snippets/project_objective_row.html",
             {"objective": self.object},
             request=self.request,
         )
