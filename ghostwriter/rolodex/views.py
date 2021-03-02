@@ -486,24 +486,30 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
             if task and deadline:
                 deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
 
-                new_task = ProjectSubTask(
-                    parent=self.object,
-                    task=task,
-                    deadline=deadline.date(),
-                )
-                new_task.save()
-                data = {
-                    "result": "success",
-                    "message": "Task successfully saved",
-                }
-                logger.info(
-                    "Created new %s %s under %s %s by request of %s",
-                    new_task.__class__.__name__,
-                    new_task.id,
-                    self.object.__class__.__name__,
-                    self.object.id,
-                    self.request.user,
-                )
+                if deadline.date() <= self.object.deadline:
+                    new_task = ProjectSubTask(
+                        parent=self.object,
+                        task=task,
+                        deadline=deadline.date(),
+                    )
+                    new_task.save()
+                    data = {
+                        "result": "success",
+                        "message": "Task successfully saved",
+                    }
+                    logger.info(
+                        "Created new %s %s under %s %s by request of %s",
+                        new_task.__class__.__name__,
+                        new_task.id,
+                        self.object.__class__.__name__,
+                        self.object.id,
+                        self.request.user,
+                    )
+                else:
+                    data = {
+                        "result": "error",
+                        "message": "Your new due date must be before (or the same) as the objective due date",
+                    }
             else:
                 data = {
                     "result": "error",
@@ -637,20 +643,27 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
         try:
             if task and deadline:
                 deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
-
-                self.object.task = task
-                self.object.deadline = deadline.date()
-                self.object.save()
-                data = {
-                    "result": "success",
-                    "message": "Task successfully updated",
-                }
-                logger.info(
-                    "Updated %s %s by request of %s",
-                    self.object.__class__.__name__,
-                    self.object.id,
-                    self.request.user,
-                )
+                logger.info(deadline.date())
+                logger.info(self.object.deadline)
+                if deadline.date() <= self.object.parent.deadline:
+                    self.object.task = task
+                    self.object.deadline = deadline.date()
+                    self.object.save()
+                    data = {
+                        "result": "success",
+                        "message": "Task successfully updated",
+                    }
+                    logger.info(
+                        "Updated %s %s by request of %s",
+                        self.object.__class__.__name__,
+                        self.object.id,
+                        self.request.user,
+                    )
+                else:
+                    data = {
+                        "result": "error",
+                        "message": "Your task due date must be before (or the same) as the objective due date",
+                    }
             else:
                 data = {
                     "result": "error",
