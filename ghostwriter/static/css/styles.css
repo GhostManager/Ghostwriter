@@ -2625,3 +2625,12 @@ th.priority-header.tertiary {
 th.priority-header.tertiary:before {
   content: '\f063';
 }
+
+.js-connection-status {
+  font-weight: 900;
+  color: var(--burned-color);
+}
+
+.js-connection-status.connected {
+  color: var(--healthy-color);
+}
