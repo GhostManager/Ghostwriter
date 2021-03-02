@@ -193,7 +193,7 @@ class Project(models.Model):
 
     class Meta:
 
-        ordering = ["client", "start_date", "project_type", "codename"]
+        ordering = ["start_date", "end_date", "client", "project_type"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
 
