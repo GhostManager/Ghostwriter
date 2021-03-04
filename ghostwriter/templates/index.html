@@ -1,5 +1,6 @@
 {% extends "base_generic.html" %}
 {% load custom_tags %}
+{% load determine_primary %}
 
 {% block pagetitle %}Ghostwriter Dashboard{% endblock %}
 {% block navtitle %}Ghostwriter{% endblock %}
@@ -18,47 +19,11 @@
         <img src="{% static 'images/logo_name.png' %}" alt="Ghostwriter Logo">
     </div>
 
+    <div id="calendar" class="mt-5 mb-3"></div>
+
     <div class="admin">
         <main class="admin__main">
             <div class="dashboard">
-                <div class="dashboard__item">
-                    <div class="card">
-                        <p class="dashboard-header text-center">Your Current Projects</p>
-                        <table>
-                            {% if user_projects %}
-                                {% for project in user_projects %}
-                                    <tr>
-                                        <td class="align-middle text-justify"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
-                                    </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td class="align-middle text-center">You are not assigned to any active projects.</td>
-                                </tr>
-                            {% endif %}
-                        </table>
-                    </div>
-                </div>
-
-                <div class="dashboard__item">
-                    <div class="card">
-                        <p class="dashboard-header text-center text-center">Your Future Projects</p>
-                        <table>
-                            {% if upcoming_project %}
-                                {% for project in upcoming_project %}
-                                    <tr>
-                                        <td class="align-middle text-justify"><a href="{{ project.get_absolute_url }}">{{ project.role.project_role }} :: {{ project.project.client }}  {{ project.project.project_type }} :: {{ project.start_date }} to {{ project.end_date }}</a></td>
-                                    </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td class="align-middle text-center">You are not currently assigned to any future projects.</td>
-                                </tr>
-                            {% endif %}
-                        </table>
-                    </div>
-                </div>
-
                 <div class="dashboard__item">
                     <div class="card">
                         <p class="dashboard-header text-center">Your Top Reporting Tasks</p>
@@ -129,4 +94,41 @@
             </div>
         </main>
     </div>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- FullCalendar Rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridWeek',
+                height: 'auto',
+                headerToolbar: {
+                    left: 'today prev,next',
+                    center: 'title',
+                    right: 'dayGridWeek dayGridMonth'
+                },
+                eventClick: function(info) {
+                    var eventObj = info.event;
+                    window.open(eventObj.url);
+                    info.jsEvent.preventDefault(); // prevents browser from following link in current tab.
+                },
+            });
+            calendar.render();
+            {% for assignment in user_projects %}
+                // Add project execution window
+                var event = {
+                    title: 'Assigned: {{ assignment.project.client }} {{ assignment.project.project_type }} ({{ assignment.project.codename }})',
+                    allDay: true,
+                    start: '{{ assignment.start_date|date:"Y-m-d" }}',
+                    end: '{{ assignment.end_date|plus_days:1|date:"Y-m-d" }}',
+                    color: 'var(--primary-color)',
+                    className: 'calendar-exec-icon',
+                    url: '{{ assignment.project.get_absolute_url }}',
+                };
+                calendar.addEvent(event);
+            {% endfor %}
+        });
+    </script>
 {% endblock %}
