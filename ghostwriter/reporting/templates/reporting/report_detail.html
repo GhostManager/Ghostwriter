@@ -58,7 +58,7 @@
         <h4 class="icon finding-icon">Current Findings</h4>
         <hr>
 
-        <p>Attach findings by searching and then clicking the <span class="add-icon"></span> button next to your desired finding.</p>
+        <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired finding.</p>
 
         <!-- Search Section -->
         <div class="search detail-page-search">
@@ -77,7 +77,7 @@
 
         <!-- Finding Table Section -->
         {% if report.reportfindinglink_set.all %}
-            <table id="findings-table" class="table table-sm" findings-update-url="{% url 'reporting:update_report_findings' %}">
+            <table id="findings-table" class="table table-sm table-hover" findings-update-url="{% url 'reporting:update_report_findings' %}">
                 <tr>
                     <th class="icon ol-list-icon text-center"></th>
                     <th class="align-middle">Finding</th>
@@ -294,10 +294,6 @@
                 filter: '.severity-row-placeholder',
                 ghostClass: 'sortable-ghost',
                 handle: '.holdme',
-
-                test: function () {
-                    console.log('sorting');
-                },
 
                 // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
                 setData: function (dataTransfer, dragEl) {
