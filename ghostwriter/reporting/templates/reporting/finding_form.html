@@ -4,8 +4,8 @@
 {% block pagetitle %}Finding Form{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:findings' %}">Findings</a></li>
             <li class="breadcrumb-item active" aria-current="page">Finding Form</li>
@@ -18,15 +18,13 @@
         <!-- Keyword Cheatsheet -->
         <div class="card">
             <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
-                <a class="accordion-toggle btn btn-link" data-toggle="collapse" data-target="#collapseKeyword" aria-expanded="false" aria-controls="collapseKeyword">
-                    <i class="fas fa-code"></i> Keyword Reference
-                </a>
+                <a class="accordion-toggle btn btn-link icon code-icon" data-toggle="collapse" data-target="#collapseKeyword" aria-expanded="false" aria-controls="collapseKeyword">Keyword Reference</a>
             </div>
             <div id="collapseKeyword" class="collapse" aria-labelledby="description" data-parent="#accordion">
                 <div class="card-body">
                     <p>Ghostwriter supports several template keywords you may utilize to format text and insert various pieces of information:</p>
                     {% verbatim %}
-                        <table class="table table-striped" style="width: 70%; margin-left: 15%;">
+                        <table class="table table-striped">
                             <tr>
                                 <th class="smallCell">Keyword</th>
                                 <th>Usage</th>

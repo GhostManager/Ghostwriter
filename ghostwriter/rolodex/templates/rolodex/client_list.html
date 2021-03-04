@@ -7,8 +7,8 @@
 {% block pagetitle %}Client List{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">Clients</li>
         </ul>
@@ -21,14 +21,18 @@
         {% crispy filter.form filter.helper %}
     </div>
 
+    <p class="mt-3">
+        <a class="icon add-icon" href="{% url 'rolodex:client_create' %}">Create a Client</a>
+    </p>
+
     {% if filter.qs|length == 0 %}
-        <p>There are no active clients yet or your search returned no results.</p>
+        <p class="mt-3">There are no active clients yet, or your search returned no results. Create one up above</p>
     {% else %}
-        <table id="clientTable" class="tablesorter table">
+        <table id="clientTable" class="tablesorter table table-sm table-hover">
             <thead>
                 <tr>
                     <th class="align-middle">Client</th>
-                    <th class="align-middle"><div style="margin-right: 10px;">Codename</div></th>
+                    <th class="align-middle">Codename</th>
                     <th class="align-middle">Projects to Date</th>
                 </tr>
             </thead>
@@ -55,6 +59,13 @@
                             }
                         );
             $('.tablesorter').trigger('update');
+        });
+    </script>
+
+    <!-- Submit Filter when Clicking Bootstrap Icon -->
+    <script>
+        $('.input-group-text').on('click', function (event) {
+            $('.input-group-text').closest('form').submit();
         });
     </script>
 {% endblock %}

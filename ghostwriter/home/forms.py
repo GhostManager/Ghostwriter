@@ -39,15 +39,14 @@ class UserProfileForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <strong><i class="far fa-images"></i> Avatar Upload</strong>
-                <hr>
+                <h4 class="icon avatar-upload-icon">Avatar Upload</h4>
                 """
             ),
             Div(
                 "avatar",
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">Choose avatar image file...</label>
+                    <label id="filename" class="custom-file-label" for="customFile">Choose an Avatar Image File...</label>
                     """
                 ),
                 css_class="custom-file",

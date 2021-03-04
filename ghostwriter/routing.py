@@ -7,6 +7,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 # Ghostwriter Libraries
 import ghostwriter.home.routing
 import ghostwriter.oplog.routing
+import ghostwriter.reporting.routing
 
 application = ProtocolTypeRouter(
     {
@@ -15,6 +16,7 @@ application = ProtocolTypeRouter(
             URLRouter(
                 ghostwriter.home.routing.websocket_urlpatterns
                 + ghostwriter.oplog.routing.websocket_urlpatterns
+                + ghostwriter.reporting.routing.websocket_urlpatterns
             )
         ),
     }

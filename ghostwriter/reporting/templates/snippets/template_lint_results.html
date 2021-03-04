@@ -1,6 +1,6 @@
 {% load report_tags %}
 
-<h3><i class="fas fa-bug"></i> Linting Results</h3>
+<h3 class="icon bug-icon">Linting Results</h3>
 <hr>
 {% if reporttemplate.lint_result %}
     {% with reporttemplate.lint_result|load_json as lint_result %}
@@ -49,6 +49,7 @@
                     </tr>
                 {% endfor %}
             </table>
+            <p><strong>Note:</strong> Syntax errors tied to undefined variables might be linked to a Table of Contents picking up a variable (e.g., <em>finding.title</em>) outside of a loop.</p>
         {% endif %}
     {% endwith %}
 {% else %}

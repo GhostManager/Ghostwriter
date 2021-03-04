@@ -38,7 +38,7 @@ class DomainFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Domain Name Contains",
-        widget=TextInput(attrs={"placeholder": "specterops.io", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "Domain Name", "autocomplete": "off"}),
     )
     all_cat = django_filters.CharFilter(
         lookup_expr="icontains",
@@ -88,11 +88,11 @@ class DomainFilter(django_filters.FilterSet):
                 css_class="form-row",
             ),
             Accordion(
-                AccordionGroup("Domain Statuses", InlineCheckboxes("domain_status")),
-                AccordionGroup("Health Statuses", InlineCheckboxes("health_status")),
+                AccordionGroup("Domain Status", InlineCheckboxes("domain_status")),
+                AccordionGroup("Health Status", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(
-                Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                 HTML(
                     """
                     <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:domains' %}">Reset</a>
@@ -119,7 +119,7 @@ class ServerFilter(django_filters.FilterSet):
     ip_address = django_filters.CharFilter(
         lookup_expr="icontains",
         label="IP Address Contains",
-        widget=TextInput(attrs={"placeholder": "104.31.5.75", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "IP Address", "autocomplete": "off"}),
     )
     name = django_filters.CharFilter(
         lookup_expr="icontains",
@@ -129,7 +129,7 @@ class ServerFilter(django_filters.FilterSet):
     server_status = django_filters.ModelMultipleChoiceFilter(
         queryset=ServerStatus.objects.all(),
         widget=forms.CheckboxSelectMultiple,
-        label="Server Status",
+        label="",
     )
 
     class Meta:
@@ -159,7 +159,7 @@ class ServerFilter(django_filters.FilterSet):
                 AccordionGroup("Server Status", InlineCheckboxes("server_status")),
             ),
             ButtonHolder(
-                Submit("submit", "Filter", css_class="btn btn-primary col-md-2"),
+                Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                 HTML(
                     """
                     <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:servers' %}">Reset</a>

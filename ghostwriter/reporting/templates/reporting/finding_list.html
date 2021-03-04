@@ -4,8 +4,8 @@
 {% block pagetitle %}Findings Library{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">Findings</li>
         </ul>
@@ -18,34 +18,36 @@
         {% crispy filter.form filter.helper %}
     </div>
 
+    <p class="mt-3">
+        <a class="icon add-icon" href="{% url 'reporting:finding_create' %}">Create a Finding</a>
+    </p>
+
     {% if filter.qs|length == 0 %}
-        <p>There are no findings to see here.</p>
+        <p class="mt-3">There are no findings to see here yet, or your search returned no results. Create a new finding up above.</p>
     {% else %}
         <!-- Instructions Section -->
-        <p>Click the <i class="far fa-plus-square"></i> icon to add a finding to the <em>current report</em> displayed at the top of the page.</p>
+        <p>Click the <span class="add-icon"></span> icon to add a finding to the <em>current report</em> displayed at the top of the page.</p>
 
         <!-- Findings Table Section -->
         <div id="findings_table">
-            <table id="findingsTable" class="tablesorter">
+            <table id="findingsTable" class="tablesorter table table-striped table-sm">
                 <thead>
                     <tr>
-                        <th id="cols" class="sortable">Severity</th>
-                        <th id="cols" class="sortable"><span style="margin-right: 10px;">Type</span></th>
-                        <th id="cols" class="sortable">Title</th>
-                        <th class="sorter-false">
-                            Add to Report
-                            <div class="dropdown">
-                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                <div class="dropdown-content dropdown-content-info">
-                                    <p>Clicking <i class="far fa-plus-square"></i> will add the finding to your active report displayed at the top of the screen.</p>
+                        <th class="sortable">Severity</th>
+                        <th class="sortable">Type</span></th>
+                        <th class="sortable">Title</th>
+                        <th class="sorter-false align-middle">
+                            <div class="dropdown dropleft">
+                                <span id="finding-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Add Report</span>
+                                <div id="finding-info" class="dropdown-menu dropdown-info-content" aria-labelledby="finding-info-btn">
+                                    <p>Clicking <span class="add-icon"></span> will add the finding to your active report displayed at the top of the screen.</p>
                                 </div>
                             </div>
                         </th>
-                        <th class="sorter-false">
-                            Edit Finding
-                            <div class="dropdown">
-                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                <div class="dropdown-content dropdown-content-info">
+                        <th class="sorter-false align-middle">
+                            <div class="dropdown dropleft">
+                                <span id="edit-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Edit Finding</span>
+                                <div id="edit-info" class="dropdown-menu dropdown-info-content" aria-labelledby="edit-info-btn">
                                     <p>Editing a finding here edits the <em>master record</em> for every other user. Only customize a finding after adding it to your report.</p>
                                 </div>
                             </div>
@@ -54,43 +56,59 @@
                 </thead>
                 <tbody class="list">
                     {% for finding in filter.qs %}
-                        <tr class="even">
+                        <tr>
                             <!-- Severity Column -->
-                            {% if finding.severity.severity == "Critical" %}
-                                <td id="cols" class="critical"><p style="display: none">{{ finding.severity.weight }}</p>{{ finding.severity.severity }}</td>
-                            {% elif finding.severity.severity == "High" %}
-                                <td id="cols" class="high"><p style="display: none">{{ finding.severity.weight }}</p>{{ finding.severity.severity }}</td>
-                            {% elif finding.severity.severity == "Medium" %}
-                                <td id="cols" class="medium"><p style="display: none">{{ finding.severity.weight }}</p>{{ finding.severity.severity }}</td>
-                            {% elif finding.severity.severity == "Low" %}
-                                <td id="cols" class="low"><p style="display: none">{{ finding.severity.weight }}</p>{{ finding.severity.severity }}</td>
-                            {% else %}
-                                <td id="cols" class="info"><p style="display: none">{{ finding.severity.weight }}</p>{{ finding.severity.severity }}</td>
-                            {% endif %}
+                            <td class="align-middle
+                                {% if finding.severity.severity == "Critical" %}
+                                    critical
+                                {% elif finding.severity.severity == "High" %}
+                                    high
+                                {% elif finding.severity.severity == "Medium" %}
+                                    medium
+                                {% elif finding.severity.severity == "Low" %}
+                                    low
+                                {% else %}
+                                    info
+                                {% endif %}
+                            ">
+                                <span style="display: none">{{ finding.severity.weight }}</span>{{ finding.severity.severity }}
+                            </td>
 
                             <!-- Finding Type (e.g. Network) -->
-                            {% if finding.finding_type.finding_type == "Network" %}
-                                <td style="font-size: 15px" title="Network Finding" class="icon network-icon"><span style="display: none;">Network</span></td>
-                            {% elif finding.finding_type.finding_type == "Wireless" %}
-                                <td style="font-size: 15px" title="Wireless Finding" class="icon wireless-icon"><span style="display: none;">Wireless</span></td>
-                            {% elif finding.finding_type.finding_type == "Physical" %}
-                                <td style="font-size: 15px" title="Physical Finding" class="icon physical-icon"><span style="display: none;">Physical</span></td>
-                            {% elif finding.finding_type.finding_type == "Web" %}
-                                <td style="font-size: 15px" title="Web App Finding" class="icon code-icon"><span style="display: none;">Web</span></td>
-                            {% elif finding.finding_type.finding_type == "Mobile Application" %}
-                                <td style="font-size: 15px" title="Mobile Finding" class="icon mobile-icon"><span style="display: none;">Mobile</span></td>
-                            {% elif finding.finding_type.finding_type == "Cloud" %}
-                                <td style="font-size: 15px" title="Cloud Finding" class="icon cloud-icon"><span style="display: none;">Cloud</span></td>
-                            {% elif finding.finding_type.finding_type == "Host" %}
-                                <td style="font-size: 15px" title="Local Host Finding" class="icon host-icon"><span style="display: none;">Host</span></td>
-                            {% else %}
-                                <td style="font-size: 15px" title="Local Host Finding" class="icon host-icon"><span style="display: none;">Other</span></td>
-                            {% endif %}
+                            <td class="align-middle icon
+                                {% if finding.finding_type.finding_type == "Network" %}
+                                    network-icon"
+                                    title="Network Finding"
+                                {% elif finding.finding_type.finding_type == "Wireless" %}
+                                    wireless-icon"
+                                    title="Wireless Finding"
+                                {% elif finding.finding_type.finding_type == "Physical" %}
+                                    physical-icon"
+                                    title="Physical Security Finding"
+                                {% elif finding.finding_type.finding_type == "Web" %}
+                                    code-icon"
+                                    title="Web App Finding"
+                                {% elif finding.finding_type.finding_type == "Mobile Application" %}
+                                    mobile-icon"
+                                    title="Mobile Finding"
+                                {% elif finding.finding_type.finding_type == "Cloud" %}
+                                    cloud-icon"
+                                    title="Cloud Finding"
+                                {% elif finding.finding_type.finding_type == "Host" %}
+                                    host-icon"
+                                    title="Local Host Finding"
+                                {% else %}
+                                    host-icon"
+                                    title="other Finding"
+                                {% endif %}
+                            >
+                                <span style="display: none;">{{ finding.finding_type.finding_type }}</span>
+                            </td>
 
                             <!-- Other Information -->
-                            <td id="cols" class="title clickable"><a href="{{ finding.get_absolute_url }}">{{ finding.title }}</a></td>
-                            <td><a class="js-assign-finding" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"><i style="font-size: 15px" class="far fa-plus-square"></i></button></td>
-                            <td><a href="{% url 'reporting:finding_update' finding.id %}"><i style="font-size: 15px" class="far fa-edit"></i></button></td>
+                            <td class="text-justify"><a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.title }}</a></td>
+                            <td class="align-middle"><a class="js-assign-finding icon add-icon" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"></a></td>
+                            <td class="align-middle"><a class="icon edit-icon" href="{% url 'reporting:finding_update' finding.id %}"></a></td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -145,6 +163,13 @@
                     }
                 }
             });
+        });
+    </script>
+
+    <!-- Submit Filter when Clicking Bootstrap Icon -->
+    <script>
+        $('.input-group-text').on('click', function (event) {
+            $('.input-group-text').closest('form').submit();
         });
     </script>
 {% endblock %}

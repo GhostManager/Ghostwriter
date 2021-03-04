@@ -2,7 +2,7 @@
 
 # Django & Other 3rd Party Libraries
 from crispy_forms.bootstrap import Container
-from crispy_forms.layout import TEMPLATE_PACK, LayoutObject
+from crispy_forms.layout import Field, TEMPLATE_PACK, LayoutObject
 from django.template.loader import render_to_string
 
 
@@ -45,9 +45,7 @@ class Formset(LayoutObject):
         # Form closes prematurely if this isn't explicitly stated
         if helper:
             helper.form_tag = False
-        context.update(
-            {"formset": formset, "helper": helper, "object_name": object_name}
-        )
+        context.update({"formset": formset, "helper": helper, "object_name": object_name})
         return render_to_string(self.template, context.flatten())
 
 
@@ -85,3 +83,19 @@ class CustomTab(Container):
         """
         link_template = self.link_template
         return render_to_string(link_template, {"link": self})
+
+
+class SwitchToggle(Field):
+    """
+    Custom ``Field()`` object for use with ``crispy_forms`` forms. This object transforms
+    a checkbox into a toggle switch.
+
+    **Template**
+
+    :template:`switch.html`
+    """
+
+    template = "switch.html"
+
+    def __init__(self, field, *args, **kwargs):
+        super().__init__(field, *args, **kwargs)

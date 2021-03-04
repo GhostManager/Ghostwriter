@@ -83,9 +83,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "primary",
                             ValidationError(
-                                _(
-                                    "You can not mark two addresses as the primary address"
-                                ),
+                                _("You can not mark two addresses as the primary address"),
                                 code="duplicate",
                             ),
                         )
@@ -107,7 +105,7 @@ class AuxServerAddressForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "chrome-off"
         self.fields["primary"].label = "Make Primary Address"
         self.fields["ip_address"].label = ""
-        self.fields["ip_address"].widget.attrs["placeholder"] = "172.10.10.236"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
         self.fields["ip_address"].widget.attrs["autocomplete"] = "off"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
@@ -200,11 +198,11 @@ class ServerForm(forms.ModelForm):
         super(ServerForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["ip_address"].widget.attrs["placeholder"] = "172.10.10.236"
-        self.fields["name"].widget.attrs["placeholder"] = "hostname"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
+        self.fields["name"].widget.attrs["placeholder"] = "Hostname"
         self.fields["server_status"].empty_label = "-- Select Status --"
         self.fields["server_provider"].empty_label = "-- Select Provider --"
-        self.fields["note"].widget.attrs["placeholder"] = "This server is used for..."
+        self.fields["note"].widget.attrs["placeholder"] = ""
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
@@ -282,7 +280,7 @@ class TransientServerForm(forms.ModelForm):
         super(TransientServerForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["ip_address"].widget.attrs["placeholder"] = "104.131.1.100"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
         self.fields["name"].widget.attrs["placeholder"] = "Hostname"
         self.fields["activity_type"].empty_label = "-- Select Activity --"
         self.fields["server_role"].empty_label = "-- Select Role --"
@@ -294,7 +292,7 @@ class TransientServerForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <strong><i class="fas fa-server"></i> Server Information</strong>
+                <h4 class="icon server-icon">Server Information</h4>
                 <hr>
                 """
             ),
@@ -308,7 +306,7 @@ class TransientServerForm(forms.ModelForm):
             "server_provider",
             HTML(
                 """
-                <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+                <h4 class="icon comment-icon">Additional Information</h4>
                 <hr>
                 """
             ),
@@ -396,9 +394,7 @@ class ServerCheckoutForm(forms.ModelForm):
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This server will be used for C2 with ..."
+        self.fields["note"].widget.attrs["placeholder"] = ""
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
@@ -412,17 +408,11 @@ class ServerCheckoutForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <strong><i class="far fa-building"></i> Client Information</strong>
+                <h4 class="icon project-icon">Project & Activity Information</h4>
                 <hr>
                 """
             ),
             "client",
-            HTML(
-                """
-                <strong><i class="fas fa-tasks"></i> Usage Information</strong>
-                <hr>
-                """
-            ),
             "project",
             Row(
                 Column("start_date", css_class="form-group col-md-6 mb-0"),
@@ -433,7 +423,7 @@ class ServerCheckoutForm(forms.ModelForm):
             "server_role",
             HTML(
                 """
-                <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+                <h4 class="icon comment-icon">Additional Information</h4>
                 <hr>
                 """
             ),
@@ -460,9 +450,7 @@ class ServerCheckoutForm(forms.ModelForm):
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
-            self.fields["project"].queryset = self.instance.client.project_set.order_by(
-                "codename"
-            )
+            self.fields["project"].queryset = self.instance.client.project_set.order_by("codename")
 
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]

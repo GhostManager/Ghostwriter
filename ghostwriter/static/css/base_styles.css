@@ -1,0 +1,91 @@
+@import 'https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700';
+
+/* ---------------------------------------------------
+    GENERAL STYLES
+----------------------------------------------------- */
+
+:root {
+  --main-font-size: 16px;
+  --secondary-font-size: 14px;
+  --primary-color: #51b071;
+  --secondary-color: #2B2C66;
+  --secondary-color-fade: #7386D5;
+  --secondary-color-med: #947BD3;
+  --secondary-color-light: #E1E2EF;
+  --neutral-color: #7a7a7a;
+  --blocked-color: #FF7E79;
+  --warning-color: #F4B083;
+  --ghost-white: #F0EFF4;
+  --ghost-grey: #6C809A;
+
+  /* TEXT */
+  --h1-font-color: #2B2C66;
+  --h2-font-color: #51B071;
+  --h3-font-color: #51B071;
+  --main-txt-color: #666;
+  --main-bg-color: #fafafa;
+
+  /* BUTTONS */
+  --button-primary-color: #51B071;
+  --button-hover-color: #6d7fcc;
+  --button-warning-color: #FF7E79;
+  --button-border-radius: 4px;
+
+  /* LINKS */
+  --active-link-color: #51b071;
+  --clickable-underline-color: #51B071;
+
+  /* SIDEBAR */
+  --sidebar-text-color: #3B454E;
+  --sidebar-active-text-color: #7386D5;
+  --sidebar-header-text-color: #fff;
+  --sidebar-link-text-color: #9EABB7;
+
+  --sidebar-background-color: #F5F7F9;
+  --sidebar-header-background-color: #2B2C66;
+  --sidebar-hover-background-color: #E6ECF1;
+  --sidebar-link-background-color: #9EABB7;
+
+  /* SIDEBAR BUTTON */
+  --sidebar-collapse-button-color: #51B071;
+  --sidebar-collapse-button-text: #fff;
+
+  /* NAVBAR */
+  --navbar-background-color: #fff;
+  --navbar-breadcrumb-active-color: #7386D5;
+  --navbar-breadcrumb-background-color: #f8f9fa;
+  --navbar-breadcrumb-active-background-color: #f8f9fa;
+  --navbar-report-selected-font-color: #21612e;
+  --navbar-report-selected-background-color: #d4eed9;
+  --navbar-report-empty-font-color: #721c23;
+  --navbar-report-empty-background-color: #f7d7d9;
+
+  /* ACCORDIONS, COLLAPSIBLES, & DROPDOWNS */
+  --accordion-primary-color: #2B2C66;
+  --accordion-expanded-color: #51B071;
+
+  --collapsible-main-color: #2B2C66;
+  --collapsible-hover-color: #51B071;
+
+  --dropdown-button-main-color: #2B2C66;
+  --dropdown-button-hover-color: #6d7fcc;
+
+  /* SEARCH BOXES */
+  --search-text-color: #aaa;
+  --search-box-shadow: #ccc;
+  --search-input-background-color: #fcfcfc;
+
+  /* TABLES */
+  --table-header-color: #2B2C66;
+  --secondary-table-header-color: rgba(170, 170, 170, 0.2);
+
+  /* CUSTOM TEXT ELEMENTS */
+  --burned-color: #FF7E79;
+  --healthy-color: #A8D08D;
+  --info-rating-color: #8EAADB;
+  --low-rating-color: #A8D08D;
+  --med-rating-color: #F4B083;
+  --high-rating-color: #FF7E79;
+  --crit-rating-color: #966FD6;
+  --neutral-rating-color: #7a7a7a;
+}

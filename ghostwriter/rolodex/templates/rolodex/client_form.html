@@ -4,8 +4,8 @@
 {% block pagetitle %}Client Form{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             {% comment %} Check if `object` is in context to determine if this is a `ClientUpdate` request {% endcomment %}
@@ -21,7 +21,7 @@
 {% endblock %}
 
 {% block content %}
-    <strong><i class="fas fa-project-diagram"></i> Setup a Project</strong>
+    <strong class="icon client-icon">Setup a Client</strong>
     <hr>
     <p>Use the tabs to provide basic client information and add points of contact:</p>
 
@@ -55,14 +55,30 @@
     <!-- Formset Manipulation Buttons -->
     <script>
         $('.formset-add-{{ contacts.prefix }}').click(function() {
-            tinymce.remove();
             var form_idx = $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val();
             $('#formset-{{ contacts.prefix }}').append($('#empty-form-{{ contacts.prefix }}').html().replace(/__prefix__/g, form_idx));
             $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            tinyInit();
             var new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
             new_form.find('span.counter').html(parseInt(form_idx) + 1);
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+            // Re-initialize WYSIWYG editor for the new form
+            target = 'id_{{ contacts.prefix }}-' + parseInt(form_idx) + '-note'
+            tinymce.execCommand('mceAddEditor', false, target);
+        });
+    </script>
+
+    <!-- Roll Codename with AJAX -->
+    <script>
+        $(".js-roll-codename").click(function () {
+            var url = $(this).attr('roll-codename-url');
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (data) {
+                    $("#id_codename").val(data['codename']);
+                }
+            });
         });
     </script>
 {% endblock %}

@@ -65,18 +65,24 @@ function csrfSafeMethod(method) {
 
 function generateDownloadName(name) {
     var d = new Date();
-    var year = d.getFullYear()
-    var month = d.getMonth()
-    var day = d.getDay()
-    var hour = d.getHours()
-    var minutes = d.getMinutes()
-    var sec = d.getSeconds()
+    var year = d.getFullYear();
+    var month = d.getMonth() + 1;
+    var day = d.getDate();
+    var hour = d.getHours();
+    var minutes = d.getMinutes();
+    var sec = d.getSeconds();
     if (hour < 10) {
         hour = '0' + hour;
     }
     if (minutes < 10) {
         minutes = '0' + minutes;
     }
-    filename = year + month + day + '_' + hour + minutes + day + '_' + name
+    if (day < 10) {
+      day = '0' + day;
+    }
+    if (month < 10) {
+      month = '0' + month;
+    }
+    filename = '' + year + month + day + '_' + hour + minutes + sec + '_' + name
     return filename
 }

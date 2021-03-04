@@ -7,8 +7,8 @@
 {% block pagetitle %}Report Template Detail{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
@@ -18,36 +18,33 @@
 {% endblock %}
 
 {% block content %}
-    <h2>
-        {{ reporttemplate.name }}
-        <div class="dropdown">
-            <button onclick="dropdownFunc()" class="dropbtn far fa-caret-square-down"></button>
-            <div id="myDropdown" class="dropdown-content">
-                <a href="{% url 'reporting:template_download' reporttemplate.id %}"><i style="font-size:15px; color:black" class="fas fa-file-download"></i> Download</a>
-                <a class="js-lint-template" href="javascript:void(0)" lint-template-csrftoken="{{ csrf_token }}" lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}"><i style="font-size:15px; color:black" class="fas fa-bug"></i> Lint</a>
-                {% if reporttemplate.protected and request.user.is_staff or not reporttemplate.protected %}
-                    <a href="{% url 'reporting:template_update' reporttemplate.id %}"><i style="font-size:15px; color:black" class="far fa-edit"></i> Edit</a>
-                    <a href="{% url 'reporting:template_delete' reporttemplate.id %}"><i style="font-size:15px; color:red" class="far fa-trash-alt"></i> Delete</a>
-                {% endif %}
-            </div>
+    <div class="dropdown">
+        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
+            <a class="dropdown-item icon download-icon" href="{% url 'reporting:template_download' reporttemplate.id %}">Download</a>
+            <a class="dropdown-item icon icon bug-icon js-lint-template" href="javascript:void(0)" lint-template-csrftoken="{{ csrf_token }}" lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}">Lint</a>
+            {% if reporttemplate.protected and request.user.is_staff or not reporttemplate.protected %}
+                <a class="dropdown-item icon edit-icon" href="{% url 'reporting:template_update' reporttemplate.id %}">Edit</a>
+                <a class="dropdown-item icon trash-icon" href="{% url 'reporting:template_delete' reporttemplate.id %}">Delete</a>
+            {% endif %}
         </div>
-    </h2>
+    </div>
+
+    <h2>{{ reporttemplate.name }}</h2>
 
     {% if reporttemplate.protected %}
         <div
             {% if request.user.is_staff %}
-                class="alert alert-secondary" role="alert">
-                <i class="fas fa-lock-open"></i> You may edit this template as an admin
+                class="alert alert-secondary icon unlock-icon" role="alert">You may edit this template as an admin
             {% else %}
-                class="alert alert-danger" role="alert">
-                <i class="fas fa-lock"></i> This template is protected – only admins may edit it
+                class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins may edit it
             {% endif %}
         </div>
     {% endif %}
 
     <!-- Template Information Section -->
     <div class="table-responsive" >
-        <table class="table-sm table-borderless" style="width: 50%; margin: auto">
+        <table class="table-sm table-borderless table-centered">
             <tr>
                 <td class="text-left text-nowrap bold">Template Type</td>
                 <td class="text-center">{{ reporttemplate.doc_type }}</td>
@@ -95,13 +92,13 @@
     </div>
 
     <!-- Change Log Section -->
-    <h3><i class="fas fa-file-upload"></i> Template CHANGELOG</h3>
+    <h3 class="icon user-edit-icon">Template CHANGELOG</h3>
     <hr>
     <div id="changelog" class="container">
         {% if reporttemplate.changelog %}
             {{ reporttemplate.changelog|bleach }}
         {% else %}
-            <p style="text-align: center;">No CHANGELOG data</p>
+            <p class="text-center">No CHANGELOG data</p>
         {% endif %}
     </div>
 {% endblock %}

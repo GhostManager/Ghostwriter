@@ -18,14 +18,9 @@ urlpatterns = [
 # URLs for AJAX requests – deletion and toggle views
 urlpatterns += [
     path(
-        "ajax/codename/client/<int:pk>",
-        views.ClientCodenameRoll.as_view(),
-        name="ajax_roll_client_codename",
-    ),
-    path(
-        "ajax/codename/project/<int:pk>",
-        views.ProjectCodenameRoll.as_view(),
-        name="ajax_roll_project_codename",
+        "ajax/codename/roll",
+        views.roll_codename,
+        name="ajax_roll_codename",
     ),
     path(
         "ajax/project/toggle/<int:pk>",
@@ -33,9 +28,24 @@ urlpatterns += [
         name="ajax_toggle_project",
     ),
     path(
-        "ajax/project/objective/status/<int:pk>/<str:status>",
+        "ajax/project/objective/status/<int:pk>",
         views.ProjectObjectiveStatusUpdate.as_view(),
         name="ajax_set_objective_status",
+    ),
+    path(
+        "ajax/project/objective/order",
+        views.ajax_update_project_objectives,
+        name="ajax_update_objective_order",
+    ),
+    path(
+        "ajax/project/objective/toggle/<int:pk>",
+        views.ProjectObjectiveToggle.as_view(),
+        name="ajax_toggle_project_objective",
+    ),
+    path(
+        "ajax/project/objective/refresh/<int:pk>",
+        views.ProjectObjectiveRefresh.as_view(),
+        name="ajax_update_objective_row",
     ),
     path(
         "ajax/project/objective/delete/<int:pk>",
@@ -72,6 +82,46 @@ urlpatterns += [
         views.update_client_badges,
         name="ajax_update_client_badges",
     ),
+    path(
+        "ajax/project/target/compromise/<int:pk>",
+        views.ProjectTargetToggle.as_view(),
+        name="ajax_toggle_project_target",
+    ),
+    path(
+        "ajax/project/target/delete/<int:pk>",
+        views.ProjectTargetDelete.as_view(),
+        name="ajax_delete_project_target",
+    ),
+    path(
+        "ajax/project/scope/delete/<int:pk>",
+        views.ProjectScopeDelete.as_view(),
+        name="ajax_delete_project_scope",
+    ),
+    path(
+        "ajax/project/task/create/<int:pk>",
+        views.ProjectTaskCreate.as_view(),
+        name="ajax_create_project_task",
+    ),
+    path(
+        "ajax/project/task/toggle/<int:pk>",
+        views.ProjectTaskToggle.as_view(),
+        name="ajax_toggle_project_task",
+    ),
+    path(
+        "ajax/project/task/delete/<int:pk>",
+        views.ProjectTaskDelete.as_view(),
+        name="ajax_delete_project_task",
+    ),
+    path(
+        "ajax/project/task/update/<int:pk>",
+        views.ProjectTaskUpdate.as_view(),
+        name="ajax_update_project_task",
+    ),
+    path(
+        "ajax/project/task/refresh/<int:pk>",
+        views.ProjectTaskRefresh.as_view(),
+        name="ajax_update_objective_tasks",
+    ),
 ]
 
 # URLs for :model:`Client` Class Based Views
@@ -100,9 +150,7 @@ urlpatterns += [
         views.ProjectCreate.as_view(),
         name="project_create_no_client",
     ),
-    path(
-        "projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"
-    ),
+    path("projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"),
     path(
         "projects/update/<int:pk>",
         views.ProjectUpdate.as_view(),

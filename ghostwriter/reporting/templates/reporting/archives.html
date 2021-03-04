@@ -4,8 +4,8 @@
 {% block pagetitle %}Archived Reports{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
             <li class="breadcrumb-item active" aria-current="page">Archives</li>
@@ -33,7 +33,7 @@
             {% for zip in filter.qs %}
                 <tr>
                     <td>{{ zip.project.client.name }}</td>
-                    <td><a href="{% url 'reporting:download_archive' zip.pk %}" style="margin: 20px"><i class="fas fa-file-download"></i> {{ zip.filename }}</a></td>
+                    <td><a class="icon download-icon" href="{% url 'reporting:download_archive' zip.pk %}">{{ zip.filename }}</a></td>
                 </tr>
             {% endfor %}
         </table>

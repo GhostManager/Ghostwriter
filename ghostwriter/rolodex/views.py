@@ -1,6 +1,8 @@
 """This contains all of the views used by the Rolodex application."""
 
 # Standard Libraries
+import datetime
+import json
 import logging
 
 # Django & Other 3rd Party Libraries
@@ -27,16 +29,22 @@ from .forms_project import (
     ProjectForm,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
+    ProjectScopeFormSet,
+    ProjectTargetFormSet,
 )
 from .models import (
     Client,
     ClientContact,
     ClientNote,
+    ObjectivePriority,
     ObjectiveStatus,
     Project,
     ProjectAssignment,
     ProjectNote,
     ProjectObjective,
+    ProjectScope,
+    ProjectSubTask,
+    ProjectTarget,
 )
 
 # Using __name__ resolves to ghostwriter.rolodex.views
@@ -84,6 +92,94 @@ def update_client_badges(request, pk):
     return HttpResponse(html)
 
 
+@login_required
+def roll_codename(request):
+    """
+    Fetch a unique codename for use with a model.
+    """
+
+    try:
+        codename_verified = False
+        while not codename_verified:
+            new_codename = codenames.codename(uppercase=True)
+            try:
+                Project.objects.filter(codename__iequal=new_codename)
+                codename_verified = False
+            except Exception:
+                codename_verified = True
+            try:
+                Client.objects.filter(codename__iequal=new_codename)
+                codename_verified = False
+            except Exception:
+                codename_verified = True
+        data = {
+            "result": "success",
+            "message": "Codename successfuly generated",
+            "codename": new_codename,
+        }
+        logger.info(
+            "Generated new codename at request of %s",
+            request.user,
+        )
+    except Exception as exception:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        log_message = template.format(type(exception).__name__, exception.args)
+        logger.error(log_message)
+        data = {"result": "error", "message": "Could not generate a codename"}
+
+    return JsonResponse(data)
+
+
+@login_required
+def ajax_update_project_objectives(request):
+    """
+    Update the ``position`` and ``status`` fields of all :model:`rolodex.ProjectObjective`
+    entries attached to an individual :model:`rolodex.Project`.
+    """
+    if request.method == "POST" and request.is_ajax():
+        data = request.POST.get("positions")
+        project_id = request.POST.get("project")
+        priority_class = request.POST.get("priority").replace("_priority", "")
+        order = json.loads(data)
+
+        logger.info(
+            "Received AJAX POST to update project %s's %s objectives in this order: %s",
+            project_id,
+            priority_class,
+            ", ".join(order),
+        )
+
+        try:
+            priority = ObjectivePriority.objects.get(priority__iexact=priority_class)
+        except ObjectivePriority.DoesNotExist:
+            priority = None
+        if priority:
+            ignore = ["placeholder", "ignore"]
+            counter = 1
+            for objective_id in order:
+                if not any(name in objective_id for name in ignore):
+                    obj_instance = ProjectObjective.objects.get(id=objective_id)
+                    if obj_instance:
+                        obj_instance.priority = priority
+                        obj_instance.position = counter
+                        obj_instance.save()
+                        counter += 1
+                    else:
+                        logger.error(
+                            "Received an objective ID, %s, that did not match an existing objective",
+                            objective_id,
+                        )
+                else:
+                    logger.info("Ignored data-id value %s", objective_id)
+        else:
+            data = {"result": "specified priority, {}, is invalid".format(priority_class)}
+        # If all went well, return success
+        data = {"result": "success"}
+    else:
+        data = {"result": "error"}
+    return JsonResponse(data)
+
+
 class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
     """
     Update the ``status`` field of an individual :model:`rolodex.ProjectObjective`.
@@ -93,143 +189,55 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         data = {}
-        # Get ``status`` kwargs from the URL
-        status = self.kwargs["status"]
         self.object = self.get_object()
-        # Base CSS classes for the status pill badges
-        classes = "badge badge-pill badge-dark "
         try:
+            success = False
             # Save the old status
             old_status = self.object.status
-            # Try to get the requested :model:`rolodex.ProjectObjective`
-            objective_status = ObjectiveStatus.objects.get(
-                objective_status__icontains=status
-            )
-            # Update the :model:`rolodex.ProjectObjective` entry
-            self.object.status = objective_status
-            self.object.save()
-            # Update CSS classes based on the new status
-            status_str = str(objective_status)
-            if status_str.lower() == "active":
-                classes += "low-background"
-            elif status_str.lower() == "on hold":
-                classes += "medium-background"
-            elif status_str.lower() == "complete":
-                classes += "info-background"
+            # Get all available status
+            all_status = ObjectiveStatus.objects.all()
+            total_status = all_status.count()
+            for index, status in enumerate(all_status):
+                if status == old_status:
+                    # Check if we're at the last status
+                    next_index = index + 1
+                    if total_status - 1 >= next_index:
+                        new_status = all_status[next_index]
+                    # If at end, roll-over to the first status
+                    else:
+                        new_status = all_status[0]
+
+                    self.object.status = new_status
+                    logger.info("Switching to %s", new_status)
+                    self.object.save()
+                    success = True
+
+            if not success:
+                logger.warning(
+                    "Failed to match old status, %s, with any existing status, so set status to ``0``"
+                )
+                new_status = all_status[0]
+                self.object.status = new_status
+                self.object.save()
+
             # Prepare the JSON response data
             data = {
                 "result": "success",
-                "status": status_str,
-                "classes": classes,
-                "message": "Objective status is now set to: {status}".format(
-                    status=self.object.status
-                ),
+                "status": new_status.objective_status,
             }
             logger.info(
                 "Updated status of %s %s from %s to %s by request of %s",
                 self.object.__class__.__name__,
                 self.object.id,
                 old_status,
-                objective_status,
-                self.request.user,
-            )
-        # Return an error message if the query for the requested status returned DoesNotExist
-        except ObjectiveStatus.DoesNotExist:
-            data = {
-                "result": "error",
-                "message": "Desired objective status was not found: {status}".format(
-                    status=status.title()
-                ),
-            }
-        except Exception as exception:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
-            data = {"result": "error", "message": "Could not update objective's status"}
-
-        return JsonResponse(data)
-
-
-class ClientCodenameRoll(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Roll a new codename for an individual :model:`rolodex.Client`.
-    """
-
-    model = Client
-
-    def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        try:
-            old_codename = self.object.codename
-            codename_verified = False
-            while not codename_verified:
-                new_codename = codenames.codename(uppercase=True)
-                try:
-                    Client.objects.filter(codename__iequal=new_codename)
-                except Exception:
-                    codename_verified = True
-            self.object.codename = new_codename
-            self.object.save()
-            data = {
-                "result": "success",
-                "message": "Codename successfuly updated",
-                "codename": new_codename,
-            }
-            logger.info(
-                "Updated codename of %s %s from %s to %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                old_codename,
-                new_codename,
+                new_status,
                 self.request.user,
             )
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update project's codename"}
-
-        return JsonResponse(data)
-
-
-class ProjectCodenameRoll(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Roll a new codename for an individual :model:`rolodex.Project`.
-    """
-
-    model = Project
-
-    def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        try:
-            old_codename = self.object.codename
-            codename_verified = False
-            while not codename_verified:
-                new_codename = codenames.codename(uppercase=True)
-                try:
-                    Project.objects.filter(codename__iequal=new_codename)
-                except Exception:
-                    codename_verified = True
-            self.object.codename = new_codename
-            self.object.save()
-            data = {
-                "result": "success",
-                "message": "Codename successfuly updated",
-                "codename": new_codename,
-            }
-            logger.info(
-                "Updated codename of %s %s from %s to %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                old_codename,
-                new_codename,
-                self.request.user,
-            )
-        except Exception as exception:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
-            data = {"result": "error", "message": "Could not update project's codename"}
+            data = {"result": "error", "message": "Could not update objective status"}
 
         return JsonResponse(data)
 
@@ -249,7 +257,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 data = {
                     "result": "success",
                     "message": "Project successfully marked as incomplete",
-                    "status": "Active",
+                    "status": "In Progress",
                     "toggle": 0,
                 }
             else:
@@ -271,7 +279,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update project's status"}
+            data = {"result": "error", "message": "Could not update project status"}
 
         return JsonResponse(data)
 
@@ -285,12 +293,13 @@ class ProjectObjectiveDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Objective successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -305,12 +314,13 @@ class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Assignment successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -325,12 +335,13 @@ class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -345,12 +356,13 @@ class ClientNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -365,15 +377,349 @@ class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
+        obj_id = self.object.id
         self.object.delete()
         data = {"result": "success", "message": "Contact successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
             self.object.__class__.__name__,
-            self.object.id,
+            obj_id,
             self.request.user,
         )
         return JsonResponse(data)
+
+
+class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.ProjectTarget`.
+    """
+
+    model = ProjectTarget
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        obj_id = self.object.id
+        self.object.delete()
+        data = {"result": "success", "message": "Target successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            obj_id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``compromised`` field of an individual :model:`rolodex.ProjecTarget`.
+    """
+
+    model = ProjectTarget
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.compromised:
+                self.object.compromised = False
+                data = {
+                    "result": "success",
+                    "message": "Target successfully marked as NOT compromised",
+                    "toggle": 0,
+                }
+            else:
+                self.object.compromised = True
+                data = {
+                    "result": "success",
+                    "message": "Target successfully marked as compromised",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update target status"}
+
+        return JsonResponse(data)
+
+
+class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.ProjectScope`.
+    """
+
+    model = ProjectScope
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        obj_id = self.object.id
+        self.object.delete()
+        data = {"result": "success", "message": "Scope list successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            obj_id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Create a new :model:`rolodex.ProjectSubTask` for an individual :model:`ProjectObjective`.
+    """
+
+    model = ProjectObjective
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        task = self.request.POST.get("task", None)
+        deadline = self.request.POST.get("deadline", None)
+        try:
+            if task and deadline:
+                deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
+
+                if deadline.date() <= self.object.deadline:
+                    new_task = ProjectSubTask(
+                        parent=self.object,
+                        task=task,
+                        deadline=deadline.date(),
+                    )
+                    new_task.save()
+                    data = {
+                        "result": "success",
+                        "message": "Task successfully saved",
+                    }
+                    logger.info(
+                        "Created new %s %s under %s %s by request of %s",
+                        new_task.__class__.__name__,
+                        new_task.id,
+                        self.object.__class__.__name__,
+                        self.object.id,
+                        self.request.user,
+                    )
+                else:
+                    data = {
+                        "result": "error",
+                        "message": "Your new due date must be before (or the same) as the objective due date",
+                    }
+            else:
+                data = {
+                    "result": "error",
+                    "message": "Your new task must have a valid task and due date",
+                }
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not create new task with provided values"}
+
+        return JsonResponse(data)
+
+
+class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``complete`` field of an individual :model:`rolodex.ProjectSubTask`.
+    """
+
+    model = ProjectSubTask
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.complete:
+                self.object.complete = False
+                self.object.marked_complete = None
+                data = {
+                    "result": "success",
+                    "message": "Task successfully marked as incomplete",
+                    "toggle": 0,
+                }
+            else:
+                self.object.complete = True
+                self.object.marked_complete = datetime.date.today()
+                data = {
+                    "result": "success",
+                    "message": "Task successfully marked as complete",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update task status"}
+
+        return JsonResponse(data)
+
+
+class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Toggle the ``complete`` field of an individual :model:`rolodex.ProjectObjective`.
+    """
+
+    model = ProjectObjective
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.complete:
+                self.object.complete = False
+                self.object.marked_complete = None
+                data = {
+                    "result": "success",
+                    "message": "Objective successfully marked as incomplete",
+                    "toggle": 0,
+                }
+            else:
+                self.object.complete = True
+                self.object.marked_complete = datetime.date.today()
+                data = {
+                    "result": "success",
+                    "message": "Objective successfully marked as complete",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled status of %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update objective status"}
+
+        return JsonResponse(data)
+
+
+class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.ProjectSubTask`.
+    """
+
+    model = ProjectSubTask
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        obj_id = self.object.id
+        self.object.delete()
+        data = {"result": "success", "message": "Task successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            obj_id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Update an individual :model:`rolodex.ProjectSubTask`.
+    """
+
+    model = ProjectSubTask
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        task = self.request.POST.get("task", None)
+        deadline = self.request.POST.get("deadline", None)
+        try:
+            if task and deadline:
+                deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
+                logger.info(deadline.date())
+                logger.info(self.object.deadline)
+                if deadline.date() <= self.object.parent.deadline:
+                    self.object.task = task
+                    self.object.deadline = deadline.date()
+                    self.object.save()
+                    data = {
+                        "result": "success",
+                        "message": "Task successfully updated",
+                    }
+                    logger.info(
+                        "Updated %s %s by request of %s",
+                        self.object.__class__.__name__,
+                        self.object.id,
+                        self.request.user,
+                    )
+                else:
+                    data = {
+                        "result": "error",
+                        "message": "Your task due date must be before (or the same) as the objective due date",
+                    }
+            else:
+                data = {
+                    "result": "error",
+                    "message": "Task cannot be updated without a valid task and due date",
+                }
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update the task with provided values"}
+
+        return JsonResponse(data)
+
+
+class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Return an updated version of the template following an update or delete action related
+    to an individual :model:`rolodex.ProjectSubTask.
+
+    **Template**
+
+    :template:`snippets/project_objective_subtasks.html`
+    """
+
+    model = ProjectObjective
+
+    def get(self, *args, **kwargs):
+        self.object = self.get_object()
+        html = render_to_string(
+            "snippets/project_objective_subtasks.html",
+            {"objective": self.object},
+            request=self.request,
+        )
+        return HttpResponse(html)
+
+
+class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Return an updated version of the template following an update action related
+    to an individual :model:`rolodex.ProjectObjective`.
+
+    **Template**
+
+    :template:`snippets/project_objective_row.html`
+    """
+
+    model = ProjectObjective
+
+    def get(self, *args, **kwargs):
+        self.object = self.get_object()
+        html = render_to_string(
+            "snippets/project_objective_row.html",
+            {"objective": self.object},
+            request=self.request,
+        )
+        return HttpResponse(html)
 
 
 ##################
@@ -414,9 +760,7 @@ def client_list(request):
             "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
-        client_list = Client.objects.filter(name__icontains=search_term).order_by(
-            "name"
-        )
+        client_list = Client.objects.filter(name__icontains=search_term).order_by("name")
     else:
         client_list = Client.objects.all().order_by("name")
     client_filter = ClientFilter(request.GET, queryset=client_list)
@@ -437,9 +781,7 @@ def project_list(request):
 
     :template:`rolodex/project_list.html`
     """
-    project_list = (
-        Project.objects.select_related("client").all().order_by("complete", "client")
-    )
+    project_list = Project.objects.select_related("client").all().order_by("complete", "client")
     project_list = ProjectFilter(request.GET, queryset=project_list)
     return render(request, "rolodex/project_list.html", {"filter": project_list})
 
@@ -476,9 +818,7 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
 
         ctx = super(ClientDetailView, self).get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        domain_history = History.objects.select_related("domain").filter(
-            client=client_instance
-        )
+        domain_history = History.objects.select_related("domain").filter(client=client_instance)
         server_history = ServerHistory.objects.select_related("server").filter(
             client=client_instance
         )
@@ -534,7 +874,11 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc")
         else:
-            ctx["contacts"] = ClientContactFormSet(prefix="poc")
+            # Add extra forms to aid in configuration of a new client
+            contacts = ClientContactFormSet(prefix="poc")
+            contacts.extra = 1
+            # Assign the re-configured formsets to context vars
+            ctx["contacts"] = contacts
         return ctx
 
     def form_valid(self, form):
@@ -611,9 +955,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(ClientUpdate, self).get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "rolodex:client_detail", kwargs={"pk": self.object.id}
-        )
+        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(
                 self.request.POST, prefix="poc", instance=self.object
@@ -679,9 +1021,7 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "client and all associated data"
         ctx["object_to_be_deleted"] = queryset.name
-        ctx["cancel_link"] = reverse(
-            "rolodex:client_detail", kwargs={"pk": self.object.id}
-        )
+        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
         return ctx
 
 
@@ -758,9 +1098,7 @@ class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Note successfully updated.", extra_tags="alert-success"
-        )
+        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
         return "{}#notes".format(
             reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
         )
@@ -802,6 +1140,10 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``
         Instance of the `ProjectAssignmentFormSet()` formset
+    ``scopes``
+        Instance of the `ProjectScopeFormSet()` formset
+    ``targets``
+        Instance of the `ProjectTargetFormSet()` formset
     ``cancel_link``
         Link for the form's Cancel button to return to projects list page
 
@@ -837,24 +1179,36 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         ctx = super(ProjectCreate, self).get_context_data(**kwargs)
         ctx["client"] = self.client
         if self.client:
-            ctx["cancel_link"] = reverse(
-                "rolodex:client_detail", kwargs={"pk": self.client.pk}
-            )
+            ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.client.pk})
         else:
             ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj")
-            ctx["assignments"] = ProjectAssignmentFormSet(
-                self.request.POST, prefix="assign"
-            )
+            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign")
+            ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
+            ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target")
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj")
-            ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign")
+            # Add extra forms to aid in configuration of a new project
+            objectives = ProjectObjectiveFormSet(prefix="obj")
+            objectives.extra = 1
+            assignments = ProjectAssignmentFormSet(prefix="assign")
+            assignments.extra = 1
+            scopes = ProjectScopeFormSet(prefix="scope")
+            scopes.extra = 1
+            targets = ProjectTargetFormSet(prefix="target")
+            targets.extra = 1
+            # Assign the re-configured formsets to context vars
+            ctx["objectives"] = objectives
+            ctx["assignments"] = assignments
+            ctx["scopes"] = scopes
+            ctx["targets"] = targets
         return ctx
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
+        scopes = ctx["scopes"]
+        targets = ctx["targets"]
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
@@ -868,14 +1222,30 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
                     objectives.instance = self.object
-                    objectives_object = objectives.save()
+                    objectives.save()
 
                 assignments_valid = assignments.is_valid()
                 if assignments_valid:
                     assignments.instance = self.object
                     assignments.save()
 
-                if form.is_valid() and objectives_valid and assignments_valid:
+                scopes_valid = scopes.is_valid()
+                if scopes_valid:
+                    scopes.instance = self.object
+                    scopes.save()
+
+                targets_valid = targets.is_valid()
+                if targets_valid:
+                    targets.instance = self.object
+                    targets.save()
+
+                if (
+                    form.is_valid()
+                    and objectives_valid
+                    and assignments_valid
+                    and scopes_valid
+                    and targets_valid
+                ):
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions
@@ -915,6 +1285,10 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``
         Instance of the `ProjectAssignmentFormSet()` formset
+    ``scopes``
+        Instance of the `ProjectScopeFormSet()` formset
+    ``targets``
+        Instance of the `ProjectTargetFormSet()` formset
     ``cancel_link``
         Link for the form's Cancel button to return to project's detail page
 
@@ -930,9 +1304,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super(ProjectUpdate, self).get_context_data(**kwargs)
         ctx["object"] = self.get_object()
-        ctx["cancel_link"] = reverse(
-            "rolodex:project_detail", kwargs={"pk": self.object.pk}
-        )
+        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(
                 self.request.POST, prefix="obj", instance=self.object
@@ -940,24 +1312,28 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             ctx["assignments"] = ProjectAssignmentFormSet(
                 self.request.POST, prefix="assign", instance=self.object
             )
+            ctx["scopes"] = ProjectScopeFormSet(
+                self.request.POST, prefix="scope", instance=self.object
+            )
+            ctx["targets"] = ProjectTargetFormSet(
+                self.request.POST, prefix="target", instance=self.object
+            )
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(
-                prefix="obj", instance=self.object
-            )
-            ctx["assignments"] = ProjectAssignmentFormSet(
-                prefix="assign", instance=self.object
-            )
+            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
+            ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
+            ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
+            ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
         return ctx
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Project successfully saved.", extra_tags="alert-success"
-        )
+        messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
+        scopes = ctx["scopes"]
+        targets = ctx["targets"]
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
@@ -970,10 +1346,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                 # Update infrastructure if project's dates changed
                 update = form.cleaned_data["update_checkouts"]
                 if update:
-                    if (
-                        "end_date" in form.changed_data
-                        or "start_date" in form.changed_data
-                    ):
+                    if "end_date" in form.changed_data or "start_date" in form.changed_data:
                         logger.info(
                             "Date changed on Project %s, so updating domain and server checkouts",
                             self.object.pk,
@@ -990,12 +1363,8 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                         end_timedelta = new_end_date - old_end_date
                         try:
                             # Update checkouts based on deltas
-                            domain_checkouts = History.objects.filter(
-                                project=self.object.pk
-                            )
-                            server_checkouts = ServerHistory.objects.filter(
-                                project=self.object.pk
-                            )
+                            domain_checkouts = History.objects.filter(project=self.object.pk)
+                            server_checkouts = ServerHistory.objects.filter(project=self.object.pk)
                             for checkout in domain_checkouts:
                                 logger.info(
                                     "Updating checkout for %s from %s - %s to %s - %s",
@@ -1005,9 +1374,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                                     checkout.start_date + start_timedelta,
                                     checkout.end_date + end_timedelta,
                                 )
-                                checkout.start_date = (
-                                    checkout.start_date + start_timedelta
-                                )
+                                checkout.start_date = checkout.start_date + start_timedelta
                                 checkout.end_date = checkout.end_date + end_timedelta
                                 checkout.save()
                             for checkout in server_checkouts:
@@ -1019,9 +1386,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                                     checkout.start_date + start_timedelta,
                                     checkout.end_date + end_timedelta,
                                 )
-                                checkout.start_date = (
-                                    checkout.start_date + start_timedelta
-                                )
+                                checkout.start_date = checkout.start_date + start_timedelta
                                 checkout.end_date = checkout.end_date + end_timedelta
                                 checkout.save()
                         except Exception:
@@ -1034,14 +1399,31 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
                     objectives.instance = self.object
-                    objectives_object = objectives.save()
+                    objectives.save()
 
                 assignments_valid = assignments.is_valid()
                 if assignments_valid:
                     assignments.instance = self.object
                     assignments.save()
+
+                scopes_valid = scopes.is_valid()
+                if scopes_valid:
+                    scopes.instance = self.object
+                    scopes.save()
+
+                targets_valid = targets.is_valid()
+                if targets_valid:
+                    targets.instance = self.object
+                    targets.save()
+
                 # Proceed with form submission
-                if form.is_valid() and objectives_valid and assignments_valid:
+                if (
+                    form.is_valid()
+                    and objectives_valid
+                    and assignments_valid
+                    and scopes_valid
+                    and targets_valid
+                ):
                     return super().form_valid(form)
                 else:
                     # Raise an error to rollback transactions
@@ -1162,9 +1544,7 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Note successfully updated.", extra_tags="alert-success"
-        )
+        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
         return "{}#notes".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )

@@ -1,6 +1,89 @@
 Changelog
 =========
 
+3 March 2021
+----------------
+* Tagged release, v2.1
+    * Release will require database migrations
+    * New features will require reloading the `seed_data` file
+        * e.g., `docker-compose -f local.yml run --rm django /seed_data`
+* Implemented project scope tracking
+    * Enabled tracking of one or more scope lists flagged as allowed/disallowed or requiring caution
+    * Closes #59
+* Implemented project target tracking
+    * Enabled tracking of specific hosts with notes
+* Committed redesigned project dashboards
+    * Notable changes and adjustments:
+        * Added a project calendar to track assignments, objectives, tasks, and project dates
+        * Added new objective tracker with task management, prioritization, and sorting
+* Implemented a new server search in the side bar (under _Servers_) that searches all static servers, cloud servers in projects, and alternate addresses tied to servers
+* Added template linting checks for additional styles that may not be present in a report
+    * Closes #139
+* Fixed downloads of document names that included periods and commas
+    * Closes #149
+* Fixed evidence filenames with all uppercase extensions not appearing in reports
+    * Closes #74
+* Fixed a recursive HTML/JavaScript escape in log entries
+    * Closes #133
+* Fixed incorrect link in the menu for a point of contact under a client
+    * Closes $141
+    * Closes #142
+        * Bug was inadvertently resolved with the new menus
+        * Closing PR because it is no longer compatible
+* Fixed `docker-compose` errors related to latest verison of the `crytpography` library
+    * Closes #147
+* Fixed possible issue with assigning a name to an AWS asset in the cloud monitor task
+* Closed loophole that could allow a non-unique domain name
+    * Could lead to conflicting check-outs
+* Updated TinyMCE WYSIWYG editor and related JavaScript to v5.7.0
+    * Resolved potential Cross-Site Scripting vulnerability discovered in previous version
+* Added Clipboard.js to support better, more flexible "click to copy to clipboard" in the UI
+* Added several new Jinja2 expressions, statements, and filters for Word DOCX reports
+    * Added `project_codename` and `client_codename` (Closes #138)
+    * Added expressions and filters for new objectives, targets, and scope lists
+    * See wiki documentation
+* Improved page loading with certain large forms
+    * WYSIWYG editor is now loaded much more selectively
+    * Extra forms are no longer created by default when _editing_ a project or client
+        * Extra forms can still be added as needed
+        * Extra forms still load automatically when _creating_ a new project or client
+* Improved performance of operation log entry views with pagination
+    * Very large logs could push browsers to their limits
+* Implemented initial support for WebSocket channels for reports
+    * Groundwork for futurue enhancement – e.g., syncing updates between users editing the same report
+* Numerous minor bug fixes and style updates throughout
+
+15 January 2020
+---------------
+* Fixed notifications going to the global Slack channel when project channels were available
+* Fixed uppercase file extensions blocking evidence files from appearing on pages
+* Fixed rare `style` exception with specific nested HTML elements
+* Added error handling for cases where an image file has a corrupted file header and can't be recognized for inserting into Word
+* Moved 99% of icons and style elements to the _styles.css_ file
+
+18 December 2020
+----------------
+* Updated styles and forms to make it clear what is placeholder text
+* Reverted the new finding form to a one-page form–i.e., no tabbed sections–to make it easier to use
+* Broke-up stylesheets for easier management of global variables
+* Fixed error in cloud monitor notification messages that caused messages to contain the same external IP addresses for all VPS instances
+* Fixed bug that caused delete actions on cloud server entries to not be committed
+* Fixed `ref` tags in findings that were ingored if they followed a `ref` tag with a different target
+* Fixed PowerPoint "Conclusion" slide's title
+* Fixed filtering for report template selection dropdowns that caused both document types to appear in all dropdown menus
+
+03 December 2020
+----------------
+* Added project objectives to the report template variables
+    * New template keywords: `objectives` (List), `objectives_total` (Int), `objectives_complete` (Int)
+* Modified project "complete" toggle and instructions for clarity
+* Set all domain names to lowercase and strip any spaces before creating or updating
+    * Addressed cases where a user error could create a duplicate entry
+* Clicking prepended text (e.g., filter icon) on filter form fields will now submit the filter
+* Fixed error that could cause Oplog entries to not display
+* Oplog entries list now shows loading messages and properly displays "no entries" messages
+* Fixed incorrect filenames for CSV exports of Oplogs
+
 20 November 2020
 ----------------
 * Tagged release v2.0
@@ -13,7 +96,7 @@ Changelog
     * Company information
     * Namecheap Configuration
 * Initial support for adding users to groups for Role-Based Access Controls
-* Automated Acitivty Logging (Oplog application) moved out of beta
+* Automated Activity Logging (Oplog application) moved out of beta
 * Implemented initial "overwatch" notifications
     * Domain check-out: alert if domain will expire soon and is not set to auto-renew
     * Domain check-out: alert if domain is marked as burned
@@ -30,7 +113,7 @@ Changelog
     * Added new `filter_severity` filter for Word templates
     * Closes #89
 * Initial support for report template and management
-    * Upload report tempalte files for Word and PowerPoint
+    * Upload report template files for Word and PowerPoint
     * New template linter to check and verify templates
     * Closes #28
     * Closes #90
