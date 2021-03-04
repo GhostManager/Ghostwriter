@@ -515,12 +515,6 @@ input[type='file'] {
   box-shadow: 0 0 3px var(--search-box-shadow), 0 10px 15px #ebebeb inset;
 }
 
-.detail-page-search {
-  width: 50%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .search input {
   text-indent: .5em;
 }

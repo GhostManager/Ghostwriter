@@ -61,17 +61,17 @@
         <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired finding.</p>
 
         <!-- Search Section -->
-        <div class="search detail-page-search">
-            <form action="{% url 'reporting:findings' %}" method="GET">
-                <div class="input-group">
+        <form action="{% url 'reporting:findings' %}" method="GET">
+            <div class="search form-row">
+                <div class="input-group offset-md-4 col-md-4">
                     <div class="input-group-prepend">
                         <span class="input-group-text fa fa-search" id="report-findings-search"></span>
                     </div>
                     <input autocomplete="off" type="text" class="form-control" name="finding_search" placeholder="Search Findings..." aria-label="findings" aria-describedby="report-findings-search">
                 </div>
                 <input type="submit" style="display: none" />
-            </form>
-        </div>
+            </div>
+        </form>
 
         <p class="mt-3"><a class="icon add-icon" href="{% url 'reporting:assign_blank_finding' report.id %}" data-toggle="tooltip" data-placement="top" title="Add a blank finding template to the bottom of the report">Add a Blank Finding</a></p>
 
