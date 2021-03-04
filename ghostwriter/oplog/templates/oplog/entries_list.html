@@ -43,7 +43,7 @@
 
         <div class="col-md-4">
             <div style="clear: both;">
-                <a href="javascript:void(0);" id="columnSelectDropdown" class="align-icon icon add-icon"> Select Columns</a>
+                <a href="javascript:void(0);" id="columnSelectDropdown" class="align-icon icon add-icon">Select Columns</a>
             </div>
         </div>
 
@@ -53,10 +53,6 @@
             </div>
         </div>
     </div>
-
-    <!-- <div style="clear: both;"></div>
-        <a href="javascript:void(0);" id="columnSelectDropdown" class="icon add-icon">Select Columns</a>
-    </div> -->
 
     <div id="columnSelect" style="display:none;">
         <ul class="list-group-row" id="checkboxList">
@@ -452,9 +448,9 @@
                 }
             });
 
-            $("#columnSelectDropdown").click(function () {
-                $("#columnSelect").toggle("slow");
-                $("#columnSelectDropdown").find("i").toggleClass("fa-plus-square fa-minus-square")
+            $('#columnSelectDropdown').click(function () {
+                $('#columnSelect').toggle('slow');
+                $('#columnSelectDropdown').toggleClass('add-icon sub-icon')
             });
 
             $('#oplogTable').on('click', '[id^="deleteButton_"]', function (event) {
