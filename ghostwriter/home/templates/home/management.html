@@ -22,180 +22,175 @@
     {% get_solo "commandcenter.SlackConfiguration" as slack_config %}
     {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
 
-    <style>
-        th, tr, td {
-            text-align: justify;
-        }
-
-        td {
-            border-bottom: 0;
-        }
-    </style>
-
     <h2>API & Notification Configurations</h2>
     <p>These settings are managed in the Django administration panel under the <em>Command Center</em> application.</p>
-    <p>To change the <em>Timezone</em>, edit the application's settings file and restart the server.
-    <table class="table-responsive-lg borderless">
+    <p>To change the <em>Timezone</em>, edit the application's settings file and restart the server.</p>
+
+    <table class="table table-responsive-lg table-borderless table-config">
         <!-- General Section -->
         <tr>
-            <th class="form-th"><i class="fas fa-cogs"></i> General Settings</th>
-            <th class="form-th"></th>
+            <th class="text-left icon gears-icon">General Settings</th>
+            <th></th>
         </tr>
         <tr>
-            <td><i class="far fa-clock"></i> Timezone Time</td>
-            <td>{{ timezone }}</td>
+            <td class="text-left icon clock-icon">Timezone Time</td>
+            <td class="text-justify">{{ timezone }}</td>
         </tr>
         <tr>
-            <td><i class="fas fa-building"></i> Company Name</td>
-            <td>{{ company_config.company_name }}</td>
+            <td class="text-left icon client-icon">Company Name</td>
+            <td class="text-justify">{{ company_config.company_name }}</td>
         </tr>
         <tr>
-            <td><i class="fab fa-twitter"></i> Twitter</td>
-            <td>{{ company_config.company_twitter }}</td>
+            <td class="text-left icon twitter-icon">Twitter</td>
+            <td class="text-justify">{{ company_config.company_twitter }}</td>
         </tr>
         <tr>
-            <td><i class="fas fa-envelope"></i> Email</td>
-            <td>{{ company_config.company_email }}</td>
+            <td class="text-left icon email-icon">Email</td>
+            <td class="text-justify">{{ company_config.company_email }}</td>
         </tr>
 
         <!-- Spacer -->
         <tr>
-            <td class="hidden-table">&nbsp;</th>
+            <td class="text-justify">&nbsp;</td>
+            <td class="text-justify">&nbsp;</td>
         </tr>
 
         <!-- Domain Health Section -->
         <tr>
-            <th class="form-th"><i class="fas fa-heart"></i> Domain Health Checks</th>
-            <th class="form-th"></th>
+            <th class="text-left icon heartbeat-icon">Domain Health Checks</th>
+            <th></th>
         </tr>
         <tr>
-            <td><i class="fab fa-google"></i> VirusTotal API Key</td>
+            <td class="text-left icon vt-icon">VirusTotal API Key</td>
             {% if vt_config.enable %}
-                <td>{{ vt_config.sanitized_api_key }}</td>
+                <td class="text-justify">{{ vt_config.sanitized_api_key }}</td>
             {% else %}
-                <td>Disabled</td>
+                <td class="text-justify">Disabled</td>
             {% endif %}
         </tr>
         <tr>
-            <td><i class="fas fa-bed"></i> Sleep Time</td>
-            <td>{{ vt_config.sleep_time }} seconds</td>
+            <td class="text-left icon sleep-icon">Sleep Time</td>
+            <td class="text-justify">{{ vt_config.sleep_time }} seconds</td>
         </tr>
 
         <!-- Spacer -->
         <tr>
-            <td class="hidden-table">&nbsp;</th>
+            <td class="text-justify">&nbsp;</td>
+            <td class="text-justify">&nbsp;</td>
         </tr>
 
         <!-- Registrar Section -->
         <tr>
-            <th class="form-th"><i class="fas fa-cloud-download-alt"></i> Domain Registrar API</th>
-            <th class="form-th"></th>
+            <th class="text-left icon sync-icon">Domain Registrar API</th>
+            <th></th>
         </tr>
         {% if namecheap_config.enable %}
             <tr>
-                <td><i class="fas fa-toggle-on"></i> Namecheap API Enabled</td>
-                <td>{{ namecheap_config.enable }}</td>
+                <td class="text-left icon toggle-on-icon">Namecheap API Enabled</td>
+                <td class="text-justify">{{ namecheap_config.enable }}</td>
             </tr>
             <tr>
-                <td><i class="fas fa-laptop-code"></i> Namecheap Whitelisted IP</td>
-                <td>{{ namecheap_config.client_ip }}</td>
+                <td class="text-left icon laptop-icon">Namecheap Whitelisted IP</td>
+                <td class="text-justify">{{ namecheap_config.client_ip }}</td>
             </tr>
             <tr>
-                <td><i class="fas fa-key"></i> Namecheap API Key</td>
-                <td>{{ namecheap_config.sanitized_api_key }}</td>
+                <td class="text-left icon key-icon">Namecheap API Key</td>
+                <td class="text-justify">{{ namecheap_config.sanitized_api_key }}</td>
             </tr>
             <tr>
-                <td><i class="fas fa-user"></i> Namecheap Username</td>
-                <td>{{ namecheap_config.username }}</td>
+                <td class="text-left icon user-icon">Namecheap Username</td>
+                <td class="text-justify">{{ namecheap_config.username }}</td>
             </tr>
             <tr>
-                <td><i class="fas fa-users-cog"></i> Namecheap API Username</td>
-                <td>{{ namecheap_config.api_username }}</td>
+                <td class="text-left icon user-gear-icon">Namecheap API Username</td>
+                <td class="text-justify">{{ namecheap_config.api_username }}</td>
             </tr>
             <tr>
-                <td><i class="fas fa-hashtag"></i> Namecheap Page Size</td>
-                <td>{{ namecheap_config.page_size }}</td>
+                <td class="text-left icon hash-icon">Namecheap Page Size</td>
+                <td class="text-justify">{{ namecheap_config.page_size }}</td>
             </tr>
         {% else %}
             <tr>
-                <td><i class="fas fa-toggle-off"></i> Namecheap API Enabled</td>
-                <td>Disabled</td>
+                <td class="text-left icon toggle-off-icon">Namecheap API Enabled</td>
+                <td class="text-justify">Disabled</td>
             </tr>
         {% endif %}
 
         <!-- Spacer -->
         <tr>
-            <td class="hidden-table">&nbsp;</th>
+            <td class="text-justify">&nbsp;</td>
+            <td class="text-justify">&nbsp;</td>
         </tr>
 
         <!-- Cloud Monitor Section -->
         <tr>
-            <th class="form-th"><i class="fas fa-cloud"></i> Cloud Services</th>
-            <th class="form-th"></th>
+            <th class="text-left icon cloud-icon">Cloud Services</th>
+            <th></th>
         </tr>
         {% if cloud_config.enable %}
             <tr>
-                <td><i class="fas fa-toggle-on"></i> Cloud Monitoring Enabled</td>
-                <td>{{ cloud_config.enable }}</td>
+                <td class="text-left icon toggle-on-icon">Cloud Monitoring Enabled</td>
+                <td class="text-justify">{{ cloud_config.enable }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-aws"></i> AWS Access Key</td>
-                <td>{{ cloud_config.sanitized_aws_key }}</td>
+                <td class="text-left icon aws-icon">AWS Access Key</td>
+                <td class="text-justify">{{ cloud_config.sanitized_aws_key }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-aws"></i>> AWS Access Key Secret</td>
-                <td>{{ cloud_config.sanitized_aws_secret }}</td>
+                <td class="text-left icon aws-icon">AWS Access Key Secret</td>
+                <td class="text-justify">{{ cloud_config.sanitized_aws_secret }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-digital-ocean"></i> Digital Ocean API Key</td>
-                <td>{{ cloud_config.sanitized_do_api_key }}</td>
+                <td class="text-left icon do-icon">Digital Ocean API Key</td>
+                <td class="text-justify">{{ cloud_config.sanitized_do_api_key }}</td>
             </tr>
         {% else %}
             <tr>
-                <td><i class="fas fa-toggle-off"></i> Cloud Monitoring Enabled</td>
-                <td>Disabled</td>
+                <td class="text-left icon toggle-off-icon">Cloud Monitoring Enabled</td>
+                <td class="text-justify">Disabled</td>
             </tr>
         {% endif %}
 
         <!-- Spacer -->
         <tr>
-            <td class="hidden-table">&nbsp;</th>
+            <td class="text-justify">&nbsp;</td>
+            <td class="text-justify">&nbsp;</td>
         </tr>
 
         <!-- Notification Section -->
         <tr>
-            <th class="form-th"><i class="fas fa-bell"></i> Notifications</th>
-            <th class="form-th"></th>
+            <th class="text-left icon notification-icon">Notifications</th>
+            <th></th>
         </tr>
         {% if slack_config.enable %}
             <tr>
-                <td><i class="fas fa-toggle-on"></i> Slack Enabled</td>
-                <td>{{ slack_config.enable }}</td>
+                <td class="text-left icon toggle-on-icon">Slack Enabled</td>
+                <td class="text-justify">{{ slack_config.enable }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-slack"></i> Slack WebHook</td>
-                <td>{{ slack_config.sanitized_webhook }}</td>
+                <td class="text-left icon slack-icon">Slack WebHook</td>
+                <td class="text-justify">{{ slack_config.sanitized_webhook }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-slack"></i> Slack Bot Name</td>
-                <td>{{ slack_config.slack_username }}</td>
+                <td class="text-left icon slack-icon">Slack Bot Name</td>
+                <td class="text-justify">{{ slack_config.slack_username }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-slack"></i> Slack Bot Avatar</td>
-                <td>{{ slack_config.slack_emoji }}</td>
+                <td class="text-left icon slack-icon">Slack Bot Avatar</td>
+                <td class="text-justify">{{ slack_config.slack_emoji }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-slack"></i> Global Slack Channel</td>
-                <td>{{ slack_config.slack_channel }}</td>
+                <td class="text-left icon slack-icon">Global Slack Channel</td>
+                <td class="text-justify">{{ slack_config.slack_channel }}</td>
             </tr>
             <tr>
-                <td><i class="fab fa-slack"></i> Slack Target</td>
-                <td>{{ slack_config.slack_alert_target }}</td>
+                <td class="text-left icon slack-icon">Slack Target</td>
+                <td class="text-justify">{{ slack_config.slack_alert_target }}</td>
             </tr>
         {% else %}
             <tr>
-                <td><i class="fas fa-toggle-off"></i> Slack Enabled</td>
-                <td>Disabled</td>
+                <td class="text-left icon toggle-off-icon">Slack Enabled</td>
+                <td class="text-justify">Disabled</td>
             </tr>
         {% endif %}
     </table>

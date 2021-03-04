@@ -1,72 +1,103 @@
 [
-    {
-      "model": "rolodex.projecttype",
-      "pk": 1,
-      "fields": {
-          "project_type": "Red Team"
-      }
-    },
-    {
-      "model": "rolodex.projecttype",
-      "pk": 2,
-      "fields": {
-          "project_type": "Penetration Test"
-      }
-    },
-    {
-      "model": "rolodex.projecttype",
-      "pk": 3,
-      "fields": {
-          "project_type": "Phishing Assessment"
-      }
-    },
-    {
-      "model": "rolodex.projecttype",
-      "pk": 4,
-      "fields": {
-          "project_type": "Web Application Assessment"
-      }
-    },
-    {
-      "model": "rolodex.projectrole",
-      "pk": 1,
-      "fields": {
-          "project_role": "Assessment Lead"
-      }
-    },
-    {
-      "model": "rolodex.projectrole",
-      "pk": 2,
-      "fields": {
-          "project_role": "Assessment Oversight"
-      }
-    },
-    {
-      "model": "rolodex.projectrole",
-      "pk": 3,
-      "fields": {
-          "project_role": "Operator"
-      }
-    },
-    {
-        "model": "rolodex.objectivestatus",
-        "pk": 1,
-        "fields": {
-            "objective_status": "Active"
-        }
-      },
-      {
-        "model": "rolodex.objectivestatus",
-        "pk": 2,
-        "fields": {
-            "objective_status": "On Hold"
-        }
-      },
-      {
-        "model": "rolodex.objectivestatus",
-        "pk": 3,
-        "fields": {
-            "objective_status": "Complete"
-        }
-      }
-  ]
+  {
+    "model": "rolodex.projecttype",
+    "pk": 1,
+    "fields": {
+      "project_type": "Red Team"
+    }
+  },
+  {
+    "model": "rolodex.projecttype",
+    "pk": 2,
+    "fields": {
+      "project_type": "Penetration Test"
+    }
+  },
+  {
+    "model": "rolodex.projecttype",
+    "pk": 3,
+    "fields": {
+      "project_type": "Phishing Assessment"
+    }
+  },
+  {
+    "model": "rolodex.projecttype",
+    "pk": 4,
+    "fields": {
+      "project_type": "Web Application Assessment"
+    }
+  },
+  {
+    "model": "rolodex.projectrole",
+    "pk": 1,
+    "fields": {
+      "project_role": "Assessment Lead"
+    }
+  },
+  {
+    "model": "rolodex.projectrole",
+    "pk": 2,
+    "fields": {
+      "project_role": "Assessment Oversight"
+    }
+  },
+  {
+    "model": "rolodex.projectrole",
+    "pk": 3,
+    "fields": {
+      "project_role": "Operator"
+    }
+  },
+  {
+    "model": "rolodex.objectivestatus",
+    "pk": 1,
+    "fields": {
+      "objective_status": "Active"
+    }
+  },
+  {
+    "model": "rolodex.objectivestatus",
+    "pk": 2,
+    "fields": {
+      "objective_status": "On Hold"
+    }
+  },
+  {
+    "model": "rolodex.objectivestatus",
+    "pk": 3,
+    "fields": {
+      "objective_status": "In Progress"
+    }
+  },
+  {
+    "model": "rolodex.objectivestatus",
+    "pk": 4,
+    "fields": {
+      "objective_status": "Missed"
+    }
+  },
+  {
+    "model": "rolodex.objectivepriority",
+    "pk": 1,
+    "fields": {
+      "weight": "0",
+      "priority": "Primary"
+    }
+  },
+  {
+    "model": "rolodex.objectivepriority",
+    "pk": 2,
+    "fields": {
+      "weight": "1",
+      "priority": "Secondary"
+    }
+  },
+  {
+    "model": "rolodex.objectivepriority",
+    "pk": 3,
+    "fields": {
+      "weight": "2",
+      "priority": "Tertiary"
+    }
+  }
+]

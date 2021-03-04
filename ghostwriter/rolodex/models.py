@@ -93,9 +93,7 @@ class ClientContact(models.Model):
         help_text="Provide additional information about the contact",
     )
     # Foreign keys
-    client = models.ForeignKey(
-        Client, on_delete=models.CASCADE, null=False, blank=False
-    )
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
 
@@ -195,7 +193,7 @@ class Project(models.Model):
 
     class Meta:
 
-        ordering = ["client", "start_date", "project_type", "codename"]
+        ordering = ["start_date", "end_date", "client", "project_type"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
 
@@ -275,13 +273,6 @@ class ProjectAssignment(models.Model):
         verbose_name = "Project assignment"
         verbose_name_plural = "Project assignments"
 
-    def save(self, *args, **kwargs):
-        if self.start_date < self.project.start_date:
-            self.start_date = self.project.start_date
-        elif self.end_date > self.project.end_date:
-            self.end_date = self.project.end_date
-        super(ProjectAssignment, self).save(*args, **kwargs)
-
     def get_absolute_url(self):
         return reverse("rolodex:project_detail", args=[str(self.project.id)])
 
@@ -298,23 +289,50 @@ class ObjectiveStatus(models.Model):
         "Objective Status",
         max_length=255,
         unique=True,
-        help_text="Enter an objective status (e.g. Active, On Hold)",
+        help_text="Objective's status",
     )
 
     class Meta:
 
         ordering = ["objective_status"]
         verbose_name = "Objective status"
-        verbose_name_plural = "Objective statuses"
+        verbose_name_plural = "Objective status"
 
     def __str__(self):
         return self.objective_status
 
 
+class ObjectivePriority(models.Model):
+    """
+    Stores an individual objective priority category.
+    """
+
+    weight = models.IntegerField(
+        "Priority Weight",
+        default=1,
+        help_text="Weight for sorting this priority when viewing objectives (lower numbers are higher priority)",
+    )
+    priority = models.CharField(
+        "Objective Priority",
+        max_length=255,
+        unique=True,
+        help_text="Objective's priority",
+    )
+
+    class Meta:
+
+        ordering = ["weight", "priority"]
+        verbose_name = "Objective priority"
+        verbose_name_plural = "Objective priorities"
+
+    def __str__(self):
+        return self.priority
+
+
 class ProjectObjective(models.Model):
     """
-    Stores an individual project objective, related to :model:`rolodex.Project` and
-    :model:`rolodex.ObjectiveStatus`.
+    Stores an individual project objective, related to an individual :model:`rolodex.Project`
+    and :model:`rolodex.ObjectiveStatus`.
     """
 
     def get_status():
@@ -325,9 +343,105 @@ class ProjectObjective(models.Model):
         except ObjectiveStatus.DoesNotExist:
             return 1
 
-    objective = models.TextField(
-        "Objective", null=True, blank=True, help_text="Provide a concise objective"
+    objective = models.CharField(
+        "Objective",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles",
     )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a more detailed description, purpose, or context",
+    )
+    complete = models.BooleanField(
+        "Completed", default=False, help_text="Mark the objective as complete"
+    )
+    deadline = models.DateField(
+        "Due Date",
+        max_length=12,
+        null=True,
+        blank=True,
+        help_text="Objective's deadline/due date",
+    )
+    marked_complete = models.DateField(
+        "Marked Complete", null=True, blank=True, help_text="Date the objective was marked complete"
+    )
+    position = models.IntegerField(
+        "List Position",
+        default=1,
+    )
+    # Foreign Keys
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        null=False,
+    )
+    status = models.ForeignKey(
+        ObjectiveStatus,
+        on_delete=models.PROTECT,
+        default=get_status,
+        help_text="Set the status for this objective",
+    )
+    priority = models.ForeignKey(
+        ObjectivePriority,
+        on_delete=models.PROTECT,
+        null=True,
+        help_text="Assign a priority category",
+    )
+
+    class Meta:
+
+        ordering = [
+            "project",
+            "position",
+            "complete",
+            "priority__weight",
+            "deadline",
+            "status",
+            "objective",
+        ]
+        verbose_name = "Project objective"
+        verbose_name_plural = "Project objectives"
+
+    def __str__(self):
+        return f"{self.project} - {self.objective} {self.status})"
+
+    def calculate_status(self):
+        """
+        Calculate and return a percentage complete estimate based on ``complete`` value
+        and any status of related :model:`ProjectSubTask` entries.
+        """
+        total_tasks = self.projectsubtask_set.all().count()
+        completed_tasks = 0
+        if self.complete:
+            return 100.0
+        elif total_tasks > 0:
+            for task in self.projectsubtask_set.all():
+                if task.complete:
+                    completed_tasks += 1
+            return round(completed_tasks / total_tasks * 100, 1)
+        else:
+            return 0
+
+
+class ProjectSubTask(models.Model):
+    """
+    Stores an individual sub-task, related to an individual :model:`rolodex.ProjectObjective`
+    and :model:`rolodex.ObjectiveStatus`.
+    """
+
+    def get_status():
+        """Get the default status for the status field."""
+        try:
+            active_status = ObjectiveStatus.objects.get(objective_status="Active")
+            return active_status.id
+        except ObjectiveStatus.DoesNotExist:
+            return 1
+
+    task = models.TextField("Task", null=True, blank=True, help_text="Provide a concise objective")
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark the objective as complete"
     )
@@ -338,8 +452,11 @@ class ProjectObjective(models.Model):
         blank=True,
         help_text="Provide a deadline for this objective",
     )
+    marked_complete = models.DateField(
+        "Marked Complete", null=True, blank=True, help_text="Date the task was marked complete"
+    )
     # Foreign Keys
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+    parent = models.ForeignKey(ProjectObjective, on_delete=models.CASCADE, null=False)
     status = models.ForeignKey(
         ObjectiveStatus,
         on_delete=models.PROTECT,
@@ -349,31 +466,21 @@ class ProjectObjective(models.Model):
 
     class Meta:
 
-        ordering = ["project", "complete", "deadline", "status", "objective"]
-        verbose_name = "Project objective"
-        verbose_name_plural = "Project objectives"
-
-    def save(self, *args, **kwargs):
-        # Move a deadline outside of the project's window into the window
-        if self.deadline < self.project.start_date:
-            self.deadline = self.project.start_date
-        elif self.deadline > self.project.end_date:
-            self.deadline = self.project.end_date
-        super(ProjectObjective, self).save(*args, **kwargs)
+        ordering = ["parent", "complete", "deadline", "status", "task"]
+        verbose_name = "Objective sub-task"
+        verbose_name_plural = "Objective sub-tasks"
 
     def __str__(self):
-        return f"{self.project} - {self.objective} {self.status})"
+        return f"{self.parent.project} : {self.task} ({self.status})"
 
 
 class ClientNote(models.Model):
     """
-    Stores an individual note, related to :model:`rolodex.Client` and :model:`users.User`.
+    Stores an individual note, related to an individual :model:`rolodex.Client` and :model:`users.User`.
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -402,9 +509,7 @@ class ProjectNote(models.Model):
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -425,3 +530,110 @@ class ProjectNote(models.Model):
 
     def __str__(self):
         return f"{self.project}: {self.timestamp} - {self.note}"
+
+
+class ProjectScope(models.Model):
+    """
+    Stores an individual scope list, related to an indiviudal :model:`rolodex.Project`.
+    """
+
+    name = models.CharField(
+        "Scope Name",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Provide a descriptive name for this list (e.g., External IPs, Cardholder Data Environment)",
+    )
+    scope = models.TextField(
+        "Scope",
+        null=True,
+        blank=True,
+        help_text="Provide a list of IP addresses, ranges, hostnames, or a mix with each entry on a new line",
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a brief description of this list",
+    )
+    disallowed = models.BooleanField(
+        "Disallowed", default=False, help_text="Flag this list as off limits / not to be touched"
+    )
+    requires_caution = models.BooleanField(
+        "Requires Caution",
+        default=False,
+        help_text="Flag this list as requiring caution or prior warning before testing",
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+
+        ordering = ["project", "name"]
+        verbose_name = "Project scope list"
+        verbose_name_plural = "Project scope lists"
+
+    def __str__(self):
+        return f"{self.project}: {self.name}"
+
+    def count_lines(self):
+        """Returns the number of lines in the scope list."""
+        count = 0
+        for line in self.scope.splitlines():
+            count += 1
+        return count
+
+    def count_lines_str(self):
+        """Returns the number of lines in the scope list as a string."""
+        count = 0
+        for line in self.scope.splitlines():
+            count += 1
+        if count > 1:
+            return f"{count} Lines"
+        else:
+            return f"{count} Line"
+
+
+class ProjectTarget(models.Model):
+    """
+    Stores an individual target host, related to an indiviudal :model:`rolodex.Project`.
+    """
+
+    ip_address = models.GenericIPAddressField(
+        "IP Address",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Enter the target's IP address",
+    )
+    hostname = models.CharField(
+        "Hostname / FQDN",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Provide the target's hostname or fully qualified domain name",
+    )
+    note = models.TextField(
+        "Scope",
+        null=True,
+        blank=True,
+        help_text="Provide a list of IP addresses, ranges, hostnames, or a mix with each entry on a new line",
+    )
+    compromised = models.BooleanField(
+        "Compromised", default=False, help_text="Flag this host as compromised"
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+
+        ordering = ["project", "compromised", "ip_address", "hostname"]
+        verbose_name = "Project target"
+        verbose_name_plural = "Project targets"
+
+    def __str__(self):
+        return f"{self.hostname} ({self.ip_address})"
+
+    # Link to Oplog
+    # Link to Obj
+    # Link to open port/service

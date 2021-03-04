@@ -45,6 +45,18 @@
 
         <!-- TinyMCE -->
         <script type="application/javascript" src= "{% static 'js/tinymce/config.js' %}"></script>
+
+        <!-- FullCalendar -->
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/locales-all.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.css">
+
+        <!-- ClipbaordJS -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script>
+
+        <!-- Textarea Autoresize -->
+        <script src="{% static 'js/jquery.textarea_autosize.js' %}"></script>
+
     </head>
 
     <body>
@@ -62,96 +74,101 @@
                     <div class="sidebar-body">
                         <!-- Rolodex Section -->
                         <ul class="list-unstyled components">
-                            <p class="sideheader"><i class="fas fa-tasks"></i> Pre-engagement</p>
+                            <p class="sideheader icon icon tasks-icon">Pre-engagement</p>
 
                             <!-- Menu Section -->
                             <li>
-                                <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle" data-target="#clientSubmenu">
+                                <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle" data-target="#clientSubmenu">
                                     Manage Clients
                                     <div class="expand_caret caret"></div>
                                 </a>
                                 <ul class="collapse list-unstyled text-left" id="clientSubmenu">
                                     {% comment %} Search for Clients {% endcomment %}
                                     <form class="px-6 py-2" action="{% url 'rolodex:clients' %}" method="GET">
-                                        <input type="search" autocomplete="off" class="form-control" id="client-search" name="client_search" placeholder="Search clients..." autofocus="autofocus">
+                                        <input type="search" autocomplete="off" class="form-control" id="client-search" name="client_search" placeholder="Search Clients..." autofocus="autofocus">
                                     </form>
                                     {% comment %} Clients Submenu Items {% endcomment %}
-                                    <li><a href="{% url 'rolodex:clients' %}"><i class="fas fa-th-list"></i> Client Library</a></li>
-                                    <li><a href="{% url 'rolodex:client_create' %}"><i class="fas fa-plus"></i> Add New Client</a></li>
+                                    <li><a class="icon list-icon" href="{% url 'rolodex:clients' %}">Client Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
                                 </ul>
                             </li>
                             <li>
-                                <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Manage Findings</a>
+                                <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Manage Findings</a>
                                 <ul class="collapse list-unstyled text-left" id="findingsSubmenu">
                                 {% comment %} Search for Findings {% endcomment %}
                                     <form class="px-6 py-2" action="{% url 'reporting:findings' %}" method="GET">
-                                        <input type="search" autocomplete="off" class="form-control" id="finding-search" name="finding_search" placeholder="Search findings..." autofocus="autofocus">
+                                        <input type="search" autocomplete="off" class="form-control" id="finding-search" name="finding_search" placeholder="Search Findings..." autofocus="autofocus">
                                     </form>
                                     {% comment %} Findings Submenu Items {% endcomment %}
-                                    <li><a href="{% url 'reporting:findings' %}"><i class="fas fa-th-list"></i> Finding Library</a></li>
-                                    <li><a href="{% url 'reporting:finding_create' %}"><i class="fas fa-plus"></i> Add New Finding</a></li>
+                                    <li><a class="icon list-icon" href="{% url 'reporting:findings' %}">Finding Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
                                 </ul>
                             </li>
                         </ul>
 
                         <!-- Operations Section -->
                         <ul class="list-unstyled components">
-                            <p class="sideheader"><i class="fas fa-running"></i> Execution</p>
+                            <p class="sideheader icon execution-icon">Execution</p>
 
                             <!-- Menu Section -->
                             {% if user.is_authenticated %}
                                 <li><a href="{% url 'shepherd:user_assets' %}">My Active Assets</a></li>
                             {% endif %}
                             <li>
-                                <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Projects</a>
+                                <a href="#projectSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Projects</a>
                                 <ul class="collapse list-unstyled text-left" id="projectSubmenu">
-                                    <li><a href="{% url 'rolodex:projects' %}"><i class="fas fa-th-list"></i> Projects Library</a></li>
-                                    <li><a href="{% url 'rolodex:project_create_no_client' %}"><i class="fas fa-plus"></i> Add New Project</a></li>
+                                    <li><a class="icon list-icon" href="{% url 'rolodex:projects' %}">Projects Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
                                 </ul>
                             </li>
                             <li>
-                                <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Reports</a>
+                                <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Reports</a>
                                 <ul class="collapse list-unstyled text-left" id="reportSubmenu">
-                                    <li><a href="{% url 'reporting:reports' %}"><i class="fas fa-th-list"></i> Report Library</a></li>
-                                    <li><a href="{% url 'reporting:report_create_no_project' %}"><i class="fas fa-plus"></i> Add New Report</a></li>
+                                    <li><a class="icon list-icon" href="{% url 'reporting:reports' %}">Report Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
                                     <hr>
-                                    <li><a href="{% url 'reporting:templates' %}"><i class="fas fa-th-list"></i> Report Template Library</a></li>
-                                    <li><a href="{% url 'reporting:template_create' %}"><i class="fas fa-plus"></i> Add New Report Template</a></li>
-                                    <li><a href="{% url 'reporting:archived_reports' %}"><i class="fas fa-file-archive"></i> Archived Report Bundles</a></li>
+                                    <li><a class="icon list-icon" href="{% url 'reporting:templates' %}">Report Template Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'reporting:template_create' %}">Add New Report Template</a></li>
+                                    <li><a class="icon archive-icon" href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
                                 </ul>
                             </li>
                             <li>
-                                <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Operation Logs</a>
+                                <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Operation Logs</a>
                                 <ul class="collapse list-unstyled text-left" id="oplogSubmenu">
-                                    <li><a href="{% url 'oplog:index' %}"><i class="fas fa-th-list"></i> View Oplogs</a></li>
-                                    <li><a href="{% url 'oplog:oplog_create_no_project' %}"><i class="fas fa-plus"></i> Start New Oplog</a></li>
-                                    <li><a href="{% url 'oplog:oplog_import' %}"><i class="fas fa-file-import"></i> Import Oplog Entries</a></li>
+                                    <li><a class="icon list-icon" href="{% url 'oplog:index' %}">Oplog Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'oplog:oplog_create_no_project' %}">Add New Oplog</a></li>
+                                    <li><a class="icon import-icon" href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
                                 </ul>
                             </li>
                         </ul>
 
                         <!-- Shepherd Section -->
                         <ul class="list-unstyled components">
-                            <p class="sideheader"><i class="fas fa-wrench"></i> Maintain</p>
+                            <p class="sideheader icon maintain-icon">Maintain</p>
 
                             <!-- Menu Section -->
                             <li>
-                                <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Servers</a>
+                                <a href="#serverSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Servers</a>
                                 <ul class="collapse list-unstyled text-left" id="serverSubmenu">
-                                    <li><a href="{% url 'shepherd:servers' %}"><i class="fas fa-th-list"></i> Server Library</a></li>
-                                    <li><a href="{% url 'shepherd:server_create' %}"><i class="fas fa-plus"></i> Add New Server</a></li>
+                                    {% comment %} Search for All Servers {% endcomment %}
+                                    <form class="px-6 py-2" action="{% url 'shepherd:infrastructure_search' %}" method="GET">
+                                        <input type="search" autocomplete="off" class="form-control" id="server-search" name="query" placeholder="Search Servers..." autofocus="autofocus">
+                                    </form>
+                                    {% comment %} Server Submenu Items {% endcomment %}
+                                    <li><a class="icon list-icon" href="{% url 'shepherd:servers' %}">Server Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'shepherd:server_create' %}">Add New Server</a></li>
                                 </ul>
                             </li>
                             <li>
-                                <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Domains</a>
+                                <a href="#shepSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Domains</a>
                                 <ul class="collapse list-unstyled text-left" id="shepSubmenu">
                                     {% comment %} Search for Domains {% endcomment %}
                                     <form class="px-6 py-2" action="{% url 'shepherd:domains' %}" method="GET">
-                                        <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain_search" placeholder="Search domains..." autofocus="autofocus">
+                                        <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain_search" placeholder="Search Domains..." autofocus="autofocus">
                                     </form>
                                     {% comment %} Domains Submenu Items {% endcomment %}
-                                    <li><a href="{% url 'shepherd:domains' %}"><i class="fas fa-th-list"></i> Domain Library</a></li>
-                                    <li><a href="{% url 'shepherd:domain_create' %}"><i class="fas fa-plus"></i> Add New Domain</a></li>
+                                    <li><a class="icon list-icon" href="{% url 'shepherd:domains' %}">Domain Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'shepherd:domain_create' %}">Add New Domain</a></li>
                                 </ul>
                             </li>
                             <li><a href="{% url 'shepherd:update' %}">Update Controls</a></li>
@@ -160,46 +177,50 @@
                         <!-- Admin Section -->
                         {% if request.user.is_staff %}
                             <ul class="list-unstyled components">
-                                <p class="sideheader"><i class="fas fa-tools"></i> Administration</p>
+                                <p class="sideheader icon admin-icon">Administration</p>
                                 <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
                                 <li>
-                                    <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Administration</a>
+                                    <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Administration</a>
                                     <ul class="collapse list-unstyled text-left" id="pageSubmenu">
-                                        <li><a href="{% url 'admin:index' %}"><i class="fas fa-cogs"></i> Admin Panel</a></li>
-                                        <li><a href="{% url 'admin:users_user_changelist' %}"><i class="fas fa-users"></i> Users</a></li>
-                                        <li><a href="{% url 'admin:app_list' 'django_q' %}"><i class="fas fa-calendar-alt"></i> Scheduled Tasks</a></li>
+                                        <li><a class="icon gears-icon" href="{% url 'admin:index' %}">Admin Panel</a></li>
+                                        {% if perms.users.view_user %}
+                                            <li><a class="icon users-icon" href="{% url 'admin:users_user_changelist' %}">Users</a></li>
+                                        {% endif %}
+                                        {% if perms.django_q.view_task %}
+                                            <li><a class="icon calendar-icon" href="{% url 'admin:app_list' 'django_q' %}">Scheduled Tasks</a></li>
+                                        {% endif %}
                                         <hr>
-                                        <li><a href="{% url 'admin:reporting_finding_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Findings</a></li>
-                                        <li><a href="{% url 'reporting:export_findings_to_csv' %}"><i class="fas fa-file-export"></i> Export Findings to CSV</a></li>
+                                        <li><a class="icon import-icon" href="{% url 'admin:reporting_finding_import' %}">Upload Bulk Findings</a></li>
+                                        <li><a class="icon export-icon" href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to CSV</a></li>
                                         <hr>
-                                        <li><a href="{% url 'admin:shepherd_domain_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Domains</a></li>
-                                        <li><a href="{% url 'shepherd:export_domains_to_csv' %}"><i class="fas fa-file-export"></i> Export Domains to CSV</a></li>
+                                        <li><a class="icon import-icon" href="{% url 'admin:shepherd_domain_import' %}">Upload Bulk Domains</a></li>
+                                        <li><a class="icon export-icon" href="{% url 'shepherd:export_domains_to_csv' %}">Export Domains to CSV</a></li>
                                         <hr>
-                                        <li><a href="{% url 'admin:shepherd_staticserver_import' %}"><i class="fas fa-file-import"></i> Upload Bulk Servers</a></li>
-                                        <li><a href="{% url 'shepherd:export_servers_to_csv' %}"><i class="fas fa-file-export"></i> Export Servers to CSV</a></li>
+                                        <li><a class="icon import-icon" href="{% url 'admin:shepherd_staticserver_import' %}">Upload Bulk Servers</a></li>
+                                        <li><a class="icon export-icon" href="{% url 'shepherd:export_servers_to_csv' %}">Export Servers to CSV</a></li>
                                     </ul>
                                 </li>
 
                                 <!-- Documentation Section -->
                                 <li>
-                                    <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Documentation</a>
+                                    <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Documentation</a>
                                     <ul class="collapse list-unstyled text-left" id="docsSubmenu">
-                                        <li><a href="https://ghostwriter.wiki"><i class="fas fa-book"></i> Ghostwriter Wiki</a></li>
-                                        <li><a href="https://github.com/GhostManager/Ghostwriter"><i class="fab fa-github-alt"></i> Ghostwriter on GitHub</a></li>
+                                        <li><a class="icon docs-icon" href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
+                                        <li><a class="icon github-icon" href="https://github.com/GhostManager/Ghostwriter">Ghostwriter on GitHub</a></li>
                                     </ul>
                                 </li>
                             </ul>
                         {% endif %}
 
                         <!-- Sidebar Buttons -->
-                        <div style="padding-top: 10px;">
+                        <div class="align-middle text-center">
                             {% if user.is_authenticated %}
-                                <a href="{% url 'account_logout' %}" class="btn btn-primary col-md-8">Logout <i class="fas fa-sign-out-alt"></i></a>
+                                <a href="{% url 'account_logout' %}" class="btn btn-primary col-md-8 icon logout-icon">Logout</a>
                             {% else %}
-                                <a href="{% url 'account_login' %}" class="btn btn-primary col-md-8">Login <i class="fas fa-sign-in-alt"></i></a>
+                                <a href="{% url 'account_login' %}" class="btn btn-primary col-md-8 icon login-icon">Login</a>
                             {% endif %}
 
-                            <a href="https://www.specterops.io"><img src="{% static 'images/domain.png' %}" alt="SpecterOps" style="width:55%"></a>
+                            <a href="https://www.specterops.io"><img class="sidebar-logo" src="{% static 'images/domain.png' %}" alt="SpecterOps"></a>
                         </div>
                     </div>
                 </nav>
@@ -231,14 +252,14 @@
                                                 {% if request.session.active_report.id and request.session.active_report.title %}
                                                     <a id="active-report-id" class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">{{ request.session.active_report.title }}</a>
                                                     <div class="dropdown-content dropdown-content-info">
-                                                        <p style="margin: 10px">This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo" class="fas fa-exchange-alt"></i> Switch Reports</a>
+                                                        <p>This is your active report. Any findings you add will be added to this report.</p>
+                                                        <a class="text-center icon exchange-icon" style="font-size: 1.1em;" href="{% url 'reporting:reports' %}">Switch Reports</a>
                                                     </div>
                                                 {% else %}
                                                     <a id="active-report-id" class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Click Here to Select a Report</a>
                                                     <div class="dropdown-content dropdown-content-info">
-                                                        <p style="margin-bottom: 5px">This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a style="text-align: center; font-size: 1.1em;" href="{% url 'reporting:reports' %}"><i style="color: indigo" class="fas fa-exchange-alt"></i> Select a Report</a>
+                                                        <p>This is your active report. Any findings you add will be added to this report.</p>
+                                                        <a class="text-center icon exchange-icon" style="font-size: 1.1em;"href="{% url 'reporting:reports' %}">Select a Report</a>
                                                     </div>
                                                 {% endif %}
                                             </div>
@@ -257,8 +278,8 @@
                                         <p>{% block pagetitle %}{% endblock %}</p>
                                     {% endif %}
                                 </ul>
-                                <ul class="nav navbar-nav" style="margin: 0;">
-                                    <a class="nav-link" href="{% url 'home:profile' %}"><img style="width: 40px; height: 40px; border-radius: 50%; margin-top: -10px;" class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar"></a>
+                                <ul class="nav navbar-nav">
+                                    <a class="nav-link" href="{% url 'home:profile' %}"><img class="navbar-avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar"></a>
                                 </ul>
                             </div>
                         </div>
@@ -317,10 +338,10 @@
         <!-- Script for Copying Text to Clipboard-->
         <script>
             function copyToClipboard(element) {
-                var $temp = $("<input>");
+                var $temp = $('<input>');
                 $("body").append($temp);
                 $temp.val($(element).text().trim()).select();
-                document.execCommand("copy");
+                document.execCommand('copy');
                 $temp.remove();
             }
         </script>

@@ -4,8 +4,8 @@
 {% block pagetitle %}Report List{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">Reports</li>
         </ul>
@@ -18,18 +18,15 @@
         {% crispy filter.form filter.helper %}
     </div>
 
+    <p class="mt-3">
+        <a class="icon add-icon" href="{% url 'reporting:report_create_no_project' %}">Start a Report</a>
+    </p>
+
     {% if filter.qs|length == 0 %}
-        <p>There are no reports to see here.</p>
+        <p class="mt-3">There are no reports to see here yet, or your search returned no results. Start a new report up above or from a project page.</p>
     {% else %}
-        <!-- Instructions -->
-        <p>Click <i class="far fa-edit"></i> to begin editing a report and enable adding findings to it.</p>
-
-        <p>
-            <a href="{% url 'reporting:report_create_no_project' %}"><i class="far fa-plus-square"></i> Create a Report</a>
-        </p>
-
         <!-- Reports Table Section -->
-        <table id="reportTable" class="tablesorter">
+        <table id="reportTable" class="tablesorter table table-sm table-hover">
             <thead>
                 <tr>
                     <th>Creation Date</th>
@@ -37,11 +34,10 @@
                     <th>Last Update</th>
                     <th>Status</th>
                     <th>Owner</th>
-                    <th class="sorter-false" style="text-align: center">
-                        Start Editing
-                        <div class="dropdown">
-                            <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                            <div class="dropdown-content dropdown-content-info">
+                    <th class="sorter-false align-middle">
+                        <div class="dropdown dropleft">
+                            <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Start Editing</span>
+                            <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
                                 <p>Click the below buttons to make the associated report your active report. Your active report is displayed at the top of your browser window and is the report that will receive a finding when you add one to the report.</p>
                             </div>
                         </div>
@@ -50,20 +46,20 @@
             </thead>
             {% for report in filter.qs %}
                 <tr>
-                    <td nowrap>{{ report.creation|date:"d M Y" }}</td>
-                    <td class="clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                    <td nowrap>{{ report.last_update|date:"d M Y" }}</td>
+                    <td class="align-middle">{{ report.creation|date:"d M Y" }}</td>
+                    <td class="align-middle clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                    <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
                     {% if report.complete %}
                         {% if report.delivered %}
-                            <td><span class="badge badge-success">Delivered</span></td>
+                            <td class="align-middle"><span class="badge badge-success">Delivered</span></td>
                         {% else %}
-                            <td><span class="badge badge-warning">Awaiting Delivery</span></td>
+                            <td class="align-middle"><span class="badge badge-warning">Awaiting Delivery</span></td>
                         {% endif %}
                     {% else %}
-                        <td><span class="badge badge-primary">In Progress</span></td>
+                        <td class="align-middle"><span class="badge badge-primary">In Progress</span></td>
                     {% endif %}
-                    <td >{{ report.created_by }}</td>
-                    <td><a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report btn btn-secondary" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Select Report</a></td>
+                    <td class="align-middle">{{ report.created_by }}</td>
+                    <td class="align-middle"><a title="Set this report as your active report" href="javascript:void(0)" class="clickable-link js-activate-report btn btn-secondary" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Select Report</a></td>
                 </tr>
             {% endfor %}
         </table>

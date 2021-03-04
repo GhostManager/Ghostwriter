@@ -7,8 +7,8 @@
 {% block pagetitle %}Static Server Catalog{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item active" aria-current="page">Servers</li>
         </ul>
@@ -21,58 +21,57 @@
         {% crispy filter.form filter.helper %}
     </div>
 
+    <p class="mt-3">
+        <a class="icon add-icon" href="{% url 'shepherd:server_create' %}">Create a Server</a>
+    </p>
+
     {% if filter.qs|length == 0 %}
-        <p>There are no servers to see here.</p>
+        <p class="mt-3">There are no servers to see here yet, or your search returned no results. Create a new server up above.</p>
     {% else %}
         <!-- Server Table Section -->
         <div id="servers_table">
-            <table id="serverTable" class="tablesorter">
+            <table id="serverTable" class="tablesorter table table-sm table-hover">
                 <thead>
                     <tr>
-                        <th id="server">IP Address</th>
-                        <th>Name</ht>
-                        <th>
-                            Status
-                            <div class="dropdown">
-                                <button class="dropbtn dropbtn-info far fa-question-circle"></button>
-                                <div class="dropdown-content dropdown-content-info">
+                        <th id="server" class="align-middle">IP Address</th>
+                        <th class="align-middle">Name</ht>
+                        <th class="align-middle">
+                            <div class="dropdown dropleft">
+                                <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Status</span>
+                                <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
                                     <p>If looking for a server to use, filter for Available servers. Unavailable and Reserved domains are unavailable for check-out.</p>
                                 </div>
                             </div>
                         </th>
-                        <th>Provider</th>
-                        <th class="sorter-false">Notes</th>
-                        <th class="sorter-false nowrap">Check-out</th>
+                        <th class="align-middle">Provider</th>
+                        <th class="align-middle sorter-false">Notes</th>
+                        <th class="align-middle sorter-false">Check-out</th>
                     </tr>
                 </thead>
                 <tbody>
-                {% for server in filter.qs %}
-                    <tr>
-                        <td nowrap><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
+                    {% for server in filter.qs %}
+                        <tr>
+                            <td class="align-middle"><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
 
-                        <td nowrap>{{ server.name }}</td>
+                            <td class="align-middle">{{ server.name }}</td>
 
-                        {% if server.server_status.server_status == "Available" %}
-                            <td nowrap class="healthy">{{ server.server_status }}</td>
-                        {% else %}
-                            <td nowrap class="burned">{{ server.server_status }}</td>
-                        {% endif %}
+                            {% if server.server_status.server_status == "Available" %}
+                                <td class="align-middle healthy">{{ server.server_status }}</td>
+                            {% else %}
+                                <td class="align-middle burned">{{ server.server_status }}</td>
+                            {% endif %}
 
-                        <td nowrap>{{ server.server_provider }}</td>
-                        <td>{{ server.note|bleach }}</td>
-                        {% if server.server_status.server_status == "Available" %}
-                            <td>
-                                <a href="{% url 'shepherd:server_checkout' server.id %}">
-                                    <i style="font-size: 15px;" class="far fa-calendar-check"></i>
-                                </a>
-                            </td>
-                        {% else %}
-                            <td class="burned">
-                                <i style="font-size: 15px" class="fas fa-ban"></i>
-                            </td>
-                        {% endif %}
-                    </tr>
-                {% endfor %}
+                            <td class="align-middle">{{ server.server_provider }}</td>
+                            <td class="align-middle">{{ server.note|bleach }}</td>
+                            {% if server.server_status.server_status == "Available" %}
+                                <td class="align-middle">
+                                    <a class="icon checkout-icon" href="{% url 'shepherd:server_checkout' server.id %}"></a>
+                                </td>
+                            {% else %}
+                                <td class="align-middle icon block-icon"></td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

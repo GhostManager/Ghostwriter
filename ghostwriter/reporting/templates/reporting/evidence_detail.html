@@ -5,8 +5,8 @@
 {% block pagetitle %}Evidence Detail{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' evidence.finding.report.project.client.id %}">{{ evidence.finding.report.project.client.name }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' evidence.finding.report.project.id %}">{{ evidence.finding.report.project }}</a></li>
@@ -17,35 +17,34 @@
 {% endblock %}
 
 {% block content %}
-    <h2>
-        {{ evidence.friendly_name }}
-        <div class="dropdown">
-            <button onclick="dropdownFunc()" class="dropbtn far fa-caret-square-down"></button>
-            <div id="myDropdown" class="dropdown-content">
-                <a href="{% url 'reporting:evidence_update' evidence.id %}"><i style="font-size:15px;color:black" class="far fa-edit"></i> Edit</a>
-                <a href="{% url 'reporting:evidence_delete' evidence.id %}"><i style="color: red" class="far fa-trash-alt"></i> Delete</a>
-                <a href="{% url 'reporting:report_detail' evidence.finding.report.id %}"><i style="font-size:15px;color:black" class="fas fa-arrow-left"></i> Return to Report</a>
-            </div>
+    <div class="dropdown">
+        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="evidence-dropdown-btn">
+            <a class="dropdown-item icon edit-icon" href="{% url 'reporting:evidence_update' evidence.id %}">Edit</a>
+            <a class="dropdown-item icon trash-icon" href="{% url 'reporting:evidence_delete' evidence.id %}">Delete</a>
+            <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:report_detail' evidence.finding.report.id %}">Return to Report</a>
         </div>
-    </h2>
+    </div>
+
+    <h2>{{ evidence.friendly_name }}</h2>
 
     <!-- File Information Section -->
-    <table style="width: 70%; margin-left: 15%;">
+    <table class="table table-borderless table-centered">
         <tr>
-            <td nowrap style="border-bottom: 0">Original Filename</td>
-            <td style="border-bottom: 0">{{ evidence.filename }}</td>
+            <td class="text-left">Original Filename</td>
+            <td>{{ evidence.filename }}</td>
         </tr>
         <tr>
-            <td nowrap style="border-bottom: 0">Uploaded by</td>
-            <td style="border-bottom: 0">{{ evidence.uploaded_by }}</td>
+            <td class="text-left">Uploaded by</td>
+            <td>{{ evidence.uploaded_by }}</td>
         </tr>
         <tr>
-            <td nowrap style="border-bottom: 0">Upload Date</td>
-            <td style="border-bottom: 0">{{ evidence.upload_date }}</td>
+            <td class="text-left">Upload Date</td>
+            <td>{{ evidence.upload_date }}</td>
         </tr>
         <tr>
-            <td nowrap style="border-bottom: 0">Report Caption</td>
-            <td style="border-bottom: 0">
+            <td class="text-left">Report Caption</td>
+            <td>
                 {% if evidence.caption %}
                     {{ evidence.caption }}
                 {% else %}
@@ -54,8 +53,8 @@
             </td>
         </tr>
         <tr>
-            <td nowrap style="border-bottom: 0">Description</td>
-            <td style="border-bottom: 0">
+            <td class="text-left">Description</td>
+            <td>
             {% if evidence.description %}
                 {{ evidence.description|bleach }}
             {% else %}
@@ -66,7 +65,7 @@
     </table>
 
     <!-- File Content Section -->
-    <h4><i class="far fa-file-image"></i> File Contents</h4>
+    <h4 class="icon file-icon">File Contents</h4>
     <hr>
 
     {% load static %}
@@ -76,9 +75,9 @@
         {% if file_content %}
             {% for line in file_content %}
                 {% ifequal line "FILE NOT FOUND"%}
-                    <p style="text-align: center;">{{ line }}</p>
+                    <p class="text-center">{{ line }}</p>
                 {% else %}
-                    <p style="margin-left:15%; text-align: left; max-width: 1000px; word-wrap: break-word; line-height: 20px;">
+                    <p class="text-evidence">
                         {{ line }}
                     </p>
                 {% endifequal %}

@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
+from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
 
 from .models import (
@@ -54,9 +55,7 @@ class CheckoutForm(forms.ModelForm):
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This domain will be used for..."
+        self.fields["note"].widget.attrs["placeholder"] = "This domain will be used for..."
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
@@ -71,17 +70,11 @@ class CheckoutForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <strong><i class="far fa-building"></i> Client Information</strong>
+                <h4 class="icon project-icon">Project & Activity Information</h4>
                 <hr>
                 """
             ),
             "client",
-            HTML(
-                """
-                <strong><i class="fas fa-tasks"></i> Usage Information</strong>
-                <hr>
-                """
-            ),
             "project",
             Row(
                 Column("start_date", css_class="form-group col-md-6 mb-0"),
@@ -91,7 +84,7 @@ class CheckoutForm(forms.ModelForm):
             "activity_type",
             HTML(
                 """
-                <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+                <h4 class="icon comment-icon">Additional Information</h4>
                 <hr>
                 """
             ),
@@ -118,9 +111,7 @@ class CheckoutForm(forms.ModelForm):
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
-            self.fields["project"].queryset = self.instance.client.project_set.order_by(
-                "codename"
-            )
+            self.fields["project"].queryset = self.instance.client.project_set.order_by("codename")
 
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]
@@ -170,9 +161,9 @@ class DomainForm(forms.ModelForm):
         super(DomainForm, self).__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["name"].widget.attrs["placeholder"] = "specterops.io"
+        self.fields["name"].widget.attrs["placeholder"] = "Domain"
         self.fields["name"].label = ""
-        self.fields["registrar"].widget.attrs["placeholder"] = "Namecheap"
+        self.fields["registrar"].widget.attrs["placeholder"] = "Registrar"
         self.fields["registrar"].label = ""
         self.fields["creation"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["domain_status"].empty_label = "-- Select Status --"
@@ -184,30 +175,14 @@ class DomainForm(forms.ModelForm):
         self.fields["creation"].widget.input_type = "date"
         self.fields["expiration"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["expiration"].widget.input_type = "date"
-        self.fields["bluecoat_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["fortiguard_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["ibm_xforce_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["opendns_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["talos_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["trendmicro_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["mx_toolbox_status"].widget.attrs[
-            "placeholder"
-        ] = "Spamhaus Blacklist ..."
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This domain is an effective lookalike of populardomain.tld ..."
+        self.fields["bluecoat_cat"].widget.attrs["placeholder"] = "Category A, Category B, ..."
+        self.fields["fortiguard_cat"].widget.attrs["placeholder"] = "Category A, Category B, ..."
+        self.fields["ibm_xforce_cat"].widget.attrs["placeholder"] = "Category A, Category B, ..."
+        self.fields["opendns_cat"].widget.attrs["placeholder"] = "Category A, Category B, ..."
+        self.fields["talos_cat"].widget.attrs["placeholder"] = "Category A, Category B, ..."
+        self.fields["trendmicro_cat"].widget.attrs["placeholder"] = "Category A, Category B, ..."
+        self.fields["mx_toolbox_status"].widget.attrs["placeholder"] = "Spamhaus Blacklist ..."
+        self.fields["note"].widget.attrs["placeholder"] = "Brief Note or Explanation of the Domain"
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
@@ -217,7 +192,7 @@ class DomainForm(forms.ModelForm):
         self.helper.layout = Layout(
             HTML(
                 """
-                <strong><i class="fas fa-wifi"></i> Domain Information</strong>
+                <h4 class="icon domain-icon">Domain Information</h4>
                 <hr>
                 """
             ),
@@ -232,10 +207,10 @@ class DomainForm(forms.ModelForm):
                 Column("expiration", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
-            "auto_renew",
+            SwitchToggle("auto_renew"),
             HTML(
                 """
-                <strong><i class="far fa-heart"></i> Health Information</strong>
+                <h4 class="icon heartbeat-icon">Health & Category Information</h4>
                 <hr>
                 """
             ),
@@ -243,12 +218,6 @@ class DomainForm(forms.ModelForm):
                 Column("whois_status", css_class="form-group col-md-6 mb-0"),
                 Column("health_status", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
-            ),
-            HTML(
-                """
-                <strong><i class="fas fa-laptop-medical"></i> Domain Categories</strong>
-                <hr>
-                """
             ),
             Row(
                 Column("bluecoat_cat", css_class="form-group col-md-6 mb-0"),
@@ -268,7 +237,7 @@ class DomainForm(forms.ModelForm):
             "mx_toolbox_status",
             HTML(
                 """
-                <strong><i class="far fa-comment-alt"></i> Additional Information</strong>
+                <h4 class="icon comment-icon">Additional Information</h4>
                 <hr>
                 """
             ),
@@ -290,9 +259,7 @@ class DomainForm(forms.ModelForm):
         # Check if expiration comes before the creation date
         if expiration < creation:
             raise ValidationError(
-                _(
-                    "Invalid date: The provided expiration date comes before the purchase date."
-                )
+                _("Invalid date: The provided expiration date comes before the purchase date.")
             )
         return expiration
 
@@ -322,9 +289,9 @@ class DomainLinkForm(forms.ModelForm):
             ).order_by("activity_type", "server_role")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["domain"].queryset = History.objects.filter(
-            project=project
-        ).order_by("activity_type")
+        self.fields["domain"].queryset = History.objects.filter(project=project).order_by(
+            "activity_type"
+        )
         self.fields["domain"].empty_label = "-- Select a Domain [Required] --"
         self.fields[
             "domain"
@@ -386,16 +353,9 @@ class DomainLinkForm(forms.ModelForm):
 
     def clean(self):
         if self.cleaned_data["static_server"] and self.cleaned_data["transient_server"]:
-            raise ValidationError(
-                _("Invalid Server Selection: Select only " "one server")
-            )
-        if (
-            not self.cleaned_data["static_server"]
-            and not self.cleaned_data["transient_server"]
-        ):
-            raise ValidationError(
-                _("Invalid Server Selection: You must select one server")
-            )
+            raise ValidationError(_("Invalid Server Selection: Select only " "one server"))
+        if not self.cleaned_data["static_server"] and not self.cleaned_data["transient_server"]:
+            raise ValidationError(_("Invalid Server Selection: You must select one server"))
 
 
 class DomainNoteForm(forms.ModelForm):
@@ -451,7 +411,7 @@ class BurnForm(forms.ModelForm):
         super(BurnForm, self).__init__(*args, **kwargs)
         self.fields["burned_explanation"].widget.attrs[
             "placeholder"
-        ] = "This domain was flagged for spam after being used for phishing..."
+        ] = "This domain was flagged for..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"

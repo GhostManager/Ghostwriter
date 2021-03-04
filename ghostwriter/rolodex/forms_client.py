@@ -1,7 +1,7 @@
 """This contains all client-related forms used by the Rolodex application."""
 
 # Django & Other 3rd Party Libraries
-from crispy_forms.bootstrap import Alert, TabHolder
+from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -24,6 +24,11 @@ from django.utils.translation import gettext_lazy as _
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
 
 from .models import Client, ClientContact, ClientNote
+
+
+# Number of "extra" formsets created by default
+# Higher numbers can increase page load times with WYSIWYG editors
+EXTRAS = 0
 
 
 class BaseClientContactInlineFormSet(BaseInlineFormSet):
@@ -80,9 +85,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                                 ),
                             )
                     # Raise an error if details are present without a name
-                    elif name is None and any(
-                        x is not None for x in [job_title, email, phone]
-                    ):
+                    elif name is None and any(x is not None for x in [job_title, email, phone]):
                         form.add_error(
                             "name",
                             ValidationError(
@@ -91,9 +94,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if a form only has a value for the note
-                    elif note and any(
-                        x is None for x in [name, job_title, email, phone]
-                    ):
+                    elif note and any(x is None for x in [name, job_title, email, phone]):
                         form.add_error(
                             "note",
                             ValidationError(
@@ -127,17 +128,17 @@ class ClientContactForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ClientContactForm, self).__init__(*args, **kwargs)
-        self.fields["name"].widget.attrs["placeholder"] = "David McQuire"
+        self.fields["name"].widget.attrs["placeholder"] = "Full Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["email"].widget.attrs["placeholder"] = "info@specterops.io"
+        self.fields["email"].widget.attrs["placeholder"] = "Email Address"
         self.fields["email"].widget.attrs["autocomplete"] = "off"
-        self.fields["job_title"].widget.attrs["placeholder"] = "CEO"
+        self.fields["job_title"].widget.attrs["placeholder"] = "Job Title"
         self.fields["job_title"].widget.attrs["autocomplete"] = "off"
-        self.fields["phone"].widget.attrs["placeholder"] = "(800) 444-4444"
+        self.fields["phone"].widget.attrs["placeholder"] = "Phone Number"
         self.fields["phone"].widget.attrs["autocomplete"] = "off"
         self.fields["note"].widget.attrs[
             "placeholder"
-        ] = "Additional notes for the contact"
+        ] = "Brief Description of of the POC or a Note"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
         self.helper.form_tag = False
@@ -166,7 +167,7 @@ class ClientContactForm(forms.ModelForm):
                 Div(
                     HTML(
                         """
-                        <p><strong>Contact #<span class="counter">{{ forloop.counter }}</span></strong></p>
+                        <h6>Contact #<span class="counter">{{ forloop.counter }}</span></h6>
                         <hr>
                         """
                     ),
@@ -212,7 +213,7 @@ ClientContactFormSet = inlineformset_factory(
     ClientContact,
     form=ClientContactForm,
     formset=BaseClientContactInlineFormSet,
-    extra=1,
+    extra=0,
     can_delete=True,
 )
 
@@ -228,13 +229,13 @@ class ClientForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ClientForm, self).__init__(*args, **kwargs)
-        self.fields["name"].widget.attrs["placeholder"] = "SpecterOps, Inc."
+        self.fields["name"].widget.attrs["placeholder"] = "Full Company Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["short_name"].widget.attrs["placeholder"] = "SpecterOps"
+        self.fields["short_name"].widget.attrs["placeholder"] = "Short Company Name"
         self.fields["short_name"].widget.attrs["autocomplete"] = "off"
         self.fields["note"].widget.attrs[
             "placeholder"
-        ] = "SpecterOps was founded in 2017 and ..."
+        ] = "Brief Description of the Organization or a Note"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -251,12 +252,28 @@ class ClientForm(forms.ModelForm):
                         <p class="form-spacer"></p>
                         """
                     ),
+                    "name",
                     Row(
-                        Column("name", css_class="form-group col-md-6 mb-0"),
                         Column("short_name", css_class="form-group col-md-6 mb-0"),
-                        css_class="form-row",
+                        Column(
+                            FieldWithButtons(
+                                "codename",
+                                HTML(
+                                    """
+                                    <button
+                                        class="btn btn-secondary js-roll-codename"
+                                        roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
+                                        type="button"
+                                        onclick="copyStartDate($(this).closest('div').find('input'))"
+                                    >
+                                    <i class="fas fa-dice"></i>
+                                    </button>
+                                    """
+                                ),
+                            ),
+                            css_class="col-md-6",
+                        ),
                     ),
-                    "codename",
                     "note",
                     link_css_class="client-icon",
                     css_id="client",

@@ -31,7 +31,7 @@ from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from docx.oxml.shared import OxmlElement, qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import Inches, Pt, RGBColor
-from jinja2.exceptions import TemplateSyntaxError
+from jinja2.exceptions import TemplateSyntaxError, UndefinedError
 from pptx import Presentation
 from pptx.dml.color import RGBColor as PptxRGBColor
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
@@ -121,6 +121,7 @@ class Reportwriter:
         self.jinja_env = jinja2.Environment(extensions=["jinja2.ext.debug"])
         self.jinja_env.filters["filter_severity"] = self.filter_severity
         self.jinja_env.filters["strip_html"] = self.strip_html
+        self.jinja_env.filters["compromised"] = self.compromised
 
         logger.info(
             "Generating a report for %s using the template at %s and referencing the evidence in %s",
@@ -166,6 +167,21 @@ class Reportwriter:
                 output += "\n"
         return output
 
+    def compromised(self, targets):
+        """
+        Filter list of targets to return only those marked as compromised.
+
+        **Parameters**
+
+        ``targets``
+            List of dictionary objects (JSON) for targets
+        """
+        filtered_targets = []
+        for target in targets:
+            if target["compromised"]:
+                filtered_targets.append(target)
+        return filtered_targets
+
     def valid_xml_char_ordinal(self, c):
         """
         Clean string to make all characters XML compatible for Word documents.
@@ -197,9 +213,7 @@ class Reportwriter:
         report_dict["client"] = {}
         report_dict["client"]["id"] = self.report_queryset.project.client.id
         report_dict["client"]["full_name"] = self.report_queryset.project.client.name
-        report_dict["client"][
-            "short_name"
-        ] = self.report_queryset.project.client.short_name
+        report_dict["client"]["short_name"] = self.report_queryset.project.client.short_name
         report_dict["client"]["codename"] = self.report_queryset.project.client.codename
         # Client points of contact data
         report_dict["client"]["poc"] = {}
@@ -232,23 +246,27 @@ class Reportwriter:
         if start_month == end_month:
             if start_year == end_year:
                 execution_window = f"{start_month} {start_day}-{end_day}, {start_year}"
-                execution_window_uk = (
-                    f"{start_day}-{end_day} {start_month} {start_year}"
-                )
+                execution_window_uk = f"{start_day}-{end_day} {start_month} {start_year}"
             else:
-                execution_window = f"{start_month} {start_day}, {start_year} - {end_month} {end_day}, {end_year}"
-                execution_window_uk = f"{start_day} {start_month} {start_year} - {end_day} {end_month} {end_year}"
+                execution_window = (
+                    f"{start_month} {start_day}, {start_year} - {end_month} {end_day}, {end_year}"
+                )
+                execution_window_uk = (
+                    f"{start_day} {start_month} {start_year} - {end_day} {end_month} {end_year}"
+                )
         else:
             if start_year == end_year:
-                execution_window = (
-                    f"{start_month} {start_day} - {end_month} {end_day}, {end_year}"
-                )
+                execution_window = f"{start_month} {start_day} - {end_month} {end_day}, {end_year}"
                 execution_window_uk = (
                     f"{start_day} {start_month} - {end_day} {end_month} {end_year}"
                 )
             else:
-                execution_window = f"{start_month} {start_day}, {start_year} - {end_month} {end_day}, {end_year}"
-                execution_window_uk = f"{start_day} {start_month} {start_year} - {end_day} {end_month} {end_year}"
+                execution_window = (
+                    f"{start_month} {start_day}, {start_year} - {end_month} {end_day}, {end_year}"
+                )
+                execution_window_uk = (
+                    f"{start_day} {start_month} {start_year} - {end_day} {end_month} {end_year}"
+                )
         report_dict["project"]["start_date"] = start_datetime.strftime("%B %d, %Y")
         report_dict["project"]["start_date_uk"] = start_datetime.strftime("%d %B %Y")
         report_dict["project"]["end_date"] = end_datetime.strftime("%B %d, %Y")
@@ -259,15 +277,14 @@ class Reportwriter:
         report_dict["project"]["objectives"] = {}
         for objective in self.report_queryset.project.projectobjective_set.all():
             report_dict["project"]["objectives"][objective.id] = {}
+            report_dict["project"]["objectives"][objective.id]["objective"] = bleach.clean(
+                objective.objective, tags=[], strip=True
+            )
+            report_dict["project"]["objectives"][objective.id]["complete"] = objective.complete
+            report_dict["project"]["objectives"][objective.id]["deadline"] = objective.deadline
             report_dict["project"]["objectives"][objective.id][
-                "objective"
-            ] = bleach.clean(objective.objective, tags=[], strip=True)
-            report_dict["project"]["objectives"][objective.id][
-                "complete"
-            ] = objective.complete
-            report_dict["project"]["objectives"][objective.id][
-                "deadline"
-            ] = objective.deadline
+                "description"
+            ] = objective.description
             report_dict["project"]["objectives"][objective.id][
                 "status"
             ] = objective.status.objective_status
@@ -277,29 +294,17 @@ class Reportwriter:
             report_dict["findings"][finding.id] = {}
             report_dict["findings"][finding.id]["title"] = finding.title
             report_dict["findings"][finding.id]["severity"] = finding.severity.severity
-            report_dict["findings"][finding.id][
-                "severity_color"
-            ] = finding.severity.color
-            report_dict["findings"][finding.id][
-                "severity_color_rgb"
-            ] = finding.severity.color_rgb
-            report_dict["findings"][finding.id][
-                "severity_color_hex"
-            ] = finding.severity.color_hex
+            report_dict["findings"][finding.id]["severity_color"] = finding.severity.color
+            report_dict["findings"][finding.id]["severity_color_rgb"] = finding.severity.color_rgb
+            report_dict["findings"][finding.id]["severity_color_hex"] = finding.severity.color_hex
             if finding.affected_entities:
-                report_dict["findings"][finding.id][
-                    "affected_entities"
-                ] = finding.affected_entities
+                report_dict["findings"][finding.id]["affected_entities"] = finding.affected_entities
             else:
-                report_dict["findings"][finding.id][
-                    "affected_entities"
-                ] = "<p>Must Be Provided</p>"
+                report_dict["findings"][finding.id]["affected_entities"] = "<p>Must Be Provided</p>"
             report_dict["findings"][finding.id]["description"] = finding.description
             report_dict["findings"][finding.id]["impact"] = finding.impact
             report_dict["findings"][finding.id]["recommendation"] = finding.mitigation
-            report_dict["findings"][finding.id][
-                "replication_steps"
-            ] = finding.replication_steps
+            report_dict["findings"][finding.id]["replication_steps"] = finding.replication_steps
             report_dict["findings"][finding.id][
                 "host_detection_techniques"
             ] = finding.host_detection_techniques
@@ -333,9 +338,9 @@ class Reportwriter:
                 report_dict["findings"][finding.id]["evidence"][evidence_name][
                     "url"
                 ] = evidence_file.document.url
-                report_dict["findings"][finding.id]["evidence"][evidence_name][
-                    "file_path"
-                ] = str(evidence_file.document)
+                report_dict["findings"][finding.id]["evidence"][evidence_name]["file_path"] = str(
+                    evidence_file.document
+                )
         # Infrastructure data
         report_dict["infrastructure"] = {}
         report_dict["infrastructure"]["domains"] = {}
@@ -345,12 +350,8 @@ class Reportwriter:
         report_dict["infrastructure"]["domains_and_servers"] = {}
         for domain in self.report_queryset.project.history_set.all():
             report_dict["infrastructure"]["domains"][domain.domain.id] = {}
-            report_dict["infrastructure"]["domains"][domain.domain.id][
-                "id"
-            ] = domain.domain.id
-            report_dict["infrastructure"]["domains"][domain.domain.id][
-                "name"
-            ] = domain.domain.name
+            report_dict["infrastructure"]["domains"][domain.domain.id]["id"] = domain.domain.id
+            report_dict["infrastructure"]["domains"][domain.domain.id]["name"] = domain.domain.name
             report_dict["infrastructure"]["domains"][domain.domain.id][
                 "activity"
             ] = domain.activity_type.activity
@@ -360,12 +361,8 @@ class Reportwriter:
             report_dict["infrastructure"]["domains"][domain.domain.id][
                 "start_date"
             ] = domain.start_date
-            report_dict["infrastructure"]["domains"][domain.domain.id][
-                "end_date"
-            ] = domain.end_date
-            report_dict["infrastructure"]["domains"][domain.domain.id][
-                "note"
-            ] = domain.note
+            report_dict["infrastructure"]["domains"][domain.domain.id]["end_date"] = domain.end_date
+            report_dict["infrastructure"]["domains"][domain.domain.id]["note"] = domain.note
         for server in self.report_queryset.project.serverhistory_set.all():
             report_dict["infrastructure"]["servers"]["static"][server.server.id] = {}
             report_dict["infrastructure"]["servers"]["static"][server.server.id][
@@ -394,9 +391,7 @@ class Reportwriter:
             ] = server.note
         for server in self.report_queryset.project.transientserver_set.all():
             report_dict["infrastructure"]["servers"]["cloud"][server.id] = {}
-            report_dict["infrastructure"]["servers"]["cloud"][server.id][
-                "id"
-            ] = server.id
+            report_dict["infrastructure"]["servers"]["cloud"][server.id]["id"] = server.id
             report_dict["infrastructure"]["servers"]["cloud"][server.id][
                 "ip_address"
             ] = server.ip_address
@@ -409,9 +404,7 @@ class Reportwriter:
             report_dict["infrastructure"]["servers"]["cloud"][server.id][
                 "operator"
             ] = server.operator.username
-            report_dict["infrastructure"]["servers"]["cloud"][server.id][
-                "note"
-            ] = server.note
+            report_dict["infrastructure"]["servers"]["cloud"][server.id]["note"] = server.note
         # Hold all domain/server associations in a temporary dictionary
         temp = {}
         for connection in self.report_queryset.project.domainserverconnection_set.all():
@@ -436,9 +429,7 @@ class Reportwriter:
                 # Remove any duplicates from server_list
                 server = list(set(server_list))
             # Now add the temporary dictionary's data to the report JSON
-            report_dict["infrastructure"]["domains_and_servers"][connection.id][
-                "servers"
-            ] = server
+            report_dict["infrastructure"]["domains_and_servers"][connection.id]["servers"] = server
             if connection.endpoint:
                 report_dict["infrastructure"]["domains_and_servers"][connection.id][
                     "cdn_endpoint"
@@ -453,15 +444,34 @@ class Reportwriter:
             report_dict["team"][operator.operator.id] = {}
             report_dict["team"][operator.operator.id]["id"] = operator.operator.id
             report_dict["team"][operator.operator.id]["name"] = operator.operator.name
-            report_dict["team"][operator.operator.id][
-                "project_role"
-            ] = operator.role.project_role
+            report_dict["team"][operator.operator.id]["project_role"] = operator.role.project_role
             report_dict["team"][operator.operator.id]["email"] = operator.operator.email
-            report_dict["team"][operator.operator.id][
-                "start_date"
-            ] = operator.start_date
+            report_dict["team"][operator.operator.id]["start_date"] = operator.start_date
             report_dict["team"][operator.operator.id]["end_date"] = operator.end_date
             report_dict["team"][operator.operator.id]["note"] = operator.note
+        # Project scope lists
+        report_dict["scope"] = {}
+        total_scope_lines = 0
+        for scope_list in self.report_queryset.project.projectscope_set.all():
+            report_dict["scope"][scope_list.id] = {}
+            report_dict["scope"][scope_list.id]["id"] = scope_list.id
+            report_dict["scope"][scope_list.id]["name"] = scope_list.name
+            report_dict["scope"][scope_list.id]["scope"] = scope_list.scope.split("\r\n")
+            report_dict["scope"][scope_list.id]["description"] = scope_list.description
+            report_dict["scope"][scope_list.id]["requires_caution"] = scope_list.requires_caution
+            report_dict["scope"][scope_list.id]["disallowed"] = scope_list.disallowed
+            report_dict["scope"][scope_list.id]["total"] = scope_list.count_lines()
+            total_scope_lines += scope_list.count_lines()
+        report_dict["scope"]["total"] = total_scope_lines
+        # Project targets
+        report_dict["targets"] = {}
+        for target in self.report_queryset.project.projecttarget_set.all():
+            report_dict["targets"][target.id] = {}
+            report_dict["targets"][target.id]["id"] = target.id
+            report_dict["targets"][target.id]["ip_address"] = target.ip_address
+            report_dict["targets"][target.id]["hostname"] = target.hostname
+            report_dict["targets"][target.id]["note"] = target.note
+            report_dict["targets"][target.id]["compromised"] = target.compromised
         return json.dumps(report_dict, indent=2, cls=DjangoJSONEncoder)
 
     def make_figure(self, par, ref=None):
@@ -661,9 +671,7 @@ class Reportwriter:
         ):
             if level is None:
                 level = 0
-            numbering = (
-                self.sacrificial_doc.part.numbering_part.numbering_definitions._numbering
-            )
+            numbering = self.sacrificial_doc.part.numbering_part.numbering_definitions._numbering
             # Compute the abstract ID first by style, then by ``num``
             abstract = get_abstract_id()
             # Set the concrete numbering based on the abstract numbering ID
@@ -709,26 +717,20 @@ class Reportwriter:
                 if key == "font-family":
                     # Some fonts include a list of values – get just the first one
                     font_list = value.split(",")
-                    priority_font = (
-                        font_list[0].replace("'", "").replace('"', "").strip()
-                    )
+                    priority_font = font_list[0].replace("'", "").replace('"', "").strip()
                     value = priority_font
                 if key == "color":
                     # Convert the color hex value to an ``RGCBolor`` object
                     value = value.replace("#", "")
                     n = 2
-                    hex_color = [
-                        hex(int(value[i : i + n], 16)) for i in range(0, len(value), n)
-                    ]
+                    hex_color = [hex(int(value[i : i + n], 16)) for i in range(0, len(value), n)]
                     if self.report_type == "pptx":
                         value = PptxRGBColor(*map(lambda v: int(v, 16), hex_color))
                     else:
                         value = RGBColor(*map(lambda v: int(v, 16), hex_color))
                 tag_styles[key] = value
             except Exception:
-                logger.exception(
-                    "Failed to convert one of the inline styles for a text run"
-                )
+                logger.exception("Failed to convert one of the inline styles for a text run")
         return tag_styles
 
     def process_evidence(self, finding, keyword, file_path, extension, par):
@@ -759,9 +761,7 @@ class Reportwriter:
                     width = Inches(4.5)
                     height = Inches(3)
                     # Create new textbox, textframe, paragraph, and run
-                    textbox = self.finding_slide.shapes.add_textbox(
-                        left, top, width, height
-                    )
+                    textbox = self.finding_slide.shapes.add_textbox(left, top, width, height)
                     text_frame = textbox.text_frame
                     p = text_frame.paragraphs[0]
                     run = p.add_run()
@@ -783,9 +783,7 @@ class Reportwriter:
                         finding["evidence"][keyword]["friendly_name"],
                     )
                     self.make_figure(p, ref_name)
-                    run = p.add_run(
-                        self.prefix_figure + finding["evidence"][keyword]["caption"]
-                    )
+                    run = p.add_run(self.prefix_figure + finding["evidence"][keyword]["caption"])
         elif extension in self.image_extensions:
             # Drop in the image at the full 6.5" width and add the caption
             if self.report_type == "pptx":
@@ -798,8 +796,20 @@ class Reportwriter:
             else:
                 par.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 run = par.add_run()
-                # Add the picture to the document and then add a border
-                run.add_picture(file_path, width=Inches(6.5))
+                try:
+                    # Add the picture to the document and then add a border
+                    run.add_picture(file_path, width=Inches(6.5))
+                except docx.image.exceptions.UnrecognizedImageError:
+                    logger.exception(
+                        "Evidence file known as %s (%s) was not reognized as a %s file.",
+                        keyword,
+                        file_path,
+                        extension,
+                    )
+                    raise docx.image.exceptions.UnrecognizedImageError(
+                        f"The evidence file, `{keyword},` was not recognized as a {extension} file and could not be inserted. \
+Try opening it, exporting as desired type, and re-uploading it."
+                    )
 
                 if self.enable_borders:
                     # Add the border – see Ghostwriter Wiki for documentation
@@ -836,9 +846,7 @@ class Reportwriter:
                     "[^A-Za-z0-9]+", "", finding["evidence"][keyword]["friendly_name"]
                 )
                 self.make_figure(p, ref_name)
-                run = p.add_run(
-                    self.prefix_figure + finding["evidence"][keyword]["caption"]
-                )
+                run = p.add_run(self.prefix_figure + finding["evidence"][keyword]["caption"])
         # Skip unapproved files
         else:
             par = None
@@ -970,78 +978,119 @@ class Reportwriter:
         ``styles`` : dict
             Copy of ``ReportConstants.DEFAULT_STYLE_VALUES`` with styles for the text
         """
+        # Remove any newlines to avoid creating unwanted blank lines
         text = text.replace("\r\n", "")
-        # Regex for searching for bracketed template placeholders, e.g. ``{{.client}}``
-        keyword_regex = r"\{\{\.(.*?)\}\}"
-        # Search for ``{{. }}`` keywords
-        match = re.search(keyword_regex, text)
-        if match:
-            # Get just the first match, set it as the ``keyword``, and remove it from the line
-            # There should never be - or need to be - multiple matches
-            match = match[0]
-            keyword = match.replace("}}", "").replace("{{.", "").strip()
-        else:
-            keyword = ""
-        # Perform static client name replacement
+
+        # Perform static text replacements
+        # Do this first so strings are not detected as potential expressions–e.g., ``{{.ref ...}}``
         if "{{.client}}" in text:
             if self.report_json["client"]["short_name"]:
-                text = text.replace(
-                    "{{.client}}", self.report_json["client"]["short_name"]
-                )
+                text = text.replace("{{.client}}", self.report_json["client"]["short_name"])
             else:
-                text = text.replace(
-                    "{{.client}}", self.report_json["client"]["full_name"]
-                )
-        # Perform replacement of project-related placeholders
+                text = text.replace("{{.client}}", self.report_json["client"]["full_name"])
         if "{{.project_start}}" in text:
-            text = text.replace(
-                "{{.project_start}}", self.report_json["project"]["start_date"]
-            )
+            text = text.replace("{{.project_start}}", self.report_json["project"]["start_date"])
         if "{{.project_end}}" in text:
-            text = text.replace(
-                "{{.project_end}}", self.report_json["project"]["end_date"]
-            )
+            text = text.replace("{{.project_end}}", self.report_json["project"]["end_date"])
         if "{{.project_start_uk}}" in text:
             text = text.replace(
-                "{{.project_start_uk}}", self.report_json["project"]["start_date_uk"]
+                "{{.project_start_uk}}",
+                self.report_json["project"]["start_date_uk"],
             )
         if "{{.project_end_uk}}" in text:
             text = text.replace(
-                "{{.project_end_uk}}", self.report_json["project"]["end_date_uk"]
+                "{{.project_end_uk}}",
+                self.report_json["project"]["end_date_uk"],
             )
         if "{{.project_type}}" in text:
             text = text.replace(
-                "{{.project_type}}", self.report_json["project"]["project_type"].lower()
+                "{{.project_type}}",
+                self.report_json["project"]["project_type"].lower(),
             )
-        # Transform caption placeholders into figures
-        if keyword.startswith("caption"):
-            ref_name = keyword.lstrip("caption ")
-            ref_name = re.sub("[^A-Za-z0-9]+", "", ref_name)
-            text = text.replace("{{.%s}}" % keyword, "")
-            if self.report_type == "pptx":
-                if ref_name:
-                    run = par.add_run()
-                    run.text = f"See {ref_name}"
-                    font = run.font
-                    font.italic = True
-            else:
-                par.style = "Caption"
-                if ref_name:
-                    self.make_figure(par, ref_name)
-                else:
-                    self.make_figure(par)
-                par.add_run(self.prefix_figure + text)
-            return par
 
-        # Transform references into bookmarks
-        if keyword and keyword.startswith("ref "):
-            ref_keyword = keyword
-            keyword = keyword.lstrip("ref ")
-            ref_name = re.sub("[^A-Za-z0-9]+", "", keyword)
-            ref_placeholder = "{{.%s}}" % ref_keyword
-            exploded_text = re.split(f"({ref_placeholder})", text)
-            for text in exploded_text:
-                if text == ref_placeholder:
+        # Use regex to search for expressions to process
+        keyword_regex = r"\{\{\.(.*?)\}\}"
+        # Find all strings like ``{{. foo}}``
+        match = re.findall(keyword_regex, text)
+
+        # Loop over all regex matches to determine if they are expressions
+        cross_refs = []
+        if match:
+            for var in match:
+                logger.info("Processing a potential template expression: %s", var)
+
+                # Check for and track cross-references separately for later action
+                if var.startswith("ref "):
+                    logger.info("Tracking a cross-reference: %s", var)
+                    # Track reference with the curly braces restored for later
+                    cross_refs.append("{{.%s}}" % var)
+                # Process anything that is not a cross-reference now in the match loop
+                else:
+                    keyword = var.replace("}}", "").replace("{{.", "").strip()
+
+                    # Transform caption placeholders into figures
+                    if keyword.startswith("caption"):
+                        ref_name = keyword.lstrip("caption ")
+                        ref_name = re.sub("[^A-Za-z0-9]+", "", ref_name)
+                        text = text.replace("{{.%s}}" % keyword, "")
+                        if self.report_type == "pptx":
+                            if ref_name:
+                                run = par.add_run()
+                                run.text = f"See {ref_name}"
+                                font = run.font
+                                font.italic = True
+                        else:
+                            par.style = "Caption"
+                            if ref_name:
+                                self.make_figure(par, ref_name)
+                            else:
+                                self.make_figure(par)
+                            par.add_run(self.prefix_figure + text)
+                        # Captions are on their own line so return
+                        return par
+
+                    # Handle evidence files
+                    if "evidence" in finding:
+                        if (
+                            keyword
+                            and keyword in finding["evidence"].keys()
+                            and not keyword.startswith("ref ")
+                        ):
+                            logger.info(
+                                "Identified `%s` as an evidence file attached to this finding",
+                                keyword,
+                            )
+
+                            file_path = (
+                                settings.MEDIA_ROOT
+                                + "/"
+                                + finding["evidence"][keyword]["file_path"]
+                            )
+                            extension = finding["evidence"][keyword]["url"].split(".")[-1]
+                            # Return after this block b/c not further processing is required
+                            if os.path.exists(file_path):
+                                self.process_evidence(finding, keyword, file_path, extension, par)
+                                return par
+                            else:
+                                raise FileNotFoundError(file_path)
+                        else:
+                            self.write_xml(text, par, styles)
+                    else:
+                        self.write_xml(text, par, styles)
+        else:
+            self.write_xml(text, par, styles)
+
+        # Transform any cross-references into bookmarks
+        if cross_refs:
+            # Split-up line while keeping cross-references intact
+            cross_ref_regex = r"({{.ref.*?}})"
+            exploded_text = re.split(cross_ref_regex, text)
+            # Loop over the text to replace cross-reference expressions with OXML bookmarks
+            for part in exploded_text:
+                if part in cross_refs:
+                    # Assemble an alphanumeric (no spaces) bookmark name from the tag
+                    part = part.replace("}}", "").replace("{{.", "").strip()
+                    ref_name = re.sub("[^A-Za-z0-9]+", "", part.lstrip("ref "))
                     if self.report_type == "pptx":
                         run = par.add_run()
                         run.text = f"See {ref_name}"
@@ -1053,26 +1102,9 @@ class Reportwriter:
                             ref_name,
                         )
                 else:
-                    self.write_xml(text, par, styles)
-            return par
+                    self.write_xml(part, par, styles)
+            # return par
 
-        # Handle evidence keywords
-        if "evidence" in finding:
-            if keyword and keyword in finding["evidence"].keys():
-                file_path = (
-                    settings.MEDIA_ROOT
-                    + "/"
-                    + finding["evidence"][keyword]["file_path"]
-                )
-                extension = finding["evidence"][keyword]["url"].split(".")[-1]
-                if os.path.exists(file_path):
-                    self.process_evidence(finding, keyword, file_path, extension, par)
-                    return par
-                else:
-                    raise FileNotFoundError(file_path)
-
-        # If nothing above triggers, write the text
-        self.write_xml(text, par, styles)
         return par
 
     def process_nested_tags(self, contents, par, finding):
@@ -1146,9 +1178,7 @@ class Reportwriter:
                 # Any other tags are unexpected and ignored
                 else:
                     if part_name not in self.tag_allowlist:
-                        logger.warning(
-                            "Encountered an unexpected nested HTML tag: %s", part_name
-                        )
+                        logger.warning("Encountered an unexpected nested HTML tag: %s", part_name)
                 # Loop over all items in the contents list
                 for tag in part_contents:
                     # Same as above with the nested tags
@@ -1180,7 +1210,7 @@ class Reportwriter:
                                     styles["underline"] = True
                                 if "highlight" in tag_attrs:
                                     styles["highlight"] = True
-                            if "style" in part.attrs:
+                            if "style" in tag.attrs:
                                 tag_style = self.get_styles(tag)
                                 # Check existence of supported styles
                                 if "font-size" in tag_style:
@@ -1253,9 +1283,7 @@ class Reportwriter:
                     par = self.replace_and_write(part.text, par, finding)
         return par
 
-    def create_list_paragraph(
-        self, prev_p, level, num=False, alignment=WD_ALIGN_PARAGRAPH.LEFT
-    ):
+    def create_list_paragraph(self, prev_p, level, num=False, alignment=WD_ALIGN_PARAGRAPH.LEFT):
         """
         Create a new paragraph in the document for a list.
 
@@ -1273,6 +1301,7 @@ class Reportwriter:
             p = self.finding_body_shape.text_frame.add_paragraph()
             p.level = level
         else:
+            make_list = True
             styles = self.sacrificial_doc.styles
             try:
                 if num:
@@ -1280,9 +1309,14 @@ class Reportwriter:
                 else:
                     list_style = styles["Bullet List"]
             except Exception:
-                list_style = styles["List Paragraph"]
+                if "List Paragraph" in styles:
+                    list_style = styles["List Paragraph"]
+                else:
+                    list_style = styles["Normal"]
+                    make_list = False
             p = self.sacrificial_doc.add_paragraph(style=list_style)
-            p = self.list_number(p, prev=prev_p, level=level, num=num)
+            if make_list:
+                p = self.list_number(p, prev=prev_p, level=level, num=num)
             p.alignment = alignment
         return p
 
@@ -1351,9 +1385,7 @@ class Reportwriter:
                         if nested_list:
                             # Increment the list level counter for this nested list
                             level += 1
-                            p = self.parse_nested_html_lists(
-                                nested_list, p, num, finding, level
-                            )
+                            p = self.parse_nested_html_lists(nested_list, p, num, finding, level)
                     else:
                         p = self.create_list_paragraph(prev_p, level, num)
                         self.process_nested_tags(part.contents, p, finding)
@@ -1372,9 +1404,7 @@ class Reportwriter:
                 self.process_nested_tags(part, p, finding)
             else:
                 if not isinstance(part, NavigableString):
-                    logger.warning(
-                        "Encountered an unknown tag for a list: %s", part.name
-                    )
+                    logger.warning("Encountered an unknown tag for a list: %s", part.name)
                 else:
                     if part.strip() != "":
                         p = self.create_list_paragraph(prev_p, level, num)
@@ -1493,9 +1523,7 @@ class Reportwriter:
                                     for code_line in parts:
                                         # Create paragraph and apply 'CodeBlock' style
                                         # Style is managed in the docx template
-                                        p = self.sacrificial_doc.add_paragraph(
-                                            code_line
-                                        )
+                                        p = self.sacrificial_doc.add_paragraph(code_line)
                                         p.style = "CodeBlock"
                                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
@@ -1523,9 +1551,7 @@ class Reportwriter:
                                 # Create the paragraph for this list item
                                 p = self.create_list_paragraph(prev_p, level, num)
                                 if li_contents[0].name:
-                                    p = self.process_nested_tags(
-                                        li_contents, p, finding
-                                    )
+                                    p = self.process_nested_tags(li_contents, p, finding)
                                 else:
                                     p = self.replace_and_write(part.text, p, finding)
                             # Bigger lists mean more tags, so process nested tags
@@ -1538,37 +1564,23 @@ class Reportwriter:
                                     for sub_part in part:
                                         # Add everything NOT a nested list to temp
                                         # This holds text and nested tags that come before the first list tag
-                                        if (
-                                            not sub_part.name == "ol"
-                                            and not sub_part.name == "ul"
-                                        ):
+                                        if not sub_part.name == "ol" and not sub_part.name == "ul":
                                             if sub_part != "\n":
                                                 temp.append(sub_part)
-                                        elif (
-                                            sub_part.name == "ol"
-                                            or sub_part.name == "ul"
-                                        ):
+                                        elif sub_part.name == "ol" or sub_part.name == "ul":
                                             if sub_part != "\n":
                                                 nested_list = sub_part
                                     # If temp isn't empty, process it like any other line
                                     if temp:
-                                        p = self.create_list_paragraph(
-                                            prev_p, level, num
-                                        )
+                                        p = self.create_list_paragraph(prev_p, level, num)
                                         if len(temp) == 1:
                                             if temp[0].name:
-                                                p = self.process_nested_tags(
-                                                    temp, p, finding
-                                                )
+                                                p = self.process_nested_tags(temp, p, finding)
                                             else:
-                                                p = self.replace_and_write(
-                                                    temp[0], p, finding
-                                                )
+                                                p = self.replace_and_write(temp[0], p, finding)
                                         # Bigger lists mean more tags, so process nested tags
                                         else:
-                                            p = self.process_nested_tags(
-                                                temp, p, finding
-                                            )
+                                            p = self.process_nested_tags(temp, p, finding)
                                     # Recursively process this list and any other nested lists inside of it
                                     if nested_list:
                                         # Increment the list level counter for this nested list
@@ -1579,9 +1591,7 @@ class Reportwriter:
                                 # No nested list, proceed as normal
                                 else:
                                     p = self.create_list_paragraph(prev_p, level, num)
-                                    p = self.process_nested_tags(
-                                        part.contents, p, finding
-                                    )
+                                    p = self.process_nested_tags(part.contents, p, finding)
                             # Track the paragraph used for this list item to link subsequent paragraphs
                             prev_p = p
                         else:
@@ -1613,9 +1623,7 @@ class Reportwriter:
             )
             raise DocxPackageNotFoundError
         except Exception:
-            logger.exception(
-                "Failed to load the provided template document: %s", self.template_loc
-            )
+            logger.exception("Failed to load the provided template document: %s", self.template_loc)
 
         # Check for styles
         styles = self.word_doc.styles
@@ -1646,6 +1654,17 @@ class Reportwriter:
             codeblock_font.name = "Courier New"
             codeblock_font.size = Pt(11)
 
+        if "Caption" not in styles:
+            caption_style = styles.add_style("Caption", WD_STYLE_TYPE.PARAGRAPH)
+            caption_style.hidden = False
+            caption_style.quick_style = True
+            caption_style.priority = 4
+            # Set font and size
+            caption_font = caption_style.font
+            caption_font.name = "Calibri"
+            caption_font.size = Pt(9)
+            caption_font.italic = True
+
         # Prepare the ``context`` dict for the Word template rendering
         context = {}
         context["report_date"] = datetime.now().strftime("%B %d, %Y")
@@ -1655,13 +1674,16 @@ class Reportwriter:
         context["client"] = self.report_json["client"]["full_name"]
         context["client_short"] = self.report_json["client"]["short_name"]
         context["client_pocs"] = self.report_json["client"]["poc"].values()
+        context["client_codename"] = self.report_json["client"]["codename"]
 
         # Assessment information
+        context["project"] = self.report_json["project"].values()
         context["assessment_name"] = self.report_json["project"]["name"]
         context["assessment_type"] = self.report_json["project"]["project_type"]
         context["project_type"] = context["assessment_type"]
         context["company"] = self.company_config.company_name
         context["company_pocs"] = self.report_json["team"].values()
+        context["project_codename"] = self.report_json["project"]["codename"]
 
         # Project dates
         context["project_start_date"] = self.report_json["project"]["start_date"]
@@ -1670,18 +1692,12 @@ class Reportwriter:
         context["project_end_date_uk"] = self.report_json["project"]["end_date_uk"]
 
         context["execution_window"] = self.report_json["project"]["execution_window"]
-        context["execution_window_uk"] = self.report_json["project"][
-            "execution_window_uk"
-        ]
+        context["execution_window_uk"] = self.report_json["project"]["execution_window_uk"]
 
         # Infrastructure information
         context["domains"] = self.report_json["infrastructure"]["domains"].values()
-        context["static_servers"] = self.report_json["infrastructure"]["servers"][
-            "static"
-        ].values()
-        context["cloud_servers"] = self.report_json["infrastructure"]["servers"][
-            "cloud"
-        ].values()
+        context["static_servers"] = self.report_json["infrastructure"]["servers"]["static"].values()
+        context["cloud_servers"] = self.report_json["infrastructure"]["servers"]["cloud"].values()
         context["domains_and_servers"] = self.report_json["infrastructure"][
             "domains_and_servers"
         ].values()
@@ -1692,9 +1708,7 @@ class Reportwriter:
 
         # Project objectives
         context["objectives"] = self.report_json["project"]["objectives"].values()
-        context["objectives_total"] = len(
-            self.report_json["project"]["objectives"].values()
-        )
+        context["objectives_total"] = len(self.report_json["project"]["objectives"].values())
         objectives_completed = 0
         for objective in self.report_json["project"]["objectives"].values():
             if objective["status"].lower() == "complete":
@@ -1702,8 +1716,12 @@ class Reportwriter:
         context["objectives_complete"] = objectives_completed
         context["objectives_completed"] = context["objectives_complete"]
 
+        # Project scope lists and targets
+        context["scope"] = self.report_json["scope"].values()
+        context["targets"] = self.report_json["targets"].values()
+
         # Generate the XML for the styled findings
-        context = self.process_findings(context)
+        context = self.process_richtext(context)
 
         # Render the Word document + auto-escape any unsafe XML/HTML
         self.word_doc.render(context, self.jinja_env, autoescape=True)
@@ -1711,10 +1729,10 @@ class Reportwriter:
         # Return the final rendered document
         return self.word_doc
 
-    def process_findings(self, context: dict) -> dict:
+    def process_richtext(self, context: dict) -> dict:
         """
         Update the document context with ``RichText`` and ``Subdocument`` objects for
-        each finding. This
+        each finding and any other values editable with a WYSIWYG editor.
 
         **Parameters**
 
@@ -1727,23 +1745,18 @@ class Reportwriter:
             self.process_text_xml(section, finding)
             return self.sacrificial_doc
 
+        # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
             # Create ``RichText()`` object for a colored severity category
-            finding["severity_rt"] = RichText(
-                finding["severity"], color=finding["severity_color"]
-            )
+            finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
             # Create subdocuments for each finding section
             finding["affected_entities_rt"] = render_subdocument(
                 finding["affected_entities"], finding
             )
-            finding["description_rt"] = render_subdocument(
-                finding["description"], finding
-            )
+            finding["description_rt"] = render_subdocument(finding["description"], finding)
             finding["impact_rt"] = render_subdocument(finding["impact"], finding)
-            finding["recommendation_rt"] = render_subdocument(
-                finding["recommendation"], finding
-            )
+            finding["recommendation_rt"] = render_subdocument(finding["recommendation"], finding)
             finding["replication_steps_rt"] = render_subdocument(
                 finding["replication_steps"], finding
             )
@@ -1753,9 +1766,29 @@ class Reportwriter:
             finding["network_detection_techniques_rt"] = render_subdocument(
                 finding["network_detection_techniques"], finding
             )
-            finding["references_rt"] = render_subdocument(
-                finding["references"], finding
-            )
+            finding["references_rt"] = render_subdocument(finding["references"], finding)
+
+        # Objectives
+        for objective in context["objectives"]:
+            if isinstance(objective, dict):
+                if objective["description"]:
+                    objective["description_rt"] = render_subdocument(
+                        objective["description"], finding=None
+                    )
+
+        # Scope Lists
+        for scope_list in context["scope"]:
+            if isinstance(scope_list, dict):
+                if scope_list["description"]:
+                    scope_list["description_rt"] = render_subdocument(
+                        scope_list["description"], finding=None
+                    )
+
+        # Targets
+        for target in context["targets"]:
+            if isinstance(target, dict):
+                if target["note"]:
+                    target["note_rt"] = render_subdocument(target["note"], finding=None)
 
         return context
 
@@ -1781,29 +1814,19 @@ class Reportwriter:
         # Perform the necessary replacements
         if "{{.client}}" in text:
             if self.report_json["client"]["short_name"]:
-                text = text.replace(
-                    "{{.client}}", self.report_json["client"]["short_name"]
-                )
+                text = text.replace("{{.client}}", self.report_json["client"]["short_name"])
             else:
-                text = text.replace(
-                    "{{.client}}", self.report_json["client"]["full_name"]
-                )
+                text = text.replace("{{.client}}", self.report_json["client"]["full_name"])
         if "{{.project_start}}" in text:
-            text = text.replace(
-                "{{.project_start}}", self.report_json["project"]["start_date"]
-            )
+            text = text.replace("{{.project_start}}", self.report_json["project"]["start_date"])
         if "{{.project_end}}" in text:
-            text = text.replace(
-                "{{.project_end}}", self.report_json["project"]["end_date"]
-            )
+            text = text.replace("{{.project_end}}", self.report_json["project"]["end_date"])
         if "{{.project_start_uk}}" in text:
             text = text.replace(
                 "{{.project_start_uk}}", self.report_json["project"]["start_date_uk"]
             )
         if "{{.project_end_uk}}" in text:
-            text = text.replace(
-                "{{.project_end_uk}}", self.report_json["project"]["end_date_uk"]
-            )
+            text = text.replace("{{.project_end_uk}}", self.report_json["project"]["end_date_uk"])
         if "{{.project_type}}" in text:
             text = text.replace(
                 "{{.project_type}}", self.report_json["project"]["project_type"].lower()
@@ -1895,9 +1918,7 @@ class Reportwriter:
 
             # Affected Asset
             if finding["affected_entities"]:
-                self.process_text_xlsx(
-                    finding["affected_entities"], asset_format, finding
-                )
+                self.process_text_xlsx(finding["affected_entities"], asset_format, finding)
             else:
                 self.worksheet.write(self.row, self.col, "N/A", asset_format, finding)
             self.col += 1
@@ -1919,13 +1940,9 @@ class Reportwriter:
             self.col += 1
 
             # Detection
-            self.process_text_xlsx(
-                finding["host_detection_techniques"], wrap_format, finding
-            )
+            self.process_text_xlsx(finding["host_detection_techniques"], wrap_format, finding)
             self.col += 1
-            self.process_text_xlsx(
-                finding["network_detection_techniques"], wrap_format, finding
-            )
+            self.process_text_xlsx(finding["network_detection_techniques"], wrap_format, finding)
             self.col += 1
 
             # References
@@ -1946,17 +1963,13 @@ class Reportwriter:
             finding_evidence_names = "\r\n".join(map(str, evidence))
 
             # Evidence List
-            self.worksheet.write(
-                self.row, self.col, finding_evidence_names, wrap_format
-            )
+            self.worksheet.write(self.row, self.col, finding_evidence_names, wrap_format)
             # Increment row counter and reset columns before moving on to next finding
             self.row += 1
             self.col = 0
 
         # Add a filter to the worksheet
-        self.worksheet.autofilter(
-            "A1:J{}".format(len(self.report_json["findings"]) + 1)
-        )
+        self.worksheet.autofilter("A1:J{}".format(len(self.report_json["findings"]) + 1))
 
         # Finalize document
         word_doc.close()
@@ -2023,9 +2036,7 @@ class Reportwriter:
         title_shape.text = self.company_config.company_name
         text_frame = get_textframe(body_shape)
         # Use ``text_frame.text`` for first line/paragraph or ``text_frame.paragraphs[0]``
-        text_frame.text = "{} Debrief".format(
-            self.report_json["project"]["project_type"]
-        )
+        text_frame.text = "{} Debrief".format(self.report_json["project"]["project_type"])
         p = text_frame.add_paragraph()
         p.text = self.report_json["client"]["full_name"]
 
@@ -2134,9 +2145,7 @@ class Reportwriter:
 
         # Create slide for each finding
         for finding in self.report_json["findings"].values():
-            slide_layout = self.ppt_presentation.slide_layouts[
-                SLD_LAYOUT_TITLE_AND_CONTENT
-            ]
+            slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             self.finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = self.finding_slide.shapes
             title_shape = shapes.title
@@ -2155,19 +2164,15 @@ class Reportwriter:
                 self.process_text_xml("<p>No description provided</p>", finding)
 
             # Strip all HTML tags and replace any \x0D characters for pptx
-            entities = BeautifulSoup(finding["affected_entities"], "lxml").text.replace(
-                "\x0D", ""
-            )
+            entities = BeautifulSoup(finding["affected_entities"], "lxml").text.replace("\x0D", "")
             impact = BeautifulSoup(finding["impact"], "lxml").text.replace("\x0D", "")
-            recommendation = BeautifulSoup(
-                finding["recommendation"], "lxml"
-            ).text.replace("\x0D", "")
-            replication = BeautifulSoup(
-                finding["replication_steps"], "lxml"
-            ).text.replace("\x0D", "")
-            references = BeautifulSoup(finding["references"], "lxml").text.replace(
+            recommendation = BeautifulSoup(finding["recommendation"], "lxml").text.replace(
                 "\x0D", ""
             )
+            replication = BeautifulSoup(finding["replication_steps"], "lxml").text.replace(
+                "\x0D", ""
+            )
+            references = BeautifulSoup(finding["references"], "lxml").text.replace("\x0D", "")
             notes_slide = self.finding_slide.notes_slide
             text_frame = notes_slide.notes_text_frame
             p = text_frame.add_paragraph()
@@ -2205,7 +2210,7 @@ class Reportwriter:
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
-        title_shape.text = "Positive Observations"
+        title_shape.text = "Conclusion"
         text_frame = get_textframe(body_shape)
 
         # Add final slide
@@ -2271,11 +2276,15 @@ class TemplateLinter:
         )
         self.jinja_template_env.filters["filter_severity"] = self.dummy_filter_severity
         self.jinja_template_env.filters["strip_html"] = self.dummy_strip_html
+        self.jinja_template_env.filters["compromised"] = self.dummy_compromised
 
     def dummy_filter_severity(self, value, allowlist):
         return []
 
     def dummy_strip_html(self, value):
+        return []
+
+    def dummy_compromised(self, value):
         return []
 
     def lint_docx(self):
@@ -2304,6 +2313,7 @@ class TemplateLinter:
                     context["project_type"] = ""
                     context["company"] = ""
                     context["company_pocs"] = ""
+                    context["project_codename"] = ""
 
                     # Project dates
                     context["project_start_date"] = ""
@@ -2330,6 +2340,10 @@ class TemplateLinter:
                     context["objectives_complete"] = ""
                     context["objectives_completed"] = ""
 
+                    # Project targets and scope
+                    context["targets"] = ""
+                    context["scope"] = ""
+
                     # Step 1: Load the document as a template
                     template_document = DocxTemplate(self.template_loc)
                     logger.info("Template loaded for linting")
@@ -2352,19 +2366,23 @@ class TemplateLinter:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): CodeInline"
                         )
+                    if "Caption" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Caption"
+                        )
+                    if "List Paragraph" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): List Paragraph"
+                        )
                     logger.info("Completed Word style checks")
 
                     # Step 3: Test rendering the document
                     try:
-                        template_document.render(
-                            context, self.jinja_template_env, autoescape=True
-                        )
+                        template_document.render(context, self.jinja_template_env, autoescape=True)
                         undefined_vars = template_document.undeclared_template_variables
                         if undefined_vars:
                             for variable in undefined_vars:
-                                results["warnings"].append(
-                                    f"Undefined variable: {variable}"
-                                )
+                                results["warnings"].append(f"Undefined variable: {variable}")
                         if results["warnings"]:
                             results["result"] = "warning"
                         logger.info("Completed document rendering test")
@@ -2372,9 +2390,13 @@ class TemplateLinter:
                         logger.error("Template syntax error: %s", error)
                         results = {
                             "result": "failed",
-                            "errors": [
-                                f"Jinja2 template syntax error: {error.message}"
-                            ],
+                            "errors": [f"Jinja2 template syntax error: {error.message}"],
+                        }
+                    except UndefinedError as error:
+                        logger.error("Template syntax error: %s", error)
+                        results = {
+                            "result": "failed",
+                            "errors": [f"Jinja2 template syntax error: {error.message}"],
                         }
                 except Exception:
                     logger.exception("Template failed rendering")

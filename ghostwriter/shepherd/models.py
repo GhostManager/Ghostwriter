@@ -34,7 +34,7 @@ class HealthStatus(models.Model):
     class Meta:
         ordering = ["health_status"]
         verbose_name = "Health status"
-        verbose_name_plural = "Health statuses"
+        verbose_name_plural = "Health status"
 
     def __str__(self):
         return self.health_status
@@ -61,7 +61,7 @@ class DomainStatus(models.Model):
     class Meta:
         ordering = ["domain_status"]
         verbose_name = "Domain status"
-        verbose_name_plural = "Domain statuses"
+        verbose_name_plural = "Domain status"
 
     def __str__(self):
         return self.domain_status
@@ -90,7 +90,7 @@ class WhoisStatus(models.Model):
     class Meta:
         ordering = ["whois_status"]
         verbose_name = "WHOIS status"
-        verbose_name_plural = "WHOIS statuses"
+        verbose_name_plural = "WHOIS status"
 
     def __str__(self):
         return self.whois_status
@@ -128,9 +128,7 @@ class Domain(models.Model):
     and :model:`users.User`.
     """
 
-    name = models.CharField(
-        "Name", max_length=255, unique=True, help_text="Enter the domain name"
-    )
+    name = models.CharField("Name", max_length=255, unique=True, help_text="Enter the domain name")
     registrar = models.CharField(
         "Registrar",
         max_length=255,
@@ -331,9 +329,7 @@ class Domain(models.Model):
         """
         if self.dns_record:
             try:
-                json_acceptable_string = self.dns_record.replace('"', "").replace(
-                    "'", '"'
-                )
+                json_acceptable_string = self.dns_record.replace('"', "").replace("'", '"')
                 if json_acceptable_string:
                     return json.loads(json_acceptable_string)
                 else:
@@ -354,12 +350,8 @@ class History(models.Model):
     and :model:`shepherd.Domain`.
     """
 
-    start_date = models.DateField(
-        "Start Date", help_text="Select the start date of the project"
-    )
-    end_date = models.DateField(
-        "End Date", help_text="Select the end date of the project"
-    )
+    start_date = models.DateField("Start Date", help_text="Select the start date of the project")
+    end_date = models.DateField("End Date", help_text="Select the end date of the project")
     note = models.TextField(
         "Notes",
         null=True,
@@ -446,7 +438,7 @@ class ServerStatus(models.Model):
 
         ordering = ["server_status"]
         verbose_name = "Server status"
-        verbose_name_plural = "Server statuses"
+        verbose_name_plural = "Server status"
 
     def __str__(self):
         return self.server_status
@@ -562,12 +554,8 @@ class ServerHistory(models.Model):
     :model:`rolodex.Client`, :model:`users.User`, and :model:`shepherd.ServerRole`.
     """
 
-    start_date = models.DateField(
-        "Start Date", help_text="Select the start date of the project"
-    )
-    end_date = models.DateField(
-        "End Date", help_text="Select the end date of the project"
-    )
+    start_date = models.DateField("Start Date", help_text="Select the start date of the project")
+    end_date = models.DateField("End Date", help_text="Select the end date of the project")
     note = models.TextField(
         "Notes",
         null=True,
@@ -780,9 +768,7 @@ class DomainNote(models.Model):
     Stores an individual domain note, related to :model:`shepherd.Domain` and :model:`users.User`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -809,9 +795,7 @@ class ServerNote(models.Model):
     Stores an individual server note, related to :model:`shepherd.StaticServer` and :model:`users.User`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -851,9 +835,7 @@ class AuxServerAddress(models.Model):
         help_text="Mark the address as the server's primary address",
     )
     # Foreign Keys
-    static_server = models.ForeignKey(
-        StaticServer, on_delete=models.CASCADE, null=False
-    )
+    static_server = models.ForeignKey(StaticServer, on_delete=models.CASCADE, null=False)
 
     class Meta:
         ordering = ["static_server", "ip_address"]

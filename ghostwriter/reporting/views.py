@@ -35,6 +35,7 @@ from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
+from docx.image.exceptions import UnrecognizedImageError
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from xlsxwriter.workbook import Workbook
 
@@ -124,7 +125,6 @@ def ajax_update_report_findings(request):
             severity = None
         if severity:
             counter = 1
-            logger.info(order)
             for finding_id in order:
                 if "placeholder" not in finding_id:
                     finding_instance = ReportFindingLink.objects.get(id=finding_id)
@@ -139,9 +139,7 @@ def ajax_update_report_findings(request):
                             finding_id,
                         )
         else:
-            data = {
-                "result": "specified severity, {}, is invalid".format(severity_class)
-            }
+            data = {"result": "specified severity, {}, is invalid".format(severity_class)}
         # If all went well, return success
         data = {"result": "success"}
     else:
@@ -186,9 +184,7 @@ class FindingAssignment(LoginRequiredMixin, SingleObjectMixin, View):
             try:
                 report = Report.objects.get(pk=active_report["id"])
             except Exception:
-                message = (
-                    "Please select a report to edit before trying to assign a finding"
-                )
+                message = "Please select a report to edit before trying to assign a finding"
                 data = {"result": "error", "message": message}
                 return JsonResponse(data)
 
@@ -282,8 +278,7 @@ class ReportFindingLinkDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
         # Get all other findings with the same severity for this report ID
         findings_queryset = ReportFindingLink.objects.filter(
-            Q(report=self.get_object().report.pk)
-            & Q(severity=self.get_object().severity)
+            Q(report=self.get_object().report.pk) & Q(severity=self.get_object().severity)
         )
         if findings_queryset:
             for finding in findings_queryset:
@@ -324,9 +319,7 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, View):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = self.object.id
             self.request.session["active_report"]["title"] = self.object.title
-            message = "{report} is now your active report".format(
-                report=self.object.title
-            )
+            message = "{report} is now your active report".format(report=self.object.title)
             data = {
                 "result": "success",
                 "report": self.object.title,
@@ -505,25 +498,21 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 docx_template_id = int(docx_template_id)
                 pptx_template_id = int(pptx_template_id)
 
-                if docx_template_id == -1:
-                    pass
+                if docx_template_id == -1 or pptx_template_id == -1:
+                    data = {"result": "warning", "message": "You need to select a template"}
                 else:
-                    docx_template_query = ReportTemplate.objects.get(
-                        pk=docx_template_id
-                    )
-                    self.object.docx_template = docx_template_query
+                    if not docx_template_id == -1:
+                        docx_template_query = ReportTemplate.objects.get(pk=docx_template_id)
+                        self.object.docx_template = docx_template_query
+                    if not pptx_template_id == -1:
+                        pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
+                        self.object.pptx_template = pptx_template_query
+                    data = {
+                        "result": "success",
+                        "message": "Template successfully swapped",
+                    }
+                    self.object.save()
 
-                if pptx_template_id == -1:
-                    pass
-                else:
-                    pptx_template_query = ReportTemplate.objects.get(
-                        pk=pptx_template_id
-                    )
-                    self.object.pptx_template = pptx_template_query
-
-                self.object.save()
-
-                data = {"result": "success", "message": "Template successfully swapped"}
                 # Check template for linting issues
                 try:
                     if docx_template_query:
@@ -656,17 +645,13 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
 
         data = json.loads(results)
         if data["result"] == "success":
-            data[
-                "message"
-            ] = "Template linter returned results with no errors or warnings"
+            data["message"] = "Template linter returned results with no errors or warnings"
         elif not data["result"]:
             data[
                 "message"
             ] = f"Template had an unknown filetype not supported by the linter: {self.object.doc_type}"
         else:
-            data[
-                "message"
-            ] = "Template linter returned results with issues that require attention"
+            data["message"] = "Template linter returned results with issues that require attention"
 
         return JsonResponse(data)
 
@@ -711,9 +696,7 @@ def findings_list(request):
         )
         findings_list = (
             Finding.objects.select_related("severity", "finding_type")
-            .filter(
-                Q(title__icontains=search_term) | Q(description__icontains=search_term)
-            )
+            .filter(Q(title__icontains=search_term) | Q(description__icontains=search_term))
             .order_by("severity__weight", "finding_type", "title")
         )
     else:
@@ -735,9 +718,7 @@ def reports_list(request):
 
     :template:`reporting/report_list.html`
     """
-    reports_list = (
-        Report.objects.select_related("created_by").all().order_by("complete", "title")
-    )
+    reports_list = Report.objects.select_related("created_by").all().order_by("complete", "title")
     reports_filter = ReportFilter(request.GET, queryset=reports_list)
     return render(request, "reporting/report_list.html", {"filter": reports_filter})
 
@@ -757,9 +738,7 @@ def archive_list(request):
     :template:`reporting/archives.html`
     """
     archive_list = (
-        Archive.objects.select_related("project__client")
-        .all()
-        .order_by("project__client")
+        Archive.objects.select_related("project__client").all().order_by("project__client")
     )
     archive_filter = ArchiveFilter(request.GET, queryset=archive_list)
     return render(request, "reporting/archives.html", {"filter": archive_filter})
@@ -840,12 +819,17 @@ def upload_evidence_modal_success(request):
 def generate_report_name(report_instance):
     """
     Generate a filename for a report based on the current time and attributes of an
-    individual :model:`reporting.Report`.
+    individual :model:`reporting.Report`. All periods and commas are removed to keep
+    the filename browser-friendly.
     """
+
+    def replace_chars(report_name):
+        return report_name.replace(".", "").replace(",", "")
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     client_name = report_instance.project.client
     assessment_type = report_instance.project.project_type
-    report_name = f"{timestamp}_{client_name}_{assessment_type}"
+    report_name = replace_chars(f"{timestamp}_{client_name}_{assessment_type}")
     return report_name
 
 
@@ -891,8 +875,18 @@ def generate_docx(request, pk):
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-        response["Content-Disposition"] = f"attachment; filename={report_name}.docx"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.docx"'
         docx.save(response)
+
+        # Send WebSocket message to update user's webpage
+        async_to_sync(channel_layer.group_send)(
+            "report_{}".format(pk),
+            {
+                "type": "status_update",
+                "message": {"status": "success"},
+            },
+        )
+
         return response
     except MissingTemplate:
         messages.error(
@@ -900,9 +894,7 @@ def generate_docx(request, pk):
             "You do not have a Word template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except Report.DoesNotExist:
         messages.error(
             request,
@@ -915,9 +907,7 @@ def generate_docx(request, pk):
             "You do not have a Word template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except DocxPackageNotFoundError:
         messages.error(
             request,
@@ -927,9 +917,15 @@ def generate_docx(request, pk):
     except FileNotFoundError as error:
         messages.error(
             request,
-            "Halted document generation because an evidence file is missing: {}".format(
-                error
-            ),
+            "Halted document generation because an evidence file is missing: {}".format(error),
+            extra_tags="alert-danger",
+        )
+    except UnrecognizedImageError as error:
+        messages.error(
+            request,
+            "Encountered an error generating the document: {}".format(error)
+            .replace('"', "")
+            .replace("'", "`"),
             extra_tags="alert-danger",
         )
     except Exception as error:
@@ -965,7 +961,7 @@ def generate_xlsx(request, pk):
             output.read(),
             content_type="application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        response["Content-Disposition"] = f"attachment; filename={report_name}.xlsx"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.xlsx"'
         output.close()
         return response
     except Report.DoesNotExist:
@@ -1011,7 +1007,7 @@ def generate_pptx(request, pk):
         response = HttpResponse(
             content_type="application/application/vnd.openxmlformats-officedocument.presentationml.presentation"
         )
-        response["Content-Disposition"] = f"attachment; filename={report_name}.pptx"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.pptx"'
         pptx.save(response)
         return response
     except MissingTemplate:
@@ -1020,9 +1016,7 @@ def generate_pptx(request, pk):
             "You do not have a PowerPoint template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except ValueError as exception:
         messages.error(
             request,
@@ -1041,18 +1035,14 @@ def generate_pptx(request, pk):
             "You do not have a PowerPoint template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except PptxPackageNotFoundError:
         messages.error(
             request,
             "Your selected PowerPoint template could not be found on the server – try uploading it again",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except Exception as error:
         messages.error(
             request,
@@ -1129,7 +1119,7 @@ def generate_all(request, pk):
 
         # Return the buffer in the HTTP response
         response = HttpResponse(content_type="application/x-zip-compressed")
-        response["Content-Disposition"] = f"attachment; filename={report_name}.zip"
+        response["Content-Disposition"] = f'attachment; filename="{report_name}.zip"'
         response.write(zip_buffer.read())
         return response
     except MissingTemplate:
@@ -1138,9 +1128,7 @@ def generate_all(request, pk):
             "You do not have a PowerPoint template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except ValueError as exception:
         messages.error(
             request,
@@ -1159,9 +1147,7 @@ def generate_all(request, pk):
             "You do not have a PowerPoint template selected and have not configured a default template",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except DocxPackageNotFoundError:
         messages.error(
             request,
@@ -1174,9 +1160,7 @@ def generate_all(request, pk):
             "Your selected PowerPoint template could not be found on the server – try uploading it again",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except Exception as error:
         messages.error(
             request,
@@ -1209,9 +1193,7 @@ def archive(request, pk):
     single Zip file for arhciving.
     """
     try:
-        report_instance = Report.objects.select_related(
-            "project", "project__client"
-        ).get(pk=pk)
+        report_instance = Report.objects.select_related("project", "project__client").get(pk=pk)
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
         evidence_path = os.path.join(settings.MEDIA_ROOT)
         archive_loc = os.path.join(settings.MEDIA_ROOT, "archives")
@@ -1222,15 +1204,11 @@ def archive(request, pk):
         if report_instance.docx_template:
             docx_template = report_instance.docx_template
         else:
-            docx_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="docx"
-            )
+            docx_template = ReportTemplate.objects.get(default=True, doc_type__doc_type="docx")
         if report_instance.pptx_template:
             pptx_template = report_instance.pptx_template
         else:
-            pptx_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="pptx"
-            )
+            pptx_template = ReportTemplate.objects.get(default=True, doc_type__doc_type="pptx")
 
         engine = reportwriter.Reportwriter(
             report_instance, output_path, evidence_path, template_loc=None
@@ -1252,15 +1230,11 @@ def archive(request, pk):
         zip_directory(evidence_loc, zf)
         zf.close()
         zip_buffer.seek(0)
-        with open(
-            os.path.join(archive_loc, report_name + ".zip"), "wb"
-        ) as archive_file:
+        with open(os.path.join(archive_loc, report_name + ".zip"), "wb") as archive_file:
             archive_file.write(zip_buffer.read())
             new_archive = Archive(
                 client=report_instance.project.client,
-                report_archive=File(
-                    open(os.path.join(archive_loc, report_name + ".zip"), "rb")
-                ),
+                report_archive=File(open(os.path.join(archive_loc, report_name + ".zip"), "rb")),
             )
         new_archive.save()
         messages.success(
@@ -1281,9 +1255,7 @@ def archive(request, pk):
             "You do not have templates selected for Word and PowerPoint and have not selected default templates",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except Exception:
         messages.error(
             request,
@@ -1302,12 +1274,8 @@ def download_archive(request, pk):
     file_path = os.path.join(settings.MEDIA_ROOT, archive_instance.report_archive.path)
     if os.path.exists(file_path):
         with open(file_path, "rb") as archive:
-            response = HttpResponse(
-                archive.read(), content_type="application/x-zip-compressed"
-            )
-            response["Content-Disposition"] = "inline; filename=" + os.path.basename(
-                file_path
-            )
+            response = HttpResponse(archive.read(), content_type="application/x-zip-compressed")
+            response["Content-Disposition"] = "inline; filename=" + os.path.basename(file_path)
             return response
     raise Http404
 
@@ -1317,9 +1285,7 @@ def clone_report(request, pk):
     """
     Create an identical copy of an individual :model:`reporting.Report`.
     """
-    report_instance = ReportFindingLink.objects.select_related("report").filter(
-        report=pk
-    )
+    report_instance = ReportFindingLink.objects.select_related("report").filter(report=pk)
     # Clone the report by editing title, setting PK to `None`, and saving it
     report_to_clone = report_instance[0].report
     report_to_clone.title = report_to_clone.title + " Copy"
@@ -1331,9 +1297,7 @@ def clone_report(request, pk):
         finding.report = report_to_clone
         finding.pk = None
         finding.save()
-    return HttpResponseRedirect(
-        reverse("reporting:report_detail", kwargs={"pk": new_report_pk})
-    )
+    return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": new_report_pk}))
 
 
 @login_required
@@ -1382,7 +1346,7 @@ def export_findings_to_csv(request):
     fiinding_resource = FindingResource()
     dataset = fiinding_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+    response["Content-Disposition"] = f'attachment; filename="{timestamp}_findings.csv"'
 
     return response
 
@@ -1456,17 +1420,13 @@ class FindingUpdate(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(FindingUpdate, self).get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "reporting:finding_detail", kwargs={"pk": self.object.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
         return ctx
 
     def get_success_url(self):
         messages.success(
             self.request,
-            "Master record for {} was successfully updated".format(
-                self.get_object().title
-            ),
+            "Master record for {} was successfully updated".format(self.get_object().title),
             extra_tags="alert-success",
         )
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
@@ -1496,9 +1456,7 @@ class FindingDelete(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.warning(
             self.request,
-            "Master record for {} was successfully deleted".format(
-                self.get_object().title
-            ),
+            "Master record for {} was successfully deleted".format(self.get_object().title),
             extra_tags="alert-warning",
         )
         return reverse_lazy("reporting:findings")
@@ -1531,11 +1489,11 @@ class ReportDetailView(LoginRequiredMixin, DetailView):
         form = SelectReportTemplateForm(instance=self.object)
         form.fields["docx_template"].queryset = ReportTemplate.objects.filter(
             Q(doc_type__doc_type="docx") & Q(client=self.object.project.client)
-            | Q(client__isnull=True)
+            | Q(doc_type__doc_type="docx") & Q(client__isnull=True)
         )
         form.fields["pptx_template"].queryset = ReportTemplate.objects.filter(
             Q(doc_type__doc_type="pptx") & Q(client=self.object.project.client)
-            | Q(client__isnull=True)
+            | Q(doc_type__doc_type="pptx") & Q(client__isnull=True)
         )
         ctx["form"] = form
         return ctx
@@ -1586,9 +1544,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         ctx = super(ReportCreate, self).get_context_data(**kwargs)
         ctx["project"] = self.project
         if self.project:
-            ctx["cancel_link"] = reverse(
-                "rolodex:project_detail", kwargs={"pk": self.project.pk}
-            )
+            ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.project.pk})
         else:
             ctx["cancel_link"] = reverse("reporting:reports")
         return ctx
@@ -1657,9 +1613,7 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super(ReportUpdate, self).get_context_data(**kwargs)
         ctx["project"] = self.object.project
-        ctx["cancel_link"] = reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
         return ctx
 
     def form_valid(self, form):
@@ -1812,9 +1766,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
             return self.request.user.is_active
 
     def handle_no_permission(self):
-        messages.error(
-            self.request, "That template is protected – only an admin can edit it"
-        )
+        messages.error(self.request, "That template is protected – only an admin can edit it")
         return HttpResponseRedirect(
             reverse(
                 "reporting:template_detail",
@@ -1879,7 +1831,9 @@ class ReportTemplateDelete(LoginRequiredMixin, DeleteView):
                 os.remove(self.object.document.path)
                 logger.info("Deleted %s", self.object.document.path)
             except Exception:
-                self.message = "Successfully deleted the template, but could not delete the associated file{}"
+                self.message = (
+                    "Successfully deleted the template, but could not delete the associated file{}"
+                )
                 logger.warning(
                     "Failed to delete file associated with %s %s: %s",
                     self.object.__class__.__name__,
@@ -1896,9 +1850,7 @@ class ReportTemplateDelete(LoginRequiredMixin, DeleteView):
     def get_context_data(self, **kwargs):
         ctx = super(ReportTemplateDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse(
-            "reporting:template_detail", kwargs={"pk": queryset.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:template_detail", kwargs={"pk": queryset.pk})
         ctx["object_type"] = "report template file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.filename
         return ctx
@@ -1973,9 +1925,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                 if self.request.user != self.object.assigned_to:
                     # Count the current user's total assignments
                     new_users_assignments = (
-                        ReportFindingLink.objects.select_related(
-                            "report", "report__project"
-                        )
+                        ReportFindingLink.objects.select_related("report", "report__project")
                         .filter(
                             Q(assigned_to=self.object.assigned_to)
                             & Q(report__complete=False)
@@ -1985,9 +1935,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                         + 1
                     )
                     old_users_assignments = (
-                        ReportFindingLink.objects.select_related(
-                            "report", "report__project"
-                        )
+                        ReportFindingLink.objects.select_related("report", "report__project")
                         .filter(
                             Q(assigned_to=old_assignee)
                             & Q(report__complete=False)
@@ -2074,9 +2022,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
         user_primary_keys = ProjectAssignment.objects.filter(
             project=self.object.report.project
         ).values_list("operator", flat=True)
-        form.fields["assigned_to"].queryset = User.objects.filter(
-            id__in=user_primary_keys
-        )
+        form.fields["assigned_to"].queryset = User.objects.filter(id__in=user_primary_keys)
         return form
 
     def get_success_url(self):
@@ -2107,9 +2053,9 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
         file_content = None
         if os.path.isfile(self.object.document.path):
             if (
-                self.object.document.name.endswith(".txt")
-                or self.object.document.name.endswith(".log")
-                or self.object.document.name.endswith(".md")
+                self.object.document.name.lower().endswith(".txt")
+                or self.object.document.name.lower().endswith(".log")
+                or self.object.document.name.lower().endswith(".md")
             ):
                 filetype = "text"
                 file_content = []
@@ -2119,11 +2065,10 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
                         file_content.append(line.decode())
                     except Exception:
                         file_content.append(line)
-
             elif (
-                self.object.document.name.endswith(".jpg")
-                or self.object.document.name.endswith(".png")
-                or self.object.document.name.endswith(".jpeg")
+                self.object.document.name.lower().endswith(".jpg")
+                or self.object.document.name.lower().endswith(".png")
+                or self.object.document.name.lower().endswith(".jpeg")
             ):
                 filetype = "image"
             else:
@@ -2179,9 +2124,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
             "reporting:report_detail", kwargs={"pk": self.finding_instance.report.pk}
         )
         if "modal" in self.kwargs:
-            friendly_names = self.evidence_queryset.values_list(
-                "friendly_name", flat=True
-            )
+            friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
             used_friendly_names = []
             # Convert the queryset into a list to pass to JavaScript later
             for name in friendly_names:
@@ -2213,9 +2156,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
         if "modal" in self.kwargs:
             return reverse("reporting:upload_evidence_modal_success")
         else:
-            return reverse(
-                "reporting:report_detail", args=(self.object.finding.report.pk,)
-            )
+            return reverse("reporting:report_detail", args=(self.object.finding.report.pk,))
 
 
 class EvidenceUpdate(LoginRequiredMixin, UpdateView):
@@ -2255,9 +2196,7 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
             "Successfully updated {}".format(self.get_object().friendly_name),
             extra_tags="alert-success",
         )
-        return reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
-        )
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.finding.report.pk})
 
 
 class EvidenceDelete(LoginRequiredMixin, DeleteView):
@@ -2287,9 +2226,7 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
             self.message,
             extra_tags="alert-success",
         )
-        return reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
-        )
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.finding.report.pk})
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -2306,7 +2243,9 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
             try:
                 os.remove(full_path)
             except Exception:
-                self.message = "Successfully deleted the evidence, but could not delete the associated file{}"
+                self.message = (
+                    "Successfully deleted the evidence, but could not delete the associated file{}"
+                )
                 logger.warning(
                     "Failed to delete file associated with %s %s: %s",
                     self.object.__class__.__name__,
@@ -2328,9 +2267,7 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
     def get_context_data(self, **kwargs):
         ctx = super(EvidenceDelete, self).get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse(
-            "reporting:evidence_detail", kwargs={"pk": queryset.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:evidence_detail", kwargs={"pk": queryset.pk})
         ctx["object_type"] = "evidence file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.friendly_name
         return ctx
@@ -2360,9 +2297,7 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super(FindingNoteCreate, self).get_context_data(**kwargs)
         finding_instance = get_object_or_404(Finding, pk=self.kwargs.get("pk"))
-        ctx["cancel_link"] = reverse(
-            "reporting:finding_detail", kwargs={"pk": finding_instance.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:finding_detail", kwargs={"pk": finding_instance.pk})
         return ctx
 
     def get_success_url(self):
@@ -2409,12 +2344,8 @@ class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Successfully updated the note", extra_tags="alert-success"
-        )
-        return reverse(
-            "reporting:finding_detail", kwargs={"pk": self.object.finding.pk}
-        )
+        messages.success(self.request, "Successfully updated the note", extra_tags="alert-success")
+        return reverse("reporting:finding_detail", kwargs={"pk": self.object.finding.pk})
 
 
 # CBVs related to :model:`reporting.LocalFindingNote`
@@ -2440,9 +2371,7 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(LocalFindingNoteCreate, self).get_context_data(**kwargs)
-        self.finding_instance = get_object_or_404(
-            ReportFindingLink, pk=self.kwargs.get("pk")
-        )
+        self.finding_instance = get_object_or_404(ReportFindingLink, pk=self.kwargs.get("pk"))
         ctx["cancel_link"] = reverse(
             "reporting:local_edit", kwargs={"pk": self.finding_instance.pk}
         )
@@ -2491,7 +2420,5 @@ class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Successfully updated the note", extra_tags="alert-success"
-        )
+        messages.success(self.request, "Successfully updated the note", extra_tags="alert-success")
         return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})

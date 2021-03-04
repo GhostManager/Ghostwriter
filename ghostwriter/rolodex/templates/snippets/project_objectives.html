@@ -1,0 +1,67 @@
+{% load bleach_tags %}
+
+{% load determine_primary %}
+
+<!-- Objectives Section -->
+<h4>Project Objectives</h4>
+
+<p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#objectives">Add & Edit Objectives</a></p>
+
+<p>Create specific objectives to pursue, track their status, and view deadlines in the calendar.</p>
+
+<p>Click the status badges to cycle and set status.</p>
+
+{% if project.projectobjective_set.all %}
+    <table id="objectives-table" class="table" objectives-update-url="{% url 'rolodex:ajax_update_objective_order' %}" objectives-update-csrftoken="{{ csrf_token }}" project-id="{{ project.id }}">
+        <thead>
+            <tr>
+                <th class="align-middle icon check-icon"></th>
+                <th class="align-middle icon ol-list-icon"></th>
+                <th class="align-middle icon expand-icon"></th>
+                <th class="align-middle">High-Level Objective</th>
+                <th class="align-middle">Status</th>
+                <th class="align-middle">Progress</th>
+                <th class="align-middle">Deadline</th>
+            </tr>
+        </thead>
+
+
+        {% group_by_priority project.projectobjective_set.all as priority_groups %}
+        {% for group in priority_groups %}
+            <tbody>
+                <th id="{{ group|lower }}-header" class="priority-header {{ group|lower }} icon" colspan="7" scope="colgroup">{{ group }}</th>
+            </tbody>
+            <tbody id="{{ group|lower }}_priority" class="sortable_list connected_sortable">
+                {% if priority_groups|get_item:group %}
+                    {% for objective in priority_groups|get_item:group %}
+                        <!-- Objective Table Row -->
+                        {% include "snippets/project_objective_row.html" %}
+
+                        <!-- Collapsible Task Container -->
+                        <tr id="tasks-objective-row-{{ objective.id }}" data-id="ignore-{{ objective.id }}" class="accordion">
+                            <td colspan="7">
+                                <div class="accordion-content">
+                                    {%  if objective.description %}
+                                        <div class="objective-description">
+                                            {{ objective.description|bleach }}
+                                        </div>
+                                    {% endif %}
+
+                                    <div id="task-list-{{ objective.id }}">
+                                        {% include "snippets/project_objective_subtasks.html" %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder" class="priority-row-placeholder">
+                        <td colspan="7" scope="colgroup">Create a {{ group }} objective or drag-and-drop an objective here to update its priority.</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No objectives have been set for this project yet.</p>
+{% endif %}

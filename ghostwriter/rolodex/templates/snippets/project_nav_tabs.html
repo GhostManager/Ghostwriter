@@ -1,28 +1,40 @@
 <li class="nav-item">
-    <a id="id_assignments" class="nav-link active" data-toggle="tab" href="#assignments">
-        <i class="fas fa-user-plus"></i> Project Assignments <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
+    <a id="id_planning" class="nav-link active tab-icon planning-icon" data-toggle="tab" href="#planning">
+        Planning <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_objectives" class="nav-link" data-toggle="tab" href="#objectives">
-        <i class="fas fa-crosshairs"></i> Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
+    <a id="id_scopes" class="nav-link tab-icon bullseye-icon" data-toggle="tab" href="#scopes">
+        Scope <span class="badge badge-pill badge-light">{{ project.projectscope_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_activity" class="nav-link" data-toggle="tab" href="#activity">
-        <i class="fas fa-history"></i> Logs</span>
+    <a id="id_objectives" class="nav-link tab-icon tasks-icon" data-toggle="tab" href="#objectives">
+        Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_reports" class="nav-link" data-toggle="tab" href="#reports">
-        <i class="fab fa-searchengin"></i> Reports & Findings <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
+    <a id="id_targets" class="nav-link tab-icon objective-icon" data-toggle="tab" href="#targets">
+        Targets <span class="badge badge-pill badge-light">{{ project.projecttarget_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">
-    <a id="id_infrastructure" class="nav-link" data-toggle="tab" href="#infrastructure">
-    <i class="fas fa-server"></i> Infrastructure</a></li>
-    <li class="nav-item">
-    <a id="id_notes" class="nav-link" data-toggle="tab" href="#notes">
-        <i class="fas fa-comments"></i> Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
+    <a id="id_activity" class="nav-link tab-icon history-icon" data-toggle="tab" href="#activity">
+        Logs <span class="badge badge-pill badge-light">{{ project.oplog_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_reports" class="nav-link tab-icon search-icon" data-toggle="tab" href="#reports">
+        Reporting <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
+        Infrastructure <span class="badge badge-pill badge-light">{{ project.history_set.all.count|add:project.serverhistory_set.all.count|add:project.transientserver_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
+        Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
     </a>
 </li>

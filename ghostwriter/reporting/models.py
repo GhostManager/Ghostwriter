@@ -62,9 +62,7 @@ class Severity(models.Model):
         Return the severity color code as a list of hexadecimal.
         """
         n = 2
-        return tuple(
-            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
-        )
+        return tuple(hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n))
 
     count = property(count_findings)
 
@@ -136,8 +134,7 @@ class Finding(models.Model):
         "Replication Steps",
         null=True,
         blank=True,
-        help_text="Provide an explanation for how the reader may reproduce "
-        "this finding",
+        help_text="Provide an explanation for how the reader may reproduce " "this finding",
     )
     host_detection_techniques = models.TextField(
         "Host Detection Techniques",
@@ -306,9 +303,7 @@ class ReportTemplate(models.Model):
                 lint_result = json.loads(self.lint_result)
                 result_code = lint_result["result"]
             except json.decoder.JSONDecodeError:
-                logger.exception(
-                    "Could not decode data in model as JSON: %s", self.lint_result
-                )
+                logger.exception("Could not decode data in model as JSON: %s", self.lint_result)
             except Exception:
                 logger.exception(
                     "Encountered an exceptio while trying to decode this as JSON: %s",
@@ -332,7 +327,7 @@ class Report(models.Model):
         "Creation Date", auto_now_add=True, help_text="Date the report was created"
     )
     last_update = models.DateField(
-        "Creation Date", auto_now=True, help_text="Date the report was last touched"
+        "Last Update", auto_now=True, help_text="Date the report was last touched"
     )
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark the report as complete"
@@ -489,9 +484,7 @@ class ReportFindingLink(models.Model):
         return self.title
 
     def get_evidence_list(self):
-        upload_path = os.path.join(
-            settings.MEDIA_ROOT, str(self.report.id), str(self.title)
-        )
+        upload_path = os.path.join(settings.MEDIA_ROOT, str(self.report.id), str(self.title))
         evidence_files = []
         if not os.path.exists(upload_path):
             return evidence_files
@@ -596,9 +589,7 @@ class FindingNote(models.Model):
     Stores an individual finding note, related to :model:`reporting.Finding`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -625,9 +616,7 @@ class LocalFindingNote(models.Model):
     Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -635,9 +624,7 @@ class LocalFindingNote(models.Model):
         help_text="Provide additional information about the finding",
     )
     # Foreign Keys
-    finding = models.ForeignKey(
-        "ReportFindingLink", on_delete=models.CASCADE, null=False
-    )
+    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=False)
     operator = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
     )

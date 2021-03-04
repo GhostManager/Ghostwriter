@@ -4,8 +4,8 @@
 {% block pagetitle %}Report Template List{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
             <li class="breadcrumb-item active" aria-current="page">Report Templates</li>
@@ -15,14 +15,14 @@
 
 {% block content %}
     <p>
-        <a href="{% url 'reporting:template_create' %}"><i class="far fa-plus-square"></i> Upload a Report Template</a>
+        <a class="icon add-icon" href="{% url 'reporting:template_create' %}">Upload a Report Template</a>
     </p>
 
     <!-- Report Templates Table Section -->
     {% if reporttemplate_list %}
         <p><strong>Note:</strong> Only admins may edit protected report templates.</p>
 
-        <p>This page lists all report templates and their current statuses. To investigate a status, view the template's details page.</p>
+        <p>This page lists all report templates and their current status. To investigate a status, view the template's details page.</p>
 
         <table id="reportTable" class="tablesorter table">
             <thead>
@@ -37,7 +37,7 @@
 
             {% for template in reporttemplate_list %}
                 <tr>
-                    <td>
+                    <td class="align-middle">
                         {% with template.get_status as status %}
                             <span class="badge
                                 {% if status == "success" %}
@@ -54,25 +54,25 @@
                                 {% endif %}
                         {% endwith %}
                     </td>
-                    <td>{{ template.doc_type }}</td>
-                    <td><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>
-                    <td>
+                    <td class="align-middle">{{ template.doc_type }}</td>
+                    <td class="align-middle"><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>
+                    <td class="align-middle">
                         {% if template.client %}
                             {{ template.client }}
                         {% else%}
                             --
                         {% endif %}
                     </td>
-                    <td>
-                        <div class="dropdown">
-                            <button onclick="dropdownFunc()" class="dropbtn far fa-caret-square-down"></button>
-                            <div id="myDropdown" class="dropdown-content">
-                                <a href="{% url 'reporting:template_download' template.id %}"><i style="font-size:15px; color:black" class="fas fa-file-download"></i> Download</a>
+                    <td class="align-middle">
+                        <div class="dropdown dropleft">
+                            <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                            <div class="dropdown-menu" aria-labelledby="template-dropdown-btn_{{ template.id }}">
+                                <a class="dropdown-item icon download-icon" href="{% url 'reporting:template_download' template.id %}">Download</a>
                                 {% if template.protected and request.user.is_staff or not template.protected %}
-                                    <a href="{% url 'reporting:template_update' template.id %}"><i style="font-size:15px; color:black" class="far fa-edit"></i> Edit</a>
-                                    <a href="{% url 'reporting:template_delete' template.id %}"><i style="font-size:15px; color:red" class="far fa-trash-alt"></i> Delete</a>
+                                    <a class="dropdown-item icon edit-icon" href="{% url 'reporting:template_update' template.id %}">Edit</a>
+                                    <a class="dropdown-item icon trash-icon" href="{% url 'reporting:template_delete' template.id %}">Delete</a>
                                 {% else %}
-                                    <a href="javascript:void(0)"><i style="font-size:15px; color:red" class="fas fa-lock"></i> Editing Locked</a>
+                                    <a class="dropdown-item icon locked-icon" href="javascript:void(0)">Editing Locked</a>
                                 {% endif %}
                             </div>
                         </div>
