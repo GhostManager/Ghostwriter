@@ -1,7 +1,7 @@
 Changelog
 =========
 
-2 March 2021
+3 March 2021
 ----------------
 * Tagged release, v2.1
     * Release will require database migrations
@@ -16,6 +16,7 @@ Changelog
     * Notable changes and adjustments:
         * Added a project calendar to track assignments, objectives, tasks, and project dates
         * Added new objective tracker with task management, prioritization, and sorting
+* Implemented a new server search in the side bar (under _Servers_) that searches all static servers, cloud servers in projects, and alternate addresses tied to servers
 * Added template linting checks for additional styles that may not be present in a report
     * Closes #139
 * Fixed downloads of document names that included periods and commas
