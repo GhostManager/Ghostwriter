@@ -73,13 +73,6 @@
     "model": "rolodex.objectivestatus",
     "pk": 4,
     "fields": {
-      "objective_status": "Complete"
-    }
-  },
-  {
-    "model": "rolodex.objectivestatus",
-    "pk": 5,
-    "fields": {
       "objective_status": "Missed"
     }
   },
