@@ -1,0 +1,68 @@
+{% extends "base_generic.html" %}
+
+{% block pagetitle %}All Server Search{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Server Search</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <form id="searchForm" action="{% url 'shepherd:infrastructure_search' %}" method="GET">
+        <div class="form-row">
+            <div class="input-group offset-md-4 col-md-4">
+                <div class="input-group-prepend">
+                    <span class="input-group-text fa fa-search" id="server-search"></span>
+                </div>
+                <input type="text" autocomplete="off" placeholder="Search All Servers" class="form-control" name="query" aria-label="servers" aria-describedby="server-findings-search">
+            </div>
+            <input type="submit" style="display: none" />
+        </div>
+    </form>
+
+    {% if total_result == 0 %}
+        <p class="mt-3">The search query returned no results.</p>
+    {% else %}
+        <table id="resultsTables" class="tablesorter table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th class="align-middle">IP Address</th>
+                    <th class="align-middle">Hostname</ht>
+                    <th class="align-middle">Type</th>
+                    <th class="align-middle">Provider</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for server in servers %}
+                    <tr>
+                        <td class="align-middle"><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
+                        <td class="align-middle"><a href="{{ server.get_absolute_url }}" class="clickable">{{ server.name }}</a></td>
+                        <td class="align-middle">Static Server</td>
+                        <td class="align-middle">{{ server.server_provider }}</td>
+                    </tr>
+                {% endfor %}
+                {% for server in vps %}
+                    <tr>
+                        <td class="align-middle"><a href="{{ server.project.get_absolute_url }}#infrastructure" class="clickable">{{ server.ip_address }}</a></td>
+                        <td class="align-middle"><a href="{{ server.project.get_absolute_url }}#infrastructure" class="clickable">{{ server.name }}</a></td>
+                        <td class="align-middle">Cloud Server</td>
+                        <td class="align-middle">{{ server.server_provider }}</td>
+                    </tr>
+                {% endfor %}
+                {% for server in addresses %}
+                    <tr>
+                        <td class="align-middle"><a href="{{ server.static_server.get_absolute_url }}" class="clickable">{{ server.ip_address }}</a></td>
+                        <td class="align-middle"><a href="{{ server.static_server.get_absolute_url }}" class="clickable">{{ server.static_server.name }}</a></td>
+                        <td class="align-middle">Alternate Address</td>
+                        <td class="align-middle">{{ server.static_server.server_provider }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
+

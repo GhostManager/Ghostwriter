@@ -63,9 +63,7 @@ urlpatterns += [
         views.DomainUpdateHealth.as_view(),
         name="ajax_update_cat_single",
     ),
-    path(
-        "ajax/update/dns/all", views.DomainUpdateDNS.as_view(), name="ajax_update_dns"
-    ),
+    path("ajax/update/dns/all", views.DomainUpdateDNS.as_view(), name="ajax_update_dns"),
     path(
         "ajax/update/dns/<int:pk>",
         views.DomainUpdateDNS.as_view(),
@@ -112,6 +110,11 @@ urlpatterns += [
         name="server_checkout",
     ),
     path("servers/search", views.server_search, name="server_search"),
+    path(
+        "servers/search/all",
+        views.infrastructure_search,
+        name="infrastructure_search",
+    ),
 ]
 
 # URLs for creating, updating, and deleting domains
