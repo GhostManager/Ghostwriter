@@ -83,10 +83,20 @@
                             {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
                         </td>
                     </tr>
+                    {% if project.note %}
+                        <tr>
+                            <td class="text-left bold">Project Description</td>
+                            <td class="text-left">
+                                <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
+                            </td>
+                        </tr>
+                    {% endif %}
                 </table>
 
                 {% if project.note %}
-                    {{ project.note|bleach }}
+                    <div id="projectDescription" style="display:none;">
+                        {{ project.note|bleach }}
+                    </div>
                 {% else %}
                     <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
                 {% endif %}
@@ -137,7 +147,7 @@
                 <!-- Calendar Section -->
                 <h4>Project Calendar</h4>
 
-                <div id='calendar'></div>
+                <div id="calendar"></div>
             </div>
 
             <div id="scopes" class="tab-pane">
@@ -171,28 +181,32 @@
                                 </td>
 
                                 {% with scope_limit=5 %}
-                                    <td class="align-middle"
-                                        data-toggle="tooltip"
-                                        data-placement="right"
-                                        {% if list.count_lines > scope_limit %}
-                                            title="The first {{ scope_limit }} of {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
-                                        {% else %}
-                                            title="The full scope, {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
-                                        {% endif %}
-                                    >
-                                        {{ list.scope|get_scope_preview:scope_limit|linebreaks }}
-                                        {% if list.count_lines > scope_limit %}
-                                            Expand for more ...
-                                        {% endif %}
+                                    <td class="align-middle">
+                                        <div
+                                            data-toggle="tooltip"
+                                            data-placement="top"
+                                            {% if list.count_lines > scope_limit %}
+                                                title="The first {{ scope_limit }} of {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
+                                            {% else %}
+                                                title="The full scope, {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
+                                            {% endif %}
+                                        >
+                                            {{ list.scope|get_scope_preview:scope_limit|linebreaks }}
+                                            {% if list.count_lines > scope_limit %}
+                                                Expand for more ...
+                                            {% endif %}
+                                        </div>
                                     </td>
-                                <td class="align-middle"
-                                    data-toggle="tooltip"
-                                    data-placement="right"
-                                    title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
-                                >
-                                    <button type="button" class="btn btn-primary icon expand-btn-btn" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
-                                        Expand
-                                    </button>
+                                <td class="align-middle">
+                                    <div
+                                        data-toggle="tooltip"
+                                        data-placement="top"
+                                        title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
+                                    >
+                                        <button type="button" class="btn btn-primary icon expand-btn-btn" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
+                                            Expand
+                                        </button>
+                                    </div>
                                 </td>
                                 {% endwith %}
 
@@ -487,7 +501,7 @@
                     </form>
                 </div>
 
-                <p><a class="icon add-icon" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
+                <p class="mt-3"><a class="icon add-icon" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
                 {% if project.serverhistory_set.all or project.transientserver_set.all %}
                     <table id="serverTable" class="tablesorter table">
                         <thead>
@@ -719,9 +733,16 @@
         });
     </script>
 
+    <!-- Expand Hidden Project Description -->
+    <script>
+        $('#projectDescriptionDropdown').click(function () {
+            $('#projectDescription').toggle('slow');
+            $('#projectDescriptionDropdown').toggleClass('add-icon sub-icon')
+        });
+    </script>
+
     <!-- Toggle Task Lists Under Objectives -->
     <script>
-        // $('.expandme').on('click', function() {
         function expandObjective(ele) {
             ele.parent().parent().toggleClass('open');
             var accordionRow = ele.parent().parent().next('.accordion');
@@ -735,7 +756,6 @@
                 });
             }
         };
-        // });
     </script>
 
    <!-- Script for Sortable Groups of Objectives -->
@@ -1432,10 +1452,6 @@
                     $('.todo-item .checker span.checked input').click();
                 }
             });
-
-            // $('.remove-todo-item').click(function() {
-            //     deleteTodo($(this).parent().parent());
-            // });
         };
 
         function prepareTodoList() {
