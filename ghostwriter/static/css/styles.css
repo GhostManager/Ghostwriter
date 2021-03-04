@@ -1036,6 +1036,16 @@ td {
     CALENDAR STYLES
 ----------------------------------------------------- */
 
+.fc .fc-toolbar.fc-header-toolbar {
+  margin-bottom: 0px !important;
+}
+
+.fc-scrollgrid > thead > tr > td,
+.fc-scrollgrid > tbody > tr > td {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
 .calendar-user-icon .fc-event-title:before, .calendar-user-icon .fc-list-event-title:before {
   font-family: 'Font Awesome 5 Free';
   display: inline-block;
@@ -1592,6 +1602,11 @@ th.icon {
 
 .add-icon:before {
   content: '\f0fe';
+  font-weight: 400;
+}
+
+.sub-icon:before {
+  content: '\f146';
   font-weight: 400;
 }
 
