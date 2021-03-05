@@ -963,10 +963,9 @@ class ProjectForm(forms.ModelForm):
     def clean_slack_channel(self):
         slack_channel = self.cleaned_data["slack_channel"]
         if slack_channel:
-            if not slack_channel.startswith("#"):
-                slack_channel = "#" + slack_channel
+            if not slack_channel.startswith("#") and not slack_channel.startswith("@"):
                 raise ValidationError(
-                    _("Slack channels should start with # – check this channel name"),
+                    _("Slack channels should start with # or @ – check this channel name"),
                     code="invalid_channel",
                 )
         return slack_channel
