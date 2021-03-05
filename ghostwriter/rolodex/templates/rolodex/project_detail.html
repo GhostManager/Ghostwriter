@@ -1400,6 +1400,10 @@
         function updateObjectiveRow(ele) {
             var objectiveId = ele.attr('objective-id');
             var url = ele.attr('refresh-objective-url');
+            var open = false;
+            if (ele.hasClass('open')) {
+                open = true;
+            }
             if (url != null) {
                 console.log("Updating objective row...");
                 // Refresh the HTML from the update URL
@@ -1408,6 +1412,9 @@
                     ele.replaceWith(data);
                     checker = data.find('input:checkbox:first');
                     checker.tooltip('enable');
+                    if (open) {
+                        data.toggleClass('open');
+                    }
                 });
             }
         };
