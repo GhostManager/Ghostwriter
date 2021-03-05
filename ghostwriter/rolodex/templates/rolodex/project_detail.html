@@ -1295,6 +1295,8 @@
             var objectiveId = ele.attr('objective-id');
             var task = ele.find('input[name="task"]').val()
             var deadline = ele.find('input[name="deadline"]').val()
+            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+            var objectiveRow = $(objectiveRowId);
             // Prep AJAX request with CSRF token
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -1317,6 +1319,7 @@
                     if (data['result'] == 'success') {
                         // Reset form
                         ele.trigger('reset');
+                        updateObjectiveRow(objectiveRow);
                         updateTodoList(ele);
                     }
                     if (data['message']) {
@@ -1468,22 +1471,6 @@
 
             // Set current date as placeholder value for deadline fields
             $('[name=deadline').val(new Date().toDateInputValue());
-
-            // Handle key presses and clicks for creating and editing tasks
-            $('.add-task').keypress(function (e) {
-                if ((e.which == 13)&&(!$(this).val().length == 0)&&(!$(this).closest('form').find('input[name="deadline"]').val() == 0)) {
-                    createTodo($(this).closest('form'));
-                } else if(e.which == 13) {
-                    alert('Please enter a task and a due date');
-                }
-            });
-            $('.add-deadline').keypress(function (e) {
-                if ((e.which == 13)&&(!$(this).val().length == 0)&&(!$(this).closest('form').find('input[name="task"]').val() == 0)) {
-                    createTodo($(this).closest('form'));
-                } else if(e.which == 13) {
-                    alert('Please enter a task and a due date');
-                }
-            });
 
             // Toggle ``readonly`` attribute on fields and save
             $('.edit-todo-input').click(function() {
