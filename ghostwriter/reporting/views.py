@@ -1728,7 +1728,7 @@ class ReportTemplateCreate(LoginRequiredMixin, CreateView):
     def get_initial(self):
         date = datetime.now().strftime("%d %B %Y")
         initial_upload = f'<p><span class="bold">{date}</span></p><p>Initial upload</p>'
-        return {"uploaded_by": self.request.user, "changelog": initial_upload}
+        return {"changelog": initial_upload}
 
     def get_success_url(self):
         messages.success(
@@ -1737,6 +1737,12 @@ class ReportTemplateCreate(LoginRequiredMixin, CreateView):
             extra_tags="alert-success",
         )
         return reverse("reporting:template_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.uploaded_by = self.request.user
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
@@ -1786,6 +1792,12 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
             extra_tags="alert-success",
         )
         return reverse("reporting:template_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.uploaded_by = self.request.user
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
 
 
 class ReportTemplateDelete(LoginRequiredMixin, DeleteView):
