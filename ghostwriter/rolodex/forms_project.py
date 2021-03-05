@@ -315,8 +315,11 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                                 code="duplicate",
                             ),
                         )
-                    if note:
-                        if not hostname or not ip_address:
+                    if (
+                        note and
+                        not hostname and
+                        not ip_address
+                    ):
                             form.add_error(
                                 "note",
                                 ValidationError(
