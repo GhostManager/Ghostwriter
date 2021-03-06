@@ -98,22 +98,23 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if dates are out of bounds
-                    if deadline < self.instance.start_date:
-                        form.add_error(
-                            "deadline",
-                            ValidationError(
-                                _("Your selected date is before the project start date"),
-                                code="invalid_date",
-                            ),
-                        )
-                    if deadline > self.instance.end_date:
-                        form.add_error(
-                            "deadline",
-                            ValidationError(
-                                _("Your selected date is after the project end date"),
-                                code="invalid_date",
-                            ),
-                        )
+                    if self.instance.start_date:
+                        if deadline < self.instance.start_date:
+                            form.add_error(
+                                "deadline",
+                                ValidationError(
+                                    _("Your selected date is before the project start date"),
+                                    code="invalid_date",
+                                ),
+                            )
+                        if deadline > self.instance.end_date:
+                            form.add_error(
+                                "deadline",
+                                ValidationError(
+                                    _("Your selected date is after the project end date"),
+                                    code="invalid_date",
+                                ),
+                            )
 
 
 class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
@@ -198,22 +199,23 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if dates are out of bounds
-                    if start_date < self.instance.start_date:
-                        form.add_error(
-                            "start_date",
-                            ValidationError(
-                                _("Your selected date is before the project start date"),
-                                code="invalid_date",
-                            ),
-                        )
-                    if end_date > self.instance.end_date:
-                        form.add_error(
-                            "end_date",
-                            ValidationError(
-                                _("Your selected date is after the project end date"),
-                                code="invalid_date",
-                            ),
-                        )
+                    if self.instance.start_date:
+                        if start_date < self.instance.start_date:
+                            form.add_error(
+                                "start_date",
+                                ValidationError(
+                                    _("Your selected date is before the project start date"),
+                                    code="invalid_date",
+                                ),
+                            )
+                        if end_date > self.instance.end_date:
+                            form.add_error(
+                                "end_date",
+                                ValidationError(
+                                    _("Your selected date is after the project end date"),
+                                    code="invalid_date",
+                                ),
+                            )
 
 
 class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
