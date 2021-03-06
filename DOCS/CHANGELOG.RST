@@ -1,8 +1,18 @@
 Changelog
 =========
 
+5 March 2021
+------------
+* Fixed server error when trying to create a new project with an assignment or objective
+* Fixed edge case that could cause a new task below an objective to be duplicated
+* Fixed edge case that would flag a project target form as invalid if it had a note and did not also have both an IP address and hostname
+* Fixed toggle arrow working in reverse when a user marks an objective complete while tasks are expanded
+* Made it so objective completion percentage updates when a new task is added or deleted
+* Made it possible to use `@` targets for Slack channels instead of only `#` channels
+* Will now `uploaded_by` values on report templates on the server-side
+
 3 March 2021
-----------------
+------------
 * Tagged release, v2.1
     * Release will require database migrations
     * New features will require reloading the `seed_data` file
