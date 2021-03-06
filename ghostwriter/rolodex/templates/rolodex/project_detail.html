@@ -304,7 +304,7 @@
                         {% for log in project.oplog_set.all %}
                             <tr>
                                 <td class="oplog-id align-middle">{{ log.id }}</td>
-                                <td class="clickable align-middle"><a href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
+                                <td class="align-middle"><a class="clickable" href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
                                 <td class="align-middle">
                                     {% if log.entries.all %}
                                         {% for entry in log.entries.all %}
@@ -1295,6 +1295,8 @@
             var objectiveId = ele.attr('objective-id');
             var task = ele.find('input[name="task"]').val()
             var deadline = ele.find('input[name="deadline"]').val()
+            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+            var objectiveRow = $(objectiveRowId);
             // Prep AJAX request with CSRF token
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -1317,6 +1319,7 @@
                     if (data['result'] == 'success') {
                         // Reset form
                         ele.trigger('reset');
+                        updateObjectiveRow(objectiveRow);
                         updateTodoList(ele);
                     }
                     if (data['message']) {
@@ -1331,6 +1334,8 @@
             var url = ele.attr('delete-task-url');
             var csrftoken = ele.attr('task-csrftoken');
             var taskId = ele.attr('task-id');
+            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+            var objectiveRow = $(objectiveRowId);
             // Prep AJAX request with CSRF token
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -1350,6 +1355,7 @@
                 success: function (data) {
                     if (data['result'] == 'success') {
                         updateTodoList(ele);
+                        updateObjectiveRow(objectiveRow);
                     }
                     if (data['message']) {
                         displayToastTop({type:data['result'], string:data['message'], title:'Task Deleted'});
@@ -1397,6 +1403,10 @@
         function updateObjectiveRow(ele) {
             var objectiveId = ele.attr('objective-id');
             var url = ele.attr('refresh-objective-url');
+            var open = false;
+            if (ele.hasClass('open')) {
+                open = true;
+            }
             if (url != null) {
                 console.log("Updating objective row...");
                 // Refresh the HTML from the update URL
@@ -1405,6 +1415,9 @@
                     ele.replaceWith(data);
                     checker = data.find('input:checkbox:first');
                     checker.tooltip('enable');
+                    if (open) {
+                        data.toggleClass('open');
+                    }
                 });
             }
         };
@@ -1468,22 +1481,6 @@
 
             // Set current date as placeholder value for deadline fields
             $('[name=deadline').val(new Date().toDateInputValue());
-
-            // Handle key presses and clicks for creating and editing tasks
-            $('.add-task').keypress(function (e) {
-                if ((e.which == 13)&&(!$(this).val().length == 0)&&(!$(this).closest('form').find('input[name="deadline"]').val() == 0)) {
-                    createTodo($(this).closest('form'));
-                } else if(e.which == 13) {
-                    alert('Please enter a task and a due date');
-                }
-            });
-            $('.add-deadline').keypress(function (e) {
-                if ((e.which == 13)&&(!$(this).val().length == 0)&&(!$(this).closest('form').find('input[name="task"]').val() == 0)) {
-                    createTodo($(this).closest('form'));
-                } else if(e.which == 13) {
-                    alert('Please enter a task and a due date');
-                }
-            });
 
             // Toggle ``readonly`` attribute on fields and save
             $('.edit-todo-input').click(function() {
