@@ -5,13 +5,16 @@
 <div id="objective-{{ objective.id }}-tasks">
     <div class="card-body">
         <!-- New Task Form -->
-        <form action="javascript:void(0);" id="new-task-form-{{ objective.id }}" objective-id="{{ objective.id }}" new-task-url="{% url 'rolodex:ajax_create_project_task' objective.id %}" new-task-csrftoken="{{ csrf_token }}" refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}"">
+        <form action="javascript:void(0);" id="new-task-form-{{ objective.id }}" objective-id="{{ objective.id }}" new-task-url="{% url 'rolodex:ajax_create_project_task' objective.id %}" new-task-csrftoken="{{ csrf_token }}" refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}">
             <div class="form-row my-auto">
                 <div class="pr-1 col-md-6">
                     <input type="text" name="task" class="form-control add-task" placeholder="Add a New Task & Enter" autocomplete="off">
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <input type="date" name="deadline" class="form-control add-deadline" placeholder="dd/mm/yy">
+                </div>
+                <div class="col-md-2">
+                    <input type="submit" name="submit-task" onclick="createTodo($(this).closest('form'))" class="btn btn-primary">
                 </div>
             </div>
         </form>
