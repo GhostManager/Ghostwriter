@@ -1334,6 +1334,8 @@
             var url = ele.attr('delete-task-url');
             var csrftoken = ele.attr('task-csrftoken');
             var taskId = ele.attr('task-id');
+            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+            var objectiveRow = $(objectiveRowId);
             // Prep AJAX request with CSRF token
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
@@ -1353,6 +1355,7 @@
                 success: function (data) {
                     if (data['result'] == 'success') {
                         updateTodoList(ele);
+                        updateObjectiveRow(objectiveRow);
                     }
                     if (data['message']) {
                         displayToastTop({type:data['result'], string:data['message'], title:'Task Deleted'});
