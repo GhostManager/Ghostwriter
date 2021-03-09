@@ -88,7 +88,7 @@
                 </thead>
                 {% for project in staticserver.serverhistory_set.all %}
                     <tr>
-                        <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
+                        <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
                         <td>{{ project.activity_type }}</td>
                         <td>{{ project.server_role }}</td>
                         {% if project.domain %}

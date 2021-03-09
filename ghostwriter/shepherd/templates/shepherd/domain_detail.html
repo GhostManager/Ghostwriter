@@ -264,7 +264,7 @@
                         </thead>
                         {% for project in domain.history_set.all %}
                             <tr>
-                                <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
+                                <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
                                 <td>{{ project.activity_type }}</td>
                                 <td>{{ project.project.project_type }}</td>
                                 <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
