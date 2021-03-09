@@ -251,17 +251,37 @@
                                             <div class="dropdown">
                                                 {% if request.session.active_report.id and request.session.active_report.title %}
                                                     <a id="active-report-id" class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">{{ request.session.active_report.title }}</a>
-                                                    <div class="dropdown-content dropdown-content-info">
-                                                        <p>This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a class="text-center icon exchange-icon" style="font-size: 1.1em;" href="{% url 'reporting:reports' %}">Switch Reports</a>
-                                                    </div>
                                                 {% else %}
-                                                    <a id="active-report-id" class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Click Here to Select a Report</a>
-                                                    <div class="dropdown-content dropdown-content-info">
-                                                        <p>This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a class="text-center icon exchange-icon" style="font-size: 1.1em;"href="{% url 'reporting:reports' %}">Select a Report</a>
-                                                    </div>
+                                                    <a id="active-report-id" class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Hover to Select a Report</a>
                                                 {% endif %}
+
+                                                <div class="dropdown-content dropdown-content-info">
+                                                    <div class="my-1 mx-1">
+                                                        <p>Select a report from one of your active projects or use the link to browse all open reports. Your findings will attach to this report.</p>
+                                                        <div class="row m-0">
+                                                            {% if request.user.projectassignment_set.all %}
+                                                                {% for assignment in request.user.projectassignment_set.all %}
+                                                                    {% for report in assignment.project.report_set.all %}
+                                                                        {% if not report.complete %}
+                                                                            <button
+                                                                                title="Set this report as your active report"
+                                                                                class="col-md-10 offset-md-1 mt-1 mb-1 js-activate-report btn btn-secondary btn-report
+                                                                                {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
+                                                                                    selected-report
+                                                                                {% endif %}
+                                                                                " activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">
+                                                                                {{ report }}
+                                                                            </button>
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                {% endfor %}
+                                                            {% else %}
+                                                                <p>You are not assigned to any projects right now.</p>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <a class="report-select text-center icon exchange-icon" style="font-size: 1em;" href="{% url 'reporting:reports' %}">Browse Reports</a>
+                                                </div>
                                             </div>
                                         </li>
                                         <li class="nav-item">
@@ -344,6 +364,55 @@
                 document.execCommand('copy');
                 $temp.remove();
             }
+        </script>
+
+
+        <!-- Activate Report with AJAX -->
+        <script>
+            $('.js-activate-report').click(function () {
+                var clickedBtn = $(this);
+                var url = $(this).attr('activate-report-url');
+                var reportId = $(this).attr('activate-report-id');
+                var csrftoken = $(this).attr('activate-report-csrftoken');
+                var activeReportBar = $('#active-report-id');
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'report': reportId
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            activeReportBar.html(data['report']);
+                            activeReportBar.attr('href', data['report_url']);
+                            $('.empty-report').toggleClass('empty-report');
+                            $('.btn.selected-report').each(function(index, ele) {
+                                if (reportId != $(this).attr('activate-report-id')) {
+                                    $(this).toggleClass('selected-report');
+                                }
+                            });
+                            $('.btn.js-activate-report').each(function(index, ele) {
+                                if (reportId == $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
+                                    $(this).toggleClass('selected-report');
+                                }
+                            });
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                        }
+                    }
+                });
+            });
         </script>
 
         <!-- Script for Sidebar -->

@@ -353,7 +353,7 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 data = {
                     "result": "success",
                     "message": "Report successfully marked as incomplete",
-                    "status": "In Progress",
+                    "status": "Draft",
                     "toggle": 0,
                 }
             else:

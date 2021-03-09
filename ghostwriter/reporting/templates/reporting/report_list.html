@@ -81,42 +81,6 @@
         });
     </script>
 
-    <!-- Activate Report with AJAX -->
-    <script>
-        $('.js-activate-report').click(function () {
-            var url = $(this).attr('activate-report-url');
-            var reportId = $(this).attr('activate-report-id');
-            var csrftoken = $(this).attr('activate-report-csrftoken');
-            var activeReportBar = $('#active-report-id');
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'report': reportId
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        activeReportBar.html(data['report']);
-                        activeReportBar.attr('href', data['report_url']);
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
-                    }
-                }
-            });
-        });
-    </script>
-
     <!-- Submit Filter when Clicking Bootstrap Icon -->
     <script>
         $('.input-group-text').on('click', function (event) {

@@ -50,6 +50,10 @@ a:focus {
   font-size: var(--main-font-size);
 }
 
+a.report-select:hover {
+  color: white;
+}
+
 hr {
   width: 70%;
 }
@@ -449,6 +453,10 @@ input[type='file'] {
 .selected-report {
   color: var(--navbar-report-selected-font-color);
   background-color: var(--navbar-report-selected-background-color);
+}
+
+.btn-report:hover {
+  background-color: var(--secondary-color-med);
 }
 
 .empty-report {
@@ -875,10 +883,6 @@ p.severity-box.info {
   color: #fff;
 }
 
-btn-primary-outline:hover {
-  background-color: transparent;
-}
-
 /* ---------------------------------------------------
     TABLE STYLES
 ----------------------------------------------------- */
@@ -1243,10 +1247,6 @@ td p {
 .dropdown-menu-btn-evidence:focus {
   border: 0;
   outline: none;
-}
-
-.btn-primary-outline:hover {
-  background-color: transparent;
 }
 
 .dropbtn {
