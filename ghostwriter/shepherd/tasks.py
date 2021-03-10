@@ -24,6 +24,7 @@ from lxml import objectify
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     NamecheapConfiguration,
+    Route53Configuration,
     SlackConfiguration,
     VirusTotalConfiguration,
 )
@@ -970,6 +971,313 @@ def fetch_namecheap_domains():
     return domain_changes
 
 
+def fetch_route53_domains():
+    """
+    Fetch a list of registered domains for the configured AWS account. A valid set of AWS
+    API credentials must be used. Returns a dictionary containing errors and each domain
+    name paired with change status.
+
+    Result statuses: created, updated, burned, updated & burned
+
+    The returned JSON contains entries for domains like this:
+
+    {
+        'Domains': [
+            {
+                'DomainName': 'string',
+                'AutoRenew': True|False,
+                'TransferLock': True|False,
+                'Expiry': datetime(2015, 1, 1),
+            }
+        ],
+        'NextPageMarker': 'string',
+        'ResponseMetadata': {
+            'RequestId': 'string',
+            'HTTPStatusCode': int,
+            'HTTPHeaders': {
+                'x-amzn-requestid': 'string',
+                'content-type': 'string',
+                'content-length': 'string',
+                'date': 'string'
+            },
+            'RetryAttempts': int
+        }
+    }
+
+    The returned JSON for domain details contains entries for domains like this:
+
+    {
+        'DomainName': 'string',
+        'Nameservers': [
+            {
+                'Name': 'string',
+                'GlueIps': [
+                    'string',
+                ]
+            },
+        ],
+        'AutoRenew': True|False,
+        'AdminContact': {
+            'FirstName': 'string',
+            'LastName': 'string',
+            'ContactType': 'PERSON'|'COMPANY'|'ASSOCIATION'|'PUBLIC_BODY'|'RESELLER',
+            'OrganizationName': 'string',
+            'AddressLine1': 'string',
+            'AddressLine2': 'string',
+            'City': 'string',
+            'State': 'string',
+            'CountryCode': 'AD'|'AE'|'AF'|'AG'|'AI'|'AL'|'AM'|'AN'|'AO'|'AQ'|'AR'|'AS'|'AT'|'AU'|'AW'|'AZ'|'BA'|'BB'|'BD'|'BE'|'BF'|'BG'|'BH'|'BI'|'BJ'|'BL'|'BM'|'BN'|'BO'|'BR'|'BS'|'BT'|'BW'|'BY'|'BZ'|'CA'|'CC'|'CD'|'CF'|'CG'|'CH'|'CI'|'CK'|'CL'|'CM'|'CN'|'CO'|'CR'|'CU'|'CV'|'CX'|'CY'|'CZ'|'DE'|'DJ'|'DK'|'DM'|'DO'|'DZ'|'EC'|'EE'|'EG'|'ER'|'ES'|'ET'|'FI'|'FJ'|'FK'|'FM'|'FO'|'FR'|'GA'|'GB'|'GD'|'GE'|'GH'|'GI'|'GL'|'GM'|'GN'|'GQ'|'GR'|'GT'|'GU'|'GW'|'GY'|'HK'|'HN'|'HR'|'HT'|'HU'|'ID'|'IE'|'IL'|'IM'|'IN'|'IQ'|'IR'|'IS'|'IT'|'JM'|'JO'|'JP'|'KE'|'KG'|'KH'|'KI'|'KM'|'KN'|'KP'|'KR'|'KW'|'KY'|'KZ'|'LA'|'LB'|'LC'|'LI'|'LK'|'LR'|'LS'|'LT'|'LU'|'LV'|'LY'|'MA'|'MC'|'MD'|'ME'|'MF'|'MG'|'MH'|'MK'|'ML'|'MM'|'MN'|'MO'|'MP'|'MR'|'MS'|'MT'|'MU'|'MV'|'MW'|'MX'|'MY'|'MZ'|'NA'|'NC'|'NE'|'NG'|'NI'|'NL'|'NO'|'NP'|'NR'|'NU'|'NZ'|'OM'|'PA'|'PE'|'PF'|'PG'|'PH'|'PK'|'PL'|'PM'|'PN'|'PR'|'PT'|'PW'|'PY'|'QA'|'RO'|'RS'|'RU'|'RW'|'SA'|'SB'|'SC'|'SD'|'SE'|'SG'|'SH'|'SI'|'SK'|'SL'|'SM'|'SN'|'SO'|'SR'|'ST'|'SV'|'SY'|'SZ'|'TC'|'TD'|'TG'|'TH'|'TJ'|'TK'|'TL'|'TM'|'TN'|'TO'|'TR'|'TT'|'TV'|'TW'|'TZ'|'UA'|'UG'|'US'|'UY'|'UZ'|'VA'|'VC'|'VE'|'VG'|'VI'|'VN'|'VU'|'WF'|'WS'|'YE'|'YT'|'ZA'|'ZM'|'ZW',
+            'ZipCode': 'string',
+            'PhoneNumber': 'string',
+            'Email': 'string',
+            'Fax': 'string',
+            'ExtraParams': [
+                {
+                    'Name': 'DUNS_NUMBER'|'BRAND_NUMBER'|'BIRTH_DEPARTMENT'|'BIRTH_DATE_IN_YYYY_MM_DD'|'BIRTH_COUNTRY'|'BIRTH_CITY'|'DOCUMENT_NUMBER'|'AU_ID_NUMBER'|'AU_ID_TYPE'|'CA_LEGAL_TYPE'|'CA_BUSINESS_ENTITY_TYPE'|'CA_LEGAL_REPRESENTATIVE'|'CA_LEGAL_REPRESENTATIVE_CAPACITY'|'ES_IDENTIFICATION'|'ES_IDENTIFICATION_TYPE'|'ES_LEGAL_FORM'|'FI_BUSINESS_NUMBER'|'FI_ID_NUMBER'|'FI_NATIONALITY'|'FI_ORGANIZATION_TYPE'|'IT_NATIONALITY'|'IT_PIN'|'IT_REGISTRANT_ENTITY_TYPE'|'RU_PASSPORT_DATA'|'SE_ID_NUMBER'|'SG_ID_NUMBER'|'VAT_NUMBER'|'UK_CONTACT_TYPE'|'UK_COMPANY_NUMBER',
+                    'Value': 'string'
+                },
+            ]
+        },
+        'RegistrantContact': {
+            'FirstName': 'string',
+            'LastName': 'string',
+            'ContactType': 'PERSON'|'COMPANY'|'ASSOCIATION'|'PUBLIC_BODY'|'RESELLER',
+            'OrganizationName': 'string',
+            'AddressLine1': 'string',
+            'AddressLine2': 'string',
+            'City': 'string',
+            'State': 'string',
+            'CountryCode': 'AD'|'AE'|'AF'|'AG'|'AI'|'AL'|'AM'|'AN'|'AO'|'AQ'|'AR'|'AS'|'AT'|'AU'|'AW'|'AZ'|'BA'|'BB'|'BD'|'BE'|'BF'|'BG'|'BH'|'BI'|'BJ'|'BL'|'BM'|'BN'|'BO'|'BR'|'BS'|'BT'|'BW'|'BY'|'BZ'|'CA'|'CC'|'CD'|'CF'|'CG'|'CH'|'CI'|'CK'|'CL'|'CM'|'CN'|'CO'|'CR'|'CU'|'CV'|'CX'|'CY'|'CZ'|'DE'|'DJ'|'DK'|'DM'|'DO'|'DZ'|'EC'|'EE'|'EG'|'ER'|'ES'|'ET'|'FI'|'FJ'|'FK'|'FM'|'FO'|'FR'|'GA'|'GB'|'GD'|'GE'|'GH'|'GI'|'GL'|'GM'|'GN'|'GQ'|'GR'|'GT'|'GU'|'GW'|'GY'|'HK'|'HN'|'HR'|'HT'|'HU'|'ID'|'IE'|'IL'|'IM'|'IN'|'IQ'|'IR'|'IS'|'IT'|'JM'|'JO'|'JP'|'KE'|'KG'|'KH'|'KI'|'KM'|'KN'|'KP'|'KR'|'KW'|'KY'|'KZ'|'LA'|'LB'|'LC'|'LI'|'LK'|'LR'|'LS'|'LT'|'LU'|'LV'|'LY'|'MA'|'MC'|'MD'|'ME'|'MF'|'MG'|'MH'|'MK'|'ML'|'MM'|'MN'|'MO'|'MP'|'MR'|'MS'|'MT'|'MU'|'MV'|'MW'|'MX'|'MY'|'MZ'|'NA'|'NC'|'NE'|'NG'|'NI'|'NL'|'NO'|'NP'|'NR'|'NU'|'NZ'|'OM'|'PA'|'PE'|'PF'|'PG'|'PH'|'PK'|'PL'|'PM'|'PN'|'PR'|'PT'|'PW'|'PY'|'QA'|'RO'|'RS'|'RU'|'RW'|'SA'|'SB'|'SC'|'SD'|'SE'|'SG'|'SH'|'SI'|'SK'|'SL'|'SM'|'SN'|'SO'|'SR'|'ST'|'SV'|'SY'|'SZ'|'TC'|'TD'|'TG'|'TH'|'TJ'|'TK'|'TL'|'TM'|'TN'|'TO'|'TR'|'TT'|'TV'|'TW'|'TZ'|'UA'|'UG'|'US'|'UY'|'UZ'|'VA'|'VC'|'VE'|'VG'|'VI'|'VN'|'VU'|'WF'|'WS'|'YE'|'YT'|'ZA'|'ZM'|'ZW',
+            'ZipCode': 'string',
+            'PhoneNumber': 'string',
+            'Email': 'string',
+            'Fax': 'string',
+            'ExtraParams': [
+                {
+                    'Name': 'DUNS_NUMBER'|'BRAND_NUMBER'|'BIRTH_DEPARTMENT'|'BIRTH_DATE_IN_YYYY_MM_DD'|'BIRTH_COUNTRY'|'BIRTH_CITY'|'DOCUMENT_NUMBER'|'AU_ID_NUMBER'|'AU_ID_TYPE'|'CA_LEGAL_TYPE'|'CA_BUSINESS_ENTITY_TYPE'|'CA_LEGAL_REPRESENTATIVE'|'CA_LEGAL_REPRESENTATIVE_CAPACITY'|'ES_IDENTIFICATION'|'ES_IDENTIFICATION_TYPE'|'ES_LEGAL_FORM'|'FI_BUSINESS_NUMBER'|'FI_ID_NUMBER'|'FI_NATIONALITY'|'FI_ORGANIZATION_TYPE'|'IT_NATIONALITY'|'IT_PIN'|'IT_REGISTRANT_ENTITY_TYPE'|'RU_PASSPORT_DATA'|'SE_ID_NUMBER'|'SG_ID_NUMBER'|'VAT_NUMBER'|'UK_CONTACT_TYPE'|'UK_COMPANY_NUMBER',
+                    'Value': 'string'
+                },
+            ]
+        },
+        'TechContact': {
+            'FirstName': 'string',
+            'LastName': 'string',
+            'ContactType': 'PERSON'|'COMPANY'|'ASSOCIATION'|'PUBLIC_BODY'|'RESELLER',
+            'OrganizationName': 'string',
+            'AddressLine1': 'string',
+            'AddressLine2': 'string',
+            'City': 'string',
+            'State': 'string',
+            'CountryCode': 'AD'|'AE'|'AF'|'AG'|'AI'|'AL'|'AM'|'AN'|'AO'|'AQ'|'AR'|'AS'|'AT'|'AU'|'AW'|'AZ'|'BA'|'BB'|'BD'|'BE'|'BF'|'BG'|'BH'|'BI'|'BJ'|'BL'|'BM'|'BN'|'BO'|'BR'|'BS'|'BT'|'BW'|'BY'|'BZ'|'CA'|'CC'|'CD'|'CF'|'CG'|'CH'|'CI'|'CK'|'CL'|'CM'|'CN'|'CO'|'CR'|'CU'|'CV'|'CX'|'CY'|'CZ'|'DE'|'DJ'|'DK'|'DM'|'DO'|'DZ'|'EC'|'EE'|'EG'|'ER'|'ES'|'ET'|'FI'|'FJ'|'FK'|'FM'|'FO'|'FR'|'GA'|'GB'|'GD'|'GE'|'GH'|'GI'|'GL'|'GM'|'GN'|'GQ'|'GR'|'GT'|'GU'|'GW'|'GY'|'HK'|'HN'|'HR'|'HT'|'HU'|'ID'|'IE'|'IL'|'IM'|'IN'|'IQ'|'IR'|'IS'|'IT'|'JM'|'JO'|'JP'|'KE'|'KG'|'KH'|'KI'|'KM'|'KN'|'KP'|'KR'|'KW'|'KY'|'KZ'|'LA'|'LB'|'LC'|'LI'|'LK'|'LR'|'LS'|'LT'|'LU'|'LV'|'LY'|'MA'|'MC'|'MD'|'ME'|'MF'|'MG'|'MH'|'MK'|'ML'|'MM'|'MN'|'MO'|'MP'|'MR'|'MS'|'MT'|'MU'|'MV'|'MW'|'MX'|'MY'|'MZ'|'NA'|'NC'|'NE'|'NG'|'NI'|'NL'|'NO'|'NP'|'NR'|'NU'|'NZ'|'OM'|'PA'|'PE'|'PF'|'PG'|'PH'|'PK'|'PL'|'PM'|'PN'|'PR'|'PT'|'PW'|'PY'|'QA'|'RO'|'RS'|'RU'|'RW'|'SA'|'SB'|'SC'|'SD'|'SE'|'SG'|'SH'|'SI'|'SK'|'SL'|'SM'|'SN'|'SO'|'SR'|'ST'|'SV'|'SY'|'SZ'|'TC'|'TD'|'TG'|'TH'|'TJ'|'TK'|'TL'|'TM'|'TN'|'TO'|'TR'|'TT'|'TV'|'TW'|'TZ'|'UA'|'UG'|'US'|'UY'|'UZ'|'VA'|'VC'|'VE'|'VG'|'VI'|'VN'|'VU'|'WF'|'WS'|'YE'|'YT'|'ZA'|'ZM'|'ZW',
+            'ZipCode': 'string',
+            'PhoneNumber': 'string',
+            'Email': 'string',
+            'Fax': 'string',
+            'ExtraParams': [
+                {
+                    'Name': 'DUNS_NUMBER'|'BRAND_NUMBER'|'BIRTH_DEPARTMENT'|'BIRTH_DATE_IN_YYYY_MM_DD'|'BIRTH_COUNTRY'|'BIRTH_CITY'|'DOCUMENT_NUMBER'|'AU_ID_NUMBER'|'AU_ID_TYPE'|'CA_LEGAL_TYPE'|'CA_BUSINESS_ENTITY_TYPE'|'CA_LEGAL_REPRESENTATIVE'|'CA_LEGAL_REPRESENTATIVE_CAPACITY'|'ES_IDENTIFICATION'|'ES_IDENTIFICATION_TYPE'|'ES_LEGAL_FORM'|'FI_BUSINESS_NUMBER'|'FI_ID_NUMBER'|'FI_NATIONALITY'|'FI_ORGANIZATION_TYPE'|'IT_NATIONALITY'|'IT_PIN'|'IT_REGISTRANT_ENTITY_TYPE'|'RU_PASSPORT_DATA'|'SE_ID_NUMBER'|'SG_ID_NUMBER'|'VAT_NUMBER'|'UK_CONTACT_TYPE'|'UK_COMPANY_NUMBER',
+                    'Value': 'string'
+                },
+            ]
+        },
+        'AdminPrivacy': True|False,
+        'RegistrantPrivacy': True|False,
+        'TechPrivacy': True|False,
+        'RegistrarName': 'string',
+        'WhoIsServer': 'string',
+        'RegistrarUrl': 'string',
+        'AbuseContactEmail': 'string',
+        'AbuseContactPhone': 'string',
+        'RegistryDomainId': 'string',
+        'CreationDate': datetime(2015, 1, 1),
+        'UpdatedDate': datetime(2015, 1, 1),
+        'ExpirationDate': datetime(2015, 1, 1),
+        'Reseller': 'string',
+        'DnsSec': 'string',
+        'StatusList': [
+            'string',
+        ]
+    }
+    """
+    domains_list = []
+    domain_changes = {}
+    domain_changes["errors"] = {}
+    domain_changes["updates"] = {}
+
+    logger.info(
+        "Starting Route53 synchronization task at %s", datetime.datetime.now()
+    )
+
+    # Fetch route53 API keys and tokens
+    route53_config = Route53Configuration.get_solo()
+
+    # Set timezone for dates to UTC
+    utc = pytz.UTC
+
+    try:
+        client = boto3.client(
+            "route53domains",
+            region_name="us-east-1",
+            aws_access_key_id=route53_config.access_key,
+            aws_secret_access_key=route53_config.secret_access_key,
+        )
+
+        domain_req = client.list_domains(MaxItems=100)
+        if domain_req["ResponseMetadata"]["HTTPStatusCode"] == 200:
+            while True:
+                for domain in domain_req["Domains"]:
+                    domains_list.append(domain)
+                if "NextPageMarker" in domain_req:
+                    domain_req = client.list_domains(MaxItems=100, Marker=domain_req["NextPageMarker"])
+                else:
+                    break
+        else:
+            logger.error(
+                "Route53 returned a %s response", domain_req["ResponseMetadata"]["HTTPStatusCode"]
+            )
+            domain_changes["errors"][
+                "route53"
+            ] = "Route53 returned a {status_code} response".format(
+                status_code=domain_req["ResponseMetadata"]["HTTPStatusCode"]
+            )
+            return domain_changes
+    except ClientError:
+        logger.error("Route53 API request failed")
+        domain_changes["errors"][
+            "route53"
+        ] = "The Route53 API request failed: {traceback}".format(traceback=traceback.format_exc())
+        return domain_changes
+
+    # There's a chance no domains are returned if the provided usernames don't have any domains
+    if domains_list:
+        # Get the current list of Route53 domains in the library
+        domain_queryset = Domain.objects.filter(registrar="Route53")
+        expired_status = DomainStatus.objects.get(domain_status="Expired")
+        for domain in domain_queryset:
+            # Check if a domain in the library is _not_ in the Route53 response
+            if not any(d["DomainName"] == domain.name for d in domains_list):
+                # Domains not found in Route53 have expired and fallen off the account
+                if not domain.expired:
+                    logger.info(
+                        "Domain %s is not in the Route53 data so it is now marked as expired",
+                        domain.name,
+                    )
+                    # Mark the domain as Expired
+                    domain_changes["updates"][domain.id] = {}
+                    domain_changes["updates"][domain.id]["domain"] = domain.name
+                    domain_changes["updates"][domain.id]["change"] = "expired"
+                    entry = {}
+                    domain.expired = True
+                    domain.auto_renew = False
+                    domain.domain_status = expired_status
+                    # If the domain expiration date is in the future, adjust it
+                    if domain.expiration >= date.today():
+                        domain.expiration = domain.expiration - datetime.timedelta(
+                            days=365
+                        )
+                    try:
+                        for attr, value in entry.items():
+                            setattr(domain, attr, value)
+                        domain.save()
+                    except Exception:
+                        trace = traceback.format_exc()
+                        domain_changes["errors"][
+                            domain
+                        ] = "Failed to update the entry for {domain}: {traceback}".format(
+                            domain=domain, traceback=trace
+                        )
+                        logger.exception(
+                            "Failed to update the entry for %s", domain.name
+                        )
+                        pass
+                    instance = DomainNote.objects.create(
+                        domain=domain,
+                        note="Automatically set to Expired because the domain did not appear in Route53 during a sync.",
+                    )
+
+        # perform domain updates
+        for domain in domains_list:
+            logger.info("Domain %s is now being processed", domain["DomainName"])
+
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/route53domains.html#Route53Domains.Client.get_domain_detail
+            domain_details = client.get_domain_detail(DomainName=domain["DomainName"])
+
+            # Prepare domain attributes for Domain model
+            entry = {}
+            entry["name"] = domain["DomainName"]
+            entry["registrar"] = "Route53"
+
+            # Set the WHOIS status based on WhoisGuard
+            if domain["Expiry"].replace(tzinfo=utc) < datetime.datetime.now().replace(tzinfo=utc):
+                entry["expired"] = True
+                # Expired domains have WhoisGuard set to ``NOTPRESENT``
+                entry["whois_status"] = WhoisStatus.objects.get(pk=2)
+            else:
+                try:
+                    whois_status = "Disabled"
+                    if domain_details["AdminPrivacy"] \
+                        and domain_details["RegistrantPrivacy"] \
+                        and domain_details["TechPrivacy"]:
+                        whois_status = "Enabled"
+
+                    entry["whois_status"] = WhoisStatus.objects.get(
+                        whois_status__iexact=whois_status
+                    )
+                # Anything not ``Enabled`` or ``Disabled``, set to ``Unknown``
+                except Exception:
+                    logger.exception(
+                        "Route53 WHOIS status (%s) was not found in the database, so defaulted to `Unknown`",
+                        domain["WhoisGuard"].capitalize(),
+                    )
+                    entry["whois_status"] = WhoisStatus.objects.get(pk=3)
+
+            # Set AutoRenew status
+            if not domain["AutoRenew"]:
+                entry["auto_renew"] = False
+
+            # Convert Route53 dates to Django
+            entry["creation"] = domain_details["CreationDate"].strftime("%Y-%m-%d")
+            entry["expiration"] = domain_details["ExpirationDate"].strftime("%Y-%m-%d")
+
+            # Update or create the domain record with assigned attrs
+            try:
+                instance, created = Domain.objects.update_or_create(
+                    name=domain.get("DomainName"), defaults=entry
+                )
+                for attr, value in entry.items():
+                    setattr(instance, attr, value)
+
+                logger.debug(
+                    "Domain %s is being saved with this data: %s", domain["DomainName"], entry
+                )
+                instance.save()
+
+                # Add entry to domain change tracking dict
+                domain_changes["updates"][instance.id] = {}
+                domain_changes["updates"][instance.id]["domain"] = domain["DomainName"]
+                if created:
+                    domain_changes["updates"][instance.id]["change"] = "created"
+                else:
+                    domain_changes["updates"][instance.id]["change"] = "updated"
+            except Exception:
+                trace = traceback.format_exc()
+                logger.exception(
+                    "Encountered an exception while trying to create or update %s",
+                    domain["DomainName"],
+                )
+                domain_changes["errors"][domain["DomainName"]] = {}
+                domain_changes["errors"][domain["DomainName"]]["error"] = trace
+        logger.info(
+            "Route53 synchronization completed at %s with these changes:\n%s",
+            datetime.datetime.now(),
+            domain_changes,
+        )
+    else:
+        logger.warning("No domains were returned for the provided Route53 account!")
+
+    return domain_changes
+
+
 def months_between(date1, date2):
     """
     Compare two dates and return the number of months beetween them.
@@ -1529,6 +1837,59 @@ def test_namecheap(user):
 
     logger.info(
         "Test of the Namecheap API configuration completed at %s",
+        datetime.datetime.now(),
+    )
+    return {"result": level, "message": message}
+
+
+def test_route53(user):
+    """
+    Test the Route53 API configuration stored in :model:`commandcenter.Route53Configuration`.
+    """
+    route53_config = Route53Configuration.get_solo()
+    level = "error"
+    logger.info("Starting Route53 API test at %s", datetime.datetime.now())
+    try:
+        client = boto3.client(
+            "route53domains",
+            region_name="us-east-1",
+            aws_access_key_id=route53_config.access_key,
+            aws_secret_access_key=route53_config.secret_access_key,
+        )
+
+        domain_req = client.list_domains(MaxItems=100)
+
+        # Check if request returned a 200 OK
+        status_code = domain_req["ResponseMetadata"]["HTTPStatusCode"]
+        if status_code == 200:
+            level = "success"
+            message = "Successfully authenticated to Route53"
+        else:
+            logger.error(
+                "Route53 returned HTTP code %s in its response",
+                status_code
+            )
+            message = f"Route53 returned HTTP code {status_code} in its response"
+    except Exception:
+        trace = traceback.format_exc()
+        logger.exception("Route53 API request failed")
+        message = f"The Route53 API request failed: {trace}"
+
+    # Send a message to the requesting user
+    async_to_sync(channel_layer.group_send)(
+        "notify_{}".format(user),
+        {
+            "type": "message",
+            "message": {
+                "message": message,
+                "level": level,
+                "title": "Route53 Test Complete",
+            },
+        },
+    )
+
+    logger.info(
+        "Test of the Route53 API configuration completed at %s",
         datetime.datetime.now(),
     )
     return {"result": level, "message": message}

@@ -57,6 +57,22 @@ class NamecheapConfiguration(SingletonModel):
         return sanitize(self.api_key)
 
 
+class Route53Configuration(SingletonModel):
+    enable = models.BooleanField(default=False)
+    access_key = models.CharField(max_length=255, default="Route53 Access Key")
+    secret_access_key = models.CharField(max_length=255, default="Route53 Secret Access Key")
+
+    def __str__(self):
+        return "Route53 Configuration"
+
+    class Meta:
+        verbose_name = "Route53 Configuration"
+
+    @property
+    def sanitized_secret_access_key(self):
+        return sanitize(self.secret_access_key)
+
+
 class ReportConfiguration(SingletonModel):
     enable_borders = models.BooleanField(
         default=False, help_text="Enable borders around images in Word documents"
