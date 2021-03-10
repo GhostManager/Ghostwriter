@@ -120,6 +120,7 @@ class Reportwriter:
         # Setup Jinja2 rendering environment + custom filters
         self.jinja_env = jinja2.Environment(extensions=["jinja2.ext.debug"])
         self.jinja_env.filters["filter_severity"] = self.filter_severity
+        self.jinja_env.filters["filter_type"] = self.filter_type
         self.jinja_env.filters["strip_html"] = self.strip_html
         self.jinja_env.filters["compromised"] = self.compromised
 
@@ -145,6 +146,24 @@ class Reportwriter:
         allowlist = [severity.lower() for severity in allowlist]
         for finding in findings:
             if finding["severity"].lower() in allowlist:
+                filtered_values.append(finding)
+        return filtered_values
+
+    def filter_type(self, findings, allowlist):
+        """
+        Filter list of findings to return only those with a type in the allowlist.
+
+        **Parameters**
+
+        ``findings``
+            List of dictionary objects (JSON) for findings
+        ``allowlist``
+            List of strings matching severity categories to allow through filter
+        """
+        filtered_values = []
+        allowlist = [type.lower() for type in allowlist]
+        for finding in findings:
+            if finding["finding_type"].lower() in allowlist:
                 filtered_values.append(finding)
         return filtered_values
 
@@ -293,6 +312,7 @@ class Reportwriter:
         for finding in self.report_queryset.reportfindinglink_set.all():
             report_dict["findings"][finding.id] = {}
             report_dict["findings"][finding.id]["title"] = finding.title
+            report_dict["findings"][finding.id]["finding_type"] = finding.finding_type.finding_type
             report_dict["findings"][finding.id]["severity"] = finding.severity.severity
             report_dict["findings"][finding.id]["severity_color"] = finding.severity.color
             report_dict["findings"][finding.id]["severity_color_rgb"] = finding.severity.color_rgb
@@ -1754,6 +1774,7 @@ Try opening it, exporting as desired type, and re-uploading it."
             finding["affected_entities_rt"] = render_subdocument(
                 finding["affected_entities"], finding
             )
+            finding["type_rt"] = render_subdocument(finding["finding_type"], finding)
             finding["description_rt"] = render_subdocument(finding["description"], finding)
             finding["impact_rt"] = render_subdocument(finding["impact"], finding)
             finding["recommendation_rt"] = render_subdocument(finding["recommendation"], finding)
@@ -2275,10 +2296,14 @@ class TemplateLinter:
             undefined=jinja2.DebugUndefined, extensions=["jinja2.ext.debug"]
         )
         self.jinja_template_env.filters["filter_severity"] = self.dummy_filter_severity
+        self.jinja_template_env.filters["filter_type"] = self.dummy_filter_type
         self.jinja_template_env.filters["strip_html"] = self.dummy_strip_html
         self.jinja_template_env.filters["compromised"] = self.dummy_compromised
 
     def dummy_filter_severity(self, value, allowlist):
+        return []
+
+    def dummy_filter_type(self, value, allowlist):
         return []
 
     def dummy_strip_html(self, value):
