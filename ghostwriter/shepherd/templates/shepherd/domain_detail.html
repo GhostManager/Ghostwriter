@@ -144,7 +144,7 @@
                         <p>
                             This domain has been flagged as <em>Burned</em> for the following reason(s):<br>
                             <hr>
-                            <p>{{ domain.burned_explanation|bleach }}</p>
+                            <p>{{ domain.burned_explanation|bleach|linebreaks }}</p>
                         </p>
                     {% else %}
                         <p>This domain has been flagged as <em>Burned</em> with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>

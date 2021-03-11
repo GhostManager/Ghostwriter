@@ -151,32 +151,47 @@ class DomainReview(object):
                                 vt_results["data"]["detected_downloaded_samples"]
                             )
                             logger.warning(
-                                "Domain %s is tied to {total_detections} VirusTotal malware sample(s)",
+                                "Domain %s is tied to %s VirusTotal malware sample(s)",
                                 domain_name,
+                                total_detections,
                             )
                             burned = True
-                            burned_explanations.append(
-                                f"<p>Tied to {total_detections} VirusTotal malware sample(s):</p>"
-                            )
+                            detections = []
                             for detection in vt_results["data"]["detected_downloaded_samples"]:
-                                burned_explanations.append(
-                                    f"<p>SHA256 hash {detection['sha256']} flagged by {detection['positives']} vendors on {detection['date']}</p>"
+                                detections.append(
+                                    "VT downloaded a file with a SHA256 hash of {} which had {} detections for malware on {}".format(
+                                        detection["sha256"],
+                                        detection["positives"],
+                                        detection["date"],
+                                    )
                                 )
+                            burned_explanations.append(
+                                "Tied to {} VirusTotal malware sample(s):\n{}".format(
+                                    total_detections, "\n".join(detections)
+                                )
+                            )
                     if "detected_urls" in vt_results["data"]:
                         if len(vt_results["data"]["detected_urls"]) > 0:
                             total_detections = len(vt_results["data"]["detected_urls"])
                             logger.warning(
-                                "Domain %s has a positive malware detection on VirusTotal.",
+                                "Domain %s has a positive malware detection on VirusTotal",
                                 domain_name,
                             )
                             burned = True
-                            burned_explanations.append(
-                                f"<p>Domain has {total_detections} malware detections on VirusTotal:</p>"
-                            )
+                            detections = []
                             for detection in vt_results["data"]["detected_urls"]:
-                                burned_explanations.append(
-                                    f"<p>{detection['url']} flagged by {detection['positives']} vendors on {detection['scan_date']}</p>"
+                                detections.append(
+                                    "{} has {} positive detections from {}".format(
+                                        detection["url"],
+                                        detection["positives"],
+                                        detection["scan_date"],
+                                    )
                                 )
+                            burned_explanations.append(
+                                "Domain has {} malware detections on VirusTotal:\n{}".format(
+                                    total_detections, "\n".join(detections)
+                                )
+                            )
                 else:
                     lab_results[domain]["vt_results"] = "none"
                     logger.warning("Did not receive results for %s from VirusTotal", domain_name)
@@ -194,7 +209,7 @@ class DomainReview(object):
                     )
                     burned = True
                     burned_explanations.append(
-                        "<p>Tagged with one or more undesirable categories: {bad_cat}</p>".format(
+                        "Tagged with one or more undesirable categories: {bad_cat}".format(
                             bad_cat=", ".join(bad_categories)
                         )
                     )
