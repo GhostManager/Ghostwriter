@@ -556,7 +556,9 @@ def check_domains(domain=None):
             domain_list.append(result)
 
     # Execute ``DomainReview`` to check categories
-    domain_review = DomainReview(domain_list, sleep_time_override)
+    domain_review = DomainReview(
+        domain_queryset=domain_list, sleep_time_override=sleep_time_override
+    )
     lab_results = domain_review.check_domain_status()
 
     # Update the domains as needed
@@ -585,6 +587,26 @@ def check_domains(domain=None):
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
                     )
+            # If the domain isn't marked as burned, check for any informational warnings
+            else:
+                if lab_results[domain]["warnings"]["total"] > 0:
+                    logger.info(
+                        "Domain is not burned but there are warnings, so preparing notification"
+                    )
+                    if slack_config.enable:
+                        slack_data = craft_warning_message(
+                            slack_config.slack_username,
+                            slack_config.slack_emoji,
+                            slack_config.slack_channel,
+                            domain.name,
+                            "VirusTotal Submission",
+                            lab_results[domain]["warnings"]["messages"],
+                        )
+                        response = requests.post(
+                            slack_config.webhook_url,
+                            data=slack_data,
+                            headers={"Content-Type": "application/json"},
+                        )
             # Update other fields for the domain object
             if lab_results[domain]["burned"] and "burned_explanation" in lab_results[domain]:
                 if lab_results[domain]["burned_explanation"]:
