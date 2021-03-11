@@ -698,8 +698,6 @@ def update_dns(domain=None):
                 dns_records_dict["txt"] = txt_record
                 dns_records_dict["soa"] = soa_record
 
-                logger.info(dns_records_dict)
-
                 # Look-up the individual domain and save the new record string
                 domain_instance = Domain.objects.get(name=domain.name)
                 domain_instance.dns_record = dns_records_dict
