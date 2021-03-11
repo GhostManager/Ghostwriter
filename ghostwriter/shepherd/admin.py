@@ -98,7 +98,7 @@ class DomainAdmin(ImportExportModelAdmin):
         "name",
         "whois_status",
         "health_status",
-        "health_dns",
+        "last_health_check",
         "registrar",
         "note",
     )
@@ -110,6 +110,7 @@ class DomainAdmin(ImportExportModelAdmin):
             "Health status",
             {
                 "fields": (
+                    "last_health_check",
                     "whois_status",
                     "health_status",
                     "health_dns",
