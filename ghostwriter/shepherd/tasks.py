@@ -1,24 +1,25 @@
 """This contains tasks to be run using Django Q and Redis."""
 
 # Standard Libraries
+from collections import defaultdict
 import datetime
+from datetime import date
 import json
 import logging
 import logging.config
 import traceback
-from collections import defaultdict
-from datetime import date
 
 # Django & Other 3rd Party Libraries
 from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 import boto3
+from botocore.exceptions import ClientError
+from bs4 import BeautifulSoup
+from channels.layers import get_channel_layer
+from django.db.models import Q
+from lxml import objectify
 import nmap
 import pytz
 import requests
-from botocore.exceptions import ClientError
-from django.db.models import Q
-from lxml import objectify
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import (
@@ -182,7 +183,7 @@ def craft_burned_message(username, emoji, channel, domain, categories, burned_ex
                     },
                     {
                         "type": "mrkdwn",
-                        "text": "*Explanation:*\n{}".format(", ".join(burned_explanation)),
+                        "text": "*Explanation:*\n{}".format("\n".join(burned_explanation)),
                     },
                 ],
             },
@@ -523,27 +524,42 @@ def check_domains(domain=None):
     ``domain``
         Individual domain's primary key to update only that domain (Default: None)
     """
+    domain_updates = {}
+    domain_updates["errors"] = {}
+
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
 
-    # Get target domain(s) from the database
+    # Get target domain(s) from the database or the target ``domain``
     domain_list = []
     sleep_time_override = None
     if domain:
-        domain_queryset = Domain.objects.get(pk=domain)
-        domain_list.append(domain_queryset)
-        logger.info("Checking only one domain, so disabling sleep time for VirusTotal")
-        sleep_time_override = 0
+        try:
+            domain_queryset = Domain.objects.get(pk=domain)
+            domain_list.append(domain_queryset)
+            logger.info("Checking only one domain, so disabling sleep time for VirusTotal")
+            sleep_time_override = 0
+        except Domain.DoesNotExist:
+            domain_updates[domain] = {}
+            domain_updates[domain]["change"] = "error"
+            domain_updates["errors"][domain.name] = {}
+            domain_updates["errors"][domain.name] = f"Requested domain ID, {domain}, does not exist"
+            logger.exception("Requested domain ID, %s, does not exist", domain)
+            return domain_updates
     else:
-        domain_queryset = Domain.objects.all()
+        # Only fetch domains that are not expired or already burned
+        domain_queryset = Domain.objects.filter(
+            ~Q(domain_status=DomainStatus.objects.get(domain_status="Expired"))
+            & ~Q(health_status=HealthStatus.objects.get(health_status="Burned"))
+        )
         for result in domain_queryset:
             domain_list.append(result)
+
     # Execute ``DomainReview`` to check categories
     domain_review = DomainReview(domain_list, sleep_time_override)
     lab_results = domain_review.check_domain_status()
+
     # Update the domains as needed
-    domain_updates = {}
-    domain_updates["errors"] = {}
     for domain in lab_results:
         change = "no action"
         domain_updates[domain.id] = {}
@@ -554,7 +570,6 @@ def check_domains(domain=None):
             # Flip status if a domain has been flagged as burned
             if lab_results[domain]["burned"]:
                 domain.health_status = HealthStatus.objects.get(health_status="Burned")
-                domain.domain_status = DomainStatus.objects.get(domain_status="Burned")
                 change = "burned"
                 if slack_config.enable:
                     slack_data = craft_burned_message(
