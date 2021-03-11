@@ -13,7 +13,6 @@ import traceback
 from asgiref.sync import async_to_sync
 import boto3
 from botocore.exceptions import ClientError
-from bs4 import BeautifulSoup
 from channels.layers import get_channel_layer
 from django.db.models import Q
 from lxml import objectify
@@ -69,17 +68,13 @@ def craft_cloud_message(
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": "A cloud asset for this project looks like it is ready to be torn down:\n*{}*".format(
-            project_name
-        ),
+        "text": ":cloud: Teardown Notification for {} :cloud:".format(project_name),
         "blocks": [
             {
-                "type": "section",
+                "type": "header",
                 "text": {
-                    "type": "mrkdwn",
-                    "text": "A cloud asset for this project looks like it is ready to be torn down:\n*{}*".format(
-                        project_name
-                    ),
+                    "type": "plain_text",
+                    "text": ":cloud: Teardown Notification for {} :cloud:".format(project_name),
                 },
             },
             {
@@ -120,8 +115,15 @@ def craft_unknown_asset_message(
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": "An *untracked* cloud asset is running without being attached to a project. If this asset should be ignored, tag it with one of the configured `Ignore Tags` in settings.",
+        "text": ":eye: Untracked Cloud Server :eyes:",
         "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": ":eye: Untracked Cloud Server :eyes:",
+                },
+            },
             {
                 "type": "section",
                 "text": {
@@ -161,13 +163,13 @@ def craft_burned_message(username, emoji, channel, domain, categories, burned_ex
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": "This domain name is now considered *Burned* :fire:",
+        "text": ":fire: Domain Burned :fire:",
         "blocks": [
             {
-                "type": "section",
+                "type": "header",
                 "text": {
-                    "type": "mrkdwn",
-                    "text": "This domain name is now considered *Burned* :fire:",
+                    "type": "plain_text",
+                    "text": ":fire: Domain Burned :fire:",
                 },
             },
             {
@@ -181,15 +183,60 @@ def craft_burned_message(username, emoji, channel, domain, categories, burned_ex
                         "type": "mrkdwn",
                         "text": "*Categories:*\n{}".format(", ".join(categories)),
                     },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Explanation:*\n{}".format("\n".join(burned_explanation)),
-                    },
                 ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "\n".join(burned_explanation),
+                },
             },
         ],
     }
     return json.dumps(BURNED_DOMAIN_MESSAGE)
+
+
+def craft_warning_message(username, emoji, channel, domain, warning_type, warnings):
+    """
+    Craft a nicely formatted Slack message using blocks for sending warning nessages.
+    """
+    WARNING_MESSAGE = {
+        "username": username,
+        "icon_emoji": emoji,
+        "channel": channel,
+        "text": ":warning: Domain Event :warning:",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": ":warning: Domain Event :warning:",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Domain Name:*\n{}".format(domain),
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Warning:*\n{}".format(warning_type),
+                    },
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "\n".join(warnings),
+                },
+            },
+        ],
+    }
+    return json.dumps(WARNING_MESSAGE)
 
 
 class BearerAuth(requests.auth.AuthBase):
