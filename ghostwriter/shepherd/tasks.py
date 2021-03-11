@@ -1344,18 +1344,19 @@ def check_expiration():
     expired_status = DomainStatus.objects.get(domain_status="Expired")
     domain_queryset = Domain.objects.filter(~Q(domain_status=expired_status))
     for domain in domain_queryset:
-        logger.info("Checking %s", domain)
+        logger.info("Checking expiration status of %s", domain)
         domain_changes["updates"][domain.id] = {}
         domain_changes["updates"][domain.id]["change"] = "no change"
         if domain.expiration <= date.today():
             domain_changes["updates"][domain.id]["domain"] = domain.name
-
+            # If the domain is set to auto-renew, update the expiration date
             if domain.auto_renew:
                 logger.info("Adding one year to %s's expiration date", domain.name)
                 domain_changes["updates"][domain.id]["change"] = "auto-renewed"
                 domain.expiration = domain.expiration + datetime.timedelta(days=365)
                 domain.expired = False
                 domain.save()
+            # Otherwise, mark the domain as expired
             else:
                 logger.info(
                     "Expiring domain %s due to expiration date, %s",
