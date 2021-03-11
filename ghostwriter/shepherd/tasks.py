@@ -1255,7 +1255,13 @@ def review_cloud_infrastructure():
         )
         if queryset:
             for result in queryset:
-                if result.project.end_date < instance["launch_time"].date():
+                # Consider the asset in use if the project's end date is in the past
+                if result.project.end_date < date.today():
+                    logger.info(
+                        "Project end date is %s which is earlier than now, %s",
+                        result.project.end_date,
+                        datetime.datetime.now().date(),
+                    )
                     if slack_config.enable:
                         if result.project.slack_channel:
                             slack_data = craft_cloud_message(
