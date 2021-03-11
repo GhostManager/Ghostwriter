@@ -197,7 +197,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
 class ServerRelease(LoginRequiredMixin, SingleObjectMixin, View):
     """
     Set the ``server_status`` field of an individual :model:`shepherd.StaticServer` to
-    the ``Available`` entry in :model:`shepherd.DomainStatus` and update the
+    the ``Available`` entry in :model:`shepherd.ServerStatus` and update the
     associated :model:`shepherd.ServerHistory` entry.
     """
 
