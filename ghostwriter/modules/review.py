@@ -313,7 +313,7 @@ class DomainReview(object):
                                     scan_date.split(" ")[0], "%Y-%m-%d"
                                 )
                                 if scan_date.date() >= last_health_check:
-                                    warning_msg = "This URL was submitted to VirusTotal on, after domain;s last health check on {}: {}{}".format(
+                                    warning_msg = "This URL was submitted to VirusTotal on {}, after domain's last health check on {}: {}{}".format(
                                         scan_date, last_health_check, scan_domain, scan_uri
                                     )
                                     warnings.append(warning_msg)
