@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+AVATAR_DIR=/app/ghostwriter/media/user_avatars
+EVIDENCE_DIR=/app/ghostwriter/media/evidence
+TEMPLATE_DIR=/app/ghostwriter/media/templates
+
+TEMPLATE_PATH_DOCX=/app/ghostwriter/reporting/templates/reports/template.docx
+TEMPLATE_PATH_PPTX=/app/ghostwriter/reporting/templates/reports/template.pptx
+
+[[ ! -d "$EVIDENCE_DIR" ]] && mkdir -p "$EVIDENCE_DIR"
+[[ ! -d "$AVATAR_DIR" ]] && mkdir -p "$AVATAR_DIR"
+[[ ! -d "$TEMPLATE_DIR" ]] && mkdir -p "$TEMPLATE_DIR"
+
+cp -u -p "$TEMPLATE_PATH_DOCX" "$TEMPLATE_DIR"
+cp -u -p "$TEMPLATE_PATH_PPTX" "$TEMPLATE_DIR"
+
+python -m pip install --upgrade pip
+python manage.py makemigrations
+python manage.py migrate
+pip install debugpy -t /tmp
+python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --nothreading
