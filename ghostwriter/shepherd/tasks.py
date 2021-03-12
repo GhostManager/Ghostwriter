@@ -1092,7 +1092,7 @@ def json_datetime_converter(dt):
         return dt.__str__()
 
 
-def review_cloud_infrastructure():
+def review_cloud_infrastructure(aws_only_running=False):
     """
     Fetch active virtual machines/instances in Digital Ocean, Azure, and AWS and
     compare IP addresses to project infrastructure. Send a report to Slack if any
@@ -1100,6 +1100,11 @@ def review_cloud_infrastructure():
     for a project.
 
     Returns a dictionary of cloud assets and encountered errors.
+
+    **Parameters**
+
+    ``aws_only_running``
+        Filter out any shutdown AWS resources, where possible (Default: False)
     """
     # Digital Ocean API endpoint for droplets
     DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
@@ -1136,18 +1141,18 @@ def review_cloud_infrastructure():
         )
         regions = [region["RegionName"] for region in client.describe_regions()["Regions"]]
     except ClientError:
-        logger.error("AWS could not validate the provided credentials")
+        logger.error("AWS could not validate the provided credentials for EC2")
         aws_capable = False
-        vps_info["errors"]["aws"] = "AWS could not validate the provided credentials"
+        vps_info["errors"]["aws"] = "AWS could not validate the provided credentials for EC2"
     except Exception:
         trace = traceback.format_exc()
         logger.exception("Testing authentication to AWS failed")
         aws_capable = False
-        vps_info["errors"]["aws"] = "Testing authentication to AWS failed: {traceback}".format(
+        vps_info["errors"]["aws"] = "Testing authentication to AWS EC2 failed: {traceback}".format(
             traceback=trace
         )
     if aws_capable:
-        logger.info("AWS credentials are functional, beginning AWS review")
+        logger.info("AWS credentials are functional for EC2, beginning AWS review")
         # Loop over the regions to check each one for EC2 instances
         for region in regions:
             logger.info("Checking AWS region %s", region)
@@ -1159,9 +1164,12 @@ def review_cloud_infrastructure():
                 aws_secret_access_key=cloud_config.aws_secret,
             )
             # Get all EC2 instances that are running
-            running_instances = ec2.instances.filter(
-                Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
-            )
+            if aws_only_running:
+                running_instances = ec2.instances.filter(
+                    Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+                )
+            else:
+                running_instances = ec2.instances.all()
             # Loop over running instances to generate info dict
             for instance in running_instances:
                 # Calculate how long the instance has been running in UTC
@@ -1186,6 +1194,7 @@ def review_cloud_infrastructure():
                 vps_info["instances"][instance.id] = {
                     "id": instance.id,
                     "provider": "Amazon Web Services {}".format(region),
+                    "service": "EC2",
                     "name": name,
                     "type": instance.instance_type,
                     "monthly_cost": None,  # AWS cost is different and not easily calculated
@@ -1292,6 +1301,7 @@ def review_cloud_infrastructure():
             vps_info["instances"][droplet["id"]] = {
                 "id": droplet["id"],
                 "provider": "Digital Ocean",
+                "service": "Droplets",
                 "name": droplet["name"],
                 "type": droplet["image"]["distribution"] + " " + droplet["image"]["name"],
                 "monthly_cost": droplet["size"]["price_monthly"],
