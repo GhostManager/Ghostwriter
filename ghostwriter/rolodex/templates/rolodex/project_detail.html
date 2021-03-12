@@ -339,18 +339,15 @@
                 {% if project.report_set.all %}
                     <table id="reportTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Creation</th>
                             <th class="align-middle">Title</th>
-                            <th class="align-middle">Last Update</th>
                             <th class="align-middle">Status</th>
+                            <th class="align-middle">Last Update</th>
                             <th class="align-middle">Created by</th>
                             <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
                         {% for report in project.report_set.all %}
                             <tr>
-                                <td class="align-middle">{{ report.creation }}</td>
                                 <td class="align-middle"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                                <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
                                 {% if report.complete %}
                                     {% if report.delivered %}
                                         <td class="align-middle">Delivered</td>
@@ -360,6 +357,7 @@
                                 {% else %}
                                     <td class="align-middle">In Progress</td>
                                 {% endif %}
+                                <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
                                 <td class="align-middle">{{ report.created_by }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
@@ -378,26 +376,26 @@
 
                     {% for report in project.report_set.all %}
                         {% if report.reportfindinglink_set.all %}
-                            <h4>{{ report.title }}</h4>
+                            <h4>Findings in {{ report.title }}</h4>
                             <table class="table">
                                 <thead>
-                                    <th class="align-middle">priority</th>
+                                    <th class="align-middle">Severity</th>
                                     <th class="align-middle">Finding</th>
                                     <th class="align-middle">Owner</th>
                                     <th class="align-middle">Status</th>
                                 </thead>
                                 {% for finding in report.reportfindinglink_set.all %}
                                     <tr>
-                                        {% if finding.priority.priority == "Critical" %}
-                                            <td class="critical align-middle">{{ finding.priority }}</td>
-                                        {% elif finding.priority.priority == "High" %}
-                                            <td class="high align-middle">{{ finding.priority }}</td>
-                                        {% elif finding.priority.priority == "Medium" %}
-                                            <td class="medium align-middle">{{ finding.priority }}</td>
-                                        {% elif finding.priority.priority == "Low" %}
-                                            <td class="low align-middle">{{ finding.priority }}</td>
+                                        {% if finding.severity.severity == "Critical" %}
+                                            <td class="critical align-middle">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "High" %}
+                                            <td class="high align-middle">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Medium" %}
+                                            <td class="medium align-middle">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Low" %}
+                                            <td class="low align-middle">{{ finding.severity }}</td>
                                         {% else %}
-                                            <td class="info align-middle">{{ finding.priority }}</td>
+                                            <td class="info align-middle">{{ finding.severity }}</td>
                                         {% endif %}
                                         <td class="align-middle"><a class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                         {% if finding.assigned_to == request.user %}

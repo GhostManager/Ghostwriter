@@ -1398,6 +1398,10 @@ th.icon {
   content: '\f302';
 }
 
+.folder-icon:before {
+  content: '\f07c';
+}
+
 .domain-icon:before {
   content: '\f02e';
 }
