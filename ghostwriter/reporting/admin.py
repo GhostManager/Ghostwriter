@@ -4,7 +4,6 @@
 from django.contrib import admin
 from import_export.admin import ImportExportModelAdmin
 
-# Ghostwriter Libraries
 from .models import (
     Archive,
     DocType,
@@ -168,6 +167,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                     "document",
                     "description",
                     "client",
+                    "doc_type",
                 )
             },
         ),
