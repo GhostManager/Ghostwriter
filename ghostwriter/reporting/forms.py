@@ -17,8 +17,6 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-
-# Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
 
@@ -483,7 +481,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
         self.fields["description"].widget.attrs[
             "placeholder"
-        ] = "Brief Description on Tempalte Usage"
+        ] = "Brief Description on Template Usage"
         self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
