@@ -46,7 +46,9 @@ class FindingForm(forms.ModelForm):
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
+        self.fields["mitigation"].widget.attrs[
+            "placeholder"
+        ] = "What needs to be done ..."
         self.fields["replication_steps"].widget.attrs[
             "placeholder"
         ] = "How to reproduce/find this issue ..."
@@ -200,7 +202,9 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
+        self.fields["mitigation"].widget.attrs[
+            "placeholder"
+        ] = "What needs to be done ..."
         self.fields["replication_steps"].widget.attrs[
             "placeholder"
         ] = "How to reproduce/find this issue ..."
@@ -242,7 +246,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 <hr />
                 """
             ),
-            "affected_entities",
+            Field("affected_entities", css_class="enable-evidence-upload"),
             HTML(
                 """
                 <h4 class="icon pencil-icon">General Information</h4>
@@ -270,7 +274,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 <hr />
                 """
             ),
-            "references",
+            Field("references", css_class="enable-evidence-upload"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -310,14 +314,18 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
-        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Brief Description or Note"
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         # Don't set form buttons for a modal pop-up
         if self.is_modal:
             submit = None
             cancel_button = None
         else:
-            submit = Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4")
+            submit = Submit(
+                "submit-button", "Submit", css_class="btn btn-primary col-md-4"
+            )
             cancel_button = HTML(
                 """
                 <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
@@ -482,7 +490,9 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["description"].widget.attrs[
             "placeholder"
         ] = "Brief Description on Template Usage"
-        self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
+        self.fields["changelog"].widget.attrs[
+            "placeholder"
+        ] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         # Design form layout with Crispy FormHelper
