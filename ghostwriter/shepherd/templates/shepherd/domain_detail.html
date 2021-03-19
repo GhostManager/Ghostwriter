@@ -250,7 +250,7 @@
             <!-- Project History Tab -->
             <div id="history" class="tab-pane">
                 {% if domain.history_set.all %}
-                    <table id="projectTable" class="tablesorter table">
+                    <table id="project-table" class="tablesorter table table-striped">
                         <thead>
                             <tr>
                                 <th>Client</th>
@@ -326,7 +326,7 @@
     <!-- jQuery Tablesorter Script -->
     <script>
         $(document).ready(function()  {
-            $("#projectTable").tablesorter(
+            $("#project-table").tablesorter(
                             {
                                 cssAsc: 'down',
                                 cssDesc: 'up',
