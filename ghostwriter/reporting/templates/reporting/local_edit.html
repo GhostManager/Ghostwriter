@@ -48,19 +48,19 @@
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_start}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in M D, YYYY format: {{ reportfindinglink.report.project.start_date|date:"M d, Y" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in M D, YYYY format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_start_uk}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in D M YYYY format: {{ reportfindinglink.report.project.start_date|date:"d M Y" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in D M YYYY format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_end}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in M D, YYYY format: {{ reportfindinglink.report.project.end_date|date:"M d, Y" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in M D, YYYY format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_end_uk}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in D M YYYY format: {{ reportfindinglink.report.project.end_date|date:"d M Y" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in D M YYYY format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                         {% verbatim %}
                             <tr>

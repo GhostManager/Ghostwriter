@@ -11,7 +11,7 @@
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date|date:"d M Y" }} {{ project.project_type }}</li>
+            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date|date:"DATE_FORMAT" }} {{ project.project_type }}</li>
         </ul>
     </nav>
 {% endblock %}
@@ -75,7 +75,7 @@
                     </tr>
                     <tr>
                         <td class="text-left bold">Execution Dates</td>
-                        <td class="text-left">{{ project.start_date|date:"d F Y" }} – {{ project.end_date|date:"d F Y" }}</td>
+                        <td class="text-left">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
                     </tr>
                     <tr>
                         <td class="text-left bold">Slack Channel</td>
@@ -126,7 +126,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="align-middle">{{ operator.role }}</td>
-                                <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
+                                <td class="align-middle">{{ operator.start_date|date:"DATE_FORMAT" }} – <br/> {{ operator.end_date|date:"DATE_FORMAT" }}</td>
                                 <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
@@ -357,7 +357,7 @@
                                 {% else %}
                                     <td class="align-middle">In Progress</td>
                                 {% endif %}
-                                <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
+                                <td class="align-middle">{{ report.last_update|date:"DATE_FORMAT" }}</td>
                                 <td class="align-middle">{{ report.created_by }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
@@ -462,7 +462,7 @@
                                     </span>
                                 </td>
                                 <td class="align-middle">{{ domain.activity_type }}</td>
-                                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
+                                <td class="align-middle">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}</td>
                                 <td clss="text-justify align-middle">{{ domain.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">

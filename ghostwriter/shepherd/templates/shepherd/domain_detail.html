@@ -179,7 +179,7 @@
 
                         <td>
                             {% if domain.last_health_check %}
-                                {{ domain.last_health_check|date:"d M Y" }}
+                                {{ domain.last_health_check|date:"DATE_FORMAT" }}
                             {% else %}
                                 No Record
                             {% endif %}
@@ -266,7 +266,7 @@
                                 <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
                                 <td>{{ project.activity_type }}</td>
                                 <td>{{ project.project.project_type }}</td>
-                                <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
+                                <td>{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
                                 <td class="table-note">{{ project.note|bleach}}</td>
                                 <td>
                                     <div class="dropdown dropleft">

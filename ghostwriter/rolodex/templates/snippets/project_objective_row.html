@@ -57,7 +57,7 @@
     </td>
     <td class="align-middle">
         <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
-            {{ objective.deadline|date:"d M Y" }}
+            {{ objective.deadline|date:"DATE_FORMAT" }}
         </span>
     </td>
 </tr>

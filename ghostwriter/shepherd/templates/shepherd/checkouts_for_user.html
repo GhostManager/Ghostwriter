@@ -44,7 +44,7 @@
 
                                 <td class="align-middle">{{ entry.activity_type}}</td>
 
-                                <td class="align-middle {% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
+                                <td class="align-middle {% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>
 
                                 <td class="align-middle">
                                     <div class="dropdown">
@@ -93,7 +93,7 @@
 
                                 <td class="align-middle">{{ entry.server_role}}</td>
 
-                                <td class="align-middle {% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"d M Y" }}</td>
+                                <td class="align-middle {% if entry.will_be_released %}burned{% endif %}">{{ entry.end_date|date:"DATE_FORMAT" }}</td>
 
                                 <td class="align-middle">
                                     <div class="dropdown">
