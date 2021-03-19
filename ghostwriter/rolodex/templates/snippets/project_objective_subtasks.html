@@ -3,7 +3,13 @@
 {% load determine_primary %}
 
 <div id="objective-{{ objective.id }}-tasks">
-    <div class="card-body">
+    <div class="card-body task-card">
+        {%  if objective.description %}
+            <div class="objective-description pb-2">
+                {{ objective.description|bleach }}
+            </div>
+        {% endif %}
+
         <!-- New Task Form -->
         <form action="javascript:void(0);" id="new-task-form-{{ objective.id }}" objective-id="{{ objective.id }}" new-task-url="{% url 'rolodex:ajax_create_project_task' objective.id %}" new-task-csrftoken="{{ csrf_token }}" refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}">
             <div class="form-row my-auto">
@@ -20,7 +26,7 @@
         </form>
 
         {% if objective.projectsubtask_set.all %}
-            <p class="mb-0 mt-3">Click a task or deadline to edit. Click outside of the task to save.</p>
+            <p class="mb-0 mt-3 icon info-circle-icon">Click a task or deadline to edit. Click outside of the task to save.</p>
 
             <!-- Task List Filters -->
             <ul class="nav nav-pills todo-nav">

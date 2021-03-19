@@ -41,12 +41,6 @@
                         <tr id="tasks-objective-row-{{ objective.id }}" data-id="ignore-{{ objective.id }}" class="accordion">
                             <td colspan="7">
                                 <div class="accordion-content">
-                                    {%  if objective.description %}
-                                        <div class="objective-description">
-                                            {{ objective.description|bleach }}
-                                        </div>
-                                    {% endif %}
-
                                     <div id="task-list-{{ objective.id }}">
                                         {% include "snippets/project_objective_subtasks.html" %}
                                     </div>
