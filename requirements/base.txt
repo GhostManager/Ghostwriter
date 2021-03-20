@@ -31,7 +31,7 @@ django-tinymce==2.8.0  # Deprecated, but kept here for legacy migrations
 docutils==0.16
 docxtpl==0.10.0
 dnspython==2.0.0
-jinja2==2.11.2
+jinja2==2.11.3
 python-docx==0.8.10
 python-nmap==0.6.1
 python-pptx==0.6.18
