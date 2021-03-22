@@ -171,6 +171,38 @@ hr {
 }
 
 /* ---------------------------------------------------
+    WYSIWYG-APPLIED STYLES
+----------------------------------------------------- */
+
+.bold {
+  font-weight: 600;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.underline {
+  text-decoration: underline;
+}
+
+.center {
+  text-align: center;
+}
+
+.right {
+  text-align: right;
+}
+
+.left {
+  text-align: left;
+}
+
+.highlight {
+  background-color: yellow;
+}
+
+/* ---------------------------------------------------
     HEADER STYLES
 ----------------------------------------------------- */
 
@@ -209,18 +241,6 @@ h6 {
   font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 1.15em;
   padding-top: 10px;
-}
-
-.bold {
-  font-weight: 600;
-}
-
-.italic {
-  font-style: italic;
-}
-
-.underline {
-  text-decoration: underline;
 }
 
 .clickable-link {
@@ -2075,6 +2095,10 @@ h5 a[aria-expanded=true]:after {
   content: '\2212';
 }
 
+.finding-card {
+  text-align: justify;
+}
+
 .finding-card ul,
 ol {
   text-align: left;
@@ -2083,8 +2107,9 @@ ol {
 .finding-card pre {
   text-align: justify;
   font-family: 'Courier New', Courier, monospace;
-  padding-left: 20px;
+  padding-left: 10px;
   white-space: pre-wrap;
+  border: 2px solid #dedede;
 }
 
 .finding-card code {
