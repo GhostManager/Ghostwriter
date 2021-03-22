@@ -215,12 +215,12 @@
                         <!-- Sidebar Buttons -->
                         <div class="align-middle text-center">
                             {% if user.is_authenticated %}
-                                <a href="{% url 'account_logout' %}" class="btn btn-primary col-md-8 icon logout-icon">Logout</a>
+                                <a href="{% url 'account_logout' %}" class="btn btn-primary col-10 icon logout-icon">Logout</a>
                             {% else %}
-                                <a href="{% url 'account_login' %}" class="btn btn-primary col-md-8 icon login-icon">Login</a>
+                                <a href="{% url 'account_login' %}" class="btn btn-primary col-10 icon login-icon">Login</a>
                             {% endif %}
 
-                            <a href="https://www.specterops.io"><img class="sidebar-logo" src="{% static 'images/domain.png' %}" alt="SpecterOps"></a>
+                            <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}" alt="SpecterOps"></a>
                         </div>
                     </div>
                 </nav>
