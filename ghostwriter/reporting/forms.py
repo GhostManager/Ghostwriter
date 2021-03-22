@@ -109,6 +109,7 @@ class FindingForm(forms.ModelForm):
                 """
             ),
             "references",
+            "finding_guidance",
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
