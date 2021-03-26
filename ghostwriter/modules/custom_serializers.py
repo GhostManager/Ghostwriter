@@ -173,6 +173,7 @@ class FindingLinkSerializer(CustomModelSerializer):
         many=True,
         exclude=[
             "finding",
+            "uploaded_by",
         ],
     )
 
