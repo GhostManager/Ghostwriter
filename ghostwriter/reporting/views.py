@@ -1707,7 +1707,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
         except DocxPackageNotFoundError:
-            logger.error(
+            logger.exception(
                 "DOCX generation failed for %s %s and user %s because the template file was missing",
                 self.object.__class__.__name__,
                 self.object.id,
@@ -1719,7 +1719,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
         except FileNotFoundError as error:
-            logger.error(
+            logger.exception(
                 "DOCX generation failed for %s %s and user %s because an evidence file was missing",
                 self.object.__class__.__name__,
                 self.object.id,
@@ -1733,7 +1733,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
         except UnrecognizedImageError as error:
-            logger.error(
+            logger.exception(
                 "DOCX generation failed for %s %s and user %s because of an unrecognized or corrupt image",
                 self.object.__class__.__name__,
                 self.object.id,
@@ -1881,7 +1881,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
         except ValueError as exception:
-            logger.error(
+            logger.exception(
                 "PPTX generation failed for %s %s and user %s because the template could not be loaded as a PPTX",
                 self.object.__class__.__name__,
                 self.object.id,
@@ -1893,7 +1893,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
         except PptxPackageNotFoundError:
-            logger.error(
+            logger.exception(
                 "PPTX generation failed for %s %s and user %s because the template file was missing",
                 self.object.__class__.__name__,
                 self.object.id,
@@ -1905,7 +1905,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
         except FileNotFoundError as error:
-            logger.error(
+            logger.exception(
                 "PPTX generation failed for %s %s and user %s because an evidence file was missing",
                 self.object.__class__.__name__,
                 self.object.id,
@@ -1919,7 +1919,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
         except UnrecognizedImageError as error:
-            logger.error(
+            logger.exception(
                 "PPTX generation failed for %s %s and user %s because of an unrecognized or corrupt image",
                 self.object.__class__.__name__,
                 self.object.id,
