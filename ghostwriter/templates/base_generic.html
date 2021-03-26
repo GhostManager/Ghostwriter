@@ -354,7 +354,6 @@
             });
         </script>
 
-
         <!-- Script for Copying Text to Clipboard-->
         <script>
             function copyToClipboard(element) {
@@ -365,7 +364,6 @@
                 $temp.remove();
             }
         </script>
-
 
         <!-- Activate Report with AJAX -->
         <script>
@@ -395,6 +393,7 @@
                         if (data['result'] == 'success') {
                             activeReportBar.html(data['report']);
                             activeReportBar.attr('href', data['report_url']);
+                            $('.empty-report').addClass('selected-report');
                             $('.empty-report').toggleClass('empty-report');
                             $('.btn.selected-report').each(function(index, ele) {
                                 if (reportId != $(this).attr('activate-report-id')) {
