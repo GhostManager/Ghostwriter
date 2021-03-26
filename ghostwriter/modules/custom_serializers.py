@@ -116,9 +116,20 @@ class CompanyInfoSerializer(CustomModelSerializer):
 class EvidenceSerializer(CustomModelSerializer):
     """Serialize :model:`reporting:Evidence` entries."""
 
+    path = SerializerMethodField("get_path")
+    url = SerializerMethodField("get_url")
+
     class Meta:
         model = Evidence
-        fields = "__all__"
+        exclude = [
+            "document",
+        ]
+
+    def get_path(self, obj):
+        return str(obj.document)
+
+    def get_url(self, obj):
+        return obj.document.url
 
 
 class FindingSerializer(CustomModelSerializer):
