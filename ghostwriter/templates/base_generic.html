@@ -122,17 +122,6 @@
                                 </ul>
                             </li>
                             <li>
-                                <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Reports</a>
-                                <ul class="collapse list-unstyled text-left" id="reportSubmenu">
-                                    <li><a class="icon list-icon" href="{% url 'reporting:reports' %}">Report Library</a></li>
-                                    <li><a class="icon plus-icon" href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
-                                    <hr>
-                                    <li><a class="icon list-icon" href="{% url 'reporting:templates' %}">Report Template Library</a></li>
-                                    <li><a class="icon plus-icon" href="{% url 'reporting:template_create' %}">Add New Report Template</a></li>
-                                    <li><a class="icon archive-icon" href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
-                                </ul>
-                            </li>
-                            <li>
                                 <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Operation Logs</a>
                                 <ul class="collapse list-unstyled text-left" id="oplogSubmenu">
                                     <li><a class="icon list-icon" href="{% url 'oplog:index' %}">Oplog Library</a></li>
@@ -140,6 +129,28 @@
                                     <li><a class="icon import-icon" href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
                                 </ul>
                             </li>
+                        </ul>
+
+                        <!-- Reporting Section -->
+                        <ul class="list-unstyled components">
+                            <p class="sideheader icon file-icon">Reporting</p>
+
+                            <!-- Menu Section -->
+                            <li>
+                                <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Reports</a>
+                                <ul class="collapse list-unstyled text-left" id="reportSubmenu">
+                                    <li><a class="icon list-icon" href="{% url 'reporting:reports' %}">Report Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="#templateSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Templates</a>
+                                <ul class="collapse list-unstyled text-left" id="templateSubmenu">
+                                    <li><a class="icon list-icon" href="{% url 'reporting:templates' %}">Report Template Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'reporting:template_create' %}">Add New Report Template</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="{% url 'reporting:archived_reports' %}">Archived Reports</a></li>
                         </ul>
 
                         <!-- Shepherd Section -->
