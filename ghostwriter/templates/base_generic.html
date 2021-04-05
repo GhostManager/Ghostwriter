@@ -51,7 +51,7 @@
         <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/locales-all.min.js"></script>
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.css">
 
-        <!-- ClipbaordJS -->
+        <!-- ClipboardJS -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script>
 
         <!-- Textarea Autoresize -->
@@ -414,6 +414,9 @@
                             $('.btn.js-activate-report').each(function(index, ele) {
                                 if (reportId == $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
                                     $(this).toggleClass('selected-report');
+                                    $(this).hide(1000);
+                                } else {
+                                    $(this).show(1000);
                                 }
                             });
                         }
