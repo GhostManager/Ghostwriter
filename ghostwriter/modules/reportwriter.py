@@ -18,7 +18,6 @@ import re
 from django.conf import settings
 
 # Django & Other 3rd Party Libraries
-import bleach
 import docx
 import jinja2
 import pptx
@@ -105,6 +104,7 @@ def compromised(targets):
 
 
 def prepare_jinja2_env(debug=False):
+    """Prepare a Jinja2 environment with all custom filters."""
     if debug:
         undefined = jinja2.DebugUndefined
     else:
@@ -139,7 +139,7 @@ class ReportConstants:
 
 
 class Reportwriter:
-    """Generate report documents in Microsoft Office formats."""
+    """Generate report documents in Microsoft Office formats and JSON."""
 
     # Allowlist for HTML tags expected to come from the WYSIWYG
     tag_allowlist = [
