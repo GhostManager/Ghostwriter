@@ -523,7 +523,7 @@ class ProjectSerializer(CustomModelSerializer):
         return str(obj)
 
     def get_start_date(self, obj):
-        return dateformat.format(obj.end_date, settings.DATE_FORMAT)
+        return dateformat.format(obj.start_date, settings.DATE_FORMAT)
 
     def get_end_date(self, obj):
         return dateformat.format(obj.end_date, settings.DATE_FORMAT)
