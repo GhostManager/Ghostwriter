@@ -4,9 +4,10 @@ Base settings to build other settings files upon.
 # Standard Libraries
 from pathlib import Path
 
+# Django Imports
 from django.contrib.messages import constants as messages
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 import environ
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
