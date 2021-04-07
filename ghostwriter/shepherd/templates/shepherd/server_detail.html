@@ -17,7 +17,11 @@
 {% block content %}
 
     <div class="dropdown">
-        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+        </div>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_update' staticserver.id %}">Edit Details</a>
             <a class="dropdown-item icon add-icon" href="{% url 'shepherd:server_update' staticserver.id %}#addresses">Add Aux IP Address</a>
@@ -30,7 +34,9 @@
         </div>
     </div>
 
-    <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
+    <div class="container">
+        <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
+    </div>
 
     <div>
         <!-- Note Section -->

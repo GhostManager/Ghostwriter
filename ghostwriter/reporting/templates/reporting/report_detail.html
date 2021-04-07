@@ -17,7 +17,11 @@
 
 {% block content %}
     <div class="dropdown">
-        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+        </div>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
             <a title="Set this report as your active report" href="javascript:void(0)" class="dropdown-item icon power-icon clickable-link js-activate-report" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Activate</a>
             <a class="dropdown-item icon edit-icon" href="{% url 'reporting:report_update' report.id %}">Edit</a>
@@ -28,7 +32,9 @@
         </div>
     </div>
 
-    <h2>{{ report.title }}</h2>
+    <div class="container">
+        <h2>{{ report.title }}</h2>
+    </div>
 
     <!-- Report Status & Toggles -->
     <h6 class="row text-left">

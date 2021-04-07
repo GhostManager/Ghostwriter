@@ -1158,6 +1158,7 @@ td p {
 ----------------------------------------------------- */
 
 .dropdown-menu-btn {
+  display: inline-block;
   vertical-align: middle;
   text-align: center;
   position: absolute;
@@ -1171,6 +1172,27 @@ td p {
   background-color: transparent;
   padding: 5px;
   cursor: pointer;
+}
+
+.bar1, .bar2, .bar3 {
+  width: 35px;
+  height: 5px;
+  background-color: var(--main-txt-color);
+  margin: 6px 0;
+  transition: 0.4s;
+  border-radius: 5px;
+}
+
+.change .bar1 {
+  -webkit-transform: rotate(-45deg) translate(-9px, 6px);
+  transform: rotate(-45deg) translate(-9px, 6px);
+}
+
+.change .bar2 {opacity: 0;}
+
+.change .bar3 {
+  -webkit-transform: rotate(45deg) translate(-8px, -8px);
+  transform: rotate(45deg) translate(-8px, -8px);
 }
 
 .dropdown-menu-btn-table {
@@ -1197,13 +1219,6 @@ td p {
   padding: 5px;
   cursor: pointer;
   font-family: 'Poppins', 'Font Awesome 5 Free';
-  color: var(--main-txt-color);
-}
-
-.dropdown-menu-btn:before {
-  content: '\f0c9';
-  font-family: 'Font Awesome 5 Free';
-  font-weight: 600;
   color: var(--main-txt-color);
 }
 

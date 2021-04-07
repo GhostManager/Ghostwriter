@@ -437,6 +437,21 @@
             });
         </script>
 
+        <!-- Scripts for Hamburger Menus -->
+        <script>
+            function hamburger(x) {
+                x.classList.toggle("change");
+            }
+        </script>
+
+        <script>
+            $(document).on("click", function(e){
+                if ($('.dropdown-menu-btn').hasClass('change')) {
+                    $('.dropdown-menu-btn').toggleClass('change');
+                }
+            });
+        </script>
+
         <!-- Script for Collapsibles -->
         <script>
             var coll = document.getElementsByClassName('collapsible');
