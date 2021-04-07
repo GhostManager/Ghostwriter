@@ -9,6 +9,7 @@ import os
 import zipfile
 from datetime import datetime
 
+# Django Imports
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -30,7 +31,7 @@ from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from docx.image.exceptions import UnrecognizedImageError
@@ -39,7 +40,6 @@ from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from xlsxwriter.workbook import Workbook
 
 # Ghostwriter Libraries
-# Import Python libraries for various things
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules import reportwriter
 from ghostwriter.modules.exceptions import MissingTemplate

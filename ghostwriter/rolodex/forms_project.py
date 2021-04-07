@@ -1,6 +1,12 @@
 """This contains all project-related forms used by the Rolodex application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils.translation import gettext_lazy as _
+
+# 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
@@ -14,10 +20,8 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-from django import forms
-from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import gettext_lazy as _
+
+# Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 
 from .models import (

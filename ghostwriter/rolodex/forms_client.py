@@ -1,6 +1,13 @@
 """This contains all client-related forms used by the Rolodex application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils.translation import gettext_lazy as _
+
+# 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
@@ -14,17 +21,11 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-from django import forms
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
 
 from .models import Client, ClientContact, ClientNote
-
 
 # Number of "extra" formsets created by default
 # Higher numbers can increase page load times with WYSIWYG editors
@@ -85,7 +86,9 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                                 ),
                             )
                     # Raise an error if details are present without a name
-                    elif name is None and any(x is not None for x in [job_title, email, phone]):
+                    elif name is None and any(
+                        x is not None for x in [job_title, email, phone]
+                    ):
                         form.add_error(
                             "name",
                             ValidationError(

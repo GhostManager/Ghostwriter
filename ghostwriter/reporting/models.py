@@ -5,7 +5,7 @@ import json
 import logging
 import os
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage

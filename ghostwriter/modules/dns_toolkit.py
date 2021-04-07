@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 """
 This module contains the tools required for collecting and parsing DNS records.
 """
@@ -11,7 +8,7 @@ import logging
 from asyncio import Semaphore
 from typing import Union
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 from dns import asyncresolver
 from dns.resolver import NXDOMAIN, Answer, NoAnswer
 

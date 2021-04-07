@@ -1,10 +1,11 @@
 """This contains customizations for displaying the Shepherd application models in the admin panel."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.contrib import admin
+
+# 3rd Party Libraries
 from import_export.admin import ImportExportModelAdmin
 
-# Ghostwriter Libraries
 from .models import (
     ActivityType,
     AuxServerAddress,

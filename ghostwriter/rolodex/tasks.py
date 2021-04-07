@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import date
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 import requests
 
 # Ghostwriter Libraries

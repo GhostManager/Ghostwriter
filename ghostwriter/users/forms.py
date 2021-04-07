@@ -1,11 +1,11 @@
 """This contains all of the forms used by the Users application."""
 
-# Django & Other 3rd Party Libraries
-from django.forms import ModelForm, ModelMultipleChoiceField
+# Django Imports
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import forms, get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.forms import ModelForm, ModelMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()

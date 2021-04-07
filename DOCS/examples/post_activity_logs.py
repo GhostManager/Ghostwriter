@@ -10,8 +10,7 @@ import struct
 import sys
 
 try:
-    # Django & Other 3rd Party Libraries
-    import requests
+    import requests  # noqa isort:skip
 except Exception:
     print("[!] Need the `requests` library installed\n\n" "\tpython install -U requests")
     exit()
@@ -164,10 +163,6 @@ if len(sys.argv) >= 3:
         "oplog_id": f"{oplog_id}",
     }
 
-    sys.stdout.write("Progress: [%s]" % (" " * count))
-    sys.stdout.flush()
-    sys.stdout.write("\b" * (count + 1))
-
     for i in range(count):
         data["source_ip"] = random.choice(random_hosts)
         data["dest_ip"] = random.choice(random_hosts)
@@ -177,8 +172,6 @@ if len(sys.argv) >= 3:
         data["operator_name"] = random.choice(operators)
         data["comments"] = f"Sample log entry #{i}"
         resp = requests.post(url, headers=headers, data=json.dumps(data))
-        sys.stdout.write("#")
-        sys.stdout.flush()
 
         if not resp.status_code == 201:
             print(
@@ -186,6 +179,6 @@ if len(sys.argv) >= 3:
             )
             exit()
 
-    sys.stdout.write("]\n")
+        print(f"... Created {i}/{count} log entries")
 else:
     show_help()

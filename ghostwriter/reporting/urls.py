@@ -1,9 +1,7 @@
 """This contains all of the URL mappings used by the Reporting application."""
 
+# Django Imports
 from django.urls import path
-
-# Ghostwriter Libraries
-from ghostwriter.reporting.views import EvidenceCreate
 
 from . import views
 

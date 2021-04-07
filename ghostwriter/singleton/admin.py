@@ -1,15 +1,18 @@
-# Django & Other 3rd Party Libraries
+"""This contains customizations for displaying the Singleton application models in the admin panel."""
+
+# Django Imports
 from django.conf.urls import url
 from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 
-# Ghostwriter Libraries
 from .models import DEFAULT_SINGLETON_INSTANCE_ID
 
 try:
+    # Django Imports
     from django.utils.encoding import force_unicode
 except ImportError:
+    # Django Imports
     from django.utils.encoding import force_text as force_unicode
 
 
@@ -74,6 +77,4 @@ class SingletonModelAdmin(admin.ModelAdmin):
 
     @property
     def singleton_instance_id(self):
-        return getattr(
-            self.model, "singleton_instance_id", DEFAULT_SINGLETON_INSTANCE_ID
-        )
+        return getattr(self.model, "singleton_instance_id", DEFAULT_SINGLETON_INSTANCE_ID)

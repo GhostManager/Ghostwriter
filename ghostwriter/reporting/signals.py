@@ -4,9 +4,11 @@
 import logging
 import os
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.db.models.signals import post_init, post_save
 from django.dispatch import receiver
+
+# Ghostwriter Libraries
 from ghostwriter.modules.reportwriter import TemplateLinter
 from ghostwriter.reporting.models import Evidence, ReportTemplate
 

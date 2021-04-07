@@ -8,7 +8,7 @@ import os
 import zipfile
 from datetime import date
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.conf import settings
 from django.core.files import File
 from django.db.models import Q
@@ -68,9 +68,7 @@ def archive_projects():
             # Ask Spenny to make us reports with these findings
             output_path = os.path.join(settings.MEDIA_ROOT, report.title)
             evidence_path = os.path.join(settings.MEDIA_ROOT)
-            template_loc = os.path.join(
-                settings.MEDIA_ROOT, "templates", "template.docx"
-            )
+            template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.docx")
             spenny = reportwriter.Reportwriter(
                 report, output_path, evidence_path, template_loc
             )

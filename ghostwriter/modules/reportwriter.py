@@ -1,6 +1,3 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
-
 """
 This module contains the tools required for generating Microsoft Office documents for
 reporting. The ``Reportwriter`` class accepts data and produces a docx, xlsx, pptx,
@@ -15,9 +12,10 @@ import os
 import random
 import re
 
+# Django Imports
 from django.conf import settings
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 import docx
 import jinja2
 import pptx

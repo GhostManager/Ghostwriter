@@ -12,7 +12,7 @@ from time import sleep
 import traceback
 import logging
 
-# Django & Other 3rd Party Libraries
+
 import requests
 
 # Ghostwriter Libraries
@@ -62,7 +62,9 @@ class DomainReview(object):
         # Get API configuration
         self.virustotal_config = VirusTotalConfiguration.get_solo()
         if self.virustotal_config.enable is False:
-            logger.error("Tried to start a domain review without VirusTotal configured and enabled")
+            logger.error(
+                "Tried to start a domain review without VirusTotal configured and enabled"
+            )
             exit()
 
         # Override globally configured sleep time
@@ -189,13 +191,16 @@ class DomainReview(object):
                 # For notifications, track date of the last health check-up
                 if domain.last_health_check:
                     logger.info(
-                        "Domain has a prior health check-up date: %s", domain.last_health_check
+                        "Domain has a prior health check-up date: %s",
+                        domain.last_health_check,
                     )
                     last_health_check = domain.last_health_check
                 # If the date is empty (no past checks), limit notifications with the purchase date
                 else:
                     last_health_check = domain.creation
-                    logger.info("No prior health check so set date to %s", last_health_check)
+                    logger.info(
+                        "No prior health check so set date to %s", last_health_check
+                    )
                 logger.info("Domain is currently considered to be %s", health)
 
                 # Check domain name with VT's Domain Report
@@ -246,7 +251,9 @@ class DomainReview(object):
                             )
                             burned = True
                             detections = []
-                            for detection in vt_results["data"]["detected_downloaded_samples"]:
+                            for detection in vt_results["data"][
+                                "detected_downloaded_samples"
+                            ]:
                                 detections.append(
                                     "VT downloaded a file with a SHA256 hash of {} which had {} detections for malware on {}".format(
                                         detection["sha256"],
@@ -285,13 +292,18 @@ class DomainReview(object):
                     # Check for undetected submissions as potential early warnings
                     if "undetected_downloaded_samples" in vt_results["data"]:
                         if len(vt_results["data"]["undetected_downloaded_samples"]) > 0:
-                            for scan in vt_results["data"]["undetected_downloaded_samples"]:
+                            for scan in vt_results["data"][
+                                "undetected_downloaded_samples"
+                            ]:
                                 scan_date = datetime.datetime.strptime(
                                     scan["date"].split(" ")[0], "%Y-%m-%d"
                                 )
                                 if scan_date.date() >= last_health_check:
                                     warning_msg = "File hosted under {} was submitted to VirusTotal on {}, after domain's last health check on {}: {}".format(
-                                        domain_name, scan["date"], last_health_check, scan["sha256"]
+                                        domain_name,
+                                        scan["date"],
+                                        last_health_check,
+                                        scan["sha256"],
                                     )
                                     warnings.append(warning_msg)
                                 else:
@@ -314,7 +326,10 @@ class DomainReview(object):
                                 )
                                 if scan_date.date() >= last_health_check:
                                     warning_msg = "This URL was submitted to VirusTotal on {}, after domain's last health check on {}: {}{}".format(
-                                        scan_date, last_health_check, scan_domain, scan_uri
+                                        scan_date,
+                                        last_health_check,
+                                        scan_domain,
+                                        scan_uri,
                                     )
                                     warnings.append(warning_msg)
                                 else:
@@ -325,7 +340,9 @@ class DomainReview(object):
                                     )
                 else:
                     lab_results[domain]["vt_results"] = "none"
-                    logger.warning("Did not receive results for %s from VirusTotal", domain_name)
+                    logger.warning(
+                        "Did not receive results for %s from VirusTotal", domain_name
+                    )
 
                 # Check if any categories are suspect
                 bad_categories = []

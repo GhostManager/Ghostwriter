@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 """
 This module generates awesome codenames based on lists of attributes and objects. The
 module combines one of each to create a codename.

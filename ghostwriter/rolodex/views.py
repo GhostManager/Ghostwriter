@@ -5,7 +5,7 @@ import datetime
 import json
 import logging
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -519,7 +519,10 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not create new task with provided values"}
+            data = {
+                "result": "error",
+                "message": "Could not create new task with provided values",
+            }
 
         return JsonResponse(data)
 
@@ -673,7 +676,10 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update the task with provided values"}
+            data = {
+                "result": "error",
+                "message": "Could not update the task with provided values",
+            }
 
         return JsonResponse(data)
 
@@ -781,7 +787,9 @@ def project_list(request):
 
     :template:`rolodex/project_list.html`
     """
-    project_list = Project.objects.select_related("client").all().order_by("complete", "client")
+    project_list = (
+        Project.objects.select_related("client").all().order_by("complete", "client")
+    )
     project_list = ProjectFilter(request.GET, queryset=project_list)
     return render(request, "rolodex/project_list.html", {"filter": project_list})
 
@@ -814,11 +822,14 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
     model = Client
 
     def get_context_data(self, **kwargs):
+        # Ghostwriter Libraries
         from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 
         ctx = super(ClientDetailView, self).get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        domain_history = History.objects.select_related("domain").filter(client=client_instance)
+        domain_history = History.objects.select_related("domain").filter(
+            client=client_instance
+        )
         server_history = ServerHistory.objects.select_related("server").filter(
             client=client_instance
         )
@@ -955,7 +966,9 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(ClientUpdate, self).get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
+        ctx["cancel_link"] = reverse(
+            "rolodex:client_detail", kwargs={"pk": self.object.id}
+        )
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(
                 self.request.POST, prefix="poc", instance=self.object
@@ -1021,7 +1034,9 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "client and all associated data"
         ctx["object_to_be_deleted"] = queryset.name
-        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
+        ctx["cancel_link"] = reverse(
+            "rolodex:client_detail", kwargs={"pk": self.object.id}
+        )
         return ctx
 
 
@@ -1098,7 +1113,9 @@ class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
+        messages.success(
+            self.request, "Note successfully updated.", extra_tags="alert-success"
+        )
         return "{}#notes".format(
             reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
         )
@@ -1179,12 +1196,16 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         ctx = super(ProjectCreate, self).get_context_data(**kwargs)
         ctx["client"] = self.client
         if self.client:
-            ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.client.pk})
+            ctx["cancel_link"] = reverse(
+                "rolodex:client_detail", kwargs={"pk": self.client.pk}
+            )
         else:
             ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj")
-            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign")
+            ctx["assignments"] = ProjectAssignmentFormSet(
+                self.request.POST, prefix="assign"
+            )
             ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
             ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target")
         else:
@@ -1304,7 +1325,9 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super(ProjectUpdate, self).get_context_data(**kwargs)
         ctx["object"] = self.get_object()
-        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
+        ctx["cancel_link"] = reverse(
+            "rolodex:project_detail", kwargs={"pk": self.object.pk}
+        )
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(
                 self.request.POST, prefix="obj", instance=self.object
@@ -1319,14 +1342,20 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                 self.request.POST, prefix="target", instance=self.object
             )
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
-            ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
+            ctx["objectives"] = ProjectObjectiveFormSet(
+                prefix="obj", instance=self.object
+            )
+            ctx["assignments"] = ProjectAssignmentFormSet(
+                prefix="assign", instance=self.object
+            )
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
             ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
         return ctx
 
     def get_success_url(self):
-        messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
+        messages.success(
+            self.request, "Project successfully saved.", extra_tags="alert-success"
+        )
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
@@ -1337,6 +1366,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
 
+        # Ghostwriter Libraries
         from ghostwriter.shepherd.models import History, ServerHistory
 
         # Now validate inline formsets
@@ -1346,7 +1376,10 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                 # Update infrastructure if project's dates changed
                 update = form.cleaned_data["update_checkouts"]
                 if update:
-                    if "end_date" in form.changed_data or "start_date" in form.changed_data:
+                    if (
+                        "end_date" in form.changed_data
+                        or "start_date" in form.changed_data
+                    ):
                         logger.info(
                             "Date changed on Project %s, so updating domain and server checkouts",
                             self.object.pk,
@@ -1363,8 +1396,12 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                         end_timedelta = new_end_date - old_end_date
                         try:
                             # Update checkouts based on deltas
-                            domain_checkouts = History.objects.filter(project=self.object.pk)
-                            server_checkouts = ServerHistory.objects.filter(project=self.object.pk)
+                            domain_checkouts = History.objects.filter(
+                                project=self.object.pk
+                            )
+                            server_checkouts = ServerHistory.objects.filter(
+                                project=self.object.pk
+                            )
                             for checkout in domain_checkouts:
                                 logger.info(
                                     "Updating checkout for %s from %s - %s to %s - %s",
@@ -1374,7 +1411,9 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                                     checkout.start_date + start_timedelta,
                                     checkout.end_date + end_timedelta,
                                 )
-                                checkout.start_date = checkout.start_date + start_timedelta
+                                checkout.start_date = (
+                                    checkout.start_date + start_timedelta
+                                )
                                 checkout.end_date = checkout.end_date + end_timedelta
                                 checkout.save()
                             for checkout in server_checkouts:
@@ -1386,7 +1425,9 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                                     checkout.start_date + start_timedelta,
                                     checkout.end_date + end_timedelta,
                                 )
-                                checkout.start_date = checkout.start_date + start_timedelta
+                                checkout.start_date = (
+                                    checkout.start_date + start_timedelta
+                                )
                                 checkout.end_date = checkout.end_date + end_timedelta
                                 checkout.save()
                         except Exception:
@@ -1544,7 +1585,9 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
+        messages.success(
+            self.request, "Note successfully updated.", extra_tags="alert-success"
+        )
         return "{}#notes".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )

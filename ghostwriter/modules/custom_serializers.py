@@ -3,10 +3,11 @@
 # Standard Libraries
 from datetime import datetime
 
+# Django Imports
 from django.conf import settings
 from django.utils import dateformat
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 from rest_framework import serializers
 from rest_framework.serializers import (
     RelatedField,

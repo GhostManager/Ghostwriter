@@ -1,6 +1,6 @@
 """This contains the custom template tags used by he Home application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django import template
 from django.contrib.auth.models import Group
 from django.db.models import Q

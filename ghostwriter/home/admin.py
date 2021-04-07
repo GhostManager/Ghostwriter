@@ -1,6 +1,6 @@
 """This contains customizations for displaying the Home application models in the admin panel."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.contrib import admin
 
 # Ghostwriter Libraries
