@@ -879,6 +879,7 @@ def update(request):
     if request.method == "GET":
         # Get relevant configuration settings
         vt_config = VirusTotalConfiguration.get_solo()
+        enable_vt = vt_config.enable
         sleep_time = vt_config.sleep_time
         cloud_config = CloudServicesConfiguration.get_solo()
         enable_cloud_monitor = cloud_config.enable
@@ -972,6 +973,7 @@ def update(request):
         context = {
             "total_domains": total_domains,
             "update_time": update_time,
+            "enable_vt": enable_vt,
             "sleep_time": sleep_time,
             "cat_last_update_requested": cat_last_update_requested,
             "cat_last_update_completed": cat_last_update_completed,
