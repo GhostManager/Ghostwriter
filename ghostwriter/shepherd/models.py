@@ -298,7 +298,7 @@ class Domain(models.Model):
         """
         Calculate the domain's age based on the current date and the instance's creation DateField.
         """
-        if self.is_expired:
+        if self.is_expired():
             time_delta = self.expiration - self.creation
         else:
             time_delta = date.today() - self.creation
