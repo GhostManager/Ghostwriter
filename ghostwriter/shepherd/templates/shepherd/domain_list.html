@@ -1,5 +1,6 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags %}
+
+{% load crispy_forms_tags humanize %}
 
 {% block pagetitle %}Domain Catalog{% endblock %}
 
@@ -78,7 +79,7 @@
                             <td class="align-middle burned">{{ domain.whois_status }}</td>
                         {% endifequal %}
 
-                        <td class="align-middle">{{ domain.get_domain_age }}</td>
+                        <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
 
                         {% if domain.all_cat %}
                             <td class="align-middle">{{ domain.all_cat }}</td>

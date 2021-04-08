@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags %}
+{% load bleach_tags humanize %}
 
 {% block pagetitle %}{{ domain.name }} Details{% endblock %}
 
@@ -91,7 +91,7 @@
                         {% else %}
                             <td class="icon cross-icon burned"></td>
                         {% endif %}
-                        <td>{{ domain.get_domain_age }}</td>
+                        <td>{{ domain.get_domain_age|intcomma }}</td>
                     </tr>
                 </table>
             </div>
@@ -185,7 +185,7 @@
 
                         <td>
                             {% if domain.last_health_check %}
-                                {{ domain.last_health_check|date:"DATE_FORMAT" }}
+                                {{ domain.last_health_check|naturalday:"DATE_FORMAT" }}
                             {% else %}
                                 No Record
                             {% endif %}
