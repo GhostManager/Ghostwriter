@@ -1429,6 +1429,10 @@ th.icon {
   padding: 0;
 }
 
+.slider-icon:before {
+  content: '\f1de';
+}
+
 .avatar-upload-icon:before {
   content: '\f302';
 }
