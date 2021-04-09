@@ -72,6 +72,7 @@ class CheckoutForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
+        self.helper.form_show_errors = False
         self.helper.attrs = {
             "data-projects-url": data_projects_url,
             "data-project-url": data_project_url,
@@ -148,7 +149,9 @@ class CheckoutForm(forms.ModelForm):
                 raise ValidationError("This domain has expired!")
             if domain.domain_status == unavailable:
                 raise ValidationError(
-                    "Someone beat you to it – This domain has already been checked out!",
+                    _(
+                        "Someone beat you to it – This domain has already been checked out!"
+                    ),
                     code="unavailable",
                 )
         return domain
@@ -223,6 +226,7 @@ class DomainForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
+        self.helper.form_show_errors = False
         self.helper.form_id = "checkout-form"
         self.helper.layout = Layout(
             HTML(
@@ -287,18 +291,17 @@ class DomainForm(forms.ModelForm):
             ),
         )
 
-    def clean_expiration(self):
-        expiration = self.cleaned_data["expiration"]
-        creation = self.cleaned_data["creation"]
+    def clean(self):
+        cleaned_data = super().clean()
+        expiration = cleaned_data["expiration"]
+        creation = cleaned_data["creation"]
 
         # Check if expiration comes before the creation date
         if expiration < creation:
             raise ValidationError(
-                _(
-                    "Invalid date: The provided expiration date comes before the purchase date."
-                )
+                _("The provided expiration date comes before the purchase date"),
+                code="invalid_date",
             )
-        return expiration
 
 
 class DomainLinkForm(forms.ModelForm):
@@ -390,15 +393,13 @@ class DomainLinkForm(forms.ModelForm):
 
     def clean(self):
         if self.cleaned_data["static_server"] and self.cleaned_data["transient_server"]:
-            raise ValidationError(
-                _("Invalid Server Selection: Select only " "one server")
-            )
+            raise ValidationError(_("Select only one server"), code="invalid_selection")
         if (
             not self.cleaned_data["static_server"]
             and not self.cleaned_data["transient_server"]
         ):
             raise ValidationError(
-                _("Invalid Server Selection: You must select one server")
+                _("You must select one server"), code="invalid_selection"
             )
 
 
@@ -419,6 +420,7 @@ class DomainNoteForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
+        self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Div("note"),
             ButtonHolder(
@@ -460,6 +462,7 @@ class BurnForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
+        self.helper.form_show_errors = False
         self.helper.layout = Layout(
             "burned_explanation",
             ButtonHolder(
