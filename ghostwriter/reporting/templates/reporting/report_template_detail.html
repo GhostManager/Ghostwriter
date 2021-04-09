@@ -1,8 +1,6 @@
 {% extends 'base_generic.html' %}
 
-{% load report_tags %}
-
-{% load bleach_tags %}
+{% load report_tags bleach_tags humanize %}
 
 {% block pagetitle %}Report Template Detail{% endblock %}
 
@@ -67,11 +65,11 @@
             </tr>
             <tr>
                 <td class="text-left bold">Upload Date</td>
-                <td class="text-center">{{ reporttemplate.upload_date }}</td>
+                <td class="text-center">{{ reporttemplate.upload_date|naturalday:"DATE_FORMAT" }}</td>
             </tr>
             <tr>
                 <td class="text-left bold">Last Update</td>
-                <td class="text-center">{{ reporttemplate.last_update }}</td>
+                <td class="text-center">{{ reporttemplate.last_update|naturalday:"DATE_FORMAT" }}</td>
             </tr>
             <tr>
                 <td class="text-left bold">Client</td>
