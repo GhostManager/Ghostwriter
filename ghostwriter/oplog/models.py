@@ -2,15 +2,21 @@
 
 # Standard Libraries
 import json
+import logging
 from datetime import datetime
 
-# Django & Other 3rd Party Libraries
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+# Django Imports
 from django.core.serializers import serialize
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
+
+# 3rd Party Libraries
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
+# Using __name__ resolves to ghostwriter.oplog.models
+logger = logging.getLogger(__name__)
 
 
 class Oplog(models.Model):
@@ -31,17 +37,6 @@ class Oplog(models.Model):
 
     def __str__(self):
         return f"{self.name} : {self.project}"
-
-    def delete(self, *args, **kwargs):
-        # Disconnect the Signal for entries
-        post_delete.disconnect(delete_oplog_entry, sender=OplogEntry)
-        all_entries = OplogEntry.objects.filter(oplog_id=self.id)
-        # Recursively delete instances of :model:`OplogEntry` to avoid recursive errors
-        for entry in all_entries:
-            entry.delete()
-        # Reconnect the Signal
-        post_delete.connect(delete_oplog_entry, sender=OplogEntry)
-        super(Oplog, self).delete(*args, **kwargs)
 
 
 # Create your models here.
@@ -155,9 +150,13 @@ def delete_oplog_entry(sender, instance, **kwargs):
     the deleted instance of :model:`oplog.OplogEntry`.
     """
     channel_layer = get_channel_layer()
-    oplog_id = instance.oplog_id.id
-    entry_id = instance.id
-    json_message = json.dumps({"action": "delete", "data": entry_id})
-    async_to_sync(channel_layer.group_send)(
-        str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
-    )
+    try:
+        oplog_id = instance.oplog_id.id
+        entry_id = instance.id
+        json_message = json.dumps({"action": "delete", "data": entry_id})
+        async_to_sync(channel_layer.group_send)(
+            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+        )
+    except Oplog.DoesNotExist:
+        # Oplog has been deleted and this is a cascading delete
+        pass

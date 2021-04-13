@@ -4,7 +4,7 @@
 import datetime
 import logging
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -14,8 +14,10 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.views.static import serve
 from django.views.generic.edit import View
+from django.views.static import serve
+
+# 3rd Party Libraries
 from django_q.models import Task
 from django_q.tasks import async_task
 

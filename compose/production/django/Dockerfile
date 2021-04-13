@@ -4,6 +4,8 @@ ENV PYTHONUNBUFFERED 1
 
 ENV PYTHONPATH="$PYTHONPATH:/app/config"
 
+RUN apk add build-base
+
 RUN apk update \
     # psycopg2 dependencies
     && apk add --virtual build-deps gcc python3-dev musl-dev \
@@ -21,7 +23,8 @@ RUN apk update \
 RUN addgroup -S django \
     && adduser -S -G django django
 
-# Requirements are installed here to ensure they will be cached.
+# Requirements are installed here to ensure they will be cached
+RUN pip install -U setuptools pip
 COPY ./requirements /requirements
 RUN pip install --no-cache-dir -r /requirements/production.txt \
     && rm -rf /requirements

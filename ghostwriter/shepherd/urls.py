@@ -1,9 +1,8 @@
 """This contains all of the URL mappings used by the Shepherd application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.urls import path
 
-# Ghostwriter Libraries
 from . import views
 
 app_name = "shepherd"

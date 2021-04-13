@@ -18,7 +18,8 @@ TEMPLATE_PATH_PPTX=/app/ghostwriter/reporting/templates/reports/template.pptx
 cp -u -p "$TEMPLATE_PATH_DOCX" "$TEMPLATE_DIR"
 cp -u -p "$TEMPLATE_PATH_PPTX" "$TEMPLATE_DIR"
 
+python -m pip install --upgrade pip
 python manage.py makemigrations
 python manage.py migrate
-# python manage.py runserver 0.0.0.0:8000
-uvicorn config.asgi:application --host 0.0.0.0 --reload
+pip install debugpy -t /tmp
+python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --nothreading

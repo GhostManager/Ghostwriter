@@ -1,6 +1,10 @@
 """This contains all of the model filters used by the Shepherd application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
+from django import forms
+from django.forms.widgets import TextInput
+
+# 3rd Party Libraries
 import django_filters
 from crispy_forms.bootstrap import (
     Accordion,
@@ -10,10 +14,7 @@ from crispy_forms.bootstrap import (
 )
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
-from django import forms
-from django.forms.widgets import TextInput
 
-# Ghostwriter Libraries
 from .models import Domain, DomainStatus, HealthStatus, ServerStatus
 
 

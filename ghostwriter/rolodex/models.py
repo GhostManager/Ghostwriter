@@ -1,6 +1,6 @@
 """This contains all of the database models used by the Rolodex application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -367,7 +367,10 @@ class ProjectObjective(models.Model):
         help_text="Objective's deadline/due date",
     )
     marked_complete = models.DateField(
-        "Marked Complete", null=True, blank=True, help_text="Date the objective was marked complete"
+        "Marked Complete",
+        null=True,
+        blank=True,
+        help_text="Date the objective was marked complete",
     )
     position = models.IntegerField(
         "List Position",
@@ -441,7 +444,9 @@ class ProjectSubTask(models.Model):
         except ObjectiveStatus.DoesNotExist:
             return 1
 
-    task = models.TextField("Task", null=True, blank=True, help_text="Provide a concise objective")
+    task = models.TextField(
+        "Task", null=True, blank=True, help_text="Provide a concise objective"
+    )
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark the objective as complete"
     )
@@ -453,7 +458,10 @@ class ProjectSubTask(models.Model):
         help_text="Provide a deadline for this objective",
     )
     marked_complete = models.DateField(
-        "Marked Complete", null=True, blank=True, help_text="Date the task was marked complete"
+        "Marked Complete",
+        null=True,
+        blank=True,
+        help_text="Date the task was marked complete",
     )
     # Foreign Keys
     parent = models.ForeignKey(ProjectObjective, on_delete=models.CASCADE, null=False)
@@ -480,7 +488,9 @@ class ClientNote(models.Model):
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -509,7 +519,9 @@ class ProjectNote(models.Model):
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -557,7 +569,9 @@ class ProjectScope(models.Model):
         help_text="Provide a brief description of this list",
     )
     disallowed = models.BooleanField(
-        "Disallowed", default=False, help_text="Flag this list as off limits / not to be touched"
+        "Disallowed",
+        default=False,
+        help_text="Flag this list as off limits / not to be touched",
     )
     requires_caution = models.BooleanField(
         "Requires Caution",

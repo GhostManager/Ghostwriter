@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags %}
+{% load bleach_tags humanize %}
 
 {% block pagetitle %}{{ domain.name }} Details{% endblock %}
 
@@ -16,7 +16,11 @@
 
 {% block content %}
     <div class="dropdown">
-        <button id="domain-dropdown-btn" class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+        </div>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="domain-dropdown-btn">
             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
             {% if domain.is_expired %}
@@ -35,7 +39,9 @@
         </div>
     </div>
 
-    <h2>{{ domain.name }}</h2>
+    <div class="container">
+        <h2>{{ domain.name }}</h2>
+    </div>
 
     <div>
         <!-- Description Section -->
@@ -85,7 +91,7 @@
                         {% else %}
                             <td class="icon cross-icon burned"></td>
                         {% endif %}
-                        <td>{{ domain.get_domain_age }}</td>
+                        <td>{{ domain.get_domain_age|intcomma }}</td>
                     </tr>
                 </table>
             </div>
@@ -141,11 +147,10 @@
 
                 {% if domain.health_status.health_status == "Burned"%}
                     {% if domain.burned_explanation %}
-                        <p>
-                            This domain has been flagged as <em>Burned</em> for the following reason(s):<br>
-                            <hr>
-                            <p>{{ domain.burned_explanation|bleach }}</p>
-                        </p>
+                        <h4>Domain Flagged as <em class="burned">Burned</em> for the Following Reason(s):</h4>
+                        <hr>
+                        <p>{{ domain.burned_explanation|bleach|linebreaks }}</p>
+
                     {% else %}
                         <p>This domain has been flagged as <em>Burned</em> with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
                     {% endif %}
@@ -180,7 +185,7 @@
 
                         <td>
                             {% if domain.last_health_check %}
-                                {{ domain.last_health_check|date:"d M Y" }}
+                                {{ domain.last_health_check|naturalday:"DATE_FORMAT" }}
                             {% else %}
                                 No Record
                             {% endif %}
@@ -251,7 +256,7 @@
             <!-- Project History Tab -->
             <div id="history" class="tab-pane">
                 {% if domain.history_set.all %}
-                    <table id="projectTable" class="tablesorter table">
+                    <table id="project-table" class="tablesorter table table-striped">
                         <thead>
                             <tr>
                                 <th>Client</th>
@@ -264,10 +269,10 @@
                         </thead>
                         {% for project in domain.history_set.all %}
                             <tr>
-                                <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
+                                <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
                                 <td>{{ project.activity_type }}</td>
                                 <td>{{ project.project.project_type }}</td>
-                                <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
+                                <td>{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
                                 <td class="table-note">{{ project.note|bleach}}</td>
                                 <td>
                                     <div class="dropdown dropleft">
@@ -327,7 +332,7 @@
     <!-- jQuery Tablesorter Script -->
     <script>
         $(document).ready(function()  {
-            $("#projectTable").tablesorter(
+            $("#project-table").tablesorter(
                             {
                                 cssAsc: 'down',
                                 cssDesc: 'up',

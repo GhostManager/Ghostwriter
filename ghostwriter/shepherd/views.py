@@ -5,7 +5,7 @@ import logging
 import logging.config
 from datetime import datetime
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -20,6 +20,8 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+
+# 3rd Party Libraries
 from django_q.models import Task
 from django_q.tasks import async_task
 
@@ -174,7 +176,9 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
         if self.request.user == self.object.operator:
             # Reset domain status to ``Available`` and commit the change
             domain_instance = Domain.objects.get(pk=self.object.domain.id)
-            domain_instance.domain_status = DomainStatus.objects.get(domain_status="Available")
+            domain_instance.domain_status = DomainStatus.objects.get(
+                domain_status="Available"
+            )
             domain_instance.save()
             # Set the release date to now so historical record is accurate
             self.object.end_date = datetime.now()
@@ -197,7 +201,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
 class ServerRelease(LoginRequiredMixin, SingleObjectMixin, View):
     """
     Set the ``server_status`` field of an individual :model:`shepherd.StaticServer` to
-    the ``Available`` entry in :model:`shepherd.DomainStatus` and update the
+    the ``Available`` entry in :model:`shepherd.ServerStatus` and update the
     associated :model:`shepherd.ServerHistory` entry.
     """
 
@@ -208,7 +212,9 @@ class ServerRelease(LoginRequiredMixin, SingleObjectMixin, View):
         if self.request.user == self.object.operator:
             # Reset server status to ``Available`` and commit the change
             server_instance = StaticServer.objects.get(pk=self.object.server.id)
-            server_instance.server_status = ServerStatus.objects.get(server_status="Available")
+            server_instance.server_status = ServerStatus.objects.get(
+                server_status="Available"
+            )
             server_instance.save()
             # Set the release date to now so historical record is accurate
             self.object.end_date = datetime.now()
@@ -308,7 +314,9 @@ class DomainUpdateDNS(LoginRequiredMixin, View):
                     group="DNS Updates",
                     hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
                 )
-            message = "Successfully queued DNS update task (Task ID {task})".format(task=task_id)
+            message = "Successfully queued DNS update task (Task ID {task})".format(
+                task=task_id
+            )
         except Exception:
             result = "error"
             message = "DNS update task could not be queued"
@@ -363,8 +371,10 @@ class MonitorCloudInfrastructure(LoginRequiredMixin, View):
                 "ghostwriter.shepherd.tasks.review_cloud_infrastructure",
                 group="Cloud Infrastructure Review",
             )
-            message = "Successfully queued the cloud monitor task (Task ID {task})".format(
-                task=task_id
+            message = (
+                "Successfully queued the cloud monitor task (Task ID {task})".format(
+                    task=task_id
+                )
             )
         except Exception:
             result = "error"
@@ -498,7 +508,9 @@ def domain_list(request):
             extra_tags="alert-success",
         )
         domains_list = (
-            Domain.objects.select_related("domain_status", "whois_status", "health_status")
+            Domain.objects.select_related(
+                "domain_status", "whois_status", "health_status"
+            )
             .filter(Q(name__icontains=search_term) | Q(all_cat__icontains=search_term))
             .order_by("name")
         )
@@ -529,8 +541,15 @@ def server_list(request):
 
     :template:`shepherd/server_list.html`
     """
-    servers_list = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
-    servers_filter = ServerFilter(request.GET, queryset=servers_list)
+    servers_list = (
+        StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+    )
+    # Copy the GET request data
+    data = request.GET.copy()
+    # If user has not submitted their own filter, default to showing only Available domains
+    if len(data) == 0:
+        data["server_status"] = 1
+    servers_filter = ServerFilter(data, queryset=servers_list)
     return render(request, "shepherd/server_list.html", {"filter": servers_filter})
 
 
@@ -582,9 +601,9 @@ def server_search(request):
             # Pass here to move on to try auxiliary address search
             pass
         try:
-            server_instance = AuxServerAddress.objects.select_related("static_server").get(
-                ip_address=ip_address
-            )
+            server_instance = AuxServerAddress.objects.select_related(
+                "static_server"
+            ).get(ip_address=ip_address)
             if server_instance:
                 unavailable = ServerStatus.objects.get(server_status="Unavailable")
                 if server_instance.static_server.server_status == unavailable:
@@ -651,14 +670,16 @@ def infrastructure_search(request):
 
                 if search_term:
                     server_qs = StaticServer.objects.filter(
-                        Q(ip_address__contains=search_term) | Q(name__contains=search_term)
+                        Q(ip_address__contains=search_term)
+                        | Q(name__contains=search_term)
                     )
                     vps_qs = TransientServer.objects.select_related("project").filter(
-                        Q(ip_address__contains=search_term) | Q(name__contains=search_term)
+                        Q(ip_address__contains=search_term)
+                        | Q(name__contains=search_term)
                     )
-                    aux_qs = AuxServerAddress.objects.select_related("static_server").filter(
-                        ip_address__contains=search_term
-                    )
+                    aux_qs = AuxServerAddress.objects.select_related(
+                        "static_server"
+                    ).filter(ip_address__contains=search_term)
 
                     total_result = server_qs.count() + vps_qs.count() + aux_qs.count()
                     context = {
@@ -727,7 +748,9 @@ def user_assets(request):
         server_status__server_status="Unavailable"
     )
     for server in unavailable_servers:
-        server_history = ServerHistory.objects.filter(server=server).order_by("end_date").last()
+        server_history = (
+            ServerHistory.objects.filter(server=server).order_by("end_date").last()
+        )
         if server_history:
             if server_history.operator == request.user:
                 servers.append(server_history)
@@ -765,8 +788,12 @@ def burn(request, pk):
         # Check if the form is valid
         if form.is_valid():
             # Update the domain status and commit it
-            domain_instance.domain_status = DomainStatus.objects.get(domain_status="Burned")
-            domain_instance.health_status = HealthStatus.objects.get(health_status="Burned")
+            domain_instance.domain_status = DomainStatus.objects.get(
+                domain_status="Burned"
+            )
+            domain_instance.health_status = HealthStatus.objects.get(
+                health_status="Burned"
+            )
             domain_instance.burned_explanation = form.cleaned_data["burned_explanation"]
             domain_instance.last_used_by = request.user
             domain_instance.save()
@@ -777,7 +804,9 @@ def burn(request, pk):
             return HttpResponseRedirect(
                 "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
             )
-            return HttpResponseRedirect(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
+            return HttpResponseRedirect(
+                reverse("shepherd:domain_detail", kwargs={"pk": pk})
+            )
     # If this is a GET (or any other method) create the default form
     else:
         form = BurnForm()
@@ -850,6 +879,7 @@ def update(request):
     if request.method == "GET":
         # Get relevant configuration settings
         vt_config = VirusTotalConfiguration.get_solo()
+        enable_vt = vt_config.enable
         sleep_time = vt_config.sleep_time
         cloud_config = CloudServicesConfiguration.get_solo()
         enable_cloud_monitor = cloud_config.enable
@@ -943,6 +973,7 @@ def update(request):
         context = {
             "total_domains": total_domains,
             "update_time": update_time,
+            "enable_vt": enable_vt,
             "sleep_time": sleep_time,
             "cat_last_update_requested": cat_last_update_requested,
             "cat_last_update_completed": cat_last_update_completed,
@@ -1042,7 +1073,9 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
         # Update the domain status and commit it
         domain_instance = get_object_or_404(Domain, pk=self.kwargs.get("pk"))
         domain_instance.last_used_by = self.request.user
-        domain_instance.domain_status = DomainStatus.objects.get(domain_status="Unavailable")
+        domain_instance.domain_status = DomainStatus.objects.get(
+            domain_status="Unavailable"
+        )
         domain_instance.save()
         return super().form_valid(form)
 
@@ -1058,7 +1091,9 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
         ctx = super(HistoryCreate, self).get_context_data(**kwargs)
         ctx["domain_name"] = self.domain.name.upper()
         ctx["domain"] = self.domain
-        ctx["cancel_link"] = reverse("shepherd:domain_detail", kwargs={"pk": self.kwargs.get("pk")})
+        ctx["cancel_link"] = reverse(
+            "shepherd:domain_detail", kwargs={"pk": self.kwargs.get("pk")}
+        )
         return ctx
 
 
@@ -1144,10 +1179,14 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
-        latest_history_entry = History.objects.filter(domain=self.object.domain).latest("id")
+        latest_history_entry = History.objects.filter(domain=self.object.domain).latest(
+            "id"
+        )
         if self.object == latest_history_entry:
             domain_instance = Domain.objects.get(pk=self.object.domain.id)
-            domain_instance.domain_status = DomainStatus.objects.get(domain_status="Available")
+            domain_instance.domain_status = DomainStatus.objects.get(
+                domain_status="Available"
+            )
             domain_instance.save()
         return super(HistoryDelete, self).delete(request, *args, **kwargs)
 
@@ -1170,7 +1209,9 @@ class DomainCreate(LoginRequiredMixin, CreateView):
     form_class = DomainForm
 
     def get_success_url(self):
-        messages.success(self.request, "Domain successfully created", extra_tags="alert-success")
+        messages.success(
+            self.request, "Domain successfully created", extra_tags="alert-success"
+        )
         return reverse("shepherd:domain_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -1197,12 +1238,16 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
     form_class = DomainForm
 
     def get_success_url(self):
-        messages.success(self.request, "Domain successfully updated", extra_tags="alert-success")
+        messages.success(
+            self.request, "Domain successfully updated", extra_tags="alert-success"
+        )
         return reverse("shepherd:domain_detail", kwargs={"pk": self.object.id})
 
     def get_context_data(self, **kwargs):
         ctx = super(DomainUpdate, self).get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("shepherd:domain_detail", kwargs={"pk": self.object.id})
+        ctx["cancel_link"] = reverse(
+            "shepherd:domain_detail", kwargs={"pk": self.object.id}
+        )
         return ctx
 
 
@@ -1228,7 +1273,9 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        messages.warning(self.request, "Domain successfully deleted", extra_tags="alert-warning")
+        messages.warning(
+            self.request, "Domain successfully deleted", extra_tags="alert-warning"
+        )
         return reverse("shepherd:domains")
 
     def get_context_data(self, **kwargs):
@@ -1236,7 +1283,9 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "domain"
         ctx["object_to_be_deleted"] = queryset.name.upper()
-        ctx["cancel_link"] = reverse("shepherd:domain_detail", kwargs={"pk": self.object.id})
+        ctx["cancel_link"] = reverse(
+            "shepherd:domain_detail", kwargs={"pk": self.object.id}
+        )
         return ctx
 
 
@@ -1289,7 +1338,9 @@ class ServerCreate(LoginRequiredMixin, CreateView):
     form_class = ServerForm
 
     def get_success_url(self):
-        messages.success(self.request, "Server successfully created", extra_tags="alert-success")
+        messages.success(
+            self.request, "Server successfully created", extra_tags="alert-success"
+        )
         return reverse("shepherd:server_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -1350,18 +1401,24 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
     form_class = ServerForm
 
     def get_success_url(self):
-        messages.success(self.request, "Server successfully updated", extra_tags="alert-success")
+        messages.success(
+            self.request, "Server successfully updated", extra_tags="alert-success"
+        )
         return reverse("shepherd:server_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super(ServerUpdate, self).get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.object.pk})
+        ctx["cancel_link"] = reverse(
+            "shepherd:server_detail", kwargs={"pk": self.object.pk}
+        )
         if self.request.POST:
             ctx["addresses"] = ServerAddressFormSet(
                 self.request.POST, prefix="address", instance=self.object
             )
         else:
-            ctx["addresses"] = ServerAddressFormSet(prefix="address", instance=self.object)
+            ctx["addresses"] = ServerAddressFormSet(
+                prefix="address", instance=self.object
+            )
         return ctx
 
     def form_valid(self, form):
@@ -1414,7 +1471,9 @@ class ServerDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        messages.warning(self.request, "Server successfully deleted", extra_tags="alert-warning")
+        messages.warning(
+            self.request, "Server successfully deleted", extra_tags="alert-warning"
+        )
         return reverse("shepherd:servers")
 
     def get_context_data(self, **kwargs):
@@ -1422,7 +1481,9 @@ class ServerDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "static server"
         ctx["object_to_be_deleted"] = queryset.ip_address
-        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.object.id})
+        ctx["cancel_link"] = reverse(
+            "shepherd:server_detail", kwargs={"pk": self.object.id}
+        )
         return ctx
 
 
@@ -1455,7 +1516,9 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
         # Update the domain status and commit it
         server_instance = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
         server_instance.last_used_by = self.request.user
-        server_instance.server_status = ServerStatus.objects.get(server_status="Unavailable")
+        server_instance.server_status = ServerStatus.objects.get(
+            server_status="Unavailable"
+        )
         server_instance.save()
         return super().form_valid(form)
 
@@ -1471,7 +1534,9 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super(ServerHistoryCreate, self).get_context_data(**kwargs)
         ctx["server_instance"] = self.server
-        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.kwargs.get("pk")})
+        ctx["cancel_link"] = reverse(
+            "shepherd:server_detail", kwargs={"pk": self.kwargs.get("pk")}
+        )
         return ctx
 
 
@@ -1787,7 +1852,9 @@ class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated", extra_tags="alert-success")
+        messages.success(
+            self.request, "Note successfully updated", extra_tags="alert-success"
+        )
         return "{}#notes".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
         )
@@ -1872,7 +1939,9 @@ class ServerNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated", extra_tags="alert-success")
+        messages.success(
+            self.request, "Note successfully updated", extra_tags="alert-success"
+        )
         return "{}#notes".format(
             reverse("shepherd:server_detail", kwargs={"pk": self.object.server.id})
         )
@@ -1881,5 +1950,7 @@ class ServerNoteUpdate(LoginRequiredMixin, UpdateView):
         ctx = super(ServerNoteUpdate, self).get_context_data(**kwargs)
         server_instance = self.object.server
         ctx["note_object"] = server_instance.ip_address
-        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.object.server.id})
+        ctx["cancel_link"] = reverse(
+            "shepherd:server_detail", kwargs={"pk": self.object.server.id}
+        )
         return ctx

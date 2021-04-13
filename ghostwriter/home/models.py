@@ -3,7 +3,7 @@
 # Standard Libraries
 import os
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.conf import settings
 from django.db import models
 from django.templatetags.static import static

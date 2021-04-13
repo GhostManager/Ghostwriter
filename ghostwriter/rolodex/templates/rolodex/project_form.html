@@ -11,7 +11,7 @@
             {% comment %} Check if `object` is in context to determine if this is a ProjectUpdate` request {% endcomment %}
             {% if object %}
                 <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object.client }}" href="{% url 'rolodex:client_detail' object.client.id %}">{{ object.client }}</a></li>
-                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object }}" href="{% url 'rolodex:project_detail' object.id %}">{{ object.start_date|date:"d M Y" }} {{ object.project_type }}</a></li>
+                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object }}" href="{% url 'rolodex:project_detail' object.id %}">{{ object.start_date|date:"DATE_FORMAT" }} {{ object.project_type }}</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Edit</li>
             {% else %}
             {% comment %} Check if `client` is in context for `ProjectCreate` for a specific client {% endcomment %}

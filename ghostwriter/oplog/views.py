@@ -3,7 +3,7 @@
 # Standard Libraries
 import logging
 
-# Django & Other 3rd Party Libraries
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -86,7 +86,9 @@ def OplogEntriesImport(request):
                 "Successfully imported log data",
                 extra_tags="alert-success",
             )
-            return HttpResponseRedirect(reverse("oplog:oplog_entries", kwargs={"pk": oplog_id}))
+            return HttpResponseRedirect(
+                reverse("oplog:oplog_entries", kwargs={"pk": oplog_id})
+            )
 
     return render(request, "oplog/oplog_import.html")
 
@@ -162,7 +164,9 @@ class OplogCreate(LoginRequiredMixin, CreateView):
         ctx = super(OplogCreate, self).get_context_data(**kwargs)
         ctx["project"] = self.project
         if self.project:
-            ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.project.pk})
+            ctx["cancel_link"] = reverse(
+                "rolodex:project_detail", kwargs={"pk": self.project.pk}
+            )
         else:
             ctx["cancel_link"] = reverse("oplog:index")
         return ctx
@@ -275,7 +279,9 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
             queryset = OplogEntry.objects.all().order_by("-start_date")
         else:
             oplog_id = self.request.query_params["oplog_id"]
-            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
+            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by(
+                "-start_date"
+            )
         if "export" in request.query_params:
             format = request.query_params["export"]
             dataset = OplogEntryResource().export(queryset)

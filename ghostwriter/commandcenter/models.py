@@ -1,6 +1,6 @@
 """This contains all of the database models for the CommandCenter application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.db import models
 
 # Ghostwriter Libraries

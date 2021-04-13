@@ -1,0 +1,18 @@
+{
+    "configurations": [
+        {
+            "name": "Attach to Ghostwriter",
+            "type": "python",
+            "request": "attach",
+            "port": 5678,
+            "host": "localhost",
+            "subProcess": true,
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ],
+        },
+    ]
+}

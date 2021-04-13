@@ -3,7 +3,7 @@
 # Standard Libraries
 import json
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 
@@ -24,7 +24,9 @@ class UserConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if self.user.is_active:
             # Leave user group
-            await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
+            await self.channel_layer.group_discard(
+                self.user_group_name, self.channel_name
+            )
         else:
             pass
 

@@ -1,16 +1,12 @@
 """This contains all of the forms used by the Home application."""
 
-# Django & Other 3rd Party Libraries
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import (
-    HTML,
-    ButtonHolder,
-    Div,
-    Layout,
-    Submit,
-)
+# Django Imports
 from django import forms
 from django.contrib.auth import get_user_model
+
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Div, Layout, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.home.models import UserProfile

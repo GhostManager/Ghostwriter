@@ -1,6 +1,6 @@
 """This contains all of the URL mappings used by the Home application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.urls import path
 
 # Ghostwriter Libraries

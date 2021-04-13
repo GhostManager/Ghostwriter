@@ -4,12 +4,13 @@
 import json
 import logging
 
-# Django & Other 3rd Party Libraries
-from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncWebsocketConsumer
+# Django Imports
 from django.core.serializers import serialize
 
-# Ghostwriter Libraries
+# 3rd Party Libraries
+from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+
 from .models import OplogEntry
 
 # Using __name__ resolves to ghostwriter.oplog.consumers
@@ -56,7 +57,9 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             if len(entries) < (offset + 100):
                 serialized_entries = json.loads(serialize("json", entries[offset:]))
             else:
-                serialized_entries = json.loads(serialize("json", entries[offset:offset+100]))
+                serialized_entries = json.loads(
+                    serialize("json", entries[offset : offset + 100])
+                )
         return serialized_entries
 
     async def send_oplog_entry(self, event):
@@ -97,6 +100,6 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             oplog_id = json_data["oplog_id"]
             offset = json_data["offset"]
             entries = await self.getLogEntries(oplog_id, offset)
-            message = json.dumps({"action": "sync", "data":entries})
+            message = json.dumps({"action": "sync", "data": entries})
 
             await self.send(text_data=message)

@@ -5,7 +5,7 @@ import json
 import logging
 import os
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
@@ -13,7 +13,6 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-# Ghostwriter Libraries
 from .validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
@@ -62,12 +61,14 @@ class Severity(models.Model):
         Return the severity color code as a list of hexadecimal.
         """
         n = 2
-        return tuple(hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n))
+        return tuple(
+            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
+        )
 
     count = property(count_findings)
 
     class Meta:
-        ordering = ["severity"]
+        ordering = ["weight", "severity"]
         verbose_name = "Severity rating"
         verbose_name_plural = "Severity ratings"
 
@@ -134,7 +135,7 @@ class Finding(models.Model):
         "Replication Steps",
         null=True,
         blank=True,
-        help_text="Provide an explanation for how the reader may reproduce " "this finding",
+        help_text="Provide an explanation for how the reader may reproduce this finding",
     )
     host_detection_techniques = models.TextField(
         "Host Detection Techniques",
@@ -303,7 +304,9 @@ class ReportTemplate(models.Model):
                 lint_result = json.loads(self.lint_result)
                 result_code = lint_result["result"]
             except json.decoder.JSONDecodeError:
-                logger.exception("Could not decode data in model as JSON: %s", self.lint_result)
+                logger.exception(
+                    "Could not decode data in model as JSON: %s", self.lint_result
+                )
             except Exception:
                 logger.exception(
                     "Encountered an exceptio while trying to decode this as JSON: %s",
@@ -484,7 +487,9 @@ class ReportFindingLink(models.Model):
         return self.title
 
     def get_evidence_list(self):
-        upload_path = os.path.join(settings.MEDIA_ROOT, str(self.report.id), str(self.title))
+        upload_path = os.path.join(
+            settings.MEDIA_ROOT, str(self.report.id), str(self.title)
+        )
         evidence_files = []
         if not os.path.exists(upload_path):
             return evidence_files
@@ -589,7 +594,9 @@ class FindingNote(models.Model):
     Stores an individual finding note, related to :model:`reporting.Finding`.
     """
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -616,7 +623,9 @@ class LocalFindingNote(models.Model):
     Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`.
     """
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,

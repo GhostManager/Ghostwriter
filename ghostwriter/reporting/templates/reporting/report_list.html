@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags humanize %}
 
 {% block pagetitle %}Report List{% endblock %}
 
@@ -46,9 +46,9 @@
             </thead>
             {% for report in filter.qs %}
                 <tr>
-                    <td class="align-middle">{{ report.creation|date:"d M Y" }}</td>
-                    <td class="align-middle clickable"><a href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                    <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
+                    <td class="align-middle">{{ report.creation|naturalday:"DATE_FORMAT" }}</td>
+                    <td class="align-middle"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                    <td class="align-middle">{{ report.last_update|naturalday:"DATE_FORMAT" }}</td>
                     {% if report.complete %}
                         {% if report.delivered %}
                             <td class="align-middle"><span class="badge badge-success">Delivered</span></td>
@@ -78,42 +78,6 @@
                             }
                         );
             $('.tablesorter').trigger('update');
-        });
-    </script>
-
-    <!-- Activate Report with AJAX -->
-    <script>
-        $('.js-activate-report').click(function () {
-            var url = $(this).attr('activate-report-url');
-            var reportId = $(this).attr('activate-report-id');
-            var csrftoken = $(this).attr('activate-report-csrftoken');
-            var activeReportBar = $('#active-report-id');
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'report': reportId
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        activeReportBar.html(data['report']);
-                        activeReportBar.attr('href', data['report_url']);
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
-                    }
-                }
-            });
         });
     </script>
 

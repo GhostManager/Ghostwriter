@@ -1,8 +1,6 @@
 {% extends 'base_generic.html' %}
 
-{% load report_tags %}
-
-{% load bleach_tags %}
+{% load report_tags bleach_tags humanize %}
 
 {% block pagetitle %}Report Template Detail{% endblock %}
 
@@ -19,7 +17,11 @@
 
 {% block content %}
     <div class="dropdown">
-        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+        </div>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
             <a class="dropdown-item icon download-icon" href="{% url 'reporting:template_download' reporttemplate.id %}">Download</a>
             <a class="dropdown-item icon icon bug-icon js-lint-template" href="javascript:void(0)" lint-template-csrftoken="{{ csrf_token }}" lint-template-url="{% url 'reporting:ajax_lint_report_template' reporttemplate.id %}">Lint</a>
@@ -30,7 +32,9 @@
         </div>
     </div>
 
-    <h2>{{ reporttemplate.name }}</h2>
+    <div class="container">
+        <h2>{{ reporttemplate.name }}</h2>
+    </div>
 
     {% if reporttemplate.protected %}
         <div
@@ -61,11 +65,11 @@
             </tr>
             <tr>
                 <td class="text-left bold">Upload Date</td>
-                <td class="text-center">{{ reporttemplate.upload_date }}</td>
+                <td class="text-center">{{ reporttemplate.upload_date|naturalday:"DATE_FORMAT" }}</td>
             </tr>
             <tr>
                 <td class="text-left bold">Last Update</td>
-                <td class="text-center">{{ reporttemplate.last_update }}</td>
+                <td class="text-center">{{ reporttemplate.last_update|naturalday:"DATE_FORMAT" }}</td>
             </tr>
             <tr>
                 <td class="text-left bold">Client</td>

@@ -1,4 +1,4 @@
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.contrib.auth import get_user_model
 from django.forms.models import inlineformset_factory
 from django.test import TestCase
@@ -58,9 +58,7 @@ class ProjectFormTest(TestCase):
         self.reg_user.is_active = True
         self.reg_user.save()
 
-    def form_data(
-        self, start_date, end_date, note, slack_channel, project_type, client
-    ):
+    def form_data(self, start_date, end_date, note, slack_channel, project_type, client):
         # Create `ProjectForm` form data
         return ProjectForm(
             data={
@@ -152,9 +150,7 @@ class ProjectObjectiveFormsetTest(TestCase):
         )
         self.project_role = ProjectRole.objects.create(project_role="Assessment Lead")
         self.project_type = ProjectType.objects.create(project_type="Red Team")
-        self.objective_status = ObjectiveStatus.objects.create(
-            objective_status="Active"
-        )
+        self.objective_status = ObjectiveStatus.objects.create(objective_status="Active")
 
         # Setup an administrative user
         self.staff_user = User.objects.create_user(
@@ -234,7 +230,10 @@ class ProjectObjectiveFormsetTest(TestCase):
         Attempt to validate form data that is missing a date.
         """
         # Validate a form with a missing ``deadline`` value
-        form = self.form_data(deadline_1="", objective_1="Objective 1",)
+        form = self.form_data(
+            deadline_1="",
+            objective_1="Objective 1",
+        )
         errors = form.errors[0]["deadline"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "incomplete")
@@ -244,7 +243,10 @@ class ProjectObjectiveFormsetTest(TestCase):
         Attempt to validate form data that is missing an objective.
         """
         # Validate a form with a missing ``objective`` value
-        form = self.form_data(deadline_1="2020-06-22", objective_1="",)
+        form = self.form_data(
+            deadline_1="2020-06-22",
+            objective_1="",
+        )
         errors = form.errors[0]["objective"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "incomplete")
@@ -262,9 +264,7 @@ class ProjectAssignmentFormsetTest(TestCase):
         )
         self.project_role = ProjectRole.objects.create(project_role="Assessment Lead")
         self.project_type = ProjectType.objects.create(project_type="Red Team")
-        self.objective_status = ObjectiveStatus.objects.create(
-            objective_status="Active"
-        )
+        self.objective_status = ObjectiveStatus.objects.create(objective_status="Active")
 
         # Setup an administrative user
         self.staff_user = User.objects.create_user(
@@ -475,7 +475,9 @@ class ClientFormTest(TestCase):
 
     def form_data(self, name, short_name, note):
         # Create `ClientForm` form data
-        return ClientForm(data={"name": name, "short_name": short_name, "note": note},)
+        return ClientForm(
+            data={"name": name, "short_name": short_name, "note": note},
+        )
 
     def test_valid_data(self):
         """
@@ -483,7 +485,9 @@ class ClientFormTest(TestCase):
         """
         # Send all valid project data
         form = self.form_data(
-            name="Kabeltown", short_name="K-Town", note="This is a test note",
+            name="Kabeltown",
+            short_name="K-Town",
+            note="This is a test note",
         )
         self.assertTrue(form.is_valid())
 
@@ -733,9 +737,7 @@ class ClientNoteTest(TestCase):
 
     def form_data(self, note, client, operator):
         # Create `ClientNoteForm` form data
-        return ClientNoteForm(
-            data={"note": note, "client": client, "operator": operator}
-        )
+        return ClientNoteForm(data={"note": note, "client": client, "operator": operator})
 
     def test_valid_data(self):
         """
@@ -754,9 +756,7 @@ class ClientNoteTest(TestCase):
         Attempt to validate form data with invalid dates.
         """
         # Provide a blank note
-        form = self.form_data(
-            note="", client=self.client.pk, operator=self.staff_user.pk
-        )
+        form = self.form_data(note="", client=self.client.pk, operator=self.staff_user.pk)
         errors = form["note"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")

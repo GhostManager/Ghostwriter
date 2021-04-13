@@ -1,11 +1,11 @@
 """This contains customizations for displaying the Oplog application models in the admin panel."""
 
-# Django & Other 3rd Party Libraries
 from django.contrib import admin
+
+
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
-# Ghostwriter Libraries
 from .models import Oplog, OplogEntry
 from .resources import OplogEntryResource
 
@@ -18,6 +18,17 @@ class OplogResource(resources.ModelResource):
 @admin.register(OplogEntry)
 class OplogEntryAdmin(ImportExportModelAdmin):
     resource_class = OplogEntryResource
+    list_display = ("oplog_id", "operator_name", "start_date")
+    list_filter = (
+        "oplog_id",
+        "operator_name",
+        "start_date",
+    )
+    list_display_links = (
+        "oplog_id",
+        "operator_name",
+        "start_date",
+    )
 
 
 @admin.register(Oplog)

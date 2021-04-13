@@ -17,16 +17,12 @@
     </td>
     <td
         class="holdme align-middle"
-        data-toggle="tooltip"
-        data-placement="top"
         title="Click-n-drag to reposition or categorize"
     ></td>
     <td class="align-middle">
         <button
             class="expandme btn btn-transaprent"
             onclick="expandObjective($(this))"
-            data-toggle="tooltip"
-            data-placement="top"
             title="Expand to view task list"
         ></button>
     </td>
@@ -39,8 +35,6 @@
             obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
             obj-status-csrftoken="{{ csrf_token }}"
             class="objective-badge badge badge-secondary"
-            data-toggle="tooltip"
-            data-placement="top"
             title="Click to change the status"
             onclick="cycleStatus($(this))"
         >
@@ -57,7 +51,7 @@
     </td>
     <td class="align-middle">
         <span class="objective-deadline {% if not objective.complete and objective.deadline|days_left <= 1 %}task-imminent{% elif not objective.complete and objective.deadline|days_left <= 5 %}task-due-soon{% endif %}">
-            {{ objective.deadline|date:"d M Y" }}
+            {{ objective.deadline|date:"DATE_FORMAT" }}
         </span>
     </td>
 </tr>

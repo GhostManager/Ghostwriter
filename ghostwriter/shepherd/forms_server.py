@@ -1,6 +1,13 @@
 """This contains all server-related forms used by the Shepherd application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+
+# 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
@@ -14,11 +21,6 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-from django import forms
-from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
@@ -83,7 +85,9 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "primary",
                             ValidationError(
-                                _("You can not mark two addresses as the primary address"),
+                                _(
+                                    "You can not mark two addresses as the primary address"
+                                ),
                                 code="duplicate",
                             ),
                         )
@@ -373,7 +377,16 @@ class ServerCheckoutForm(forms.ModelForm):
     class Meta:
         model = ServerHistory
         fields = "__all__"
-        widgets = {"operator": forms.HiddenInput(), "server": forms.HiddenInput()}
+        widgets = {
+            "operator": forms.HiddenInput(),
+            "server": forms.HiddenInput(),
+            "start_date": forms.DateInput(
+                format=("%Y-%m-%d"),
+            ),
+            "end_date": forms.DateInput(
+                format=("%Y-%m-%d"),
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super(ServerCheckoutForm, self).__init__(*args, **kwargs)
@@ -390,9 +403,7 @@ class ServerCheckoutForm(forms.ModelForm):
         self.fields["project"].empty_label = "-- Select a Client First --"
         self.fields["project"].label = ""
         self.fields["project"].queryset = Project.objects.none()
-        self.fields["start_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["start_date"].widget.input_type = "date"
-        self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.input_type = "date"
         self.fields["note"].widget.attrs["placeholder"] = ""
         self.fields["note"].label = ""
@@ -450,7 +461,9 @@ class ServerCheckoutForm(forms.ModelForm):
             except (ValueError, TypeError):
                 pass
         elif self.instance.pk:
-            self.fields["project"].queryset = self.instance.client.project_set.order_by("codename")
+            self.fields["project"].queryset = self.instance.client.project_set.order_by(
+                "codename"
+            )
 
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]

@@ -1,13 +1,13 @@
 """This contains customizations for displaying the Users application models in the admin panel."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.contrib import admin
 from django.contrib.auth import admin as auth_admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 
-# Ghostwriter libaries
+# Ghostwriter Libraries
 from ghostwriter.users.forms import GroupAdminForm
 
 User = get_user_model()

@@ -1,4 +1,4 @@
-{% load custom_tags %}
+{% load static i18n compress custom_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -10,14 +10,13 @@
         <title>{% block title %}Ghostwriter{% endblock %}</title>
 
         <!-- Load Static Files -->
-        {% load static %}
         <link rel="shortcut icon" href="{%  static 'favicon.ico' %}">
 
         <!-- Bootstrap CSS CDN -->
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
 
         <!-- Font Awesome JS -->
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w==" crossorigin="anonymous" />
 
         <!-- jQuery CDN -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -51,7 +50,7 @@
         <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/locales-all.min.js"></script>
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.5.1/main.min.css">
 
-        <!-- ClipbaordJS -->
+        <!-- ClipboardJS -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js"></script>
 
         <!-- Textarea Autoresize -->
@@ -122,17 +121,6 @@
                                 </ul>
                             </li>
                             <li>
-                                <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Reports</a>
-                                <ul class="collapse list-unstyled text-left" id="reportSubmenu">
-                                    <li><a class="icon list-icon" href="{% url 'reporting:reports' %}">Report Library</a></li>
-                                    <li><a class="icon plus-icon" href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
-                                    <hr>
-                                    <li><a class="icon list-icon" href="{% url 'reporting:templates' %}">Report Template Library</a></li>
-                                    <li><a class="icon plus-icon" href="{% url 'reporting:template_create' %}">Add New Report Template</a></li>
-                                    <li><a class="icon archive-icon" href="{% url 'reporting:archived_reports' %}">Archived Report Bundles</a></li>
-                                </ul>
-                            </li>
-                            <li>
                                 <a href="#oplogSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Operation Logs</a>
                                 <ul class="collapse list-unstyled text-left" id="oplogSubmenu">
                                     <li><a class="icon list-icon" href="{% url 'oplog:index' %}">Oplog Library</a></li>
@@ -140,6 +128,28 @@
                                     <li><a class="icon import-icon" href="{% url 'oplog:oplog_import' %}">Import Oplog Entries</a></li>
                                 </ul>
                             </li>
+                        </ul>
+
+                        <!-- Reporting Section -->
+                        <ul class="list-unstyled components">
+                            <p class="sideheader icon file-icon">Reporting</p>
+
+                            <!-- Menu Section -->
+                            <li>
+                                <a href="#reportSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Reports</a>
+                                <ul class="collapse list-unstyled text-left" id="reportSubmenu">
+                                    <li><a class="icon list-icon" href="{% url 'reporting:reports' %}">Report Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'reporting:report_create_no_project' %}">Add New Report</a></li>
+                                </ul>
+                            </li>
+                            <li>
+                                <a href="#templateSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Templates</a>
+                                <ul class="collapse list-unstyled text-left" id="templateSubmenu">
+                                    <li><a class="icon list-icon" href="{% url 'reporting:templates' %}">Report Template Library</a></li>
+                                    <li><a class="icon plus-icon" href="{% url 'reporting:template_create' %}">Add New Report Template</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="{% url 'reporting:archived_reports' %}">Archived Reports</a></li>
                         </ul>
 
                         <!-- Shepherd Section -->
@@ -175,21 +185,28 @@
                         </ul>
 
                         <!-- Admin Section -->
-                        {% if request.user.is_staff %}
-                            <ul class="list-unstyled components">
-                                <p class="sideheader icon admin-icon">Administration</p>
+                        <ul class="list-unstyled components">
+                            <!-- Amin Panel Shortcuts -->
+                            <p class="sideheader icon admin-icon">Administration</p>
+                            {% if request.user.is_staff %}
                                 <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
                                 <li>
-                                    <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Administration</a>
-                                    <ul class="collapse list-unstyled text-left" id="pageSubmenu">
+                                    <a href="#adminSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Admin Panel</a>
+                                    <ul class="collapse list-unstyled text-left" id="adminSubmenu">
                                         <li><a class="icon gears-icon" href="{% url 'admin:index' %}">Admin Panel</a></li>
+                                        <li><a class="icon slider-icon" href="{% url 'admin:index' %}commandcenter">Configuration Mgmt</a></li>
                                         {% if perms.users.view_user %}
-                                            <li><a class="icon users-icon" href="{% url 'admin:users_user_changelist' %}">Users</a></li>
+                                            <li><a class="icon users-icon" href="{% url 'admin:users_user_changelist' %}">User Mgmt</a></li>
                                         {% endif %}
                                         {% if perms.django_q.view_task %}
                                             <li><a class="icon calendar-icon" href="{% url 'admin:app_list' 'django_q' %}">Scheduled Tasks</a></li>
                                         {% endif %}
-                                        <hr>
+                                    </ul>
+                                </li>
+                                <!-- Bulk Import & Export Shortcuts -->
+                                <li>
+                                    <a href="#bulkSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Import & Export</a>
+                                    <ul class="collapse list-unstyled text-left" id="bulkSubmenu">
                                         <li><a class="icon import-icon" href="{% url 'admin:reporting_finding_import' %}">Upload Bulk Findings</a></li>
                                         <li><a class="icon export-icon" href="{% url 'reporting:export_findings_to_csv' %}">Export Findings to CSV</a></li>
                                         <hr>
@@ -200,27 +217,26 @@
                                         <li><a class="icon export-icon" href="{% url 'shepherd:export_servers_to_csv' %}">Export Servers to CSV</a></li>
                                     </ul>
                                 </li>
-
-                                <!-- Documentation Section -->
-                                <li>
-                                    <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Documentation</a>
-                                    <ul class="collapse list-unstyled text-left" id="docsSubmenu">
-                                        <li><a class="icon docs-icon" href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
-                                        <li><a class="icon github-icon" href="https://github.com/GhostManager/Ghostwriter">Ghostwriter on GitHub</a></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        {% endif %}
+                            {% endif %}
+                            <!-- Documentation Section -->
+                            <li>
+                                <a href="#docsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Documentation</a>
+                                <ul class="collapse list-unstyled text-left" id="docsSubmenu">
+                                    <li><a class="icon docs-icon" href="https://ghostwriter.wiki">Ghostwriter Wiki</a></li>
+                                    <li><a class="icon github-icon" href="https://github.com/GhostManager/Ghostwriter">Ghostwriter on GitHub</a></li>
+                                </ul>
+                            </li>
+                        </ul>
 
                         <!-- Sidebar Buttons -->
                         <div class="align-middle text-center">
                             {% if user.is_authenticated %}
-                                <a href="{% url 'account_logout' %}" class="btn btn-primary col-md-8 icon logout-icon">Logout</a>
+                                <a href="{% url 'account_logout' %}" class="btn btn-primary col-10 icon logout-icon">Logout</a>
                             {% else %}
-                                <a href="{% url 'account_login' %}" class="btn btn-primary col-md-8 icon login-icon">Login</a>
+                                <a href="{% url 'account_login' %}" class="btn btn-primary col-10 icon login-icon">Login</a>
                             {% endif %}
 
-                            <a href="https://www.specterops.io"><img class="sidebar-logo" src="{% static 'images/domain.png' %}" alt="SpecterOps"></a>
+                            <a href="https://www.specterops.io"><img class="col-8" src="{% static 'images/domain.png' %}" alt="SpecterOps"></a>
                         </div>
                     </div>
                 </nav>
@@ -251,17 +267,37 @@
                                             <div class="dropdown">
                                                 {% if request.session.active_report.id and request.session.active_report.title %}
                                                     <a id="active-report-id" class="nav-link report selected-report" href="{% url 'reporting:report_detail' request.session.active_report.id %}">{{ request.session.active_report.title }}</a>
-                                                    <div class="dropdown-content dropdown-content-info">
-                                                        <p>This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a class="text-center icon exchange-icon" style="font-size: 1.1em;" href="{% url 'reporting:reports' %}">Switch Reports</a>
-                                                    </div>
                                                 {% else %}
-                                                    <a id="active-report-id" class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Click Here to Select a Report</a>
-                                                    <div class="dropdown-content dropdown-content-info">
-                                                        <p>This is your active report. Any findings you add will be added to this report.</p>
-                                                        <a class="text-center icon exchange-icon" style="font-size: 1.1em;"href="{% url 'reporting:reports' %}">Select a Report</a>
-                                                    </div>
+                                                    <a id="active-report-id" class="nav-link report empty-report" href="{% url 'reporting:reports' %}">Hover to Select a Report</a>
                                                 {% endif %}
+
+                                                <div class="dropdown-content dropdown-content-info">
+                                                    <div class="my-1 mx-1">
+                                                        <p>Select a report from one of your active projects or use the link to browse all open reports. Your findings will attach to this report.</p>
+                                                        <div class="row m-0">
+                                                            {% if request.user.projectassignment_set.all %}
+                                                                {% for assignment in request.user.projectassignment_set.all %}
+                                                                    {% for report in assignment.project.report_set.all %}
+                                                                        {% if not report.complete %}
+                                                                            <button
+                                                                                title="Set this report as your active report"
+                                                                                class="col-md-10 offset-md-1 mt-1 mb-1 js-activate-report btn btn-secondary btn-report
+                                                                                {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
+                                                                                    selected-report
+                                                                                {% endif %}
+                                                                                " activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">
+                                                                                {{ report }}
+                                                                            </button>
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                {% endfor %}
+                                                            {% else %}
+                                                                <p>You are not assigned to any projects right now.</p>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                    <a class="report-select text-center icon exchange-icon" style="font-size: 1em;" href="{% url 'reporting:reports' %}">Browse Reports</a>
+                                                </div>
                                             </div>
                                         </li>
                                         <li class="nav-item">
@@ -334,7 +370,6 @@
             });
         </script>
 
-
         <!-- Script for Copying Text to Clipboard-->
         <script>
             function copyToClipboard(element) {
@@ -346,6 +381,58 @@
             }
         </script>
 
+        <!-- Activate Report with AJAX -->
+        <script>
+            $('.js-activate-report').click(function () {
+                var clickedBtn = $(this);
+                var url = $(this).attr('activate-report-url');
+                var reportId = $(this).attr('activate-report-id');
+                var csrftoken = $(this).attr('activate-report-csrftoken');
+                var activeReportBar = $('#active-report-id');
+                // Prep AJAX request with CSRF token
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        }
+                    }
+                });
+                // Send AJAX POST request
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'report': reportId
+                    },
+                    success: function (data) {
+                        if (data['result'] == 'success') {
+                            activeReportBar.html(data['report']);
+                            activeReportBar.attr('href', data['report_url']);
+                            $('.empty-report').addClass('selected-report');
+                            $('.empty-report').toggleClass('empty-report');
+                            $('.btn.selected-report').each(function(index, ele) {
+                                if (reportId != $(this).attr('activate-report-id')) {
+                                    $(this).toggleClass('selected-report');
+                                }
+                            });
+                            $('.btn.js-activate-report').each(function(index, ele) {
+                                if (reportId == $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
+                                    $(this).toggleClass('selected-report');
+                                    $(this).hide(1000);
+                                } else {
+                                    $(this).show(1000);
+                                }
+                            });
+                        }
+                        if (data['message']) {
+                            displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                        }
+                    }
+                });
+            });
+        </script>
+
         <!-- Script for Sidebar -->
         <script>
             $(document).ready(function () {
@@ -353,6 +440,21 @@
                 $('#sidebar').toggleClass('active');
                 $(this).toggleClass('active');
               });
+            });
+        </script>
+
+        <!-- Scripts for Hamburger Menus -->
+        <script>
+            function hamburger(x) {
+                x.classList.toggle("change");
+            }
+        </script>
+
+        <script>
+            $(document).on("click", function(e){
+                if ($('.dropdown-menu-btn').hasClass('change')) {
+                    $('.dropdown-menu-btn').toggleClass('change');
+                }
             });
         </script>
 
@@ -569,47 +671,47 @@
 
             <!-- Switch to Tab with Invalid Inputs -->
             <script>
-            // Open tab with the first invalid/missing field on submission but before POST
-            $('#submit-id-submit').click(function () {
-                $('input:invalid').each(function () {
-                    // Find the tab-pane that this element is inside, and get the id
-                    var $closest = $(this).closest('.tab-pane');
-                    var id = $closest.attr('id');
+                // Open tab with the first invalid/missing field on submission but before POST
+                $('#submit-id-submit').click(function () {
+                    $('input:invalid').each(function () {
+                        // Find the tab-pane that this element is inside, and get the id
+                        var $closest = $(this).closest('.tab-pane');
+                        var id = $closest.attr('id');
 
-                    // Find the link that corresponds to the pane and have it show
-                    $('.nav a[href="#' + id + '"]').tab('show');
+                        // Find the link that corresponds to the pane and have it show
+                        $('.nav a[href="#' + id + '"]').tab('show');
 
-                    // Only want to do it once
-                    return false;
+                        // Only want to do it once
+                        return false;
+                    });
                 });
-            });
-            // Open tab with the first invalid/missing field when returning from a POST that failed validation
-            $(window).on('load', function() {
-                $('input.is-invalid').each(function () {
-                    // Find the tab-pane that this element is inside, and get the id
-                    var $closest = $(this).closest('.tab-pane');
-                    var id = $closest.attr('id');
+                // Open tab with the first invalid/missing field when returning from a POST that failed validation
+                $(window).on('load', function() {
+                    $('input.is-invalid').each(function () {
+                        // Find the tab-pane that this element is inside, and get the id
+                        var $closest = $(this).closest('.tab-pane');
+                        var id = $closest.attr('id');
 
-                    // Find the link that corresponds to the pane and have it show
-                    $('.nav a[href="#' + id + '"]').tab('show');
+                        // Find the link that corresponds to the pane and have it show
+                        $('.nav a[href="#' + id + '"]').tab('show');
 
-                    // Only want to do it once
-                    return false;
+                        // Only want to do it once
+                        return false;
+                    });
+                    // If no invalid fields, look for invalid-feedback messages
+                    // This catches invalid fields taken over by TinyMCE
+                    $('span.invalid-feedback').each(function () {
+                        // Find the tab-pane that this element is inside, and get the id
+                        var $closest = $(this).closest('.tab-pane');
+                        var id = $closest.attr('id');
+
+                        // Find the link that corresponds to the pane and have it show
+                        $('.nav a[href="#' + id + '"]').tab('show');
+
+                        // Only want to do it once
+                        return false;
+                    });
                 });
-                // If no invalid fields, look for invalid-feedback messages
-                // This catches invalid fields taken over by TinyMCE
-                $('span.invalid-feedback').each(function () {
-                    // Find the tab-pane that this element is inside, and get the id
-                    var $closest = $(this).closest('.tab-pane');
-                    var id = $closest.attr('id');
-
-                    // Find the link that corresponds to the pane and have it show
-                    $('.nav a[href="#' + id + '"]').tab('show');
-
-                    // Only want to do it once
-                    return false;
-                });
-            });
             </script>
         {% endblock %}
 

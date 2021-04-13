@@ -9,15 +9,17 @@ import traceback
 from collections import defaultdict
 from datetime import date
 
-# Django & Other 3rd Party Libraries
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+# Django Imports
+from django.db.models import Q
+
+# 3rd Party Libraries
 import boto3
 import nmap
 import pytz
 import requests
+from asgiref.sync import async_to_sync
 from botocore.exceptions import ClientError
-from django.db.models import Q
+from channels.layers import get_channel_layer
 from lxml import objectify
 
 # Ghostwriter Libraries
@@ -68,15 +70,13 @@ def craft_cloud_message(
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": "A cloud asset for this project looks like it is ready to be torn down:\n*{}*".format(
-            project_name
-        ),
+        "text": ":cloud: Teardown Notification for {} :cloud:".format(project_name),
         "blocks": [
             {
-                "type": "section",
+                "type": "header",
                 "text": {
-                    "type": "mrkdwn",
-                    "text": "A cloud asset for this project looks like it is ready to be torn down:\n*{}*".format(
+                    "type": "plain_text",
+                    "text": ":cloud: Teardown Notification for {} :cloud:".format(
                         project_name
                     ),
                 },
@@ -119,8 +119,15 @@ def craft_unknown_asset_message(
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": "An *untracked* cloud asset is running without being attached to a project. If this asset should be ignored, tag it with one of the configured `Ignore Tags` in settings.",
+        "text": ":eye: Untracked Cloud Server :eyes:",
         "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": ":eye: Untracked Cloud Server :eyes:",
+                },
+            },
             {
                 "type": "section",
                 "text": {
@@ -152,7 +159,9 @@ def craft_unknown_asset_message(
     return json.dumps(UNKNOWN_ASSET_MESSAGE)
 
 
-def craft_burned_message(username, emoji, channel, domain, categories, burned_explanation):
+def craft_burned_message(
+    username, emoji, channel, domain, categories, burned_explanation
+):
     """
     Craft a nicely formatted Slack message using blocks for newly burned domain names.
     """
@@ -160,13 +169,13 @@ def craft_burned_message(username, emoji, channel, domain, categories, burned_ex
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": "This domain name is now considered *Burned* :fire:",
+        "text": ":fire: Domain Burned :fire:",
         "blocks": [
             {
-                "type": "section",
+                "type": "header",
                 "text": {
-                    "type": "mrkdwn",
-                    "text": "This domain name is now considered *Burned* :fire:",
+                    "type": "plain_text",
+                    "text": ":fire: Domain Burned :fire:",
                 },
             },
             {
@@ -180,15 +189,60 @@ def craft_burned_message(username, emoji, channel, domain, categories, burned_ex
                         "type": "mrkdwn",
                         "text": "*Categories:*\n{}".format(", ".join(categories)),
                     },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Explanation:*\n{}".format(", ".join(burned_explanation)),
-                    },
                 ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "\n".join(burned_explanation),
+                },
             },
         ],
     }
     return json.dumps(BURNED_DOMAIN_MESSAGE)
+
+
+def craft_warning_message(username, emoji, channel, domain, warning_type, warnings):
+    """
+    Craft a nicely formatted Slack message using blocks for sending warning nessages.
+    """
+    WARNING_MESSAGE = {
+        "username": username,
+        "icon_emoji": emoji,
+        "channel": channel,
+        "text": ":warning: Domain Event :warning:",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": ":warning: Domain Event :warning:",
+                },
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Domain Name:*\n{}".format(domain),
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": "*Warning:*\n{}".format(warning_type),
+                    },
+                ],
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "\n".join(warnings),
+                },
+            },
+        ],
+    }
+    return json.dumps(WARNING_MESSAGE)
 
 
 class BearerAuth(requests.auth.AuthBase):
@@ -265,7 +319,9 @@ def send_slack_complete_msg(task):
         )
     else:
         if task.result:
-            send_slack_msg("{} task failed with this result: {}".format(task.group, task.result))
+            send_slack_msg(
+                "{} task failed with this result: {}".format(task.group, task.result)
+            )
         else:
             send_slack_msg(
                 "{} task failed with no result/error data. Check the Django Q admin panel.".format(
@@ -315,7 +371,9 @@ def release_domains(no_action=False, reset_dns=False):
         slack_channel = None
         try:
             # Get latest project checkout for domain
-            project_queryset = History.objects.filter(domain__name=domain.name).latest("end_date")
+            project_queryset = History.objects.filter(domain__name=domain.name).latest(
+                "end_date"
+            )
             release_date = project_queryset.end_date
             warning_date = release_date - datetime.timedelta(1)
             if project_queryset.project.slack_channel:
@@ -331,7 +389,9 @@ def release_domains(no_action=False, reset_dns=False):
                 )
                 send_slack_msg(message, slack_channel)
         except History.DoesNotExist:
-            logger.warning("The domain %s has no project history, so releasing it", domain.name)
+            logger.warning(
+                "The domain %s has no project history, so releasing it", domain.name
+            )
             release_date = datetime.datetime.today()
 
         # If ``release_me`` is still ``True``, release the domain
@@ -353,10 +413,16 @@ def release_domains(no_action=False, reset_dns=False):
                 domain_updates[domain.id]["change"] = "released"
             # Make sure the Namecheap API config is good and reg is Namecheap
             # Most importantly, check the ``reset_dns`` flag is ``True`` in kwargs
-            if namecheap_config.enable and domain.registrar.lower() == "namecheap" and reset_dns:
+            if (
+                namecheap_config.enable
+                and domain.registrar.lower() == "namecheap"
+                and reset_dns
+            ):
                 logger.info("Attempting to reset DNS on Namecheap for %s", domain.name)
                 try:
-                    logger.info("Attempting to reset DNS on Namecheap for %s", domain.name)
+                    logger.info(
+                        "Attempting to reset DNS on Namecheap for %s", domain.name
+                    )
                     # Split domain name for the API call
                     domain_split = domain.name.split(".")
                     sld = domain_split[0]
@@ -380,12 +446,18 @@ def release_domains(no_action=False, reset_dns=False):
                         # Check the status to make sure it says "OK"
                         namecheap_api_result = root.attrib["Status"]
                         if namecheap_api_result == "OK":
-                            is_success = root.CommandResponse.DomainDNSSetHostsResult.attrib[
-                                "IsSuccess"
-                            ]
-                            warnings = root.CommandResponse.DomainDNSSetHostsResult.Warnings
+                            is_success = (
+                                root.CommandResponse.DomainDNSSetHostsResult.attrib[
+                                    "IsSuccess"
+                                ]
+                            )
+                            warnings = (
+                                root.CommandResponse.DomainDNSSetHostsResult.Warnings
+                            )
                             if is_success == "true":
-                                logger.info("Successfully reset DNS records for %s", domain.name)
+                                logger.info(
+                                    "Successfully reset DNS records for %s", domain.name
+                                )
                                 domain_updates[domain.id]["dns"] = "reset"
                             else:
                                 logger.warning(
@@ -399,9 +471,9 @@ def release_domains(no_action=False, reset_dns=False):
                             logger.error("DNS Error %s: %s", error_num, error)
                             domain_updates[domain.id]["dns"] = "no action"
                             domain_updates["errors"][domain.name] = {}
-                            domain_updates["errors"][domain.name] = "DNS Error {}: {}".format(
-                                error_num, error
-                            )
+                            domain_updates["errors"][
+                                domain.name
+                            ] = "DNS Error {}: {}".format(error_num, error)
                         else:
                             logger.error(
                                 'Namecheap did not return an "OK" response – %s',
@@ -523,27 +595,48 @@ def check_domains(domain=None):
     ``domain``
         Individual domain's primary key to update only that domain (Default: None)
     """
+    domain_updates = {}
+    domain_updates["errors"] = {}
+
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
 
-    # Get target domain(s) from the database
+    # Get target domain(s) from the database or the target ``domain``
     domain_list = []
     sleep_time_override = None
     if domain:
-        domain_queryset = Domain.objects.get(pk=domain)
-        domain_list.append(domain_queryset)
-        logger.info("Checking only one domain, so disabling sleep time for VirusTotal")
-        sleep_time_override = 0
+        try:
+            domain_queryset = Domain.objects.get(pk=domain)
+            domain_list.append(domain_queryset)
+            logger.info(
+                "Checking only one domain, so disabling sleep time for VirusTotal"
+            )
+            sleep_time_override = 0
+        except Domain.DoesNotExist:
+            domain_updates[domain] = {}
+            domain_updates[domain]["change"] = "error"
+            domain_updates["errors"][domain.name] = {}
+            domain_updates["errors"][
+                domain.name
+            ] = f"Requested domain ID, {domain}, does not exist"
+            logger.exception("Requested domain ID, %s, does not exist", domain)
+            return domain_updates
     else:
-        domain_queryset = Domain.objects.all()
+        # Only fetch domains that are not expired or already burned
+        domain_queryset = Domain.objects.filter(
+            ~Q(domain_status=DomainStatus.objects.get(domain_status="Expired"))
+            & ~Q(health_status=HealthStatus.objects.get(health_status="Burned"))
+        )
         for result in domain_queryset:
             domain_list.append(result)
+
     # Execute ``DomainReview`` to check categories
-    domain_review = DomainReview(domain_list, sleep_time_override)
+    domain_review = DomainReview(
+        domain_queryset=domain_list, sleep_time_override=sleep_time_override
+    )
     lab_results = domain_review.check_domain_status()
+
     # Update the domains as needed
-    domain_updates = {}
-    domain_updates["errors"] = {}
     for domain in lab_results:
         change = "no action"
         domain_updates[domain.id] = {}
@@ -554,7 +647,6 @@ def check_domains(domain=None):
             # Flip status if a domain has been flagged as burned
             if lab_results[domain]["burned"]:
                 domain.health_status = HealthStatus.objects.get(health_status="Burned")
-                domain.domain_status = DomainStatus.objects.get(domain_status="Burned")
                 change = "burned"
                 if slack_config.enable:
                     slack_data = craft_burned_message(
@@ -570,10 +662,35 @@ def check_domains(domain=None):
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
                     )
+            # If the domain isn't marked as burned, check for any informational warnings
+            else:
+                if lab_results[domain]["warnings"]["total"] > 0:
+                    logger.info(
+                        "Domain is not burned but there are warnings, so preparing notification"
+                    )
+                    if slack_config.enable:
+                        slack_data = craft_warning_message(
+                            slack_config.slack_username,
+                            slack_config.slack_emoji,
+                            slack_config.slack_channel,
+                            domain.name,
+                            "VirusTotal Submission",
+                            lab_results[domain]["warnings"]["messages"],
+                        )
+                        response = requests.post(
+                            slack_config.webhook_url,
+                            data=slack_data,
+                            headers={"Content-Type": "application/json"},
+                        )
             # Update other fields for the domain object
-            if lab_results[domain]["burned"] and "burned_explanation" in lab_results[domain]:
+            if (
+                lab_results[domain]["burned"]
+                and "burned_explanation" in lab_results[domain]
+            ):
                 if lab_results[domain]["burned_explanation"]:
-                    domain.burned_explanation = "\n".join(lab_results[domain]["burned_explanation"])
+                    domain.burned_explanation = "\n".join(
+                        lab_results[domain]["burned_explanation"]
+                    )
             if lab_results[domain]["categories"] != domain.all_cat:
                 change = "categories updated"
             if lab_results[domain]["categories"]:
@@ -627,7 +744,9 @@ def update_dns(domain=None):
             domain_list.append(result)
 
     record_types = ["A", "NS", "MX", "TXT", "CNAME", "SOA", "DMARC"]
-    dns_records = dns_toolkit.run_async_dns(domains=domain_list, record_types=record_types)
+    dns_records = dns_toolkit.run_async_dns(
+        domains=domain_list, record_types=record_types
+    )
 
     for domain in domain_list:
         domain_updates[domain.id] = {}
@@ -683,8 +802,6 @@ def update_dns(domain=None):
                 dns_records_dict["txt"] = txt_record
                 dns_records_dict["soa"] = soa_record
 
-                logger.info(dns_records_dict)
-
                 # Look-up the individual domain and save the new record string
                 domain_instance = Domain.objects.get(name=domain.name)
                 domain_instance.dns_record = dns_records_dict
@@ -697,7 +814,9 @@ def update_dns(domain=None):
                     domain.name
                 ] = "Failed updating DNS records: {traceback}".format(traceback=trace)
         else:
-            logger.warning("The domain %s was not found in the returned DNS records", domain.name)
+            logger.warning(
+                "The domain %s was not found in the returned DNS records", domain.name
+            )
             domain_updates[domain.id]["result"] = "no results"
 
     # Log task completed
@@ -719,7 +838,9 @@ def scan_servers(only_active=False):
     scanner = nmap.PortScanner()
     # Get the servers stored as static/owned servers
     if only_active:
-        server_queryset = StaticServer.objects.filter(server_status__server_status="Active")
+        server_queryset = StaticServer.objects.filter(
+            server_status__server_status="Active"
+        )
     else:
         server_queryset = StaticServer.objects.all()
     # Run a scan against each server in tbe queryset
@@ -738,7 +859,9 @@ def scan_servers(only_active=False):
                 lport = scanner[host][proto].keys()
                 for port in lport:
                     if server.server_status.server_status == "Unavailable":
-                        message = "Your server, {}, has an open port - {}".format(host, port)
+                        message = "Your server, {}, has an open port - {}".format(
+                            host, port
+                        )
                         latest = ServerHistory.objects.filter(server=server)[0]
                         if latest.project.slack_channel:
                             send_slack_msg(message, latest.project.slack_channel)
@@ -813,7 +936,9 @@ def fetch_namecheap_domains():
                 ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
                 return domain_changes
             else:
-                logger.error('Namecheap did not return an "OK" or "ERROR" response: %s', req.text)
+                logger.error(
+                    'Namecheap did not return an "OK" or "ERROR" response: %s', req.text
+                )
                 domain_changes["errors"][
                     "namecheap"
                 ] = 'Namecheap did not return an "OK" or "ERROR" response: {response}'.format(
@@ -821,7 +946,9 @@ def fetch_namecheap_domains():
                 )
                 return domain_changes
         else:
-            logger.error("Namecheap returned a %s response: %s", req.status_code, req.text)
+            logger.error(
+                "Namecheap returned a %s response: %s", req.status_code, req.text
+            )
             domain_changes["errors"][
                 "namecheap"
             ] = "Namecheap returned a {status_code} response: {text}".format(
@@ -860,7 +987,9 @@ def fetch_namecheap_domains():
                     domain.domain_status = expired_status
                     # If the domain expiration date is in the future, adjust it
                     if domain.expiration >= date.today():
-                        domain.expiration = domain.expiration - datetime.timedelta(days=365)
+                        domain.expiration = domain.expiration - datetime.timedelta(
+                            days=365
+                        )
                     try:
                         for attr, value in entry.items():
                             setattr(domain, attr, value)
@@ -908,7 +1037,9 @@ def fetch_namecheap_domains():
             # Check if the domain is locked - locked generally means it's burned
             newly_burned = False
             if domain["IsLocked"] == "true":
-                logger.warning("Domain %s is marked as LOCKED by Namecheap", domain["Name"])
+                logger.warning(
+                    "Domain %s is marked as LOCKED by Namecheap", domain["Name"]
+                )
                 newly_burned = True
                 entry["health_status"] = HealthStatus.objects.get(health_status="Burned")
                 entry["domain_status"] = DomainStatus.objects.get(domain_status="Burned")
@@ -921,9 +1052,9 @@ def fetch_namecheap_domains():
                 entry["auto_renew"] = False
 
             # Convert Namecheap dates to Django
-            entry["creation"] = datetime.datetime.strptime(domain["Created"], "%m/%d/%Y").strftime(
-                "%Y-%m-%d"
-            )
+            entry["creation"] = datetime.datetime.strptime(
+                domain["Created"], "%m/%d/%Y"
+            ).strftime("%Y-%m-%d")
             entry["expiration"] = datetime.datetime.strptime(
                 domain["Expires"], "%m/%d/%Y"
             ).strftime("%Y-%m-%d")
@@ -936,7 +1067,9 @@ def fetch_namecheap_domains():
                 for attr, value in entry.items():
                     setattr(instance, attr, value)
 
-                logger.debug("Domain %s is being saved with this data: %s", domain["Name"], entry)
+                logger.debug(
+                    "Domain %s is being saved with this data: %s", domain["Name"], entry
+                )
                 instance.save()
 
                 # Add entry to domain change tracking dict
@@ -1010,7 +1143,7 @@ def json_datetime_converter(dt):
         return dt.__str__()
 
 
-def review_cloud_infrastructure():
+def review_cloud_infrastructure(aws_only_running=False):
     """
     Fetch active virtual machines/instances in Digital Ocean, Azure, and AWS and
     compare IP addresses to project infrastructure. Send a report to Slack if any
@@ -1018,6 +1151,11 @@ def review_cloud_infrastructure():
     for a project.
 
     Returns a dictionary of cloud assets and encountered errors.
+
+    **Parameters**
+
+    ``aws_only_running``
+        Filter out any shutdown AWS resources, where possible (Default: False)
     """
     # Digital Ocean API endpoint for droplets
     DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
@@ -1052,20 +1190,26 @@ def review_cloud_infrastructure():
             aws_access_key_id=cloud_config.aws_key,
             aws_secret_access_key=cloud_config.aws_secret,
         )
-        regions = [region["RegionName"] for region in client.describe_regions()["Regions"]]
+        regions = [
+            region["RegionName"] for region in client.describe_regions()["Regions"]
+        ]
     except ClientError:
-        logger.error("AWS could not validate the provided credentials")
+        logger.error("AWS could not validate the provided credentials for EC2")
         aws_capable = False
-        vps_info["errors"]["aws"] = "AWS could not validate the provided credentials"
+        vps_info["errors"][
+            "aws"
+        ] = "AWS could not validate the provided credentials for EC2"
     except Exception:
         trace = traceback.format_exc()
         logger.exception("Testing authentication to AWS failed")
         aws_capable = False
-        vps_info["errors"]["aws"] = "Testing authentication to AWS failed: {traceback}".format(
+        vps_info["errors"][
+            "aws"
+        ] = "Testing authentication to AWS EC2 failed: {traceback}".format(
             traceback=trace
         )
     if aws_capable:
-        logger.info("AWS credentials are functional, beginning AWS review")
+        logger.info("AWS credentials are functional for EC2, beginning AWS review")
         # Loop over the regions to check each one for EC2 instances
         for region in regions:
             logger.info("Checking AWS region %s", region)
@@ -1077,9 +1221,12 @@ def review_cloud_infrastructure():
                 aws_secret_access_key=cloud_config.aws_secret,
             )
             # Get all EC2 instances that are running
-            running_instances = ec2.instances.filter(
-                Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
-            )
+            if aws_only_running:
+                running_instances = ec2.instances.filter(
+                    Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+                )
+            else:
+                running_instances = ec2.instances.all()
             # Loop over running instances to generate info dict
             for instance in running_instances:
                 # Calculate how long the instance has been running in UTC
@@ -1104,6 +1251,7 @@ def review_cloud_infrastructure():
                 vps_info["instances"][instance.id] = {
                     "id": instance.id,
                     "provider": "Amazon Web Services {}".format(region),
+                    "service": "EC2",
                     "name": name,
                     "type": instance.instance_type,
                     "monthly_cost": None,  # AWS cost is different and not easily calculated
@@ -1132,7 +1280,9 @@ def review_cloud_infrastructure():
         )
         if active_droplets.status_code == 200:
             active_droplets = active_droplets.json()
-            logger.info("Digital Ocean credentials are functional, beginning droplet review")
+            logger.info(
+                "Digital Ocean credentials are functional, beginning droplet review"
+            )
         else:
             do_capable = False
             logger.info(
@@ -1160,7 +1310,9 @@ def review_cloud_infrastructure():
     # Catch any other errors related to the web request
     except Exception:
         trace = traceback.format_exc()
-        logger.exception("Could not retrieve content from Digital Ocean with the provided API key")
+        logger.exception(
+            "Could not retrieve content from Digital Ocean with the provided API key"
+        )
         do_capable = False
         vps_info["errors"][
             "digital_ocean"
@@ -1194,14 +1346,16 @@ def review_cloud_infrastructure():
                     pub_addresses.append(address["ip_address"])
             # Calculate how long the instance has been running in UTC and cost to date
             time_up = months_between(
-                datetime.datetime.strptime(droplet["created_at"].split("T")[0], "%Y-%m-%d").replace(
-                    tzinfo=utc
-                ),
+                datetime.datetime.strptime(
+                    droplet["created_at"].split("T")[0], "%Y-%m-%d"
+                ).replace(tzinfo=utc),
                 datetime.datetime.today().replace(tzinfo=utc),
             )
             cost_to_date = (
                 months_between(
-                    datetime.datetime.strptime(droplet["created_at"].split("T")[0], "%Y-%m-%d"),
+                    datetime.datetime.strptime(
+                        droplet["created_at"].split("T")[0], "%Y-%m-%d"
+                    ),
                     datetime.datetime.today(),
                 )
                 * droplet["size"]["price_monthly"]
@@ -1210,6 +1364,7 @@ def review_cloud_infrastructure():
             vps_info["instances"][droplet["id"]] = {
                 "id": droplet["id"],
                 "provider": "Digital Ocean",
+                "service": "Droplets",
                 "name": droplet["name"],
                 "type": droplet["image"]["distribution"] + " " + droplet["image"]["name"],
                 "monthly_cost": droplet["size"]["price_monthly"],
@@ -1242,7 +1397,13 @@ def review_cloud_infrastructure():
         )
         if queryset:
             for result in queryset:
-                if result.project.end_date < instance["launch_time"].date():
+                # Consider the asset in use if the project's end date is in the past
+                if result.project.end_date < date.today():
+                    logger.info(
+                        "Project end date is %s which is earlier than now, %s",
+                        result.project.end_date,
+                        datetime.datetime.now().date(),
+                    )
                     if slack_config.enable:
                         if result.project.slack_channel:
                             slack_data = craft_cloud_message(
@@ -1331,18 +1492,19 @@ def check_expiration():
     expired_status = DomainStatus.objects.get(domain_status="Expired")
     domain_queryset = Domain.objects.filter(~Q(domain_status=expired_status))
     for domain in domain_queryset:
-        logger.info("Checking %s", domain)
+        logger.info("Checking expiration status of %s", domain)
         domain_changes["updates"][domain.id] = {}
         domain_changes["updates"][domain.id]["change"] = "no change"
         if domain.expiration <= date.today():
             domain_changes["updates"][domain.id]["domain"] = domain.name
-
+            # If the domain is set to auto-renew, update the expiration date
             if domain.auto_renew:
                 logger.info("Adding one year to %s's expiration date", domain.name)
                 domain_changes["updates"][domain.id]["change"] = "auto-renewed"
                 domain.expiration = domain.expiration + datetime.timedelta(days=365)
                 domain.expired = False
                 domain.save()
+            # Otherwise, mark the domain as expired
             else:
                 logger.info(
                     "Expiring domain %s due to expiration date, %s",
@@ -1409,7 +1571,9 @@ def test_digital_ocean(user):
     DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
     cloud_config = CloudServicesConfiguration.get_solo()
     level = "error"
-    logger.info("Starting a test of the Digital Ocean API key at %s", datetime.datetime.now())
+    logger.info(
+        "Starting a test of the Digital Ocean API key at %s", datetime.datetime.now()
+    )
     try:
         # Request all active droplets (as done in the real task)
         headers = {"Content-Type": "application/json"}
@@ -1419,7 +1583,9 @@ def test_digital_ocean(user):
             auth=BearerAuth(cloud_config.do_api_key),
         )
         if active_droplets.status_code == 200:
-            logger.info("Digital Ocean credentials are functional, beginning droplet review")
+            logger.info(
+                "Digital Ocean credentials are functional, beginning droplet review"
+            )
             logger.info("Successfully verified the Digital Ocean API key")
             message = "Successfully verified the Digital Ocean API key"
             level = "success"
@@ -1457,7 +1623,9 @@ def test_digital_ocean(user):
         },
     )
 
-    logger.info("Test of the Digital Ocean API key completed at %s", datetime.datetime.now())
+    logger.info(
+        "Test of the Digital Ocean API key completed at %s", datetime.datetime.now()
+    )
     return {"result": level, "message": message}
 
 
@@ -1501,7 +1669,9 @@ def test_namecheap(user):
                     namecheap_api_result,
                     req.text,
                 )
-                message = "Namecheap returned a {namecheap_api_result} response: {req.text}"
+                message = (
+                    "Namecheap returned a {namecheap_api_result} response: {req.text}"
+                )
         else:
             logger.error(
                 "Namecheap returned HTTP code %s in its response: %s",

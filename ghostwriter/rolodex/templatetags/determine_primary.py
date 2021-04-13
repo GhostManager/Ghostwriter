@@ -4,7 +4,7 @@
 from collections import defaultdict
 import datetime
 
-# Django & Other 3rd Party Libraries
+
 from django import template
 
 # Ghostwriter Libraries

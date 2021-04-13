@@ -1,12 +1,12 @@
 """This contains customizations for displaying the CommandCenter application models in the admin panel."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.contrib import admin
 
 # Ghostwriter Libraries
 from ghostwriter.singleton.admin import SingletonModelAdmin
-from .forms import ReportConfigurationForm
 
+from .forms import ReportConfigurationForm
 from .models import (
     CloudServicesConfiguration,
     CompanyInformation,

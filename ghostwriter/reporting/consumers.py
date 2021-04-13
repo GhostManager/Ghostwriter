@@ -3,7 +3,7 @@
 # Standard Libraries
 import json
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 

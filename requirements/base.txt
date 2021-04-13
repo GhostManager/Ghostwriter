@@ -4,36 +4,37 @@ Pillow==7.2.0  # https://github.com/python-pillow/Pillow
 rcssmin==1.0.6  # https://github.com/ndparker/rcssmin
 argon2-cffi==20.1.0  # https://github.com/hynek/argon2_cffi
 redis==3.5.3  # https://github.com/antirez/redis
+uvicorn[standard]==0.13.4  # https://github.com/encode/uvicorn
+Twisted==20.3.0  # Temporary constraint for channels: https://github.com/django/daphne/pull/359
 
 # Django
 # ------------------------------------------------------------------------------
-django==3.0.10  # pyup: < 3.0  # https://www.djangoproject.com/
+django==3.0.10  # pyup: < 3.1  # https://www.djangoproject.com/
 django-environ==0.4.5  # https://github.com/joke2k/django-environ
-django-model-utils==4.0.0  # https://github.com/jazzband/django-model-utils
-django-allauth==0.42.0  # https://github.com/pennersr/django-allauth
-django-crispy-forms==1.9.2  # https://github.com/django-crispy-forms/django-crispy-forms
+django-model-utils==4.1.1  # https://github.com/jazzband/django-model-utils
+django-allauth==0.44.0  # https://github.com/pennersr/django-allauth
+django-crispy-forms==1.11.2  # https://github.com/django-crispy-forms/django-crispy-forms
 django-compressor==2.4  # https://github.com/django-compressor/django-compressor
 django-redis==4.12.1  # https://github.com/niwinz/django-redis
-channels==2.4.0 # https://channels.readthedocs.io/en/stable/index.html
-channels-redis==2.4.2 # https://github.com/django/channels_redis/
-djangorestframework==3.12.1  # https://github.com/encode/django-rest-framework
+channels==3.0.3 # https://channels.readthedocs.io/en/stable/index.html
+channels-redis==3.2.0 # https://github.com/django/channels_redis/
+djangorestframework==3.12.4  # https://github.com/encode/django-rest-framework
 
 # Ghostwriter specific
-boto3==1.15.16
-botocore==1.18.16
+boto3==1.17.45
+botocore==1.20.45
 bs4==0.0.1
 django-bleach==0.6.1
 django-filter==2.4.0
 django-import-export==2.4.0
-django-q==1.3.3
+django-q==1.3.5
 djangorestframework-api-key==2.0.0
 django-tinymce==2.8.0  # Deprecated, but kept here for legacy migrations
-docutils==0.16
-docxtpl==0.10.0
-dnspython==2.0.0
-jinja2==2.11.2
+docutils==0.17
+docxtpl==0.11.3
+dnspython==2.1.0
+jinja2==2.11.3
 python-docx==0.8.10
 python-nmap==0.6.1
 python-pptx==0.6.18
-redis==3.5.3
-requests==2.24.0
+requests==2.25.1

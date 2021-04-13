@@ -1,6 +1,6 @@
 """This contains all of the forms used by the Oplog application."""
 
-# Django & Other 3rd Party Libraries
+
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,

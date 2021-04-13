@@ -5,7 +5,7 @@ import json
 import logging
 from collections import defaultdict
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django import template
 
 # Ghostwriter Libraries

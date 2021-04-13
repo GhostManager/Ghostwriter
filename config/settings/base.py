@@ -1,29 +1,29 @@
 """
 Base settings to build other settings files upon.
 """
+# Standard Libraries
+from pathlib import Path
 
-# Django & Other 3rd Party Libraries
-import environ
+# Django Imports
 from django.contrib.messages import constants as messages
 
+# 3rd Party Libraries
+import environ
 
-ROOT_DIR = (
-    environ.Path(__file__) - 3
-)  # (ghostwriter/config/settings/base.py - 3 = ghostwriter/)
-APPS_DIR = ROOT_DIR.path("ghostwriter")
+ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
+APPS_DIR = ROOT_DIR / "ghostwriter"
 
 env = environ.Env()
 
 READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=False)
 if READ_DOT_ENV_FILE:
     # OS environment variables take precedence over variables from .env
-    env.read_env(str(ROOT_DIR.path(".env")))
+    env.read_env(str(ROOT_DIR / ".env"))
 
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = env.bool("DJANGO_DEBUG", False)
-
 # Local time zone – Choices are:
 #   http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 #   Not all of them may be available with every OS
@@ -40,7 +40,7 @@ USE_L10N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
-LOCALE_PATHS = [ROOT_DIR.path("locale")]
+LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -52,23 +52,21 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = True
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = "config.urls"
-
 # https://docs.djangoproject.com/en/dev/ref/settings/#wsgi-application
-# WSGI_APPLICATION = "config.wsgi.application"
-ASGI_APPLICATION = "config.routing.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 # APPS
 # ------------------------------------------------------------------------------
 DJANGO_APPS = [
+    "channels",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # "django.contrib.humanize", # Handy template tags
+    "django.contrib.humanize",
     "django.contrib.admin",
-    "channels",
     "django.contrib.admindocs",
 ]
 
@@ -99,10 +97,10 @@ LOCAL_APPS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# WEBSOCKETS
+# CHANNELS & WEBSOCKETS
 # ------------------------------------------------------------------------------
 # https://channels.readthedocs.io/en/stable/installation.html
-ASGI_APPLICATION = "ghostwriter.routing.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 CHANNEL_LAYERS = {
     "default": {
@@ -144,9 +142,7 @@ PASSWORD_HASHERS = [
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -169,11 +165,11 @@ MIDDLEWARE = [
 # STATIC
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-root
-STATIC_ROOT = str(ROOT_DIR("staticfiles"))
+STATIC_ROOT = str(ROOT_DIR / "staticfiles")
 # https://docs.djangoproject.com/en/dev/ref/settings/#static-url
 STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#std:setting-STATICFILES_DIRS
-STATICFILES_DIRS = [str(APPS_DIR.path("static"))]
+STATICFILES_DIRS = (str(APPS_DIR / "static"),)
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/#staticfiles-finders
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -183,9 +179,11 @@ STATICFILES_FINDERS = [
 # MEDIA
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-root
-MEDIA_ROOT = str(APPS_DIR("media"))
+MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "/media/"
+# Default location for report templates
+TEMPLATE_LOC = str(APPS_DIR / "media" / "templates")
 
 # TEMPLATES
 # ------------------------------------------------------------------------------
@@ -195,7 +193,7 @@ TEMPLATES = [
         # https://docs.djangoproject.com/en/dev/ref/settings/#std:setting-TEMPLATES-BACKEND
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # https://docs.djangoproject.com/en/dev/ref/settings/#template-dirs
-        "DIRS": [str(APPS_DIR.path("templates"))],
+        "DIRS": [str(APPS_DIR / "templates")],
         "OPTIONS": {
             # https://docs.djangoproject.com/en/dev/ref/settings/#template-loaders
             # https://docs.djangoproject.com/en/dev/ref/templates/api/#loader-types
@@ -223,7 +221,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap4"
 # FIXTURES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#fixture-dirs
-FIXTURE_DIRS = (str(APPS_DIR.path("fixtures")),)
+FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 
 # SECURITY
 # ------------------------------------------------------------------------------
@@ -324,14 +322,14 @@ MESSAGE_TAGS = {
 
 Q_CLUSTER = {
     "name": env("QCLUSTER_NAME", default="soar"),
+    "timeout": 43200,
+    "retry": 43200,
     "recycle": 500,
     "save_limit": 35,
     "queue_limit": 500,
     "cpu_affinity": 1,
     "label": "Django Q",
-    "redis": env(
-        "QCLUSTER_CONNECTION", default={"host": "redis", "port": 6379, "db": 0}
-    ),
+    "redis": env("QCLUSTER_CONNECTION", default={"host": "redis", "port": 6379, "db": 0}),
 }
 
 # SETTINGS
@@ -345,9 +343,6 @@ Q_CLUSTER = {
 SOLO_CACHE = None
 SOLO_CACHE_TIMEOUT = 60 * 5
 SOLO_CACHE_PREFIX = "solo"
-
-# Default location for report templates
-TEMPLATE_LOC = env("TEMPLATE_LOC", default=str(APPS_DIR("media", "templates")))
 
 # BLEACH
 # ------------------------------------------------------------------------------
@@ -404,11 +399,6 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
         # 'rest_framework_api_key.permissions.HasAPIKey',
     ],
-}
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {"hosts": [("redis", "6379")]},
-    }
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 100,
 }

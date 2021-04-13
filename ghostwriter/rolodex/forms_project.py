@@ -1,6 +1,12 @@
 """This contains all project-related forms used by the Rolodex application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils.translation import gettext_lazy as _
+
+# 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
@@ -14,10 +20,6 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-from django import forms
-from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
@@ -28,10 +30,8 @@ from .models import (
     ProjectNote,
     ProjectObjective,
     ProjectScope,
-    ProjectSubTask,
     ProjectTarget,
 )
-
 
 # Number of "extra" formsets created by default
 # Higher numbers can increase page load times with WYSIWYG editors
@@ -103,7 +103,9 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "deadline",
                                 ValidationError(
-                                    _("Your selected date is before the project start date"),
+                                    _(
+                                        "Your selected date is before the project start date"
+                                    ),
                                     code="invalid_date",
                                 ),
                             )
@@ -190,7 +192,9 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if a form only has a value for the note
-                    elif note and any(x is None for x in [operator, start_date, end_date, role]):
+                    elif note and any(
+                        x is None for x in [operator, start_date, end_date, role]
+                    ):
                         form.add_error(
                             "note",
                             ValidationError(
@@ -204,7 +208,9 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "start_date",
                                 ValidationError(
-                                    _("Your selected date is before the project start date"),
+                                    _(
+                                        "Your selected date is before the project start date"
+                                    ),
                                     code="invalid_date",
                                 ),
                             )
@@ -317,18 +323,16 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                                 code="duplicate",
                             ),
                         )
-                    if (
-                        note and
-                        not hostname and
-                        not ip_address
-                    ):
-                            form.add_error(
-                                "note",
-                                ValidationError(
-                                    _("You must provide a hostname or IP address with your note"),
-                                    code="duplicate",
+                    if note and not hostname and not ip_address:
+                        form.add_error(
+                            "note",
+                            ValidationError(
+                                _(
+                                    "You must provide a hostname or IP address with your note"
                                 ),
-                            )
+                                code="duplicate",
+                            ),
+                        )
 
 
 class ProjectAssignmentForm(forms.ModelForm):
@@ -340,6 +344,14 @@ class ProjectAssignmentForm(forms.ModelForm):
     class Meta:
         model = ProjectAssignment
         exclude = ()
+        widgets = {
+            "start_date": forms.DateInput(
+                format=("%Y-%m-%d"),
+            ),
+            "end_date": forms.DateInput(
+                format=("%Y-%m-%d"),
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super(ProjectAssignmentForm, self).__init__(*args, **kwargs)
@@ -347,14 +359,14 @@ class ProjectAssignmentForm(forms.ModelForm):
             "-is_active", "username", "name"
         )
         self.fields["operator"].label_from_instance = lambda obj: obj.get_display_name
-        self.fields["start_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
-        self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
         self.fields["note"].widget.attrs["rows"] = 5
-        self.fields["note"].widget.attrs["placeholder"] = "Additional Information or Notes"
+        self.fields["note"].widget.attrs[
+            "placeholder"
+        ] = "Additional Information or Notes"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -459,16 +471,30 @@ class ProjectObjectiveForm(forms.ModelForm):
 
     class Meta:
         model = ProjectObjective
-        fields = ("deadline", "objective", "complete", "status", "description", "priority")
+        fields = (
+            "deadline",
+            "objective",
+            "complete",
+            "status",
+            "description",
+            "priority",
+        )
+        widgets = {
+            "deadline": forms.DateInput(
+                format=("%Y-%m-%d"),
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super(ProjectObjectiveForm, self).__init__(*args, **kwargs)
-        self.fields["deadline"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["deadline"].widget.attrs["autocomplete"] = "off"
         self.fields["deadline"].widget.input_type = "date"
         self.fields["objective"].widget.attrs["rows"] = 5
+        self.fields["objective"].widget.attrs["autocomplete"] = "off"
         self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
-        self.fields["description"].widget.attrs["placeholder"] = "Description, Notes, and Context"
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Description, Notes, and Context"
         self.fields["priority"].empty_label = "-- Prioritize Objective --"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
@@ -579,7 +605,9 @@ class ProjectScopeForm(forms.ModelForm):
         self.fields["scope"].widget.attrs["rows"] = 5
         self.fields["scope"].widget.attrs["placeholder"] = "Scope List"
         self.fields["description"].widget.attrs["rows"] = 5
-        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Brief Description or Note"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -779,14 +807,20 @@ class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
         exclude = ("operator", "complete")
+        widgets = {
+            "start_date": forms.DateInput(
+                format=("%Y-%m-%d"),
+            ),
+            "end_date": forms.DateInput(
+                format=("%Y-%m-%d"),
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super(ProjectForm, self).__init__(*args, **kwargs)
-        self.fields["start_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
-        self.fields["end_date"].widget.attrs["placeholder"] = "mm/dd/yyyy"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
@@ -967,7 +1001,9 @@ class ProjectForm(forms.ModelForm):
         if slack_channel:
             if not slack_channel.startswith("#") and not slack_channel.startswith("@"):
                 raise ValidationError(
-                    _("Slack channels should start with # or @ – check this channel name"),
+                    _(
+                        "Slack channels should start with # or @ – check this channel name"
+                    ),
                     code="invalid_channel",
                 )
         return slack_channel

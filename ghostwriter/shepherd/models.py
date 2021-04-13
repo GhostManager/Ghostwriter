@@ -5,7 +5,7 @@ import datetime
 import json
 from datetime import date
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
@@ -128,7 +128,9 @@ class Domain(models.Model):
     and :model:`users.User`.
     """
 
-    name = models.CharField("Name", max_length=255, unique=True, help_text="Enter the domain name")
+    name = models.CharField(
+        "Name", max_length=255, unique=True, help_text="Enter the domain name"
+    )
     registrar = models.CharField(
         "Registrar",
         max_length=255,
@@ -296,7 +298,7 @@ class Domain(models.Model):
         """
         Calculate the domain's age based on the current date and the instance's creation DateField.
         """
-        if self.is_expired:
+        if self.is_expired():
             time_delta = self.expiration - self.creation
         else:
             time_delta = date.today() - self.creation
@@ -329,7 +331,9 @@ class Domain(models.Model):
         """
         if self.dns_record:
             try:
-                json_acceptable_string = self.dns_record.replace('"', "").replace("'", '"')
+                json_acceptable_string = self.dns_record.replace('"', "").replace(
+                    "'", '"'
+                )
                 if json_acceptable_string:
                     return json.loads(json_acceptable_string)
                 else:
@@ -350,8 +354,12 @@ class History(models.Model):
     and :model:`shepherd.Domain`.
     """
 
-    start_date = models.DateField("Start Date", help_text="Select the start date of the project")
-    end_date = models.DateField("End Date", help_text="Select the end date of the project")
+    start_date = models.DateField(
+        "Start Date", help_text="Select the start date of the project"
+    )
+    end_date = models.DateField(
+        "End Date", help_text="Select the end date of the project"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -554,8 +562,12 @@ class ServerHistory(models.Model):
     :model:`rolodex.Client`, :model:`users.User`, and :model:`shepherd.ServerRole`.
     """
 
-    start_date = models.DateField("Start Date", help_text="Select the start date of the project")
-    end_date = models.DateField("End Date", help_text="Select the end date of the project")
+    start_date = models.DateField(
+        "Start Date", help_text="Select the start date of the project"
+    )
+    end_date = models.DateField(
+        "End Date", help_text="Select the end date of the project"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -768,7 +780,9 @@ class DomainNote(models.Model):
     Stores an individual domain note, related to :model:`shepherd.Domain` and :model:`users.User`.
     """
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -795,7 +809,9 @@ class ServerNote(models.Model):
     Stores an individual server note, related to :model:`shepherd.StaticServer` and :model:`users.User`.
     """
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,

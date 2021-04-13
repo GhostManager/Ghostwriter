@@ -2,6 +2,10 @@ FROM python:3.8-alpine
 
 ENV PYTHONUNBUFFERED 1
 
+ENV PYTHONDONTWRITEBYTECODE 1
+
+RUN apk add build-base
+
 RUN apk update \
     # psycopg2 dependencies
     && apk add --virtual build-deps gcc python3-dev musl-dev \
@@ -20,7 +24,8 @@ RUN apk update \
     && apk add rust \
     && apk add cargo
 
-# Requirements are installed here to ensure they will be cached.
+# Requirements are installed here to ensure they will be cached
+RUN pip install -U setuptools pip
 COPY ./requirements /requirements
 RUN pip install -r /requirements/local.txt
 

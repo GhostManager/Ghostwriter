@@ -1,9 +1,8 @@
 """This contains all of the URL mappings used by the Rolodex application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.urls import path
 
-# Ghostwriter Libraries
 from . import views
 
 app_name = "rolodex"
@@ -150,7 +149,9 @@ urlpatterns += [
         views.ProjectCreate.as_view(),
         name="project_create_no_client",
     ),
-    path("projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"),
+    path(
+        "projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"
+    ),
     path(
         "projects/update/<int:pk>",
         views.ProjectUpdate.as_view(),
