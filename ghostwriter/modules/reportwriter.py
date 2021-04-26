@@ -1427,10 +1427,9 @@ Try opening it, exporting as desired type, and re-uploading it."
         """
         prev_p = None
 
-        # Clean text to make it XML compatible for Office XML
-        text = "".join(c for c in text if self.valid_xml_char_ordinal(c))
-
         if text:
+            # Clean text to make it XML compatible for Office XML
+            text = "".join(c for c in text if self.valid_xml_char_ordinal(c))
             # Parse the HTML into a BS4 soup object
             soup = BeautifulSoup(text, "lxml")
             # Each WYSIWYG field begins with `<html><body>` so get the contents of body
