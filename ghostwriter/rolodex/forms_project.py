@@ -988,7 +988,7 @@ class ProjectForm(forms.ModelForm):
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]
         start_date = self.cleaned_data["start_date"]
-        # Check if end_date comes before the start_date
+        # Check if ``end_date`` comes before the ``start_date``
         if end_date < start_date:
             raise ValidationError(
                 _("The provided end date comes before the start date"),
