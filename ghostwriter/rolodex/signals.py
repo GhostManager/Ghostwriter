@@ -8,7 +8,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 # Ghostwriter Libraries
-from ghostwriter.rolodex.models import Project, ProjectAssignment
+from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import History, ServerHistory
 
 # Using __name__ resolves to ghostwriter.rolodex.signals
@@ -23,7 +23,7 @@ def update_project(sender, instance, **kwargs):
     """
     domain_checkouts = History.objects.filter(project=instance)
     server_checkouts = ServerHistory.objects.filter(project=instance)
-    project_assignments = ProjectAssignment.objects.filter(project=instance)
+
     for domain in domain_checkouts:
         if domain.start_date > instance.start_date or domain.end_date > instance.end_date:
             if domain.start_date > instance.start_date:
@@ -38,13 +38,3 @@ def update_project(sender, instance, **kwargs):
             if server.end_date > instance.end_date:
                 server.end_date = instance.end_date
             server.save()
-    for assignment in project_assignments:
-        if (
-            assignment.start_date > instance.start_date
-            or assignment.end_date > instance.end_date
-        ):
-            if assignment.start_date > instance.start_date:
-                assignment.start_date = instance.start_date
-            if assignment.end_date > instance.end_date:
-                assignment.end_date = instance.end_date
-            assignment.save()
