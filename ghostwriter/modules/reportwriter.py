@@ -65,6 +65,25 @@ def filter_severity(findings, allowlist):
     return filtered_values
 
 
+def filter_type(findings, allowlist):
+    """
+    Filter list of findings to return only those with a type in the allowlist.
+
+    **Parameters**
+
+    ``findings``
+        List of dictionary objects (JSON) for findings
+    ``allowlist``
+        List of strings matching severity categories to allow through filter
+    """
+    filtered_values = []
+    allowlist = [type.lower() for type in allowlist]
+    for finding in findings:
+        if finding["finding_type"].lower() in allowlist:
+            filtered_values.append(finding)
+    return filtered_values
+
+
 def strip_html(s):
     """
     Strip HTML tags from the provided HTML while preserving newlines created by
@@ -110,6 +129,7 @@ def prepare_jinja2_env(debug=False):
 
     env = jinja2.Environment(undefined=undefined, extensions=["jinja2.ext.debug"])
     env.filters["filter_severity"] = filter_severity
+    env.filters["filter_type"] = filter_type
     env.filters["strip_html"] = strip_html
     env.filters["compromised"] = compromised
 
