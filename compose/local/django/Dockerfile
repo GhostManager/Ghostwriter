@@ -47,6 +47,8 @@ RUN chmod +x /seed_data
 
 WORKDIR /app
 
+RUN mkdir -p /app/ghostwriter/media
+
 VOLUME ["/app/ghostwriter/media"]
 
 ENTRYPOINT ["/entrypoint"]
