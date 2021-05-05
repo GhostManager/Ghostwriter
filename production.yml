@@ -1,4 +1,4 @@
-version: "3"
+version: "3.2"
 
 volumes:
   production_postgres_data: {}
@@ -8,10 +8,7 @@ volumes:
 
 services:
   django: &django
-    build:
-      context: .
-      dockerfile: ./compose/production/django/Dockerfile
-    image: ghostwriter_production_django
+    image: ghcr.io/quantum-sec/ghostwriter:feature-push-to-container-registry-v3.0.0
     restart: unless-stopped
     depends_on:
       - postgres
@@ -19,41 +16,47 @@ services:
     labels:
       name: ghostwriter_django
     environment:
-      - USE_DOCKER=${USE_DOCKER}
-      - IPYTHONDIR=${IPYTHONDIR}
-      - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION}
-      - DJANGO_ACCOUNT_EMAIL_VERIFICATION=${DJANGO_ACCOUNT_EMAIL_VERIFICATION}
-      - DJANGO_ADMIN_URL=${DJANGO_ADMIN_URL}
-      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
-      - DJANGO_DATE_FORMAT=${DJANGO_DATE_FORMAT}
+      - USE_DOCKER=${USE_DOCKER:-yes}
+      - IPYTHONDIR=${IPYTHONDIR:-/app/.ipython}
+      - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION:-false}
+      - DJANGO_ACCOUNT_EMAIL_VERIFICATION=${DJANGO_ACCOUNT_EMAIL_VERIFICATION:-}
+      - DJANGO_ADMIN_URL=${DJANGO_ADMIN_URL:-admin/}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-}
+      - DJANGO_DATE_FORMAT=${DJANGO_DATE_FORMAT:-d M Y}
       - DJANGO_JWT_SECRET_KEY=${DJANGO_JWT_SECRET_KEY}
-      - DJANGO_QCLUSTER_NAME=${DJANGO_QCLUSTER_NAME}
+      - DJANGO_QCLUSTER_NAME=${DJANGO_QCLUSTER_NAME:-}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - DJANGO_SECURE_SSL_REDIRECT=${DJANGO_SECURE_SSL_REDIRECT}
-      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
-      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - DJANGO_SECURE_SSL_REDIRECT=${DJANGO_SECURE_SSL_REDIRECT:-}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE:-config.settings.production}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@ghostwriter.local}
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
-      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
-      - MAILGUN_API_KEY=${DJANGO_MAILGUN_API_KEY}
-      - MAILGUN_DOMAIN=${DJANGO_MAILGUN_DOMAIN}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST}
+      - MAILGUN_API_KEY=${DJANGO_MAILGUN_API_KEY:-}
+      - MAILGUN_DOMAIN=${DJANGO_MAILGUN_DOMAIN:-}
+      - POSTGRES_DB=${POSTGRES_DB:-ghostwriter}
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
-      - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
-    command: /start
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/0
+      - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY:-4}
     volumes:
-      - production_staticfiles:/app/staticfiles
-      - production_data:/app/ghostwriter/media
+      - # production_staticfiles is where collectstatic will collect static files to
+        # https://docs.djangoproject.com/en/dev/ref/settings/#static-root
+        type: volume
+        source: production_staticfiles
+        target: /app/staticfiles
+        read_only: false
+      - # media is where ghostwriter will write to and serve reports as well as other local media from
+        type: volume
+        source: production_data
+        target: /app/ghostwriter/media
+        read_only: false
+    command: /start live
 
   postgres:
-    build:
-      context: .
-      dockerfile: ./compose/production/postgres/Dockerfile
-    image: ghostwriter_production_postgres
+    image: ghcr.io/quantum-sec/ghostwriter:postgres-feature-push-to-container-registry-v3.0.0
     restart: unless-stopped
     volumes:
       - production_postgres_data:/var/lib/postgresql/data
@@ -61,43 +64,57 @@ services:
     labels:
       name: ghostwriter_postgres
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_DB=${POSTGRES_DB:-ghostwriter}
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
 
   nginx:
-    build: ./compose/production/nginx
-    image: ghostwriter_production_nginx
+    image: nginxinc/nginx-unprivileged:1.21
     restart: unless-stopped
     depends_on:
       - django
-    volumes:
-      - production_data:/app/media
-      - production_staticfiles:/app/staticfiles
-      - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/ssl
     labels:
       name: ghostwriter_nginx
+    environment:
+      NGINX_ENTRYPOINT_QUIET_LOGS: 1
+    volumes:
+      - type: volume
+        source: production_data
+        target: /app/media
+        read_only: true
+        volume:
+          nocopy: true
+      - type: volume
+        source: production_staticfiles
+        target: /app/staticfiles
+        read_only: true
+        volume:
+          nocopy: true
+      - type: bind
+        source: ./compose/nginx/nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+        # target: /etc/nginx/nginx.conf
+        read_only: true
+      - type: bind
+        source: ./ssl
+        target: /ssl
+        read_only: true
     ports:
-      - "0.0.0.0:80:80"
-      - "0.0.0.0:443:443"
+      - '0.0.0.0:80:80'
+      - '0.0.0.0:443:443'
 
   redis:
-    build:
-      context: .
-      dockerfile: ./compose/production/redis/Dockerfile
-    image: ghostwriter_production_redis
+    image: redis:6-alpine
     labels:
       name: ghostwriter_redis
     restart: unless-stopped
 
   queue:
     <<: *django
-    image: ghostwriter_production_queue
     restart: unless-stopped
     depends_on:
       - redis
@@ -106,19 +123,16 @@ services:
     ports: []
     labels:
       name: ghostwriter_queue
-    command: /start-queue
+    command: /start queue
 
   graphql_engine:
-    build:
-      context: .
-      dockerfile: ./compose/production/hasura/Dockerfile
-    image: ghostwriter_production_graphql
+    image: hasura/graphql-engine:v2.7.0.cli-migrations-v3
     depends_on:
       - postgres
       - django
     restart: always
     ports:
-      - "${HASURA_GRAPHQL_SERVER_PORT}:8080"
+      - "${HASURA_GRAPHQL_SERVER_PORT:-8080}:8080"
       - "9691:9691"
     volumes:
       - ./hasura-docker/metadata:/metadata
@@ -130,17 +144,17 @@ services:
     labels:
       name: ghostwriter_graphql
     environment:
-      - ACTIONS_URL_BASE=http://${NGINX_HOST}:${NGINX_PORT}/api
+      - ACTIONS_URL_BASE=http://${NGINX_HOST}:${NGINX_PORT:-443}/api
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
-      - HASURA_GRAPHQL_AUTH_HOOK=http://${NGINX_HOST}:${NGINX_PORT}/api/webhook
-      - HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      - HASURA_GRAPHQL_DEV_MODE=${HASURA_GRAPHQL_DEV_MODE}
-      - HASURA_GRAPHQL_ENABLE_CONSOLE=${HASURA_GRAPHQL_ENABLE_CONSOLE}
-      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=${HASURA_GRAPHQL_ENABLED_LOG_TYPES}
-      - HASURA_GRAPHQL_ENABLE_TELEMETRY=${HASURA_GRAPHQL_ENABLE_TELEMETRY}
-      - HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=${HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY}
-      - HASURA_GRAPHQL_LOG_LEVEL=${HASURA_GRAPHQL_LOG_LEVEL}
-      - HASURA_GRAPHQL_METADATA_DIR=${HASURA_GRAPHQL_METADATA_DIR}
-      - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR}
-      - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
+      - HASURA_GRAPHQL_AUTH_HOOK=http://${NGINX_HOST}:${NGINX_PORT:-443}/api/webhook
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-ghostwriter}
+      - HASURA_GRAPHQL_DEV_MODE=${HASURA_GRAPHQL_DEV_MODE:-false}
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=${HASURA_GRAPHQL_ENABLE_CONSOLE:-true}
+      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=${HASURA_GRAPHQL_ENABLED_LOG_TYPES:-startup, http-log, webhook-log, websocket-log, query-log}
+      - HASURA_GRAPHQL_ENABLE_TELEMETRY=${HASURA_GRAPHQL_ENABLE_TELEMETRY:-false}
+      - HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=${HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY:-false}
+      - HASURA_GRAPHQL_LOG_LEVEL=${HASURA_GRAPHQL_LOG_LEVEL:-warn}
+      - HASURA_GRAPHQL_METADATA_DIR=${HASURA_GRAPHQL_METADATA_DIR:-/metadata}
+      - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR:-/migrations}
+      - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT:-8080}

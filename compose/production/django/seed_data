@@ -1,9 +1,0 @@
-#!/bin/ash
-
-JSON_FILES=$(find /app/ghostwriter -mindepth 2 -type d -name fixtures -exec find {} -type f -iname "*.json" \;)
-
-for json in $JSON_FILES
-do
-    echo "Loading $json..."
-    python manage.py loaddata $json
-done

@@ -2,7 +2,7 @@
 
 Before running in production, it is necessary to setup a SSL certificate. A self-signed certificate can be created using the following commands. Other options include purchasing a certificate or using [LetsEncrypt](https://letsencrypt.org/) for a free certificate.
 
-Certificates should be placed in the `ssl/` folder. The files referenced in `compose/production/nginx/nginx.conf` use the following files names:
+Certificates should be placed in the `ssl/` folder. The files referenced in `compose/nginx/nginx.conf` use the following files names:
 
 - ghostwriter.crt
 - ghostwriter.key
