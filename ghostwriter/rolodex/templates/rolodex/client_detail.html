@@ -84,7 +84,7 @@
                                     <div class="dropdown dropleft">
                                         <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div class="dropdown-menu" aria-labelledby="poc-dropdown-btn_{{ poc.id }}">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:client_update' poc.id %}#contacts">Edit</a>
+                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:client_update' client.id %}#contacts">Edit</a>
                                             <a class="dropdown-item icon trash-icon" id="poc-delete-button-{{ poc.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_client_poc' poc.id%}" delete-target-id="{{ poc.id }}" delete-target-type="contact">Delete</a>
                                         </div>
                                     </div>
