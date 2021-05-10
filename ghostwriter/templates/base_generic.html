@@ -383,6 +383,16 @@
 
         <!-- Activate Report with AJAX -->
         <script>
+            $(document).ready(function () {
+                $('.btn.js-activate-report').each(function(index, ele) {
+                    if ($(this).hasClass('selected-report')) {
+                        $(this).hide();
+                    }
+                });
+            });
+        </script>
+
+        <script>
             $('.js-activate-report').click(function () {
                 var clickedBtn = $(this);
                 var url = $(this).attr('activate-report-url');
