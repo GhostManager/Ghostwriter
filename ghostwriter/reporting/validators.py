@@ -1,6 +1,6 @@
 """This contains custom validators for the Reporting application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.core.validators import FileExtensionValidator
 
 

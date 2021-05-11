@@ -1,10 +1,11 @@
 """This contains customizations for displaying the Reporting application models in the admin panel."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.contrib import admin
+
+# 3rd Party Libraries
 from import_export.admin import ImportExportModelAdmin
 
-# Ghostwriter Libraries
 from .models import (
     Archive,
     DocType,
@@ -168,6 +169,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                     "document",
                     "description",
                     "client",
+                    "doc_type",
                 )
             },
         ),

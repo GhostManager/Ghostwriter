@@ -1,4 +1,3 @@
-# Django & Other 3rd Party Libraries
 import factory
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -44,7 +43,11 @@ class TestReportList(TestCase):
             else:
                 complete = False
             self.reports.append(
-                baker.make("reporting.Report", title=title, complete=complete,)
+                baker.make(
+                    "reporting.Report",
+                    title=title,
+                    complete=complete,
+                )
             )
 
         # Setup users
@@ -93,7 +96,9 @@ class TestReportDetailView(TestCase):
             title = "Finding{}".format(finding_id)
             self.findings.append(
                 baker.make(
-                    "reporting.ReportFindingLink", title=title, report=self.report,
+                    "reporting.ReportFindingLink",
+                    title=title,
+                    report=self.report,
                 )
             )
 

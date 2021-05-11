@@ -1,19 +1,18 @@
 """This contains all of the ``import_export`` model resources used by the Shepherd application."""
 
-# Django & Other 3rd Party Libraries
+# 3rd Party Libraries
 from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
-# Ghostwriter Libraries
 from .models import (
     Domain,
     DomainStatus,
     HealthStatus,
-    WhoisStatus,
-    StaticServer,
-    ServerStatus,
     ServerProvider,
+    ServerStatus,
+    StaticServer,
+    WhoisStatus,
 )
 
 

@@ -3,7 +3,7 @@
 # Standard Libraries
 from datetime import datetime as dt
 
-# Django & Other 3rd Party Libraries
+
 from import_export import resources
 
 # Ghostwriter Libraries

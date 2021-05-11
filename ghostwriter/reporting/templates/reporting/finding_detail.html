@@ -15,27 +15,28 @@
 {% endblock %}
 
 {% block content %}
-    <style>
-        p {
-            text-align: justify;
-        }
-    </style>
 
-        <div class="dropdown">
-            <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="finding-dropdown-btn">
-                <a class="dropdown-item icon edit-icon" href="{% url 'reporting:finding_update' finding.id %}">Edit</a>
-                <a class="dropdown-item icon add-icon js-assign-finding" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}">Add to Report</a>
-                <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:findings' %}">Return to Findings</a>
-                <a class="dropdown-item icon trash-icon" href="{% url 'reporting:finding_delete' finding.id %}">Delete</a>
-            </div>
+    <div class="dropdown">
+        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
         </div>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="finding-dropdown-btn">
+            <a class="dropdown-item icon edit-icon" href="{% url 'reporting:finding_update' finding.id %}">Edit</a>
+            <a class="dropdown-item icon add-icon js-assign-finding" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}">Add to Report</a>
+            <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:findings' %}">Return to Findings</a>
+            <a class="dropdown-item icon trash-icon" href="{% url 'reporting:finding_delete' finding.id %}">Delete</a>
+        </div>
+    </div>
 
-    <h2>{{ finding.title }}</h2>
+    <div class="container">
+        <h2>{{ finding.title }}</h2>
+    </div>
 
     <!-- Finding Severity Badge -->
     <div>
-        <span class="badge badge-pill badge-dark severity-badge
+        <span class="px-3 py-2 badge badge-dark severity-badge
             {% if finding.severity.severity == "Critical" %}
                 critical-background
             {% elif finding.severity.severity == "High" %}
@@ -133,14 +134,14 @@
             <div id="collapseHDetect" class="finding-collapse collapse show" aria-labelledby="hostdetection">
                 <div class="finding-card card-body">
                     {% if finding.host_detection_techniques %}
-                        <h4>Host Detection</h4>
+                        <h4 class="text-center">Host Detection</h4>
                         <hr>
 
                         {{ finding.host_detection_techniques|bleach }}
                     {% endif %}
 
                     {% if finding.network_detection_techniques %}
-                        <h4>Network Detection</h4>
+                    <h4 class="text-center">Network Detection</h4>
                         <hr>
 
                         {{ finding.network_detection_techniques|bleach }}
@@ -247,4 +248,38 @@
 {% block morescripts %}
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
     {% include "confirm_delete_modal.html" %}
+
+    <!-- Assign Finding with AJAX -->
+    <script>
+        $('.js-assign-finding').click(function () {
+            var url = $(this).attr('assign-finding-url');
+            var findingId = $(this).attr('assign-finding-id');
+            var csrftoken = $(this).attr('assign-finding-csrftoken')
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'finding': findingId
+                },
+                success: function (data) {
+                    if (data['result'] == 'success') {
+                        // Something
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Finding Assigned'});
+                    }
+                }
+            });
+        });
+    </script>
 {% endblock %}

@@ -24,6 +24,7 @@ function adjust_dialog() {
 
 // Default config for all TinyMCE editors
 var default_config = {
+    entity_encoding: 'raw',
     branding: false,
     width: '100%',
     theme: 'silver',

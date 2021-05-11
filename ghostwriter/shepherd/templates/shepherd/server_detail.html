@@ -17,7 +17,11 @@
 {% block content %}
 
     <div class="dropdown">
-        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+        </div>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_update' staticserver.id %}">Edit Details</a>
             <a class="dropdown-item icon add-icon" href="{% url 'shepherd:server_update' staticserver.id %}#addresses">Add Aux IP Address</a>
@@ -30,7 +34,9 @@
         </div>
     </div>
 
-    <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
+    <div class="container">
+        <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
+    </div>
 
     <div>
         <!-- Note Section -->
@@ -74,7 +80,7 @@
         <!-- Server History Section -->
         <h4 class="icon history-icon">Project History</h4>
         {% if staticserver.serverhistory_set.all %}
-            <table id="project-table" class="tablesorter">
+            <table id="project-table" class="tablesorter table table-striped">
                 <thead>
                     <tr>
                         <th>Project</th>
@@ -88,7 +94,7 @@
                 </thead>
                 {% for project in staticserver.serverhistory_set.all %}
                     <tr>
-                        <td class="clickable"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
+                        <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
                         <td>{{ project.activity_type }}</td>
                         <td>{{ project.server_role }}</td>
                         {% if project.domain %}
@@ -96,7 +102,7 @@
                         {% else %}
                             <td>No Assoc. Domain</td>
                         {% endif %}
-                        <td>{{ project.start_date }} to {{ project.end_date }}</td>
+                        <td>{{ project.start_date }} - {{ project.end_date }}</td>
                         <td class="table-note">{{ project.note|bleach }}</td>
                         <td>
                             <a class="icon edit-icon" href="{% url 'shepherd:server_history_update' project.id %}"></a>
@@ -157,7 +163,7 @@
     <!-- jQuery Tablesorter Script -->
     <script>
         $(document).ready(function()  {
-            $("#projectTable").tablesorter(
+            $("#project-table").tablesorter(
                             {
                                 cssAsc: 'down',
                                 cssDesc: 'up',

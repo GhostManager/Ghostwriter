@@ -11,7 +11,7 @@
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date|date:"d M Y" }} {{ project.project_type }}</li>
+            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date|date:"DATE_FORMAT" }} {{ project.project_type }}</li>
         </ul>
     </nav>
 {% endblock %}
@@ -19,7 +19,11 @@
 {% block content %}
     <div>
         <div class="dropdown">
-            <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+                <div class="bar1"></div>
+                <div class="bar2"></div>
+                <div class="bar3"></div>
+            </div>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
                 <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
                 <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to Client</a>
@@ -29,7 +33,9 @@
     </div>
 
     {% comment %} Project title constructed from attributes {% endcomment %}
-    <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
+    <div class="container">
+        <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
+    </div>
 
     <p class="form-spacer"></p>
 
@@ -75,7 +81,7 @@
                     </tr>
                     <tr>
                         <td class="text-left bold">Execution Dates</td>
-                        <td class="text-left">{{ project.start_date|date:"d F Y" }} – {{ project.end_date|date:"d F Y" }}</td>
+                        <td class="text-left">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
                     </tr>
                     <tr>
                         <td class="text-left bold">Slack Channel</td>
@@ -126,7 +132,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="align-middle">{{ operator.role }}</td>
-                                <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
+                                <td class="align-middle">{{ operator.start_date|date:"DATE_FORMAT" }} – <br/> {{ operator.end_date|date:"DATE_FORMAT" }}</td>
                                 <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
@@ -324,7 +330,7 @@
                     <p>An operation logs has not been started for this project yet.</p>
                 {% endif %}
             </div>
-            <div id="reports" class="tab-pane ">
+            <div id="documents" class="tab-pane ">
                 <!-- Reporting Section -->
                 <h4>Reports & Findings</h4>
 
@@ -339,18 +345,15 @@
                 {% if project.report_set.all %}
                     <table id="reportTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Creation</th>
                             <th class="align-middle">Title</th>
-                            <th class="align-middle">Last Update</th>
                             <th class="align-middle">Status</th>
+                            <th class="align-middle">Last Update</th>
                             <th class="align-middle">Created by</th>
                             <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
                         {% for report in project.report_set.all %}
                             <tr>
-                                <td class="align-middle">{{ report.creation }}</td>
                                 <td class="align-middle"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                                <td class="align-middle">{{ report.last_update|date:"d M Y" }}</td>
                                 {% if report.complete %}
                                     {% if report.delivered %}
                                         <td class="align-middle">Delivered</td>
@@ -360,6 +363,7 @@
                                 {% else %}
                                     <td class="align-middle">In Progress</td>
                                 {% endif %}
+                                <td class="align-middle">{{ report.last_update|date:"DATE_FORMAT" }}</td>
                                 <td class="align-middle">{{ report.created_by }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
@@ -378,26 +382,26 @@
 
                     {% for report in project.report_set.all %}
                         {% if report.reportfindinglink_set.all %}
-                            <h4>{{ report.title }}</h4>
+                            <h4>Findings in {{ report.title }}</h4>
                             <table class="table">
                                 <thead>
-                                    <th class="align-middle">priority</th>
+                                    <th class="align-middle">Severity</th>
                                     <th class="align-middle">Finding</th>
                                     <th class="align-middle">Owner</th>
                                     <th class="align-middle">Status</th>
                                 </thead>
                                 {% for finding in report.reportfindinglink_set.all %}
                                     <tr>
-                                        {% if finding.priority.priority == "Critical" %}
-                                            <td class="critical align-middle">{{ finding.priority }}</td>
-                                        {% elif finding.priority.priority == "High" %}
-                                            <td class="high align-middle">{{ finding.priority }}</td>
-                                        {% elif finding.priority.priority == "Medium" %}
-                                            <td class="medium align-middle">{{ finding.priority }}</td>
-                                        {% elif finding.priority.priority == "Low" %}
-                                            <td class="low align-middle">{{ finding.priority }}</td>
+                                        {% if finding.severity.severity == "Critical" %}
+                                            <td class="critical align-middle">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "High" %}
+                                            <td class="high align-middle">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Medium" %}
+                                            <td class="medium align-middle">{{ finding.severity }}</td>
+                                        {% elif finding.severity.severity == "Low" %}
+                                            <td class="low align-middle">{{ finding.severity }}</td>
                                         {% else %}
-                                            <td class="info align-middle">{{ finding.priority }}</td>
+                                            <td class="info align-middle">{{ finding.severity }}</td>
                                         {% endif %}
                                         <td class="align-middle"><a class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
                                         {% if finding.assigned_to == request.user %}
@@ -464,7 +468,7 @@
                                     </span>
                                 </td>
                                 <td class="align-middle">{{ domain.activity_type }}</td>
-                                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
+                                <td class="align-middle">{{ domain.start_date|date:"DATE_FORMAT" }} – <br/>{{ domain.end_date|date:"DATE_FORMAT" }}</td>
                                 <td clss="text-justify align-middle">{{ domain.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
@@ -1129,7 +1133,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: 'dayGridWeek',
                 height: 'auto',
                 headerToolbar: {
                     left: 'today prev,next',

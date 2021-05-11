@@ -1,10 +1,8 @@
 """This contains all of the URL mappings used by the Reporting application."""
 
-# Django & Other 3rd Party Libraries
-from ghostwriter.reporting.views import EvidenceCreate
+# Django Imports
 from django.urls import path
 
-# Ghostwriter Libraries
 from . import views
 
 app_name = "reporting"
@@ -82,7 +80,7 @@ urlpatterns += [
     ),
     path(
         "ajax/report/template/lint/results/<int:pk>",
-        views.ajax_update_template_lint_results,
+        views.UpdateTemplateLintResults.as_view(),
         name="ajax_update_template_lint_results",
     ),
 ]
@@ -210,11 +208,27 @@ urlpatterns += [
 
 # URLs for generating reports
 urlpatterns += [
-    path("reports/<int:pk>/generate_docx/", views.generate_docx, name="generate_docx"),
-    path("reports/<int:pk>/generate_xlsx/", views.generate_xlsx, name="generate_xlsx"),
-    path("reports/<int:pk>/generate_pptx/", views.generate_pptx, name="generate_pptx"),
-    path("reports/<int:pk>/generate_json/", views.generate_json, name="generate_json"),
-    path("reports/<int:pk>/generate_all/", views.generate_all, name="generate_all"),
+    path(
+        "reports/<int:pk>/docx/",
+        views.GenerateReportDOCX.as_view(),
+        name="generate_docx",
+    ),
+    path(
+        "reports/<int:pk>/xlsx/",
+        views.GenerateReportXLSX.as_view(),
+        name="generate_xlsx",
+    ),
+    path(
+        "reports/<int:pk>/pptx/",
+        views.GenerateReportPPTX.as_view(),
+        name="generate_pptx",
+    ),
+    path(
+        "reports/<int:pk>/raw/",
+        views.GenerateReportJSON.as_view(),
+        name="generate_json",
+    ),
+    path("reports/<int:pk>/all/", views.GenerateReportAll.as_view(), name="generate_all"),
 ]
 
 # URLs for management functions

@@ -4,7 +4,7 @@
 import logging
 import os
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.db.models.signals import post_init, post_save
 from django.dispatch import receiver
 
@@ -77,7 +77,7 @@ def clean_template(sender, instance, created, **kwargs):
                             )
                         except Exception:
                             logger.exception(
-                                "Failed to delete old tempalte file: %s",
+                                "Failed to delete old template file: %s",
                                 instance._current_template.path,
                             )
                     else:

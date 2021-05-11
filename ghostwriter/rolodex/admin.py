@@ -1,9 +1,8 @@
 """This contains customizations for displaying the Rolodex application models in the admin panel."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.contrib import admin
 
-# Ghostwriter Libraries
 from .models import (
     Client,
     ClientContact,

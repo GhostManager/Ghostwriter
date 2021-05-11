@@ -1,6 +1,6 @@
 """This contains the configuration of the Home application."""
 
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django.apps import AppConfig
 
 
@@ -9,6 +9,6 @@ class HomeConfig(AppConfig):
 
     def ready(self):
         try:
-            import ghostwriter.home.signals  # noqa F401
+            import ghostwriter.home.signals  # noqa F401 isort:skip
         except ImportError:
             pass

@@ -1,11 +1,15 @@
 """This contains the ``allauth`` adapters used by the Users application."""
 
+# Standard Libraries
 from typing import Any
 
-from allauth.account.adapter import DefaultAccountAdapter
-from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+# Django Imports
 from django.conf import settings
 from django.http import HttpRequest
+
+# 3rd Party Libraries
+from allauth.account.adapter import DefaultAccountAdapter
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 
 
 class AccountAdapter(DefaultAccountAdapter):

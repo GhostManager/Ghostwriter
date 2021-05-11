@@ -1,13 +1,13 @@
-# Django & Other 3rd Party Libraries
+# Django Imports
 from django import template
 from django.utils.translation import gettext_lazy as _
 
 try:
-    from django.apps import apps
+    from django.apps import apps  # noqa isort:skip
 
     get_model = apps.get_model
 except ImportError:
-    from django.db.models.loading import get_model
+    from django.db.models.loading import get_model  # noqa isort:skip
 
 
 register = template.Library()
@@ -29,7 +29,11 @@ def get_solo(model_path):
         raise template.TemplateSyntaxError(
             _(
                 "Could not get the model name '%(model)s' from the application "
-                "named '%(app)s'" % {"model": model_name, "app": app_label,}
+                "named '%(app)s'"
+                % {
+                    "model": model_name,
+                    "app": app_label,
+                }
             )
         )
     return model_class.get_solo()

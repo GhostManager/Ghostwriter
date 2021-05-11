@@ -1,13 +1,15 @@
 """This contains all of the views used by the Users application."""
 
-# Django & Other 3rd Party Libraries
-from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
+# Django Imports
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
+
+# 3rd Party Libraries
+from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
 
 User = get_user_model()
 
@@ -53,9 +55,7 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
         return User.objects.get(username=self.request.user.username)
 
     def form_valid(self, form):
-        messages.add_message(
-            self.request, messages.INFO, _("Infos successfully updated")
-        )
+        messages.add_message(self.request, messages.INFO, _("Infos successfully updated"))
         return super().form_valid(form)
 
 

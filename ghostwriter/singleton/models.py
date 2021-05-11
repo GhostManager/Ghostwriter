@@ -1,13 +1,15 @@
-# Django & Other 3rd Party Libraries
+"""This contains all of the database models for the Singleton application."""
+
+# Django Imports
 from django.conf import settings
 from django.db import models
 
 try:
-    from django.core.cache import caches
+    from django.core.cache import caches  # noqa isort:skip
 
     get_cache = lambda cache_name: caches[cache_name]
 except ImportError:
-    from django.core.cache import get_cache
+    from django.core.cache import get_cache  # noqa isort:skip
 
 
 # Default ID for each singleton model

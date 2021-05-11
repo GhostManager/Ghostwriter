@@ -1,9 +1,11 @@
 """This contains all of the custom `crispy_forms.layout.LayoutObject` objects used by Ghostwriter."""
 
-# Django & Other 3rd Party Libraries
-from crispy_forms.bootstrap import Container
-from crispy_forms.layout import Field, TEMPLATE_PACK, LayoutObject
+# Django Imports
 from django.template.loader import render_to_string
+
+# 3rd Party Libraries
+from crispy_forms.bootstrap import Container
+from crispy_forms.layout import TEMPLATE_PACK, Field, LayoutObject
 
 
 class Formset(LayoutObject):

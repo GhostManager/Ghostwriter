@@ -17,7 +17,11 @@
 
 {% block content %}
     <div class="dropdown">
-        <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+            <div class="bar1"></div>
+            <div class="bar2"></div>
+            <div class="bar3"></div>
+        </div>
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
             <a title="Set this report as your active report" href="javascript:void(0)" class="dropdown-item icon power-icon clickable-link js-activate-report" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Activate</a>
             <a class="dropdown-item icon edit-icon" href="{% url 'reporting:report_update' report.id %}">Edit</a>
@@ -28,29 +32,45 @@
         </div>
     </div>
 
-    <h2>{{ report.title }}</h2>
+    <div class="container">
+        <h2>{{ report.title }}</h2>
+    </div>
 
     <!-- Report Status & Toggles -->
-    <h6>
-        Report Status:
-        {% if report.complete %}
-            <span id="report-status js-report-status">Complete</span>
-            <a title="Mark report as incomplete" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-on"></i></a>
-        {% else %}
-            <span id="report-status js-report-status">In Progress</span>
-            <a title="Mark report as complete" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
-        {% endif %}
+    <h6 class="row text-left">
+        <div class="offset-5 col-2">
+            Report Status:
+            {% if report.complete %}
+                <span id="js-report-status" class="pl-1">Complete</span>
+            {% else %}
+                <span id="js-report-status" class="pl-1">Draft</span>
+            {% endif %}
+        </div>
+        <div class="col-1">
+            {% if report.complete %}
+                <a title="Mark report as incomplete" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-on"></i></a>
+            {% else %}
+                <a title="Mark report as complete" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
+            {% endif %}
+        </div>
     </h6>
 
-    <h6>
-        Delivery Status:
-        {% if report.delivered %}
-            <span id="delivery-status js-delivery-status">Delivered</span>
-            <a title="Mark report as not delivered" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-on"></i></a>
-        {% else %}
-            <span id="delivery-status js-delivery-status">Not Delivered</span>
-            <a title="Mark report as delivered" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-off"></i></a>
-        {% endif %}
+    <h6 class="row text-left">
+        <div class="offset-5 col-2">
+            Delivery Status:
+            {% if report.delivered %}
+                <span id="js-delivery-status">Delivered</span>
+            {% else %}
+                <span id="js-delivery-status">Not Delivered</span>
+            {% endif %}
+        </div>
+        <div class="col-1">
+            {% if report.delivered %}
+                <a title="Mark report as not delivered" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-on"></i></a>
+            {% else %}
+                <a title="Mark report as delivered" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-off"></i></a>
+            {% endif %}
+        </div>
     </h6>
 
     <!-- Findings Section -->
@@ -514,6 +534,7 @@
                     'report': reportId
                 },
                 success: function (data) {
+                    console.log(statusText)
                     statusText.html(data['status']);
                     if (data['toggle']) {
                         statusIcon.removeClass('fa-toggle-off')
@@ -562,42 +583,6 @@
                     } else {
                         statusIcon.removeClass('fa-toggle-on')
                         statusIcon.addClass('fa-toggle-off')
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
-                    }
-                }
-            });
-        });
-    </script>
-
-    <!-- Activate Report with AJAX -->
-    <script>
-        $('.js-activate-report').click(function () {
-            var url = $(this).attr('activate-report-url');
-            var reportId = $(this).attr('activate-report-id');
-            var csrftoken = $(this).attr('activate-report-csrftoken');
-            var activeReportBar = $('#active-report-id');
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'report': reportId
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        activeReportBar.html(data['report']);
-                        activeReportBar.attr('href', data['report_url']);
                     }
                     if (data['message']) {
                         displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});

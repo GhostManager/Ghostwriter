@@ -1,3 +1,5 @@
+{% load humanize %}
+
 <li class="nav-item active">
     <a class="nav-link active icon info-icon" data-toggle="tab" href="#details">
         General
@@ -5,7 +7,7 @@
             {% if domain.is_expired %}
                 "badge badge-pill badge-danger">EXPIRED
             {% else %}
-                "badge badge-pill badge-light">{{ domain.get_domain_age }}
+                "badge badge-pill badge-light">{{ domain.get_domain_age|intcomma }}
             {% endif %}
         </span>
     </a>

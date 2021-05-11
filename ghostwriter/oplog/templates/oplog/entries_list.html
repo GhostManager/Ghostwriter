@@ -16,7 +16,11 @@
 {% block content %}
     <div>
         <div class="dropdown">
-            <button class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+            <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+                <div class="bar1"></div>
+                <div class="bar2"></div>
+                <div class="bar3"></div>
+            </div>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="oplog-dropdown-btn">
                 <a href="javascript:void(0)" id="createNewEntry" class="dropdown-item icon add-icon">Create Entry</a>
                 <a href="javascript:void(0)" id="importNewEntries" class="dropdown-item icon upload-icon">Import Entries</a>
@@ -27,8 +31,10 @@
         </div>
     </div>
 
-    <h2>{{ name }}</h2>
-    <h4>Project: {{ project.client }} {{ project.project_type }}</h4>
+    <div class="container">
+        <h2>{{ name }}</h2>
+        <h4>Project: {{ project.client }} {{ project.project_type }}</h4>
+    </div>
 
     <!-- Oplog Table Section -->
     <div id="utilBar" class="form-row my-auto align-items-center">
