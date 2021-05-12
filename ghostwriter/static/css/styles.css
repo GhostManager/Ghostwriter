@@ -558,6 +558,7 @@ input[type='file'] {
   align-items: stretch;
   perspective: 2500px;
   text-align: center;
+  padding-bottom: 2.5rem;
 }
 
 #sidebar {
@@ -667,6 +668,51 @@ ul ul a {
   font-size: 0.9em !important;
   padding-left: 30px !important;
   color: var(--sidebar-link-text-color);
+}
+
+/* ---------------------------------------------------
+    FOOTER STYLES
+----------------------------------------------------- */
+
+footer {
+  color: var(--ghost-white);
+  background-color: var(--primary-color);
+  text-align: center;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 2.5rem;
+  padding-top: 10px;
+  font-style: italic;
+  line-height: 1.3;
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  box-shadow: 0px -3px 3px rgba(0, 0, 0, 0.3);
+}
+
+footer .text-muted {
+  color: var(--ghost-white);
+}
+
+footer img {
+  height: 75%;
+  padding-right: 5px;
+}
+
+footer img:hover {
+  animation: wave-animation 0.3s infinite;
+}
+
+@keyframes wave-animation {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(10deg);
+  }
+  75% {
+    transform: rotate(-5deg);
+  }
 }
 
 /* ---------------------------------------------------
