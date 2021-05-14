@@ -51,6 +51,8 @@ RUN chmod +x /seed_data
 
 RUN mkdir -p /app/staticfiles
 
+RUN mkdir -p /app/ghostwriter/media
+
 RUN chown -R django /app
 
 USER django

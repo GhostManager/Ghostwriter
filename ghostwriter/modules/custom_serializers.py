@@ -159,7 +159,7 @@ class FindingSerializer(CustomModelSerializer):
 class FindingLinkSerializer(CustomModelSerializer):
     """Serialize :model:`reporting:ReportFindingLink` entries."""
 
-    assigned_to = SerializerMethodField()
+    assigned_to = SerializerMethodField("get_assigned_to")
     finding_type = StringRelatedField()
     severity = StringRelatedField()
     severity_color = SerializerMethodField("get_severity_color")
@@ -665,6 +665,11 @@ class ReportDataSerializer(CustomModelSerializer):
         total_scope_lines = 0
         for scope in rep["scope"]:
             total_scope_lines += scope["total"]
+
+        finding_order = 0
+        for finding in rep["findings"]:
+            finding["ordering"] = finding_order
+            finding_order += 1
 
         # Add a ``totals`` key to track the values
         rep["totals"] = {}
