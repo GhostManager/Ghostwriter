@@ -558,7 +558,7 @@ input[type='file'] {
   align-items: stretch;
   perspective: 2500px;
   text-align: center;
-  padding-bottom: 2.5rem;
+  position: relative;
 }
 
 #sidebar {
@@ -725,6 +725,7 @@ footer img:hover {
   min-height: 100vh;
   transition: all 0.3s;
   text-align: center;
+  padding-bottom: 2.5rem;
 }
 
 #sidebarCollapse {
