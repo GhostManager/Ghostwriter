@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/Python-3.8-brightgreen.svg)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475)
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter)
+![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter)
 ![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter)
 
 ![ghostwriter](DOCS/images/logo.png)
@@ -52,3 +52,9 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 * [@fastlorenzo](https://github.com/fastlorenzo)
 * [@mattreduce](https://github.com/mattreduce)
 * [@dbuentello](https://github.com/dbuentello)
+
+## Supporters
+
+Ghostwriter's continuous development would not be possible without [SpecterOps's](https://www.specterops.io/) commitment to transparency and support for open-source development.
+
+[GitBook](https://www.gitbook.com/) supports this project through its hosting of the wiki and granting the Ghostwriter team access to their GitBook Community tier as an open-source project.
