@@ -590,7 +590,7 @@ class SelectReportTemplateForm(forms.ModelForm):
                         <p class="text-left m-0">Template for DOCX Documents</p>
                         """
                     ),
-                    css_class="col-md-4 offset-md-2",
+                    css_class="col-md-2",
                 ),
                 Column(
                     FieldWithButtons(
@@ -611,6 +611,7 @@ class SelectReportTemplateForm(forms.ModelForm):
                     ),
                     css_class="col-md-4",
                 ),
+                css_class="justify-content-md-center",
             ),
             Row(
                 Column(
@@ -619,7 +620,7 @@ class SelectReportTemplateForm(forms.ModelForm):
                         <p class="text-left m-0">Template for PPTX Documents</p>
                         """
                     ),
-                    css_class="col-md-4 offset-md-2",
+                    css_class="col-md-2",
                 ),
                 Column(
                     FieldWithButtons(
@@ -640,14 +641,15 @@ class SelectReportTemplateForm(forms.ModelForm):
                     ),
                     css_class="col-md-4",
                 ),
+                css_class="justify-content-md-center",
             ),
             HTML(
                 """
                 <p class="mb-2">Other report types do not use templates:</p>
                 <div class="btn-group">
-                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i><br />xlsx</a>
-                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"><br />JSON</a>
-                    <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate and package all report types and evidence in a Zip"><br />All</a>
+                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i></a>
+                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"></a>
+                    <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate and package all report types and evidence in a Zip"></a>
                 </div>
                 """
             ),
