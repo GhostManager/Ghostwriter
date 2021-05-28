@@ -183,7 +183,10 @@ class FindingLinkSerializer(CustomModelSerializer):
         fields = "__all__"
 
     def get_assigned_to(self, obj):
-        return obj.assigned_to.name
+        if obj.assigned_to:
+            return obj.assigned_to.name
+        else:
+            return "TBD"
 
     def get_severity_color(self, obj):
         return obj.severity.color
