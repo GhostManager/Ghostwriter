@@ -687,7 +687,7 @@ footer {
   font-size: 0.9em;
   font-style: italic;
   font-family: 'Poppins', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-  box-shadow: 0px -3px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0px -2px 5px rgba(0, 0, 0, 0.3);
 }
 
 footer .text-muted {
@@ -709,7 +709,7 @@ footer img:hover {
     transform: rotate(0deg);
   }
   25% {
-    transform: rotate(10deg);
+    transform: rotate(5deg);
   }
   75% {
     transform: rotate(-5deg);
