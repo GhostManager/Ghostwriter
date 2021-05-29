@@ -10,6 +10,10 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
+__version__ = "2.2.1"
+VERSION = __version__
+RELEASE_DATE = "27 May 2021"
+
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
 
@@ -211,6 +215,7 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
+                "ghostwriter.context_processors.selected_settings",
             ],
         },
     }
