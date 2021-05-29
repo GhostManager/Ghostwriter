@@ -218,8 +218,8 @@ h1 {
 h2 {
   text-align: center;
   color: var(--h2-font-color);
-  font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-  font-size: 3em;
+  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 2.5em;
   margin-right: 20px
 }
 
@@ -231,14 +231,14 @@ h3 {
 }
 
 h4 {
-  font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   margin-top: 20px;
   margin-bottom: 20px;
   font-size: 1.75em;
 }
 
 h6 {
-  font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 1.15em;
   padding-top: 10px;
 }
@@ -558,6 +558,7 @@ input[type='file'] {
   align-items: stretch;
   perspective: 2500px;
   text-align: center;
+  position: relative;
 }
 
 #sidebar {
@@ -589,6 +590,14 @@ input[type='file'] {
   border-top-right-radius: 5px;
   border-bottom-right-radius: 5px;
   box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+#sidebar .sidebar-footer {
+  text-align: center;
+  font-size: 0.8em;
+  /* font-style: italic; */
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
 }
 
 #sidebar .components {
@@ -2330,7 +2339,7 @@ ol {
 }
 
 .dashboard-header {
-  font-family: 'Patrick Hand SC', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2em;
   color: var(--primary-color)
 }

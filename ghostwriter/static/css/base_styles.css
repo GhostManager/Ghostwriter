@@ -7,8 +7,8 @@
 :root {
   --main-font-size: 16px;
   --secondary-font-size: 14px;
-  --primary-color: #51b071;
-  --secondary-color: #2B2C66;
+  --primary-color: #50B071;
+  --secondary-color: #6D70A7;
   --secondary-color-fade: #7386D5;
   --secondary-color-med: #947BD3;
   --secondary-color-light: #E1E2EF;
@@ -19,21 +19,21 @@
   --ghost-grey: #6C809A;
 
   /* TEXT */
-  --h1-font-color: #2B2C66;
-  --h2-font-color: #51B071;
-  --h3-font-color: #51B071;
+  --h1-font-color: #6D70A7;
+  --h2-font-color: #50B071;
+  --h3-font-color: #50B071;
   --main-txt-color: #666;
   --main-bg-color: #fafafa;
 
   /* BUTTONS */
-  --button-primary-color: #51B071;
+  --button-primary-color: #50B071;
   --button-hover-color: #6d7fcc;
   --button-warning-color: #FF7E79;
   --button-border-radius: 4px;
 
   /* LINKS */
-  --active-link-color: #51b071;
-  --clickable-underline-color: #51B071;
+  --active-link-color: #50B071;
+  --clickable-underline-color: #50B071;
 
   /* SIDEBAR */
   --sidebar-text-color: #3B454E;
@@ -42,12 +42,12 @@
   --sidebar-link-text-color: #9EABB7;
 
   --sidebar-background-color: #F5F7F9;
-  --sidebar-header-background-color: #2B2C66;
+  --sidebar-header-background-color: #6D70A7;
   --sidebar-hover-background-color: #E6ECF1;
   --sidebar-link-background-color: #9EABB7;
 
   /* SIDEBAR BUTTON */
-  --sidebar-collapse-button-color: #51B071;
+  --sidebar-collapse-button-color: #50B071;
   --sidebar-collapse-button-text: #fff;
 
   /* NAVBAR */
@@ -61,11 +61,11 @@
   --navbar-report-empty-background-color: #f7d7d9;
 
   /* ACCORDIONS, COLLAPSIBLES, & DROPDOWNS */
-  --accordion-primary-color: #2B2C66;
-  --accordion-expanded-color: #51B071;
+  --accordion-primary-color: #6D70A7;
+  --accordion-expanded-color: #50B071;
 
-  --collapsible-main-color: #2B2C66;
-  --collapsible-hover-color: #51B071;
+  --collapsible-main-color: #6D70A7;
+  --collapsible-hover-color: #50B071;
 
   --dropdown-button-main-color: #2B2C66;
   --dropdown-button-hover-color: #6d7fcc;
