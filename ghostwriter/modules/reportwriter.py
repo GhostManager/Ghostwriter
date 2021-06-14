@@ -153,6 +153,7 @@ class ReportConstants:
         "subscript": False,
         "hyperlink": False,
         "hyperlink_url": None,
+        "blockquote": False,
     }
 
 
@@ -176,6 +177,7 @@ class Reportwriter:
         "sub",
         "sup",
         "del",
+        "blockquote",
     ]
 
     # Allowlist for evidence file extensions / filetypes
@@ -947,6 +949,10 @@ class Reportwriter:
             elif tag_name == "del":
                 styles_dict["strikethrough"] = True
 
+            # The ``blockquote`` tag identifies a blockquote
+            elif tag_name == "blockquote":
+                styles_dict["blockquote"] = True
+
             # A ``span`` tag will usually contain one or more classes for formatting
             # Empty spans usually only appear in place of a non-breaking spaces
             elif tag_name == "span":
@@ -1279,6 +1285,25 @@ class Reportwriter:
                     # Pass the contents and new paragraph on to drill down into nested formatting
                     self.process_nested_tags(contents, p, finding)
 
+                # Blockquotes
+                elif tag_name == "blockquote":
+                    # Get the tag's contents to check for additional formatting
+                    contents = tag.contents
+
+                    # Blockquotes blocks always have leading and trailing ``\n``
+                    # Delete the the first and last index to avoid unwanted blank lines
+                    del contents[0]
+                    del contents[-1]
+
+                    if self.report_type == "pptx":
+                        p = self.finding_body_shape.text_frame.add_paragraph()
+                        ALIGNMENT = PP_ALIGN
+                    else:
+                        p = self.sacrificial_doc.add_paragraph(style="Blockquote")
+                        ALIGNMENT = WD_ALIGN_PARAGRAPH
+
+                    self.process_nested_tags(contents, p, finding)
+
                 # PRE – Code Blocks
                 elif tag_name == "pre":
                     # Get the list of pre-formatted strings
@@ -1482,6 +1507,23 @@ class Reportwriter:
             caption_font.name = "Calibri"
             caption_font.size = Pt(9)
             caption_font.italic = True
+
+        if "Blockquote" not in styles:
+            quote_style = styles.add_style("Blockquote", WD_STYLE_TYPE.PARAGRAPH)
+            quote_style.hidden = False
+            quote_style.quick_style = True
+            quote_style.priority = 5
+            # Set font and size
+            quote_font = quote_style.font
+            quote_font.name = "Calibri"
+            quote_font.size = Pt(12)
+            quote_font.italic = True
+            # Set alignment
+            quote_par = quote_style.paragraph_format
+            quote_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            quote_par.line_spacing = 1
+            quote_par.left_indent = Inches(0.6)
+            quote_par.right_indent = Inches(0.6)
 
         # Process template context, converting HTML elements to XML as needed
         context = self.process_richtext(self.report_json)
@@ -2149,6 +2191,10 @@ class TemplateLinter:
                     if "List Paragraph" not in document_styles:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): List Paragraph"
+                        )
+                    if "Blockquote" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Blockquote"
                         )
                     logger.info("Completed Word style checks")
 
