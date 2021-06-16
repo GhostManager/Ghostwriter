@@ -312,11 +312,18 @@ def send_slack_complete_msg(task):
         Instance of :model:`django_q.Task`
     """
     if task.success:
-        send_slack_msg(
-            "{} task has completed its run. It completed successfully with no additional result data.".format(
-                task.group
+        if task.result:
+            send_slack_msg(
+                "{} task has completed its run. It completed successfully and returned:\n {}".format(
+                    task.group, task.result
+                )
             )
-        )
+        else:
+            send_slack_msg(
+                "{} task has completed its run. It completed successfully with no additional result data.".format(
+                    task.group
+                )
+            )
     else:
         if task.result:
             send_slack_msg(
@@ -330,21 +337,16 @@ def send_slack_complete_msg(task):
             )
 
 
-def release_domains(no_action=False, reset_dns=False):
+def namecheap_reset_dns(namecheap_config, domain):
     """
-    Pull all :model:`shepherd.Domain` currently checked-out in Shepherd and update the
-    status to ``Available`` if the project's ``end_date`` value is today or in the past.
+    Try to use the Namecheap API to reset th DNS records for a target domain.
 
     **Parameters**
 
-    ``no_action``
-        Set to True to take no action and just return a list of domains that should
-        be released (Default: False)
-    ``reset_dns``
-        Set to True to reset the DNS records for Namecheap domains (Default: False)
+    ``domain``
+        Domain to reset that is registered with Namecheap
     """
-    domain_updates = {}
-    domain_updates["errors"] = {}
+    results = {"result": "reset", "error": ""}
 
     # Configure Namecheap API requests
     session = requests.Session()
@@ -352,11 +354,98 @@ def release_domains(no_action=False, reset_dns=False):
     reset_record_template = (
         "&HostName1=@&RecordType1=URL&Address1=http://www.namecheap.com&TTL1=100"
     )
-    namecheap_config = NamecheapConfiguration.get_solo()
-    if reset_dns is True and namecheap_config.enable is False:
-        logger.warning(
-            "Received request to reset Namecheap DNS records for released domains, but Namecheap API is disabled in settings"
+
+    logger.info("Attempting to reset DNS on Namecheap for %s", domain.name)
+    try:
+        # Split domain name for the API call
+        domain_split = domain.name.split(".")
+        sld = domain_split[0]
+        tld = domain_split[1]
+
+        # The Namecheap API call requires both usernames, a key, and a whitelisted IP
+        req = session.get(
+            reset_records_endpoint.format(
+                namecheap_config.api_username,
+                namecheap_config.api_key,
+                namecheap_config.username,
+                namecheap_config.client_ip,
+                sld,
+                tld,
+            )
+            + reset_record_template
         )
+        # Check if request returned a 200 OK
+        if req.ok:
+            # Convert Namecheap XML into an easy to use object for iteration
+            root = objectify.fromstring(req.content)
+            # Check the status to make sure it says "OK"
+            namecheap_api_result = root.attrib["Status"]
+            if namecheap_api_result == "OK":
+                is_success = root.CommandResponse.DomainDNSSetHostsResult.attrib[
+                    "IsSuccess"
+                ]
+                warnings = root.CommandResponse.DomainDNSSetHostsResult.Warnings
+                if is_success == "true":
+                    logger.info("Successfully reset DNS records for %s", domain.name)
+                    results["result"] = "reset"
+                else:
+                    logger.warning(
+                        'Namecheap did not return True for "IsSuccess" when resetting DNS records for %s',
+                        domain.name,
+                    )
+                    results["result"] = "reset failed"
+            elif namecheap_api_result == "ERROR":
+                error_num = root.Errors.Error.attrib["Number"]
+                error = root.Errors.Error.text
+                logger.error("DNS Error %s: %s", error_num, error)
+                results["result"] = "no action"
+                results["error"] = "DNS Error {}: {}".format(error_num, error)
+            else:
+                logger.error(
+                    'Namecheap did not return an "OK" response – %s',
+                    req.text,
+                )
+                results["result"] = "no action"
+                results[
+                    "error"
+                ] = 'Namecheap did not return an "OK" response.\nFull Response:\n{}'.format(
+                    req.text
+                )
+        else:
+            logger.error(
+                'Namecheap API request returned status "%s"',
+                req.status_code,
+            )
+            results["result"] = "no action"
+            results[
+                "error"
+            ] = 'Namecheap did not return a 200 response.\nL.. API request returned status "{}"'.format(
+                req.status_code
+            )
+    except Exception as error:
+        logger.error("Namecheap API request failed with error: %s", error)
+        results["result"] = "no action"
+        results["error"] = "Namecheap API request failed with error: {}".format(error)
+
+    return results
+
+
+def release_domains(no_action=False):
+    """
+    Pull all :model:`shepherd.Domain` entries currently checked-out and update the
+    status to ``Available`` if the related :model:`rolodex.Project` entry's ``end_date``
+    value is today or in the past.
+
+    **Parameters**
+
+    ``no_action``
+        Set to True to take no action and just return a list of domains that should
+        be released (Default: False)
+    """
+    domain_updates = {}
+    domain_updates["errors"] = {}
+
+    namecheap_config = NamecheapConfiguration.get_solo()
 
     # Start tracking domain releases
     domains_to_be_released = []
@@ -401,8 +490,13 @@ def release_domains(no_action=False, reset_dns=False):
             domain_updates[domain.id] = {}
             domain_updates[domain.id]["domain"] = domain.name
             domain_updates[domain.id]["release_date"] = release_date
+
             # Check no_action and just return list if it is set to True
             if no_action:
+                logger.info(
+                    "Would have released %s back into the pool, but task was set to take no action.",
+                    domain.name,
+                )
                 domain_updates[domain.id]["change"] = "no action"
             else:
                 logger.info("Releasing %s back into the pool.", domain.name)
@@ -411,100 +505,18 @@ def release_domains(no_action=False, reset_dns=False):
                 domain.domain_status = DomainStatus.objects.get(domain_status="Available")
                 domain.save()
                 domain_updates[domain.id]["change"] = "released"
-            # Make sure the Namecheap API config is good and reg is Namecheap
-            # Most importantly, check the ``reset_dns`` flag is ``True`` in kwargs
-            if (
-                namecheap_config.enable
-                and domain.registrar.lower() == "namecheap"
-                and reset_dns
-            ):
-                logger.info("Attempting to reset DNS on Namecheap for %s", domain.name)
-                try:
-                    logger.info(
-                        "Attempting to reset DNS on Namecheap for %s", domain.name
-                    )
-                    # Split domain name for the API call
-                    domain_split = domain.name.split(".")
-                    sld = domain_split[0]
-                    tld = domain_split[1]
-                    # The Namecheap API call requires both usernames, a key, and a whitelisted IP
-                    req = session.get(
-                        reset_records_endpoint.format(
-                            namecheap_config.api_username,
-                            namecheap_config.api_key,
-                            namecheap_config.username,
-                            namecheap_config.client_ip,
-                            sld,
-                            tld,
-                        )
-                        + reset_record_template
-                    )
-                    # Check if request returned a 200 OK
-                    if req.ok:
-                        # Convert Namecheap XML into an easy to use object for iteration
-                        root = objectify.fromstring(req.content)
-                        # Check the status to make sure it says "OK"
-                        namecheap_api_result = root.attrib["Status"]
-                        if namecheap_api_result == "OK":
-                            is_success = (
-                                root.CommandResponse.DomainDNSSetHostsResult.attrib[
-                                    "IsSuccess"
-                                ]
-                            )
-                            warnings = (
-                                root.CommandResponse.DomainDNSSetHostsResult.Warnings
-                            )
-                            if is_success == "true":
-                                logger.info(
-                                    "Successfully reset DNS records for %s", domain.name
-                                )
-                                domain_updates[domain.id]["dns"] = "reset"
-                            else:
-                                logger.warning(
-                                    'Namecheap did not return True for "IsSuccess" when resetting DNS records for %s',
-                                    domain.name,
-                                )
-                                domain_updates[domain.id]["dns"] = "reset failed"
-                        elif namecheap_api_result == "ERROR":
-                            error_num = root.Errors.Error.attrib["Number"]
-                            error = root.Errors.Error.text
-                            logger.error("DNS Error %s: %s", error_num, error)
-                            domain_updates[domain.id]["dns"] = "no action"
-                            domain_updates["errors"][domain.name] = {}
-                            domain_updates["errors"][
-                                domain.name
-                            ] = "DNS Error {}: {}".format(error_num, error)
-                        else:
-                            logger.error(
-                                'Namecheap did not return an "OK" response – %s',
-                                req.text,
-                            )
-                            domain_updates[domain.id]["dns"] = "no action"
-                            domain_updates["errors"][domain.name] = {}
-                            domain_updates["errors"][
-                                domain.name
-                            ] = 'Namecheap did not return an "OK" response.\nFull Response:\n{}'.format(
-                                req.text
-                            )
-                    else:
-                        logger.error(
-                            'Namecheap API request returned status "%s"',
-                            req.status_code,
-                        )
-                        domain_updates[domain.id]["dns"] = "no action"
+
+            # Handle DNS record resets
+            if domain.reset_dns:
+                if (
+                    namecheap_config.enable
+                    and domain.registrar.lower() == "namecheap"
+                ):
+                    reset_result = namecheap_reset_dns(namecheap_config, domain)
+                    domain_updates[domain.id]["dns"] = reset_result["result"]
+                    if reset_result["error"]:
                         domain_updates["errors"][domain.name] = {}
-                        domain_updates["errors"][
-                            domain.name
-                        ] = 'Namecheap did not return a 200 response.\nL.. API request returned status "{}"'.format(
-                            req.status_code
-                        )
-                except Exception as error:
-                    logger.error("Namecheap API request failed with error: %s", error)
-                    domain_updates[domain.id]["dns"] = "no action"
-                    domain_updates["errors"][domain.name] = {}
-                    domain_updates["errors"][
-                        domain.name
-                    ] = "Namecheap API request failed with error: {}".format(error)
+                        domain_updates["errors"][domain.name] = reset_result["error"]
             else:
                 domain_updates[domain.id]["dns"] = "no action"
 

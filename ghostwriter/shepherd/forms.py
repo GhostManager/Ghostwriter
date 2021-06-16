@@ -244,7 +244,11 @@ class DomainForm(forms.ModelForm):
                 Column("expiration", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
-            SwitchToggle("auto_renew"),
+            Row(
+                Column(SwitchToggle("auto_renew"), css_class="form-group col-md-6 mb-0"),
+                Column(SwitchToggle("reset_dns"), css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             HTML(
                 """
                 <h4 class="icon heartbeat-icon">Health & Category Information</h4>

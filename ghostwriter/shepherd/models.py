@@ -250,6 +250,11 @@ class Domain(models.Model):
         default=False,
         help_text="Whether or not the domain registration has expired",
     )
+    reset_dns = models.BooleanField(
+        "Reset DNS",
+        default=False,
+        help_text="Reset DNS records (if possible) after this domain is used",
+    )
     # Foreign Keys
     whois_status = models.ForeignKey(
         "WhoisStatus",
