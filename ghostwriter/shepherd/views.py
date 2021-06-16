@@ -190,19 +190,6 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-            # If domain is set to be reset on release get the necessary API config and task
-            if domain_instance.reset_dns:
-                # Namecheap
-                if domain_instance.registrar.lower() == "namecheap":
-                    namecheap_config = NamecheapConfiguration.get_solo()
-                    if namecheap_config.enable:
-                        task_id = async_task(
-                            "ghostwriter.shepherd.tasks.namecheap_reset_dns",
-                            namecheap_config=namecheap_config,
-                            domain=domain_instance,
-                            group="Individual Domain Update",
-                            hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
-                        )
         else:
             data = {
                 "result": "error",

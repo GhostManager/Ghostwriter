@@ -64,24 +64,22 @@ var default_config = {
         '.bold { font-weight: bold; }' +
         '.italic { font-style: italic; }' +
         '.underline { text-decoration: underline; }' +
-        '.tablerow1 { background-color: #D3D3D3; }' +
-        'blockquote { border-left: 2px solid #ccc; }' +
-        'blockquote * { padding-left: 5px; }',
+        '.tablerow1 { background-color: #D3D3D3; }',
     formats: {
         alignleft: {
-            selector: 'p, h1, h2, h3, h4, h5, h6, td, th, div, ul, ol, li, table, img',
+            selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
             classes: 'left'
         },
         aligncenter: {
-            selector: 'p, h1, h2, h3, h4, h5, h6, td, th, div, ul, ol, li, table, img',
+            selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
             classes: 'center'
         },
         alignright: {
-            selector: 'p, h1, h2, h3, h4, h5, h6, td, th, div, ul, ol, li, table, img',
+            selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
             classes: 'right'
         },
         alignjustify: {
-            selector: 'p, h1, h2, h3, h4, h5, h6, td, th, div, ul, ol, li, table, img',
+            selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
             classes: 'justify'
         },
         bold: {
@@ -131,8 +129,7 @@ var default_config = {
           { title: 'Superscript', format: 'superscript' },
           { title: 'Subscript', format: 'subscript' },
           { title: 'Code', format: 'code' },
-          { title: 'Highlight', format: 'highlight' },
-          { title: 'Blockquote', format: 'blockquote' }
+          { title: 'Highlight', format: 'highlight' }
         ]},
         { title: 'Align', items: [
           { title: 'Left', format: 'alignleft' },
