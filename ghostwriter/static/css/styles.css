@@ -21,15 +21,6 @@ p {
   color: var(--main-txt-color);
 }
 
-blockquote {
-  padding-left: 20px;
-  border-left: 2px solid #ccc;
-}
-
-blockquote * {
-  margin-bottom: 0px;
-}
-
 ul:not(.list-unstyled):not(.nav):not(.breadcrumb), ol:not(.list-unstyled):not(.nav):not(.breadcrumb) {
   margin-top: 10px;
   margin-bottom: 10px;
@@ -41,6 +32,7 @@ pre {
   font-weight: 300;
   line-height: 1.7em;
   color: var(--main-txt-color);
+  ;
   margin-top: 20px;
   margin-bottom: 20px;
 }
