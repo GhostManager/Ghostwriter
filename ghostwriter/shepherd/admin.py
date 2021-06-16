@@ -27,6 +27,20 @@ from .models import (
 from .resources import DomainResource, StaticServerResource
 
 
+def enable_dns_resets(modeladmin, request, queryset):
+    queryset.update(reset_dns=True)
+
+
+enable_dns_resets.short_description = "Enable DNS resets for selected Domains"
+
+
+def disable_dns_resets(modeladmin, request, queryset):
+    queryset.update(reset_dns=False)
+
+
+disable_dns_resets.short_description = "Disable DNS resets for selected Domains"
+
+
 @admin.register(ActivityType)
 class ActivityTypeAdmin(admin.ModelAdmin):
     pass
@@ -93,6 +107,7 @@ class DomainStatusAdmin(admin.ModelAdmin):
 
 @admin.register(Domain)
 class DomainAdmin(ImportExportModelAdmin):
+    actions = [enable_dns_resets, disable_dns_resets]
     resource_class = DomainResource
     list_display = (
         "domain_status",
@@ -101,10 +116,19 @@ class DomainAdmin(ImportExportModelAdmin):
         "health_status",
         "last_health_check",
         "registrar",
+        "reset_dns",
         "note",
     )
-    list_filter = ("domain_status", "whois_status", "health_status", "registrar")
+    list_filter = (
+        "domain_status",
+        "whois_status",
+        "health_status",
+        "registrar",
+        "auto_renew",
+        "reset_dns",
+    )
     list_display_links = ("domain_status", "name")
+    list_editable = ("reset_dns",)
     fieldsets = (
         (None, {"fields": ("name", "domain_status", "creation", "expiration")}),
         (
@@ -119,7 +143,15 @@ class DomainAdmin(ImportExportModelAdmin):
                 )
             },
         ),
-        ("DNS Status", {"fields": ("dns_record",)}),
+        (
+            "DNS Status",
+            {
+                "fields": (
+                    "dns_record",
+                    "reset_dns",
+                )
+            },
+        ),
         (
             "Categories",
             {

@@ -104,6 +104,16 @@
                     </p>
                 {% endif %}
 
+                {% if domain.reset_dns %}
+                    <div class="alert alert-secondary" role="alert">
+                        Domain is configured to reset DNS records after use (if possible with the registrar).
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        Domain is NOT configured to reset DNS records after use, so operators should manually clean-up records.
+                    </div>
+                {% endif %}
+
                 {% if domain.dns_record %}
                     <table class="table">
                         <tr>
