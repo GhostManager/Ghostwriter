@@ -680,7 +680,7 @@ class TransientServer(models.Model):
         "Notes",
         null=True,
         blank=True,
-        help_text="use this area to provide project-related notes, such as how the server will be used/how it worked out",
+        help_text="Use this area to provide project-related notes, such as how the server will be used",
     )
     # Foreign Keys
     project = models.ForeignKey(
