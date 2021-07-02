@@ -22,9 +22,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
-from ghostwriter.rolodex.models import Project
-
-from .models import (
+from ghostwriter.reporting.models import (
     Evidence,
     Finding,
     FindingNote,
@@ -33,6 +31,7 @@ from .models import (
     ReportFindingLink,
     ReportTemplate,
 )
+from ghostwriter.rolodex.models import Project
 
 
 class FindingForm(forms.ModelForm):
@@ -380,20 +379,30 @@ class EvidenceForm(forms.ModelForm):
             ButtonHolder(submit, cancel_button, css_class="mt-3"),
         )
 
-    def clean(self):
-        cleaned_data = super(EvidenceForm, self).clean()
-        friendly_name = cleaned_data.get("friendly_name")
-        # Check if provided name has already been used for another file for this report
-        report_queryset = self.evidence_queryset.values_list("id", "friendly_name")
-        for evidence in report_queryset:
-            if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
-                raise ValidationError(
-                    _(
-                        "This friendly name has already been used for a file attached to this finding."
-                    ),
-                    "duplicate",
-                )
-        return cleaned_data
+    def clean_document(self):
+        document = self.cleaned_data["document"]
+        # Check if evidence file is missing
+        if not document:
+            raise ValidationError(
+                _("You must provide an evidence file"),
+                "incomplete",
+            )
+        return document
+
+    def clean_friendly_name(self):
+        friendly_name = self.cleaned_data["friendly_name"]
+        if self.evidence_queryset:
+            # Check if provided name has already been used for another file for this report
+            report_queryset = self.evidence_queryset.values_list("id", "friendly_name")
+            for evidence in report_queryset:
+                if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
+                    raise ValidationError(
+                        _(
+                            "This friendly name has already been used for a file attached to this finding."
+                        ),
+                        "duplicate",
+                    )
+        return friendly_name
 
 
 class FindingNoteForm(forms.ModelForm):
@@ -555,6 +564,16 @@ class ReportTemplateForm(forms.ModelForm):
                 ),
             ),
         )
+
+    def clean_document(self):
+        document = self.cleaned_data["document"]
+        # Check if template file is missing
+        if not document:
+            raise ValidationError(
+                _("You must provide a template file"),
+                "incomplete",
+            )
+        return document
 
 
 class SelectReportTemplateForm(forms.ModelForm):
