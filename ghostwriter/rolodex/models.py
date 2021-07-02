@@ -647,7 +647,3 @@ class ProjectTarget(models.Model):
 
     def __str__(self):
         return f"{self.hostname} ({self.ip_address})"
-
-    # Link to Oplog
-    # Link to Obj
-    # Link to open port/service
