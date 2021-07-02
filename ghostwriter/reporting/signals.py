@@ -5,12 +5,13 @@ import logging
 import os
 
 # Django Imports
-from django.db.models.signals import post_init, post_save
+from django.db.models import Q
+from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter import TemplateLinter
-from ghostwriter.reporting.models import Evidence, ReportTemplate
+from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
 
 # Using __name__ resolves to ghostwriter.reporting.signals
 logger = logging.getLogger(__name__)
@@ -125,3 +126,30 @@ def clean_template(sender, instance, created, **kwargs):
             post_save.connect(clean_template, sender=ReportTemplate)
         except Exception:
             logger.exception("Failed to update new template with linting results")
+
+
+@receiver(pre_save, sender=ReportFindingLink)
+def adjust_finding_positions_with_changes(sender, instance, **kwargs):
+    """
+    Execute the :model:`reporting.ReportFindingLink` ``clean()`` function prior to ``save()``
+    to adjust the ``position`` values of entries tied to the same :model:`reporting.Report`.
+    """
+    instance.clean()
+
+
+@receiver(post_delete, sender=ReportFindingLink)
+def adjust_finding_positions_after_delete(sender, instance, **kwargs):
+    """
+    After deleting a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
+    of entries tied to the same :model:`reporting.Report`.
+    """
+    # Get all other findings with the same severity for this report ID
+    findings_queryset = ReportFindingLink.objects.filter(
+        Q(report=instance.report.pk) & Q(severity=instance.severity)
+    )
+    if findings_queryset:
+        counter = 1
+        for finding in findings_queryset:
+            # Adjust position to close gap created by removed finding
+            findings_queryset.filter(id=finding.id).update(position=counter)
+            counter += 1
