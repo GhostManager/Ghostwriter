@@ -1,5 +1,6 @@
 # Standard Libraries
 import logging
+import os
 
 # Django Imports
 from django.db import transaction
@@ -192,15 +193,18 @@ class ReportTemplateModelTests(TestCase):
         self.assertEqual(report_template.pk, report_template.id)
         self.assertEqual(len(self.ReportTemplate.objects.all()), 1)
         self.assertEqual(self.ReportTemplate.objects.first(), report_template)
+        assert os.path.exists(report_template.document.path)
 
         # Update
         report_template.name = "New Template"
         report_template.save()
         self.assertEqual(report_template.name, "New Template")
+        assert os.path.exists(report_template.document.path)
 
         # Delete
         report_template.delete()
         assert not self.ReportTemplate.objects.all().exists()
+        assert not os.path.exists(report_template.document.path)
 
     def test_prop_filename(self):
         report_template = ReportTemplateFactory()
@@ -469,7 +473,7 @@ class EvidenceModelTests(TestCase):
     def setUpTestData(cls):
         cls.Evidence = EvidenceFactory._meta.model
 
-    def test_crud_report_finding(self):
+    def test_crud_evidence(self):
         # Create
         evidence = EvidenceFactory(friendly_name="Test Evidence")
 
@@ -478,15 +482,18 @@ class EvidenceModelTests(TestCase):
         self.assertEqual(evidence.pk, evidence.id)
         self.assertEqual(len(self.Evidence.objects.all()), 1)
         self.assertEqual(self.Evidence.objects.first(), evidence)
+        assert os.path.exists(evidence.document.path)
 
         # Update
         evidence.friendly_name = "New Name"
         evidence.save()
         self.assertEqual(evidence.friendly_name, "New Name")
+        assert os.path.exists(evidence.document.path)
 
         # Delete
         evidence.delete()
         assert not self.Evidence.objects.all().exists()
+        assert not os.path.exists(evidence.document.path)
 
     def test_prop_filename(self):
         evidence = EvidenceFactory()
@@ -503,7 +510,7 @@ class FindingNoteModelTests(TestCase):
     def setUpTestData(cls):
         cls.FindingNote = FindingNoteFactory._meta.model
 
-    def test_crud_report_finding(self):
+    def test_crud_finding_note(self):
         # Create
         note = FindingNoteFactory(note="Test note")
 
@@ -530,7 +537,7 @@ class LocalFindingNoteModelTests(TestCase):
     def setUpTestData(cls):
         cls.LocalFindingNote = LocalFindingNoteFactory._meta.model
 
-    def test_crud_report_finding(self):
+    def test_crud_local_finding_note(self):
         # Create
         note = LocalFindingNoteFactory(note="Test note")
 
@@ -557,7 +564,7 @@ class ArchiveModelTests(TestCase):
     def setUpTestData(cls):
         cls.Archive = ArchiveFactory._meta.model
 
-    def test_crud_report_finding(self):
+    def test_crud_archive(self):
         # Create
         archive = ArchiveFactory(report_archive="test.zip")
 

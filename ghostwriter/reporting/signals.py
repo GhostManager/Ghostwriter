@@ -27,7 +27,7 @@ def backup_evidence_path(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Evidence)
-def delete_old_evidence(sender, instance, **kwargs):
+def delete_old_evidence_on_update(sender, instance, **kwargs):
     """
     Delete the old evidence file in the :model:`reporting.Evidence` instance when a
     new file is uploaded.
@@ -45,6 +45,14 @@ def delete_old_evidence(sender, instance, **kwargs):
                         "Failed deleting old evidence file: %s",
                         instance._current_evidence.path,
                     )
+
+
+@receiver(post_delete, sender=Evidence)
+def remove_evidence_on_delete(sender, instance, **kwargs):
+    """Deletes file from filesystem when related :model:`reporting.Evidence` entry is deleted."""
+    if instance.document:
+        if os.path.isfile(instance.document.path):
+            os.remove(instance.document.path)
 
 
 @receiver(post_init, sender=ReportTemplate)
@@ -126,6 +134,14 @@ def clean_template(sender, instance, created, **kwargs):
             post_save.connect(clean_template, sender=ReportTemplate)
         except Exception:
             logger.exception("Failed to update new template with linting results")
+
+
+@receiver(post_delete, sender=ReportTemplate)
+def remove_template_on_delete(sender, instance, **kwargs):
+    """Deletes file from filesystem when related :model:`reporting.ReportTemplate` entry is deleted."""
+    if instance.document:
+        if os.path.isfile(instance.document.path):
+            os.remove(instance.document.path)
 
 
 @receiver(pre_save, sender=ReportFindingLink)
