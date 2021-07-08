@@ -7,8 +7,11 @@ from datetime import date
 
 # Django Imports
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 
 class HealthStatus(models.Model):
@@ -768,6 +771,21 @@ class DomainServerConnection(models.Model):
         verbose_name = "Domain and server record"
         verbose_name_plural = "Domain and server records"
 
+        constraints = [
+            models.CheckConstraint(
+                check=(Q(static_server__isnull=False) & Q(transient_server__isnull=True))
+                | (Q(static_server__isnull=True) & Q(transient_server__isnull=False)),
+                name="only_one_server",
+            )
+        ]
+
+    def clean(self):
+        if self.static_server and self.transient_server:
+            raise ValidationError(
+                _("Only one server can be selected per entry"), code="invalid_selection"
+            )
+
+    @property
     def domain_name(self):
         """
         Return the ``name`` field's value for the instance.
