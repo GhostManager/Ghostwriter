@@ -3,7 +3,7 @@
 # Standard Libraries
 import logging
 import logging.config
-from datetime import datetime
+from datetime import date, datetime
 
 # Django Imports
 from django import forms
@@ -181,7 +181,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
             )
             domain_instance.save()
             # Set the release date to now so historical record is accurate
-            self.object.end_date = datetime.now()
+            self.object.end_date = date.today()
             self.object.save()
             data = {"result": "success", "message": "Domain successfully released"}
             logger.info(
@@ -230,7 +230,7 @@ class ServerRelease(LoginRequiredMixin, SingleObjectMixin, View):
             )
             server_instance.save()
             # Set the release date to now so historical record is accurate
-            self.object.end_date = datetime.now()
+            self.object.end_date = date.today()
             self.object.save()
             data = {"result": "success", "message": "Server successfully released"}
             logger.info(
