@@ -38,7 +38,6 @@ class CheckoutForm(forms.ModelForm):
         model = History
         fields = "__all__"
         widgets = {
-            "operator": forms.HiddenInput(),
             "domain": forms.HiddenInput(),
             "start_date": forms.DateInput(
                 format=("%Y-%m-%d"),
@@ -102,7 +101,6 @@ class CheckoutForm(forms.ModelForm):
             ),
             "note",
             "domain",
-            "operator",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
