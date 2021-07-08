@@ -330,3 +330,207 @@ class ProjectNoteFactory(factory.django.DjangoModelFactory):
     note = Faker("paragraph")
     project = factory.SubFactory(ProjectFactory)
     operator = factory.SubFactory(UserFactory)
+
+
+# Oplog Factories
+
+
+class OplogFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.Oplog"
+
+    name = Faker("sentence")
+    project = factory.SubFactory(ProjectFactory)
+
+
+class OplogEntryFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "oplog.OplogEntry"
+
+    name = Faker("sentence")
+    start_date = date.today()
+    end_date = date.today()
+    source_ip = Faker("ipv4")
+    dest_ip = Faker("ipv4")
+    tool = Faker("name")
+    user_context = Faker("username")
+    command = Faker("sentence")
+    description = Faker("sentence")
+    output = Faker("sentence")
+    comments = Faker("sentence")
+    operator_name = Faker("username")
+    oplog_id = factory.SubFactory(OplogFactory)
+
+
+# Shepherd Factories
+
+
+class HealthStatusFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.HealthStatus"
+
+    health_status = factory.Sequence(lambda n: "Status %s" % n)
+
+
+class DomainStatusFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.DomainStatus"
+
+    domain_status = factory.Sequence(lambda n: "Status %s" % n)
+
+
+class WhoisStatusFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.WhoisStatus"
+
+    whois_status = factory.Sequence(lambda n: "Status %s" % n)
+
+
+class ActivityTypeFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.ActivityType"
+
+    activity = factory.Sequence(lambda n: "Activity %s" % n)
+
+
+class DomainFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.Domain"
+
+    name = Faker("domain_name")
+    registrar = Faker("company")
+    dns_record = Faker("json")
+    health_dns = Faker("word")
+    creation = Faker("date")
+    expiration = Faker("date")
+    vt_permalink = Faker("url")
+    all_cat = Faker("pylist")
+    ibm_xforce_cat = Faker("word")
+    talos_cat = Faker("word")
+    bluecoat_cat = Faker("word")
+    fortiguard_cat = Faker("word")
+    opendns_cat = Faker("word")
+    trendmicro_cat = Faker("word")
+    mx_toolbox_status = Faker("word")
+    note = Faker("paragraph")
+    burned_explanation = Faker("paragraph")
+    auto_renew = Faker("boolean")
+    expired = Faker("boolean")
+    reset_dns = Faker("boolean")
+    whois_status = factory.SubFactory(WhoisStatusFactory)
+    health_status = factory.SubFactory(HealthStatusFactory)
+    domain_status = factory.SubFactory(DomainStatusFactory)
+    last_used_by = factory.SubFactory(UserFactory)
+
+
+class HistoryFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.History"
+
+    start_date = date.today()
+    end_date = datetime.now() + timedelta(days=20)
+    note = Faker("paragraph")
+    domain = factory.SubFactory(DomainFactory)
+    client = factory.SubFactory(ClientFactory)
+    project = factory.SubFactory(ProjectFactory)
+    operator = factory.SubFactory(UserFactory)
+    activity_type = factory.SubFactory(ActivityTypeFactory)
+
+
+class ServerStatusFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.ServerStatus"
+
+    server_status = factory.Sequence(lambda n: "Status %s" % n)
+
+
+class ServerProviderFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.ServerProvider"
+
+    server_provider = factory.Sequence(lambda n: "Provider %s" % n)
+
+
+class ServerRoleFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.ServerRole"
+
+    server_role = factory.Sequence(lambda n: "Role %s" % n)
+
+
+class StaticServerFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.StaticServer"
+
+    ip_address = Faker("ipv4")
+    note = Faker("paragraph")
+    name = Faker("hostname")
+    server_status = factory.SubFactory(ServerStatusFactory)
+    server_provider = factory.SubFactory(ServerProviderFactory)
+    last_used_by = factory.SubFactory(UserFactory)
+
+
+class ServerHistoryFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.ServerHistory"
+
+    start_date = date.today()
+    end_date = datetime.now() + timedelta(days=20)
+    note = Faker("paragraph")
+    server = factory.SubFactory(StaticServerFactory)
+    client = factory.SubFactory(ClientFactory)
+    project = factory.SubFactory(ProjectFactory)
+    operator = factory.SubFactory(UserFactory)
+    server_role = factory.SubFactory(ServerRoleFactory)
+    activity_type = factory.SubFactory(ActivityTypeFactory)
+
+
+class TransientServerFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.TransientServer"
+
+    ip_address = Faker("ipv4")
+    name = Faker("hostname")
+    note = Faker("paragraph")
+    project = factory.SubFactory(ProjectFactory)
+    operator = factory.SubFactory(UserFactory)
+    server_provider = factory.SubFactory(ServerProviderFactory)
+    server_role = factory.SubFactory(ServerRoleFactory)
+    activity_type = factory.SubFactory(ActivityTypeFactory)
+
+
+class DomainServerConnectionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.DomainServerConnection"
+
+    endpoint = Faker("domain_name")
+    subdomain = Faker("word")
+    project = factory.SubFactory(ProjectFactory)
+    domain = factory.SubFactory(HistoryFactory)
+    static_server = factory.SubFactory(ServerHistoryFactory)
+    transient_server = None
+
+
+class AuxServerAddressFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.AuxServerAddress"
+
+    ip_address = Faker("ipv4")
+    primary = Faker("boolean")
+    static_server = factory.SubFactory(StaticServerFactory)
+
+
+class DomainNoteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.DomainNote"
+
+    note = Faker("paragraph")
+    domain = factory.SubFactory(DomainFactory)
+
+
+class ServerNoteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "shepherd.ServerNote"
+
+    note = Faker("paragraph")
+    server = factory.SubFactory(StaticServerFactory)
