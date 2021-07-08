@@ -144,7 +144,7 @@ class CheckoutForm(forms.ModelForm):
             unavailable = DomainStatus.objects.get(domain_status="Unavailable")
             expired = domain.expiration < date.today()
             if expired:
-                raise ValidationError("This domain has expired!")
+                raise ValidationError(_("This domain has expired!"), code="expired")
             if domain.domain_status == unavailable:
                 raise ValidationError(
                     _(
