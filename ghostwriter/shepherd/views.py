@@ -1578,8 +1578,8 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super(ServerHistoryUpdate, self).get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "rolodex:project_detail", kwargs={"pk": self.object.project.pk}
+        ctx["cancel_link"] = "{}#infrastructure".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
         return ctx
 
@@ -1621,7 +1621,7 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "server checkout"
         ctx["object_to_be_deleted"] = queryset
-        ctx["cancel_link"] = "{}#history".format(
+        ctx["cancel_link"] = "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
         return ctx
