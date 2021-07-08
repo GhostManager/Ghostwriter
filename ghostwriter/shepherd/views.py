@@ -1075,17 +1075,17 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
         self.domain = get_object_or_404(Domain, pk=self.kwargs.get("pk"))
         return {
             "domain": self.domain,
-            "operator": self.request.user,
         }
 
     def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.save()
+
         # Update the domain status and commit it
-        domain_instance = get_object_or_404(Domain, pk=self.kwargs.get("pk"))
-        domain_instance.last_used_by = self.request.user
-        domain_instance.domain_status = DomainStatus.objects.get(
-            domain_status="Unavailable"
-        )
-        domain_instance.save()
+        self.domain.last_used_by = self.request.user
+        self.domain.domain_status = DomainStatus.objects.get(domain_status="Unavailable")
+        self.domain.save()
         return super().form_valid(form)
 
     def get_success_url(self):
