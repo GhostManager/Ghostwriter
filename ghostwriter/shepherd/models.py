@@ -85,7 +85,7 @@ class WhoisStatus(models.Model):
         """
         return Domain.objects.filter(whois_status=self).count()
 
-    count = property(whois_status)
+    count = property(count_status)
 
     class Meta:
         ordering = ["whois_status"]
