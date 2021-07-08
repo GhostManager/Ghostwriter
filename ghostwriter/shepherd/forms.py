@@ -329,11 +329,11 @@ class DomainLinkForm(forms.ModelForm):
             self.fields["transient_server"].queryset = TransientServer.objects.filter(
                 project=project
             ).order_by("activity_type", "server_role")
+            self.fields["domain"].queryset = History.objects.filter(
+                project=project
+            ).order_by("activity_type")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["domain"].queryset = History.objects.filter(project=project).order_by(
-            "activity_type"
-        )
         self.fields["domain"].empty_label = "-- Select a Domain [Required] --"
         self.fields[
             "domain"
