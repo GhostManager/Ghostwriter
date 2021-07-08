@@ -304,7 +304,7 @@ class Domain(models.Model):
 
     def get_domain_age(self):
         """
-        Calculate the domain's age based on the current date and the instance's creation DateField.
+        Calculate the domain's age based on the current date and the instance's ``creation`` value.
         """
         if self.is_expired():
             time_delta = self.expiration - self.creation
@@ -418,7 +418,6 @@ class History(models.Model):
     def __str__(self):
         return f"{self.project} : {self.domain.name}"
 
-    @property
     def will_be_released(self):
         """
         Test if the instance's end_date DateField value is within the next 24-48 hours.
@@ -632,19 +631,20 @@ class ServerHistory(models.Model):
     def __str__(self):
         return f"{self.server.ip_address} ({self.server.name}) [{self.activity_type.activity}]"
 
+    @property
     def ip_address(self):
         """
         Return the ``ip_address`` field's value for the instance.
         """
         return self.server.ip_address
 
+    @property
     def server_name(self):
         """
         Return the ``name`` field's value for the instance.
         """
         return self.server.name
 
-    @property
     def will_be_released(self):
         """
         Test if the instance's ``end_date`` DateField value is within the next 24-48 hours.
