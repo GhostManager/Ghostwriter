@@ -294,9 +294,8 @@ class DomainForm(forms.ModelForm):
         )
 
     def clean(self):
-        cleaned_data = super().clean()
-        expiration = cleaned_data["expiration"]
-        creation = cleaned_data["creation"]
+        expiration = self.cleaned_data["expiration"]
+        creation = self.cleaned_data["creation"]
 
         # Check if expiration comes before the creation date
         if expiration < creation:
