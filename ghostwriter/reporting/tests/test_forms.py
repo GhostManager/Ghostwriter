@@ -28,7 +28,7 @@ from ghostwriter.reporting.forms import (
 logging.disable(logging.INFO)
 
 
-class FindingFormTest(TestCase):
+class FindingFormTests(TestCase):
     """Collection of tests for :form:`reporting.FindingForm`."""
 
     @classmethod
@@ -82,7 +82,7 @@ class FindingFormTest(TestCase):
         self.assertEqual(errors[0].code, "unique")
 
 
-class ReportFormTest(TestCase):
+class ReportFormTests(TestCase):
     """Collection of tests for :form:`reporting.ReportForm`."""
 
     @classmethod
@@ -143,7 +143,7 @@ class ReportFormTest(TestCase):
         self.assertEqual(errors[0].code, "invalid_choice")
 
 
-class ReportFindingLinkUpdateFormTest(TestCase):
+class ReportFindingLinkUpdateFormTests(TestCase):
     """Collection of tests for :form:`reporting.ReportFindingLinkForm`."""
 
     @classmethod
@@ -203,7 +203,7 @@ class ReportFindingLinkUpdateFormTest(TestCase):
         self.assertTrue(form.is_valid())
 
 
-class EvidenceFormTest(TestCase):
+class EvidenceFormTests(TestCase):
     """Collection of tests for :form:`reporting.EvidenceForm`."""
 
     @classmethod
@@ -288,7 +288,7 @@ class EvidenceFormTest(TestCase):
         self.assertTrue(form.is_valid())
 
 
-class FindingNoteFormTest(TestCase):
+class FindingNoteFormTests(TestCase):
     """Collection of tests for :form:`reporting.FindingNoteForm`."""
 
     @classmethod
@@ -326,7 +326,7 @@ class FindingNoteFormTest(TestCase):
         self.assertEqual(errors[0].code, "required")
 
 
-class LocalFindingNoteFormTest(TestCase):
+class LocalFindingNoteFormTests(TestCase):
     """Collection of tests for :form:`reporting.LocalFindingNoteForm`."""
 
     @classmethod
@@ -364,7 +364,7 @@ class LocalFindingNoteFormTest(TestCase):
         self.assertEqual(errors[0].code, "required")
 
 
-class ReportTemplateFormTest(TestCase):
+class ReportTemplateFormTests(TestCase):
     """Collection of tests for :form:`reporting.ReportTemplateForm`."""
 
     @classmethod
@@ -418,7 +418,7 @@ class ReportTemplateFormTest(TestCase):
         self.assertEqual(errors[0].code, "incomplete")
 
 
-class SelectReportTemplateFormTest(TestCase):
+class SelectReportTemplateFormTests(TestCase):
     """Collection of tests for :form:`reporting.SelectReportTemplateForm`."""
 
     @classmethod
