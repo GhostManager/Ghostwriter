@@ -670,7 +670,7 @@ def infrastructure_search(request):
     """
     Search :model:`shepherd.StaticServer`, :model:`shepherd.AuxServerAddress`, and
     :model:`shepherd:TransientServer` and return any matches with any related
-    :modeL`rolodex.Project` entries.
+    :model:`rolodex.Project` entries.
     """
     if request.method == "GET":
         context = {}
@@ -724,7 +724,6 @@ def infrastructure_search(request):
 
         return render(request, "shepherd/server_search.html", context)
     else:
-        logger.info("LOLWTF")
         return HttpResponseRedirect(reverse("rolodex:index"))
 
 
@@ -816,9 +815,6 @@ def burn(request, pk):
             )
             return HttpResponseRedirect(
                 "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": pk}))
-            )
-            return HttpResponseRedirect(
-                reverse("shepherd:domain_detail", kwargs={"pk": pk})
             )
     # If this is a GET (or any other method) create the default form
     else:
@@ -1539,7 +1535,6 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
         messages.success(
             self.request, "Server successfully checked-out", extra_tags="alert-success"
         )
-        # return reverse('shepherd:user_assets')
         return "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
@@ -1638,8 +1633,6 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
 
     **Context**
 
-    ``project_name``
-        Codename from the related :model:`rolodex.Project`
     ``cancel_link``
         Link for the form's Cancel button to return to project's details page
 
