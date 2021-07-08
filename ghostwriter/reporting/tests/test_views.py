@@ -39,7 +39,7 @@ PASSWORD = "SuperNaturalReporting!"
 # Tests related to report modification actions
 
 
-class AssignBlankFindingTest(TestCase):
+class AssignBlankFindingTests(TestCase):
     """Collection of tests for :view:`reporting.AssignBlankFinding`."""
 
     @classmethod
@@ -76,7 +76,7 @@ class AssignBlankFindingTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
-class ConvertFindingTest(TestCase):
+class ConvertFindingTests(TestCase):
     """Collection of tests for :view:`reporting.ConvertFinding`."""
 
     @classmethod
@@ -111,7 +111,7 @@ class ConvertFindingTest(TestCase):
         self.assertTemplateUsed(response, "reporting/finding_form.html")
 
 
-class AssignFindingTest(TestCase):
+class AssignFindingTests(TestCase):
     """Collection of tests for :view:`reporting.AssignFinding`."""
 
     @classmethod
@@ -170,7 +170,7 @@ class AssignFindingTest(TestCase):
         self.assertJSONEqual(force_text(response.content), data)
 
 
-class CloneReportTest(TestCase):
+class CloneReportTests(TestCase):
     """Collection of tests for :view:`reporting.ReportClone`."""
 
     @classmethod
@@ -217,7 +217,7 @@ class CloneReportTest(TestCase):
 # Tests related to :model:`reporting.Finding`
 
 
-class FindingsListViewTest(TestCase):
+class FindingsListViewTests(TestCase):
     """Collection of tests for :view:`reporting.findings_list`."""
 
     @classmethod
@@ -270,7 +270,7 @@ class FindingsListViewTest(TestCase):
         self.assertTrue(len(response.context["filter"].qs) == 1)
 
 
-class FindingDetailViewTest(TestCase):
+class FindingDetailViewTests(TestCase):
     """Collection of tests for :view:`reporting.FindingDetailView`."""
 
     @classmethod
@@ -302,7 +302,7 @@ class FindingDetailViewTest(TestCase):
         self.assertTemplateUsed(response, "reporting/finding_detail.html")
 
 
-class FindingCreateViewTest(TestCase):
+class FindingCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.FindingCreate`."""
 
     @classmethod
@@ -339,7 +339,7 @@ class FindingCreateViewTest(TestCase):
         self.assertEqual(response.context["cancel_link"], reverse("reporting:findings"))
 
 
-class FindingUpdateViewTest(TestCase):
+class FindingUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.FindingUpdate`."""
 
     @classmethod
@@ -378,7 +378,7 @@ class FindingUpdateViewTest(TestCase):
         )
 
 
-class FindingDeleteViewTest(TestCase):
+class FindingDeleteViewTests(TestCase):
     """Collection of tests for :view:`reporting.FindingDelete`."""
 
     @classmethod
@@ -427,7 +427,7 @@ class FindingDeleteViewTest(TestCase):
 # Tests related to :model:`reporting.Report`
 
 
-class ReportsListViewTest(TestCase):
+class ReportsListViewTests(TestCase):
     """Collection of tests for :view:`reporting.reports_list`."""
 
     @classmethod
@@ -469,7 +469,7 @@ class ReportsListViewTest(TestCase):
         self.assertTrue(len(response.context["filter"].qs) == len(self.reports))
 
 
-class ReportDetailViewTest(TestCase):
+class ReportDetailViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportDetailView`."""
 
     @classmethod
@@ -500,7 +500,7 @@ class ReportDetailViewTest(TestCase):
         self.assertTemplateUsed(response, "reporting/report_detail.html")
 
 
-class ReportCreateViewTest(TestCase):
+class ReportCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportCreate`."""
 
     @classmethod
@@ -552,7 +552,7 @@ class ReportCreateViewTest(TestCase):
         )
 
 
-class ReportUpdateViewTest(TestCase):
+class ReportUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportUpdate`."""
 
     @classmethod
@@ -591,7 +591,7 @@ class ReportUpdateViewTest(TestCase):
         )
 
 
-class ReportDeleteViewTest(TestCase):
+class ReportDeleteViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportDelete`."""
 
     @classmethod
@@ -640,7 +640,7 @@ class ReportDeleteViewTest(TestCase):
 # Tests related to :model:`reporting.ReportFindingLink`
 
 
-class ReportFindingLinkUpdateViewTest(TestCase):
+class ReportFindingLinkUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportFindingLinkUpdate`."""
 
     @classmethod
@@ -697,7 +697,7 @@ class ReportFindingLinkUpdateViewTest(TestCase):
 # Tests related to :model:`reporting.Evidence`
 
 
-class EvidenceDetailViewTest(TestCase):
+class EvidenceDetailViewTests(TestCase):
     """
     Collection of tests for :view:`reporting.EvidenceDetailView` and the related
     :view:`reporting.upload_evidence_modal_success`.
@@ -745,7 +745,7 @@ class EvidenceDetailViewTest(TestCase):
         )
 
 
-class EvidenceCreateViewTest(TestCase):
+class EvidenceCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.EvidenceCreate`."""
 
     @classmethod
@@ -831,7 +831,7 @@ class EvidenceCreateViewTest(TestCase):
         self.assertTemplateUsed(response, "reporting/evidence_modal_success.html")
 
 
-class EvidenceUpdateViewTest(TestCase):
+class EvidenceUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.EvidenceUpdate`."""
 
     @classmethod
@@ -870,7 +870,7 @@ class EvidenceUpdateViewTest(TestCase):
         )
 
 
-class EvidenceDeleteViewTest(TestCase):
+class EvidenceDeleteViewTests(TestCase):
     """Collection of tests for :view:`reporting.EvidenceDelete`."""
 
     @classmethod
@@ -921,7 +921,7 @@ class EvidenceDeleteViewTest(TestCase):
 # Tests related to :model:`reporting.ReportTemplate`
 
 
-class ReportTemplateListViewTest(TestCase):
+class ReportTemplateListViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportTemplateListView`."""
 
     @classmethod
@@ -957,7 +957,7 @@ class ReportTemplateListViewTest(TestCase):
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
 
 
-class ReportTemplateDownloadTest(TestCase):
+class ReportTemplateDownloadTests(TestCase):
     """Collection of tests for :view:`reporting.ReportTemplateDownload`."""
 
     @classmethod
@@ -983,7 +983,7 @@ class ReportTemplateDownloadTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
-class ReportTemplateDetailViewTest(TestCase):
+class ReportTemplateDetailViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportTemplateDetailView`."""
 
     @classmethod
@@ -1033,7 +1033,7 @@ class ReportTemplateDetailViewTest(TestCase):
         )
 
 
-class ReportTemplateCreateViewTest(TestCase):
+class ReportTemplateCreateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportTemplateCreate`."""
 
     @classmethod
@@ -1077,7 +1077,7 @@ class ReportTemplateCreateViewTest(TestCase):
         self.assertEqual(response.context["form"].initial["changelog"], initial_upload)
 
 
-class ReportTemplateUpdateViewTest(TestCase):
+class ReportTemplateUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportTemplateUpdate`."""
 
     @classmethod
@@ -1123,7 +1123,7 @@ class ReportTemplateUpdateViewTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
-class ReportTemplateDeleteViewTest(TestCase):
+class ReportTemplateDeleteViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportTemplateDelete`."""
 
     @classmethod
@@ -1182,7 +1182,7 @@ class ReportTemplateDeleteViewTest(TestCase):
 # Tests related to generating report types
 
 
-class GenerateReportTest(TestCase):
+class GenerateReportTests(TestCase):
     """Collection of tests for all :view:`reporting.GenerateReport*`."""
 
     @classmethod
