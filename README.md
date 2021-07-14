@@ -19,7 +19,7 @@ This blogpost discusses the design and intent behind Ghostwriter: [Introducing G
 
 The Ghostwriter Wiki contains everything you need to know to use or customize Ghostwriter:
 
-[Ghostwriter Wiki](https://ghostwriter.wiki/)
+[Ghostwriter Wiki](https://docs.specterops.io/ghostwriter/)
 
 The wiki covers everything from installation and setup information for first time users to database schemas, the project's code style guide, and how to expand or customie parts of the project to fit your needs.
 
@@ -31,11 +31,11 @@ The quickest way to get help is Slack. The BloodHound Slack Team has a #ghostwri
 
 You can submit an issue. If you do, please use the issue template and provide as much information as possible.
 
-Before submitting an issue, review the [Ghostwriter Wiki](https://ghostwriter.wiki/). Many of the common issues new users encounter stem from missing a step (like loading the seed data to prep the database) or an issue with Docker on their host system.
+Before submitting an issue, review the [Ghostwriter Wiki](https://docs.specterops.io/ghostwriter/). Many of the common issues new users encounter stem from missing a step (like loading the seed data to prep the database) or an issue with Docker on their host system.
 
 ## Contributing to the Project
 
-Please open issues or submit pull requests! The project team welcomes feedback, new ideas, and external contributions. Before submitting a PR, please check open and closed issues for any previous related discussion. Also, the submitted code must follow the [Code Style Guide](https://ghostwriter.wiki/coding-style-guide/style-guide) to be accepted.
+Please open issues or submit pull requests! The project team welcomes feedback, new ideas, and external contributions. Before submitting a PR, please check open and closed issues for any previous related discussion. Also, the submitted code must follow the [Code Style Guide](https://docs.specterops.io/ghostwriter/coding-style-guide/style-guide) to be accepted.
 
 We only ask that you limit PR submissions to those that fix a bug, enhance an existing feature, or add something new.
 
