@@ -7,7 +7,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    ClientFactory,
+    AuxServerAddressFactory,
     DomainFactory,
     DomainNoteFactory,
     DomainServerConnectionFactory,
@@ -16,6 +16,8 @@ from ghostwriter.factories import (
     ProjectFactory,
     ServerHistoryFactory,
     ServerNoteFactory,
+    ServerStatusFactory,
+    StaticServerFactory,
     TransientServerFactory,
 )
 from ghostwriter.shepherd.forms import (
@@ -25,9 +27,35 @@ from ghostwriter.shepherd.forms import (
     DomainLinkForm,
     DomainNoteForm,
 )
-from ghostwriter.shepherd.forms_server import ServerNoteForm
+from ghostwriter.shepherd.forms_server import (
+    AuxServerAddressForm,
+    ServerAddressFormSet,
+    ServerCheckoutForm,
+    ServerForm,
+    ServerNoteForm,
+    TransientServerForm,
+)
 
 logging.disable(logging.INFO)
+
+
+def instantiate_formset(formset_class, data, instance=None, initial=None):
+    prefix = formset_class().prefix
+    formset_data = {}
+    for i, form_data in enumerate(data):
+        for name, value in form_data.items():
+            if isinstance(value, list):
+                for j, inner in enumerate(value):
+                    formset_data["{}-{}-{}_{}".format(prefix, i, name, j)] = inner
+            else:
+                formset_data["{}-{}-{}".format(prefix, i, name)] = value
+    formset_data["{}-TOTAL_FORMS".format(prefix)] = len(data)
+    formset_data["{}-INITIAL_FORMS".format(prefix)] = 0
+
+    if instance:
+        return formset_class(formset_data, instance=instance, initial=initial)
+    else:
+        return formset_class(formset_data, initial=initial)
 
 
 class CheckoutFormTests(TestCase):
@@ -358,3 +386,263 @@ class ServerNoteFormTests(TestCase):
         errors = form["note"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
+
+
+# TODO
+
+
+class AuxServerAddressFormTests(TestCase):
+    """Collection of tests for :form:`shepherd.AuxServerAddressForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.address = AuxServerAddressFactory()
+        cls.address_dict = cls.address.__dict__
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        primary=None,
+        ip_address=None,
+        static_server=None,
+        **kwargs,
+    ):
+        return AuxServerAddressForm(
+            data={
+                "primary": primary,
+                "ip_address": ip_address,
+                "static_server": static_server,
+            },
+        )
+
+    def test_valid_data(self):
+        address = self.address_dict.copy()
+
+        form = self.form_data(**address)
+        self.assertTrue(form.is_valid())
+
+
+class ServerAddressFormSetTests(TestCase):
+    """Collection of tests for :form:`shepherd.ServerAddressFormSet`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.server = StaticServerFactory()
+        cls.server_dict = cls.server.__dict__
+        cls.aux_addy_1 = AuxServerAddressFactory(static_server=cls.server, primary=False)
+        cls.aux_addy_2 = AuxServerAddressFactory(static_server=cls.server, primary=False)
+        cls.to_be_deleted = AuxServerAddressFactory(
+            static_server=cls.server, primary=False
+        )
+
+    def form_data(self, data, **kwargs):
+        return instantiate_formset(ServerAddressFormSet, data=data, instance=self.server)
+
+    def test_valid_data(self):
+        data = [self.aux_addy_1.__dict__, self.aux_addy_2.__dict__]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+    def test_multiple_primary_addresses(self):
+        addy_1 = self.aux_addy_1.__dict__.copy()
+        addy_2 = self.aux_addy_2.__dict__.copy()
+        addy_1["primary"] = True
+        addy_2["primary"] = True
+
+        data = [addy_1, addy_2]
+        form = self.form_data(data)
+        errors = form.errors[1]["primary"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
+
+    def test_duplicate_address(self):
+        addy_1 = self.aux_addy_1.__dict__.copy()
+        addy_2 = self.aux_addy_2.__dict__.copy()
+        addy_2["ip_address"] = addy_1["ip_address"]
+
+        data = [addy_1, addy_2]
+        form = self.form_data(data)
+        errors = form.errors[1]["ip_address"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
+
+    def test_incomplete_address_form(self):
+        addy_1 = self.aux_addy_1.__dict__.copy()
+        addy_2 = self.aux_addy_2.__dict__.copy()
+        addy_1["ip_address"] = ""
+        addy_1["primary"] = True
+
+        data = [addy_1, addy_2]
+        form = self.form_data(data)
+        errors = form.errors[0]["ip_address"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "incomplete")
+
+    def test_address_delete(self):
+        addy_1 = self.aux_addy_1.__dict__.copy()
+        addy_2 = self.aux_addy_2.__dict__.copy()
+        addy_1["ip_address"] = ""
+        addy_1["primary"] = True
+        addy_1["DELETE"] = True
+
+        data = [addy_1, addy_2]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+
+class ServerFormTests(TestCase):
+    """Collection of tests for :form:`shepherd.ServerForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.server = StaticServerFactory()
+        cls.server_dict = cls.server.__dict__
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        ip_address=None,
+        name=None,
+        server_status_id=None,
+        server_provider_id=None,
+        note=None,
+        **kwargs,
+    ):
+        return ServerForm(
+            data={
+                "ip_address": ip_address,
+                "name": name,
+                "server_status": server_status_id,
+                "server_provider": server_provider_id,
+                "note": note,
+            },
+        )
+
+    def test_valid_data(self):
+        server = self.server_dict.copy()
+        server["ip_address"] = "1.1.1.1"
+
+        form = self.form_data(**server)
+        self.assertTrue(form.is_valid())
+
+
+class ServerCheckoutFormSetTests(TestCase):
+    """Collection of tests for :form:`shepherd.ServerCheckoutForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.unavailable_status = ServerStatusFactory(server_status="Unavailable")
+        cls.server = StaticServerFactory()
+        cls.unavailable_server = StaticServerFactory(server_status=cls.unavailable_status)
+        cls.project = ProjectFactory()
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        server_id=None,
+        start_date=None,
+        end_date=None,
+        note=None,
+        client_id=None,
+        project_id=None,
+        activity_type_id=None,
+        server_role_id=None,
+        **kwargs,
+    ):
+        return ServerCheckoutForm(
+            data={
+                "start_date": start_date,
+                "end_date": end_date,
+                "note": note,
+                "server": server_id,
+                "server_role": server_role_id,
+                "client": client_id,
+                "project": project_id,
+                "activity_type": activity_type_id,
+            },
+        )
+
+    def test_valid_data(self):
+        checkout = ServerHistoryFactory(
+            client=self.project.client, project=self.project, server=self.server
+        )
+
+        form = self.form_data(**checkout.__dict__)
+        self.assertTrue(form.is_valid())
+
+    def test_invalid_dates(self):
+        end_date = date.today()
+        start_date = date.today() + timedelta(days=20)
+        checkout = ServerHistoryFactory(
+            client=self.project.client,
+            project=self.project,
+            server=self.server,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        form = self.form_data(**checkout.__dict__)
+        errors = form["end_date"].errors.as_data()
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid")
+
+    def test_unavailable_server(self):
+        checkout = ServerHistoryFactory(
+            client=self.project.client,
+            project=self.project,
+            server=self.unavailable_server,
+        )
+        form = self.form_data(**checkout.__dict__)
+        errors = form["server"].errors.as_data()
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "unavailable")
+
+
+class TransientServerFormTests(TestCase):
+    """Collection of tests for :form:`shepherd.TransientServerForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory()
+        cls.server = TransientServerFactory(project=cls.project)
+        cls.server_dict = cls.server.__dict__
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        ip_address=None,
+        name=None,
+        activity_type_id=None,
+        server_role_id=None,
+        server_provider_id=None,
+        note=None,
+        project_id=None,
+        **kwargs,
+    ):
+        return TransientServerForm(
+            data={
+                "ip_address": ip_address,
+                "name": name,
+                "activity_type": activity_type_id,
+                "server_role": server_role_id,
+                "server_provider": server_provider_id,
+                "note": note,
+                "project": project_id,
+            },
+        )
+
+    def test_valid_data(self):
+        server = self.server_dict.copy()
+        server["ip_address"] = "1.1.1.1"
+
+        form = self.form_data(**server)
+        self.assertTrue(form.is_valid())
