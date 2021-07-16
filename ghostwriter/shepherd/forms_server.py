@@ -469,7 +469,7 @@ class ServerCheckoutForm(forms.ModelForm):
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("Invalid date: The provided end date comes before the start date.")
+                _("The provided end date comes before the start date."), code="invalid"
             )
         return end_date
 
@@ -480,6 +480,9 @@ class ServerCheckoutForm(forms.ModelForm):
             unavailable = ServerStatus.objects.get(server_status="Unavailable")
             if server.server_status == unavailable:
                 raise ValidationError(
-                    "Someone beat you to it. This server has already been checked out!"
+                    _(
+                        "Someone beat you to it – This server has already been checked out!"
+                    ),
+                    code="unavailable",
                 )
         return server
