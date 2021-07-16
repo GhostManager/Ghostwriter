@@ -278,7 +278,7 @@ class TransientServerForm(forms.ModelForm):
 
         model = TransientServer
         fields = "__all__"
-        widgets = {"operator": forms.HiddenInput(), "project": forms.HiddenInput()}
+        widgets = {"project": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
         super(TransientServerForm, self).__init__(*args, **kwargs)
@@ -315,7 +315,6 @@ class TransientServerForm(forms.ModelForm):
                 """
             ),
             "note",
-            "operator",
             "project",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
@@ -378,7 +377,6 @@ class ServerCheckoutForm(forms.ModelForm):
         model = ServerHistory
         fields = "__all__"
         widgets = {
-            "operator": forms.HiddenInput(),
             "server": forms.HiddenInput(),
             "start_date": forms.DateInput(
                 format=("%Y-%m-%d"),
@@ -440,7 +438,6 @@ class ServerCheckoutForm(forms.ModelForm):
             ),
             "note",
             "server",
-            "operator",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
