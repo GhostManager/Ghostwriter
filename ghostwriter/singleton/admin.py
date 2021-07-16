@@ -59,7 +59,7 @@ class SingletonModelAdmin(admin.ModelAdmin):
     def response_change(self, request, obj):
         msg = _("%(obj)s was changed successfully.") % {"obj": force_unicode(obj)}
         if "_continue" in request.POST:
-            self.message_user(request, msg + " " + _("You may edit it again below."))
+            self.message_user(request, f"{msg} {_('You may edit it again below.')}")
             return HttpResponseRedirect(request.path)
         else:
             self.message_user(request, msg)
