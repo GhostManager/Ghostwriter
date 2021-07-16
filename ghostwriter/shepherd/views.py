@@ -1518,11 +1518,14 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
         self.server = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
         return {
             "server": self.server,
-            "operator": self.request.user,
         }
 
     def form_valid(self, form):
-        # Update the domain status and commit it
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.save()
+
+        # Update the server status and commit it
         server_instance = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
         server_instance.last_used_by = self.request.user
         server_instance.server_status = ServerStatus.objects.get(
@@ -1657,7 +1660,13 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
 
     def get_initial(self):
         self.project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        return {"project": self.project_instance, "operator": self.request.user}
+        return {"project": self.project_instance}
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.operator = self.request.user
+        self.object.save()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super(TransientServerCreate, self).get_context_data(**kwargs)
