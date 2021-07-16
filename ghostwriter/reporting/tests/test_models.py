@@ -6,6 +6,9 @@ import os
 from django.db import transaction
 from django.test import TestCase
 
+# 3rd Party Libraries
+import factory
+
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ArchiveFactory,
@@ -494,6 +497,14 @@ class EvidenceModelTests(TestCase):
         evidence.delete()
         assert not self.Evidence.objects.all().exists()
         assert not os.path.exists(evidence.document.path)
+
+    def test_file_extension_validator(self):
+        evidence = EvidenceFactory(
+            document=factory.django.FileField(
+                filename="evidence.PnG", data=b"lorem ipsum"
+            )
+        )
+        self.assertEqual(evidence.filename, "evidence.PnG")
 
     def test_prop_filename(self):
         evidence = EvidenceFactory()
