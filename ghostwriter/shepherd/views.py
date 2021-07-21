@@ -56,7 +56,7 @@ from .models import (
     StaticServer,
     TransientServer,
 )
-from .resources import DomainResource, StaticServerResource
+from .resources import DomainResource, StaticServerResource, TransientServerResource
 
 # Using __name__ resolves to ghostwriter.shepherd.views
 logger = logging.getLogger(__name__)
@@ -1007,7 +1007,7 @@ def export_domains_to_csv(request):
     domain_resource = DomainResource()
     dataset = domain_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_domains.csv"
 
     return response
 
@@ -1020,7 +1020,20 @@ def export_servers_to_csv(request):
     server_resource = StaticServerResource()
     dataset = server_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_servers.csv"
+
+    return response
+
+
+def export_transient_servers_to_csv(request):
+    """
+    Export all :model:`shepherd.TransientServer` to a csv file for download.
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    server_resource = TransientServerResource()
+    dataset = server_resource.export()
+    response = HttpResponse(dataset.csv, content_type="text/csv")
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_vps_servers.csv"
 
     return response
 
