@@ -5,13 +5,19 @@ from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
+# Ghostwriter Libraries
+from ghostwriter.rolodex.models import Project
+
 from .models import (
+    ActivityType,
     Domain,
     DomainStatus,
     HealthStatus,
     ServerProvider,
+    ServerRole,
     ServerStatus,
     StaticServer,
+    TransientServer,
     WhoisStatus,
 )
 
@@ -70,7 +76,7 @@ class DomainResource(resources.ModelResource):
 
 class StaticServerResource(resources.ModelResource):
     """
-    Import and export for :model:`shepherd.Domain`.
+    Import and export for :model:`shepherd.StaticServer`.
     """
 
     server_status = Field(
@@ -95,4 +101,46 @@ class StaticServerResource(resources.ModelResource):
             "name",
             "server_status",
             "server_provider",
+        )
+
+
+class TransientServerResource(resources.ModelResource):
+    """
+    Import and export for :model:`shepherd.TransientServer`.
+    """
+
+    activity_type = Field(
+        attribute="activity_type",
+        column_name="activity_type",
+        widget=ForeignKeyWidget(ActivityType, "activity_type"),
+    )
+    project = Field(
+        attribute="project",
+        column_name="project",
+        widget=ForeignKeyWidget(Project, "project"),
+    )
+    server_provider = Field(
+        attribute="server_provider",
+        column_name="server_provider",
+        widget=ForeignKeyWidget(ServerProvider, "server_provider"),
+    )
+    server_role = Field(
+        attribute="server_role",
+        column_name="server_role",
+        widget=ForeignKeyWidget(ServerRole, "server_role"),
+    )
+
+    class Meta:
+        model = TransientServer
+        skip_unchanged = True
+        exclude = ()
+
+        export_order = (
+            "id",
+            "ip_address",
+            "name",
+            "project",
+            "server_provider",
+            "server_role",
+            "activity_type",
         )

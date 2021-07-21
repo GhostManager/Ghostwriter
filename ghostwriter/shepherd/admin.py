@@ -24,7 +24,7 @@ from .models import (
     TransientServer,
     WhoisStatus,
 )
-from .resources import DomainResource, StaticServerResource
+from .resources import DomainResource, StaticServerResource, TransientServerResource
 
 
 @admin.register(ActivityType)
@@ -224,7 +224,8 @@ class StaticServerAdmin(ImportExportModelAdmin):
 
 
 @admin.register(TransientServer)
-class TransientServerRoleAdmin(admin.ModelAdmin):
+class TransientServerAdmin(ImportExportModelAdmin):
+    resource_class = TransientServerResource
     list_display = (
         "name",
         "ip_address",

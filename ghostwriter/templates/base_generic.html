@@ -215,6 +215,12 @@
                                         <hr>
                                         <li><a class="icon import-icon" href="{% url 'admin:shepherd_staticserver_import' %}">Upload Bulk Servers</a></li>
                                         <li><a class="icon export-icon" href="{% url 'shepherd:export_servers_to_csv' %}">Export Servers to CSV</a></li>
+                                        <hr>
+                                        <li><a class="icon import-icon" href="{% url 'admin:shepherd_transientserver_import' %}">Upload Bulk VPS Servers</a>
+                                        </li>
+                                        <li><a class="icon export-icon" href="{% url 'shepherd:export_transient_servers_to_csv' %}">Export VPS Servers to
+                                                CSV</a>
+                                        </li>
                                     </ul>
                                 </li>
                             {% endif %}

@@ -208,4 +208,9 @@ urlpatterns += [
 urlpatterns += [
     path("export/csv/", views.export_domains_to_csv, name="export_domains_to_csv"),
     path("export/csv/", views.export_servers_to_csv, name="export_servers_to_csv"),
+    path(
+        "export/csv/",
+        views.export_transient_servers_to_csv,
+        name="export_transient_servers_to_csv",
+    ),
 ]
