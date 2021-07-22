@@ -1,5 +1,5 @@
 # Standard Libraries
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 # Django Imports
 from django.contrib.auth import get_user_model
@@ -67,7 +67,7 @@ class ProjectFactory(factory.django.DjangoModelFactory):
 
     codename = factory.Sequence(lambda n: "GHOST-%s" % n)
     start_date = date.today()
-    end_date = datetime.now() + timedelta(days=20)
+    end_date = date.today() + timedelta(days=20)
     note = "A project note"
     slack_channel = "#ghostwriter"
     complete = False
@@ -83,10 +83,10 @@ class ProjectAssignmentFactory(factory.django.DjangoModelFactory):
     project = factory.SubFactory(
         ProjectFactory,
         start_date=date.today(),
-        end_date=datetime.now() + timedelta(days=20),
+        end_date=date.today() + timedelta(days=20),
     )
     start_date = date.today()
-    end_date = datetime.now() + timedelta(days=20)
+    end_date = date.today() + timedelta(days=20)
     note = "Note about this person's assignment"
     operator = factory.SubFactory(UserFactory)
     role = factory.SubFactory(ProjectRoleFactory)
@@ -428,7 +428,7 @@ class HistoryFactory(factory.django.DjangoModelFactory):
         model = "shepherd.History"
 
     start_date = date.today()
-    end_date = datetime.now() + timedelta(days=20)
+    end_date = date.today() + timedelta(days=20)
     note = Faker("paragraph")
     domain = factory.SubFactory(DomainFactory)
     client = factory.SubFactory(ClientFactory)
@@ -475,7 +475,7 @@ class ServerHistoryFactory(factory.django.DjangoModelFactory):
         model = "shepherd.ServerHistory"
 
     start_date = date.today()
-    end_date = datetime.now() + timedelta(days=20)
+    end_date = date.today() + timedelta(days=20)
     note = Faker("paragraph")
     server = factory.SubFactory(StaticServerFactory)
     client = factory.SubFactory(ClientFactory)
