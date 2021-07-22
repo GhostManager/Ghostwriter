@@ -204,18 +204,21 @@ class DomainModelTests(TestCase):
         assert not self.Domain.objects.all().exists()
 
     def test_method_get_domain_age(self):
-        creation = date.today() - timedelta(days=300)
-        expiration = date.today() + timedelta(days=420)
-        domain = DomainFactory(creation=creation, expiration=expiration)
+        creation = date.today() - timedelta(days=360)
+        renewed = date.today() + timedelta(days=359)
+        domain = DomainFactory(creation=creation, expiration=renewed, expired=False)
+
+        expired = date.today() - timedelta(days=1)
+        expired_domain = DomainFactory(
+            creation=creation, expiration=expired, expired=True, auto_renew=False
+        )
 
         try:
             age = domain.get_domain_age()
-            self.assertEqual(age, "300 days")
+            self.assertEqual(age, "360 days")
 
-            domain.expiration = date.today() - timedelta(days=1)
-            domain.save()
-            age = domain.get_domain_age()
-            self.assertEqual(age, "299 days")
+            age = expired_domain.get_domain_age()
+            self.assertEqual(age, "359 days")
         except Exception:
             self.fail("Domain model `get_domain_age` method failed unexpectedly!")
 
