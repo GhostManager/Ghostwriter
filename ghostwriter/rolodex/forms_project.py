@@ -89,7 +89,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Check if a description has been filled-out for an empty objective
-                    if description and not objective:
+                    if description and not objective and not deadline:
                         form.add_error(
                             "description",
                             ValidationError(
@@ -98,7 +98,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if dates are out of bounds
-                    if self.instance.start_date:
+                    if self.instance.start_date and deadline:
                         if deadline < self.instance.start_date:
                             form.add_error(
                                 "deadline",
@@ -203,7 +203,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if dates are out of bounds
-                    if self.instance.start_date:
+                    if self.instance.start_date and start_date and end_date:
                         if start_date < self.instance.start_date:
                             form.add_error(
                                 "start_date",
@@ -330,7 +330,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                                 _(
                                     "You must provide a hostname or IP address with your note"
                                 ),
-                                code="duplicate",
+                                code="incomplete",
                             ),
                         )
 
