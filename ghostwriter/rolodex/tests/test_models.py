@@ -334,6 +334,7 @@ class ProjectObjectiveModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.ProjectObjective = ProjectObjectiveFactory._meta.model
+        cls.status = ObjectiveStatusFactory(objective_status="Other")
 
     def test_crud_finding(self):
         # Create
@@ -386,6 +387,7 @@ class ProjectSubTaskModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.ProjectSubtask = ProjectSubtaskFactory._meta.model
+        cls.status = ObjectiveStatusFactory(objective_status="Other")
 
     def test_crud_finding(self):
         # Create
@@ -520,8 +522,15 @@ class ProjectScopeModelTests(TestCase):
     def test_method_count_lines_str(self):
         scope = ProjectScopeFactory(scope="1.1.1.1\n1.2.3.4\nhostname.local")
         try:
+            # Test with multiple lines
             lines = scope.count_lines_str()
             self.assertEqual("3 Lines", lines)
+
+            # Test with single line
+            scope.scope = "1.1.1.1"
+            scope.save()
+            lines = scope.count_lines_str()
+            self.assertEqual("1 Line", lines)
         except Exception:
             self.fail("ProjectScope model `count_lines_str` method failed unexpectedly!")
 
