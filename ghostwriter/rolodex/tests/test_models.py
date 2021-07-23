@@ -1,5 +1,6 @@
 # Standard Libraries
 import logging
+from datetime import timedelta
 
 # Django Imports
 from django.test import TestCase
@@ -9,6 +10,7 @@ from ghostwriter.factories import (
     ClientContactFactory,
     ClientFactory,
     ClientNoteFactory,
+    HistoryFactory,
     ObjectivePriorityFactory,
     ObjectiveStatusFactory,
     ProjectAssignmentFactory,
@@ -22,6 +24,7 @@ from ghostwriter.factories import (
     ProjectTypeFactory,
     ReportFactory,
     ReportFindingLinkFactory,
+    ServerHistoryFactory,
     UserFactory,
 )
 
@@ -158,6 +161,30 @@ class ProjectModelTests(TestCase):
         # Delete
         project.delete()
         assert not self.Project.objects.all().exists()
+
+    def test_checkout_adjustment_signal(self):
+        project = ProjectFactory()
+        domain_checkout = HistoryFactory(
+            start_date=project.start_date, end_date=project.end_date, project=project
+        )
+        server_checkout = ServerHistoryFactory(
+            start_date=project.start_date, end_date=project.end_date, project=project
+        )
+
+        new_start = project.start_date - timedelta(days=14)
+        new_end = project.end_date - timedelta(days=14)
+
+        project.start_date = new_start
+        project.end_date = new_end
+        project.save()
+
+        domain_checkout.refresh_from_db()
+        server_checkout.refresh_from_db()
+
+        self.assertEqual(domain_checkout.start_date, new_start)
+        self.assertEqual(server_checkout.start_date, new_start)
+        self.assertEqual(domain_checkout.end_date, new_end)
+        self.assertEqual(server_checkout.end_date, new_end)
 
     def test_prop_count_findings(self):
         project = ProjectFactory()
