@@ -3,6 +3,7 @@ import logging
 import os
 
 # Django Imports
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.test import TestCase
 
@@ -233,6 +234,18 @@ class ReportTemplateModelTests(TestCase):
             self.fail(
                 "ReportTemplate model `get_status` method failed unexpectedly with PPTX template!"
             )
+
+    def test_clean_template_signal(self):
+        template = ReportDocxTemplateFactory()
+        new_template = ReportPptxTemplateFactory()
+        template.document = new_template.document
+        template.doc_type = new_template.doc_type
+
+        template.save()
+
+        self.assertTrue(template._current_template.path not in template.document.path)
+        self.assertFalse(os.path.exists(template._current_template.path))
+        self.assertTrue(os.path.exists(template.document.path))
 
 
 class ReportModelTests(TestCase):
@@ -512,6 +525,19 @@ class EvidenceModelTests(TestCase):
             evidence.filename
         except Exception:
             self.fail("Evidence model `filename` property failed unexpectedly!")
+
+    def test_delete_old_evidence_on_update_signal(self):
+        evidence = EvidenceFactory(
+            document=factory.django.FileField(
+                filename="evidence.txt", data=b"lorem ipsum"
+            )
+        )
+        evidence.document = SimpleUploadedFile("new_evidence.txt", b"lorem ipsum")
+        evidence.save()
+
+        self.assertTrue(evidence._current_evidence.path not in evidence.document.path)
+        self.assertFalse(os.path.exists(evidence._current_evidence.path))
+        self.assertTrue(os.path.exists(evidence.document.path))
 
 
 class FindingNoteModelTests(TestCase):
