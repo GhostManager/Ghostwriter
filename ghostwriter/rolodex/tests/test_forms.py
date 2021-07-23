@@ -604,6 +604,18 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors["note"].as_data()[0].code, "incomplete")
 
+    def test_missing_operator(self):
+        assignment_1 = self.assignment_1.__dict__.copy()
+        assignment_2 = self.assignment_2.__dict__.copy()
+
+        assignment_1["operator"] = None
+
+        data = [assignment_1, assignment_2]
+        form = self.form_data(data)
+        errors = form.errors[0]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["operator"].as_data()[0].code, "incomplete")
+
 
 class ProjectObjectiveFormSetTests(TestCase):
     """Collection of tests for :form:`rolodex.ProjectObjectiveFormSet`."""
