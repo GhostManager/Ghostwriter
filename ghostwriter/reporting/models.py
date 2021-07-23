@@ -479,20 +479,6 @@ class ReportFindingLink(models.Model):
     def __str__(self):
         return self.title
 
-    def get_evidence_list(self):
-        upload_path = os.path.join(
-            settings.MEDIA_ROOT, str(self.report.id), str(self.title)
-        )
-        evidence_files = []
-        if not os.path.exists(upload_path):
-            return evidence_files
-        else:
-            for root, dirs, files in os.walk(upload_path):
-                for filename in files:
-                    if not filename == ".DS_Store":
-                        evidence_files.append(filename)
-            return evidence_files
-
     def clean(self):
         # Check if this is a new entry or updated
         if self.pk:
