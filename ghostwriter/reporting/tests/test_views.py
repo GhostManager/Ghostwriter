@@ -539,8 +539,8 @@ class ReportCreateViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.report = ReportFactory()
         cls.project = ProjectFactory()
+        cls.report = ReportFactory(project=cls.project)
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("reporting:report_create_no_project")
         cls.project_uri = reverse(
@@ -584,6 +584,19 @@ class ReportCreateViewTests(TestCase):
             response.context["cancel_link"],
             reverse("rolodex:project_detail", kwargs={"pk": self.project.pk}),
         )
+
+    def test_form_with_no_active_projects(self):
+        self.project.complete = True
+        self.project.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertInHTML(
+            '<option value="" selected>-- No Active Projects --</option>',
+            response.content.decode(),
+        )
+
+        self.project.complete = False
+        self.project.save()
 
 
 class ReportUpdateViewTests(TestCase):
