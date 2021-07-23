@@ -85,26 +85,6 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                                     code="incomplete",
                                 ),
                             )
-                    # Raise an error if details are present without a name
-                    elif name is None and any(
-                        x is not None for x in [job_title, email, phone]
-                    ):
-                        form.add_error(
-                            "name",
-                            ValidationError(
-                                _("Your contact is missing a name"),
-                                code="incomplete",
-                            ),
-                        )
-                    # Raise an error if a form only has a value for the note
-                    elif note and any(x is None for x in [name, job_title, email, phone]):
-                        form.add_error(
-                            "note",
-                            ValidationError(
-                                _("This note is part of an incomplete contact form"),
-                                code="incomplete",
-                            ),
-                        )
                     # Check that the email address is in a valid format
                     if email:
                         try:
