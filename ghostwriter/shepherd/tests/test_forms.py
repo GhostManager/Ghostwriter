@@ -283,6 +283,15 @@ class DomainLinkFormTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors["__all__"][0].code, "invalid_selection")
 
+    def test_selecting_zero_servers(self):
+        link = self.link_dict.copy()
+        link["static_server_id"] = None
+        link["transient_server_id"] = None
+        form = self.form_data(**link)
+        errors = form.errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["__all__"][0].code, "invalid_selection")
+
 
 class BurnFormTests(TestCase):
     """Collection of tests for :form:`shepherd.BurnForm`."""
