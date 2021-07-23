@@ -10,6 +10,7 @@ from ghostwriter.factories import (
     FindingFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
+    ProjectFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     ReportTemplateFactory,
@@ -87,7 +88,8 @@ class ReportFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.report = ReportFactory()
+        cls.project = ProjectFactory()
+        cls.report = ReportFactory(project=cls.project)
         cls.report_dict = cls.report.__dict__
 
     def setUp(self):
