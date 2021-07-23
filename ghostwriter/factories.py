@@ -534,3 +534,71 @@ class ServerNoteFactory(factory.django.DjangoModelFactory):
 
     note = Faker("paragraph")
     server = factory.SubFactory(StaticServerFactory)
+
+
+class NamecheapConfigurationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.NamecheapConfiguration"
+
+    enable = Faker("boolean")
+    api_key = Faker("credit_card_number")
+    username = Faker("user_name")
+    api_username = Faker("user_name")
+    client_ip = Faker("ipv4_private")
+    page_size = 100
+
+
+class ReportConfigurationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.ReportConfiguration"
+
+    enable_borders = Faker("boolean")
+    border_weight = 2700
+    border_color = "2D2B6B"
+    prefix_figure = Faker("word")
+    label_figure = Faker("word")
+    prefix_table = Faker("word")
+    label_table = Faker("word")
+    default_docx_template = factory.SubFactory(ReportDocxTemplateFactory)
+    default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
+
+
+class SlackConfigurationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.SlackConfiguration"
+
+    enable = Faker("boolean")
+    webhook_url = Faker("url")
+    slack_emoji = Faker("word")
+    slack_channel = Faker("user_name")
+    slack_username = Faker("user_name")
+    slack_alert_target = Faker("user_name")
+
+
+class CompanyInformationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.CompanyInformation"
+
+    company_name = Faker("company")
+    company_twitter = Faker("user_name")
+    company_email = Faker("email")
+
+
+class CloudServicesConfigurationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.CloudServicesConfiguration"
+
+    enable = Faker("boolean")
+    aws_key = Faker("credit_card_number")
+    aws_secret = Faker("credit_card_number")
+    do_api_key = Faker("credit_card_number")
+    ignore_tag = Faker("word")
+
+
+class VirusTotalConfigurationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.VirusTotalConfiguration"
+
+    enable = Faker("boolean")
+    api_key = Faker("credit_card_number")
+    sleep_time = 20
