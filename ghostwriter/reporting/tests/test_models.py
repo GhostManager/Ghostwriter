@@ -308,17 +308,6 @@ class ReportFindingLinkModelTests(TestCase):
         finding.delete()
         assert not self.ReportFindingLink.objects.all().exists()
 
-    def test_method_get_evidence_list(self):
-        finding = ReportFindingLinkFactory()
-        try:
-            evidence_list = finding.get_evidence_list()
-            # The evidence path(s) will not exist so the method will always return `[]`
-            self.assertEqual(evidence_list, [])
-        except Exception:
-            self.fail(
-                "ReportFindingLink model `get_evidence_list` method failed unexpectedly!"
-            )
-
     def test_model_cleaning_position(self):
         report = ReportFactory()
         num_of_findings = 10
