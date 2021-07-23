@@ -1,5 +1,36 @@
 [run]
 include = ghostwriter/*
-omit = *migrations*, *tests*
+omit =
+    # Omit anything in a migration directories
+    *migrations*
+
+    # Omit all HTML template files
+    */templates/*
+
+    # Omit Django files
+    */__init__.py*
+    */admin.py
+    */apps.py
+    */urls.py
+    */context_processors.py
+
+    # Omit testing utilities
+    ghostwriter/factories.py
+    *tests*
+
+    # Omit filters (tested via views)
+    */filters.py
+
+    # Omit modules used and tested in views
+    */modules/*
+
+
 plugins =
     django_coverage_plugin
+
+[report]
+sort = -Miss
+exclude_lines =
+    pragma: no cover
+    def __str__
+    def get_absolute_url
