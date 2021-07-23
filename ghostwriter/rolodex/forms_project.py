@@ -48,7 +48,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
         objectives = []
         duplicates = False
         super(BaseProjectObjectiveInlineFormSet, self).clean()
-        if any(self.errors):
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -129,7 +129,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
         assignments = []
         duplicates = False
         super(BaseProjectAssignmentInlineFormSet, self).clean()
-        if any(self.errors):
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -234,7 +234,7 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
         names = []
         duplicates = False
         super(BaseProjectScopeInlineFormSet, self).clean()
-        if any(self.errors):
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -288,7 +288,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
         duplicate_fqdn = False
         duplicate_addy = False
         super(BaseProjectTargetInlineFormSet, self).clean()
-        if any(self.errors):
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
