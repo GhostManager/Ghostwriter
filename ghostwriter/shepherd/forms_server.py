@@ -47,7 +47,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
         primary_addresses = []
         duplicates = False
         super(BaseServerAddressInlineFormSet, self).clean()
-        if any(self.errors):
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -455,7 +455,7 @@ class ServerCheckoutForm(forms.ModelForm):
                 self.fields["project"].queryset = Project.objects.filter(
                     client_id=client_id
                 ).order_by("codename")
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # pragma: no cover
                 pass
         elif self.instance.pk:
             self.fields["project"].queryset = self.instance.client.project_set.order_by(

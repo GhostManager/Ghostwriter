@@ -296,11 +296,11 @@ class ReportTemplate(models.Model):
             try:
                 lint_result = json.loads(self.lint_result)
                 result_code = lint_result["result"]
-            except json.decoder.JSONDecodeError:
+            except json.decoder.JSONDecodeError:  # pragma: no cover
                 logger.exception(
                     "Could not decode data in model as JSON: %s", self.lint_result
                 )
-            except Exception:
+            except Exception:  # pragma: no cover
                 logger.exception(
                     "Encountered an exceptio while trying to decode this as JSON: %s",
                     self.lint_result,

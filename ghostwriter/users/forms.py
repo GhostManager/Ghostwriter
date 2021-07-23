@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 User = get_user_model()
 
 
-class UserChangeForm(forms.UserChangeForm):
+class UserChangeForm(forms.UserChangeForm):  # pragma: no cover
     """
     Update an individual :model:`users.User`.
     """
@@ -20,7 +20,7 @@ class UserChangeForm(forms.UserChangeForm):
         model = User
 
 
-class UserCreationForm(forms.UserCreationForm):
+class UserCreationForm(forms.UserCreationForm):  # pragma: no cover
     """
     Create an individual :model:`users.User`.
     """
@@ -43,7 +43,7 @@ class UserCreationForm(forms.UserCreationForm):
         raise ValidationError(self.error_messages["duplicate_username"])
 
 
-# Create ModelForm based on the Group model.
+# Create ModelForm based on the Group model
 class GroupAdminForm(ModelForm):
     class Meta:
         model = Group

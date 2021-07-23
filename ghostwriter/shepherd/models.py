@@ -119,7 +119,7 @@ class ActivityType(models.Model):
         return self.activity
 
 
-class DomainManager(models.Manager):
+class DomainManager(models.Manager):  # pragma: no cover
     def get_by_natural_key(self, name):
         return self.get(name=name)
 
@@ -292,7 +292,7 @@ class Domain(models.Model):
         verbose_name = "Domain"
         verbose_name_plural = "Domains"
 
-    def natural_key(self):
+    def natural_key(self):  # pragma: no cover
         return (self.name,)
 
     def get_absolute_url(self):
@@ -345,11 +345,11 @@ class Domain(models.Model):
                 if json_acceptable_string:
                     return json.loads(json_acceptable_string)
                 else:
-                    return None
+                    return None  # pragma: no cover
             except Exception:
                 return self.dns_record
         else:
-            return None
+            return None  # pragma: no cover
 
     def __str__(self):
         return f"{self.name} ({self.health_status})"

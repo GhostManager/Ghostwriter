@@ -118,7 +118,7 @@ class CheckoutForm(forms.ModelForm):
                 self.fields["project"].queryset = Project.objects.filter(
                     client_id=client_id
                 ).order_by("codename")
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # pragma: no cover
                 pass
         elif self.instance.pk:
             self.fields["project"].queryset = self.instance.client.project_set.order_by(
@@ -132,7 +132,7 @@ class CheckoutForm(forms.ModelForm):
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("The provided end date comes before the start date."), code="invalid"
+                _("The provided end date comes before the start date"), code="invalid"
             )
         return end_date
 

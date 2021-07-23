@@ -335,7 +335,7 @@ class ProjectObjective(models.Model):
     and :model:`rolodex.ObjectiveStatus`.
     """
 
-    def get_status():
+    def get_status():  # pragma: no cover
         """Get the default status for the status field."""
         try:
             active_status = ObjectiveStatus.objects.get(objective_status="Active")
@@ -436,7 +436,7 @@ class ProjectSubTask(models.Model):
     and :model:`rolodex.ObjectiveStatus`.
     """
 
-    def get_status():
+    def get_status():  # pragma: no cover
         """Get the default status for the status field."""
         try:
             active_status = ObjectiveStatus.objects.get(objective_status="Active")

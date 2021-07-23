@@ -40,7 +40,7 @@ def delete_old_evidence_on_update(sender, instance, **kwargs):
                     logger.info(
                         "Deleted old evidence file %s", instance._current_evidence.path
                     )
-                except Exception:
+                except Exception:  # pragma: no cover
                     logger.exception(
                         "Failed deleting old evidence file: %s",
                         instance._current_evidence.path,
@@ -84,22 +84,22 @@ def clean_template(sender, instance, created, **kwargs):
                                 "Deleted old template file %s",
                                 instance._current_template.path,
                             )
-                        except Exception:
+                        except Exception:  # pragma: no cover
                             logger.exception(
                                 "Failed to delete old template file: %s",
                                 instance._current_template.path,
                             )
-                    else:
+                    else:  # pragma: no cover
                         logger.warning(
                             "Old template file could not be found at %s",
                             instance._current_template.path,
                         )
-                except Exception:
+                except Exception:  # pragma: no cover
                     logger.exception(
                         "Failed deleting old template file: %s",
                         instance._current_template.path,
                     )
-        else:
+        else:  # pragma: no cover
             logger.info(
                 "Template file paths match, so will not re-run the linter or delete any files"
             )
@@ -121,7 +121,7 @@ def clean_template(sender, instance, created, **kwargs):
                 results = linter.lint_docx()
             elif instance.doc_type.doc_type == "pptx":
                 results = linter.lint_pptx()
-            else:
+            else:  # pragma: no cover
                 logger.warning(
                     "Template had an unknown filetype not supported by the linter: %s",
                     instance.doc_type,
@@ -132,7 +132,7 @@ def clean_template(sender, instance, created, **kwargs):
             post_save.disconnect(clean_template, sender=ReportTemplate)
             instance.save()
             post_save.connect(clean_template, sender=ReportTemplate)
-        except Exception:
+        except Exception:  # pragma: no cover
             logger.exception("Failed to update new template with linting results")
 
 
