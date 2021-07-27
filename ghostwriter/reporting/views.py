@@ -775,7 +775,16 @@ def assign_blank_finding(request, pk):
     Create a blank :model:`reporting.ReportFindingLink` entry linked to an individual
     :model:`reporting.Report`.
     """
-    info_sev = Severity.objects.get(severity="Informational")
+    
+    try:
+        info_sev = Severity.objects.get(severity__iexact="Informational")
+    except Severity.DoesNotExist:
+        info_sev = None
+
+    try:
+        find_type = FindingType.objects.get(finding_type="Network")
+    except FindingType.DoesNotExist:
+        find_type = None
 
     def get_position(report_pk):
         finding_count = ReportFindingLink.objects.filter(
@@ -814,7 +823,7 @@ def assign_blank_finding(request, pk):
         network_detection_techniques="",
         references="",
         severity=info_sev,
-        finding_type=FindingType.objects.get(finding_type="Network"),
+        finding_type=find_type,
         report=report,
         assigned_to=request.user,
         position=get_position(report),
