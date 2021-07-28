@@ -94,7 +94,12 @@ def strip_html(s):
     ``s``
         String of HTML text to strip down
     """
-    html = BeautifulSoup(s, "lxml")
+    
+    try:
+        html = BeautifulSoup(s, "lxml")
+    except:
+        return
+    
     output = ""
     for tag in html.descendants:
         if isinstance(tag, str):
