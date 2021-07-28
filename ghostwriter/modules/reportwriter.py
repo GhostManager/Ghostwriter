@@ -98,8 +98,7 @@ def strip_html(s):
     try:
         html = BeautifulSoup(s, "lxml")
     except:
-        return
-    
+        returnLinxzSec-patch-1
     output = ""
     for tag in html.descendants:
         if isinstance(tag, str):
