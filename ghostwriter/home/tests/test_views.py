@@ -9,17 +9,14 @@ from django.urls import reverse
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    AuxServerAddressFactory,
+    GroupFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
-    ProjectObjectiveFactory,
-    ProjectScopeFactory,
     ReportFactory,
     ReportFindingLinkFactory,
-    StaticServerFactory,
     UserFactory,
 )
-from ghostwriter.rolodex.templatetags import determine_primary
+from ghostwriter.home.templatetags import custom_tags
 
 logging.disable(logging.INFO)
 
@@ -34,51 +31,39 @@ class TemplateTagTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.ProjectObjective = ProjectObjectiveFactory._meta.model
+        cls.group_1 = GroupFactory(name="Group 1")
+        cls.group_2 = GroupFactory(name="Group 2")
+        cls.user = UserFactory(password=PASSWORD, groups=(cls.group_1,))
         cls.project = ProjectFactory()
-        for x in range(3):
-            ProjectObjectiveFactory(project=cls.project)
+        cls.report = ReportFactory(project=cls.project)
 
-        cls.server = StaticServerFactory()
-        cls.aux_address_1 = AuxServerAddressFactory(
-            static_server=cls.server, ip_address="1.1.1.1", primary=True
-        )
-        cls.aux_address_2 = AuxServerAddressFactory(
-            static_server=cls.server, ip_address="1.1.1.2", primary=False
+        cls.num_of_findings = 3
+        ReportFindingLinkFactory.create_batch(
+            cls.num_of_findings, report=cls.report, assigned_to=cls.user
         )
 
-        cls.scope = ProjectScopeFactory(
-            project=cls.project,
-            scope="1.1.1.1\r\n1.1.1.2\r\n1.1.1.3\r\n1.1.1.4\r\n1.1.1.5",
-        )
+        cls.uri = reverse("home:dashboard")
 
     def setUp(self):
-        pass
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
 
     def test_tags(self):
-        queryset = self.ProjectObjective.objects.all()
+        result = custom_tags.has_group(self.user, "Group 1")
+        self.assertTrue(result)
+        result = custom_tags.has_group(self.user, "Group 2")
+        self.assertFalse(result)
 
-        obj_dict = determine_primary.group_by_priority(queryset)
-        self.assertEqual(len(obj_dict), 3)
+        result = custom_tags.get_groups(self.user)
+        self.assertEqual(result, "Group 1")
 
-        for group in obj_dict:
-            self.assertEqual(
-                determine_primary.get_item(obj_dict, group), obj_dict.get(group)
-            )
-
-        future_date = date.today() + timedelta(days=10)
-        self.assertEqual(determine_primary.plus_days(date.today(), 10), future_date)
-        self.assertEqual(determine_primary.days_left(future_date), 10)
-
-        self.assertEqual(determine_primary.get_primary_address(self.server), "1.1.1.1")
-
-        self.assertEqual(
-            determine_primary.get_scope_preview(self.scope.scope, 5),
-            "1.1.1.1\n1.1.1.2\n1.1.1.3\n1.1.1.4\n1.1.1.5",
-        )
-        self.assertEqual(
-            determine_primary.get_scope_preview(self.scope.scope, 2), "1.1.1.1\n1.1.1.2"
-        )
+        response = self.client_auth.get(self.uri)
+        request = response.wsgi_request
+        result = custom_tags.count_assignments(request)
+        self.assertEqual(result, self.num_of_findings)
 
 
 class DashboardTests(TestCase):
