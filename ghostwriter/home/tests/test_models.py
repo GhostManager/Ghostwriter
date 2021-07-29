@@ -1,8 +1,11 @@
 # Standard Libraries
 import logging
+from base64 import b64decode
+from io import BytesIO
 
 # Django Imports
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.test import TestCase
 
 # Ghostwriter Libraries
@@ -17,7 +20,24 @@ class UserProfileModelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pass
+        image_data = b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        )
+        image_file = ContentFile(image_data, "fake.png")
+
+        image = InMemoryUploadedFile(
+            BytesIO(image_data),
+            field_name="tempfile",
+            name="fake.png",
+            content_type="image/png",
+            size=len(image_data),
+            charset="utf-8",
+        )
+        cls.in_memory_image = image
+
+        cls.uploaded_image_file = SimpleUploadedFile(
+            image_file.name, image_file.read(), content_type="image/png"
+        )
 
     def test_crud_finding(self):
         # Create
@@ -27,9 +47,10 @@ class UserProfileModelTests(TestCase):
         self.assertTrue(UserProfile.objects.filter(user=user.id).exists())
 
         # Update
-        profile.avatar = SimpleUploadedFile("new_avatar.png", b"lorem ipsum")
+        # profile.avatar = SimpleUploadedFile("new_avatar.png", b"lorem ipsum")
+        profile.avatar = self.uploaded_image_file
         profile.save()
-        self.assertIn("new_avatar.png", profile.avatar.path)
+        self.assertIn("fake.png", profile.avatar.path)
 
         # Delete
         user.delete()
@@ -42,11 +63,12 @@ class UserProfileModelTests(TestCase):
             url = profile.avatar_url
             self.assertIn("images/default_avatar.png", url)
 
-            profile.avatar = SimpleUploadedFile("new_avatar.png", b"lorem ipsum")
+            # profile.avatar = SimpleUploadedFile("new_avatar.png", b"lorem ipsum")
+            profile.avatar = self.uploaded_image_file
             profile.save()
             profile.refresh_from_db()
 
             url = profile.avatar_url
-            self.assertIn(f"images/user_avatars/{user.id}/new_avatar.png", url)
+            self.assertIn(f"images/user_avatars/{user.id}/fake.png", url)
         except Exception:
             self.fail("UserProfile model `avatar_url` property failed unexpectedly!")
