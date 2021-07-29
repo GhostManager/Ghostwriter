@@ -8,7 +8,7 @@ try:
     from django.core.cache import caches  # noqa isort:skip
 
     get_cache = lambda cache_name: caches[cache_name]
-except ImportError:
+except ImportError:  # pragma: no cover
     from django.core.cache import get_cache  # noqa isort:skip
 
 

@@ -69,6 +69,6 @@ class SignupForm(forms.ModelForm):
             "name",
         ]
 
-    def signup(self, request, user):
+    def signup(self, request, user):  # pragma: no cover
         user.name = self.cleaned_data["name"]
         user.save()

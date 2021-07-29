@@ -68,11 +68,11 @@ class GroupAdminForm(ModelForm):
             # Populate the users field with the current Group users
             self.fields["users"].initial = self.instance.user_set.all()
 
-    def save_m2m(self):
+    def save_m2m(self):  # pragma: no cover
         # Add the users to the Group
         self.instance.user_set.set(self.cleaned_data["users"])
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):  # pragma: no cover
         # Default save
         instance = super(GroupAdminForm, self).save()
         # Save many-to-many data

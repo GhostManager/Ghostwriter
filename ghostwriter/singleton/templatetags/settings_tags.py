@@ -6,7 +6,7 @@ try:
     from django.apps import apps  # noqa isort:skip
 
     get_model = apps.get_model
-except ImportError:
+except ImportError:  # pragma: no cover
     from django.db.models.loading import get_model  # noqa isort:skip
 
 
@@ -17,7 +17,7 @@ register = template.Library()
 def get_solo(model_path):
     try:
         app_label, model_name = model_path.rsplit(".", 1)
-    except ValueError:
+    except ValueError:  # pragma: no cover
         raise template.TemplateSyntaxError(
             _(
                 "Templatetag requires the model dotted path: 'app_label.ModelName'. "
@@ -25,7 +25,7 @@ def get_solo(model_path):
             )
         )
     model_class = get_model(app_label, model_name)
-    if not model_class:
+    if not model_class:  # pragma: no cover
         raise template.TemplateSyntaxError(
             _(
                 "Could not get the model name '%(model)s' from the application "
