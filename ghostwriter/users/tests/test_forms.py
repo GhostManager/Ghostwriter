@@ -5,7 +5,7 @@ import logging
 from django.test import TestCase
 
 # Ghostwriter Libraries
-from ghostwriter.factories import UserFactory
+from ghostwriter.factories import GroupFactory, UserFactory
 from ghostwriter.users.forms import GroupAdminForm
 
 logging.disable(logging.INFO)
@@ -16,7 +16,9 @@ class GroupAdminFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        cls.group = GroupFactory()
         cls.user = UserFactory()
+        cls.added_user = UserFactory(groups=(cls.group,))
 
     def setUp(self):
         pass
@@ -26,6 +28,7 @@ class GroupAdminFormTests(TestCase):
         name=None,
         permissions=None,
         users=None,
+        instance=None,
         **kwargs,
     ):
         return GroupAdminForm(
@@ -34,6 +37,7 @@ class GroupAdminFormTests(TestCase):
                 "permissions": permissions,
                 "users": users,
             },
+            instance=instance,
         )
 
     def test_valid_data(self):
@@ -44,5 +48,11 @@ class GroupAdminFormTests(TestCase):
                 self.user.id,
             ],
         )
-        print(form.errors.as_data())
+        self.assertTrue(form.is_valid())
+
+    def test_existing_group(self):
+        form = self.form_data(
+            name=self.group.name,
+            instance=self.group,
+        )
         self.assertTrue(form.is_valid())
