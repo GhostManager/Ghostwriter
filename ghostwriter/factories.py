@@ -21,6 +21,22 @@ class UserFactory(factory.django.DjangoModelFactory):
     name = Faker("name")
     password = factory.PostGenerationMethodCall("set_password", "mysecret")
 
+    @factory.post_generation
+    def groups(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for group in extracted:
+                self.groups.add(group)
+
+
+class GroupFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "auth.Group"
+
+    name = Faker("name")
+
 
 # Rolodex Factories
 
@@ -347,18 +363,17 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "oplog.OplogEntry"
 
-    name = Faker("sentence")
     start_date = date.today()
     end_date = date.today()
     source_ip = Faker("ipv4")
     dest_ip = Faker("ipv4")
     tool = Faker("name")
-    user_context = Faker("username")
+    user_context = Faker("user_name")
     command = Faker("sentence")
     description = Faker("sentence")
     output = Faker("sentence")
     comments = Faker("sentence")
-    operator_name = Faker("username")
+    operator_name = Faker("name")
     oplog_id = factory.SubFactory(OplogFactory)
 
 
