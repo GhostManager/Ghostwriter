@@ -41,10 +41,6 @@ class UserProfileFormTests(TestCase):
             image_file.name, image_file.read(), content_type="image/png"
         )
 
-        cls.uploaded_mismatched_file = SimpleUploadedFile(
-            image_file.name, image_file.read(), content_type="text/html"
-        )
-
         text_data = b64decode("R2hvc3R3cml0ZXIK")
         text_file = ContentFile(text_data, "fake.txt")
 
