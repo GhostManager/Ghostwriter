@@ -1,14 +1,12 @@
 """This contains all of the forms used by the Oplog application."""
 
 
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import (
-    HTML,
-    ButtonHolder,
-    Layout,
-    Submit,
-)
+# Django Imports
 from django import forms
+
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Layout, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex.models import Project

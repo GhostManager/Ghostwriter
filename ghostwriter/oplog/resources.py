@@ -3,10 +3,9 @@
 # Standard Libraries
 from datetime import datetime as dt
 
-
+# 3rd Party Libraries
 from import_export import resources
 
-# Ghostwriter Libraries
 from .models import OplogEntry
 
 

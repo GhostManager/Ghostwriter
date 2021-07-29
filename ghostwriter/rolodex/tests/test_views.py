@@ -1,37 +1,17 @@
 # Standard Libraries
 import logging
-import random
 from datetime import date, timedelta
 
 # Django Imports
-from django.test import Client, TestCase
-from django.urls import reverse
-from django.utils.encoding import force_text
+from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     AuxServerAddressFactory,
-    ClientContactFactory,
-    ClientFactory,
-    EvidenceFactory,
-    FindingFactory,
-    FindingTypeFactory,
-    ObjectivePriorityFactory,
-    ObjectiveStatusFactory,
-    ProjectAssignmentFactory,
     ProjectFactory,
     ProjectObjectiveFactory,
     ProjectScopeFactory,
-    ProjectSubtaskFactory,
-    ProjectTargetFactory,
-    ReportDocxTemplateFactory,
-    ReportFactory,
-    ReportFindingLinkFactory,
-    ReportPptxTemplateFactory,
-    ReportTemplateFactory,
-    SeverityFactory,
     StaticServerFactory,
-    UserFactory,
 )
 from ghostwriter.rolodex.templatetags import determine_primary
 
