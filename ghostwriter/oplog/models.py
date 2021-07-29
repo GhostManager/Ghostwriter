@@ -24,7 +24,7 @@ class Oplog(models.Model):
     Stores an individual operation log.
     """
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=255)
     project = models.ForeignKey(
         "rolodex.Project",
         on_delete=models.CASCADE,
@@ -49,7 +49,7 @@ class OplogEntry(models.Model):
         "Oplog",
         on_delete=models.CASCADE,
         null=True,
-        help_text="Select which log to which this entry will be inserted.",
+        help_text="Select the log to which this entry will be inserted.",
         related_name="entries",
     )
     start_date = models.DateTimeField(null=True, blank=True)
@@ -105,7 +105,7 @@ class OplogEntry(models.Model):
         "Operator",
         blank=True,
         help_text="The operator that performed the action.",
-        max_length=50,
+        max_length=255,
     )
 
 
@@ -157,6 +157,6 @@ def delete_oplog_entry(sender, instance, **kwargs):
         async_to_sync(channel_layer.group_send)(
             str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
         )
-    except Oplog.DoesNotExist:
+    except Oplog.DoesNotExist:  # pragma: no cover
         # Oplog has been deleted and this is a cascading delete
         pass
