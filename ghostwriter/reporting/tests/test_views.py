@@ -12,9 +12,12 @@ from django.utils.encoding import force_text
 from ghostwriter.factories import (
     ClientContactFactory,
     ClientFactory,
+    DomainServerConnectionFactory,
     EvidenceFactory,
     FindingFactory,
     FindingTypeFactory,
+    GenerateMockProject,
+    HistoryFactory,
     ObjectivePriorityFactory,
     ObjectiveStatusFactory,
     ProjectAssignmentFactory,
@@ -28,7 +31,9 @@ from ghostwriter.factories import (
     ReportFindingLinkFactory,
     ReportPptxTemplateFactory,
     ReportTemplateFactory,
+    ServerHistoryFactory,
     SeverityFactory,
+    TransientServerFactory,
     UserFactory,
 )
 from ghostwriter.reporting.templatetags import report_tags
@@ -1234,129 +1239,7 @@ class GenerateReportTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.client = ClientFactory()
-        cls.project = ProjectFactory(client=cls.client)
-
-        cls.report = ReportFactory(
-            docx_template=ReportDocxTemplateFactory(),
-            pptx_template=ReportPptxTemplateFactory(),
-        )
-
-        cls.num_of_contacts = 3
-        cls.contacts = []
-        for contact_id in range(cls.num_of_contacts):
-            cls.contacts.append(ClientContactFactory(client=cls.client))
-
-        cls.num_of_assignments = 3
-        cls.assignments = []
-        for assignment_id in range(cls.num_of_assignments):
-            cls.assignments.append(ProjectAssignmentFactory(project=cls.project))
-
-        cls.severities = []
-        cls.severities.append(SeverityFactory(severity="Critical", weight=0))
-        cls.severities.append(SeverityFactory(severity="High", weight=1))
-        cls.severities.append(SeverityFactory(severity="Medium", weight=2))
-        cls.severities.append(SeverityFactory(severity="Low", weight=3))
-
-        cls.num_of_findings = 10
-        cls.findings = []
-        for finding_id in range(cls.num_of_findings):
-            title = f"Finding {finding_id}"
-            cls.findings.append(
-                ReportFindingLinkFactory(
-                    title=title, report=cls.report, severity=random.choice(cls.severities)
-                )
-            )
-
-        cls.open_scope = ProjectScopeFactory(project=cls.project)
-        cls.disallowed_scope = ProjectScopeFactory(project=cls.project, disallowed=True)
-        cls.cautious_scope = ProjectScopeFactory(
-            project=cls.project, requires_caution=True
-        )
-        cls.combined_scope = ProjectScopeFactory(
-            project=cls.project, requires_caution=True, disallowed=True
-        )
-
-        cls.num_of_targets = 5
-        cls.targets = []
-        for target in range(cls.num_of_targets):
-            cls.targets.append(ProjectTargetFactory(project=cls.project))
-        for target in range(cls.num_of_targets):
-            cls.targets.append(
-                ProjectTargetFactory(project=cls.project, compromised=True)
-            )
-
-        cls.obj_priorities = []
-        cls.obj_priorities.append(ObjectivePriorityFactory(priority="Primary", weight=0))
-        cls.obj_priorities.append(
-            ObjectivePriorityFactory(priority="Secondary", weight=1)
-        )
-        cls.obj_priorities.append(ObjectivePriorityFactory(priority="Tertiary", weight=2))
-
-        cls.obj_status = []
-        cls.obj_status.append(ObjectiveStatusFactory(objective_status="Done"))
-        cls.obj_status.append(ObjectiveStatusFactory(objective_status="Missed"))
-        cls.obj_status.append(ObjectiveStatusFactory(objective_status="In Progress"))
-
-        cls.objective_first = ProjectObjectiveFactory(
-            project=cls.project,
-            priority=random.choice(cls.obj_priorities),
-            status=random.choice(cls.obj_status),
-        )
-        cls.objective_second = ProjectObjectiveFactory(
-            project=cls.project,
-            priority=random.choice(cls.obj_priorities),
-            status=random.choice(cls.obj_status),
-        )
-        cls.objective_third = ProjectObjectiveFactory(
-            project=cls.project,
-            complete=True,
-            priority=random.choice(cls.obj_priorities),
-            status=random.choice(cls.obj_status),
-        )
-
-        cls.num_of_subtasks = 5
-        cls.subtasks = []
-        for subtask in range(cls.num_of_subtasks):
-            cls.subtasks.append(
-                ProjectSubtaskFactory(
-                    parent=cls.objective_first, status=random.choice(cls.obj_status)
-                )
-            )
-        for subtask in range(cls.num_of_subtasks):
-            cls.subtasks.append(
-                ProjectSubtaskFactory(
-                    parent=cls.objective_second, status=random.choice(cls.obj_status)
-                )
-            )
-        for subtask in range(cls.num_of_subtasks):
-            cls.subtasks.append(
-                ProjectSubtaskFactory(
-                    parent=cls.objective_third, status=random.choice(cls.obj_status)
-                )
-            )
-
-        # TODO: Infrastructure additions once unit tests & factories are done for Shepherd
-
-        # cls.num_of_servers = 3
-        # cls.servers = []
-        # for server_id in range(cls.num_of_servers):
-        #     cls.servers.append(ServerHistoryFactory())
-
-        # cls.num_of_domains = 5
-        # cls.domains = []
-        # for domain_id in range(cls.num_of_domains):
-        #     cls.domains.append(DomainHistoryFactory())
-
-        # cls.num_of_vps = cls.num_of_domains
-        # cls.cloud_servers = []
-        # for server_id in range(cls.num_of_vps):
-        #     cls.cloud_servers.append(TransientServerFactory())
-
-        # cls.dns = []
-        # for x in range(cls.num_of_domains):
-        #     cls.dns.append(DomainServerConnectionFactory())
-
+        cls.org, cls.project, cls.report = GenerateMockProject()
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("reporting:report_delete", kwargs={"pk": cls.report.pk})
         cls.redirect_uri = reverse(

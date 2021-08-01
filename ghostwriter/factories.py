@@ -617,3 +617,97 @@ class VirusTotalConfigurationFactory(factory.django.DjangoModelFactory):
     enable = Faker("boolean")
     api_key = Faker("credit_card_number")
     sleep_time = 20
+
+
+def GenerateMockProject(
+    num_of_contacts=3,
+    num_of_assignments=3,
+    num_of_findings=10,
+    num_of_scopes=5,
+    num_of_targets=10,
+    num_of_objectives=3,
+    num_of_subtasks=5,
+    num_of_domains=5,
+    num_of_servers=5,
+):
+    # Generate a random client and project
+    client = ClientFactory(name="SpecterOps, Inc.")
+    project = ProjectFactory(
+        client=client,
+        start_date=date.today(),
+        end_date=date.today() + timedelta(days=20),
+    )
+
+    # Add a report to the project
+    report = ReportFactory(
+        project=project,
+        docx_template=ReportDocxTemplateFactory(),
+        pptx_template=ReportPptxTemplateFactory(),
+    )
+
+    # Generate a batch of client contacts and project assignments
+    ClientContactFactory.create_batch(num_of_contacts, client=client)
+    assignments = ProjectAssignmentFactory.create_batch(
+        num_of_assignments, project=project
+    )
+
+    # Generate severity categories and randomly assign them to findings
+    severities = []
+    severities.append(SeverityFactory(severity="Critical", weight=0))
+    severities.append(SeverityFactory(severity="High", weight=1))
+    severities.append(SeverityFactory(severity="Medium", weight=2))
+    severities.append(SeverityFactory(severity="Low", weight=3))
+    ReportFindingLinkFactory.create_batch(
+        num_of_findings,
+        report=report,
+        severity=random.choice(severities),
+        assigned_to=random.choice(assignments).operator,
+    )
+
+    # Generate several permutations of scopes
+    ProjectScopeFactory.create_batch(num_of_scopes, project=project)
+
+    # Generate random targets
+    ProjectTargetFactory.create_batch(num_of_targets, project=project)
+
+    # Generate objective priorities and status and randomly assign them to objectives
+    obj_priorities = []
+    obj_priorities.append(ObjectivePriorityFactory(priority="Primary", weight=0))
+    obj_priorities.append(ObjectivePriorityFactory(priority="Secondary", weight=1))
+    obj_priorities.append(ObjectivePriorityFactory(priority="Tertiary", weight=2))
+
+    obj_status = []
+    obj_status.append(ObjectiveStatusFactory(objective_status="Done"))
+    obj_status.append(ObjectiveStatusFactory(objective_status="Missed"))
+    obj_status.append(ObjectiveStatusFactory(objective_status="In Progress"))
+
+    objectives = ProjectObjectiveFactory.create_batch(
+        num_of_objectives,
+        project=project,
+        priority=random.choice(obj_priorities),
+        status=random.choice(obj_status),
+    )
+
+    # Generate subtasks for each objective
+    for obj in objectives:
+        ProjectSubtaskFactory.create_batch(
+            num_of_subtasks, parent=obj, status=random.choice(obj_status)
+        )
+
+    # Generate random domain names and servers used for this project
+    domains = HistoryFactory.create_batch(num_of_domains, project=project)
+    servers = ServerHistoryFactory.create_batch(num_of_servers, project=project)
+    cloud = TransientServerFactory.create_batch(num_of_servers, project=project)
+
+    for index, domain in enumerate(domains):
+        if index % 2 == 0:
+            DomainServerConnectionFactory(
+                domain=domain, static_server=random.choice(servers), transient_server=None
+            )
+        else:
+            DomainServerConnectionFactory(
+                domain=domain, transient_server=random.choice(cloud), static_server=None
+            )
+
+    # Return the higher level objects to be used in the tests
+    return client, project, report
