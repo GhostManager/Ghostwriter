@@ -44,6 +44,7 @@ class GroupFactory(factory.django.DjangoModelFactory):
 class ClientFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.Client"
+        django_get_or_create = ("name",)
 
     name = Faker("company")
     short_name = Faker("name")
