@@ -12,6 +12,7 @@ from django.urls import reverse
 from ghostwriter.factories import (
     OplogEntryFactory,
     OplogFactory,
+    ProjectFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     UserFactory,
@@ -225,3 +226,76 @@ class OplogEntriesImportTests(TestCase):
             self.assertRedirects(response, self.redirect_uri)
             self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 2)
         os.remove(filename)
+
+
+class OplogCreateViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory(complete=False)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("oplog:oplog_create_no_project")
+        cls.project_uri = reverse("oplog:oplog_create", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uri_with_project_exists_at_desired_location(self):
+        response = self.client_auth.get(self.project_uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "oplog/oplog_form.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertIn("project", response.context)
+        self.assertEqual(response.context["cancel_link"], reverse("oplog:index"))
+        self.assertEqual(response.context["project"], "")
+
+    def test_custom_context_exists_with_project(self):
+        response = self.client_auth.get(self.project_uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertEqual(
+            response.context["cancel_link"],
+            reverse("rolodex:project_detail", kwargs={"pk": self.project.pk}),
+        )
+        self.assertEqual(response.context["project"], self.project)
+
+    def test_custom_context_changes_for_project(self):
+        response = self.client_auth.get(self.project_uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertEqual(
+            response.context["cancel_link"],
+            reverse("rolodex:project_detail", kwargs={"pk": self.project.pk}),
+        )
+
+    def test_form_with_no_active_projects(self):
+        self.project.complete = True
+        self.project.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertInHTML(
+            '<option value="" selected>-- No Active Projects --</option>',
+            response.content.decode(),
+        )
+
+        self.project.complete = False
+        self.project.save()
