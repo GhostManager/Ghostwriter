@@ -1,6 +1,6 @@
 # Ghostwriter
 
-[![Python Version](https://img.shields.io/badge/Python-3.8-brightgreen.svg)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475)
+[![Python Version](https://img.shields.io/badge/Python-3.8-brightgreen.svg)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![CodeFactor](https://img.shields.io/codefactor/grade/github/ghostmanager/ghostwriter?label=Code%20Quality)](.)
 
 ![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter)
 ![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter)
