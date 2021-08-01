@@ -28,12 +28,12 @@ class SingletonModel(models.Model):
 
     def save(self, *args, **kwargs):
         self.pk = self.singleton_instance_id
-        super(SingletonModel, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
         self.set_to_cache()
 
     def delete(self, *args, **kwargs):
         self.clear_cache()
-        super(SingletonModel, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
     def clear_cache(self):
         cache_name = getattr(settings, "SOLO_CACHE", settings.SOLO_CACHE)

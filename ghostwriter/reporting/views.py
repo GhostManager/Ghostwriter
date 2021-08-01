@@ -1122,7 +1122,7 @@ class FindingCreate(LoginRequiredMixin, CreateView):
     form_class = FindingForm
 
     def get_context_data(self, **kwargs):
-        ctx = super(FindingCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:findings")
         return ctx
 
@@ -1153,7 +1153,7 @@ class FindingUpdate(LoginRequiredMixin, UpdateView):
     form_class = FindingForm
 
     def get_context_data(self, **kwargs):
-        ctx = super(FindingUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "reporting:finding_detail", kwargs={"pk": self.object.pk}
         )
@@ -1202,7 +1202,7 @@ class FindingDelete(LoginRequiredMixin, DeleteView):
         return reverse_lazy("reporting:findings")
 
     def get_context_data(self, **kwargs):
-        ctx = super(FindingDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "finding master record"
         ctx["object_to_be_deleted"] = queryset.title
@@ -1225,7 +1225,7 @@ class ReportDetailView(LoginRequiredMixin, DetailView):
     model = Report
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportDetailView, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         form = SelectReportTemplateForm(instance=self.object)
         form.fields["docx_template"].queryset = ReportTemplate.objects.filter(
             Q(doc_type__doc_type="docx") & Q(client=self.object.project.client)
@@ -1282,12 +1282,12 @@ class ReportCreate(LoginRequiredMixin, CreateView):
                     )
 
     def get_form_kwargs(self):
-        kwargs = super(ReportCreate, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         kwargs.update({"project": self.project})
         return kwargs
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.project
         if self.project:
             ctx["cancel_link"] = reverse(
@@ -1298,7 +1298,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def get_form(self, form_class=None):
-        form = super(ReportCreate, self).get_form(form_class)
+        form = super().get_form(form_class)
         if not form.fields["project"].queryset:
             messages.error(
                 self.request,
@@ -1354,12 +1354,12 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
         self.project = "update"
 
     def get_form_kwargs(self):
-        kwargs = super(ReportUpdate, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         kwargs.update({"project": self.project})
         return kwargs
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.object.project
         ctx["cancel_link"] = reverse(
             "reporting:report_detail", kwargs={"pk": self.object.pk}
@@ -1416,7 +1416,7 @@ class ReportDelete(LoginRequiredMixin, DeleteView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["cancel_link"] = reverse(
             "rolodex:project_detail", kwargs={"pk": self.object.project.pk}
@@ -1471,7 +1471,7 @@ class ReportTemplateCreate(LoginRequiredMixin, CreateView):
     template_name = "reporting/report_template_form.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportTemplateCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:templates")
         return ctx
 
@@ -1534,7 +1534,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportTemplateUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("reporting:templates")
         return ctx
 
@@ -1628,10 +1628,10 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
                 "Tried to delete template file, but path did not exist: %s",
                 self.object.document.path,
             )
-        return super(ReportTemplateDelete, self).delete(request, *args, **kwargs)
+        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportTemplateDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["cancel_link"] = reverse(
             "reporting:template_detail", kwargs={"pk": queryset.pk}
@@ -2133,7 +2133,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy("reporting:reports")
 
     def get_context_data(self, **kwargs):
-        ctx = super(ReportFindingLinkUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "reporting:report_detail", kwargs={"pk": self.object.report.pk}
         )
@@ -2218,7 +2218,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
-        form = super(ReportFindingLinkUpdate, self).get_form(form_class)
+        form = super().get_form(form_class)
         user_primary_keys = ProjectAssignment.objects.filter(
             project=self.object.report.project
         ).values_list("operator", flat=True)
@@ -2251,7 +2251,7 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
     model = Evidence
 
     def get_context_data(self, **kwargs):
-        ctx = super(EvidenceDetailView, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         file_content = None
         if os.path.isfile(self.object.document.path):
             if (
@@ -2311,7 +2311,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
             return ["reporting/evidence_form.html"]
 
     def get_form_kwargs(self):
-        kwargs = super(EvidenceCreate, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         finding_pk = self.kwargs.get("pk")
         self.evidence_queryset = Evidence.objects.filter(finding=finding_pk)
         kwargs.update({"evidence_queryset": self.evidence_queryset})
@@ -2321,7 +2321,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
         return kwargs
 
     def get_context_data(self, **kwargs):
-        ctx = super(EvidenceCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "reporting:report_detail", kwargs={"pk": self.finding_instance.report.pk}
         )
@@ -2383,13 +2383,13 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
     form_class = EvidenceForm
 
     def get_form_kwargs(self):
-        kwargs = super(EvidenceUpdate, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         evidence_queryset = Evidence.objects.filter(finding=self.object.finding.pk)
         kwargs.update({"evidence_queryset": evidence_queryset})
         return kwargs
 
     def get_context_data(self, **kwargs):
-        ctx = super(EvidenceUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "reporting:evidence_detail",
             kwargs={"pk": self.object.pk},
@@ -2470,10 +2470,10 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
                 self.object.id,
                 directory,
             )
-        return super(EvidenceDelete, self).delete(request, *args, **kwargs)
+        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        ctx = super(EvidenceDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["cancel_link"] = reverse(
             "reporting:evidence_detail", kwargs={"pk": queryset.pk}
@@ -2505,7 +2505,7 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
     template_name = "note_form.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(FindingNoteCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         finding_instance = get_object_or_404(Finding, pk=self.kwargs.get("pk"))
         ctx["cancel_link"] = reverse(
             "reporting:finding_detail", kwargs={"pk": finding_instance.pk}
@@ -2549,7 +2549,7 @@ class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(FindingNoteUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "reporting:finding_detail", kwargs={"pk": self.object.finding.pk}
         )
@@ -2584,7 +2584,7 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
     template_name = "note_form.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(LocalFindingNoteCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         self.finding_instance = get_object_or_404(
             ReportFindingLink, pk=self.kwargs.get("pk")
         )
@@ -2628,7 +2628,7 @@ class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
     template_name = "note_form.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(LocalFindingNoteUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         note_instance = get_object_or_404(LocalFindingNote, pk=self.kwargs.get("pk"))
         ctx["cancel_link"] = reverse(
             "reporting:local_edit", kwargs={"pk": note_instance.finding.id}

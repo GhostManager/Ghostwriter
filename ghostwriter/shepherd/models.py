@@ -300,7 +300,7 @@ class Domain(models.Model):
 
     def clean(self, *args, **kwargs):
         self.name = self.name.lower().replace(" ", "")
-        super(Domain, self).clean(*args, **kwargs)
+        super().clean(*args, **kwargs)
 
     def get_domain_age(self):
         """

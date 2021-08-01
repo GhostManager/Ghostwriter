@@ -39,7 +39,7 @@ class UserProfile(models.Model):
                 pass
             except ValueError:  # pragma: no cover
                 pass
-        super(UserProfile, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @property
     def avatar_url(self):

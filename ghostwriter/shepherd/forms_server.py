@@ -46,7 +46,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
         addresses = []
         primary_addresses = []
         duplicates = False
-        super(BaseServerAddressInlineFormSet, self).clean()
+        super().clean()
         if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
@@ -104,7 +104,7 @@ class AuxServerAddressForm(forms.ModelForm):
         exclude = ("static_server",)
 
     def __init__(self, *args, **kwargs):
-        super(AuxServerAddressForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "chrome-off"
         self.fields["primary"].label = "Make Primary Address"
@@ -199,7 +199,7 @@ class ServerForm(forms.ModelForm):
         exclude = ("last_used_by",)
 
     def __init__(self, *args, **kwargs):
-        super(ServerForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
@@ -281,7 +281,7 @@ class TransientServerForm(forms.ModelForm):
         widgets = {"project": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
-        super(TransientServerForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
@@ -339,7 +339,7 @@ class ServerNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(ServerNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -387,7 +387,7 @@ class ServerCheckoutForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ServerCheckoutForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
         for field in self.fields:

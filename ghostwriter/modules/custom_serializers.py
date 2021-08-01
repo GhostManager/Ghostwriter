@@ -660,7 +660,7 @@ class ReportDataSerializer(CustomModelSerializer):
 
     def to_representation(self, instance):
         # Get the standard JSON from ``super()``
-        rep = super(ReportDataSerializer, self).to_representation(instance)
+        rep = super().to_representation(instance)
 
         # Calculate totals for various values
         total_findings = len(rep["findings"])

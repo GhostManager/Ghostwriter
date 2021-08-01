@@ -48,7 +48,7 @@ class CheckoutForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(CheckoutForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
         overwatch_url = reverse("shepherd:ajax_domain_overwatch")
@@ -180,7 +180,7 @@ class DomainForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(DomainForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Domain"
@@ -320,7 +320,7 @@ class DomainLinkForm(forms.ModelForm):
         }
 
     def __init__(self, project=None, *args, **kwargs):
-        super(DomainLinkForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if project:
             self.fields["static_server"].queryset = ServerHistory.objects.filter(
                 project=project
@@ -416,7 +416,7 @@ class DomainNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(DomainNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -455,7 +455,7 @@ class BurnForm(forms.ModelForm):
         fields = ("burned_explanation",)
 
     def __init__(self, *args, **kwargs):
-        super(BurnForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["burned_explanation"].widget.attrs[
             "placeholder"
         ] = "This domain was flagged for..."

@@ -44,7 +44,7 @@ class FindingForm(forms.ModelForm):
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        super(FindingForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
@@ -135,7 +135,7 @@ class ReportForm(forms.ModelForm):
         exclude = ("creation", "last_update", "created_by", "complete")
 
     def __init__(self, project=None, *args, **kwargs):
-        super(ReportForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.project_instance = project
         # Limit the list to just projects not marked as complete
         active_projects = Project.objects.filter(complete=False).order_by(
@@ -194,7 +194,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         exclude = ("report", "position", "finding_guidance")
 
     def __init__(self, *args, **kwargs):
-        super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         evidence_upload_url = reverse(
             "reporting:upload_evidence_modal",
             kwargs={"pk": self.instance.id, "modal": "modal"},
@@ -311,7 +311,7 @@ class EvidenceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.is_modal = kwargs.pop("is_modal", None)
         self.evidence_queryset = kwargs.pop("evidence_queryset", None)
-        super(EvidenceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["caption"].required = True
         self.fields["caption"].widget.attrs["autocomplete"] = "off"
         self.fields["caption"].widget.attrs["placeholder"] = "Report Caption"
@@ -416,7 +416,7 @@ class FindingNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(FindingNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -455,7 +455,7 @@ class LocalFindingNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(LocalFindingNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -497,7 +497,7 @@ class ReportTemplateForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ReportTemplateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
@@ -587,7 +587,7 @@ class SelectReportTemplateForm(forms.ModelForm):
         fields = ("docx_template", "pptx_template")
 
     def __init__(self, *args, **kwargs):
-        super(SelectReportTemplateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["docx_template"].help_text = None
         self.fields["pptx_template"].help_text = None
         self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"

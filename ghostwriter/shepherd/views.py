@@ -1097,7 +1097,7 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(HistoryCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["domain_name"] = self.domain.name.upper()
         ctx["domain"] = self.domain
         ctx["cancel_link"] = reverse(
@@ -1137,7 +1137,7 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(HistoryUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["domain_name"] = self.object.domain.name.upper()
         ctx["cancel_link"] = "{}#history".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
@@ -1177,7 +1177,7 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(HistoryDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "domain checkout"
         ctx["object_to_be_deleted"] = queryset
@@ -1197,7 +1197,7 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
                 domain_status="Available"
             )
             domain_instance.save()
-        return super(HistoryDelete, self).delete(request, *args, **kwargs)
+        return super().delete(request, *args, **kwargs)
 
 
 class DomainCreate(LoginRequiredMixin, CreateView):
@@ -1224,7 +1224,7 @@ class DomainCreate(LoginRequiredMixin, CreateView):
         return reverse("shepherd:domain_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
-        ctx = super(DomainCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("shepherd:domains")
         return ctx
 
@@ -1253,7 +1253,7 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
         return reverse("shepherd:domain_detail", kwargs={"pk": self.object.id})
 
     def get_context_data(self, **kwargs):
-        ctx = super(DomainUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "shepherd:domain_detail", kwargs={"pk": self.object.id}
         )
@@ -1288,7 +1288,7 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
         return reverse("shepherd:domains")
 
     def get_context_data(self, **kwargs):
-        ctx = super(DomainDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "domain"
         ctx["object_to_be_deleted"] = queryset.name.upper()
@@ -1316,7 +1316,7 @@ class ServerDetailView(LoginRequiredMixin, DetailView):
     template_name = "shepherd/server_detail.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerDetailView, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["primary_address"] = queryset.ip_address
         aux_addresses = AuxServerAddress.objects.filter(static_server=queryset)
@@ -1353,7 +1353,7 @@ class ServerCreate(LoginRequiredMixin, CreateView):
         return reverse("shepherd:server_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("shepherd:servers")
         if self.request.POST:
             ctx["addresses"] = ServerAddressFormSet(self.request.POST, prefix="address")
@@ -1386,7 +1386,7 @@ class ServerCreate(LoginRequiredMixin, CreateView):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
-            return super(ServerCreate, self).form_invalid(form)
+            return super().form_invalid(form)
 
 
 class ServerUpdate(LoginRequiredMixin, UpdateView):
@@ -1416,7 +1416,7 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
         return reverse("shepherd:server_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "shepherd:server_detail", kwargs={"pk": self.object.pk}
         )
@@ -1455,7 +1455,7 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
-            return super(ServerUpdate, self).form_invalid(form)
+            return super().form_invalid(form)
 
 
 class ServerDelete(LoginRequiredMixin, DeleteView):
@@ -1486,7 +1486,7 @@ class ServerDelete(LoginRequiredMixin, DeleteView):
         return reverse("shepherd:servers")
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "static server"
         ctx["object_to_be_deleted"] = queryset.ip_address
@@ -1543,7 +1543,7 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerHistoryCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["server_instance"] = self.server
         ctx["cancel_link"] = reverse(
             "shepherd:server_detail", kwargs={"pk": self.kwargs.get("pk")}
@@ -1580,7 +1580,7 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerHistoryUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
@@ -1620,7 +1620,7 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerHistoryDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "server checkout"
         ctx["object_to_be_deleted"] = queryset
@@ -1669,7 +1669,7 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
-        ctx = super(TransientServerCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.project_instance.id})
         )
@@ -1705,7 +1705,7 @@ class TransientServerUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(TransientServerUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
@@ -1741,7 +1741,7 @@ class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
         )
 
     def get_form_kwargs(self, **kwargs):
-        form_kwargs = super(DomainServerConnectionCreate, self).get_form_kwargs(**kwargs)
+        form_kwargs = super().get_form_kwargs(**kwargs)
         form_kwargs["project"] = self.project_instance
         return form_kwargs
 
@@ -1750,7 +1750,7 @@ class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
         return {"project": self.project_instance}
 
     def get_context_data(self, **kwargs):
-        ctx = super(DomainServerConnectionCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.project_instance.id})
         )
@@ -1786,12 +1786,12 @@ class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_form_kwargs(self, **kwargs):
-        form_kwargs = super(DomainServerConnectionUpdate, self).get_form_kwargs(**kwargs)
+        form_kwargs = super().get_form_kwargs(**kwargs)
         form_kwargs["project"] = self.object.project
         return form_kwargs
 
     def get_context_data(self, **kwargs):
-        ctx = super(DomainServerConnectionUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
@@ -1833,7 +1833,7 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
         return {"domain": self.domain_instance, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
-        ctx = super(DomainNoteCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.domain_instance.name.upper()
         ctx["cancel_link"] = "{}#notes".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.domain_instance.id})
@@ -1875,7 +1875,7 @@ class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(DomainNoteUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.domain.name.upper()
         ctx["cancel_link"] = "{}#notes".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
@@ -1918,7 +1918,7 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
         return {"server": self.server_instance, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerNoteCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.server_instance.ip_address
         ctx["cancel_link"] = reverse(
             "shepherd:server_detail", kwargs={"pk": self.server_instance.id}
@@ -1962,7 +1962,7 @@ class ServerNoteUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ServerNoteUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         server_instance = self.object.server
         ctx["note_object"] = server_instance.ip_address
         ctx["cancel_link"] = reverse(
