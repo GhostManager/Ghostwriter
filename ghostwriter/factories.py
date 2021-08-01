@@ -1,4 +1,5 @@
 # Standard Libraries
+import random
 from datetime import date, timedelta
 
 # Django Imports
@@ -7,6 +8,9 @@ from django.contrib.auth import get_user_model
 # 3rd Party Libraries
 import factory
 from factory import Faker
+
+# Ghostwriter Libraries
+from ghostwriter.shepherd.models import Domain
 
 # Users Factories
 
@@ -130,7 +134,7 @@ class ProjectObjectiveFactory(factory.django.DjangoModelFactory):
 
     objective = Faker("sentence")
     description = Faker("paragraph")
-    complete = False
+    complete = Faker("boolean")
     position = factory.Sequence(lambda n: n)
     project = factory.SubFactory(ProjectFactory)
     deadline = Faker("date")
@@ -156,8 +160,8 @@ class ProjectScopeFactory(factory.django.DjangoModelFactory):
     name = Faker("name")
     scope = Faker("sentence")
     description = Faker("sentence")
-    disallowed = False
-    requires_caution = False
+    disallowed = Faker("boolean")
+    requires_caution = Faker("boolean")
     project = factory.SubFactory(ProjectFactory)
 
 
@@ -168,7 +172,7 @@ class ProjectTargetFactory(factory.django.DjangoModelFactory):
     ip_address = Faker("ipv4_private")
     hostname = Faker("hostname")
     note = Faker("sentence")
-    compromised = False
+    compromised = Faker("boolean")
     project = factory.SubFactory(ProjectFactory)
 
 
