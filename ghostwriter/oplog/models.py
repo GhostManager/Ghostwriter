@@ -4,6 +4,7 @@
 import json
 import logging
 from datetime import datetime
+from socket import gaierror
 
 # Django Imports
 from django.core.serializers import serialize
@@ -127,20 +128,24 @@ def signal_oplog_entry(sender, instance, **kwargs):
     Send a WebSockets message to update a user's log entry list with the
     new or updated instance of :model:`oplog.OplogEntry`.
     """
-    channel_layer = get_channel_layer()
-    oplog_id = instance.oplog_id.id
-    serialized_entry = serialize(
-        "json",
-        [
-            instance,
-        ],
-    )
-    entry = json.loads(serialized_entry)
-    json_message = json.dumps({"action": "create", "data": entry})
+    try:
+        channel_layer = get_channel_layer()
+        oplog_id = instance.oplog_id.id
+        serialized_entry = serialize(
+            "json",
+            [
+                instance,
+            ],
+        )
+        entry = json.loads(serialized_entry)
+        json_message = json.dumps({"action": "create", "data": entry})
 
-    async_to_sync(channel_layer.group_send)(
-        str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
-    )
+        async_to_sync(channel_layer.group_send)(
+            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+        )
+    except gaierror:
+        # WebSocket are unavailable (unit testing)
+        pass
 
 
 @receiver(post_delete, sender=OplogEntry)
@@ -159,4 +164,7 @@ def delete_oplog_entry(sender, instance, **kwargs):
         )
     except Oplog.DoesNotExist:  # pragma: no cover
         # Oplog has been deleted and this is a cascading delete
+        pass
+    except gaierror:
+        # WebSocket are unavailable (unit testing)
         pass
