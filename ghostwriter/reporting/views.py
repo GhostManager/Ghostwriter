@@ -1751,6 +1751,23 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
                 pass
 
             return response
+        except ZeroDivisionError:
+            logger.error(
+                "DOCX generation failed for %s %s and user %s because of an attempt to divide by zero in Jinja2",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+            messages.info(
+                self.request,
+                "Tip: Before performing math, check if the number is greater than zero",
+                extra_tags="alert-danger",
+            )
+            messages.error(
+                self.request,
+                "Word document generation failed because the selected template has Jinja2 code that attempts to divide by zero",
+                extra_tags="alert-danger",
+            )
         except MissingTemplate:
             logger.error(
                 "DOCX generation failed for %s %s and user %s because no template was configured",
