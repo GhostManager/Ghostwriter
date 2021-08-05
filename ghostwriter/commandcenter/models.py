@@ -141,23 +141,6 @@ class ReportConfiguration(SingletonModel):
     class Meta:
         verbose_name = "Global Report Configuration"
 
-    @property
-    def border_color_rgb(self):
-        """
-        Return the border color code as a list of RGB values.
-        """
-        return tuple(int(self.color[i : i + 2], 16) for i in (0, 2, 4))
-
-    @property
-    def border_color_hex(self):
-        """
-        Return the border color code as a list of hexadecimal.
-        """
-        n = 2
-        return tuple(
-            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
-        )
-
 
 class SlackConfiguration(SingletonModel):
     enable = models.BooleanField(default=False)
