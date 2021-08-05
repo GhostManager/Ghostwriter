@@ -2397,6 +2397,10 @@ img {
   max-width: none;
 }
 
+#toast-container > div {
+  opacity: .9;
+}
+
 #toast-container>.toast {
   background-image: none !important;
   overflow: auto;
