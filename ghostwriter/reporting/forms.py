@@ -493,7 +493,6 @@ class ReportTemplateForm(forms.ModelForm):
         exclude = ("upload_date", "last_update", "lint_result", "uploaded_by")
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
-            "uploaded_by": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
