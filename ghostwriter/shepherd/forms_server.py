@@ -35,6 +35,10 @@ from .models import (
     TransientServer,
 )
 
+# Number of "extra" formsets created by default
+# Higher numbers can increase page load times with WYSIWYG editors
+EXTRAS = 0
+
 
 class BaseServerAddressInlineFormSet(BaseInlineFormSet):
     """
@@ -184,7 +188,7 @@ ServerAddressFormSet = inlineformset_factory(
     AuxServerAddress,
     form=AuxServerAddressForm,
     formset=BaseServerAddressInlineFormSet,
-    extra=1,
+    extra=EXTRAS,
     can_delete=True,
 )
 
