@@ -25,15 +25,14 @@ class User(AbstractUser):
         Return a display name appropriate for dropdown menus.
         """
         if self.name:
-            # Modify display name is the user is disabled
-            if self.is_active:
-                display_name = "{full_name} ({username})".format(
-                    full_name=self.name, username=self.username
-                )
-            else:
-                display_name = "DISABLED – {full_name} ({username})".format(
-                    full_name=self.name, username=self.username
-                )
+            display_name = "{full_name} ({username})".format(
+                full_name=self.name, username=self.username
+            )
         else:
             display_name = self.username.capitalize()
+
+        # Modify display name is the user is disabled.
+        if not self.is_active:
+            display_name = "DISABLED – " + display_name
+
         return display_name

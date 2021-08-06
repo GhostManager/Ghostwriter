@@ -1,0 +1,39 @@
+name: Build and Run Unit Test Workflow
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v2
+
+      - name: Build environment
+        run: |
+          mkdir .envs && cp -r .envs_template/.* .envs
+          docker-compose -f local.yml up --build -d
+
+      - name: Test seeding database
+        run: docker-compose -f local.yml run --rm django /seed_data
+
+      - name: Generate coverage report
+        run: |
+          docker-compose -f local.yml run django coverage run manage.py test
+          docker-compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: coverage/reports/
+          files: coverage.xml
+          name: codecov-ghostwriter
+          fail_ci_if_error: true
+          verbose: true

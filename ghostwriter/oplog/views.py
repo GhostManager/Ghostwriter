@@ -3,7 +3,7 @@
 # Standard Libraries
 import logging
 
-
+# Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,6 +11,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
+
+# 3rd Party Libraries
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -156,12 +158,12 @@ class OplogCreate(LoginRequiredMixin, CreateView):
                     )
 
     def get_form_kwargs(self):
-        kwargs = super(OplogCreate, self).get_form_kwargs()
+        kwargs = super().get_form_kwargs()
         kwargs.update({"project": self.project})
         return kwargs
 
     def get_context_data(self, **kwargs):
-        ctx = super(OplogCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.project
         if self.project:
             ctx["cancel_link"] = reverse(
@@ -172,7 +174,7 @@ class OplogCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def get_form(self, form_class=None):
-        form = super(OplogCreate, self).get_form(form_class)
+        form = super().get_form(form_class)
         if not form.fields["project"].queryset:
             messages.error(
                 self.request,

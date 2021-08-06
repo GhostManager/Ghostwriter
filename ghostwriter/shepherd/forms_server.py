@@ -35,6 +35,10 @@ from .models import (
     TransientServer,
 )
 
+# Number of "extra" formsets created by default
+# Higher numbers can increase page load times with WYSIWYG editors
+EXTRAS = 0
+
 
 class BaseServerAddressInlineFormSet(BaseInlineFormSet):
     """
@@ -46,8 +50,8 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
         addresses = []
         primary_addresses = []
         duplicates = False
-        super(BaseServerAddressInlineFormSet, self).clean()
-        if any(self.errors):
+        super().clean()
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -104,7 +108,7 @@ class AuxServerAddressForm(forms.ModelForm):
         exclude = ("static_server",)
 
     def __init__(self, *args, **kwargs):
-        super(AuxServerAddressForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "chrome-off"
         self.fields["primary"].label = "Make Primary Address"
@@ -184,7 +188,7 @@ ServerAddressFormSet = inlineformset_factory(
     AuxServerAddress,
     form=AuxServerAddressForm,
     formset=BaseServerAddressInlineFormSet,
-    extra=1,
+    extra=EXTRAS,
     can_delete=True,
 )
 
@@ -199,7 +203,7 @@ class ServerForm(forms.ModelForm):
         exclude = ("last_used_by",)
 
     def __init__(self, *args, **kwargs):
-        super(ServerForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
@@ -278,10 +282,10 @@ class TransientServerForm(forms.ModelForm):
 
         model = TransientServer
         fields = "__all__"
-        widgets = {"operator": forms.HiddenInput(), "project": forms.HiddenInput()}
+        widgets = {"project": forms.HiddenInput()}
 
     def __init__(self, *args, **kwargs):
-        super(TransientServerForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
@@ -315,7 +319,6 @@ class TransientServerForm(forms.ModelForm):
                 """
             ),
             "note",
-            "operator",
             "project",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
@@ -340,7 +343,7 @@ class ServerNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(ServerNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -378,7 +381,6 @@ class ServerCheckoutForm(forms.ModelForm):
         model = ServerHistory
         fields = "__all__"
         widgets = {
-            "operator": forms.HiddenInput(),
             "server": forms.HiddenInput(),
             "start_date": forms.DateInput(
                 format=("%Y-%m-%d"),
@@ -389,7 +391,7 @@ class ServerCheckoutForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ServerCheckoutForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
         for field in self.fields:
@@ -440,7 +442,6 @@ class ServerCheckoutForm(forms.ModelForm):
             ),
             "note",
             "server",
-            "operator",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -458,7 +459,7 @@ class ServerCheckoutForm(forms.ModelForm):
                 self.fields["project"].queryset = Project.objects.filter(
                     client_id=client_id
                 ).order_by("codename")
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # pragma: no cover
                 pass
         elif self.instance.pk:
             self.fields["project"].queryset = self.instance.client.project_set.order_by(
@@ -472,7 +473,7 @@ class ServerCheckoutForm(forms.ModelForm):
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("Invalid date: The provided end date comes before the start date.")
+                _("The provided end date comes before the start date."), code="invalid"
             )
         return end_date
 
@@ -483,6 +484,9 @@ class ServerCheckoutForm(forms.ModelForm):
             unavailable = ServerStatus.objects.get(server_status="Unavailable")
             if server.server_status == unavailable:
                 raise ValidationError(
-                    "Someone beat you to it. This server has already been checked out!"
+                    _(
+                        "Someone beat you to it – This server has already been checked out!"
+                    ),
+                    code="unavailable",
                 )
         return server

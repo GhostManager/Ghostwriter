@@ -48,7 +48,7 @@ class FindingFilter(django_filters.FilterSet):
         fields = ["title", "severity", "finding_type"]
 
     def __init__(self, *args, **kwargs):
-        super(FindingFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"
@@ -122,7 +122,7 @@ class ReportFilter(django_filters.FilterSet):
         fields = ["title", "complete"]
 
     def __init__(self, *args, **kwargs):
-        super(ReportFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"
@@ -176,7 +176,7 @@ class ArchiveFilter(django_filters.FilterSet):
         fields = ["project__client"]
 
     def __init__(self, *args, **kwargs):
-        super(ArchiveFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"

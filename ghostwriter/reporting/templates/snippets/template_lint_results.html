@@ -13,7 +13,7 @@
                 class="alert alert-danger"
             {% endif %}
         role="alert">
-            <h4 style="margin-top: 0px;" class="alert-heading">{{ lint_result.result|capfirst }}</h4>
+            <h4 style="margin-top: 0;" class="alert-heading">{{ lint_result.result|capfirst }}</h4>
             {% if lint_result.result == "success" %}
                 Template passed all linter checks, but try using it for a report to test it
             {% else %}
@@ -54,7 +54,7 @@
     {% endwith %}
 {% else %}
     <div class="alert alert-secondary" role="alert">
-        <h4 style="margin-top: 0px;" class="alert-heading">Unknown</h4>
+        <h4 style="margin-top: 0;" class="alert-heading">Unknown</h4>
         Run the linter on this template to get new results
     </div>
 {% endif %}

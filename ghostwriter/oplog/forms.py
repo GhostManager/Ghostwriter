@@ -1,14 +1,12 @@
 """This contains all of the forms used by the Oplog application."""
 
 
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import (
-    HTML,
-    ButtonHolder,
-    Layout,
-    Submit,
-)
+# Django Imports
 from django import forms
+
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Layout, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex.models import Project
@@ -26,7 +24,7 @@ class OplogForm(forms.ModelForm):
         fields = "__all__"
 
     def __init__(self, project=None, *args, **kwargs):
-        super(OplogForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.project_instance = project
         # Limit the list to just projects not marked as complete
         active_projects = Project.objects.filter(complete=False)
@@ -66,7 +64,7 @@ class OplogEntryForm(forms.ModelForm):
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        super(OplogEntryForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # self.oplog_id = pk
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"

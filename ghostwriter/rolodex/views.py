@@ -825,7 +825,7 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
         # Ghostwriter Libraries
         from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 
-        ctx = super(ClientDetailView, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         domain_history = History.objects.select_related("domain").filter(
             client=client_instance
@@ -880,7 +880,7 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
-        ctx = super(ClientCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("rolodex:clients")
         if self.request.POST:
             ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc")
@@ -919,7 +919,7 @@ class ClientCreate(LoginRequiredMixin, CreateView):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
-            return super(ClientCreate, self).form_invalid(form)
+            return super().form_invalid(form)
 
     def get_initial(self):
         # Generate and assign a unique codename to the project
@@ -965,7 +965,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         return reverse("rolodex:client_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
-        ctx = super(ClientUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse(
             "rolodex:client_detail", kwargs={"pk": self.object.id}
         )
@@ -1004,7 +1004,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
-            return super(ClientUpdate, self).form_invalid(form)
+            return super().form_invalid(form)
 
 
 class ClientDelete(LoginRequiredMixin, DeleteView):
@@ -1030,7 +1030,7 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
     success_url = reverse_lazy("rolodex:clients")
 
     def get_context_data(self, **kwargs):
-        ctx = super(ClientDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "client and all associated data"
         ctx["object_to_be_deleted"] = queryset.name
@@ -1076,7 +1076,7 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         return {"client": client, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
-        ctx = super(ClientNoteCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         ctx["note_object"] = client_instance
         ctx["cancel_link"] = "{}#notes".format(
@@ -1121,7 +1121,7 @@ class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ClientNoteUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.client
         ctx["cancel_link"] = "{}#notes".format(
             reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
@@ -1193,7 +1193,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
-        ctx = super(ProjectCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["client"] = self.client
         if self.client:
             ctx["cancel_link"] = reverse(
@@ -1276,7 +1276,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
-            return super(ProjectCreate, self).form_invalid(form)
+            return super().form_invalid(form)
 
     def get_initial(self):
         # Generate and assign a unique codename to the project
@@ -1323,7 +1323,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
     template_name = "rolodex/project_form.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(ProjectUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["object"] = self.get_object()
         ctx["cancel_link"] = reverse(
             "rolodex:project_detail", kwargs={"pk": self.object.pk}
@@ -1472,7 +1472,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         # Otherwise return ``form_invalid`` and display errors
         except Exception:
             logger.exception("Failed to update the project")
-            return super(ProjectUpdate, self).form_invalid(form)
+            return super().form_invalid(form)
 
 
 class ProjectDelete(LoginRequiredMixin, DeleteView):
@@ -1497,7 +1497,7 @@ class ProjectDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super(ProjectDelete, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
         ctx["object_type"] = "project and all associated data (reports, evidence, etc.)"
         ctx["object_to_be_deleted"] = queryset
@@ -1548,7 +1548,7 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
         return {"project": project, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
-        ctx = super(ProjectNoteCreate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         ctx["note_object"] = project_instance
         ctx["cancel_link"] = "{}#notes".format(
@@ -1593,7 +1593,7 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def get_context_data(self, **kwargs):
-        ctx = super(ProjectNoteUpdate, self).get_context_data(**kwargs)
+        ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.project
         ctx["cancel_link"] = "{}#notes".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})

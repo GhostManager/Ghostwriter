@@ -4,6 +4,7 @@
 import json
 import logging
 from datetime import datetime
+from socket import gaierror
 
 # Django Imports
 from django.core.serializers import serialize
@@ -24,7 +25,7 @@ class Oplog(models.Model):
     Stores an individual operation log.
     """
 
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=255)
     project = models.ForeignKey(
         "rolodex.Project",
         on_delete=models.CASCADE,
@@ -49,7 +50,7 @@ class OplogEntry(models.Model):
         "Oplog",
         on_delete=models.CASCADE,
         null=True,
-        help_text="Select which log to which this entry will be inserted.",
+        help_text="Select the log to which this entry will be inserted.",
         related_name="entries",
     )
     start_date = models.DateTimeField(null=True, blank=True)
@@ -105,7 +106,7 @@ class OplogEntry(models.Model):
         "Operator",
         blank=True,
         help_text="The operator that performed the action.",
-        max_length=50,
+        max_length=255,
     )
 
 
@@ -127,20 +128,24 @@ def signal_oplog_entry(sender, instance, **kwargs):
     Send a WebSockets message to update a user's log entry list with the
     new or updated instance of :model:`oplog.OplogEntry`.
     """
-    channel_layer = get_channel_layer()
-    oplog_id = instance.oplog_id.id
-    serialized_entry = serialize(
-        "json",
-        [
-            instance,
-        ],
-    )
-    entry = json.loads(serialized_entry)
-    json_message = json.dumps({"action": "create", "data": entry})
+    try:
+        channel_layer = get_channel_layer()
+        oplog_id = instance.oplog_id.id
+        serialized_entry = serialize(
+            "json",
+            [
+                instance,
+            ],
+        )
+        entry = json.loads(serialized_entry)
+        json_message = json.dumps({"action": "create", "data": entry})
 
-    async_to_sync(channel_layer.group_send)(
-        str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
-    )
+        async_to_sync(channel_layer.group_send)(
+            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
+        )
+    except gaierror:
+        # WebSocket are unavailable (unit testing)
+        pass
 
 
 @receiver(post_delete, sender=OplogEntry)
@@ -157,6 +162,9 @@ def delete_oplog_entry(sender, instance, **kwargs):
         async_to_sync(channel_layer.group_send)(
             str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
         )
-    except Oplog.DoesNotExist:
+    except Oplog.DoesNotExist:  # pragma: no cover
         # Oplog has been deleted and this is a cascading delete
+        pass
+    except gaierror:
+        # WebSocket are unavailable (unit testing)
         pass

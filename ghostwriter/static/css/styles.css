@@ -541,9 +541,6 @@ input[type='file'] {
   border: 1px solid var(--search-text-color);
   border-radius: 5px;
   box-shadow: 0 0 3px var(--search-box-shadow), 0 10px 15px #ebebeb inset;
-}
-
-.search input {
   text-indent: .5em;
 }
 
@@ -618,16 +615,13 @@ input[type='file'] {
 #sidebar ul li a {
   padding-top: 10px;
   padding-bottom: 10px;
+  padding-left: 30px;
   font-size: 1.1em;
   display: block;
 }
 
 #sidebar ul li {
   text-align: left;
-}
-
-#sidebar ul li a {
-  padding-left: 30px;
 }
 
 #sidebar ul li a:hover {
@@ -1899,10 +1893,6 @@ th.icon {
   content: '\f5b7';
 }
 
-.server-icon:before {
-  content: '\f233';
-}
-
 .route-icon:before {
   content: '\f4d7';
 }
@@ -1910,10 +1900,6 @@ th.icon {
 .plus-icon:before {
   content: '\f067';
   font-weight: 900;
-}
-
-.list-icon:before {
-  content: '\f0ca';
 }
 
 .project-icon:before {
@@ -2401,6 +2387,10 @@ img {
 
 .toast {
   max-width: none;
+}
+
+#toast-container > div {
+  opacity: .9;
 }
 
 #toast-container>.toast {

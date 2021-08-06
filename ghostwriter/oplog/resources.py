@@ -3,10 +3,9 @@
 # Standard Libraries
 from datetime import datetime as dt
 
-
+# 3rd Party Libraries
 from import_export import resources
 
-# Ghostwriter Libraries
 from .models import OplogEntry
 
 
@@ -14,17 +13,17 @@ class OplogEntryResource(resources.ModelResource):
     def before_import_row(self, row, **kwargs):
         if "start_date" in row.keys():
             try:
-                timestamp = int(row["start_date"])
+                timestamp = int(float(row["start_date"]))
                 dt_object = dt.fromtimestamp(timestamp / 1000)
                 row["start_date"] = str(dt_object)
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 pass
         if "end_date" in row.keys():
             try:
-                timestamp = int(row["end_date"])
+                timestamp = int(float(row["end_date"]))
                 dt_object = dt.fromtimestamp(timestamp / 1000)
                 row["end_date"] = str(dt_object)
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 pass
 
     class Meta:

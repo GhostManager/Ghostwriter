@@ -125,7 +125,7 @@ def upload_avatar(request):
 
     **Template**
 
-    :template:`hom/upload_avatar.html`
+    :template:`home/upload_avatar.html`
     """
 
     if request.method == "POST":

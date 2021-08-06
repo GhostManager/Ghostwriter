@@ -41,7 +41,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
     def clean(self):
         contacts = []
         duplicates = False
-        super(BaseClientContactInlineFormSet, self).clean()
+        super().clean()
         if any(self.errors):
             return
         for form in self.forms:
@@ -85,26 +85,6 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                                     code="incomplete",
                                 ),
                             )
-                    # Raise an error if details are present without a name
-                    elif name is None and any(
-                        x is not None for x in [job_title, email, phone]
-                    ):
-                        form.add_error(
-                            "name",
-                            ValidationError(
-                                _("Your contact is missing a name"),
-                                code="incomplete",
-                            ),
-                        )
-                    # Raise an error if a form only has a value for the note
-                    elif note and any(x is None for x in [name, job_title, email, phone]):
-                        form.add_error(
-                            "note",
-                            ValidationError(
-                                _("This note is part of an incomplete contact form"),
-                                code="incomplete",
-                            ),
-                        )
                     # Check that the email address is in a valid format
                     if email:
                         try:
@@ -130,7 +110,7 @@ class ClientContactForm(forms.ModelForm):
         exclude = ("client",)
 
     def __init__(self, *args, **kwargs):
-        super(ClientContactForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["name"].widget.attrs["placeholder"] = "Full Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["email"].widget.attrs["placeholder"] = "Email Address"
@@ -231,7 +211,7 @@ class ClientForm(forms.ModelForm):
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        super(ClientForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["name"].widget.attrs["placeholder"] = "Full Company Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["short_name"].widget.attrs["placeholder"] = "Short Company Name"
@@ -327,7 +307,7 @@ class ClientNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(ClientNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"

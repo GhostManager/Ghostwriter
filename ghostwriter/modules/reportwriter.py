@@ -1804,13 +1804,7 @@ class Reportwriter:
             )
 
         # Loop through the findings to create slides
-        findings_stats = {
-            "Critical": 0,
-            "High": 0,
-            "Medium": 0,
-            "Low": 0,
-            "Informational": 0,
-        }
+        findings_stats = {}
 
         def get_textframe(shape):
             """
@@ -1822,6 +1816,9 @@ class Reportwriter:
             return text_frame
 
         # Calculate finding stats
+        for finding in self.report_json["findings"]:
+            findings_stats[finding["severity"]] = 0
+
         for finding in self.report_json["findings"]:
             findings_stats[finding["severity"]] += 1
 
@@ -2210,7 +2207,7 @@ class TemplateLinter:
 
                     # Test 2: Check for existing slides
                     slide_count = len(template_document.slides)
-                    logger.warning("Slide count was %s", slide_count)
+                    logger.info("Slide count was %s", slide_count)
                     if slide_count > 0:
                         results["warnings"].append(
                             "Template can be used, but it has slides when it should be empty (see documentation)"

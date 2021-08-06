@@ -13,7 +13,7 @@ try:
     import requests  # noqa isort:skip
 except Exception:
     print("[!] Need the `requests` library installed\n\n" "\tpython install -U requests")
-    exit()
+    sys.sys.exit()
 
 
 def show_help():
@@ -35,13 +35,13 @@ if len(sys.argv) >= 3:
     if not oplog_id.isdigit():
         print(f"[!] Your Oplog ID argument must be an integer. You provided: {oplog_id}")
         show_help()
-        exit()
+        sys.exit()
 
     count = sys.argv[3]
     if not count.isdigit():
         print(f"[!] Your `count` argument must be an integer. You provided: {count}")
         show_help()
-        exit()
+        sys.exit()
     else:
         count = int(count)
 
@@ -69,13 +69,13 @@ if len(sys.argv) >= 3:
         print("[*] Ghostwriter returned a 200 response (all good)")
     elif resp.status_code == 403:
         print("[!] Ghostwriter returned a 403 response (bad API key)")
-        exit()
+        sys.exit()
     elif resp.status_code == 404:
         print("[!] Ghostwriter returned a 404 response for your Oplog ID (doesn't exist)")
-        exit()
+        sys.exit()
     else:
         print("[!] Failed to connect and authenticate!")
-        exit()
+        sys.exit()
 
     print("[*] Proceeding with log creation and making some random data...")
 
@@ -177,7 +177,7 @@ if len(sys.argv) >= 3:
             print(
                 f"[!] Log creation failed – Received code {resp.status_code}: {resp.text}"
             )
-            exit()
+            sys.exit()
 
         print(f"... Created {i}/{count} log entries")
 else:

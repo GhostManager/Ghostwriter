@@ -49,7 +49,7 @@ class ClientFilter(django_filters.FilterSet):
         fields = ["name", "codename"]
 
     def __init__(self, *args, **kwargs):
-        super(ClientFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"
@@ -140,7 +140,7 @@ class ProjectFilter(django_filters.FilterSet):
         ]
 
     def __init__(self, *args, **kwargs):
-        super(ProjectFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"

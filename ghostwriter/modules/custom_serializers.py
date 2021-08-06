@@ -78,7 +78,7 @@ class StaticServerField(RelatedField):
     """Customize the string representation of a :model:`shepherd.ServerHistory` entry."""
 
     def to_representation(self, value):
-        string_value = value.ip_address()
+        string_value = value.ip_address
         return string_value
 
 
@@ -244,6 +244,8 @@ class ClientContactSerializer(CustomModelSerializer):
 class ClientSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Client` entries."""
 
+    short_name = SerializerMethodField("get_short_name")
+
     contacts = ClientContactSerializer(
         source="clientcontact_set",
         many=True,
@@ -255,6 +257,12 @@ class ClientSerializer(CustomModelSerializer):
     class Meta:
         model = Client
         fields = "__all__"
+
+    def get_short_name(self, obj):
+        if obj.short_name:
+            return obj.short_name
+        else:
+            return obj.name
 
 
 class ProjectAssignmentSerializer(CustomModelSerializer):
@@ -652,7 +660,7 @@ class ReportDataSerializer(CustomModelSerializer):
 
     def to_representation(self, instance):
         # Get the standard JSON from ``super()``
-        rep = super(ReportDataSerializer, self).to_representation(instance)
+        rep = super().to_representation(instance)
 
         # Calculate totals for various values
         total_findings = len(rep["findings"])

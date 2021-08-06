@@ -11,7 +11,7 @@ from django.utils.translation import gettext_lazy as _
 User = get_user_model()
 
 
-class UserChangeForm(forms.UserChangeForm):
+class UserChangeForm(forms.UserChangeForm):  # pragma: no cover
     """
     Update an individual :model:`users.User`.
     """
@@ -20,7 +20,7 @@ class UserChangeForm(forms.UserChangeForm):
         model = User
 
 
-class UserCreationForm(forms.UserCreationForm):
+class UserCreationForm(forms.UserCreationForm):  # pragma: no cover
     """
     Create an individual :model:`users.User`.
     """
@@ -43,7 +43,7 @@ class UserCreationForm(forms.UserCreationForm):
         raise ValidationError(self.error_messages["duplicate_username"])
 
 
-# Create ModelForm based on the Group model.
+# Create ModelForm based on the Group model
 class GroupAdminForm(ModelForm):
     class Meta:
         model = Group
@@ -62,19 +62,19 @@ class GroupAdminForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         # Do the normal form initialisation
-        super(GroupAdminForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # If it is an existing group (saved objects have a pk)
         if self.instance.pk:
             # Populate the users field with the current Group users
             self.fields["users"].initial = self.instance.user_set.all()
 
-    def save_m2m(self):
+    def save_m2m(self):  # pragma: no cover
         # Add the users to the Group
         self.instance.user_set.set(self.cleaned_data["users"])
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):  # pragma: no cover
         # Default save
-        instance = super(GroupAdminForm, self).save()
+        instance = super().save()
         # Save many-to-many data
         self.save_m2m()
         return instance
