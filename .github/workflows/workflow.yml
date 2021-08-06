@@ -17,7 +17,8 @@ jobs:
 
       - name: Build environment
         run: |
-          mkdir .envs && cp -r .envs_template/.* .envs
+          shopt -s dotglob
+          mkdir .envs && cp -r .envs_template/* .envs/
           docker-compose -f local.yml up --build -d
 
       - name: Test seeding database
