@@ -19,7 +19,8 @@ jobs:
         run: |
           shopt -s dotglob
           mkdir .envs && cp -r .envs_template/* .envs/
-          docker-compose -f local.yml up --build -d
+          docker-compose -f local.yml build
+          docker-compose -f local.yml up -d
 
       - name: Test seeding database
         run: docker-compose -f local.yml run --rm django /seed_data
@@ -28,13 +29,13 @@ jobs:
         run: |
           docker-compose -f local.yml run django coverage run manage.py test
           docker-compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
+          docker-compose -f local.yml run chmod 664 "coverage/reports/coverage.xml"
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: coverage/reports/
-          files: coverage.xml
+          files: coverage/reports/coverage.xml
           name: codecov-ghostwriter
           fail_ci_if_error: true
           verbose: true
