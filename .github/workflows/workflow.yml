@@ -29,7 +29,7 @@ jobs:
         run: |
           docker-compose -f local.yml run django coverage run manage.py test
           docker-compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
-          docker-compose -f local.yml run django chmod -R 644
+          docker-compose -f local.yml run django chmod -R 644 .
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v2
