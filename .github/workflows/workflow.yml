@@ -11,9 +11,6 @@ on:
 jobs:
   run-unit-tests:
     runs-on: ubuntu-latest
-    container:
-      image: owasp/zap2docker-stable
-      options: --user root
     steps:
       - name: Check out source code
         uses: actions/checkout@v2
@@ -34,13 +31,14 @@ jobs:
           docker-compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
 
       - name: Upload Coverage report artifact
-      - uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2
         with:
           name: coverage-report
           path: coverage/reports/coverage.xml
 
   upload-coverage-report:
-    needs: [run-unit-tests]
+    needs: run-unit-tests
+    runs-on: ubuntu-latest
     steps:
       - name: Check out source code
         uses: actions/checkout@v2
@@ -52,8 +50,6 @@ jobs:
         uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          directory: coverage/reports/
-          files: coverage/reports/coverage.xml
           name: codecov-ghostwriter
           fail_ci_if_error: true
           verbose: true
