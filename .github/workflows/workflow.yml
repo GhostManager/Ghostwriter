@@ -49,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v2
 
       - name: Upload coverage report to Codecov
-      - uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           directory: coverage/reports/
