@@ -22,6 +22,15 @@ jobs:
           docker-compose -f local.yml build
           docker-compose -f local.yml up -d
 
+      - name: Bring up environment
+        run: |
+          docker-compose -f local.yml up -d
+
+      - name: Wait 60 seconds for database migrations
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '60s'
+
       - name: Test seeding database
         run: docker-compose -f local.yml run --rm django /seed_data
 
