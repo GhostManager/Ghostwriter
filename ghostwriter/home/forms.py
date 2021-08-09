@@ -25,7 +25,7 @@ class UserProfileForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(UserProfileForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["avatar"].label = ""
         self.fields["avatar"].widget.attrs["class"] = "custom-file-input"
         self.helper = FormHelper()
@@ -69,6 +69,6 @@ class SignupForm(forms.ModelForm):
             "name",
         ]
 
-    def signup(self, request, user):
+    def signup(self, request, user):  # pragma: no cover
         user.name = self.cleaned_data["name"]
         user.save()

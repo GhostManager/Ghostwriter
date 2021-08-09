@@ -51,7 +51,7 @@
                                         <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' entry.id %}">Edit</a>
-                                            <a class="dropdown-item icon redo-icon" href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_domain_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
+                                            <a class="dropdown-item icon redo-icon clickable-link js-release-asset" href="javascript:void(0)" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_domain_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
                                         </div>
                                     </div>
                                 </td>
@@ -100,7 +100,7 @@
                                         <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' entry.id %}">Edit</a>
-                                            <a class="dropdown-item icon redo-icon" href="javascript:void(0)" class="clickable-link js-release-asset" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_server_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
+                                            <a class="dropdown-item icon redo-icon clickable-link js-release-asset" href="javascript:void(0)" release-asset-csrftoken="{{ csrf_token }}" release-asset-url="{% url 'shepherd:ajax_server_release' entry.id %}" release-asset-id="{{ entry.id }}">Release</a>
                                         </div>
                                     </div>
                                 </td>

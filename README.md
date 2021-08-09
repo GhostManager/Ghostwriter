@@ -1,13 +1,17 @@
 # Ghostwriter
 
-[![Python Version](https://img.shields.io/badge/Python-3.8-brightgreen.svg)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475)
+[![Python Version](https://img.shields.io/badge/Python-3.9-brightgreen.svg)](.)  [![Django Verison](https://img.shields.io/badge/Django-3.0-006400)](.)  [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.)  [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475)
 
-![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter)
-![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter)
+![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter?label=Latest%20Release)
+![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date)
+
+[![CodeFactor](https://img.shields.io/codefactor/grade/github/GhostManager/Ghostwriter?label=Code%20Quality)](.)  [![Code Coverage](https://img.shields.io/codecov/c/github/GhostManager/Ghostwriter?label=Code%20Coverage)](.)
+
+[![Build and Run Unit Test Workflow](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml/badge.svg)](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml)
 
 ![ghostwriter](DOCS/images/logo.png)
 
-Ghostwriter is a Django project written in Python 3.8 and is designed to be used by a team of operators. The platform is made up of several Django apps that own different roles but work together.
+Ghostwriter is a Django v3.0 project written in Python 3.9 and is designed to be used by a team of operators. The platform is made up of several Django apps that own different roles but work together.
 
 ## Details
 

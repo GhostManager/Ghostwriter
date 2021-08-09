@@ -47,8 +47,8 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
     def clean(self):
         objectives = []
         duplicates = False
-        super(BaseProjectObjectiveInlineFormSet, self).clean()
-        if any(self.errors):
+        super().clean()
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -89,7 +89,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Check if a description has been filled-out for an empty objective
-                    if description and not objective:
+                    if description and not objective and not deadline:
                         form.add_error(
                             "description",
                             ValidationError(
@@ -98,7 +98,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if dates are out of bounds
-                    if self.instance.start_date:
+                    if self.instance.start_date and deadline:
                         if deadline < self.instance.start_date:
                             form.add_error(
                                 "deadline",
@@ -128,8 +128,8 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
     def clean(self):
         assignments = []
         duplicates = False
-        super(BaseProjectAssignmentInlineFormSet, self).clean()
-        if any(self.errors):
+        super().clean()
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -203,7 +203,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if dates are out of bounds
-                    if self.instance.start_date:
+                    if self.instance.start_date and start_date and end_date:
                         if start_date < self.instance.start_date:
                             form.add_error(
                                 "start_date",
@@ -233,8 +233,8 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
     def clean(self):
         names = []
         duplicates = False
-        super(BaseProjectScopeInlineFormSet, self).clean()
-        if any(self.errors):
+        super().clean()
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -287,8 +287,8 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
         ip_addresses = []
         duplicate_fqdn = False
         duplicate_addy = False
-        super(BaseProjectTargetInlineFormSet, self).clean()
-        if any(self.errors):
+        super().clean()
+        if any(self.errors):  # pragma: no cover
             return
         for form in self.forms:
             if form.cleaned_data:
@@ -330,7 +330,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                                 _(
                                     "You must provide a hostname or IP address with your note"
                                 ),
-                                code="duplicate",
+                                code="incomplete",
                             ),
                         )
 
@@ -354,7 +354,7 @@ class ProjectAssignmentForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ProjectAssignmentForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["operator"].queryset = self.fields["operator"].queryset.order_by(
             "-is_active", "username", "name"
         )
@@ -486,7 +486,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ProjectObjectiveForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["deadline"].widget.attrs["autocomplete"] = "off"
         self.fields["deadline"].widget.input_type = "date"
         self.fields["objective"].widget.attrs["rows"] = 5
@@ -598,7 +598,7 @@ class ProjectScopeForm(forms.ModelForm):
         fields = ("name", "scope", "description", "disallowed", "requires_caution")
 
     def __init__(self, *args, **kwargs):
-        super(ProjectScopeForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Scope Name"
@@ -684,7 +684,7 @@ class ProjectTargetForm(forms.ModelForm):
         )
 
     def __init__(self, *args, **kwargs):
-        super(ProjectTargetForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
@@ -817,7 +817,7 @@ class ProjectForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(ProjectForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
@@ -1020,7 +1020,7 @@ class ProjectNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(ProjectNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"

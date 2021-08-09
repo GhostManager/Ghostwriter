@@ -1,0 +1,64 @@
+name: Build and Run Unit Test Workflow
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  run-unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v2
+
+      - name: Build environment
+        run: |
+          shopt -s dotglob
+          mkdir .envs && cp -r .envs_template/* .envs/
+          docker-compose -f local.yml build
+          docker-compose -f local.yml up -d
+
+      - name: Bring up environment
+        run: |
+          docker-compose -f local.yml up -d
+
+      - name: Wait 60 seconds for database migrations
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '60s'
+
+      - name: Test seeding database
+        run: docker-compose -f local.yml run --rm django /seed_data
+
+      - name: Generate Coverage report
+        run: |
+          docker-compose -f local.yml run django coverage run manage.py test
+          docker-compose -f local.yml run django coverage xml -o "coverage/reports/coverage.xml"
+
+      - name: Upload Coverage report artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-report
+          path: coverage/reports/coverage.xml
+
+  upload-coverage-report:
+    needs: run-unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v2
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          name: codecov-ghostwriter
+          fail_ci_if_error: true
+          verbose: true

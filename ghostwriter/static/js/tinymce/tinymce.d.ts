@@ -259,7 +259,8 @@ interface DomQuery<T extends Node = Node> extends ArrayLike<T> {
     empty(): this;
     eq(index: number): this;
     filter(selector: string | ((i: number, item: any) => boolean)): this;
-    find(selector: string): this;
+    find<K extends keyof HTMLElementTagNameMap>(selector: K): DomQuery<HTMLElementTagNameMap[K]>;
+    find<T extends Node>(selector: string): DomQuery<T>;
     first(): this;
     hasClass(className: string): boolean;
     hide(): this;
@@ -1031,13 +1032,13 @@ interface ChoiceMenuItemInstanceApi extends CommonMenuItemInstanceApi {
     isActive: () => boolean;
     setActive: (state: boolean) => void;
 }
-interface ContextMenuItem {
+interface ContextMenuItem extends CommonMenuItemSpec {
     text: string;
     icon?: string;
     type?: 'item';
     onAction: () => void;
 }
-interface ContextSubMenu {
+interface ContextSubMenu extends CommonMenuItemSpec {
     type: 'submenu';
     text: string;
     icon?: string;
@@ -1387,6 +1388,7 @@ interface BaseEditorSettings {
     file_picker_validator_handler?: FilePickerValidationCallback;
     fix_list_elements?: boolean;
     fixed_toolbar_container?: string;
+    fixed_toolbar_container_target?: HTMLElement;
     font_formats?: string;
     font_size_classes?: string;
     font_size_legacy_values?: string;
@@ -1403,6 +1405,7 @@ interface BaseEditorSettings {
     icons_url?: string;
     id?: string;
     images_dataimg_filter?: (imgElm: HTMLImageElement) => boolean;
+    images_file_types?: string;
     images_replace_blob_uris?: boolean;
     images_reuse_filename?: boolean;
     images_upload_base_path?: string;
@@ -2802,6 +2805,8 @@ interface VK {
     SPACEBAR: number;
     TAB: number;
     UP: number;
+    PAGE_UP: number;
+    PAGE_DOWN: number;
     END: number;
     HOME: number;
     modifierPressed: (e: KeyboardLikeEvent) => boolean;

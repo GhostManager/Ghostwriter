@@ -38,7 +38,6 @@ class CheckoutForm(forms.ModelForm):
         model = History
         fields = "__all__"
         widgets = {
-            "operator": forms.HiddenInput(),
             "domain": forms.HiddenInput(),
             "start_date": forms.DateInput(
                 format=("%Y-%m-%d"),
@@ -49,7 +48,7 @@ class CheckoutForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(CheckoutForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
         overwatch_url = reverse("shepherd:ajax_domain_overwatch")
@@ -102,7 +101,6 @@ class CheckoutForm(forms.ModelForm):
             ),
             "note",
             "domain",
-            "operator",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -120,7 +118,7 @@ class CheckoutForm(forms.ModelForm):
                 self.fields["project"].queryset = Project.objects.filter(
                     client_id=client_id
                 ).order_by("codename")
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # pragma: no cover
                 pass
         elif self.instance.pk:
             self.fields["project"].queryset = self.instance.client.project_set.order_by(
@@ -134,7 +132,7 @@ class CheckoutForm(forms.ModelForm):
         # Check if end_date comes before the start_date
         if end_date < start_date:
             raise ValidationError(
-                _("The provided end date comes before the start date."), code="invalid"
+                _("The provided end date comes before the start date"), code="invalid"
             )
         return end_date
 
@@ -146,7 +144,7 @@ class CheckoutForm(forms.ModelForm):
             unavailable = DomainStatus.objects.get(domain_status="Unavailable")
             expired = domain.expiration < date.today()
             if expired:
-                raise ValidationError("This domain has expired!")
+                raise ValidationError(_("This domain has expired!"), code="expired")
             if domain.domain_status == unavailable:
                 raise ValidationError(
                     _(
@@ -182,7 +180,7 @@ class DomainForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        super(DomainForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Domain"
@@ -246,7 +244,11 @@ class DomainForm(forms.ModelForm):
                 Column("expiration", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
-            SwitchToggle("auto_renew"),
+            Row(
+                Column(SwitchToggle("auto_renew"), css_class="form-group col-md-6 mb-0"),
+                Column(SwitchToggle("reset_dns"), css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             HTML(
                 """
                 <h4 class="icon heartbeat-icon">Health & Category Information</h4>
@@ -292,9 +294,8 @@ class DomainForm(forms.ModelForm):
         )
 
     def clean(self):
-        cleaned_data = super().clean()
-        expiration = cleaned_data["expiration"]
-        creation = cleaned_data["creation"]
+        expiration = self.cleaned_data["expiration"]
+        creation = self.cleaned_data["creation"]
 
         # Check if expiration comes before the creation date
         if expiration < creation:
@@ -319,7 +320,7 @@ class DomainLinkForm(forms.ModelForm):
         }
 
     def __init__(self, project=None, *args, **kwargs):
-        super(DomainLinkForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if project:
             self.fields["static_server"].queryset = ServerHistory.objects.filter(
                 project=project
@@ -327,11 +328,11 @@ class DomainLinkForm(forms.ModelForm):
             self.fields["transient_server"].queryset = TransientServer.objects.filter(
                 project=project
             ).order_by("activity_type", "server_role")
+            self.fields["domain"].queryset = History.objects.filter(
+                project=project
+            ).order_by("activity_type")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["domain"].queryset = History.objects.filter(project=project).order_by(
-            "activity_type"
-        )
         self.fields["domain"].empty_label = "-- Select a Domain [Required] --"
         self.fields[
             "domain"
@@ -415,7 +416,7 @@ class DomainNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(DomainNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -454,7 +455,7 @@ class BurnForm(forms.ModelForm):
         fields = ("burned_explanation",)
 
     def __init__(self, *args, **kwargs):
-        super(BurnForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["burned_explanation"].widget.attrs[
             "placeholder"
         ] = "This domain was flagged for..."

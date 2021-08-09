@@ -654,17 +654,17 @@
             <script>
                 $(document).on("click", ".formset-del-button", function() {
                     // Get the parent divs for this formset instance
-                    var parent_form = $(this).closest("div.formset");
                     var parent_div = $(this).closest("div.formset-container");
+                    var formset_instance = parent_div.find("div.formset");
                     // Find the parent formset's Bootstrap alert div
                     var alert = parent_div.find("div.alert");
                     // Find the hidden DELETE checkbox and check it
-                    var del_checkbox = $(this).closest("div").find(":input.checkboxinput");
-                    // console.log(del_checkbox);
+                    var del_checkbox = formset_instance.find(":input[id*='DELETE']");
+                    console.log(del_checkbox);
                     del_checkbox.eq(0).prop("checked", true);
-                    // console.log(del_checkbox.eq(0).prop("checked"));
+                    console.log(del_checkbox.eq(0).prop("checked"));
                     // Hide the formset instance and display the alert
-                    parent_form.hide();
+                    formset_instance.hide();
                     $(alert).show();
                 });
 
@@ -673,10 +673,10 @@
                     var parent_div = $(this).closest("div.formset-container");
                     var formset_instance = parent_div.find("div.formset");
                     // Find the hidden DELETE checkbox and uncheck it
-                    var del_checkbox = formset_instance.find(":input.checkboxinput");
-                    // console.log(del_checkbox);
+                    var del_checkbox = formset_instance.find(":input[id*='DELETE']");
+                    console.log(del_checkbox);
                     del_checkbox.eq(0).prop("checked", false);
-                    // console.log(del_checkbox.eq(0).prop("checked"));
+                    console.log(del_checkbox.eq(0).prop("checked"));
                     // Show the formset instance and hide the alert
                     formset_instance.show();
                     $(this).hide();

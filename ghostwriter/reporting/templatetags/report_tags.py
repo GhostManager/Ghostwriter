@@ -27,7 +27,7 @@ def get_item(dictionary, key):
     ``dictonary``
         Python dictionary object to parse
     ``key``
-        Key name tor etrieve from the dictionary
+        Key name tor retrieve from the dictionary
     """
     # Use `get` to return `None` if not found
     return dictionary.get(key)
@@ -65,7 +65,7 @@ def load_json(data):
     """
     try:
         return json.loads(data)
-    except json.decoder.JSONDecodeError:
+    except json.decoder.JSONDecodeError:  # pragma: no cover
         logger.exception("Could not decode the string in the string: %s", data)
-    except Exception:
+    except Exception:  # pragma: no cover
         logger.exception("Encountered an error while trying to decode data as JSON")

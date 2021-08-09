@@ -5,12 +5,13 @@ import logging
 import os
 
 # Django Imports
-from django.db.models.signals import post_init, post_save
+from django.db.models import Q
+from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter import TemplateLinter
-from ghostwriter.reporting.models import Evidence, ReportTemplate
+from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
 
 # Using __name__ resolves to ghostwriter.reporting.signals
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ def backup_evidence_path(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Evidence)
-def delete_old_evidence(sender, instance, **kwargs):
+def delete_old_evidence_on_update(sender, instance, **kwargs):
     """
     Delete the old evidence file in the :model:`reporting.Evidence` instance when a
     new file is uploaded.
@@ -39,11 +40,19 @@ def delete_old_evidence(sender, instance, **kwargs):
                     logger.info(
                         "Deleted old evidence file %s", instance._current_evidence.path
                     )
-                except Exception:
+                except Exception:  # pragma: no cover
                     logger.exception(
                         "Failed deleting old evidence file: %s",
                         instance._current_evidence.path,
                     )
+
+
+@receiver(post_delete, sender=Evidence)
+def remove_evidence_on_delete(sender, instance, **kwargs):
+    """Deletes file from filesystem when related :model:`reporting.Evidence` entry is deleted."""
+    if instance.document:
+        if os.path.isfile(instance.document.path):
+            os.remove(instance.document.path)
 
 
 @receiver(post_init, sender=ReportTemplate)
@@ -75,22 +84,22 @@ def clean_template(sender, instance, created, **kwargs):
                                 "Deleted old template file %s",
                                 instance._current_template.path,
                             )
-                        except Exception:
+                        except Exception:  # pragma: no cover
                             logger.exception(
                                 "Failed to delete old template file: %s",
                                 instance._current_template.path,
                             )
-                    else:
+                    else:  # pragma: no cover
                         logger.warning(
                             "Old template file could not be found at %s",
                             instance._current_template.path,
                         )
-                except Exception:
+                except Exception:  # pragma: no cover
                     logger.exception(
                         "Failed deleting old template file: %s",
                         instance._current_template.path,
                     )
-        else:
+        else:  # pragma: no cover
             logger.info(
                 "Template file paths match, so will not re-run the linter or delete any files"
             )
@@ -112,7 +121,7 @@ def clean_template(sender, instance, created, **kwargs):
                 results = linter.lint_docx()
             elif instance.doc_type.doc_type == "pptx":
                 results = linter.lint_pptx()
-            else:
+            else:  # pragma: no cover
                 logger.warning(
                     "Template had an unknown filetype not supported by the linter: %s",
                     instance.doc_type,
@@ -123,5 +132,40 @@ def clean_template(sender, instance, created, **kwargs):
             post_save.disconnect(clean_template, sender=ReportTemplate)
             instance.save()
             post_save.connect(clean_template, sender=ReportTemplate)
-        except Exception:
+        except Exception:  # pragma: no cover
             logger.exception("Failed to update new template with linting results")
+
+
+@receiver(post_delete, sender=ReportTemplate)
+def remove_template_on_delete(sender, instance, **kwargs):
+    """Deletes file from filesystem when related :model:`reporting.ReportTemplate` entry is deleted."""
+    if instance.document:
+        if os.path.isfile(instance.document.path):
+            os.remove(instance.document.path)
+
+
+@receiver(pre_save, sender=ReportFindingLink)
+def adjust_finding_positions_with_changes(sender, instance, **kwargs):
+    """
+    Execute the :model:`reporting.ReportFindingLink` ``clean()`` function prior to ``save()``
+    to adjust the ``position`` values of entries tied to the same :model:`reporting.Report`.
+    """
+    instance.clean()
+
+
+@receiver(post_delete, sender=ReportFindingLink)
+def adjust_finding_positions_after_delete(sender, instance, **kwargs):
+    """
+    After deleting a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
+    of entries tied to the same :model:`reporting.Report`.
+    """
+    # Get all other findings with the same severity for this report ID
+    findings_queryset = ReportFindingLink.objects.filter(
+        Q(report=instance.report.pk) & Q(severity=instance.severity)
+    )
+    if findings_queryset:
+        counter = 1
+        for finding in findings_queryset:
+            # Adjust position to close gap created by removed finding
+            findings_queryset.filter(id=finding.id).update(position=counter)
+            counter += 1

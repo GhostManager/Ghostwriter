@@ -60,7 +60,7 @@ urlpatterns += [
     ),
     path(
         "ajax/finding/assign/<int:pk>",
-        views.FindingAssignment.as_view(),
+        views.AssignFinding.as_view(),
         name="ajax_assign_finding",
     ),
     path(
@@ -119,10 +119,10 @@ urlpatterns += [
     path("reports/update/<int:pk>", views.ReportUpdate.as_view(), name="report_update"),
     path("reports/delete/<int:pk>", views.ReportDelete.as_view(), name="report_delete"),
     path("reports/archive/<int:pk>", views.archive, name="archive"),
-    path("reports/clone/<int:pk>", views.clone_report, name="report_clone"),
+    path("reports/clone/<int:pk>", views.ReportClone.as_view(), name="report_clone"),
     path(
         "reports/create/blank/<int:pk>",
-        views.assign_blank_finding,
+        views.AssignBlankFinding.as_view(),
         name="assign_blank_finding",
     ),
     path(
@@ -201,7 +201,7 @@ urlpatterns += [
     ),
     path(
         "reports/findings/convert/<int:pk>",
-        views.convert_finding,
+        views.ConvertFinding.as_view(),
         name="convert_finding",
     ),
 ]

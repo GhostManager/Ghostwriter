@@ -7,8 +7,11 @@ from datetime import date
 
 # Django Imports
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 
 class HealthStatus(models.Model):
@@ -85,7 +88,7 @@ class WhoisStatus(models.Model):
         """
         return Domain.objects.filter(whois_status=self).count()
 
-    count = property(whois_status)
+    count = property(count_status)
 
     class Meta:
         ordering = ["whois_status"]
@@ -116,7 +119,7 @@ class ActivityType(models.Model):
         return self.activity
 
 
-class DomainManager(models.Manager):
+class DomainManager(models.Manager):  # pragma: no cover
     def get_by_natural_key(self, name):
         return self.get(name=name)
 
@@ -247,6 +250,11 @@ class Domain(models.Model):
         default=False,
         help_text="Whether or not the domain registration has expired",
     )
+    reset_dns = models.BooleanField(
+        "Reset DNS",
+        default=False,
+        help_text="Reset DNS records (if possible) after this domain is used",
+    )
     # Foreign Keys
     whois_status = models.ForeignKey(
         "WhoisStatus",
@@ -284,7 +292,7 @@ class Domain(models.Model):
         verbose_name = "Domain"
         verbose_name_plural = "Domains"
 
-    def natural_key(self):
+    def natural_key(self):  # pragma: no cover
         return (self.name,)
 
     def get_absolute_url(self):
@@ -292,11 +300,11 @@ class Domain(models.Model):
 
     def clean(self, *args, **kwargs):
         self.name = self.name.lower().replace(" ", "")
-        super(Domain, self).clean(*args, **kwargs)
+        super().clean(*args, **kwargs)
 
     def get_domain_age(self):
         """
-        Calculate the domain's age based on the current date and the instance's creation DateField.
+        Calculate the domain's age based on the current date and the instance's ``creation`` value.
         """
         if self.is_expired():
             time_delta = self.expiration - self.creation
@@ -337,11 +345,11 @@ class Domain(models.Model):
                 if json_acceptable_string:
                     return json.loads(json_acceptable_string)
                 else:
-                    return None
+                    return None  # pragma: no cover
             except Exception:
                 return self.dns_record
         else:
-            return None
+            return None  # pragma: no cover
 
     def __str__(self):
         return f"{self.name} ({self.health_status})"
@@ -410,7 +418,6 @@ class History(models.Model):
     def __str__(self):
         return f"{self.project} : {self.domain.name}"
 
-    @property
     def will_be_released(self):
         """
         Test if the instance's end_date DateField value is within the next 24-48 hours.
@@ -624,19 +631,20 @@ class ServerHistory(models.Model):
     def __str__(self):
         return f"{self.server.ip_address} ({self.server.name}) [{self.activity_type.activity}]"
 
+    @property
     def ip_address(self):
         """
         Return the ``ip_address`` field's value for the instance.
         """
         return self.server.ip_address
 
+    @property
     def server_name(self):
         """
         Return the ``name`` field's value for the instance.
         """
         return self.server.name
 
-    @property
     def will_be_released(self):
         """
         Test if the instance's ``end_date`` DateField value is within the next 24-48 hours.
@@ -675,7 +683,7 @@ class TransientServer(models.Model):
         "Notes",
         null=True,
         blank=True,
-        help_text="use this area to provide project-related notes, such as how the server will be used/how it worked out",
+        help_text="Use this area to provide project-related notes, such as how the server will be used",
     )
     # Foreign Keys
     project = models.ForeignKey(
@@ -763,6 +771,21 @@ class DomainServerConnection(models.Model):
         verbose_name = "Domain and server record"
         verbose_name_plural = "Domain and server records"
 
+        constraints = [
+            models.CheckConstraint(
+                check=(Q(static_server__isnull=False) & Q(transient_server__isnull=True))
+                | (Q(static_server__isnull=True) & Q(transient_server__isnull=False)),
+                name="only_one_server",
+            )
+        ]
+
+    def clean(self):
+        if self.static_server and self.transient_server:
+            raise ValidationError(
+                _("Only one server can be selected per entry"), code="invalid_selection"
+            )
+
+    @property
     def domain_name(self):
         """
         Return the ``name`` field's value for the instance.

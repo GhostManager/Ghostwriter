@@ -7,11 +7,10 @@ import os
 
 # Django Imports
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.core.files.storage import FileSystemStorage
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
 
 from .validators import validate_evidence_extension
 
@@ -287,12 +286,6 @@ class ReportTemplate(models.Model):
     def __str__(self):
         return f"{self.name}"
 
-    def clean(self, *args, **kwargs):
-        super(ReportTemplate, self).clean(*args, **kwargs)
-        # Validate here in the model so there is always a file asociated with the entry
-        if not self.document:
-            raise ValidationError(_("You must provide a template file"), "incomplete")
-
     @property
     def filename(self):
         return os.path.basename(self.document.name)
@@ -303,11 +296,11 @@ class ReportTemplate(models.Model):
             try:
                 lint_result = json.loads(self.lint_result)
                 result_code = lint_result["result"]
-            except json.decoder.JSONDecodeError:
+            except json.decoder.JSONDecodeError:  # pragma: no cover
                 logger.exception(
                     "Could not decode data in model as JSON: %s", self.lint_result
                 )
-            except Exception:
+            except Exception:  # pragma: no cover
                 logger.exception(
                     "Encountered an exceptio while trying to decode this as JSON: %s",
                     self.lint_result,
@@ -486,19 +479,79 @@ class ReportFindingLink(models.Model):
     def __str__(self):
         return self.title
 
-    def get_evidence_list(self):
-        upload_path = os.path.join(
-            settings.MEDIA_ROOT, str(self.report.id), str(self.title)
-        )
-        evidence_files = []
-        if not os.path.exists(upload_path):
-            return evidence_files
+    def clean(self):
+        # Check if this is a new entry or updated
+        if self.pk:
+            old_entry = self.__class__.objects.get(pk=self.pk)
         else:
-            for root, dirs, files in os.walk(upload_path):
-                for filename in files:
-                    if not filename == ".DS_Store":
-                        evidence_files.append(filename)
-            return evidence_files
+            old_entry = None
+
+        # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
+        # whenever ``save()`` is called
+
+        # The following adjustments use the queryset ``update()`` method (direct SQL statement)
+        # instead of calling ``save()`` on the individual model instance
+        # This avoids forever looping through position changes
+
+        # Adjust model based on updated values
+        if old_entry:
+            # Save the old values for reference
+            old_position = old_entry.position
+            old_severity = old_entry.severity
+            # Only run db queries if ``position`` or ``severity`` changed
+            if old_position != self.position or old_severity != self.severity:
+                # Get all findings in report that share the instance's severity rating
+                finding_queryset = ReportFindingLink.objects.filter(
+                    Q(report__pk=self.report.pk) & Q(severity=self.severity)
+                ).order_by("position")
+
+                # If severity rating changed, adjust positioning in the previous severity group
+                if old_severity != self.severity:
+                    # Get a list of findings for the old severity rating
+                    old_severity_queryset = ReportFindingLink.objects.filter(
+                        Q(report__pk=self.report.pk) & Q(severity=old_severity)
+                    ).order_by("position")
+                    if old_severity_queryset:
+                        for finding in old_severity_queryset:
+                            # Adjust position to close gap created by moved finding
+                            if finding.position > old_position:
+                                new_pos = finding.position - 1
+                                old_severity_queryset.filter(id=finding.id).order_by(
+                                    "position"
+                                ).update(position=new_pos)
+
+                # The ``ReportFindingLinkUpdateForm`` sets minimum number to 0, but check again for funny business
+                if self.position < 1:
+                    self.position = 1
+
+                # The ``position`` value should not be larger than total findings
+                if self.position > finding_queryset.count():
+                    self.position = finding_queryset.count()
+
+                counter = 1
+                if finding_queryset:
+                    # Loop from top position down and look for a match
+                    for finding in finding_queryset:
+                        # Check if finding in loop is the finding being updated
+                        if not self.pk == finding.pk:
+                            # Increment position counter when counter equals new value
+                            if self.position == counter:
+                                counter += 1
+                            finding_queryset.filter(id=finding.id).update(
+                                position=counter
+                            )
+                            counter += 1
+                        else:
+                            pass
+                # No other findings with the chosen severity, so set ``position`` to ``1``
+                else:
+                    self.position = 1
+        # Place newly created findings at the end of the current list
+        else:
+            finding_queryset = ReportFindingLink.objects.filter(
+                Q(report__pk=self.report.pk) & Q(severity=self.severity)
+            )
+            self.position = finding_queryset.count() + 1
 
 
 class Evidence(models.Model):
@@ -556,12 +609,6 @@ class Evidence(models.Model):
 
     def __str__(self):
         return self.document.name
-
-    def clean(self, *args, **kwargs):
-        super(Evidence, self).clean(*args, **kwargs)
-        # Validate here in the model so there is always a file asociated with the entry
-        if not self.document:
-            raise ValidationError(_("You must provide an evidence file"), "incomplete")
 
     @property
     def filename(self):

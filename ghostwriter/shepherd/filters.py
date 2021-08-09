@@ -70,7 +70,7 @@ class DomainFilter(django_filters.FilterSet):
         fields = ["name", "all_cat", "health_status", "domain_status"]
 
     def __init__(self, *args, **kwargs):
-        super(DomainFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"
@@ -138,7 +138,7 @@ class ServerFilter(django_filters.FilterSet):
         fields = ["ip_address", "name", "server_status"]
 
     def __init__(self, *args, **kwargs):
-        super(ServerFilter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"

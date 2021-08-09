@@ -22,9 +22,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
-from ghostwriter.rolodex.models import Project
-
-from .models import (
+from ghostwriter.reporting.models import (
     Evidence,
     Finding,
     FindingNote,
@@ -33,6 +31,7 @@ from .models import (
     ReportFindingLink,
     ReportTemplate,
 )
+from ghostwriter.rolodex.models import Project
 
 
 class FindingForm(forms.ModelForm):
@@ -45,7 +44,7 @@ class FindingForm(forms.ModelForm):
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
-        super(FindingForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
@@ -136,7 +135,7 @@ class ReportForm(forms.ModelForm):
         exclude = ("creation", "last_update", "created_by", "complete")
 
     def __init__(self, project=None, *args, **kwargs):
-        super(ReportForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.project_instance = project
         # Limit the list to just projects not marked as complete
         active_projects = Project.objects.filter(complete=False).order_by(
@@ -195,7 +194,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         exclude = ("report", "position", "finding_guidance")
 
     def __init__(self, *args, **kwargs):
-        super(ReportFindingLinkUpdateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         evidence_upload_url = reverse(
             "reporting:upload_evidence_modal",
             kwargs={"pk": self.instance.id, "modal": "modal"},
@@ -312,7 +311,7 @@ class EvidenceForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.is_modal = kwargs.pop("is_modal", None)
         self.evidence_queryset = kwargs.pop("evidence_queryset", None)
-        super(EvidenceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["caption"].required = True
         self.fields["caption"].widget.attrs["autocomplete"] = "off"
         self.fields["caption"].widget.attrs["placeholder"] = "Report Caption"
@@ -380,20 +379,30 @@ class EvidenceForm(forms.ModelForm):
             ButtonHolder(submit, cancel_button, css_class="mt-3"),
         )
 
-    def clean(self):
-        cleaned_data = super(EvidenceForm, self).clean()
-        friendly_name = cleaned_data.get("friendly_name")
-        # Check if provided name has already been used for another file for this report
-        report_queryset = self.evidence_queryset.values_list("id", "friendly_name")
-        for evidence in report_queryset:
-            if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
-                raise ValidationError(
-                    _(
-                        "This friendly name has already been used for a file attached to this finding."
-                    ),
-                    "duplicate",
-                )
-        return cleaned_data
+    def clean_document(self):
+        document = self.cleaned_data["document"]
+        # Check if evidence file is missing
+        if not document:
+            raise ValidationError(
+                _("You must provide an evidence file"),
+                "incomplete",
+            )
+        return document
+
+    def clean_friendly_name(self):
+        friendly_name = self.cleaned_data["friendly_name"]
+        if self.evidence_queryset:
+            # Check if provided name has already been used for another file for this report
+            report_queryset = self.evidence_queryset.values_list("id", "friendly_name")
+            for evidence in report_queryset:
+                if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
+                    raise ValidationError(
+                        _(
+                            "This friendly name has already been used for a file attached to this finding."
+                        ),
+                        "duplicate",
+                    )
+        return friendly_name
 
 
 class FindingNoteForm(forms.ModelForm):
@@ -407,7 +416,7 @@ class FindingNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(FindingNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -446,7 +455,7 @@ class LocalFindingNoteForm(forms.ModelForm):
         fields = ("note",)
 
     def __init__(self, *args, **kwargs):
-        super(LocalFindingNoteForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
@@ -484,11 +493,10 @@ class ReportTemplateForm(forms.ModelForm):
         exclude = ("upload_date", "last_update", "lint_result", "uploaded_by")
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
-            "uploaded_by": forms.HiddenInput(),
         }
 
     def __init__(self, *args, **kwargs):
-        super(ReportTemplateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
@@ -556,6 +564,16 @@ class ReportTemplateForm(forms.ModelForm):
             ),
         )
 
+    def clean_document(self):
+        document = self.cleaned_data["document"]
+        # Check if template file is missing
+        if not document:
+            raise ValidationError(
+                _("You must provide a template file"),
+                "incomplete",
+            )
+        return document
+
 
 class SelectReportTemplateForm(forms.ModelForm):
     """
@@ -568,7 +586,7 @@ class SelectReportTemplateForm(forms.ModelForm):
         fields = ("docx_template", "pptx_template")
 
     def __init__(self, *args, **kwargs):
-        super(SelectReportTemplateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["docx_template"].help_text = None
         self.fields["pptx_template"].help_text = None
         self.fields["docx_template"].empty_label = "-- Select a DOCX Template --"

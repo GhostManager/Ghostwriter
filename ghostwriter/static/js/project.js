@@ -13,14 +13,18 @@ function displayToastTop({
     if (context == 'form') {
       title = 'Form Validation Error';
     }
-  }
+  };
   delay = delay * 1000;
   if (type === 'error' && delay === 4000) {
     delay = 0;
-  }
+  };
+  if (type === 'info' && delay === 4000) {
+    delay = 0;
+  };
   toastr.options.timeOut = delay.toString();
   toastr.options.extendedTimeOut = delay.toString();
   toastr.options.escapeHtml = escapeHTML;
+  toastr.options.progressBar = true;
   let msg;
   if (type === 'success') {
     if (title == '') {
@@ -50,7 +54,7 @@ function displayToastTop({
   }
   if (msg !== undefined) {
     msg.css({
-      width: '100%',
+      'width': '100%',
       'min-width': '400px',
       'white-space': 'pre-wrap',
     });

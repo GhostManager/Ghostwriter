@@ -35,11 +35,11 @@ class UserProfile(models.Model):
         if self.avatar.name is not None:
             try:
                 os.remove(self.avatar.path)
-            except OSError:
+            except OSError:  # pragma: no cover
                 pass
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 pass
-        super(UserProfile, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     @property
     def avatar_url(self):

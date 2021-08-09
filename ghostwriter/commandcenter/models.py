@@ -40,11 +40,29 @@ def sanitize(sensitive_thing):
 
 class NamecheapConfiguration(SingletonModel):
     enable = models.BooleanField(default=False)
-    api_key = models.CharField(max_length=255, default="Namecheap API Key")
-    username = models.CharField(max_length=255, default="Account Username")
-    api_username = models.CharField(max_length=255, default="API Username")
-    client_ip = models.CharField(max_length=255, default="Whitelisted IP Address")
-    page_size = models.IntegerField(default=100)
+    api_key = models.CharField(
+        max_length=255, default="Namecheap API Key", help_text="Your Namecheap API key"
+    )
+    username = models.CharField(
+        max_length=255, default="Account Username", help_text="Your Namecheap username"
+    )
+    api_username = models.CharField(
+        "API Username",
+        max_length=255,
+        default="API Username",
+        help_text="Your Namecheap API username",
+    )
+    client_ip = models.CharField(
+        "Whitelisted IP Address",
+        max_length=255,
+        default="Whitelisted IP Address",
+        help_text="Your external IP address registered with Namecheap",
+    )
+    page_size = models.IntegerField(
+        "Page Size",
+        default=100,
+        help_text="Maximum number of domains to return (100 is the max allowed)",
+    )
 
     def __str__(self):
         return "Namecheap Configuration"
@@ -122,23 +140,6 @@ class ReportConfiguration(SingletonModel):
 
     class Meta:
         verbose_name = "Global Report Configuration"
-
-    @property
-    def border_color_rgb(self):
-        """
-        Return the border color code as a list of RGB values.
-        """
-        return tuple(int(self.color[i : i + 2], 16) for i in (0, 2, 4))
-
-    @property
-    def border_color_hex(self):
-        """
-        Return the border color code as a list of hexadecimal.
-        """
-        n = 2
-        return tuple(
-            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
-        )
 
 
 class SlackConfiguration(SingletonModel):

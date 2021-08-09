@@ -1,40 +1,58 @@
-import pytest
+# Standard Libraries
+import logging
 
-from ghostwriter.users.forms import UserCreationForm
-from ghostwriter.users.tests.factories import UserFactory
+# Django Imports
+from django.test import TestCase
 
-pytestmark = pytest.mark.django_db
+# Ghostwriter Libraries
+from ghostwriter.factories import GroupFactory, UserFactory
+from ghostwriter.users.forms import GroupAdminForm
+
+logging.disable(logging.INFO)
 
 
-class TestUserCreationForm:
-    def test_clean_username(self):
-        # A user with proto_user params does not exist yet.
-        proto_user = UserFactory.build()
+class GroupAdminFormTests(TestCase):
+    """Collection of tests for :form:`users.GroupAdminForm`."""
 
-        form = UserCreationForm(
-            {
-                "username": proto_user.username,
-                "password1": proto_user._password,
-                "password2": proto_user._password,
-            }
+    @classmethod
+    def setUpTestData(cls):
+        cls.group = GroupFactory()
+        cls.user = UserFactory()
+        cls.added_user = UserFactory(groups=(cls.group,))
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        name=None,
+        permissions=None,
+        users=None,
+        instance=None,
+        **kwargs,
+    ):
+        return GroupAdminForm(
+            data={
+                "name": name,
+                "permissions": permissions,
+                "users": users,
+            },
+            instance=instance,
         )
 
-        assert form.is_valid()
-        assert form.clean_username() == proto_user.username
-
-        # Creating a user.
-        form.save()
-
-        # The user with proto_user params already exists,
-        # hence cannot be created.
-        form = UserCreationForm(
-            {
-                "username": proto_user.username,
-                "password1": proto_user._password,
-                "password2": proto_user._password,
-            }
+    def test_valid_data(self):
+        form = self.form_data(
+            name="Test Group",
+            permissions=[25, 250],
+            users=[
+                self.user.id,
+            ],
         )
+        self.assertTrue(form.is_valid())
 
-        assert not form.is_valid()
-        assert len(form.errors) == 1
-        assert "username" in form.errors
+    def test_existing_group(self):
+        form = self.form_data(
+            name=self.group.name,
+            instance=self.group,
+        )
+        self.assertTrue(form.is_valid())

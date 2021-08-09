@@ -8,11 +8,12 @@ properly categorized, has not been flagged in VirusTotal, or tagged with a bad c
 
 # Standard Libraries
 import datetime
-from time import sleep
-import traceback
 import logging
+import sys
+import traceback
+from time import sleep
 
-
+# 3rd Party Libraries
 import requests
 
 # Ghostwriter Libraries
@@ -65,7 +66,7 @@ class DomainReview(object):
             logger.error(
                 "Tried to start a domain review without VirusTotal configured and enabled"
             )
-            exit()
+            sys.exit()
 
         # Override globally configured sleep time
         if sleep_time_override:
