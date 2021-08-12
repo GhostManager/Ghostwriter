@@ -11,9 +11,9 @@ import sys
 
 try:
     import requests  # noqa isort:skip
-except Exception:
+except ImportError:
     print("[!] Need the `requests` library installed\n\n" "\tpython install -U requests")
-    sys.sys.exit()
+    sys.exit()
 
 
 def show_help():

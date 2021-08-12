@@ -932,7 +932,7 @@ class Reportwriter:
             # These tags apply italic, bold, and underline styles but appear rarely
             elif tag_name == "em":
                 styles_dict["italic_font"] = True
-            elif tag_name == "strong" or tag_name == "b":
+            elif tag_name in ("strong", "b"):
                 styles_dict["bold"] = True
             elif tag_name == "u":
                 styles_dict["underline"] = True
@@ -1323,7 +1323,7 @@ class Reportwriter:
                                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
                 # OL & UL – Ordered/Numbered & Unordered Lists
-                elif tag_name == "ol" or tag_name == "ul":
+                elif tag_name in ("ol", "ul"):
                     # Ordered/numbered lists need numbers and linked paragraphs
                     p = None
                     prev_p = None
@@ -1508,6 +1508,7 @@ class Reportwriter:
                 self.sacrificial_doc = self.word_doc.new_subdoc()
                 self.process_text_xml(section, finding)
                 return self.sacrificial_doc
+            return None
 
         # Findings
         for finding in context["findings"]:
@@ -1977,10 +1978,10 @@ class Reportwriter:
                 try:
                     if value:
                         return BeautifulSoup(value, "lxml").text.replace("\x0D", "")
-                    else:
-                        return "N/A"
+                    return "N/A"
                 except Exception:
                     logger.exception("Failed parsing this value for PPTX: %s", value)
+                    return ""
 
             # Add all finding data to the notes section for easier reference during edits
             entities = prepare_for_pptx(finding["affected_entities"])
@@ -2081,14 +2082,14 @@ class Reportwriter:
             word_stream = io.BytesIO()
             word_doc.save(word_stream)
         except Exception:
-            raise
+            logger.exception("Failed creating BytesIO stream for Word document")
         # Generate the xlsx report - save it in a memory stream
         try:
             excel_stream = io.BytesIO()
             workbook = Workbook(excel_stream, {"in_memory": True})
             self.generate_excel_xlsx(workbook)
         except Exception:
-            raise
+            logger.exception("Failed creating BytesIO stream for Excel document")
         # Generate the pptx report - save it in a memory stream
         try:
             self.template_loc = pptx_template
@@ -2096,7 +2097,7 @@ class Reportwriter:
             ppt_stream = io.BytesIO()
             ppt_doc.save(ppt_stream)
         except Exception:
-            raise
+            logger.exception("Failed creating BytesIO stream for PowerPoint document")
         # Return each memory object
         return self.report_json, word_stream, excel_stream, ppt_stream
 

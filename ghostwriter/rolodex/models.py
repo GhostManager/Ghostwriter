@@ -421,13 +421,14 @@ class ProjectObjective(models.Model):
         completed_tasks = 0
         if self.complete:
             return 100.0
-        elif total_tasks > 0:
+
+        if total_tasks > 0:
             for task in self.projectsubtask_set.all():
                 if task.complete:
                     completed_tasks += 1
             return round(completed_tasks / total_tasks * 100, 1)
-        else:
-            return 0
+
+        return 0
 
 
 class ProjectSubTask(models.Model):
@@ -604,8 +605,7 @@ class ProjectScope(models.Model):
             count += 1
         if count > 1:
             return f"{count} Lines"
-        else:
-            return f"{count} Line"
+        return f"{count} Line"
 
 
 class ProjectTarget(models.Model):

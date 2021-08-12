@@ -632,24 +632,22 @@ def server_search(request):
                             reverse("rolodex:project_detail", kwargs={"pk": project_id})
                         )
                     )
-                else:
-                    return HttpResponseRedirect(
-                        reverse(
-                            "shepherd:server_checkout",
-                            kwargs={"pk": server_instance.static_server.id},
-                        )
-                    )
-            else:
-                messages.success(
-                    request,
-                    "No server was found matching {server}".format(server=ip_address),
-                    extra_tags="alert-success",
-                )
                 return HttpResponseRedirect(
-                    "{}#infrastructure".format(
-                        reverse("rolodex:project_detail", kwargs={"pk": project_id})
+                    reverse(
+                        "shepherd:server_checkout",
+                        kwargs={"pk": server_instance.static_server.id},
                     )
                 )
+            messages.success(
+                request,
+                "No server was found matching {server}".format(server=ip_address),
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(
+                "{}#infrastructure".format(
+                    reverse("rolodex:project_detail", kwargs={"pk": project_id})
+                )
+            )
         except Exception:
             messages.warning(
                 request,

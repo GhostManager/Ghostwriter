@@ -87,8 +87,7 @@ def get_position(report_pk, severity):
         # Set new position to be one above the last/largest position
         last_position = findings[0].position
         return last_position + 1
-    else:
-        return 1
+    return 1
 
 
 ##################
@@ -820,9 +819,8 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
             return HttpResponseRedirect(
                 reverse("reporting:finding_detail", kwargs={"pk": new_finding_pk})
             )
-        else:
-            logger.warning(form.errors.as_data())
-            return render(self.request, "reporting/finding_form.html", {"form": form})
+        logger.warning(form.errors.as_data())
+        return render(self.request, "reporting/finding_form.html", {"form": form})
 
 
 ##################
@@ -1518,8 +1516,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         self.object = self.get_object()
         if self.object.protected:
             return self.request.user.is_staff
-        else:
-            return self.request.user.is_active
+        return self.request.user.is_active
 
     def handle_no_permission(self):
         self.object = self.get_object()
@@ -1579,8 +1576,7 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
         self.object = self.get_object()
         if self.object.protected:
             return self.request.user.is_staff
-        else:
-            return self.request.user.is_active
+        return self.request.user.is_active
 
     def handle_no_permission(self):
         self.object = self.get_object()
@@ -1657,8 +1653,7 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
                 as_attachment=True,
                 filename=os.path.basename(file_path),
             )
-        else:
-            raise Http404
+        raise Http404
 
 
 class GenerateReportJSON(LoginRequiredMixin, SingleObjectMixin, View):
@@ -2322,10 +2317,8 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
             modal = self.kwargs["modal"]
             if modal:
                 return ["reporting/evidence_form_modal.html"]
-            else:
-                return ["reporting/evidence_form.html"]
-        else:
             return ["reporting/evidence_form.html"]
+        return ["reporting/evidence_form.html"]
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

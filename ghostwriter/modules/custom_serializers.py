@@ -185,8 +185,7 @@ class FindingLinkSerializer(CustomModelSerializer):
     def get_assigned_to(self, obj):
         if obj.assigned_to:
             return obj.assigned_to.name
-        else:
-            return "TBD"
+        return "TBD"
 
     def get_severity_color(self, obj):
         return obj.severity.color
@@ -261,8 +260,7 @@ class ClientSerializer(CustomModelSerializer):
     def get_short_name(self, obj):
         if obj.short_name:
             return obj.short_name
-        else:
-            return obj.name
+        return obj.name
 
 
 class ProjectAssignmentSerializer(CustomModelSerializer):
@@ -311,6 +309,7 @@ class ProjectSubTaskSerializer(CustomModelSerializer):
     def get_marked_complete(self, obj):
         if obj.marked_complete:
             return dateformat.format(obj.marked_complete, settings.DATE_FORMAT)
+        return False
 
 
 class ProjectObjectiveSerializer(CustomModelSerializer):
