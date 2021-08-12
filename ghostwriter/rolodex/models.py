@@ -593,16 +593,11 @@ class ProjectScope(models.Model):
 
     def count_lines(self):
         """Returns the number of lines in the scope list."""
-        count = 0
-        for line in self.scope.splitlines():
-            count += 1
-        return count
+        return len(self.scope.splitlines())
 
     def count_lines_str(self):
         """Returns the number of lines in the scope list as a string."""
-        count = 0
-        for line in self.scope.splitlines():
-            count += 1
+        count = len(self.scope.splitlines())
         if count > 1:
             return f"{count} Lines"
         return f"{count} Line"
