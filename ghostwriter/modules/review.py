@@ -317,8 +317,8 @@ class DomainReview:
                                 # For some reason, these results are lists instead of dicts
                                 scan_domain = scan[0]
                                 scan_uri = scan[1]
-                                scan_positives = scan[2]
-                                scan_total = scan[3]
+                                # scan_positives = scan[2]
+                                # scan_total = scan[3]
                                 scan_date = scan[4]
                                 scan_date = datetime.datetime.strptime(
                                     scan_date.split(" ")[0], "%Y-%m-%d"

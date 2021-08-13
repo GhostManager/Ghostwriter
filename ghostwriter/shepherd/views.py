@@ -201,7 +201,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
                 if domain_instance.registrar.lower() == "namecheap":
                     namecheap_config = NamecheapConfiguration.get_solo()
                     if namecheap_config.enable:
-                        task_id = async_task(
+                        async_task(
                             "ghostwriter.shepherd.tasks.namecheap_reset_dns",
                             namecheap_config=namecheap_config,
                             domain=domain_instance,
@@ -597,13 +597,12 @@ def server_search(request):
                             reverse("rolodex:project_detail", kwargs={"pk": project_id})
                         )
                     )
-                else:
-                    return HttpResponseRedirect(
-                        reverse(
-                            "shepherd:server_checkout",
-                            kwargs={"pk": server_instance.id},
-                        )
+                return HttpResponseRedirect(
+                    reverse(
+                        "shepherd:server_checkout",
+                        kwargs={"pk": server_instance.id},
                     )
+                )
             else:
                 messages.success(
                     request,
@@ -726,8 +725,7 @@ def infrastructure_search(request):
             logger.exception("Encountered error with search query")
 
         return render(request, "shepherd/server_search.html", context)
-    else:
-        return HttpResponseRedirect(reverse("rolodex:index"))
+    return HttpResponseRedirect(reverse("rolodex:index"))
 
 
 @login_required
@@ -1450,9 +1448,8 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
                     addresses.save()
                 if form.is_valid() and addresses_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"

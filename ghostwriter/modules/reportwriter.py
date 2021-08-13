@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup, NavigableString
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
+from docx.image.exceptions import UnrecognizedImageError
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt, RGBColor
@@ -604,7 +605,9 @@ class Reportwriter:
                             f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                             "Try opening it, exporting as desired type, and re-uploading it."
                         )
-                        raise docx.image.exceptions.UnrecognizedImageError(error_msg)
+                        raise UnrecognizedImageError(
+                            error_msg
+                        ) from docx.image.exceptions.UnrecognizedImageError
 
                     if self.enable_borders:
                         # Add the border – see Ghostwriter Wiki for documentation
@@ -1326,10 +1329,7 @@ class Reportwriter:
                     # Ordered/numbered lists need numbers and linked paragraphs
                     p = None
                     prev_p = None
-                    if tag_name == "ol":
-                        num = True
-                    else:
-                        num = False
+                    num = bool(tag_name == "ol")
 
                     # In HTML, sub-items in a list are nested HTML lists
                     # We need to check every list item for formatted and additional lists
@@ -1436,7 +1436,7 @@ class Reportwriter:
                 "Failed to load the provided template document because file could not be found: %s",
                 self.template_loc,
             )
-            raise DocxPackageNotFoundError
+            raise DocxPackageNotFoundError from docx.opc.exceptions.PackageNotFoundError
         except Exception:
             logger.exception(
                 "Failed to load the provided template document: %s", self.template_loc
@@ -1796,7 +1796,7 @@ class Reportwriter:
                 "Failed to load the provided template document because file could not be found: %s",
                 self.template_loc,
             )
-            raise PptxPackageNotFoundError
+            raise PptxPackageNotFoundError from pptx.exc.PackageNotFoundError
         except Exception:
             logger.exception(
                 "Failed to load the provided template document for unknown reason: %s",

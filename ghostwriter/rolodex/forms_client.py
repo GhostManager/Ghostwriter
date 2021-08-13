@@ -51,8 +51,6 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                     name = form.cleaned_data["name"]
                     job_title = form.cleaned_data["job_title"]
                     email = form.cleaned_data["email"]
-                    phone = form.cleaned_data["phone"]
-                    note = form.cleaned_data["note"]
 
                     # Check that the same person has not been added more than once
                     if name:

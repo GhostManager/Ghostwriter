@@ -722,6 +722,7 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
     def __init__(self):
         self.severity = Severity.objects.order_by("weight").last()
         self.finding_type = FindingType.objects.all().first()
+        super().__init__()
 
     def get(self, *args, **kwargs):
         self.object = self.get_object()
@@ -861,7 +862,7 @@ def findings_list(request):
             "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
-        findings_list = (
+        findings = (
             Finding.objects.select_related("severity", "finding_type")
             .filter(
                 Q(title__icontains=search_term) | Q(description__icontains=search_term)
@@ -869,12 +870,12 @@ def findings_list(request):
             .order_by("severity__weight", "finding_type", "title")
         )
     else:
-        findings_list = (
+        findings = (
             Finding.objects.select_related("severity", "finding_type")
             .all()
             .order_by("severity__weight", "finding_type", "title")
         )
-    findings_filter = FindingFilter(request.GET, queryset=findings_list)
+    findings_filter = FindingFilter(request.GET, queryset=findings)
     return render(request, "reporting/finding_list.html", {"filter": findings_filter})
 
 
@@ -887,10 +888,10 @@ def reports_list(request):
 
     :template:`reporting/report_list.html`
     """
-    reports_list = (
+    reports = (
         Report.objects.select_related("created_by").all().order_by("complete", "title")
     )
-    reports_filter = ReportFilter(request.GET, queryset=reports_list)
+    reports_filter = ReportFilter(request.GET, queryset=reports)
     return render(request, "reporting/report_list.html", {"filter": reports_filter})
 
 
@@ -908,12 +909,12 @@ def archive_list(request):
 
     :template:`reporting/archives.html`
     """
-    archive_list = (
+    archives = (
         Archive.objects.select_related("project__client")
         .all()
         .order_by("project__client")
     )
-    archive_filter = ArchiveFilter(request.GET, queryset=archive_list)
+    archive_filter = ArchiveFilter(request.GET, queryset=archives)
     return render(request, "reporting/archives.html", {"filter": archive_filter})
 
 
@@ -1316,6 +1317,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
                 self.project.client, self.project.project_type, self.project.start_date
             )
             return {"title": title, "project": self.project.id}
+        return super().get_initial()
 
     def get_success_url(self):
         self.request.session["active_report"]["id"] = self.object.pk
@@ -2368,10 +2370,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         if "modal" in self.kwargs:
             return reverse("reporting:upload_evidence_modal_success")
-        else:
-            return reverse(
-                "reporting:report_detail", args=(self.object.finding.report.pk,)
-            )
+        return reverse("reporting:report_detail", args=(self.object.finding.report.pk,))
 
 
 class EvidenceUpdate(LoginRequiredMixin, UpdateView):

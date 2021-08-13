@@ -794,8 +794,8 @@ def project_list(request):
     project_list = (
         Project.objects.select_related("client").all().order_by("complete", "client")
     )
-    project_list = ProjectFilter(request.GET, queryset=project_list)
-    return render(request, "rolodex/project_list.html", {"filter": project_list})
+    filtered_list = ProjectFilter(request.GET, queryset=project_list)
+    return render(request, "rolodex/project_list.html", {"filter": filtered_list})
 
 
 ################
@@ -997,9 +997,8 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
                 if form.is_valid() and contacts_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1269,9 +1268,8 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     and targets_valid
                 ):
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1464,9 +1462,8 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     and targets_valid
                 ):
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
         except Exception:
             logger.exception("Failed to update the project")

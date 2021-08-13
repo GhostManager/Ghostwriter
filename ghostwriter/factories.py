@@ -9,9 +9,6 @@ from django.contrib.auth import get_user_model
 import factory
 from factory import Faker
 
-# Ghostwriter Libraries
-from ghostwriter.shepherd.models import Domain
-
 # Users Factories
 
 

@@ -384,7 +384,7 @@ def namecheap_reset_dns(namecheap_config, domain):
                 is_success = root.CommandResponse.DomainDNSSetHostsResult.attrib[
                     "IsSuccess"
                 ]
-                warnings = root.CommandResponse.DomainDNSSetHostsResult.Warnings
+                # warnings = root.CommandResponse.DomainDNSSetHostsResult.Warnings
                 if is_success == "true":
                     logger.info("Successfully reset DNS records for %s", domain.name)
                     results["result"] = "reset"
@@ -666,7 +666,7 @@ def check_domains(domain=None):
                         lab_results[domain]["categories"],
                         lab_results[domain]["burned_explanation"],
                     )
-                    response = requests.post(
+                    requests.post(
                         slack_config.webhook_url,
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
@@ -686,7 +686,7 @@ def check_domains(domain=None):
                             "VirusTotal Submission",
                             lab_results[domain]["warnings"]["messages"],
                         )
-                        response = requests.post(
+                        requests.post(
                             slack_config.webhook_url,
                             data=slack_data,
                             headers={"Content-Type": "application/json"},
@@ -1148,6 +1148,7 @@ def json_datetime_converter(dt):
     """
     if isinstance(dt, datetime.datetime):
         return dt.__str__()
+    return None
 
 
 def review_cloud_infrastructure(aws_only_running=False):
@@ -1425,7 +1426,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                                 ", ".join(instance["public_ip"]),
                                 instance["tags"],
                             )
-                            response = requests.post(
+                            requests.post(
                                 slack_config.webhook_url,
                                 data=slack_data,
                                 headers={"Content-Type": "application/json"},
@@ -1443,7 +1444,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                                 ", ".join(instance["public_ip"]),
                                 instance["tags"],
                             )
-                            response = requests.post(
+                            requests.post(
                                 slack_config.webhook_url,
                                 data=slack_data,
                                 headers={"Content-Type": "application/json"},
@@ -1476,7 +1477,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                         ", ".join(instance["public_ip"]),
                         instance["tags"],
                     )
-                    response = requests.post(
+                    requests.post(
                         slack_config.webhook_url,
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
