@@ -20,7 +20,7 @@ def has_group(user, group_name):
     # Get the group from the Group auth model
     group = Group.objects.get(name=group_name)
     # Check if the logged-in user a member of the returned group object
-    return True if group in user.groups.all() else False
+    return bool(group in user.groups.all())
 
 
 @register.filter(name="get_groups")

@@ -508,10 +508,7 @@ def release_domains(no_action=False):
 
             # Handle DNS record resets
             if domain.reset_dns:
-                if (
-                    namecheap_config.enable
-                    and domain.registrar.lower() == "namecheap"
-                ):
+                if namecheap_config.enable and domain.registrar.lower() == "namecheap":
                     reset_result = namecheap_reset_dns(namecheap_config, domain)
                     domain_updates[domain.id]["dns"] = reset_result["result"]
                     if reset_result["error"]:
@@ -718,7 +715,6 @@ def check_domains(domain=None):
             domain_updates["errors"][domain.name] = {}
             domain_updates["errors"][domain.name] = trace
             logger.exception('Error updating "%s"', domain.name)
-            pass
 
     return domain_updates
 
@@ -1014,7 +1010,6 @@ def fetch_namecheap_domains():
                             domain=domain, traceback=trace
                         )
                         logger.exception("Failed to update the entry for %s", domain.name)
-                        pass
                     instance = DomainNote.objects.create(
                         domain=domain,
                         note="Automatically set to Expired because the domain did not appear in Namecheap during a sync.",
@@ -1747,7 +1742,7 @@ def test_slack_webhook(user):
                 elif "action_prohibited" in response.text:
                     message = f"Slack accepted the request, but said your Webhook token cannot send messages to {slack_config.slack_channel}, or is otherwise restricted"
                 else:
-                    message = f"Slack accepted the request, but said your Webhook token is not permitted to send messages"
+                    message = "Slack accepted the request, but said your Webhook token is not permitted to send messages"
             elif response.status_code == 404:
                 if "channel_not_found" in response.text:
                     message = f"Slack accepted the request, but said it could not find the {slack_config.slack_channel} channel"

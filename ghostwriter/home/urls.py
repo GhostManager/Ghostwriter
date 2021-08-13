@@ -4,7 +4,7 @@
 from django.urls import path
 
 # Ghostwriter Libraries
-import ghostwriter.home.views as views
+from ghostwriter.home import views
 
 app_name = "home"
 

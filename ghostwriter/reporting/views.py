@@ -494,12 +494,12 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                         "message": "You need to select a template",
                     }
                 else:
-                    if not docx_template_id == -1:
+                    if docx_template_id != -1:
                         docx_template_query = ReportTemplate.objects.get(
                             pk=docx_template_id
                         )
                         self.object.docx_template = docx_template_query
-                    if not pptx_template_id == -1:
+                    if pptx_template_id != -1:
                         pptx_template_query = ReportTemplate.objects.get(
                             pk=pptx_template_id
                         )
@@ -1005,13 +1005,12 @@ def archive(request, pk):
 
         # Create a zip file in memory and add the reports to it
         zip_buffer = io.BytesIO()
-        zf = zipfile.ZipFile(zip_buffer, "a")
-        zf.writestr("report.json", pretty_json)
-        zf.writestr("report.docx", word_doc.getvalue())
-        zf.writestr("report.xlsx", excel_doc.getvalue())
-        zf.writestr("report.pptx", ppt_doc.getvalue())
-        zip_directory(evidence_loc, zf)
-        zf.close()
+        with zipfile.ZipFile(zip_buffer, "a") as zf:
+            zf.writestr("report.json", pretty_json)
+            zf.writestr("report.docx", word_doc.getvalue())
+            zf.writestr("report.xlsx", excel_doc.getvalue())
+            zf.writestr("report.pptx", ppt_doc.getvalue())
+            zip_directory(evidence_loc, zf)
         zip_buffer.seek(0)
         with open(os.path.join(archive_loc, report_name + ".zip"), "wb") as archive_file:
             archive_file.write(zip_buffer.read())
@@ -1648,11 +1647,12 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
         self.object = self.get_object()
         file_path = os.path.join(settings.MEDIA_ROOT, self.object.document.path)
         if os.path.exists(file_path):
-            return FileResponse(
-                open(file_path, "rb"),
-                as_attachment=True,
-                filename=os.path.basename(file_path),
-            )
+            with open(file_path, "rb") as f:
+                return FileResponse(
+                    f,
+                    as_attachment=True,
+                    filename=os.path.basename(file_path),
+                )
         raise Http404
 
 
@@ -1712,7 +1712,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
 
             # Check template's linting status
             template_status = report_template.get_status()
-            if template_status == "error" or template_status == "failed":
+            if template_status in ("error", "failed"):
                 messages.error(
                     self.request,
                     "The selected report template has linting errors and cannot be used to render a DOCX document",
@@ -1918,7 +1918,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
 
             # Check template's linting status
             template_status = report_template.get_status()
-            if template_status == "error" or template_status == "failed":
+            if template_status in ("error", "failed"):
                 messages.error(
                     self.request,
                     "The selected report template has linting errors and cannot be used to render a PPTX document",
@@ -2072,12 +2072,11 @@ class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, View):
 
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
-            zf = zipfile.ZipFile(zip_buffer, "a")
-            zf.writestr(f"{report_name}.json", pretty_json)
-            zf.writestr(f"{report_name}.docx", docx_doc.getvalue())
-            zf.writestr(f"{report_name}.xlsx", xlsx_doc.getvalue())
-            zf.writestr(f"{report_name}.pptx", pptx_doc.getvalue())
-            zf.close()
+            with zipfile.ZipFile(zip_buffer, "a") as zf:
+                zf.writestr(f"{report_name}.json", pretty_json)
+                zf.writestr(f"{report_name}.docx", docx_doc.getvalue())
+                zf.writestr(f"{report_name}.xlsx", xlsx_doc.getvalue())
+                zf.writestr(f"{report_name}.pptx", pptx_doc.getvalue())
             zip_buffer.seek(0)
 
             # Return the buffer in the HTTP response

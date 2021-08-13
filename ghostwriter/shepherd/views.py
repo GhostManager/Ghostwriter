@@ -32,17 +32,22 @@ from ghostwriter.commandcenter.models import (
     VirusTotalConfiguration,
 )
 from ghostwriter.rolodex.models import Project
-
-from .filters import DomainFilter, ServerFilter
-from .forms import BurnForm, CheckoutForm, DomainForm, DomainLinkForm, DomainNoteForm
-from .forms_server import (
+from ghostwriter.shepherd.filters import DomainFilter, ServerFilter
+from ghostwriter.shepherd.forms import (
+    BurnForm,
+    CheckoutForm,
+    DomainForm,
+    DomainLinkForm,
+    DomainNoteForm,
+)
+from ghostwriter.shepherd.forms_server import (
     ServerAddressFormSet,
     ServerCheckoutForm,
     ServerForm,
     ServerNoteForm,
     TransientServerForm,
 )
-from .models import (
+from ghostwriter.shepherd.models import (
     AuxServerAddress,
     Domain,
     DomainNote,
@@ -56,7 +61,7 @@ from .models import (
     StaticServer,
     TransientServer,
 )
-from .resources import DomainResource, StaticServerResource
+from ghostwriter.shepherd.resources import DomainResource, StaticServerResource
 
 # Using __name__ resolves to ghostwriter.shepherd.views
 logger = logging.getLogger(__name__)
@@ -118,7 +123,7 @@ def ajax_load_project(request):
     project_id = request.GET.get("project")
     project = Project.objects.filter(id=project_id)
     data = serializers.serialize("json", project)
-    return HttpResponse(data, content_type="application/json")
+    return JsonResponse(data)
 
 
 @login_required
@@ -159,7 +164,7 @@ def ajax_project_domains(request, pk):
     domain_history = History.objects.filter(project=pk)
     data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
 
-    return HttpResponse(data, content_type="application/json")
+    return JsonResponse(data)
 
 
 class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):

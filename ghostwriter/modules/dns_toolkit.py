@@ -16,7 +16,7 @@ from dns.resolver import NXDOMAIN, Answer, NoAnswer
 logger = logging.getLogger(__name__)
 
 
-class DNSCollector(object):
+class DNSCollector:
     """
     Retrieve and parse DNS records asynchronously.
 
