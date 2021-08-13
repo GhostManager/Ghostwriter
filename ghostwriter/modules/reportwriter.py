@@ -421,12 +421,12 @@ class Reportwriter:
             """
             The type is from the outer-scope variable ``num``.
             """
-            type = "decimal" if num else "bullet"
+            t = "decimal" if num else "bullet"
             return (
                 "w:abstractNum["
-                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
+                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{t}"]'
                 "]/@w:abstractNumId"
-            ).format(type=type, **xpath_options[prefer_single])
+            ).format(type=t, **xpath_options[prefer_single])
 
         def get_abstract_id():
             """
@@ -643,7 +643,6 @@ class Reportwriter:
             # Skip unapproved files
             else:
                 par = None
-                pass
         else:
             raise FileNotFoundError(file_path)
 
@@ -2076,28 +2075,19 @@ class Reportwriter:
         # Generate the JSON report - it just needs to be a string object
         self.report_json = json.loads(self.generate_json())
         # Generate the docx report - save it in a memory stream
-        try:
-            self.template_loc = docx_template
-            word_doc = self.generate_word_docx()
-            word_stream = io.BytesIO()
-            word_doc.save(word_stream)
-        except Exception:
-            logger.exception("Failed creating BytesIO stream for Word document")
+        word_stream = io.BytesIO()
+        self.template_loc = docx_template
+        word_doc = self.generate_word_docx()
+        word_doc.save(word_stream)
         # Generate the xlsx report - save it in a memory stream
-        try:
-            excel_stream = io.BytesIO()
-            workbook = Workbook(excel_stream, {"in_memory": True})
-            self.generate_excel_xlsx(workbook)
-        except Exception:
-            logger.exception("Failed creating BytesIO stream for Excel document")
+        excel_stream = io.BytesIO()
+        workbook = Workbook(excel_stream, {"in_memory": True})
+        self.generate_excel_xlsx(workbook)
         # Generate the pptx report - save it in a memory stream
-        try:
-            self.template_loc = pptx_template
-            ppt_doc = self.generate_powerpoint_pptx()
-            ppt_stream = io.BytesIO()
-            ppt_doc.save(ppt_stream)
-        except Exception:
-            logger.exception("Failed creating BytesIO stream for PowerPoint document")
+        ppt_stream = io.BytesIO()
+        self.template_loc = pptx_template
+        ppt_doc = self.generate_powerpoint_pptx()
+        ppt_doc.save(ppt_stream)
         # Return each memory object
         return self.report_json, word_stream, excel_stream, ppt_stream
 
