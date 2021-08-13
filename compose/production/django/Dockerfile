@@ -17,13 +17,10 @@ RUN apk --no-cache add --virtual build-deps gcc python3-dev musl-dev \
     && apk --no-cache add libxml2-dev libxslt-dev \
     # Rust and Cargo required by the ``cryptography`` Python package
     && apk --no-cache add rust \
-    && apk --no-cache add cargo
-
-RUN addgroup -S django \
-    && adduser -S -G django django
-
-# Requirements are installed here to ensure they will be cached
-RUN pip install --no-cache-dir -U setuptools pip
+    && apk --no-cache add cargo \
+    && addgroup -S django \
+    && adduser -S -G django django \
+    && pip install --no-cache-dir -U setuptools pip
 
 COPY ./requirements /requirements
 

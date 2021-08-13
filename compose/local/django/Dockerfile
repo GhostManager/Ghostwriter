@@ -22,28 +22,32 @@ RUN apk update \
     && apk add postgresql-client \
     # Rust and Cargo required by the ``cryptography`` Python package
     && apk add rust \
-    && apk add cargo
+    && apk add cargo \
+    && pip install -U setuptools pip
 
-# Requirements are installed here to ensure they will be cached
-RUN pip install -U setuptools pip
 COPY ./requirements /requirements
+
 RUN pip install -r /requirements/local.txt
 
 COPY ./compose/production/django/entrypoint /entrypoint
-RUN sed -i 's/\r$//g' /entrypoint
-RUN chmod +x /entrypoint
+
+RUN sed -i 's/\r$//g' /entrypoint \
+    && chmod +x /entrypoint
 
 COPY ./compose/local/django/start /start
-RUN sed -i 's/\r$//g' /start
-RUN chmod +x /start
+
+RUN sed -i 's/\r$//g' /start \
+    && chmod +x /start
 
 COPY ./compose/production/django/queue/start /start-queue
-RUN sed -i 's/\r//' /start-queue
-RUN chmod +x /start-queue
+
+RUN sed -i 's/\r//' /start-queue \
+    && chmod +x /start-queue
 
 COPY ./compose/local/django/seed_data /seed_data
-RUN sed -i 's/\r$//g' /seed_data
-RUN chmod +x /seed_data
+
+RUN sed -i 's/\r$//g' /seed_data \
+    && chmod +x /seed_data
 
 WORKDIR /app
 
