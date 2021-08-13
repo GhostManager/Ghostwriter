@@ -4,25 +4,23 @@ ENV PYTHONUNBUFFERED 1
 
 ENV PYTHONDONTWRITEBYTECODE 1
 
-RUN apk add build-base
-
-RUN apk update \
+RUN apk --no-cache add build-base \
     # psycopg2 dependencies
-    && apk add --virtual build-deps gcc python3-dev musl-dev \
-    && apk add postgresql-dev \
+    && apk --no-cache add --virtual build-deps gcc python3-dev musl-dev \
+    && apk --no-cache add postgresql-dev \
     # Pillow dependencies
-    && apk add jpeg-dev zlib-dev freetype-dev lcms2-dev openjpeg-dev tiff-dev tk-dev tcl-dev \
+    && apk --no-cache add jpeg-dev zlib-dev freetype-dev lcms2-dev openjpeg-dev tiff-dev tk-dev tcl-dev \
     # CFFI dependencies
-    && apk add libffi-dev py-cffi \
+    && apk --no-cache add libffi-dev py-cffi \
     # XLSX dependencies
-    && apk add libxml2-dev libxslt-dev \
+    && apk --no-cache add libxml2-dev libxslt-dev \
     # Translations dependencies
-    && apk add gettext \
+    && apk --no-cache add gettext \
     # https://docs.djangoproject.com/en/dev/ref/django-admin/#dbshell
-    && apk add postgresql-client \
+    && apk --no-cache add postgresql-client \
     # Rust and Cargo required by the ``cryptography`` Python package
-    && apk add rust \
-    && apk add cargo \
+    && apk --no-cache add rust \
+    && apk --no-cache add cargo \
     && pip install --no-cache-dir -U setuptools pip
 
 COPY ./requirements /requirements

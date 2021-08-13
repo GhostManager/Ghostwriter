@@ -912,9 +912,8 @@ class ClientCreate(LoginRequiredMixin, CreateView):
 
                 if form.is_valid() and contacts_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"

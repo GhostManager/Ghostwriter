@@ -603,20 +603,18 @@ def server_search(request):
                         kwargs={"pk": server_instance.id},
                     )
                 )
-            else:
-                messages.success(
-                    request,
-                    "No server was found matching {server}".format(server=ip_address),
-                    extra_tags="alert-success",
+            messages.success(
+                request,
+                "No server was found matching {server}".format(server=ip_address),
+                extra_tags="alert-success",
+            )
+            return HttpResponseRedirect(
+                "{}#infrastructure".format(
+                    reverse("rolodex:project_detail", kwargs={"pk": project_id})
                 )
-                return HttpResponseRedirect(
-                    "{}#infrastructure".format(
-                        reverse("rolodex:project_detail", kwargs={"pk": project_id})
-                    )
-                )
+            )
         except Exception:
-            # Pass here to move on to try auxiliary address search
-            pass
+            logger.exception("Encountered error with search query")
         try:
             server_instance = AuxServerAddress.objects.select_related(
                 "static_server"
@@ -1005,8 +1003,7 @@ def update(request):
             "cloud_last_result": cloud_last_result,
         }
         return render(request, "shepherd/update.html", context=context)
-    else:
-        return HttpResponseRedirect(reverse("shepherd:update"))
+    return HttpResponseRedirect(reverse("shepherd:update"))
 
 
 def export_domains_to_csv(request):
@@ -1379,9 +1376,8 @@ class ServerCreate(LoginRequiredMixin, CreateView):
                     addresses.save()
                 if form.is_valid() and addresses_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"

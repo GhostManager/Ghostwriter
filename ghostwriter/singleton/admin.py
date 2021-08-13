@@ -61,9 +61,8 @@ class SingletonModelAdmin(admin.ModelAdmin):
         if "_continue" in request.POST:
             self.message_user(request, f"{msg} {_('You may edit it again below.')}")
             return HttpResponseRedirect(request.path)
-        else:
-            self.message_user(request, msg)
-            return HttpResponseRedirect("../../")
+        self.message_user(request, msg)
+        return HttpResponseRedirect("../../")
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         if object_id == str(self.singleton_instance_id):
