@@ -23,11 +23,11 @@ RUN apk update \
     # Rust and Cargo required by the ``cryptography`` Python package
     && apk add rust \
     && apk add cargo \
-    && pip install -U setuptools pip
+    && pip install --no-cache-dir -U setuptools pip
 
 COPY ./requirements /requirements
 
-RUN pip install -r /requirements/local.txt
+RUN pip install --no-cache-dir -r /requirements/local.txt
 
 COPY ./compose/production/django/entrypoint /entrypoint
 
