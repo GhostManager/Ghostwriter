@@ -11,16 +11,19 @@ from django.utils.encoding import force_text
 from ghostwriter.factories import (
     AuxServerAddressFactory,
     ClientFactory,
+    CloudServicesConfigurationFactory,
     DomainFactory,
     DomainServerConnectionFactory,
     DomainStatusFactory,
     HistoryFactory,
+    NamecheapConfigurationFactory,
     ProjectFactory,
     ServerHistoryFactory,
     ServerStatusFactory,
     StaticServerFactory,
     TransientServerFactory,
     UserFactory,
+    VirusTotalConfigurationFactory,
 )
 
 logging.disable(logging.INFO)
@@ -38,6 +41,9 @@ class UpdateViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("shepherd:update")
+        cls.vt_config = VirusTotalConfigurationFactory(enable=True)
+        cls.cloud_config = CloudServicesConfigurationFactory(enable=True)
+        cls.namecheap_config = NamecheapConfigurationFactory(enable=True)
 
     def setUp(self):
         self.client = Client()
@@ -84,6 +90,24 @@ class UpdateViewTests(TestCase):
         self.assertIn("cloud_last_update_completed", response.context)
         self.assertIn("cloud_last_update_time", response.context)
         self.assertIn("cloud_last_result", response.context)
+
+    def test_view_with_zero_sleep_time(self):
+        self.vt_config.sleep_time = 0
+        self.vt_config.save()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_with_post_request(self):
+        response = self.client_auth.post(self.uri)
+        expected_url = reverse("shepherd:update")
+        self.assertRedirects(
+            response,
+            expected_url,
+            status_code=302,
+            target_status_code=200,
+            msg_prefix="",
+            fetch_redirect_response=True,
+        )
 
 
 class DomainOverwatchViewTests(TestCase):
@@ -184,6 +208,11 @@ class DomainListViewTests(TestCase):
         response = self.client_auth.get(self.uri + "?name=domain2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
+
+    def test_blank_search(self):
+        response = self.client_auth.get(self.uri + "?domain_search=")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
 
 
 class DomainDetailViewTests(TestCase):
@@ -1446,6 +1475,8 @@ class InfrastructureSearchViewTests(TestCase):
     def test_custom_context_exists(self):
         post_data = {"query": "192.168"}
         response = self.client_auth.get(self.uri, post_data)
+        self.assertEqual(response.status_code, 200)
+
         self.assertIn("servers", response.context)
         self.assertIn("vps", response.context)
         self.assertIn("addresses", response.context)
@@ -1459,6 +1490,8 @@ class InfrastructureSearchViewTests(TestCase):
     def test_custom_context_with_few_results(self):
         post_data = {"query": "192.168.2"}
         response = self.client_auth.get(self.uri, post_data)
+        self.assertEqual(response.status_code, 200)
+
         self.assertIn("servers", response.context)
         self.assertIn("vps", response.context)
         self.assertIn("addresses", response.context)
@@ -1468,3 +1501,135 @@ class InfrastructureSearchViewTests(TestCase):
         self.assertEqual(len(response.context["vps"]), 0)
         self.assertEqual(len(response.context["addresses"]), len(self.addresses))
         self.assertEqual(response.context["total_result"], 3)
+
+    def test_blank_search(self):
+        response = self.client_auth.get(self.uri + "?query=")
+        self.assertEqual(response.status_code, 200)
+
+    def test_search_with_zero_results(self):
+        post_data = {"query": "1.1.1.1"}
+        response = self.client_auth.get(self.uri, post_data)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn("servers", response.context)
+        self.assertIn("vps", response.context)
+        self.assertIn("addresses", response.context)
+        self.assertIn("total_result", response.context)
+
+        self.assertEqual(len(response.context["servers"]), 0)
+        self.assertEqual(len(response.context["vps"]), 0)
+        self.assertEqual(len(response.context["addresses"]), 0)
+        self.assertEqual(response.context["total_result"], 0)
+
+
+class UpdateDomainBadgesViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.update_domain_badges`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.domain = DomainFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse(
+            "shepherd:ajax_update_domain_badges", kwargs={"pk": cls.domain.id}
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class LoadProjectsViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.ajax_load_projects`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.org = ClientFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("shepherd:ajax_load_projects") + "?client=%s" % cls.org.id
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class LoadProjectViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.ajax_load_project`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("shepherd:ajax_load_projects") + "?project=%s" % cls.project.id
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ProjectDomainsViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.ajax_project_domains`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory()
+        cls.History = HistoryFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("shepherd:ajax_project_domains", kwargs={"pk": cls.project.id})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        HistoryFactory.create_batch(3, project=self.project)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_with_no_history(self):
+        self.History.objects.all().delete()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
