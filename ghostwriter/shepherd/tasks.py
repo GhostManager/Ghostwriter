@@ -1170,6 +1170,9 @@ def review_cloud_infrastructure(aws_only_running=False):
 
     # Fetch cloud API keys and tokens
     cloud_config = CloudServicesConfiguration.get_solo()
+    ignore_tags = []
+    for tag in cloud_config.ignore_tag.split(","):
+        ignore_tags.append(tag.strip())
 
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
@@ -1244,13 +1247,17 @@ def review_cloud_infrastructure(aws_only_running=False):
                 )
                 tags = []
                 name = "Blank"
+                ignore = False
                 if instance.tags:
                     for tag in instance.tags:
-                        # AWS assigns names to instances via a ``Name`` key`
+                        # AWS assigns names to instances via a ``Name`` key
                         if tag["Key"] == "Name":
                             name = tag["Value"]
                         else:
                             tags.append("{}: {}".format(tag["Key"], tag["Value"]))
+                        # Check for "ignore tags"
+                        if tag["Key"] in ignore_tags or tag["Value"] in ignore_tags:
+                            ignore = True
                 pub_addresses = []
                 pub_addresses.append(instance.public_ip_address)
                 priv_addresses = []
@@ -1270,6 +1277,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                     "launch_time": instance.launch_time.replace(tzinfo=utc),
                     "time_up": "{} months".format(time_up),
                     "tags": ", ".join(tags),
+                    "ignore": ignore,
                 }
 
     ###############
@@ -1330,6 +1338,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # Loop over the droplets to generate the info dict
     if do_capable and "droplets" in active_droplets:
         for droplet in active_droplets["droplets"]:
+            ignore = False
             # Get the networking info
             if "v4" in droplet["networks"]:
                 ipv4 = droplet["networks"]["v4"]
@@ -1368,6 +1377,10 @@ def review_cloud_infrastructure(aws_only_running=False):
                 )
                 * droplet["size"]["price_monthly"]
             )
+            # Check for "ignore tags"
+            for tag in droplet["tags"]:
+                if tag in ignore_tags:
+                    ignore = True
             # Add an entry to the dict for the droplet
             vps_info["instances"][droplet["id"]] = {
                 "id": droplet["id"],
@@ -1385,6 +1398,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                 ).replace(tzinfo=utc),
                 "time_up": "{} months".format(time_up),
                 "tags": ", ".join(droplet["tags"]),
+                "ignore": ignore,
             }
     # Examine results to identify potentially unneeded/unused machines
     assets_in_use = []
@@ -1453,16 +1467,15 @@ def review_cloud_infrastructure(aws_only_running=False):
                     # Project is still active, so track these assets for later
                     assets_in_use.append(instance_id)
         else:
-            ignore_tags = []
             instance_tags = []
-            for tag in cloud_config.ignore_tag.split(","):
-                ignore_tags.append(tag.strip())
             for tag in instance["tags"].split(","):
                 instance_tags.append(tag.strip())
-            if any(tag in ignore_tags for tag in instance_tags):
+            # if any(tag in ignore_tags for tag in instance_tags):
+            if instance["ignore"]:
                 logger.info(
-                    "Ignoring %s because it is tagged with a configured ignore tag",
+                    "Ignoring %s because it is tagged with a configured ignore tag (tags: %s)",
                     instance_name,
+                    instance["tags"],
                 )
                 assets_in_use.append(instance_id)
             else:
