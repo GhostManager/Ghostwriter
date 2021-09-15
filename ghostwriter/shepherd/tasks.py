@@ -1423,7 +1423,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
-                                ", ".join(instance["public_ip"]),
+                                instance["public_ip"],
                                 instance["tags"],
                             )
                             requests.post(
@@ -1441,7 +1441,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
-                                ", ".join(instance["public_ip"]),
+                                instance["public_ip"],
                                 instance["tags"],
                             )
                             requests.post(
@@ -1474,7 +1474,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                         instance["launch_time"],
                         instance["provider"],
                         instance_name,
-                        ", ".join(instance["public_ip"]),
+                        instance["public_ip"],
                         instance["tags"],
                     )
                     requests.post(
