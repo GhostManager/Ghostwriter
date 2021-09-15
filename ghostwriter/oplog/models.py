@@ -7,6 +7,7 @@ from datetime import datetime
 from socket import gaierror
 
 # Django Imports
+from django.core.exceptions import ValidationError
 from django.core.serializers import serialize
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -109,6 +110,34 @@ class OplogEntry(models.Model):
         max_length=255,
     )
 
+    def __init__(self, *args, **kwargs):
+        super(OplogEntry, self).__init__(*args, **kwargs)
+        # Stash the initial date values for future operations
+        self.initial_start_date = self.start_date
+        self.initial_end_date = self.end_date
+
+    def clean(self, *args, **kwargs):
+        if isinstance(self.start_date, str):
+            try:
+                self.start_date = datetime.strptime(self.start_date, "%Y-%m-%d %H:%M:%S")
+            except ValidationError:
+                logger.exception("Received an invalid time value: %s", self.start_date)
+                self.start_date = self.initial_start_date
+            except ValueError:
+                logger.exception("Received an incomplete time value: %s", self.start_date)
+                self.start_date = self.initial_start_date
+
+        if isinstance(self.end_date, str):
+            try:
+                self.end_date = datetime.strptime(self.end_date, "%Y-%m-%d %H:%M:%S")
+            except ValidationError:
+                logger.exception("Received an invalid time value: %s", self.end_date)
+                self.end_date = self.initial_end_date
+            except ValueError:
+                logger.exception("Received an incomplete time value: %s", self.end_date)
+                self.end_date = self.initial_end_date
+        super().clean(*args, **kwargs)
+
 
 @receiver(pre_save, sender=OplogEntry)
 def oplog_pre_save(sender, instance, **kwargs):
@@ -120,6 +149,8 @@ def oplog_pre_save(sender, instance, **kwargs):
         instance.start_date = datetime.utcnow()
     if not instance.end_date:
         instance.end_date = datetime.utcnow()
+
+    instance.clean()
 
 
 @receiver(post_save, sender=OplogEntry)
@@ -143,7 +174,7 @@ def signal_oplog_entry(sender, instance, **kwargs):
         async_to_sync(channel_layer.group_send)(
             str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
         )
-    except gaierror:
+    except gaierror:  # pragma: no cover
         # WebSocket are unavailable (unit testing)
         pass
 
@@ -165,6 +196,6 @@ def delete_oplog_entry(sender, instance, **kwargs):
     except Oplog.DoesNotExist:  # pragma: no cover
         # Oplog has been deleted and this is a cascading delete
         pass
-    except gaierror:
+    except gaierror:  # pragma: no cover
         # WebSocket are unavailable (unit testing)
         pass
