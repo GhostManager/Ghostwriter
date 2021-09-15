@@ -478,7 +478,7 @@ class ServerCheckoutForm(forms.ModelForm):
         return end_date
 
     def clean_server(self):
-        insert = self.instance.pk == None
+        insert = bool(self.instance.pk is None)
         server = self.cleaned_data["server"]
         if insert:
             unavailable = ServerStatus.objects.get(server_status="Unavailable")

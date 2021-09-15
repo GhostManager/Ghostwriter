@@ -189,7 +189,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         # Add an async task grouped as ``AWS Test``
         result = "success"
         try:
-            task_id = async_task(
+            async_task(
                 "ghostwriter.shepherd.tasks.test_aws_keys",
                 self.request.user,
                 group="AWS Test",
@@ -224,7 +224,7 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         # Add an async task grouped as ``Digital Ocean Test``
         result = "success"
         try:
-            task_id = async_task(
+            async_task(
                 "ghostwriter.shepherd.tasks.test_digital_ocean",
                 self.request.user,
                 group="Digital Ocean Test",
@@ -259,7 +259,7 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         # Add an async task grouped as ``Namecheap Test``
         result = "success"
         try:
-            task_id = async_task(
+            async_task(
                 "ghostwriter.shepherd.tasks.test_namecheap",
                 self.request.user,
                 group="Namecheap Test",
@@ -294,7 +294,7 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         # Add an async task grouped as ``Slack Test``
         result = "success"
         try:
-            task_id = async_task(
+            async_task(
                 "ghostwriter.shepherd.tasks.test_slack_webhook",
                 self.request.user,
                 group="Slack Test",
@@ -329,7 +329,7 @@ class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         # Add an async task grouped as ``VirusTotal Test``
         result = "success"
         try:
-            task_id = async_task(
+            async_task(
                 "ghostwriter.shepherd.tasks.test_virustotal",
                 self.request.user,
                 group="Slack Test",

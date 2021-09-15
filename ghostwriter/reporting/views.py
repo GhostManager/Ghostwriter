@@ -87,8 +87,7 @@ def get_position(report_pk, severity):
         # Set new position to be one above the last/largest position
         last_position = findings[0].position
         return last_position + 1
-    else:
-        return 1
+    return 1
 
 
 ##################
@@ -495,12 +494,12 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                         "message": "You need to select a template",
                     }
                 else:
-                    if not docx_template_id == -1:
+                    if docx_template_id != -1:
                         docx_template_query = ReportTemplate.objects.get(
                             pk=docx_template_id
                         )
                         self.object.docx_template = docx_template_query
-                    if not pptx_template_id == -1:
+                    if pptx_template_id != -1:
                         pptx_template_query = ReportTemplate.objects.get(
                             pk=pptx_template_id
                         )
@@ -723,6 +722,7 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
     def __init__(self):
         self.severity = Severity.objects.order_by("weight").last()
         self.finding_type = FindingType.objects.all().first()
+        super().__init__()
 
     def get(self, *args, **kwargs):
         self.object = self.get_object()
@@ -820,9 +820,8 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
             return HttpResponseRedirect(
                 reverse("reporting:finding_detail", kwargs={"pk": new_finding_pk})
             )
-        else:
-            logger.warning(form.errors.as_data())
-            return render(self.request, "reporting/finding_form.html", {"form": form})
+        logger.warning(form.errors.as_data())
+        return render(self.request, "reporting/finding_form.html", {"form": form})
 
 
 ##################
@@ -863,7 +862,7 @@ def findings_list(request):
             "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
-        findings_list = (
+        findings = (
             Finding.objects.select_related("severity", "finding_type")
             .filter(
                 Q(title__icontains=search_term) | Q(description__icontains=search_term)
@@ -871,12 +870,12 @@ def findings_list(request):
             .order_by("severity__weight", "finding_type", "title")
         )
     else:
-        findings_list = (
+        findings = (
             Finding.objects.select_related("severity", "finding_type")
             .all()
             .order_by("severity__weight", "finding_type", "title")
         )
-    findings_filter = FindingFilter(request.GET, queryset=findings_list)
+    findings_filter = FindingFilter(request.GET, queryset=findings)
     return render(request, "reporting/finding_list.html", {"filter": findings_filter})
 
 
@@ -889,10 +888,10 @@ def reports_list(request):
 
     :template:`reporting/report_list.html`
     """
-    reports_list = (
+    reports = (
         Report.objects.select_related("created_by").all().order_by("complete", "title")
     )
-    reports_filter = ReportFilter(request.GET, queryset=reports_list)
+    reports_filter = ReportFilter(request.GET, queryset=reports)
     return render(request, "reporting/report_list.html", {"filter": reports_filter})
 
 
@@ -910,12 +909,12 @@ def archive_list(request):
 
     :template:`reporting/archives.html`
     """
-    archive_list = (
+    archives = (
         Archive.objects.select_related("project__client")
         .all()
         .order_by("project__client")
     )
-    archive_filter = ArchiveFilter(request.GET, queryset=archive_list)
+    archive_filter = ArchiveFilter(request.GET, queryset=archives)
     return render(request, "reporting/archives.html", {"filter": archive_filter})
 
 
@@ -1007,13 +1006,12 @@ def archive(request, pk):
 
         # Create a zip file in memory and add the reports to it
         zip_buffer = io.BytesIO()
-        zf = zipfile.ZipFile(zip_buffer, "a")
-        zf.writestr("report.json", pretty_json)
-        zf.writestr("report.docx", word_doc.getvalue())
-        zf.writestr("report.xlsx", excel_doc.getvalue())
-        zf.writestr("report.pptx", ppt_doc.getvalue())
-        zip_directory(evidence_loc, zf)
-        zf.close()
+        with zipfile.ZipFile(zip_buffer, "a") as zf:
+            zf.writestr("report.json", pretty_json)
+            zf.writestr("report.docx", word_doc.getvalue())
+            zf.writestr("report.xlsx", excel_doc.getvalue())
+            zf.writestr("report.pptx", ppt_doc.getvalue())
+            zip_directory(evidence_loc, zf)
         zip_buffer.seek(0)
         with open(os.path.join(archive_loc, report_name + ".zip"), "wb") as archive_file:
             archive_file.write(zip_buffer.read())
@@ -1060,9 +1058,9 @@ def download_archive(request, pk):
     archive_instance = Archive.objects.get(pk=pk)
     file_path = os.path.join(settings.MEDIA_ROOT, archive_instance.report_archive.path)
     if os.path.exists(file_path):
-        with open(file_path, "rb") as archive:
+        with open(file_path, "rb") as archive_file:
             response = HttpResponse(
-                archive.read(), content_type="application/x-zip-compressed"
+                archive_file.read(), content_type="application/x-zip-compressed"
             )
             response["Content-Disposition"] = "inline; filename=" + os.path.basename(
                 file_path
@@ -1319,6 +1317,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
                 self.project.client, self.project.project_type, self.project.start_date
             )
             return {"title": title, "project": self.project.id}
+        return super().get_initial()
 
     def get_success_url(self):
         self.request.session["active_report"]["id"] = self.object.pk
@@ -1518,8 +1517,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         self.object = self.get_object()
         if self.object.protected:
             return self.request.user.is_staff
-        else:
-            return self.request.user.is_active
+        return self.request.user.is_active
 
     def handle_no_permission(self):
         self.object = self.get_object()
@@ -1579,8 +1577,7 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
         self.object = self.get_object()
         if self.object.protected:
             return self.request.user.is_staff
-        else:
-            return self.request.user.is_active
+        return self.request.user.is_active
 
     def handle_no_permission(self):
         self.object = self.get_object()
@@ -1652,13 +1649,13 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
         self.object = self.get_object()
         file_path = os.path.join(settings.MEDIA_ROOT, self.object.document.path)
         if os.path.exists(file_path):
-            return FileResponse(
-                open(file_path, "rb"),
-                as_attachment=True,
-                filename=os.path.basename(file_path),
-            )
-        else:
-            raise Http404
+            with open(file_path, "rb") as f:
+                return FileResponse(
+                    f,
+                    as_attachment=True,
+                    filename=os.path.basename(file_path),
+                )
+        raise Http404
 
 
 class GenerateReportJSON(LoginRequiredMixin, SingleObjectMixin, View):
@@ -1717,7 +1714,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
 
             # Check template's linting status
             template_status = report_template.get_status()
-            if template_status == "error" or template_status == "failed":
+            if template_status in ("error", "failed"):
                 messages.error(
                     self.request,
                     "The selected report template has linting errors and cannot be used to render a DOCX document",
@@ -1923,7 +1920,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
 
             # Check template's linting status
             template_status = report_template.get_status()
-            if template_status == "error" or template_status == "failed":
+            if template_status in ("error", "failed"):
                 messages.error(
                     self.request,
                     "The selected report template has linting errors and cannot be used to render a PPTX document",
@@ -2077,12 +2074,11 @@ class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, View):
 
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
-            zf = zipfile.ZipFile(zip_buffer, "a")
-            zf.writestr(f"{report_name}.json", pretty_json)
-            zf.writestr(f"{report_name}.docx", docx_doc.getvalue())
-            zf.writestr(f"{report_name}.xlsx", xlsx_doc.getvalue())
-            zf.writestr(f"{report_name}.pptx", pptx_doc.getvalue())
-            zf.close()
+            with zipfile.ZipFile(zip_buffer, "a") as zf:
+                zf.writestr(f"{report_name}.json", pretty_json)
+                zf.writestr(f"{report_name}.docx", docx_doc.getvalue())
+                zf.writestr(f"{report_name}.xlsx", xlsx_doc.getvalue())
+                zf.writestr(f"{report_name}.pptx", pptx_doc.getvalue())
             zip_buffer.seek(0)
 
             # Return the buffer in the HTTP response
@@ -2322,10 +2318,8 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
             modal = self.kwargs["modal"]
             if modal:
                 return ["reporting/evidence_form_modal.html"]
-            else:
-                return ["reporting/evidence_form.html"]
-        else:
             return ["reporting/evidence_form.html"]
+        return ["reporting/evidence_form.html"]
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -2376,10 +2370,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         if "modal" in self.kwargs:
             return reverse("reporting:upload_evidence_modal_success")
-        else:
-            return reverse(
-                "reporting:report_detail", args=(self.object.finding.report.pk,)
-            )
+        return reverse("reporting:report_detail", args=(self.object.finding.report.pk,))
 
 
 class EvidenceUpdate(LoginRequiredMixin, UpdateView):

@@ -26,7 +26,7 @@ requests.packages.urllib3.disable_warnings()
 logger = logging.getLogger(__name__)
 
 
-class DomainReview(object):
+class DomainReview:
     """
     Pull a list of domain names and check their web reputation.
 
@@ -240,7 +240,6 @@ class DomainReview(object):
                             "Flagged by Bitdefender with this message:\n{}".format(bd_msg)
                         )
                     if "detected_downloaded_samples" in vt_results["data"]:
-                        # TODO: Potentially collect permalink and scan data from VT's ``/file/report`` endpoint
                         if len(vt_results["data"]["detected_downloaded_samples"]) > 0:
                             total_detections = len(
                                 vt_results["data"]["detected_downloaded_samples"]
@@ -268,7 +267,6 @@ class DomainReview(object):
                                 )
                             )
                     if "detected_urls" in vt_results["data"]:
-                        # TODO: Potentially collect permalink and scan data from VT's ``/url/report`` endpoint
                         if len(vt_results["data"]["detected_urls"]) > 0:
                             total_detections = len(vt_results["data"]["detected_urls"])
                             logger.warning(
@@ -319,8 +317,8 @@ class DomainReview(object):
                                 # For some reason, these results are lists instead of dicts
                                 scan_domain = scan[0]
                                 scan_uri = scan[1]
-                                scan_positives = scan[2]
-                                scan_total = scan[3]
+                                # scan_positives = scan[2]
+                                # scan_total = scan[3]
                                 scan_date = scan[4]
                                 scan_date = datetime.datetime.strptime(
                                     scan_date.split(" ")[0], "%Y-%m-%d"

@@ -79,18 +79,17 @@ def OplogEntriesImport(request):
                     extra_tags="alert-danger",
                 )
             return HttpResponseRedirect(reverse("oplog:oplog_import"))
-        else:
-            oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
-            # Get the first ``oplog_id`` value to use for a redirect
-            oplog_id = imported_data["oplog_id"][0]
-            messages.success(
-                request,
-                "Successfully imported log data",
-                extra_tags="alert-success",
-            )
-            return HttpResponseRedirect(
-                reverse("oplog:oplog_entries", kwargs={"pk": oplog_id})
-            )
+        oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
+        # Get the first ``oplog_id`` value to use for a redirect
+        oplog_id = imported_data["oplog_id"][0]
+        messages.success(
+            request,
+            "Successfully imported log data",
+            extra_tags="alert-success",
+        )
+        return HttpResponseRedirect(
+            reverse("oplog:oplog_entries", kwargs={"pk": oplog_id})
+        )
 
     return render(request, "oplog/oplog_import.html")
 
@@ -285,10 +284,10 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
                 "-start_date"
             )
         if "export" in request.query_params:
-            format = request.query_params["export"]
+            export_format = request.query_params["export"]
             dataset = OplogEntryResource().export(queryset)
             try:
-                return HttpResponse(getattr(dataset, format))
+                return HttpResponse(getattr(dataset, export_format))
             except AttributeError:
                 return None
 

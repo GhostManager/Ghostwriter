@@ -77,13 +77,12 @@ def archive_projects():
             )
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
-            zf = zipfile.ZipFile(zip_buffer, "a")
-            zf.writestr("report.json", json_doc)
-            zf.writestr("report.docx", word_doc.getvalue())
-            zf.writestr("report.xlsx", excel_doc.getvalue())
-            zf.writestr("report.pptx", ppt_doc.getvalue())
-            zip_directory(evidence_loc, zf)
-            zf.close()
+            with zipfile.ZipFile(zip_buffer, "a") as zf:
+                zf.writestr("report.json", json_doc)
+                zf.writestr("report.docx", word_doc.getvalue())
+                zf.writestr("report.xlsx", excel_doc.getvalue())
+                zf.writestr("report.pptx", ppt_doc.getvalue())
+                zip_directory(evidence_loc, zf)
             zip_buffer.seek(0)
             with open(
                 os.path.join(archive_loc, report.title + ".zip"), "wb"

@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup, NavigableString
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
+from docx.image.exceptions import UnrecognizedImageError
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt, RGBColor
@@ -421,12 +422,12 @@ class Reportwriter:
             """
             The type is from the outer-scope variable ``num``.
             """
-            type = "decimal" if num else "bullet"
+            t = "decimal" if num else "bullet"
             return (
                 "w:abstractNum["
-                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
+                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{t}"]'
                 "]/@w:abstractNumId"
-            ).format(type=type, **xpath_options[prefer_single])
+            ).format(type=t, **xpath_options[prefer_single])
 
         def get_abstract_id():
             """
@@ -604,7 +605,9 @@ class Reportwriter:
                             f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                             "Try opening it, exporting as desired type, and re-uploading it."
                         )
-                        raise docx.image.exceptions.UnrecognizedImageError(error_msg)
+                        raise UnrecognizedImageError(
+                            error_msg
+                        ) from docx.image.exceptions.UnrecognizedImageError
 
                     if self.enable_borders:
                         # Add the border – see Ghostwriter Wiki for documentation
@@ -643,7 +646,6 @@ class Reportwriter:
             # Skip unapproved files
             else:
                 par = None
-                pass
         else:
             raise FileNotFoundError(file_path)
 
@@ -932,7 +934,7 @@ class Reportwriter:
             # These tags apply italic, bold, and underline styles but appear rarely
             elif tag_name == "em":
                 styles_dict["italic_font"] = True
-            elif tag_name == "strong" or tag_name == "b":
+            elif tag_name in ("strong", "b"):
                 styles_dict["bold"] = True
             elif tag_name == "u":
                 styles_dict["underline"] = True
@@ -1323,14 +1325,11 @@ class Reportwriter:
                                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
                 # OL & UL – Ordered/Numbered & Unordered Lists
-                elif tag_name == "ol" or tag_name == "ul":
+                elif tag_name in ("ol", "ul"):
                     # Ordered/numbered lists need numbers and linked paragraphs
                     p = None
                     prev_p = None
-                    if tag_name == "ol":
-                        num = True
-                    else:
-                        num = False
+                    num = bool(tag_name == "ol")
 
                     # In HTML, sub-items in a list are nested HTML lists
                     # We need to check every list item for formatted and additional lists
@@ -1437,7 +1436,7 @@ class Reportwriter:
                 "Failed to load the provided template document because file could not be found: %s",
                 self.template_loc,
             )
-            raise DocxPackageNotFoundError
+            raise DocxPackageNotFoundError from docx.opc.exceptions.PackageNotFoundError
         except Exception:
             logger.exception(
                 "Failed to load the provided template document: %s", self.template_loc
@@ -1508,6 +1507,7 @@ class Reportwriter:
                 self.sacrificial_doc = self.word_doc.new_subdoc()
                 self.process_text_xml(section, finding)
                 return self.sacrificial_doc
+            return None
 
         # Findings
         for finding in context["findings"]:
@@ -1796,7 +1796,7 @@ class Reportwriter:
                 "Failed to load the provided template document because file could not be found: %s",
                 self.template_loc,
             )
-            raise PptxPackageNotFoundError
+            raise PptxPackageNotFoundError from pptx.exc.PackageNotFoundError
         except Exception:
             logger.exception(
                 "Failed to load the provided template document for unknown reason: %s",
@@ -1884,12 +1884,12 @@ class Reportwriter:
         body_shape = shapes.placeholders[1]
         title_shape.text = "Findings Overview"
         text_frame = get_textframe(body_shape)
-        for stat in findings_stats:
+        for key, value in findings_stats.items():
             p = text_frame.add_paragraph()
-            p.text = "{} Findings".format(stat)
+            p.text = "{} Findings".format(key)
             p.level = 0
             p = text_frame.add_paragraph()
-            p.text = str(findings_stats[stat])
+            p.text = str(value)
             p.level = 1
 
         # Add Findings Overview Slide 2
@@ -1977,10 +1977,10 @@ class Reportwriter:
                 try:
                     if value:
                         return BeautifulSoup(value, "lxml").text.replace("\x0D", "")
-                    else:
-                        return "N/A"
+                    return "N/A"
                 except Exception:
                     logger.exception("Failed parsing this value for PPTX: %s", value)
+                    return ""
 
             # Add all finding data to the notes section for easier reference during edits
             entities = prepare_for_pptx(finding["affected_entities"])
@@ -2075,28 +2075,19 @@ class Reportwriter:
         # Generate the JSON report - it just needs to be a string object
         self.report_json = json.loads(self.generate_json())
         # Generate the docx report - save it in a memory stream
-        try:
-            self.template_loc = docx_template
-            word_doc = self.generate_word_docx()
-            word_stream = io.BytesIO()
-            word_doc.save(word_stream)
-        except Exception:
-            raise
+        word_stream = io.BytesIO()
+        self.template_loc = docx_template
+        word_doc = self.generate_word_docx()
+        word_doc.save(word_stream)
         # Generate the xlsx report - save it in a memory stream
-        try:
-            excel_stream = io.BytesIO()
-            workbook = Workbook(excel_stream, {"in_memory": True})
-            self.generate_excel_xlsx(workbook)
-        except Exception:
-            raise
+        excel_stream = io.BytesIO()
+        workbook = Workbook(excel_stream, {"in_memory": True})
+        self.generate_excel_xlsx(workbook)
         # Generate the pptx report - save it in a memory stream
-        try:
-            self.template_loc = pptx_template
-            ppt_doc = self.generate_powerpoint_pptx()
-            ppt_stream = io.BytesIO()
-            ppt_doc.save(ppt_stream)
-        except Exception:
-            raise
+        ppt_stream = io.BytesIO()
+        self.template_loc = pptx_template
+        ppt_doc = self.generate_powerpoint_pptx()
+        ppt_doc.save(ppt_stream)
         # Return each memory object
         return self.report_json, word_stream, excel_stream, ppt_stream
 

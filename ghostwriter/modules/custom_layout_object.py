@@ -98,6 +98,3 @@ class SwitchToggle(Field):
     """
 
     template = "switch.html"
-
-    def __init__(self, field, *args, **kwargs):
-        super().__init__(field, *args, **kwargs)

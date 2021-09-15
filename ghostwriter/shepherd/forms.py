@@ -137,7 +137,7 @@ class CheckoutForm(forms.ModelForm):
         return end_date
 
     def clean_domain(self):
-        insert = self.instance.pk == None
+        insert = bool(self.instance.pk is None)
         domain = self.cleaned_data["domain"]
 
         if insert:

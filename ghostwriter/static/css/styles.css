@@ -32,7 +32,6 @@ pre {
   font-weight: 300;
   line-height: 1.7em;
   color: var(--main-txt-color);
-  ;
   margin-top: 20px;
   margin-bottom: 20px;
 }
@@ -188,6 +187,10 @@ hr {
 
 .center {
   text-align: center;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
 }
 
 .right {
@@ -369,7 +372,7 @@ form.newitem {
 }
 
 .filter-form .card-body .form-group {
-  margin-bottom: 0px;
+  margin-bottom: 0;
 }
 
 /* ---------------------------------------------------
@@ -494,7 +497,7 @@ input[type='file'] {
 .breadcrumb {
   background: var(--navbar-breadcrumb-background-color);
   border-radius: 10px;
-  margin: 0px;
+  margin: 0;
 }
 
 .breadcrumb>.active {
@@ -521,7 +524,7 @@ input[type='file'] {
 ----------------------------------------------------- */
 
 .sideheader {
-  margin-top: 0px;
+  margin-top: 0;
   margin-bottom: 5px;
   margin-left: 20px;
   font-weight: 500;
@@ -678,7 +681,7 @@ ul ul a {
 
 #content {
   width: 100%;
-  padding: 10px 20px 20px 20px;
+  padding: 10px 20px 20px;
   min-height: 100vh;
   transition: all 0.3s;
   text-align: center;
@@ -718,13 +721,6 @@ ul ul a {
   transform: none;
   opacity: 1;
   margin: 5px auto;
-}
-
-.center {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-  width: 50%;
 }
 
 .content {
@@ -1058,7 +1054,7 @@ td {
 ----------------------------------------------------- */
 
 .fc .fc-toolbar.fc-header-toolbar {
-  margin-bottom: 0px !important;
+  margin-bottom: 0 !important;
 }
 
 .fc-scrollgrid > thead > tr > td,
@@ -1288,7 +1284,7 @@ td p {
 }
 
 .dropbtn {
-  padding: 0px;
+  padding: 0;
   font-size: 20px;
   cursor: pointer;
   background-color: transparent;
@@ -1316,7 +1312,7 @@ td p {
   background-color: #f1f1f1;
   min-width: 160px;
   overflow: auto;
-  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
   z-index: 100;
 }
 
@@ -1327,7 +1323,7 @@ td p {
   background-color: #f1f1f1;
   min-width: 260px;
   overflow: auto;
-  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
   z-index: 100;
 }
 
@@ -1348,7 +1344,7 @@ td p {
 .dropdown:hover .dropdown-content {
   display: block;
   left: auto;
-  right: 0px
+  right: 0;
 }
 
 .dropdown-right:hover .dropdown-content {
@@ -1381,7 +1377,7 @@ td p {
   color: #fff;
   margin: 0.25px;
   border: 0.25px solid white;
-  border-radius: 7px 7px 0px 0px;
+  border-radius: 7px 7px 0 0;
 }
 
 .nav-link {
@@ -1964,8 +1960,8 @@ th.icon {
 
 .word-btn {
   background-color: #01A6F0;
-  padding-top: 0px;
-  padding-bottom: 0px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .word-btn:before {
@@ -1982,8 +1978,8 @@ th.icon {
 
 .pptx-btn {
   background-color: #D04423;
-  padding-top: 0px;
-  padding-bottom: 0px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .pptx-btn:before {
@@ -2036,7 +2032,7 @@ th.icon {
 }
 
 .myaccordion>.card {
-  padding: 0 0 0 0;
+  padding: 0;
   border-radius: 5px;
   overflow: hidden;
   background-color: #f1f1f1;
@@ -2316,7 +2312,6 @@ ol {
 
 .dashboard {
   --column-count: 2;
-  display: flex;
   flex-wrap: wrap;
   margin: 0 calc(var(--spacing) * -0.5);
   display: grid;
@@ -2475,8 +2470,8 @@ img {
 }
 
 .objective-description, .objective-description p {
-  margin-top: 0px;
-  margin-bottom: 0px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .todo-nav {
@@ -2563,7 +2558,7 @@ div.button, div.checker, div.radio, div.selector, div.uploader {
 }
 
 .task-container .card {
-  padding: 0px;
+  padding: 0;
   border: initial;
   background: #fff;
   border-radius: calc(.15rem - 1px);

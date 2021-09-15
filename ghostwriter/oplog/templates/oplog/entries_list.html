@@ -25,7 +25,6 @@
                 <a href="javascript:void(0)" id="createNewEntry" class="dropdown-item icon add-icon">Create Entry</a>
                 <a href="javascript:void(0)" id="importNewEntries" class="dropdown-item icon upload-icon">Import Entries</a>
                 <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
-                <a href="javascript:void(0)" id="createNewEntry" class="dropdown-item icon add-icon">Create Entry</a>
                 <a href="{% url 'rolodex:project_detail' project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
             </div>
         </div>
@@ -47,9 +46,15 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-2">
             <div style="clear: both;">
                 <a href="javascript:void(0);" id="columnSelectDropdown" class="align-icon icon add-icon">Select Columns</a>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div style="clear: both;" clas="align-middle">
+                <a href="javascript:void(0);" id="createNewEntryButton" class="align-icon icon add-icon">Create Entry</a>
             </div>
         </div>
 
@@ -542,11 +547,18 @@
                     'action': 'create',
                     'oplog_id': {{ pk }}
                 }))
-            })
+            });
+
+            $("#createNewEntryButton").click(function () {
+                socket.send(JSON.stringify({
+                    'action': 'create',
+                    'oplog_id': {{ pk }}
+                }))
+            });
 
             $('#importNewEntries').click(function () {
                 window.open('{% url "oplog:oplog_import" %}', '_self');
-            })
+            });
 
             function download(url, filename) {
                 fetch(url).then(function (t) {

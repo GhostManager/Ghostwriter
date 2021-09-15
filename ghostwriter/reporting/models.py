@@ -521,8 +521,7 @@ class ReportFindingLink(models.Model):
                                 ).update(position=new_pos)
 
                 # The ``ReportFindingLinkUpdateForm`` sets minimum number to 0, but check again for funny business
-                if self.position < 1:
-                    self.position = 1
+                self.position = max(self.position, 1)
 
                 # The ``position`` value should not be larger than total findings
                 if self.position > finding_queryset.count():

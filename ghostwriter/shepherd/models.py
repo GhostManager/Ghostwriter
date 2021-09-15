@@ -344,8 +344,7 @@ class Domain(models.Model):
                 )
                 if json_acceptable_string:
                     return json.loads(json_acceptable_string)
-                else:
-                    return None  # pragma: no cover
+                return None  # pragma: no cover
             except Exception:
                 return self.dns_record
         else:

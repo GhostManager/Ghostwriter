@@ -5,6 +5,9 @@ from datetime import datetime
 # Django Imports
 from django.test import TestCase
 
+# 3rd Party Libraries
+import pytz
+
 # Ghostwriter Libraries
 from ghostwriter.factories import OplogEntryFactory, OplogFactory
 
@@ -70,3 +73,24 @@ class OplogEntryModelTests(TestCase):
         entry.save()
         self.assertIsInstance(entry.start_date, datetime)
         self.assertIsInstance(entry.end_date, datetime)
+
+    def test_invalid_dates(self):
+        valid_start_date = datetime.now(pytz.UTC)
+        valid_end_date = datetime.now(pytz.UTC)
+        invalid_start_date = "2021-09-14 14:09"
+        invalid_end_date = "Totally a Date"
+
+        # Create new entry with valid dates
+        entry = OplogEntryFactory(start_date=valid_start_date, end_date=valid_end_date)
+
+        # Try invalid start date
+        entry.start_date = invalid_start_date
+        entry.save()
+        entry.refresh_from_db()
+        self.assertEqual(entry.start_date, valid_start_date)
+
+        # Try invalid end date
+        entry.end_date = invalid_end_date
+        entry.save()
+        entry.refresh_from_db()
+        self.assertEqual(entry.end_date, valid_end_date)

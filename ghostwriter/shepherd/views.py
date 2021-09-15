@@ -32,17 +32,22 @@ from ghostwriter.commandcenter.models import (
     VirusTotalConfiguration,
 )
 from ghostwriter.rolodex.models import Project
-
-from .filters import DomainFilter, ServerFilter
-from .forms import BurnForm, CheckoutForm, DomainForm, DomainLinkForm, DomainNoteForm
-from .forms_server import (
+from ghostwriter.shepherd.filters import DomainFilter, ServerFilter
+from ghostwriter.shepherd.forms import (
+    BurnForm,
+    CheckoutForm,
+    DomainForm,
+    DomainLinkForm,
+    DomainNoteForm,
+)
+from ghostwriter.shepherd.forms_server import (
     ServerAddressFormSet,
     ServerCheckoutForm,
     ServerForm,
     ServerNoteForm,
     TransientServerForm,
 )
-from .models import (
+from ghostwriter.shepherd.models import (
     AuxServerAddress,
     Domain,
     DomainNote,
@@ -56,7 +61,7 @@ from .models import (
     StaticServer,
     TransientServer,
 )
-from .resources import DomainResource, StaticServerResource
+from ghostwriter.shepherd.resources import DomainResource, StaticServerResource
 
 # Using __name__ resolves to ghostwriter.shepherd.views
 logger = logging.getLogger(__name__)
@@ -118,7 +123,7 @@ def ajax_load_project(request):
     project_id = request.GET.get("project")
     project = Project.objects.filter(id=project_id)
     data = serializers.serialize("json", project)
-    return HttpResponse(data, content_type="application/json")
+    return JsonResponse(data)
 
 
 @login_required
@@ -132,8 +137,16 @@ def ajax_domain_overwatch(request):
     try:
         client_id = int(request.GET.get("client"))
         domain_id = int(request.GET.get("domain"))
+    except TypeError:
+        logger.exception(
+            "Received bad primary key values: %s and %s", client_id, domain_id
+        )
     except Exception:
-        logger.exception("Received bad primary key values")
+        logger.exception(
+            "Encountered an unexpected issue with submitted values: %s and %s",
+            client_id,
+            domain_id,
+        )
 
     if client_id and domain_id:
         domain_history = History.objects.filter(Q(domain=domain_id) & Q(client=client_id))
@@ -156,10 +169,14 @@ def ajax_project_domains(request, pk):
     Retrieve all :model:`shepherd.History` related to an individual
     :model:`rolodex.Project`.
     """
-    domain_history = History.objects.filter(project=pk)
+    domain_history = {}
+    try:
+        domain_history = History.objects.filter(project=pk)
+    except History.DoesNotExist:
+        logger.error("No domain history found for the requested project")
     data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
 
-    return HttpResponse(data, content_type="application/json")
+    return JsonResponse(data, safe=False)
 
 
 class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
@@ -196,7 +213,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
                 if domain_instance.registrar.lower() == "namecheap":
                     namecheap_config = NamecheapConfiguration.get_solo()
                     if namecheap_config.enable:
-                        task_id = async_task(
+                        async_task(
                             "ghostwriter.shepherd.tasks.namecheap_reset_dns",
                             namecheap_config=namecheap_config,
                             domain=domain_instance,
@@ -592,27 +609,17 @@ def server_search(request):
                             reverse("rolodex:project_detail", kwargs={"pk": project_id})
                         )
                     )
-                else:
-                    return HttpResponseRedirect(
-                        reverse(
-                            "shepherd:server_checkout",
-                            kwargs={"pk": server_instance.id},
-                        )
-                    )
-            else:
-                messages.success(
-                    request,
-                    "No server was found matching {server}".format(server=ip_address),
-                    extra_tags="alert-success",
-                )
                 return HttpResponseRedirect(
-                    "{}#infrastructure".format(
-                        reverse("rolodex:project_detail", kwargs={"pk": project_id})
+                    reverse(
+                        "shepherd:server_checkout",
+                        kwargs={"pk": server_instance.id},
                     )
                 )
-        except Exception:
-            # Pass here to move on to try auxiliary address search
+        except StaticServer.DoesNotExist:
             pass
+        except Exception:
+            logger.exception("Encountered error with search query")
+
         try:
             server_instance = AuxServerAddress.objects.select_related(
                 "static_server"
@@ -632,37 +639,27 @@ def server_search(request):
                             reverse("rolodex:project_detail", kwargs={"pk": project_id})
                         )
                     )
-                else:
-                    return HttpResponseRedirect(
-                        reverse(
-                            "shepherd:server_checkout",
-                            kwargs={"pk": server_instance.static_server.id},
-                        )
-                    )
-            else:
-                messages.success(
-                    request,
-                    "No server was found matching {server}".format(server=ip_address),
-                    extra_tags="alert-success",
-                )
                 return HttpResponseRedirect(
-                    "{}#infrastructure".format(
-                        reverse("rolodex:project_detail", kwargs={"pk": project_id})
+                    reverse(
+                        "shepherd:server_checkout",
+                        kwargs={"pk": server_instance.static_server.id},
                     )
                 )
+        except AuxServerAddress.DoesNotExist:
+            pass
         except Exception:
-            messages.warning(
-                request,
-                "No server was found matching {server}".format(server=ip_address),
-                extra_tags="alert-warning",
+            logger.exception("Encountered error with search query")
+
+        messages.warning(
+            request,
+            "No server was found matching {server}".format(server=ip_address),
+            extra_tags="alert-warning",
+        )
+        return HttpResponseRedirect(
+            "{}#infrastructure".format(
+                reverse("rolodex:project_detail", kwargs={"pk": project_id})
             )
-            return HttpResponseRedirect(
-                "{}#infrastructure".format(
-                    reverse("rolodex:project_detail", kwargs={"pk": project_id})
-                )
-            )
-    else:
-        return HttpResponseRedirect(reverse("rolodex:index"))
+        )
 
 
 @login_required
@@ -722,9 +719,7 @@ def infrastructure_search(request):
             )
             logger.exception("Encountered error with search query")
 
-        return render(request, "shepherd/server_search.html", context)
-    else:
-        return HttpResponseRedirect(reverse("rolodex:index"))
+    return render(request, "shepherd/server_search.html", context)
 
 
 @login_required
@@ -906,9 +901,8 @@ def update(request):
         total_domains = Domain.objects.all().exclude(domain_status=expired_status).count()
         try:
             update_time = round(total_domains * sleep_time / 60, 2)
-        except Exception:
-            sleep_time = 20
-            update_time = round(total_domains * sleep_time / 60, 2)
+        except ZeroDivisionError:
+            update_time = total_domains
         try:
             # Get the latest completed task from `Domain Updates`
             queryset = Task.objects.filter(group="Domain Updates")[0]
@@ -922,7 +916,7 @@ def update(request):
                 cat_last_update_time = round(queryset.time_taken() / 60, 2)
             else:
                 cat_last_update_completed = "Failed"
-        except Exception:
+        except IndexError:
             cat_last_update_requested = "Updates Have Not Been Run Yet"
 
         # Collect data for DNS updates
@@ -938,7 +932,7 @@ def update(request):
                 dns_last_update_time = round(queryset.time_taken() / 60, 2)
             else:
                 dns_last_update_completed = "Failed"
-        except Exception:
+        except IndexError:
             dns_last_update_requested = "Updates Have Not Been Run Yet"
 
         # Collect data for Namecheap updates
@@ -955,7 +949,7 @@ def update(request):
                     namecheap_last_update_time = round(queryset.time_taken() / 60, 2)
                 else:
                     namecheap_last_update_completed = "Failed"
-            except Exception:
+            except IndexError:
                 namecheap_last_update_requested = "Namecheap Sync Has Not Been Run Yet"
         else:
             namecheap_last_update_requested = "Namecheap Syncing is Disabled"
@@ -974,7 +968,7 @@ def update(request):
                     cloud_last_update_time = round(queryset.time_taken() / 60, 2)
                 else:
                     cloud_last_update_completed = "Failed"
-            except Exception:
+            except IndexError:
                 cloud_last_update_requested = "Cloud Review Has Not Been Run Yet"
         else:
             cloud_last_update_requested = "Cloud Services are Disabled"
@@ -1004,8 +998,7 @@ def update(request):
             "cloud_last_result": cloud_last_result,
         }
         return render(request, "shepherd/update.html", context=context)
-    else:
-        return HttpResponseRedirect(reverse("shepherd:update"))
+    return HttpResponseRedirect(reverse("shepherd:update"))
 
 
 def export_domains_to_csv(request):
@@ -1378,9 +1371,8 @@ class ServerCreate(LoginRequiredMixin, CreateView):
                     addresses.save()
                 if form.is_valid() and addresses_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1447,9 +1439,8 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
                     addresses.save()
                 if form.is_valid() and addresses_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"

@@ -119,13 +119,13 @@ def craft_unknown_asset_message(
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": ":eye: Untracked Cloud Server :eyes:",
+        "text": ":eyes: Untracked Cloud Server :eyes:",
         "blocks": [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": ":eye: Untracked Cloud Server :eyes:",
+                    "text": ":eyes: Untracked Cloud Server :eyes:",
                 },
             },
             {
@@ -384,7 +384,7 @@ def namecheap_reset_dns(namecheap_config, domain):
                 is_success = root.CommandResponse.DomainDNSSetHostsResult.attrib[
                     "IsSuccess"
                 ]
-                warnings = root.CommandResponse.DomainDNSSetHostsResult.Warnings
+                # warnings = root.CommandResponse.DomainDNSSetHostsResult.Warnings
                 if is_success == "true":
                     logger.info("Successfully reset DNS records for %s", domain.name)
                     results["result"] = "reset"
@@ -508,10 +508,7 @@ def release_domains(no_action=False):
 
             # Handle DNS record resets
             if domain.reset_dns:
-                if (
-                    namecheap_config.enable
-                    and domain.registrar.lower() == "namecheap"
-                ):
+                if namecheap_config.enable and domain.registrar.lower() == "namecheap":
                     reset_result = namecheap_reset_dns(namecheap_config, domain)
                     domain_updates[domain.id]["dns"] = reset_result["result"]
                     if reset_result["error"]:
@@ -669,7 +666,7 @@ def check_domains(domain=None):
                         lab_results[domain]["categories"],
                         lab_results[domain]["burned_explanation"],
                     )
-                    response = requests.post(
+                    requests.post(
                         slack_config.webhook_url,
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
@@ -689,7 +686,7 @@ def check_domains(domain=None):
                             "VirusTotal Submission",
                             lab_results[domain]["warnings"]["messages"],
                         )
-                        response = requests.post(
+                        requests.post(
                             slack_config.webhook_url,
                             data=slack_data,
                             headers={"Content-Type": "application/json"},
@@ -718,7 +715,6 @@ def check_domains(domain=None):
             domain_updates["errors"][domain.name] = {}
             domain_updates["errors"][domain.name] = trace
             logger.exception('Error updating "%s"', domain.name)
-            pass
 
     return domain_updates
 
@@ -1014,7 +1010,6 @@ def fetch_namecheap_domains():
                             domain=domain, traceback=trace
                         )
                         logger.exception("Failed to update the entry for %s", domain.name)
-                        pass
                     instance = DomainNote.objects.create(
                         domain=domain,
                         note="Automatically set to Expired because the domain did not appear in Namecheap during a sync.",
@@ -1153,6 +1148,7 @@ def json_datetime_converter(dt):
     """
     if isinstance(dt, datetime.datetime):
         return dt.__str__()
+    return None
 
 
 def review_cloud_infrastructure(aws_only_running=False):
@@ -1174,6 +1170,9 @@ def review_cloud_infrastructure(aws_only_running=False):
 
     # Fetch cloud API keys and tokens
     cloud_config = CloudServicesConfiguration.get_solo()
+    ignore_tags = []
+    for tag in cloud_config.ignore_tag.split(","):
+        ignore_tags.append(tag.strip())
 
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
@@ -1248,13 +1247,17 @@ def review_cloud_infrastructure(aws_only_running=False):
                 )
                 tags = []
                 name = "Blank"
+                ignore = False
                 if instance.tags:
                     for tag in instance.tags:
-                        # AWS assigns names to instances via a ``Name`` key`
+                        # AWS assigns names to instances via a ``Name`` key
                         if tag["Key"] == "Name":
                             name = tag["Value"]
                         else:
                             tags.append("{}: {}".format(tag["Key"], tag["Value"]))
+                        # Check for "ignore tags"
+                        if tag["Key"] in ignore_tags or tag["Value"] in ignore_tags:
+                            ignore = True
                 pub_addresses = []
                 pub_addresses.append(instance.public_ip_address)
                 priv_addresses = []
@@ -1274,6 +1277,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                     "launch_time": instance.launch_time.replace(tzinfo=utc),
                     "time_up": "{} months".format(time_up),
                     "tags": ", ".join(tags),
+                    "ignore": ignore,
                 }
 
     ###############
@@ -1334,6 +1338,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # Loop over the droplets to generate the info dict
     if do_capable and "droplets" in active_droplets:
         for droplet in active_droplets["droplets"]:
+            ignore = False
             # Get the networking info
             if "v4" in droplet["networks"]:
                 ipv4 = droplet["networks"]["v4"]
@@ -1372,6 +1377,10 @@ def review_cloud_infrastructure(aws_only_running=False):
                 )
                 * droplet["size"]["price_monthly"]
             )
+            # Check for "ignore tags"
+            for tag in droplet["tags"]:
+                if tag in ignore_tags:
+                    ignore = True
             # Add an entry to the dict for the droplet
             vps_info["instances"][droplet["id"]] = {
                 "id": droplet["id"],
@@ -1389,6 +1398,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                 ).replace(tzinfo=utc),
                 "time_up": "{} months".format(time_up),
                 "tags": ", ".join(droplet["tags"]),
+                "ignore": ignore,
             }
     # Examine results to identify potentially unneeded/unused machines
     assets_in_use = []
@@ -1427,10 +1437,10 @@ def review_cloud_infrastructure(aws_only_running=False):
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
-                                ", ".join(instance["public_ip"]),
+                                instance["public_ip"],
                                 instance["tags"],
                             )
-                            response = requests.post(
+                            requests.post(
                                 slack_config.webhook_url,
                                 data=slack_data,
                                 headers={"Content-Type": "application/json"},
@@ -1445,10 +1455,10 @@ def review_cloud_infrastructure(aws_only_running=False):
                                 result.project.end_date,
                                 instance["provider"],
                                 instance_name,
-                                ", ".join(instance["public_ip"]),
+                                instance["public_ip"],
                                 instance["tags"],
                             )
-                            response = requests.post(
+                            requests.post(
                                 slack_config.webhook_url,
                                 data=slack_data,
                                 headers={"Content-Type": "application/json"},
@@ -1457,16 +1467,15 @@ def review_cloud_infrastructure(aws_only_running=False):
                     # Project is still active, so track these assets for later
                     assets_in_use.append(instance_id)
         else:
-            ignore_tags = []
             instance_tags = []
-            for tag in cloud_config.ignore_tag.split(","):
-                ignore_tags.append(tag.strip())
             for tag in instance["tags"].split(","):
                 instance_tags.append(tag.strip())
-            if any(tag in ignore_tags for tag in instance_tags):
+            # if any(tag in ignore_tags for tag in instance_tags):
+            if instance["ignore"]:
                 logger.info(
-                    "Ignoring %s because it is tagged with a configured ignore tag",
+                    "Ignoring %s because it is tagged with a configured ignore tag (tags: %s)",
                     instance_name,
+                    instance["tags"],
                 )
                 assets_in_use.append(instance_id)
             else:
@@ -1478,10 +1487,10 @@ def review_cloud_infrastructure(aws_only_running=False):
                         instance["launch_time"],
                         instance["provider"],
                         instance_name,
-                        ", ".join(instance["public_ip"]),
+                        instance["public_ip"],
                         instance["tags"],
                     )
-                    response = requests.post(
+                    requests.post(
                         slack_config.webhook_url,
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
@@ -1747,7 +1756,7 @@ def test_slack_webhook(user):
                 elif "action_prohibited" in response.text:
                     message = f"Slack accepted the request, but said your Webhook token cannot send messages to {slack_config.slack_channel}, or is otherwise restricted"
                 else:
-                    message = f"Slack accepted the request, but said your Webhook token is not permitted to send messages"
+                    message = "Slack accepted the request, but said your Webhook token is not permitted to send messages"
             elif response.status_code == 404:
                 if "channel_not_found" in response.text:
                     message = f"Slack accepted the request, but said it could not find the {slack_config.slack_channel} channel"

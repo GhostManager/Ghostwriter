@@ -21,10 +21,13 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # Ghostwriter Libraries
 from ghostwriter.modules import codenames
-
-from .filters import ClientFilter, ProjectFilter
-from .forms_client import ClientContactFormSet, ClientForm, ClientNoteForm
-from .forms_project import (
+from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
+from ghostwriter.rolodex.forms_client import (
+    ClientContactFormSet,
+    ClientForm,
+    ClientNoteForm,
+)
+from ghostwriter.rolodex.forms_project import (
     ProjectAssignmentFormSet,
     ProjectForm,
     ProjectNoteForm,
@@ -32,7 +35,7 @@ from .forms_project import (
     ProjectScopeFormSet,
     ProjectTargetFormSet,
 )
-from .models import (
+from ghostwriter.rolodex.models import (
     Client,
     ClientContact,
     ClientNote,
@@ -46,6 +49,7 @@ from .models import (
     ProjectSubTask,
     ProjectTarget,
 )
+from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
 
 # Using __name__ resolves to ghostwriter.rolodex.views
 logger = logging.getLogger(__name__)
@@ -790,8 +794,8 @@ def project_list(request):
     project_list = (
         Project.objects.select_related("client").all().order_by("complete", "client")
     )
-    project_list = ProjectFilter(request.GET, queryset=project_list)
-    return render(request, "rolodex/project_list.html", {"filter": project_list})
+    filtered_list = ProjectFilter(request.GET, queryset=project_list)
+    return render(request, "rolodex/project_list.html", {"filter": filtered_list})
 
 
 ################
@@ -822,9 +826,6 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
     model = Client
 
     def get_context_data(self, **kwargs):
-        # Ghostwriter Libraries
-        from ghostwriter.shepherd.models import History, ServerHistory, TransientServer
-
         ctx = super().get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         domain_history = History.objects.select_related("domain").filter(
@@ -911,9 +912,8 @@ class ClientCreate(LoginRequiredMixin, CreateView):
 
                 if form.is_valid() and contacts_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -996,9 +996,8 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
                 if form.is_valid() and contacts_valid:
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return `form_invalid` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1268,9 +1267,8 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     and targets_valid
                 ):
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
         except Exception as exception:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -1365,9 +1363,6 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         targets = ctx["targets"]
         objectives = ctx["objectives"]
         assignments = ctx["assignments"]
-
-        # Ghostwriter Libraries
-        from ghostwriter.shepherd.models import History, ServerHistory
 
         # Now validate inline formsets
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
@@ -1466,9 +1461,8 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     and targets_valid
                 ):
                     return super().form_valid(form)
-                else:
-                    # Raise an error to rollback transactions
-                    raise forms.ValidationError(_("Invalid form data"))
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
         except Exception:
             logger.exception("Failed to update the project")
