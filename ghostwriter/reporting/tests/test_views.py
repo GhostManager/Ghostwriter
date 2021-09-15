@@ -1,6 +1,5 @@
 # Standard Libraries
 import logging
-import random
 from datetime import datetime
 
 # Django Imports
@@ -10,30 +9,17 @@ from django.utils.encoding import force_text
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    ClientContactFactory,
-    ClientFactory,
-    DomainServerConnectionFactory,
     EvidenceFactory,
     FindingFactory,
     FindingTypeFactory,
     GenerateMockProject,
-    HistoryFactory,
-    ObjectivePriorityFactory,
-    ObjectiveStatusFactory,
-    ProjectAssignmentFactory,
     ProjectFactory,
-    ProjectObjectiveFactory,
-    ProjectScopeFactory,
-    ProjectSubtaskFactory,
-    ProjectTargetFactory,
     ReportDocxTemplateFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     ReportPptxTemplateFactory,
     ReportTemplateFactory,
-    ServerHistoryFactory,
     SeverityFactory,
-    TransientServerFactory,
     UserFactory,
 )
 from ghostwriter.reporting.templatetags import report_tags
