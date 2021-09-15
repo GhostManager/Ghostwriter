@@ -1058,9 +1058,9 @@ def download_archive(request, pk):
     archive_instance = Archive.objects.get(pk=pk)
     file_path = os.path.join(settings.MEDIA_ROOT, archive_instance.report_archive.path)
     if os.path.exists(file_path):
-        with open(file_path, "rb") as archive:
+        with open(file_path, "rb") as archive_file:
             response = HttpResponse(
-                archive.read(), content_type="application/x-zip-compressed"
+                archive_file.read(), content_type="application/x-zip-compressed"
             )
             response["Content-Disposition"] = "inline; filename=" + os.path.basename(
                 file_path
