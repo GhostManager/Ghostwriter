@@ -119,13 +119,13 @@ def craft_unknown_asset_message(
         "username": username,
         "icon_emoji": emoji,
         "channel": channel,
-        "text": ":eye: Untracked Cloud Server :eyes:",
+        "text": ":eyes: Untracked Cloud Server :eyes:",
         "blocks": [
             {
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": ":eye: Untracked Cloud Server :eyes:",
+                    "text": ":eyes: Untracked Cloud Server :eyes:",
                 },
             },
             {
