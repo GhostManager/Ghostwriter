@@ -87,7 +87,7 @@
                         <th>Activity Type</th>
                         <th>Server Role</th>
                         <th>Domain</th>
-                        <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                        <th class="sorter-date-range-dmy">Execution Window</th>
                         <th class="sorter-false">Notes</th>
                         <th class="sorter-false">Edit</th>
                     </tr>
@@ -102,7 +102,7 @@
                         {% else %}
                             <td>No Assoc. Domain</td>
                         {% endif %}
-                        <td>{{ project.start_date }} - {{ project.end_date }}</td>
+                        <td>{{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</td>
                         <td class="table-note">{{ project.note|bleach }}</td>
                         <td>
                             <a class="icon edit-icon" href="{% url 'shepherd:server_history_update' project.id %}"></a>
