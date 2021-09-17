@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 
 # Django Imports
 from django.test import TestCase
@@ -163,7 +163,7 @@ class ProjectModelTests(TestCase):
         assert not self.Project.objects.all().exists()
 
     def test_checkout_adjustment_signal(self):
-        project = ProjectFactory()
+        project = ProjectFactory(start_date=date.today(), end_date=date.today())
         domain_checkout = HistoryFactory(
             start_date=project.start_date, end_date=project.end_date, project=project
         )
@@ -172,7 +172,7 @@ class ProjectModelTests(TestCase):
         )
 
         new_start = project.start_date - timedelta(days=14)
-        new_end = project.end_date - timedelta(days=14)
+        new_end = project.end_date + timedelta(days=14)
 
         project.start_date = new_start
         project.end_date = new_end
