@@ -36,7 +36,7 @@ class HealthStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.HealthStatus = HealthStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = HealthStatusFactory(health_status="Healthy")
 
@@ -75,7 +75,7 @@ class DomainStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.DomainStatus = DomainStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = DomainStatusFactory(domain_status="Available")
 
@@ -114,7 +114,7 @@ class WhoisStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.WhoisStatus = WhoisStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = WhoisStatusFactory(whois_status="Enabled")
 
@@ -153,7 +153,7 @@ class ActivityTypeModelTests(TestCase):
     def setUpTestData(cls):
         cls.ActivityType = ActivityTypeFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         activity_type = ActivityTypeFactory(activity="Phishing")
 
@@ -182,7 +182,7 @@ class DomainModelTests(TestCase):
     def setUpTestData(cls):
         cls.Domain = DomainFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         domain = DomainFactory(name="ghostwriter.wiki")
 
@@ -273,8 +273,10 @@ class HistoryModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.History = HistoryFactory._meta.model
+        cls.available_status = DomainStatusFactory(domain_status="Available")
+        cls.unavailable_status = DomainStatusFactory(domain_status="Unavailable")
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         entry = HistoryFactory(domain=DomainFactory(name="ghostwriter.wiki"))
 
@@ -310,9 +312,7 @@ class HistoryModelTests(TestCase):
             self.fail("History model `will_be_released` method failed unexpectedly!")
 
     def test_delete_signal(self):
-        available_status = DomainStatusFactory(domain_status="Available")
-        unavailable_status = DomainStatusFactory(domain_status="Unavailable")
-        domain = DomainFactory(domain_status=unavailable_status)
+        domain = DomainFactory(domain_status=self.unavailable_status)
 
         today = date.today()
         tomorrow = today + timedelta(days=1)
@@ -327,12 +327,12 @@ class HistoryModelTests(TestCase):
         # Deleting this older checkout should not impact the domain's status
         history_1.delete()
         domain.refresh_from_db()
-        self.assertTrue(domain.domain_status == unavailable_status)
+        self.assertTrue(domain.domain_status == self.unavailable_status)
 
         # Deleting this newer checkout should impact the domain's status
         history_2.delete()
         domain.refresh_from_db()
-        self.assertTrue(domain.domain_status == available_status)
+        self.assertTrue(domain.domain_status == self.available_status)
 
 
 class ServerStatusModelTests(TestCase):
@@ -342,7 +342,7 @@ class ServerStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerStatus = ServerStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = ServerStatusFactory(server_status="Available")
 
@@ -381,7 +381,7 @@ class ServerProviderModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerProvider = ServerProviderFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         provider = ServerProviderFactory(server_provider="Digital Ocean")
 
@@ -420,7 +420,7 @@ class ServerRoleModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerRole = ServerRoleFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         role = ServerRoleFactory(server_role="Redirector")
 
@@ -449,7 +449,7 @@ class StaticServerModelTests(TestCase):
     def setUpTestData(cls):
         cls.StaticServer = StaticServerFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         server = StaticServerFactory(ip_address="192.168.1.100")
 
@@ -480,7 +480,7 @@ class TransientServerModelTests(TestCase):
     def setUpTestData(cls):
         cls.TransientServer = TransientServerFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         server = TransientServerFactory(ip_address="192.168.1.100")
 
@@ -511,7 +511,7 @@ class AuxServerAddressModelTests(TestCase):
     def setUpTestData(cls):
         cls.AuxServerAddress = AuxServerAddressFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         server = AuxServerAddressFactory(ip_address="192.168.1.100")
 
@@ -539,8 +539,10 @@ class ServerHistoryModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.ServerHistory = ServerHistoryFactory._meta.model
+        cls.available_status = ServerStatusFactory(server_status="Available")
+        cls.unavailable_status = ServerStatusFactory(server_status="Unavailable")
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         entry = ServerHistoryFactory(server=StaticServerFactory(name="teamserver.local"))
 
@@ -604,9 +606,7 @@ class ServerHistoryModelTests(TestCase):
             )
 
     def test_delete_signal(self):
-        available_status = ServerStatusFactory(server_status="Available")
-        unavailable_status = ServerStatusFactory(server_status="Unavailable")
-        server = StaticServerFactory(server_status=unavailable_status)
+        server = StaticServerFactory(server_status=self.unavailable_status)
 
         today = date.today()
         tomorrow = today + timedelta(days=1)
@@ -623,12 +623,12 @@ class ServerHistoryModelTests(TestCase):
         # Deleting this older checkout should not impact the server's status
         history_1.delete()
         server.refresh_from_db()
-        self.assertTrue(server.server_status == unavailable_status)
+        self.assertTrue(server.server_status == self.unavailable_status)
 
         # Deleting this newer checkout should impact the server's status
         history_2.delete()
         server.refresh_from_db()
-        self.assertTrue(server.server_status == available_status)
+        self.assertTrue(server.server_status == self.available_status)
 
 
 class DomainServerConnectionModelTests(TestCase):
@@ -638,7 +638,7 @@ class DomainServerConnectionModelTests(TestCase):
     def setUpTestData(cls):
         cls.DomainServerConnection = DomainServerConnectionFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         entry = DomainServerConnectionFactory(subdomain="wiki")
 
@@ -694,7 +694,7 @@ class DomainNoteModelTests(TestCase):
     def setUpTestData(cls):
         cls.DomainNote = DomainNoteFactory._meta.model
 
-    def test_crud_finding_note(self):
+    def test_crud_note(self):
         # Create
         note = DomainNoteFactory(note="Test note")
 
@@ -721,7 +721,7 @@ class ServerNoteModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerNote = ServerNoteFactory._meta.model
 
-    def test_crud_finding_note(self):
+    def test_crud_note(self):
         # Create
         note = ServerNoteFactory(note="Test note")
 
