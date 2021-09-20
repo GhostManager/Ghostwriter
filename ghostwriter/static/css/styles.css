@@ -902,6 +902,18 @@ p.severity-box.info {
   color: #fff;
 }
 
+.btn-primary:active {
+  background-color: var(--button-hover-color);
+  border-color: var(--button-hover-color);
+  color: #fff;
+}
+
+.btn-primary:focus {
+  background-color: var(--button-hover-color);
+  border-color: var(--button-hover-color);
+  color: #fff;
+}
+
 /* ---------------------------------------------------
     TABLE STYLES
 ----------------------------------------------------- */
