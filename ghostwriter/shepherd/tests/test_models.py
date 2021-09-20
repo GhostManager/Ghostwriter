@@ -59,7 +59,7 @@ class HealthStatusModelTests(TestCase):
 
     def test_prop_count_status(self):
         status = HealthStatusFactory(health_status="Healthy")
-        domain = DomainFactory(health_status=status)
+        DomainFactory(health_status=status)
 
         try:
             count = status.count
@@ -98,7 +98,7 @@ class DomainStatusModelTests(TestCase):
 
     def test_prop_count_status(self):
         status = DomainStatusFactory(domain_status="Available")
-        domain = DomainFactory(domain_status=status)
+        DomainFactory(domain_status=status)
 
         try:
             count = status.count
@@ -309,6 +309,31 @@ class HistoryModelTests(TestCase):
         except Exception:
             self.fail("History model `will_be_released` method failed unexpectedly!")
 
+    def test_delete_signal(self):
+        available_status = DomainStatusFactory(domain_status="Available")
+        unavailable_status = DomainStatusFactory(domain_status="Unavailable")
+        domain = DomainFactory(domain_status=unavailable_status)
+
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        next_week = today + timedelta(days=7)
+        two_weeks = today + timedelta(days=14)
+
+        history_1 = HistoryFactory(start_date=today, end_date=tomorrow, domain=domain)
+        history_2 = HistoryFactory(
+            start_date=next_week, end_date=two_weeks, domain=domain
+        )
+
+        # Deleting this older checkout should not impact the domain's status
+        history_1.delete()
+        domain.refresh_from_db()
+        self.assertTrue(domain.domain_status == unavailable_status)
+
+        # Deleting this newer checkout should impact the domain's status
+        history_2.delete()
+        domain.refresh_from_db()
+        self.assertTrue(domain.domain_status == available_status)
+
 
 class ServerStatusModelTests(TestCase):
     """Collection of tests for :model:`shepherd.ServerStatus`."""
@@ -340,7 +365,7 @@ class ServerStatusModelTests(TestCase):
 
     def test_prop_count_status(self):
         status = ServerStatusFactory(server_status="Enabled")
-        server = StaticServerFactory(server_status=status)
+        StaticServerFactory(server_status=status)
 
         try:
             count = status.count
@@ -379,7 +404,7 @@ class ServerProviderModelTests(TestCase):
 
     def test_prop_count_status(self):
         provider = ServerProviderFactory(server_provider="AWS")
-        server = StaticServerFactory(server_provider=provider)
+        StaticServerFactory(server_provider=provider)
 
         try:
             count = provider.count
@@ -577,6 +602,33 @@ class ServerHistoryModelTests(TestCase):
             self.fail(
                 "ServerHistory model `will_be_released` method failed unexpectedly!"
             )
+
+    def test_delete_signal(self):
+        available_status = ServerStatusFactory(server_status="Available")
+        unavailable_status = ServerStatusFactory(server_status="Unavailable")
+        server = StaticServerFactory(server_status=unavailable_status)
+
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        next_week = today + timedelta(days=7)
+        two_weeks = today + timedelta(days=14)
+
+        history_1 = ServerHistoryFactory(
+            start_date=today, end_date=tomorrow, server=server
+        )
+        history_2 = ServerHistoryFactory(
+            start_date=next_week, end_date=two_weeks, server=server
+        )
+
+        # Deleting this older checkout should not impact the server's status
+        history_1.delete()
+        server.refresh_from_db()
+        self.assertTrue(server.server_status == unavailable_status)
+
+        # Deleting this newer checkout should impact the server's status
+        history_2.delete()
+        server.refresh_from_db()
+        self.assertTrue(server.server_status == available_status)
 
 
 class DomainServerConnectionModelTests(TestCase):
