@@ -1,21 +1,18 @@
 """This contains tasks to be run using Django Q and Redis."""
 
 # Standard Libraries
-import datetime
 import json
 import logging
 import logging.config
 import traceback
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 
 # Django Imports
 from django.db.models import Q
 
 # 3rd Party Libraries
-import boto3
 import nmap
-import pytz
 import requests
 from asgiref.sync import async_to_sync
 from botocore.exceptions import ClientError
@@ -28,6 +25,13 @@ from ghostwriter.commandcenter.models import (
     NamecheapConfiguration,
     SlackConfiguration,
     VirusTotalConfiguration,
+)
+from ghostwriter.modules.cloud_monitors import (
+    fetch_aws_ec2,
+    fetch_aws_lightsail,
+    fetch_aws_s3,
+    fetch_digital_ocean,
+    test_aws,
 )
 from ghostwriter.modules.dns_toolkit import DNSCollector
 from ghostwriter.modules.review import DomainReview
@@ -454,7 +458,7 @@ def release_domains(no_action=False):
     queryset = Domain.objects.filter(domain_status__domain_status="Unavailable")
 
     # Go through each ``Unavailable`` domain and check it against projects
-    logger.info("Starting domain release task at %s", datetime.datetime.now())
+    logger.info("Starting domain release task at %s", datetime.now())
     for domain in queryset:
         release_me = True
         slack_channel = None
@@ -481,7 +485,7 @@ def release_domains(no_action=False):
             logger.warning(
                 "The domain %s has no project history, so releasing it", domain.name
             )
-            release_date = datetime.datetime.today()
+            release_date = datetime.today()
 
         # If ``release_me`` is still ``True``, release the domain
         if release_me:
@@ -517,7 +521,7 @@ def release_domains(no_action=False):
             else:
                 domain_updates[domain.id]["dns"] = "no action"
 
-    logger.info("Domain release task completed at %s", datetime.datetime.now())
+    logger.info("Domain release task completed at %s", datetime.now())
     return domain_updates
 
 
@@ -569,7 +573,7 @@ def release_servers(no_action=False):
                 "The server %s has no project history, so releasing it",
                 server.ip_address,
             )
-            release_date = datetime.datetime.today()
+            release_date = datetime.today()
 
         # If ``release_me`` is still ``True``, release the server
         if release_me:
@@ -591,7 +595,7 @@ def release_servers(no_action=False):
                 server.save()
                 server_updates[server.id]["change"] = "released"
 
-    logger.info("Server release task completed at %s", datetime.datetime.now())
+    logger.info("Server release task completed at %s", datetime.now())
     return server_updates
 
 
@@ -706,7 +710,7 @@ def check_domains(domain=None):
                 domain.all_cat = ", ".join(lab_results[domain]["categories"]).title()
             else:
                 domain.all_cat = "Uncategorized"
-            domain.last_health_check = datetime.datetime.now()
+            domain.last_health_check = datetime.now()
             domain.save()
             domain_updates[domain.id]["change"] = change
         except Exception:
@@ -741,10 +745,10 @@ def update_dns(domain=None):
         logger.info(
             "Starting DNS record update for an individual domain %s at %s",
             domain_queryset.name,
-            datetime.datetime.now(),
+            datetime.now(),
         )
     else:
-        logger.info("Starting mass DNS record update at %s", datetime.datetime.now())
+        logger.info("Starting mass DNS record update at %s", datetime.now())
         domain_queryset = Domain.objects.filter(
             ~Q(domain_status=DomainStatus.objects.get(domain_status="Expired"))
         )
@@ -828,7 +832,7 @@ def update_dns(domain=None):
             domain_updates[domain.id]["result"] = "no results"
 
     # Log task completed
-    logger.info("DNS update completed at %s", datetime.datetime.now())
+    logger.info("DNS update completed at %s", datetime.now())
     return domain_updates
 
 
@@ -910,7 +914,7 @@ def fetch_namecheap_domains():
     session = requests.Session()
     get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}"
 
-    logger.info("Starting Namecheap synchronization task at %s", datetime.datetime.now())
+    logger.info("Starting Namecheap synchronization task at %s", datetime.now())
 
     namecheap_config = NamecheapConfiguration.get_solo()
 
@@ -1059,10 +1063,10 @@ def fetch_namecheap_domains():
                 entry["auto_renew"] = False
 
             # Convert Namecheap dates to Django
-            entry["creation"] = datetime.datetime.strptime(
-                domain["Created"], "%m/%d/%Y"
-            ).strftime("%Y-%m-%d")
-            entry["expiration"] = datetime.datetime.strptime(
+            entry["creation"] = datetime.strptime(domain["Created"], "%m/%d/%Y").strftime(
+                "%Y-%m-%d"
+            )
+            entry["expiration"] = datetime.strptime(
                 domain["Expires"], "%m/%d/%Y"
             ).strftime("%Y-%m-%d")
 
@@ -1101,7 +1105,7 @@ def fetch_namecheap_domains():
                 domain_changes["errors"][domain["Name"]]["error"] = trace
         logger.info(
             "Namecheap synchronization completed at %s with these changes:\n%s",
-            datetime.datetime.now(),
+            datetime.now(),
             domain_changes,
         )
     else:
@@ -1146,7 +1150,7 @@ def json_datetime_converter(dt):
         Datetime object to convert to a string
 
     """
-    if isinstance(dt, datetime.datetime):
+    if isinstance(dt, datetime):
         return dt.__str__()
     return None
 
@@ -1165,9 +1169,6 @@ def review_cloud_infrastructure(aws_only_running=False):
     ``aws_only_running``
         Filter out any shutdown AWS resources, where possible (Default: False)
     """
-    # Digital Ocean API endpoint for droplets
-    DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
-
     # Fetch cloud API keys and tokens
     cloud_config = CloudServicesConfiguration.get_solo()
     ignore_tags = []
@@ -1177,237 +1178,77 @@ def review_cloud_infrastructure(aws_only_running=False):
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
 
-    # Set timezone for dates to UTC
-    utc = pytz.UTC
-
     # Create info dict
     vps_info = defaultdict()
     vps_info["errors"] = {}
     vps_info["instances"] = {}
 
-    logger.info("Starting review of cloud infrastructure at %s", datetime.datetime.now())
+    logger.info("Starting review of cloud infrastructure at %s", datetime.now())
 
     ###############
     # AWS Section #
     ###############
 
-    # Create AWS client for EC2 using a default region and get a list of all regions
     aws_capable = True
-    regions = []
-    try:
-        client = boto3.client(
-            "ec2",
-            region_name="us-west-2",
-            aws_access_key_id=cloud_config.aws_key,
-            aws_secret_access_key=cloud_config.aws_secret,
-        )
-        regions = [
-            region["RegionName"] for region in client.describe_regions()["Regions"]
-        ]
-    except ClientError:
-        logger.error("AWS could not validate the provided credentials for EC2")
-        aws_capable = False
-        vps_info["errors"][
-            "aws"
-        ] = "AWS could not validate the provided credentials for EC2"
-    except Exception:
-        trace = traceback.format_exc()
-        logger.exception("Testing authentication to AWS failed")
-        aws_capable = False
-        vps_info["errors"][
-            "aws"
-        ] = "Testing authentication to AWS EC2 failed: {traceback}".format(
-            traceback=trace
-        )
+
+    # Test connection with STS
+    results = test_aws(cloud_config.aws_key, cloud_config.aws_secret)
+    aws_capable = results["capable"]
     if aws_capable:
-        logger.info("AWS credentials are functional for EC2, beginning AWS review")
-        # Loop over the regions to check each one for EC2 instances
-        for region in regions:
-            logger.info("Checking AWS region %s", region)
-            # Create an EC2 resource for the region
-            ec2 = boto3.resource(
-                "ec2",
-                region_name=region,
-                aws_access_key_id=cloud_config.aws_key,
-                aws_secret_access_key=cloud_config.aws_secret,
-            )
-            # Get all EC2 instances that are running
-            if aws_only_running:
-                running_instances = ec2.instances.filter(
-                    Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
-                )
-            else:
-                running_instances = ec2.instances.all()
-            # Loop over running instances to generate info dict
-            for instance in running_instances:
-                # Calculate how long the instance has been running in UTC
-                time_up = months_between(
-                    instance.launch_time.replace(tzinfo=utc),
-                    datetime.datetime.today().replace(tzinfo=utc),
-                )
-                tags = []
-                name = "Blank"
-                ignore = False
-                if instance.tags:
-                    for tag in instance.tags:
-                        # AWS assigns names to instances via a ``Name`` key
-                        if tag["Key"] == "Name":
-                            name = tag["Value"]
-                        else:
-                            tags.append("{}: {}".format(tag["Key"], tag["Value"]))
-                        # Check for "ignore tags"
-                        if tag["Key"] in ignore_tags or tag["Value"] in ignore_tags:
-                            ignore = True
-                pub_addresses = []
-                pub_addresses.append(instance.public_ip_address)
-                priv_addresses = []
-                priv_addresses.append(instance.private_ip_address)
-                # Add instance info to a dictionary
-                vps_info["instances"][instance.id] = {
-                    "id": instance.id,
-                    "provider": "Amazon Web Services {}".format(region),
-                    "service": "EC2",
-                    "name": name,
-                    "type": instance.instance_type,
-                    "monthly_cost": None,  # AWS cost is different and not easily calculated
-                    "cost_to_date": None,  # AWS cost is different and not easily calculated
-                    "state": instance.state["Name"],
-                    "private_ip": priv_addresses,
-                    "public_ip": pub_addresses,
-                    "launch_time": instance.launch_time.replace(tzinfo=utc),
-                    "time_up": "{} months".format(time_up),
-                    "tags": ", ".join(tags),
-                    "ignore": ignore,
-                }
+        logger.info("AWS credentials are functional so beginning AWS review")
+
+        # Check EC2
+        ec2_results = fetch_aws_ec2(
+            cloud_config.aws_key, cloud_config.aws_secret, ignore_tags, aws_only_running
+        )
+        if ec2_results["message"]:
+            vps_info["errors"]["ec2"] = results["message"]
+        else:
+            for instance in ec2_results["instances"]:
+                vps_info["instances"][instance["id"]] = instance
+
+        # Check Lightsail
+        lightsail_results = fetch_aws_lightsail(
+            cloud_config.aws_key, cloud_config.aws_secret, ignore_tags
+        )
+        if lightsail_results["message"]:
+            vps_info["errors"]["lightsail"] = results["message"]
+        else:
+            for instance in lightsail_results["instances"]:
+                vps_info["instances"][instance["id"]] = instance
+
+        # Check S3
+        s3_results = fetch_aws_s3(cloud_config.aws_key, cloud_config.aws_secret)
+        if s3_results["message"]:
+            vps_info["errors"]["s3"] = results["message"]
+        else:
+            for bucket in s3_results["buckets"]:
+                vps_info["instances"][bucket["name"]] = bucket
+    else:
+        vps_info["errors"]["aws"] = results["message"]
 
     ###############
     # DO Section  #
     ###############
 
-    # Get all Digital Ocean droplets for the account
-    active_droplets = {}
-    do_capable = True
-    headers = {"Content-Type": "application/json"}
-    try:
-        active_droplets = requests.get(
-            DIGITAL_OCEAN_ENDPOINT,
-            headers=headers,
-            auth=BearerAuth(cloud_config.do_api_key),
-        )
-        if active_droplets.status_code == 200:
-            active_droplets = active_droplets.json()
-            logger.info(
-                "Digital Ocean credentials are functional, beginning droplet review"
-            )
-        else:
-            do_capable = False
-            logger.info(
-                "Digital Ocean denied access with HTTP code %s and this message: %s",
-                active_droplets.status_code,
-                active_droplets.text,
-            )
-            try:
-                error_message = active_droplets.json()
-                api_response = error_message
-                if "message" in error_message:
-                    api_response = error_message["message"]
-            except ValueError:
-                api_response = active_droplets.text
-            vps_info["errors"][
-                "digital_ocean"
-            ] = f"Digital Ocean API request failed with this response: {api_response}"
-    # Catch a JSON decoding error with the response
-    except ValueError:
-        logger.exception("Could not decode the response from Digital Ocean")
-        do_capable = False
-        vps_info["errors"][
-            "digital_ocean"
-        ] = f"Could not decode this response from Digital Ocean: {active_droplets.text}"
-    # Catch any other errors related to the web request
-    except Exception:
-        trace = traceback.format_exc()
-        logger.exception(
-            "Could not retrieve content from Digital Ocean with the provided API key"
-        )
-        do_capable = False
-        vps_info["errors"][
-            "digital_ocean"
-        ] = "Could not retrieve content from Digital Ocean with the provided API key: {traceback}".format(
-            traceback=trace
-        )
-    # Loop over the droplets to generate the info dict
-    if do_capable and "droplets" in active_droplets:
-        for droplet in active_droplets["droplets"]:
-            ignore = False
-            # Get the networking info
-            if "v4" in droplet["networks"]:
-                ipv4 = droplet["networks"]["v4"]
-            else:
-                ipv4 = []
-            if "v6" in droplet["networks"]:
-                ipv6 = droplet["networks"]["v6"]
-            else:
-                ipv6 = []
-            # Create lists of public and private addresses
-            pub_addresses = []
-            priv_addresses = []
-            for address in ipv4:
-                if address["type"] == "private":
-                    priv_addresses.append(address["ip_address"])
-                else:
-                    pub_addresses.append(address["ip_address"])
-            for address in ipv6:
-                if address["type"] == "private":
-                    priv_addresses.append(address["ip_address"])
-                else:
-                    pub_addresses.append(address["ip_address"])
-            # Calculate how long the instance has been running in UTC and cost to date
-            time_up = months_between(
-                datetime.datetime.strptime(
-                    droplet["created_at"].split("T")[0], "%Y-%m-%d"
-                ).replace(tzinfo=utc),
-                datetime.datetime.today().replace(tzinfo=utc),
-            )
-            cost_to_date = (
-                months_between(
-                    datetime.datetime.strptime(
-                        droplet["created_at"].split("T")[0], "%Y-%m-%d"
-                    ),
-                    datetime.datetime.today(),
-                )
-                * droplet["size"]["price_monthly"]
-            )
-            # Check for "ignore tags"
-            for tag in droplet["tags"]:
-                if tag in ignore_tags:
-                    ignore = True
-            # Add an entry to the dict for the droplet
-            vps_info["instances"][droplet["id"]] = {
-                "id": droplet["id"],
-                "provider": "Digital Ocean",
-                "service": "Droplets",
-                "name": droplet["name"],
-                "type": droplet["image"]["distribution"] + " " + droplet["image"]["name"],
-                "monthly_cost": droplet["size"]["price_monthly"],
-                "cost_to_date": cost_to_date,
-                "state": droplet["status"],
-                "private_ip": priv_addresses,
-                "public_ip": pub_addresses,
-                "launch_time": datetime.datetime.strptime(
-                    droplet["created_at"].split("T")[0], "%Y-%m-%d"
-                ).replace(tzinfo=utc),
-                "time_up": "{} months".format(time_up),
-                "tags": ", ".join(droplet["tags"]),
-                "ignore": ignore,
-            }
+    do_results = fetch_digital_ocean(cloud_config.do_api_key)
+    if do_results["message"]:
+        vps_info["errors"]["digital_ocean"] = results["message"]
+    else:
+        if do_results["capable"]:
+            for instance in do_results["instances"]:
+                vps_info["instances"][instance["id"]] = instance
+
     # Examine results to identify potentially unneeded/unused machines
     assets_in_use = []
     for instance_id, instance in vps_info["instances"].items():
         all_ip_addresses = []
-        for address in instance["public_ip"]:
-            all_ip_addresses.append(address)
-        for address in instance["private_ip"]:
-            all_ip_addresses.append(address)
+        if "public_ip" in instance:
+            for address in instance["public_ip"]:
+                all_ip_addresses.append(address)
+        if "private_ip" in instance:
+            for address in instance["private_ip"]:
+                all_ip_addresses.append(address)
         # Set instance's name to its ID if no name is set
         if instance["name"]:
             instance_name = instance["name"]
@@ -1424,7 +1265,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                     logger.info(
                         "Project end date is %s which is earlier than now, %s",
                         result.project.end_date,
-                        datetime.datetime.now().date(),
+                        datetime.now().date(),
                     )
                     if slack_config.enable:
                         if result.project.slack_channel:
@@ -1498,7 +1339,7 @@ def review_cloud_infrastructure(aws_only_running=False):
 
     # Return the stale cloud asset data in JSON for the task results
     json_data = json.dumps(dict(vps_info), default=json_datetime_converter, indent=2)
-    logger.info("Cloud review completed at %s", datetime.datetime.now())
+    logger.info("Cloud review completed at %s", datetime.now())
     logger.info("JSON results:\n%s", json_data)
     return json_data
 
@@ -1537,7 +1378,7 @@ def check_expiration():
                 domain.domain_status = expired_status
                 domain.save()
 
-    logger.info("Domain expiration update completed at %s", datetime.datetime.now())
+    logger.info("Domain expiration update completed at %s", datetime.now())
     return domain_changes
 
 
@@ -1546,26 +1387,19 @@ def test_aws_keys(user):
     Test the AWS access keys configured in :model:`commandcenter.CloudServicesConfiguration`.
     """
     cloud_config = CloudServicesConfiguration.get_solo()
-    level = "error"
-    logger.info("Starting a test of the AWS keys at %s", datetime.datetime.now())
-    try:
-        # Send the STS ``get_caller_identity`` API call to test keys
-        client = boto3.client(
-            "sts",
-            region_name="us-west-2",
-            aws_access_key_id=cloud_config.aws_key,
-            aws_secret_access_key=cloud_config.aws_secret,
-        )
-        client.get_caller_identity()
+
+    logger.info("Starting a test of the AWS keys at %s", datetime.now())
+
+    results = test_aws(cloud_config.aws_key, cloud_config.aws_secret)
+
+    if results["capable"]:
         logger.info("Successfully verified the AWS keys")
         message = "Successfully verified the AWS keys"
         level = "success"
-    except ClientError:
+    else:
         logger.error("AWS could not validate the provided credentials")
-        message = "AWS could not validate the provided credentials"
-    except Exception:
-        logger.exception("Testing authentication to AWS failed")
-        message = "Testing authentication to AWS failed"
+        message = results["message"]
+        level = "error"
 
     # Send a message to the requesting user
     async_to_sync(channel_layer.group_send)(
@@ -1580,7 +1414,7 @@ def test_aws_keys(user):
         },
     )
 
-    logger.info("Test of the AWS access keys completed at %s", datetime.datetime.now())
+    logger.info("Test of the AWS access keys completed at %s", datetime.now())
     return {"result": level, "message": message}
 
 
@@ -1592,9 +1426,7 @@ def test_digital_ocean(user):
     DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
     cloud_config = CloudServicesConfiguration.get_solo()
     level = "error"
-    logger.info(
-        "Starting a test of the Digital Ocean API key at %s", datetime.datetime.now()
-    )
+    logger.info("Starting a test of the Digital Ocean API key at %s", datetime.now())
     try:
         # Request all active droplets (as done in the real task)
         headers = {"Content-Type": "application/json"}
@@ -1644,9 +1476,7 @@ def test_digital_ocean(user):
         },
     )
 
-    logger.info(
-        "Test of the Digital Ocean API key completed at %s", datetime.datetime.now()
-    )
+    logger.info("Test of the Digital Ocean API key completed at %s", datetime.now())
     return {"result": level, "message": message}
 
 
@@ -1658,7 +1488,7 @@ def test_namecheap(user):
     get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}"
     namecheap_config = NamecheapConfiguration.get_solo()
     level = "error"
-    logger.info("Starting Namecheap API test at %s", datetime.datetime.now())
+    logger.info("Starting Namecheap API test at %s", datetime.now())
     try:
         # The Namecheap API call requires both usernames, a key, and a whitelisted IP
         req = session.get(
@@ -1720,7 +1550,7 @@ def test_namecheap(user):
 
     logger.info(
         "Test of the Namecheap API configuration completed at %s",
-        datetime.datetime.now(),
+        datetime.now(),
     )
     return {"result": level, "message": message}
 
@@ -1731,7 +1561,7 @@ def test_slack_webhook(user):
     """
     slack_config = SlackConfiguration.get_solo()
     level = "error"
-    logger.info("Starting Slack Webhook test at %s", datetime.datetime.now())
+    logger.info("Starting Slack Webhook test at %s", datetime.now())
     try:
         if slack_config.enable:
             slack_data = {
@@ -1797,7 +1627,7 @@ def test_slack_webhook(user):
         },
     )
 
-    logger.info("Test of the Slack Webhook completed at %s", datetime.datetime.now())
+    logger.info("Test of the Slack Webhook completed at %s", datetime.now())
     return {"result": level, "message": message}
 
 
@@ -1807,7 +1637,7 @@ def test_virustotal(user):
     """
     virustotal_config = VirusTotalConfiguration.get_solo()
     level = "error"
-    logger.info("Starting VirusTotal API test at %s", datetime.datetime.now())
+    logger.info("Starting VirusTotal API test at %s", datetime.now())
     try:
         if virustotal_config.enable:
             virustotal_url = "https://www.virustotal.com/vtapi/v2/url/report"
@@ -1857,5 +1687,5 @@ def test_virustotal(user):
         },
     )
 
-    logger.info("Test of the VirusTotal completed at %s", datetime.datetime.now())
+    logger.info("Test of the VirusTotal completed at %s", datetime.now())
     return {"result": level, "message": message}
