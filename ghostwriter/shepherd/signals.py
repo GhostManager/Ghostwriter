@@ -36,7 +36,7 @@ def release_domain_on_delete(sender, instance, **kwargs):
     Switch the associated :model:`shepherd.Domain` back to the "Available" status
     when the latest :model:`shepherd.History` is deleted.
     """
-    latest_entry = History.objects.all().latest("end_date")
+    latest_entry = History.objects.filter(domain=instance.domain).latest("end_date")
     if instance == latest_entry:
         available_status = DomainStatus.objects.get(domain_status="Available")
         domain = Domain.objects.get(pk=instance.domain.pk)
@@ -50,7 +50,7 @@ def release_server_on_delete(sender, instance, **kwargs):
     Switch the associated :model:`shepherd.StaticServer` back to the "Available" status
     when the latest :model:`shepherd.ServerHistory` is deleted.
     """
-    latest_entry = ServerHistory.objects.all().latest("end_date")
+    latest_entry = ServerHistory.objects.filter(server=instance.server).latest("end_date")
     if instance == latest_entry:
         available_status = ServerStatus.objects.get(server_status="Available")
         server = StaticServer.objects.get(pk=instance.server.pk)
