@@ -38,6 +38,7 @@ from ghostwriter.modules.review import DomainReview
 
 from .models import (
     Domain,
+    DomainHistory,
     DomainNote,
     DomainStatus,
     HealthStatus,
@@ -675,6 +676,28 @@ def check_domains(domain=None):
                         data=slack_data,
                         headers={"Content-Type": "application/json"},
                     )
+
+                    # Check if the domain is checked-out and send a message to that project channel
+                    latest_checkout = DomainHistory.objects.filter(domain=domain).latest(
+                        "end_date"
+                    )
+                    if (
+                        latest_checkout.end_date >= date.today()
+                        and latest_checkout.project.slack_channel
+                    ):
+                        slack_data = craft_burned_message(
+                            slack_config.slack_username,
+                            slack_config.slack_emoji,
+                            latest_checkout.project.slack_channel,
+                            domain.name,
+                            lab_results[domain]["categories"],
+                            lab_results[domain]["burned_explanation"],
+                        )
+                        requests.post(
+                            slack_config.webhook_url,
+                            data=slack_data,
+                            headers={"Content-Type": "application/json"},
+                        )
             # If the domain isn't marked as burned, check for any informational warnings
             else:
                 if lab_results[domain]["warnings"]["total"] > 0:
