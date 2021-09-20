@@ -6,7 +6,7 @@ import logging
 import logging.config
 import traceback
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 # Django Imports
 from django.db.models import Q
@@ -468,7 +468,7 @@ def release_domains(no_action=False):
                 "end_date"
             )
             release_date = project_queryset.end_date
-            warning_date = release_date - datetime.timedelta(1)
+            warning_date = release_date - timedelta(1)
             if project_queryset.project.slack_channel:
                 slack_channel = project_queryset.project.slack_channel
             # Check if date is before or is the end date
@@ -555,7 +555,7 @@ def release_servers(no_action=False):
                 server__ip_address=server.ip_address
             ).latest("end_date")
             release_date = project_queryset.end_date
-            warning_date = release_date - datetime.timedelta(1)
+            warning_date = release_date - timedelta(1)
             if project_queryset.project.slack_channel:
                 slack_channel = project_queryset.project.slack_channel
             # Check if date is before or is the end date
@@ -999,9 +999,7 @@ def fetch_namecheap_domains():
                     domain.domain_status = expired_status
                     # If the domain expiration date is in the future, adjust it
                     if domain.expiration >= date.today():
-                        domain.expiration = domain.expiration - datetime.timedelta(
-                            days=365
-                        )
+                        domain.expiration = domain.expiration - timedelta(days=365)
                     try:
                         for attr, value in entry.items():
                             setattr(domain, attr, value)
@@ -1261,7 +1259,11 @@ def review_cloud_infrastructure(aws_only_running=False):
         if queryset:
             for result in queryset:
                 # Consider the asset in use if the project's end date is in the past
-                if result.project.end_date < date.today():
+                if (
+                    result.project.end_date
+                    + timedelta(days=cloud_config.notification_delay)
+                    <= date.today()
+                ):
                     logger.info(
                         "Project end date is %s which is earlier than now, %s",
                         result.project.end_date,
@@ -1311,7 +1313,6 @@ def review_cloud_infrastructure(aws_only_running=False):
             instance_tags = []
             for tag in instance["tags"].split(","):
                 instance_tags.append(tag.strip())
-            # if any(tag in ignore_tags for tag in instance_tags):
             if instance["ignore"]:
                 logger.info(
                     "Ignoring %s because it is tagged with a configured ignore tag (tags: %s)",
@@ -1363,7 +1364,7 @@ def check_expiration():
             if domain.auto_renew:
                 logger.info("Adding one year to %s's expiration date", domain.name)
                 domain_changes["updates"][domain.id]["change"] = "auto-renewed"
-                domain.expiration = domain.expiration + datetime.timedelta(days=365)
+                domain.expiration = domain.expiration + timedelta(days=365)
                 domain.expired = False
                 domain.save()
             # Otherwise, mark the domain as expired
