@@ -603,11 +603,11 @@
                   if (data.assignments !== undefined) {
                     document.getElementById('assignment-count').innerHTML = data.assignments
                   }
-                  displayToastTop({type:data.level, string:data.message, title:data.title});
+                  displayToastTop({type:data.message.level, string:data.message.message, title:data.message.title});
                 }
                 ws_all.onmessage = function (e) {
                   var data = JSON.parse(e.data);
-                  displayToastTop({type:data.message, string:data.message, title:data.message});
+                  displayToastTop({type:data.message.level, string:data.message.message, title:data.message.title});
                 };
 
                 // Handle unexpected WebSocket closures
