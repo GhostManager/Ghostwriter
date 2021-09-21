@@ -71,8 +71,9 @@
             <div id="planning" class="tab-pane in active">
                 <!-- Details Section -->
                 <h4>Project Details</h4>
+                <hr />
 
-                <table class="table table-borderless table-centered">
+                <table class="table table-borderless table-centered project-details-table">
                     <tr>
                         <td class="text-left bold">Codename</td>
                         <td class="text-left">
@@ -111,6 +112,7 @@
 
                 <!-- Assignment Section -->
                 <h4>Project Assignments</h4>
+                <hr />
 
                 <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a></p>
                 {% if project.projectassignment_set.all %}
@@ -152,6 +154,7 @@
 
                 <!-- Calendar Section -->
                 <h4>Project Calendar</h4>
+                <hr />
 
                 <div id="calendar"></div>
             </div>
@@ -159,6 +162,7 @@
             <div id="scopes" class="tab-pane">
                 <!-- Scope Section -->
                 <h4>Scope Lists</h4>
+                <hr />
 
                 <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a></p>
 
@@ -241,6 +245,7 @@
             <div id="targets" class="tab-pane">
                 <!-- Targets Section -->
                 <h4>Targets</h4>
+                <hr />
 
                 <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a></p>
 
@@ -292,6 +297,7 @@
             <div id="activity" class="tab-pane">
                 <!-- Logging Section -->
                 <h4>Operation Logs</h4>
+                <hr />
 
                 <p>
                     <a class="icon add-icon" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
@@ -333,6 +339,7 @@
             <div id="documents" class="tab-pane ">
                 <!-- Reporting Section -->
                 <h4>Reports & Findings</h4>
+                <hr />
 
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
@@ -383,6 +390,7 @@
                     {% for report in project.report_set.all %}
                         {% if report.reportfindinglink_set.all %}
                             <h4>Findings in {{ report.title }}</h4>
+                            <hr />
                             <table class="table">
                                 <thead>
                                     <th class="align-middle">Severity</th>
@@ -433,10 +441,12 @@
             <div id="infrastructure" class="tab-pane">
                 <!-- Infrastructure Section -->
                 <h4>Project Infrastructure</h4>
+                <hr />
 
                 <p>Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project. Associate your domains and subdomains with servers by creating connections.</p>
                 <!-- Domain Section -->
                 <h4>Domains</h4>
+                <hr />
 
                 <!-- Search Section -->
                 <div class="search inline-search-bar">
@@ -489,6 +499,7 @@
 
                 <!-- Server Section -->
                 <h4>Servers</h4>
+                <hr />
 
                 <!-- Search Section -->
                 <div class="search inline-search-bar">
@@ -593,6 +604,7 @@
 
                 <!-- DNS Section -->
                 <h4>Domains and Servers</h4>
+                <hr />
 
                 <!-- Determine if at least one server and one domain -->
                 {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
@@ -643,6 +655,7 @@
             <div id="notes" class="tab-pane ">
                 <!-- Notes Section -->
                 <h4>Project Notes</h4>
+                <hr />
 
                 <p>
                     <a class="icon add-icon" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
