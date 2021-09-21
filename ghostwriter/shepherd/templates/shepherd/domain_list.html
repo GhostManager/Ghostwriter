@@ -19,10 +19,6 @@
         {% crispy filter.form filter.helper %}
     </div>
 
-    <p class="mt-3">
-        <a class="icon add-icon" href="{% url 'shepherd:domain_create' %}">Create a Domain</a>
-    </p>
-
     {% if filter.qs|length == 0 %}
         <p class="mt-3">There are no domains to see here yet, or your search returned no results. Create a new domain up above.</p>
     {% else %}

@@ -21,10 +21,6 @@
         {% crispy filter.form filter.helper %}
     </div>
 
-    <p class="mt-3">
-        <a class="icon add-icon" href="{% url 'shepherd:server_create' %}">Create a Server</a>
-    </p>
-
     {% if filter.qs|length == 0 %}
         <p class="mt-3">There are no servers to see here yet, or a filter has hidden them. You can create a new server above.</p>
     {% else %}
