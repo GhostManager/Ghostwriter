@@ -10,7 +10,6 @@ import boto3
 import pytz
 import requests
 from botocore.exceptions import ClientError
-from botocore.vendored.six import b
 
 # Using __name__ resolves to ghostwriter.modules.cloud_monitors
 logger = logging.getLogger(__name__)
