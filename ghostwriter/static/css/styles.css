@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Neucha&family=Patrick+Hand&family=Patrick+Hand+SC&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Roboto&family=Roboto+Mono:wght@300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Roboto&family=Roboto+Mono:wght@300;400&family=Kalam&display=swap');
 @import '/static/css/base_styles.css';
 
 
@@ -54,7 +54,7 @@ a.report-select:hover {
 }
 
 hr {
-  width: 70%;
+  width: 60%;
 }
 
 .forgot-password {
@@ -221,28 +221,28 @@ h1 {
 h2 {
   text-align: center;
   color: var(--h2-font-color);
-  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.5em;
   margin-right: 20px
 }
 
 h3 {
-  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   padding-top: 20px;
   font-size: 2em;
   color: var(--h3-font-color);
 }
 
 h4 {
-  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   margin-top: 20px;
   margin-bottom: 20px;
   font-size: 1.75em;
 }
 
 h6 {
-  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
-  font-size: 1.15em;
+  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 1em;
   padding-top: 10px;
 }
 
@@ -896,21 +896,38 @@ p.severity-box.info {
   border-color: var(--button-primary-color);
 }
 
-.btn-primary:hover {
+.btn-outline-primary {
+  border-color: var(--button-primary-color);
+  color: var(--button-primary-color);
+}
+
+.btn-primary:hover, .btn-outline-primary:hover {
   background-color: var(--button-hover-color);
   border-color: var(--button-hover-color);
   color: #fff;
 }
 
-.btn-primary:active {
+.btn-primary:active, .btn-outline-primary:active {
   background-color: var(--button-hover-color);
   border-color: var(--button-hover-color);
   color: #fff;
 }
 
-.btn-primary:focus {
+.btn-primary:focus, .btn-outline-primary:focus {
   background-color: var(--button-hover-color);
   border-color: var(--button-hover-color);
+  color: #fff;
+}
+
+.btn-info {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+  color: #fff;
+}
+
+.btn-info:hover {
+  background-color: var(--secondary-color-fade);
+  border-color: var(--secondary-color-fade);
   color: #fff;
 }
 
@@ -1061,6 +1078,10 @@ td {
   text-align: center;
 }
 
+.project-details-table td {
+  padding-top: 0;
+}
+
 /* ---------------------------------------------------
     CALENDAR STYLES
 ----------------------------------------------------- */
@@ -1117,6 +1138,10 @@ td {
 
 .fc-list-table tbody tr th .fc-list-day-cushion {
   background-color: var(--secondary-color);
+}
+
+.fc-toolbar-title {
+  font-family: 'Kalam';
 }
 
 /* ---------------------------------------------------
@@ -2332,7 +2357,7 @@ ol {
 }
 
 .dashboard-header {
-  font-family: 'Patrick Hand', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-family: 'Kalam', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2em;
   color: var(--primary-color)
 }
