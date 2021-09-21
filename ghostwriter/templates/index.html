@@ -23,17 +23,6 @@
                     <div class="card">
                         <p class="dashboard-header text-center">Your Top Reporting Tasks</p>
                         {% count_assignments request as assignment_count %}
-                        <span class="notify-badge badge
-                            {% if assignment_count > 0 %}
-                                badge-warning
-                            {% elif assignment_count > 5 %}
-                                badge-danger
-                            {% else %}
-                                badge-success
-                            {% endif %}
-                        ">
-                            Tasks: {{ assignment_count }}
-                        </span>
                         <table>
                             {% if user_tasks %}
                                 {% for finding in user_tasks %}
