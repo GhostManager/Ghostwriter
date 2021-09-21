@@ -80,7 +80,7 @@ class FindingFilter(django_filters.FilterSet):
                 ButtonHolder(
                     HTML(
                         """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:finding_create' %}">Create a Finding</a>
+                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:finding_create' %}">Create</a>
                         """
                     ),
                     Submit("submit_btn", "Filter", css_class="col-md-2"),
@@ -149,7 +149,7 @@ class ReportFilter(django_filters.FilterSet):
                 ButtonHolder(
                     HTML(
                         """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:report_create_no_project' %}">Start a Report</a>
+                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:report_create_no_project' %}">Create</a>
                         """
                     ),
                     Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),

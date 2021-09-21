@@ -95,7 +95,7 @@ class DomainFilter(django_filters.FilterSet):
             ButtonHolder(
                 HTML(
                     """
-                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:domain_create' %}">Add a Domain</a>
+                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create</a>
                     """
                 ),
                 Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
@@ -167,7 +167,7 @@ class ServerFilter(django_filters.FilterSet):
             ButtonHolder(
                 HTML(
                     """
-                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:server_create' %}">Add a Server</a>
+                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:server_create' %}">Create</a>
                     """
                 ),
                 Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),

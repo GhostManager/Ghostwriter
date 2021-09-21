@@ -71,7 +71,7 @@ class ClientFilter(django_filters.FilterSet):
                 ButtonHolder(
                     HTML(
                         """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'rolodex:client_create' %}">Create a Client</a>
+                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'rolodex:client_create' %}">Create</a>
                         """
                     ),
                     Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
@@ -180,7 +180,7 @@ class ProjectFilter(django_filters.FilterSet):
                 ButtonHolder(
                     HTML(
                         """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'rolodex:project_create_no_client' %}">Create a Project</a>
+                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'rolodex:project_create_no_client' %}">Create</a>
                         """
                     ),
                     Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
