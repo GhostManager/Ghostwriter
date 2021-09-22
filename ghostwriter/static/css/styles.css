@@ -165,8 +165,9 @@ hr {
   border-style: solid;
   border-width: 1px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-  position: relative;
-  display: inline-block;
+  position: absolute;
+  top: 15px;
+  right: 25px;
 }
 
 /* ---------------------------------------------------
@@ -428,14 +429,6 @@ input[type='file'] {
   display: inline-block;
 }
 
-.notify-badge {
-  position: absolute;
-  right: 20px;
-  padding: 6px 8px;
-  z-index: 1;
-  font-size: 12px;
-}
-
 .avatar_note {
   width: 70%;
   height: 100%;
@@ -446,28 +439,19 @@ input[type='file'] {
 }
 
 /* ---------------------------------------------------
-    NAVBAR STYLES
+    TOP BAR STYLES
 ----------------------------------------------------- */
 
-.navbar {
+.top-bar {
   background: var(--navbar-background-color);
-  border: none;
-  border-radius: 0;
-  margin-bottom: 40px;
-  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
-  font-size: 15px;
-}
-
-.navbar-btn {
-  box-shadow: none;
-  outline: none !important;
-  border: none;
+  padding-top: 8px;
+  padding-bottom: 5px;
+  vertical-align: middle;
 }
 
 .report {
-  padding: 10px;
   border-radius: var(--button-border-radius);
-  width: 350px;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -475,11 +459,15 @@ input[type='file'] {
 
 .selected-report {
   color: var(--navbar-report-selected-font-color);
-  background-color: var(--navbar-report-selected-background-color);
+  font-weight: 600;
 }
 
-.btn-report:hover {
-  background-color: var(--secondary-color-med);
+.selected-report:before {
+  content: '\f205' !important;
+}
+
+.js-activate-report {
+  cursor: pointer;
 }
 
 .empty-report {
@@ -507,7 +495,7 @@ input[type='file'] {
 
 .breadcrumb li {
   display: inline;
-  max-width: 185px;
+  max-width: 285px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -562,12 +550,13 @@ input[type='file'] {
 }
 
 #sidebar {
+  margin-left: -250px;
   min-width: 250px;
   max-width: 250px;
   background: var(--sidebar-background-color);
   color: var(--sidebar-text-color);
   transition: all 0.6s cubic-bezier(0.945, 0.020, 0.270, 0.665);
-  transform-origin: bottom left;
+  transform-origin: center left;
   box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
 }
 
@@ -576,20 +565,36 @@ input[type='file'] {
 }
 
 #sidebar.active {
-  margin-left: -250px;
-  transform: rotateY(100deg);
+  margin-left: 0;
+  transform: none;
 }
 
 #sidebar .sidebar-header {
   min-width: 255px;
   max-width: 255px;
-  min-height: 100px;
-  max-height: 100px;
+  min-height: 80px;
+  max-height: 80px;
   background: var(--sidebar-header-background-color);
   color: var(--sidebar-header-text-color);
-  border-top-right-radius: 5px;
   border-bottom-right-radius: 5px;
-  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.3);
+}
+
+#sidebar .sidebar-header-tab {
+  position: absolute;
+  top: 15px;
+  right: -35px;
+}
+
+.square {
+    height: 40px;
+    width: 40px;
+    background-color: var(--sidebar-header-background-color);
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    padding-top: 20%;
+    padding-left: 5px;
+    box-shadow: 4px 4px 3px rgba(0, 0, 0, 0.3);
 }
 
 #sidebar .sidebar-footer {
@@ -681,7 +686,7 @@ ul ul a {
 
 #content {
   width: 100%;
-  padding: 10px 20px 20px;
+  padding: 5px 20px 20px;
   min-height: 100vh;
   transition: all 0.3s;
   text-align: center;
@@ -693,6 +698,8 @@ ul ul a {
   background: var(--sidebar-collapse-button-color);
   cursor: pointer;
   border-radius: var(--button-border-radius);
+  margin-top: 30px;
+  float: left;
 }
 
 #sidebarCollapse span {
@@ -1144,6 +1151,10 @@ td {
   font-family: 'Kalam';
 }
 
+.fc-col-header {
+  width: 100% !important;
+}
+
 /* ---------------------------------------------------
     TABLE STYLES FOR TABLESORTER
 ----------------------------------------------------- */
@@ -1463,6 +1474,10 @@ td p {
 th.icon {
   font-size: 1.3em;
   padding: 0;
+}
+
+.home-icon:before {
+  content: '\f015';
 }
 
 .slider-icon:before {
@@ -2253,15 +2268,15 @@ ol {
     MEDIAQUERIES
 ----------------------------------------------------- */
 
-@media (max-width: 768px) {
+/* @media (max-width: 768px) {
   #sidebar {
-    margin-left: -250px;
-    transform: rotateY(90deg);
+    margin-left: 0;
+    transform: none;
   }
 
   #sidebar.active {
-    margin-left: 0;
-    transform: none;
+    margin-left: -250px;
+    transform: rotateY(100deg);
   }
 
   #sidebarCollapse span:first-of-type,
@@ -2285,9 +2300,9 @@ ol {
   }
 
   #sidebarCollapse span:last-of-type {
-    transform: rotate(-45deg) translate(1px, -1px);
+    transform: rotate(-45deg) translate(7px, -7px);
   }
-}
+} */
 
 @media (min-width: 1200px) {
   .navbar-expand-custom {
