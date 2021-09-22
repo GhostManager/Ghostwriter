@@ -3,6 +3,16 @@
 
 {% block pagetitle %}User Avatar{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'home:profile' %}">Your Profile</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Change Profile Pic</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <!-- Current Avatar -->
     <img class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar">
