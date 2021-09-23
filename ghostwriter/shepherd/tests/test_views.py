@@ -5,7 +5,7 @@ from datetime import date, timedelta
 # Django Imports
 from django.test import Client, TestCase
 from django.urls import reverse
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -147,14 +147,14 @@ class DomainOverwatchViewTests(TestCase):
             "result": "warning",
             "message": "Domain has been used with this client in the past",
         }
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
 
     def test_overwatch_warning_negative(self):
         post_data = {"client": self.client_org.pk, "domain": self.unused_domain.pk}
         response = self.client_auth.get(self.uri, post_data)
         self.assertEqual(response.status_code, 200)
         data = {"result": "success", "message": ""}
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
 
 
 class DomainListViewTests(TestCase):
@@ -600,7 +600,7 @@ class DomainReleaseViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         data = {"result": "success", "message": "Domain successfully released"}
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
         self.assertEqual(self.domain.domain_status, self.available_status)
         self.assertEqual(self.checkout.end_date, date.today())
 
@@ -615,7 +615,7 @@ class DomainReleaseViewTests(TestCase):
             "result": "error",
             "message": "You are not authorized to release this domain",
         }
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
         self.assertFalse(self.domain.domain_status == self.available_status)
         self.assertTrue(self.checkout.end_date == self.end_date)
 
@@ -1006,7 +1006,7 @@ class ServerReleaseViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         data = {"result": "success", "message": "Server successfully released"}
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
         self.assertEqual(self.server.server_status, self.available_status)
         self.assertEqual(self.checkout.end_date, date.today())
 
@@ -1021,7 +1021,7 @@ class ServerReleaseViewTests(TestCase):
             "result": "error",
             "message": "You are not authorized to release this server",
         }
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
         self.assertFalse(self.server.server_status == self.available_status)
         self.assertTrue(self.checkout.end_date == self.end_date)
 
@@ -1134,7 +1134,7 @@ class TransientServerDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(self.TransientServer.objects.all().exists())
         data = {"result": "success", "message": "VPS successfully deleted!"}
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
@@ -1249,7 +1249,7 @@ class DomainServerConnectionDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(self.DomainServerConnection.objects.all().exists())
         data = {"result": "success", "message": "Link successfully deleted!"}
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)

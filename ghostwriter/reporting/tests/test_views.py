@@ -5,7 +5,7 @@ from datetime import datetime
 # Django Imports
 from django.test import Client, TestCase
 from django.urls import reverse
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -179,7 +179,7 @@ class AssignFindingTests(TestCase):
         message = "{} successfully added to your active report".format(self.finding)
         data = {"result": "success", "message": message}
 
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
 
     def test_view_response_without_session_vars(self):
         self.session = self.client_auth.session
@@ -192,7 +192,7 @@ class AssignFindingTests(TestCase):
         message = "Please select a report to edit before trying to assign a finding"
         data = {"result": "error", "message": message}
 
-        self.assertJSONEqual(force_text(response.content), data)
+        self.assertJSONEqual(force_str(response.content), data)
 
 
 class CloneReportTests(TestCase):
@@ -1251,28 +1251,28 @@ class GenerateReportTests(TestCase):
 
     def test_view_docx_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.docx_uri)
-        self.assertEquals(
+        self.assertEqual(
             response.get("Content-Type"),
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         )
 
     def test_view_xlsx_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.xlsx_uri)
-        self.assertEquals(
+        self.assertEqual(
             response.get("Content-Type"),
             "application/application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
     def test_view_pptx_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.pptx_uri)
-        self.assertEquals(
+        self.assertEqual(
             response.get("Content-Type"),
             "application/application/vnd.openxmlformats-officedocument.presentationml.presentation",
         )
 
     def test_view_all_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.all_uri)
-        self.assertEquals(
+        self.assertEqual(
             response.get("Content-Type"),
             "application/x-zip-compressed",
         )

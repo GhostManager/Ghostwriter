@@ -121,6 +121,6 @@ class SingletonWithExplicitIdTest(TestCase):
         self,
     ):
         item = SiteConfigurationWithExplicitlyGivenId.get_solo()
-        self.assertEquals(
+        self.assertEqual(
             item.pk, SiteConfigurationWithExplicitlyGivenId.singleton_instance_id
         )
