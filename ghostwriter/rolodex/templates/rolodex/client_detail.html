@@ -31,18 +31,9 @@
         <h2>{{ client.name }}</h2>
     </div>
 
-    <h6><span id="client-codename">A.K.A. {{ client.codename }}</span></h6>
+    <h6><span id="client-codename">A.K.A. {{ client.codename }}</span>, <span>Timezone: {{ client.timezone }}</span></h6>
 
     <div>
-        <!-- Description section -->
-        <h3>Client Description</h3>
-        <hr>
-        {% if client.note %}
-            {{ client.note|bleach }}
-        {% else %}
-            <p>No information provided for this client.</p>
-        {% endif %}
-
         <p class="form-spacer"></p>
 
         <!-- Navigation Tabs -->
@@ -51,10 +42,31 @@
             {% include "snippets/client_nav_tabs.html" %}
         </ul>
 
+        <!-- Info Tab -->
         <div class="tab-content">
-            <div id="contacts" class="tab-pane in active">
+            <div id="general" class="tab-pane in active">
+                <h4>Client Description</h3>
+                <hr>
+
+                {% if client.note %}
+                    {{ client.note|bleach }}
+                {% else %}
+                    <p>No information provided for this client.</p>
+                {% endif %}
+
+                <h4>Business Address</h3>
+                <hr>
+
+                {% if client.address %}
+                    {{ client.address|bleach }}
+                {% else %}
+                    <p>No address provided for this client.</p>
+                {% endif %}
+            </div>
+
+            <!-- POC Tab -->
+            <div id="contacts" class="tab-pane">
                 <p><a class="icon add-icon" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a></p>
-                <!-- POC Tab -->
                 {% if client.clientcontact_set.all %}
                     <table id="clientTable" class="tablesorter table table-striped">
                         <thead>

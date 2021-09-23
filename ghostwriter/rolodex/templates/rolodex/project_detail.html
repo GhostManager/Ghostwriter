@@ -85,6 +85,12 @@
                         <td class="text-left">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
                     </tr>
                     <tr>
+                        <td class="text-left bold">Working Hours</td>
+                        <td class="text-left">
+                            {% if project.start_time and project.end_time %} {{ project.start_time|date:"G:H" }} to {{ project.end_time|date:"G:H" }} ({{ project.timezone }}) {% else %} No Working Hours Set {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="text-left bold">Slack Channel</td>
                         <td class="text-left">
                             {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
