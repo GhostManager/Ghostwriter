@@ -14,7 +14,7 @@ from ghostwriter.factories import (
     VirusTotalConfigurationFactory,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class NamecheapConfigurationTests(TestCase):

@@ -15,7 +15,7 @@ from rest_framework.renderers import JSONRenderer
 from ghostwriter.factories import GenerateMockProject
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class ReportDataSerializerTests(TestCase):

@@ -37,7 +37,7 @@ from ghostwriter.rolodex.forms_project import (
     ProjectTargetFormSet,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 def instantiate_formset(formset_class, data, instance=None, initial=None):

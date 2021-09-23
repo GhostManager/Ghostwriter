@@ -28,7 +28,7 @@ from ghostwriter.factories import (
     UserFactory,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class ClientModelTests(TestCase):

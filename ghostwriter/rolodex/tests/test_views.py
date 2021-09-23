@@ -15,7 +15,7 @@ from ghostwriter.factories import (
 )
 from ghostwriter.rolodex.templatetags import determine_primary
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 

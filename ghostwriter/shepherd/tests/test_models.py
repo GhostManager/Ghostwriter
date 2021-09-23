@@ -26,7 +26,7 @@ from ghostwriter.factories import (
     WhoisStatusFactory,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class HealthStatusModelTests(TestCase):
