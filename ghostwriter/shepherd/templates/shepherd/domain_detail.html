@@ -100,7 +100,7 @@
             <div id="dns" class="tab-pane">
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
                     </p>
                 {% endif %}
 
@@ -149,7 +149,7 @@
             <div id="health" class="tab-pane">
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
                     </p>
                 {% endif %}
 
@@ -304,7 +304,7 @@
             <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
                 <p>
-                    <a class="icon add-icon" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
+                    <a class="icon add-icon btn btn-primary" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
                 </p>
                 {% if domain.domainnote_set.all %}
                     {% for note in domain.domainnote_set.all reversed %}

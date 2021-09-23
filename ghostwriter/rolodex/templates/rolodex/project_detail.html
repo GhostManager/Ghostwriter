@@ -120,7 +120,7 @@
                 <h4>Project Assignments</h4>
                 <hr />
 
-                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a></p>
+                <a class="icon edit-icon btn btn-primary mb-1" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
@@ -170,7 +170,7 @@
                 <h4>Scope Lists</h4>
                 <hr />
 
-                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a></p>
+                <a class="icon edit-icon btn btn-primary mb-3" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
 
                 <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by objectives.</p>
 
@@ -219,7 +219,7 @@
                                         data-placement="top"
                                         title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
                                     >
-                                        <button type="button" class="btn btn-primary icon expand-btn" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
+                                        <button type="button" class="btn btn-info icon expand-btn" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
                                             Expand
                                         </button>
                                     </div>
@@ -253,7 +253,7 @@
                 <h4>Targets</h4>
                 <hr />
 
-                <p><a class="icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a></p>
+                <a class="icon edit-icon btn btn-primary mb-3" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
 
                 <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are interesting.</p>
 
@@ -306,9 +306,9 @@
                 <hr />
 
                 <p>
-                    <a class="icon add-icon" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
+                    <a class="icon add-icon btn btn-primary" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
                     <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-                    <a class="icon upload-icon" href="{% url 'oplog:oplog_create_no_project' %}">Import Oplog</a>
+                    <a class="icon upload-icon btn btn-info" href="{% url 'oplog:oplog_create_no_project' %}">Import Oplog</a>
                 </p>
 
                 {% if project.oplog_set.all %}
@@ -350,7 +350,7 @@
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
                 {% else %}
-                    <p><a class="icon add-icon" href="{% url 'reporting:report_create' project.id %}">Add a Report</a></p>
+                    <a class="icon add-icon btn btn-primary mb-3" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
                 {% endif %}
 
                 <p>View and edit findings by opening the related report (click the link).</p>
@@ -522,7 +522,7 @@
                     </form>
                 </div>
 
-                <p class="mt-3"><a class="icon add-icon" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
+                <p class="mt-3"><a class="icon add-icon btn btn-primary" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
                 {% if project.serverhistory_set.all or project.transientserver_set.all %}
                     <table id="serverTable" class="tablesorter table">
                         <thead>
@@ -615,7 +615,7 @@
                 <!-- Determine if at least one server and one domain -->
                 {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
                     <p>
-                        <a class="icon add-icon" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
+                        <a class="icon add-icon btn btn-primary" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
                     </p>
                     {% if project.domainserverconnection_set.all %}
                         <table class="table">
@@ -663,9 +663,7 @@
                 <h4>Project Notes</h4>
                 <hr />
 
-                <p>
-                    <a class="icon add-icon" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
-                </p>
+                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
 
                 {% if project.projectnote_set.all %}
                     {% for note in project.projectnote_set.all reversed %}
