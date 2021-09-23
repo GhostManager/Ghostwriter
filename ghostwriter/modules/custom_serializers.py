@@ -8,12 +8,15 @@ from django.conf import settings
 from django.utils import dateformat
 
 # 3rd Party Libraries
+import pytz
+from bs4 import BeautifulSoup
 from rest_framework import serializers
 from rest_framework.serializers import (
     RelatedField,
     SerializerMethodField,
     StringRelatedField,
 )
+from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation
@@ -44,6 +47,13 @@ from ghostwriter.shepherd.models import (
     TransientServer,
 )
 from ghostwriter.users.models import User
+
+
+def strip_html(value):
+    """Strip HTML from a string."""
+    if value is None:
+        return None
+    return BeautifulSoup(value, "html.parser").text
 
 
 class CustomModelSerializer(serializers.ModelSerializer):
@@ -94,9 +104,11 @@ class UserSerializer(CustomModelSerializer):
 
     name = SerializerMethodField("get_name")
 
+    timezone = TimeZoneSerializerField()
+
     class Meta:
         model = User
-        fields = ["id", "name", "username", "email"]
+        fields = ["id", "name", "username", "email", "phone", "timezone"]
 
     def get_name(self, obj):
         return obj.get_display_name()
@@ -235,6 +247,8 @@ class ReportSerializer(CustomModelSerializer):
 class ClientContactSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:ClientContact` entries."""
 
+    timezone = TimeZoneSerializerField()
+
     class Meta:
         model = ClientContact
         fields = "__all__"
@@ -244,6 +258,7 @@ class ClientSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Client` entries."""
 
     short_name = SerializerMethodField("get_short_name")
+    address = SerializerMethodField("get_address")
 
     contacts = ClientContactSerializer(
         source="clientcontact_set",
@@ -253,6 +268,8 @@ class ClientSerializer(CustomModelSerializer):
         ],
     )
 
+    timezone = TimeZoneSerializerField()
+
     class Meta:
         model = Client
         fields = "__all__"
@@ -261,6 +278,9 @@ class ClientSerializer(CustomModelSerializer):
         if obj.short_name:
             return obj.short_name
         return obj.name
+
+    def get_address(self, obj):
+        return strip_html(obj.address)
 
 
 class ProjectAssignmentSerializer(CustomModelSerializer):
@@ -272,6 +292,8 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
     email = SerializerMethodField("get_email")
     start_date = SerializerMethodField("get_start_date")
     end_date = SerializerMethodField("get_end_date")
+    phone = SerializerMethodField("get_phone")
+    timezone = SerializerMethodField("get_timezone")
 
     class Meta:
         model = ProjectAssignment
@@ -291,6 +313,13 @@ class ProjectAssignmentSerializer(CustomModelSerializer):
 
     def get_end_date(self, obj):
         return dateformat.format(obj.end_date, settings.DATE_FORMAT)
+
+    def get_phone(self, obj):
+        return obj.operator.phone
+
+    def get_timezone(self, obj):
+        tz = pytz.timezone(str(obj.operator.timezone))
+        return tz.zone
 
 
 class ProjectSubTaskSerializer(CustomModelSerializer):
@@ -522,6 +551,8 @@ class ProjectSerializer(CustomModelSerializer):
     end_month = SerializerMethodField("get_end_month")
     end_day = SerializerMethodField("get_end_day")
     end_year = SerializerMethodField("get_end_year")
+
+    timezone = TimeZoneSerializerField()
 
     class Meta:
         model = Project
