@@ -7,6 +7,7 @@ from datetime import date
 
 # Django Imports
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
@@ -670,6 +671,20 @@ class TransientServer(models.Model):
         max_length=255,
         unique=True,
         help_text="Enter the server IP address",
+    )
+    aux_address = ArrayField(
+        models.GenericIPAddressField(
+            "Auxiliary IP Address",
+            max_length=255,
+            unique=False,
+            blank=True,
+            null=True,
+            help_text="Enter additional IP addresses",
+        ),
+        default=list,
+        size=5,
+        blank=True,
+        help_text="Enter a comma-separated list of IP addresses",
     )
     name = models.CharField(
         "Name",
