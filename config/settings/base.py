@@ -86,6 +86,7 @@ THIRD_PARTY_APPS = [
     "import_export",
     "tinymce",
     "django_bleach",
+    "timezone_field",
 ]
 
 LOCAL_APPS = [
