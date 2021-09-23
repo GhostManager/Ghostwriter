@@ -516,6 +516,7 @@ class TransientServerFactory(factory.django.DjangoModelFactory):
         model = "shepherd.TransientServer"
 
     ip_address = Faker("ipv4")
+    aux_address = factory.List([Faker("ipv4") for _ in range(3)])
     name = Faker("hostname")
     note = Faker("paragraph")
     project = factory.SubFactory(ProjectFactory)

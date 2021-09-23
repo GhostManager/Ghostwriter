@@ -586,7 +586,7 @@
                                         {{ server.ip_address }}
                                     </span>
                                 </td>
-                                <td class="align-middle"> -- </td>
+                                <td class="align-middle"> {{ server.aux_address|join:"<br />" }} </td>
                                 <td id="delete-target-content-server-{{ server.id }}" class="align-middle">{{ server.name }}</td>
                                 <td class="align-middle">{{ server.activity_type }}</td>
                                 <td class="align-middle">{{ server.server_role }}</td>
