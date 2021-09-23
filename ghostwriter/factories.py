@@ -4,6 +4,7 @@ from datetime import date, timedelta
 
 # Django Imports
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 # 3rd Party Libraries
 import factory
@@ -20,6 +21,8 @@ class UserFactory(factory.django.DjangoModelFactory):
     username = Faker("user_name")
     email = Faker("email")
     name = Faker("name")
+    phone = Faker("phone_number")
+    timezone = Faker("timezone")
     password = factory.PostGenerationMethodCall("set_password", "mysecret")
 
     @factory.post_generation
@@ -51,6 +54,8 @@ class ClientFactory(factory.django.DjangoModelFactory):
     short_name = Faker("name")
     codename = Faker("name")
     note = "A note about a client"
+    timezone = Faker("timezone")
+    address = Faker("address")
 
 
 class ClientContactFactory(factory.django.DjangoModelFactory):
@@ -62,6 +67,7 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     email = Faker("email")
     phone = Faker("phone_number")
     note = "A note about a client"
+    timezone = Faker("timezone")
     client = factory.SubFactory(ClientFactory)
 
 
@@ -92,6 +98,9 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     client = factory.SubFactory(ClientFactory)
     project_type = factory.SubFactory(ProjectTypeFactory)
     operator = factory.SubFactory(UserFactory)
+    timezone = Faker("timezone")
+    start_time = Faker("time_object")
+    end_time = Faker("time_object")
 
 
 class ProjectAssignmentFactory(factory.django.DjangoModelFactory):
@@ -365,8 +374,8 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "oplog.OplogEntry"
 
-    start_date = date.today()
-    end_date = date.today()
+    start_date = timezone.now()
+    end_date = timezone.now()
     source_ip = Faker("ipv4")
     dest_ip = Faker("ipv4")
     tool = Faker("name")
