@@ -19,7 +19,7 @@ from ghostwriter.factories import (
 )
 from ghostwriter.reporting.templatetags import report_tags
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 

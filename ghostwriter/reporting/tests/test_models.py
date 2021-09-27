@@ -27,7 +27,7 @@ from ghostwriter.factories import (
     SeverityFactory,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class FindingModelTests(TestCase):

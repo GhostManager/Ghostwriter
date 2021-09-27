@@ -4,6 +4,15 @@
 
 {% block pagetitle %}User Profile{% endblock %}
 
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Your Profile</li>
+        </ul>
+    </nav>
+{% endblock %}
+
 {% block content %}
     <style>
         th, tr, p {

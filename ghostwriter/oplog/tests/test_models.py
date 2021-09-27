@@ -11,7 +11,7 @@ import pytz
 # Ghostwriter Libraries
 from ghostwriter.factories import OplogEntryFactory, OplogFactory
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class OplogModelTests(TestCase):

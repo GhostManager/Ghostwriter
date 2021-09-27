@@ -14,7 +14,7 @@ from ghostwriter.singleton.tests.models import (
     SiteConfigurationWithExplicitlyGivenId,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 # Tests are modified versions of tests from the original "Django Solo" project
@@ -121,6 +121,6 @@ class SingletonWithExplicitIdTest(TestCase):
         self,
     ):
         item = SiteConfigurationWithExplicitlyGivenId.get_solo()
-        self.assertEquals(
+        self.assertEqual(
             item.pk, SiteConfigurationWithExplicitlyGivenId.singleton_instance_id
         )

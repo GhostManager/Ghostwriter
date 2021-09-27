@@ -80,11 +80,11 @@ class DomainFilter(django_filters.FilterSet):
             Row(
                 Column(
                     PrependedText("name", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-4 offset-md-2",
+                    css_class="col-md-6",
                 ),
                 Column(
                     PrependedText("all_cat", '<i class="fas fa-filter"></i>'),
-                    css_class=" col-md-4",
+                    css_class=" col-md-6",
                 ),
                 css_class="form-row",
             ),
@@ -93,6 +93,11 @@ class DomainFilter(django_filters.FilterSet):
                 AccordionGroup("Health Status", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(
+                HTML(
+                    """
+                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:domain_create' %}">Create</a>
+                    """
+                ),
                 Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                 HTML(
                     """
@@ -148,11 +153,11 @@ class ServerFilter(django_filters.FilterSet):
             Row(
                 Column(
                     PrependedText("ip_address", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-4 offset-md-2",
+                    css_class="col-md-6",
                 ),
                 Column(
                     PrependedText("name", '<i class="fas fa-filter"></i>'),
-                    css_class=" col-md-4",
+                    css_class=" col-md-6",
                 ),
                 css_class="form-row",
             ),
@@ -160,6 +165,11 @@ class ServerFilter(django_filters.FilterSet):
                 AccordionGroup("Server Status", InlineCheckboxes("server_status")),
             ),
             ButtonHolder(
+                HTML(
+                    """
+                    <a class="btn btn-info col-md-2" role="button" href="{%  url 'shepherd:server_create' %}">Create</a>
+                    """
+                ),
                 Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                 HTML(
                     """

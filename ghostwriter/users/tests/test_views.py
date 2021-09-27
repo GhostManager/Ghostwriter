@@ -8,7 +8,7 @@ from django.urls import reverse
 # Ghostwriter Libraries
 from ghostwriter.factories import UserFactory
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 

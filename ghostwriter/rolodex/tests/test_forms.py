@@ -37,7 +37,7 @@ from ghostwriter.rolodex.forms_project import (
     ProjectTargetFormSet,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 def instantiate_formset(formset_class, data, instance=None, initial=None):
@@ -79,6 +79,7 @@ class ClientContactFormTests(TestCase):
         phone=None,
         note=None,
         client_id=None,
+        timezone=None,
         **kwargs,
     ):
         return ClientContactForm(
@@ -89,6 +90,7 @@ class ClientContactFormTests(TestCase):
                 "phone": phone,
                 "note": note,
                 "client": client_id,
+                "timezone": timezone,
             },
         )
 
@@ -199,6 +201,8 @@ class ClientFormTests(TestCase):
         short_name=None,
         codename=None,
         note=None,
+        timezone=None,
+        address=None,
         **kwargs,
     ):
         return ClientForm(
@@ -207,6 +211,8 @@ class ClientFormTests(TestCase):
                 "short_name": short_name,
                 "codename": codename,
                 "note": note,
+                "timezone": timezone,
+                "address": address,
             },
         )
 
@@ -336,7 +342,6 @@ class ProjectAssignmentFormTests(TestCase):
         assignment["operator"] = self.new_assignee
 
         form = self.form_data(**assignment)
-        print(form.errors)
         self.assertTrue(form.is_valid())
 
 
@@ -470,6 +475,7 @@ class ProjectFormTests(TestCase):
         update_checkouts=None,
         slack_channel=None,
         note=None,
+        timezone=None,
         **kwargs,
     ):
         return ProjectForm(
@@ -482,6 +488,7 @@ class ProjectFormTests(TestCase):
                 "update_checkouts": update_checkouts,
                 "slack_channel": slack_channel,
                 "note": note,
+                "timezone": timezone,
             },
         )
 

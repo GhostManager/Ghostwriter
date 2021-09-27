@@ -13,7 +13,7 @@ from ghostwriter.factories import (
     ReportPptxTemplateFactory,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class ReportConfigurationFormTests(TestCase):

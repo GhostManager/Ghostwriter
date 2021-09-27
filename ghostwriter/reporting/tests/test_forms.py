@@ -26,7 +26,7 @@ from ghostwriter.reporting.forms import (
     SelectReportTemplateForm,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class FindingFormTests(TestCase):

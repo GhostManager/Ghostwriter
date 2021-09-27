@@ -27,7 +27,10 @@ class ClientAdmin(admin.ModelAdmin):
     list_filter = ("name",)
     list_display_links = ("name", "short_name", "codename")
     fieldsets = (
-        ("General Information", {"fields": ("name", "short_name", "codename")}),
+        (
+            "General Information",
+            {"fields": ("name", "short_name", "codename", "timezone", "address")},
+        ),
         ("Misc", {"fields": ("note",)}),
     )
 
@@ -40,7 +43,7 @@ class ClientContactAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Contact Information",
-            {"fields": ("client", "name", "job_title", "email", "phone")},
+            {"fields": ("client", "name", "job_title", "email", "phone", "timezone")},
         ),
         ("Misc", {"fields": ("note",)}),
     )
@@ -62,7 +65,16 @@ class ProjectAdmin(admin.ModelAdmin):
         ("General Information", {"fields": ("client", "codename", "project_type")}),
         (
             "Execution Dates and Status",
-            {"fields": ("start_date", "end_date", "complete")},
+            {
+                "fields": (
+                    "start_date",
+                    "end_date",
+                    "start_time",
+                    "end_time",
+                    "timezone",
+                    "complete",
+                )
+            },
         ),
         ("Misc", {"fields": ("slack_channel", "note")}),
     )

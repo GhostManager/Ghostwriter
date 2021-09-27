@@ -31,18 +31,9 @@
         <h2>{{ client.name }}</h2>
     </div>
 
-    <h6><span id="client-codename">A.K.A. {{ client.codename }}</span></h6>
+    <h6><span id="client-codename">A.K.A. {{ client.codename }}</span>, <span>Timezone: {{ client.timezone }}</span></h6>
 
     <div>
-        <!-- Description section -->
-        <h3>Client Description</h3>
-        <hr>
-        {% if client.note %}
-            {{ client.note|bleach }}
-        {% else %}
-            <p>No information provided for this client.</p>
-        {% endif %}
-
         <p class="form-spacer"></p>
 
         <!-- Navigation Tabs -->
@@ -51,10 +42,31 @@
             {% include "snippets/client_nav_tabs.html" %}
         </ul>
 
+        <!-- Info Tab -->
         <div class="tab-content">
-            <div id="contacts" class="tab-pane in active">
-                <p><a class="icon add-icon" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a></p>
-                <!-- POC Tab -->
+            <div id="general" class="tab-pane in active">
+                <h4>Client Description</h3>
+                <hr>
+
+                {% if client.note %}
+                    {{ client.note|bleach }}
+                {% else %}
+                    <p>No information provided for this client.</p>
+                {% endif %}
+
+                <h4>Business Address</h3>
+                <hr>
+
+                {% if client.address %}
+                    {{ client.address|bleach }}
+                {% else %}
+                    <p>No address provided for this client.</p>
+                {% endif %}
+            </div>
+
+            <!-- POC Tab -->
+            <div id="contacts" class="tab-pane">
+                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a>
                 {% if client.clientcontact_set.all %}
                     <table id="clientTable" class="tablesorter table table-striped">
                         <thead>
@@ -93,20 +105,20 @@
                         {% endfor %}
                     </table>
                 {% else %}
-                    <p>There is nothing to see here yet.</p>
+                    <p class="mt-3">There is nothing to see here yet.</p>
                 {% endif %}
             </div>
 
             <!-- Project History Tab -->
             <div id="project-history" class="tab-pane">
-                <p><a class="icon add-icon" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a></p>
+                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a>
                 {% if client.project_set.all %}
                     <table id="projectTable" class="tablesorter table">
                         <thead>
                             <tr>
                                 <th nowrap>Codename</th>
                                 <th>Project Type</th>
-                                <th nowrap class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                                <th nowrap class="sorter-date-range-dmy">Execution Window</th>
                                 <th class="sorter-false">Note</th>
                                 <th class="sorter-false">Options</th>
                             </tr>
@@ -115,7 +127,7 @@
                             <tr>
                                 <td class="align-middle"><a class="clickable" href="{{ project.get_absolute_url }}">{{ project.codename }}</a></td>
                                 <td class="align-middle">{{ project.project_type }}</td>
-                                <td class="align-middle">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
+                                <td class="align-middle">{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
                                 <td class="align-middle table-note">{{ project.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
@@ -130,7 +142,7 @@
                         {% endfor %}
                     </table>
                 {% else %}
-                    <p>This client has no project history.</p>
+                    <p class="mt-3">This client has no project history.</p>
                 {% endif %}
             </div>
 
@@ -190,15 +202,13 @@
                         </table>
                     {% endif %}
                 {% else %}
-                        <p>No infrastructure history for this client, yet.</p>
+                    <p>No infrastructure history for this client, yet.</p>
                 {% endif %}
             </div>
 
             <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
-                <p>
-                    <a class="icon add-icon" href="{% url 'rolodex:client_note_add' client.id %}">Add a Note</a>
-                </p>
+                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:client_note_add' client.id %}">Add a Note</a>
                 {% if client.clientnote_set.all %}
                     {% for note in client.clientnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">

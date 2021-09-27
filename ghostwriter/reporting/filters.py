@@ -66,19 +66,24 @@ class FindingFilter(django_filters.FilterSet):
                 Row(
                     Column(
                         InlineCheckboxes("severity"),
-                        css_class="form-group col-md-12",
+                        css_class="form-group col-md-12 m-1",
                     ),
                     css_class="form-row",
                 ),
                 Row(
                     Column(
                         InlineCheckboxes("finding_type"),
-                        css_class="form-group col-md-12",
+                        css_class="form-group col-md-12 m-1",
                     ),
                     css_class="form-row",
                 ),
                 ButtonHolder(
-                    Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
+                    HTML(
+                        """
+                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:finding_create' %}">Create</a>
+                        """
+                    ),
+                    Submit("submit_btn", "Filter", css_class="col-md-2"),
                     HTML(
                         """
                         <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
@@ -142,6 +147,11 @@ class ReportFilter(django_filters.FilterSet):
                     css_class="form-row",
                 ),
                 ButtonHolder(
+                    HTML(
+                        """
+                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:report_create_no_project' %}">Create</a>
+                        """
+                    ),
                     Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                     HTML(
                         """

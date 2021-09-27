@@ -6,6 +6,9 @@ from django.db.models import CharField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+# 3rd Party Libraries
+from timezone_field import TimeZoneField
+
 
 class User(AbstractUser):
     """
@@ -16,6 +19,22 @@ class User(AbstractUser):
     name = CharField(_("Name of User"), blank=True, max_length=255)
     first_name = None
     last_name = None
+    timezone = TimeZoneField(
+        "User's Timezone",
+        default="America/Los_Angeles",
+        help_text="Primary timezone of the client",
+    )
+    # The ITU E.164 states phone numbers should not exceed 15 characters
+    # We want valid phone numbers, but validating them (here or in forms) is unnecessary
+    # Numbers are not used for anything – and any future use would involve human involvement
+    # The `max_length` allows for people adding spaces, other chars, and extension numbers
+    phone = CharField(
+        "Phone",
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Enter a phone number for this user",
+    )
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})

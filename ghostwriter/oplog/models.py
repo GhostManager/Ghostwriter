@@ -12,6 +12,7 @@ from django.core.serializers import serialize
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
+from django.utils.timezone import make_aware
 
 # 3rd Party Libraries
 from asgiref.sync import async_to_sync
@@ -146,9 +147,9 @@ def oplog_pre_save(sender, instance, **kwargs):
     :model:`oplog.OplogEntry`.
     """
     if not instance.start_date:
-        instance.start_date = datetime.utcnow()
+        instance.start_date = make_aware(datetime.utcnow())
     if not instance.end_date:
-        instance.end_date = datetime.utcnow()
+        instance.end_date = make_aware(datetime.utcnow())
 
     instance.clean()
 

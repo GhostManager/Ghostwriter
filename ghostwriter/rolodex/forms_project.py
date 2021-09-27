@@ -824,6 +824,8 @@ class ProjectForm(forms.ModelForm):
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
+        self.fields["start_time"].widget.input_type = "time"
+        self.fields["end_time"].widget.input_type = "time"
         self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
         self.fields["note"].widget.attrs["placeholder"] = "Description of the Project"
         # Hide labels for specific fields because ``form_show_labels`` takes priority
@@ -876,6 +878,12 @@ class ProjectForm(forms.ModelForm):
                     Row(
                         Column("start_date", css_class="form-group col-md-6 mb-0"),
                         Column("end_date", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("start_time", css_class="form-group col-md-4 mb-0"),
+                        Column("end_time", css_class="form-group col-md-4 mb-0"),
+                        Column("timezone", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
                     Row(

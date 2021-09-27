@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 
 # Django Imports
 from django.test import TestCase
@@ -28,7 +28,7 @@ from ghostwriter.factories import (
     UserFactory,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class ClientModelTests(TestCase):
@@ -163,28 +163,44 @@ class ProjectModelTests(TestCase):
         assert not self.Project.objects.all().exists()
 
     def test_checkout_adjustment_signal(self):
-        project = ProjectFactory()
+        yesterday = date.today() - timedelta(days=1)
+
+        project = ProjectFactory(
+            start_date=date.today() - timedelta(days=14),
+            end_date=date.today() + timedelta(days=14),
+        )
+
         domain_checkout = HistoryFactory(
             start_date=project.start_date, end_date=project.end_date, project=project
+        )
+        exp_domain_checkout = HistoryFactory(
+            start_date=project.start_date, end_date=yesterday, project=project
         )
         server_checkout = ServerHistoryFactory(
             start_date=project.start_date, end_date=project.end_date, project=project
         )
+        exp_server_checkout = ServerHistoryFactory(
+            start_date=project.start_date, end_date=yesterday, project=project
+        )
 
-        new_start = project.start_date - timedelta(days=14)
-        new_end = project.end_date - timedelta(days=14)
+        new_start = project.start_date - timedelta(days=7)
+        new_end = project.end_date + timedelta(days=7)
 
         project.start_date = new_start
         project.end_date = new_end
         project.save()
 
         domain_checkout.refresh_from_db()
+        exp_domain_checkout.refresh_from_db()
         server_checkout.refresh_from_db()
+        exp_server_checkout.refresh_from_db()
 
         self.assertEqual(domain_checkout.start_date, new_start)
         self.assertEqual(server_checkout.start_date, new_start)
         self.assertEqual(domain_checkout.end_date, new_end)
         self.assertEqual(server_checkout.end_date, new_end)
+        self.assertEqual(exp_domain_checkout.end_date, yesterday)
+        self.assertEqual(exp_server_checkout.end_date, yesterday)
 
     def test_prop_count_findings(self):
         project = ProjectFactory()

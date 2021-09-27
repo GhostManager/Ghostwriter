@@ -2,6 +2,11 @@
 
 # Django Imports
 from django import forms
+from django.contrib.postgres.forms import (
+    SimpleArrayField,
+    SplitArrayField,
+    SplitArrayWidget,
+)
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.urls import reverse
@@ -278,11 +283,17 @@ class TransientServerForm(forms.ModelForm):
     :model:`rolodex.Project`.
     """
 
+    aux_address = SplitArrayField(
+        forms.GenericIPAddressField(required=False), size=3, remove_trailing_nulls=True
+    )
+
     class Meta:
 
         model = TransientServer
         fields = "__all__"
-        widgets = {"project": forms.HiddenInput()}
+        widgets = {
+            "project": forms.HiddenInput(),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -304,14 +315,23 @@ class TransientServerForm(forms.ModelForm):
                 <hr>
                 """
             ),
-            "ip_address",
-            "name",
             Row(
-                Column("activity_type", css_class="form-group col-md-6 mb-0"),
-                Column("server_role", css_class="form-group col-md-6 mb-0"),
+                Column("name", css_class="form-group col-md-6 mb-0"),
+                Column("ip_address", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
-            "server_provider",
+            Row(
+                Column("activity_type", css_class="form-group col-md-4 mb-0"),
+                Column("server_role", css_class="form-group col-md-4 mb-0"),
+                Column("server_provider", css_class="form-group col-md-4 mb-0"),
+                css_class="form-row",
+            ),
+            HTML(
+                """
+                <p>Include up to three additional IP addresses:</p>
+                """
+            ),
+            "aux_address",
             HTML(
                 """
                 <h4 class="icon comment-icon">Additional Information</h4>
