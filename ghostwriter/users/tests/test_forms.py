@@ -8,7 +8,7 @@ from django.test import TestCase
 from ghostwriter.factories import GroupFactory, UserFactory
 from ghostwriter.users.forms import GroupAdminForm
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class GroupAdminFormTests(TestCase):

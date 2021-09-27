@@ -10,9 +10,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.2.1"
+__version__ = "2.2.2-rc2"
 VERSION = __version__
-RELEASE_DATE = "27 May 2021"
+RELEASE_DATE = "22 Sept 2021"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -72,6 +72,7 @@ DJANGO_APPS = [
     "django.contrib.humanize",
     "django.contrib.admin",
     "django.contrib.admindocs",
+    "django.contrib.postgres",
 ]
 
 THIRD_PARTY_APPS = [
@@ -86,6 +87,7 @@ THIRD_PARTY_APPS = [
     "import_export",
     "tinymce",
     "django_bleach",
+    "timezone_field",
 ]
 
 LOCAL_APPS = [
@@ -277,7 +279,7 @@ LOGGING = {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "verbose",
-        }
+        },
     },
     "root": {"level": "INFO", "handlers": ["console"]},
 }

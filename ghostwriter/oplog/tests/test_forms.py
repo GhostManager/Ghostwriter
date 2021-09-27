@@ -8,7 +8,7 @@ from django.test import TestCase
 from ghostwriter.factories import OplogEntryFactory, OplogFactory, ProjectFactory
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 

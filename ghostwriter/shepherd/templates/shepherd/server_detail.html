@@ -87,7 +87,7 @@
                         <th>Activity Type</th>
                         <th>Server Role</th>
                         <th>Domain</th>
-                        <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                        <th class="sorter-date-range-dmy">Execution Window</th>
                         <th class="sorter-false">Notes</th>
                         <th class="sorter-false">Edit</th>
                     </tr>
@@ -102,7 +102,7 @@
                         {% else %}
                             <td>No Assoc. Domain</td>
                         {% endif %}
-                        <td>{{ project.start_date }} - {{ project.end_date }}</td>
+                        <td>{{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</td>
                         <td class="table-note">{{ project.note|bleach }}</td>
                         <td>
                             <a class="icon edit-icon" href="{% url 'shepherd:server_history_update' project.id %}"></a>
@@ -115,43 +115,35 @@
         {% endif %}
 
         <!-- Additional Information Section -->
-        <div id="accordion" class="myaccordion">
-            <div class="card">
-                <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes">
-                    <a class="accordion-toggle btn btn-link icon comment-icon" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">Notes</a>
-                </div>
-                <div id="collapseNotes" class="collapse show" aria-labelledby="description" data-parent="#accordion">
-                    <div class="card-body">
-                        <p>
-                            <a class="icon add-icon" href="{% url 'shepherd:server_note_add' staticserver.id %}">Add a Note</a>
-                        </p>
-                        {% if staticserver.servernote_set.all %}
-                            {% for note in staticserver.servernote_set.all reversed %}
-                                <div id="note-container-{{ note.id }}">
-                                    <p>{{ note.timestamp }}</p>
-                                    <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                        <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                                        {% if request.user == note.operator or request.user.is_staff %}
-                                            <div class="dropdown dropleft right">
-                                                <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                                <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
-                                                    <a class="icon edit-icon" href="{% url 'shepherd:server_note_edit' note.id %}">Edit</a>
-                                                    <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_server_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-                                        {{ note.note|bleach }}
-                                        <span class="time-right">{{ note.operator.username }}</span>
-                                    </div>
+        <h4 class="icon comment-icon">Notes</h4>
+        <hr />
+
+        <p>
+            <a class="icon add-icon btn btn-primary" href="{% url 'shepherd:server_note_add' staticserver.id %}">Add a Note</a>
+        </p>
+        {% if staticserver.servernote_set.all %}
+            {% for note in staticserver.servernote_set.all reversed %}
+                <div id="note-container-{{ note.id }}">
+                    <p>{{ note.timestamp }}</p>
+                    <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                        <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
+                        {% if request.user == note.operator or request.user.is_staff %}
+                            <div class="dropdown dropleft right">
+                                <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
+                                    <a class="icon edit-icon" href="{% url 'shepherd:server_note_edit' note.id %}">Edit</a>
+                                    <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_server_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
                                 </div>
-                            {% endfor %}
-                        {% else %}
-                            <p>No notes for this server.</p>
+                            </div>
                         {% endif %}
+                        {{ note.note|bleach }}
+                        <span class="time-right">{{ note.operator.username }}</span>
                     </div>
                 </div>
-            </div>
-        </div>
+            {% endfor %}
+        {% else %}
+            <p>No notes for this server.</p>
+        {% endif %}
     </div>
 {% endblock %}
 

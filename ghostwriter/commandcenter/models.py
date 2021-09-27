@@ -223,6 +223,11 @@ class CloudServicesConfiguration(SingletonModel):
         default="gw_ignore",
         help_text="Ghostwriter will ignore cloud assets with one of these tags (comma-separated list)",
     )
+    notification_delay = models.IntegerField(
+        "Notification Delay",
+        default=7,
+        help_text="Number of days to delay cloud monitoring notifications for teardown",
+    )
 
     def __str__(self):
         return "Cloud Services Configuration"

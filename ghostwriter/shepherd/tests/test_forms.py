@@ -36,7 +36,7 @@ from ghostwriter.shepherd.forms_server import (
     TransientServerForm,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 def instantiate_formset(formset_class, data, instance=None, initial=None):
@@ -629,6 +629,7 @@ class TransientServerFormTests(TestCase):
     def form_data(
         self,
         ip_address=None,
+        aux_address=None,
         name=None,
         activity_type_id=None,
         server_role_id=None,
@@ -640,6 +641,10 @@ class TransientServerFormTests(TestCase):
         return TransientServerForm(
             data={
                 "ip_address": ip_address,
+                "aux_address": aux_address,
+                "aux_address_0": aux_address[0],
+                "aux_address_1": aux_address[1],
+                "aux_address_2": aux_address[2],
                 "name": name,
                 "activity_type": activity_type_id,
                 "server_role": server_role_id,

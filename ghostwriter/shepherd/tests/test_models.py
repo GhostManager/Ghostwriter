@@ -26,7 +26,7 @@ from ghostwriter.factories import (
     WhoisStatusFactory,
 )
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class HealthStatusModelTests(TestCase):
@@ -36,7 +36,7 @@ class HealthStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.HealthStatus = HealthStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = HealthStatusFactory(health_status="Healthy")
 
@@ -59,7 +59,7 @@ class HealthStatusModelTests(TestCase):
 
     def test_prop_count_status(self):
         status = HealthStatusFactory(health_status="Healthy")
-        domain = DomainFactory(health_status=status)
+        DomainFactory(health_status=status)
 
         try:
             count = status.count
@@ -75,7 +75,7 @@ class DomainStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.DomainStatus = DomainStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = DomainStatusFactory(domain_status="Available")
 
@@ -98,7 +98,7 @@ class DomainStatusModelTests(TestCase):
 
     def test_prop_count_status(self):
         status = DomainStatusFactory(domain_status="Available")
-        domain = DomainFactory(domain_status=status)
+        DomainFactory(domain_status=status)
 
         try:
             count = status.count
@@ -114,7 +114,7 @@ class WhoisStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.WhoisStatus = WhoisStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = WhoisStatusFactory(whois_status="Enabled")
 
@@ -153,7 +153,7 @@ class ActivityTypeModelTests(TestCase):
     def setUpTestData(cls):
         cls.ActivityType = ActivityTypeFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         activity_type = ActivityTypeFactory(activity="Phishing")
 
@@ -182,7 +182,7 @@ class DomainModelTests(TestCase):
     def setUpTestData(cls):
         cls.Domain = DomainFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         domain = DomainFactory(name="ghostwriter.wiki")
 
@@ -273,8 +273,10 @@ class HistoryModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.History = HistoryFactory._meta.model
+        cls.available_status = DomainStatusFactory(domain_status="Available")
+        cls.unavailable_status = DomainStatusFactory(domain_status="Unavailable")
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         entry = HistoryFactory(domain=DomainFactory(name="ghostwriter.wiki"))
 
@@ -309,6 +311,29 @@ class HistoryModelTests(TestCase):
         except Exception:
             self.fail("History model `will_be_released` method failed unexpectedly!")
 
+    def test_delete_signal(self):
+        domain = DomainFactory(domain_status=self.unavailable_status)
+
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        next_week = today + timedelta(days=7)
+        two_weeks = today + timedelta(days=14)
+
+        history_1 = HistoryFactory(start_date=today, end_date=tomorrow, domain=domain)
+        history_2 = HistoryFactory(
+            start_date=next_week, end_date=two_weeks, domain=domain
+        )
+
+        # Deleting this older checkout should not impact the domain's status
+        history_1.delete()
+        domain.refresh_from_db()
+        self.assertTrue(domain.domain_status == self.unavailable_status)
+
+        # Deleting this newer checkout should impact the domain's status
+        history_2.delete()
+        domain.refresh_from_db()
+        self.assertTrue(domain.domain_status == self.available_status)
+
 
 class ServerStatusModelTests(TestCase):
     """Collection of tests for :model:`shepherd.ServerStatus`."""
@@ -317,7 +342,7 @@ class ServerStatusModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerStatus = ServerStatusFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         status = ServerStatusFactory(server_status="Available")
 
@@ -340,7 +365,7 @@ class ServerStatusModelTests(TestCase):
 
     def test_prop_count_status(self):
         status = ServerStatusFactory(server_status="Enabled")
-        server = StaticServerFactory(server_status=status)
+        StaticServerFactory(server_status=status)
 
         try:
             count = status.count
@@ -356,7 +381,7 @@ class ServerProviderModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerProvider = ServerProviderFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         provider = ServerProviderFactory(server_provider="Digital Ocean")
 
@@ -379,7 +404,7 @@ class ServerProviderModelTests(TestCase):
 
     def test_prop_count_status(self):
         provider = ServerProviderFactory(server_provider="AWS")
-        server = StaticServerFactory(server_provider=provider)
+        StaticServerFactory(server_provider=provider)
 
         try:
             count = provider.count
@@ -395,7 +420,7 @@ class ServerRoleModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerRole = ServerRoleFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         role = ServerRoleFactory(server_role="Redirector")
 
@@ -424,7 +449,7 @@ class StaticServerModelTests(TestCase):
     def setUpTestData(cls):
         cls.StaticServer = StaticServerFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         server = StaticServerFactory(ip_address="192.168.1.100")
 
@@ -455,7 +480,7 @@ class TransientServerModelTests(TestCase):
     def setUpTestData(cls):
         cls.TransientServer = TransientServerFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         server = TransientServerFactory(ip_address="192.168.1.100")
 
@@ -486,7 +511,7 @@ class AuxServerAddressModelTests(TestCase):
     def setUpTestData(cls):
         cls.AuxServerAddress = AuxServerAddressFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         server = AuxServerAddressFactory(ip_address="192.168.1.100")
 
@@ -514,8 +539,10 @@ class ServerHistoryModelTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.ServerHistory = ServerHistoryFactory._meta.model
+        cls.available_status = ServerStatusFactory(server_status="Available")
+        cls.unavailable_status = ServerStatusFactory(server_status="Unavailable")
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         entry = ServerHistoryFactory(server=StaticServerFactory(name="teamserver.local"))
 
@@ -578,6 +605,31 @@ class ServerHistoryModelTests(TestCase):
                 "ServerHistory model `will_be_released` method failed unexpectedly!"
             )
 
+    def test_delete_signal(self):
+        server = StaticServerFactory(server_status=self.unavailable_status)
+
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        next_week = today + timedelta(days=7)
+        two_weeks = today + timedelta(days=14)
+
+        history_1 = ServerHistoryFactory(
+            start_date=today, end_date=tomorrow, server=server
+        )
+        history_2 = ServerHistoryFactory(
+            start_date=next_week, end_date=two_weeks, server=server
+        )
+
+        # Deleting this older checkout should not impact the server's status
+        history_1.delete()
+        server.refresh_from_db()
+        self.assertTrue(server.server_status == self.unavailable_status)
+
+        # Deleting this newer checkout should impact the server's status
+        history_2.delete()
+        server.refresh_from_db()
+        self.assertTrue(server.server_status == self.available_status)
+
 
 class DomainServerConnectionModelTests(TestCase):
     """Collection of tests for :model:`shepherd.AuxServerAddress`."""
@@ -586,7 +638,7 @@ class DomainServerConnectionModelTests(TestCase):
     def setUpTestData(cls):
         cls.DomainServerConnection = DomainServerConnectionFactory._meta.model
 
-    def test_crud_finding(self):
+    def test_crud(self):
         # Create
         entry = DomainServerConnectionFactory(subdomain="wiki")
 
@@ -642,7 +694,7 @@ class DomainNoteModelTests(TestCase):
     def setUpTestData(cls):
         cls.DomainNote = DomainNoteFactory._meta.model
 
-    def test_crud_finding_note(self):
+    def test_crud_note(self):
         # Create
         note = DomainNoteFactory(note="Test note")
 
@@ -669,7 +721,7 @@ class ServerNoteModelTests(TestCase):
     def setUpTestData(cls):
         cls.ServerNote = ServerNoteFactory._meta.model
 
-    def test_crud_finding_note(self):
+    def test_crud_note(self):
         # Create
         note = ServerNoteFactory(note="Test note")
 

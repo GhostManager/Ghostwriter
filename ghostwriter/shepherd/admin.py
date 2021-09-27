@@ -260,6 +260,7 @@ class TransientServerRoleAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "ip_address",
+        "aux_address",
         "server_role",
         "activity_type",
         "server_provider",
@@ -267,7 +268,7 @@ class TransientServerRoleAdmin(admin.ModelAdmin):
     list_filter = ("server_provider", "server_role", "activity_type")
     list_display_links = ("name", "ip_address")
     fieldsets = (
-        ("Basic Server Information", {"fields": ("ip_address", "name")}),
+        ("Basic Server Information", {"fields": ("name", "ip_address", "aux_address")}),
         (
             "Server Use Information",
             {"fields": ("server_provider", "server_role", "activity_type", "operator")},

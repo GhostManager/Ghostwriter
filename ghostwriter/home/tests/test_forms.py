@@ -12,7 +12,7 @@ from django.test import TestCase
 from ghostwriter.factories import UserFactory
 from ghostwriter.home.forms import SignupForm, UserProfileForm
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 
 class UserProfileFormTests(TestCase):

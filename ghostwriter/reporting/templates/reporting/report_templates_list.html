@@ -15,14 +15,14 @@
 
 {% block content %}
     <p>
-        <a class="icon add-icon" href="{% url 'reporting:template_create' %}">Upload a Report Template</a>
+        <a class="btn btn-primary icon upload-icon" href="{% url 'reporting:template_create' %}">Upload a Report Template</a>
     </p>
 
     <!-- Report Templates Table Section -->
     {% if reporttemplate_list %}
-        <p><strong>Note:</strong> Only admins may edit protected report templates.</p>
-
         <p>This page lists all report templates and their current status. To investigate a status, view the template's details page.</p>
+
+        <p><strong>Note:</strong> Only admins may edit protected report templates.</p>
 
         <table id="reportTable" class="tablesorter table">
             <thead>

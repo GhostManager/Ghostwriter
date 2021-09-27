@@ -100,7 +100,7 @@
             <div id="dns" class="tab-pane">
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
                     </p>
                 {% endif %}
 
@@ -149,7 +149,7 @@
             <div id="health" class="tab-pane">
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
                     </p>
                 {% endif %}
 
@@ -272,7 +272,7 @@
                                 <th>Client</th>
                                 <th>Activity Type</th>
                                 <th>Project Type</th>
-                                <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
+                                <th class="sorter-date-range-dmy">Execution Window</th>
                                 <th class="sorter-false">Notes</th>
                                 <th class="sorter-false">Options</th>
                             </tr>
@@ -282,7 +282,7 @@
                                 <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
                                 <td>{{ project.activity_type }}</td>
                                 <td>{{ project.project.project_type }}</td>
-                                <td>{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
+                                <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
                                 <td class="table-note">{{ project.note|bleach}}</td>
                                 <td>
                                     <div class="dropdown dropleft">
@@ -304,7 +304,7 @@
             <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
                 <p>
-                    <a class="icon add-icon" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
+                    <a class="icon add-icon btn btn-primary" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
                 </p>
                 {% if domain.domainnote_set.all %}
                     {% for note in domain.domainnote_set.all reversed %}

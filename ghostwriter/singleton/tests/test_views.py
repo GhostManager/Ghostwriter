@@ -9,7 +9,7 @@ from django.test import TestCase
 from ghostwriter.factories import CompanyInformationFactory
 from ghostwriter.singleton.templatetags import settings_tags
 
-logging.disable(logging.INFO)
+logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 

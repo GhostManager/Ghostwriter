@@ -605,7 +605,7 @@ class SelectReportTemplateForm(forms.ModelForm):
                 Column(
                     HTML(
                         """
-                        <p class="text-left m-0">Template for DOCX Documents</p>
+                        <p class="text-left mt-1">Template for DOCX</p>
                         """
                     ),
                     css_class="col-md-2",
@@ -635,7 +635,7 @@ class SelectReportTemplateForm(forms.ModelForm):
                 Column(
                     HTML(
                         """
-                        <p class="text-left m-0">Template for PPTX Documents</p>
+                        <p class="text-left mt-1">Template for PPTX</p>
                         """
                     ),
                     css_class="col-md-2",

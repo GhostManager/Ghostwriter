@@ -158,8 +158,9 @@ class ClientContactForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     Row(
-                        Column("email", css_class="form-group col-md-6 mb-0"),
-                        Column("phone", css_class="form-group col-md-6 mb-0"),
+                        Column("email", css_class="form-group col-md-4 mb-0"),
+                        Column("phone", css_class="form-group col-md-4 mb-0"),
+                        Column("timezone", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
                     "note",
@@ -217,6 +218,9 @@ class ClientForm(forms.ModelForm):
         self.fields["note"].widget.attrs[
             "placeholder"
         ] = "Brief Description of the Organization or a Note"
+        self.fields["address"].widget.attrs[
+            "placeholder"
+        ] = "Company's Address for Reporting or Shipping"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -235,7 +239,7 @@ class ClientForm(forms.ModelForm):
                     ),
                     "name",
                     Row(
-                        Column("short_name", css_class="form-group col-md-6 mb-0"),
+                        Column("short_name", css_class="form-group col-md-4 mb-0"),
                         Column(
                             FieldWithButtons(
                                 "codename",
@@ -252,9 +256,11 @@ class ClientForm(forms.ModelForm):
                                     """
                                 ),
                             ),
-                            css_class="col-md-6",
+                            css_class="col-md-4",
                         ),
+                        Column("timezone", css_class="form-group col-md-4 mb-0"),
                     ),
+                    "address",
                     "note",
                     link_css_class="client-icon",
                     css_id="client",

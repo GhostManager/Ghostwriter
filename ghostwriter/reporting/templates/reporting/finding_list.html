@@ -18,15 +18,11 @@
         {% crispy filter.form filter.helper %}
     </div>
 
-    <p class="mt-3">
-        <a class="icon add-icon" href="{% url 'reporting:finding_create' %}">Create a Finding</a>
-    </p>
-
     {% if filter.qs|length == 0 %}
         <p class="mt-3">There are no findings to see here yet, or your search returned no results. Create a new finding up above.</p>
     {% else %}
         <!-- Instructions Section -->
-        <p>Click the <span class="add-icon"></span> icon to add a finding to the <em>current report</em> displayed at the top of the page.</p>
+        <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>current report</em> displayed at the top of the page.</p>
 
         <!-- Findings Table Section -->
         <div id="findings_table">

@@ -13,7 +13,7 @@ try:
     from django.utils.encoding import force_unicode
 except ImportError:
     # Django Imports
-    from django.utils.encoding import force_text as force_unicode
+    from django.utils.encoding import force_str as force_unicode
 
 
 class SingletonModelAdmin(admin.ModelAdmin):
