@@ -2,7 +2,7 @@
 
 # Example JSON reporting data for loading into templates for rendering tests
 LINTER_CONTEXT = {
-    "report_date": "March 25, 2021",
+    "report_date": "Mar. 25, 2021",
     "project": {
         "id": 1,
         "name": "2021-03-01 Kabletown, Inc. Red Team (KABLE-01)",
