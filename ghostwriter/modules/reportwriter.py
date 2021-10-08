@@ -11,6 +11,7 @@ import logging
 import os
 import random
 import re
+from datetime import datetime, timedelta
 
 # Django Imports
 from django.conf import settings
@@ -121,6 +122,49 @@ def compromised(targets):
     return filtered_targets
 
 
+def add_days(date, format_str, days):
+    """
+    Add a number of business days to a date.
+
+    **Parameters**
+
+    ``date``
+        Date string to add business days to
+    ``format_str``
+        The format of the provided date
+    ``days``
+        Number of business days to add to the date
+    """
+    # Loop until all days added
+    date = datetime.strptime(date, format_str)
+    while days > 0:
+        # Add one day to the date
+        date += timedelta(days=1)
+        # Check if the day is a business day
+        weekday = date.weekday()
+        if weekday >= 5:
+            # Return to the top (Sunday is 6)
+            continue
+        # Decrement the number of days to add
+        days -= 1
+    return date.strftime(format_str)
+
+
+def format_datetime(date, current_format, new_format):
+    """
+    Change the format of a given date string.
+
+    **Parameters**
+
+    ``date``
+        Date string to modify
+    ``format_str``
+        The format of the provided date
+    """
+    current = datetime.strptime(date, current_format)
+    return current.strftime(new_format)
+
+
 def prepare_jinja2_env(debug=False):
     """Prepare a Jinja2 environment with all custom filters."""
     if debug:
@@ -133,6 +177,8 @@ def prepare_jinja2_env(debug=False):
     env.filters["filter_type"] = filter_type
     env.filters["strip_html"] = strip_html
     env.filters["compromised"] = compromised
+    env.filters["add_days"] = add_days
+    env.filters["format_datetime"] = format_datetime
 
     return env
 
