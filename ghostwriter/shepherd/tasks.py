@@ -38,7 +38,6 @@ from ghostwriter.modules.review import DomainReview
 
 from .models import (
     Domain,
-    DomainHistory,
     DomainNote,
     DomainStatus,
     HealthStatus,
@@ -678,7 +677,7 @@ def check_domains(domain=None):
                     )
 
                     # Check if the domain is checked-out and send a message to that project channel
-                    latest_checkout = DomainHistory.objects.filter(domain=domain).latest(
+                    latest_checkout = History.objects.filter(domain=domain).latest(
                         "end_date"
                     )
                     if (
