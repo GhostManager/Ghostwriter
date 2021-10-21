@@ -137,16 +137,25 @@ def add_days(date, format_str, days):
     """
     # Loop until all days added
     date = datetime.strptime(date, format_str)
-    while days > 0:
-        # Add one day to the date
-        date += timedelta(days=1)
-        # Check if the day is a business day
-        weekday = date.weekday()
-        if weekday >= 5:
-            # Return to the top (Sunday is 6)
-            continue
-        # Decrement the number of days to add
-        days -= 1
+    if days > 0:
+        while days > 0:
+            # Add one day to the date
+            date += timedelta(days=1)
+            # Check if the day is a business day
+            weekday = date.weekday()
+            if weekday >= 5:
+                # Return to the top (Sunday is 6)
+                continue
+            # Decrement the number of days to add
+            days -= 1
+    else:
+        # Same as above but in reverse for negative days
+        while days < 0:
+            date -= timedelta(days=1)
+            weekday = date.weekday()
+            if weekday >= 5:
+                continue
+            days += 1
     return date.strftime(format_str)
 
 
