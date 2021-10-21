@@ -48,8 +48,8 @@ LINTER_CONTEXT = {
             "role": "Assessment Lead",
             "name": "Benny the Ghost",
             "email": "benny@ghostwriter.wiki",
-            "start_date": "March 1, 2021",
-            "end_date": "June 25, 2021",
+            "start_date": "Mar. 1, 2021",
+            "end_date": "Jun. 25, 2021",
             "note": "<p>Benny will lead the assessment for the full duration.</p>",
         },
         {
