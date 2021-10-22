@@ -27,7 +27,7 @@ class OplogForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.project_instance = project
         # Limit the list to just projects not marked as complete
-        active_projects = Project.objects.filter(complete=False)
+        active_projects = Project.objects.filter(complete=False).order_by("-start_date")
         if active_projects:
             self.fields["project"].empty_label = "-- Select an Active Project --"
         else:

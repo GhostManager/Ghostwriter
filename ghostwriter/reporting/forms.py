@@ -139,7 +139,7 @@ class ReportForm(forms.ModelForm):
         self.project_instance = project
         # Limit the list to just projects not marked as complete
         active_projects = Project.objects.filter(complete=False).order_by(
-            "start_date", "client", "project_type"
+            "-start_date", "client", "project_type"
         )
         if active_projects:
             self.fields["project"].empty_label = "-- Select an Active Project --"
