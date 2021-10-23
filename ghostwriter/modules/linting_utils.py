@@ -2,29 +2,33 @@
 
 # Example JSON reporting data for loading into templates for rendering tests
 LINTER_CONTEXT = {
-    "report_date": "March 25, 2021",
+    "report_date": "Mar. 25, 2021",
     "project": {
         "id": 1,
         "name": "2021-03-01 Kabletown, Inc. Red Team (KABLE-01)",
         "type": "Red Team",
-        "start_date": "June 25, 2021",
+        "start_date": "Mar. 1, 2021",
         "start_month": "March",
         "start_day": 1,
         "start_year": 2021,
-        "end_date": "June 25, 2021",
+        "end_date": "Jun. 25, 2021",
         "end_month": "June",
         "end_day": 25,
         "end_year": 2021,
         "codename": "KABLE-01",
+        "timezone": "America/Los_Angeles",
         "note": "<p>This is an assessment for Kabletown but targets NBC assets. The goal is to answer specific questions prior to Kabletown absorbing NBC.</p>",
         "slack_channel": "#ghostwriter",
         "complete": False,
+        "start_time": "09:00:00",
+        "end_time": "17:00:00",
     },
     "client": {
         "id": 1,
         "contacts": [
             {
                 "name": "Hank Hooper",
+                "timezone": "America/Los_Angeles",
                 "job_title": "CEO",
                 "email": "dad@kabletown.family",
                 "phone": "(212) 664-4444",
@@ -32,6 +36,7 @@ LINTER_CONTEXT = {
             },
             {
                 "name": "John Francis Donaghy",
+                "timezone": "America/Los_Angeles",
                 "job_title": "Vice President of East Coast Television",
                 "email": "jack@nbc.com",
                 "phone": "(212) 664-4444",
@@ -48,16 +53,18 @@ LINTER_CONTEXT = {
             "role": "Assessment Lead",
             "name": "Benny the Ghost",
             "email": "benny@ghostwriter.wiki",
-            "start_date": "March 1, 2021",
-            "end_date": "June 25, 2021",
+            "start_date": "Mar. 1, 2021",
+            "end_date": "Jun. 25, 2021",
+            "timezone": "America/Los_Angeles",
             "note": "<p>Benny will lead the assessment for the full duration.</p>",
         },
         {
             "role": "Assessment Oversight",
             "name": "Christopher Maddalena",
             "email": "cmaddalena@specterops.io",
-            "start_date": "March 1, 2021",
-            "end_date": "June 25, 2021",
+            "start_date": "Mar. 1, 2021",
+            "end_date": "Jun. 25, 2021",
+            "timezone": "America/Los_Angeles",
             "note": "<p>Christopher will provide oversight and assistance (as needed).</p>",
         },
     ],
@@ -65,18 +72,18 @@ LINTER_CONTEXT = {
         {
             "priority": "Primary",
             "status": "Active",
-            "deadline": "June 25, 2021",
+            "deadline": "Jun. 25, 2021",
             "percent_complete": 50.0,
             "tasks": [
                 {
-                    "deadline": "June 25, 2021",
+                    "deadline": "Jun. 25, 2021",
                     "marked_complete": "",
                     "task": "Extract information about Kenneth Parcell",
                     "complete": False,
                 },
                 {
-                    "deadline": "June 4, 2021",
-                    "marked_complete": "March 22, 2021",
+                    "deadline": "Jun. 4, 2021",
+                    "marked_complete": "Mar. 22, 2021",
                     "task": "Locate information about Kenneth Parcell to begin the search (Page Program subnet)",
                     "complete": True,
                 },
@@ -91,11 +98,11 @@ LINTER_CONTEXT = {
         {
             "priority": "Secondary",
             "status": "Active",
-            "deadline": "June 25, 2021",
+            "deadline": "Jun. 25, 2021",
             "percent_complete": 0.0,
             "tasks": [
                 {
-                    "deadline": "March 16, 2021",
+                    "deadline": "Mar. 16, 2021",
                     "marked_complete": "",
                     "task": "Locate systems and data repositories used by HR and contract teams",
                     "complete": False,
@@ -111,11 +118,11 @@ LINTER_CONTEXT = {
         {
             "priority": "Primary",
             "status": "Active",
-            "deadline": "April 23, 2021",
+            "deadline": "Apr. 23, 2021",
             "percent_complete": 0.0,
             "tasks": [
                 {
-                    "deadline": "March 24, 2021",
+                    "deadline": "Mar. 24, 2021",
                     "marked_complete": "",
                     "task": "Run BloodHound!",
                     "complete": False,
@@ -172,8 +179,8 @@ LINTER_CONTEXT = {
             {
                 "activity": "Phishing",
                 "domain": "getghostwriter.io",
-                "start_date": "March 1, 2021",
-                "end_date": "June 25, 2021",
+                "start_date": "Mar. 1, 2021",
+                "end_date": "Jun. 25, 2021",
                 "dns": [
                     {
                         "static_server": "172.67.132.12",
@@ -187,8 +194,8 @@ LINTER_CONTEXT = {
             {
                 "activity": "Command and Control",
                 "domain": "ghostwriter.wiki",
-                "start_date": "March 1, 2021",
-                "end_date": "June 25, 2021",
+                "start_date": "Mar. 1, 2021",
+                "end_date": "Jun. 25, 2021",
                 "dns": [
                     {
                         "static_server": "104.236.176.100",
@@ -202,8 +209,8 @@ LINTER_CONTEXT = {
             {
                 "activity": "Command and Control",
                 "domain": "specterops.io",
-                "start_date": "March 1, 2021",
-                "end_date": "June 25, 2021",
+                "start_date": "Mar. 1, 2021",
+                "end_date": "Jun. 25, 2021",
                 "dns": [
                     {
                         "static_server": "",
@@ -222,8 +229,8 @@ LINTER_CONTEXT = {
                 "provider": "Digital Ocean",
                 "activity": "Command and Control",
                 "role": "Team Server / C2 Server",
-                "start_date": "March 1, 2021",
-                "end_date": "June 25, 2021",
+                "start_date": "Mar. 1, 2021",
+                "end_date": "Jun. 25, 2021",
                 "dns": [
                     {"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}
                 ],
@@ -235,8 +242,8 @@ LINTER_CONTEXT = {
                 "provider": "Microsoft Azure",
                 "activity": "Command and Control",
                 "role": "Team Server / C2 Server",
-                "start_date": "March 1, 2021",
-                "end_date": "June 25, 2021",
+                "start_date": "Mar. 1, 2021",
+                "end_date": "Jun. 25, 2021",
                 "dns": [
                     {
                         "domain": "getghostwriter.io",
