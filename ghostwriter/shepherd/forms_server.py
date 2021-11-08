@@ -284,7 +284,7 @@ class TransientServerForm(forms.ModelForm):
     """
 
     aux_address = SplitArrayField(
-        forms.GenericIPAddressField(required=False), size=3, remove_trailing_nulls=True
+        forms.GenericIPAddressField(), size=3, remove_trailing_nulls=True
     )
 
     class Meta:
@@ -304,6 +304,9 @@ class TransientServerForm(forms.ModelForm):
         self.fields["activity_type"].empty_label = "-- Select Activity --"
         self.fields["server_role"].empty_label = "-- Select Role --"
         self.fields["server_provider"].empty_label = "-- Select Provider --"
+        # Below is necessary due to a bug that sets `SplitArrayField` fields to `required`
+        # even when the field is set as `required=False` above
+        self.fields["aux_address"].required = False
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
