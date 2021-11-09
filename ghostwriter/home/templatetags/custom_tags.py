@@ -6,7 +6,8 @@ from django.contrib.auth.models import Group
 from django.db.models import Q
 
 # Ghostwriter Libraries
-from ghostwriter.reporting.models import ReportFindingLink
+from ghostwriter.reporting.models import Report, ReportFindingLink
+from ghostwriter.rolodex.models import ProjectAssignment
 
 register = template.Library()
 
@@ -50,3 +51,26 @@ def count_assignments(request):
         .order_by("report__project__end_date")
     )
     return user_tasks.count()
+
+
+@register.simple_tag
+def get_reports(request):
+    """
+    Get a list of all :model:`reporting.Report` entries associated with
+    an individual :model:`users.User` via :model:`rolodex.Project` and
+    :model:`rolodex.ProjectAssignment`.
+    """
+    active_reports = []
+    active_projects = (
+        ProjectAssignment.objects.select_related("project")
+        .filter(Q(operator=request.user) & Q(project__complete=False))
+        .order_by("project__end_date")
+    )
+    for active_project in active_projects:
+        reports = Report.objects.filter(
+            Q(project=active_project.project) & Q(complete=False)
+        )
+        for report in reports:
+            active_reports.append(report)
+
+    return active_reports
