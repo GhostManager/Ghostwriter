@@ -91,7 +91,9 @@
                                 <ul class="collapse list-unstyled text-left" id="activeProjectsSubmenu">
                                     {% if request.user.projectassignment_set.all %}
                                         {% for assignment in request.user.projectassignment_set.all %}
-                                            <li><a href="{% url 'rolodex:project_detail' assignment.project.id %}">{{ assignment.project }}</a></li>
+                                            {% if not assignment.project.complete %}
+                                                <li><a href="{% url 'rolodex:project_detail' assignment.project.id %}">{{ assignment.project }}</a></li>
+                                            {% endif %}
                                         {% endfor %}
                                     {% else %}
                                         <li><a class="icon warning-icon" href="#">You have no project assignments right now</a></li>
