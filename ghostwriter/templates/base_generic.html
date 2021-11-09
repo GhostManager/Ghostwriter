@@ -378,7 +378,7 @@
 
         <!-- Activate Report with AJAX -->
         <script>
-            $('.js-activate-report').click(function () {
+            $('.js-activate-report').click(function (e) {
                 var clickedBtn = $(this);
                 var url = $(this).attr('activate-report-url');
                 var reportId = $(this).attr('activate-report-id');
@@ -425,6 +425,8 @@
                         }
                     }
                 });
+                // Prevent the AJAX POST from triggering twice
+                e.stopImmediatePropagation();
             });
         </script>
 
