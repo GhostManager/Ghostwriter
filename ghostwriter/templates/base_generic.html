@@ -107,24 +107,21 @@
                                     <div class="expand_caret caret"></div>
                                 </a>
                                 <ul class="collapse list-unstyled text-left" id="activeReportsSubmenu">
-                                    {% if request.user.projectassignment_set.all %}
-                                        {% for assignment in request.user.projectassignment_set.all %}
-                                            {% for report in assignment.project.report_set.all %}
-                                                {% if not report.complete %}
-                                                    <li>
-                                                        <a title="Set this report as your active report"
-                                                        class="mt-1 mb-1 js-activate-report icon toggle-off-icon
-                                                        {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
-                                                            selected-report
-                                                        {% endif %}
-                                                        " activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">
-                                                        {{ report.title }}</a>
-                                                    </li>
+                                    {% get_reports request as reports %}
+                                    {% if reports %}
+                                        {% for report in reports %}
+                                            <li>
+                                                <a title="Set this report as your active report"
+                                                class="mt-1 mb-1 js-activate-report icon toggle-off-icon
+                                                {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
+                                                    selected-report
                                                 {% endif %}
-                                            {% endfor %}
+                                                " activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">
+                                                {{ report.title }}</a>
+                                            </li>
                                         {% endfor %}
                                     {% else %}
-                                        <li><a class="icon warning-icon" href="#">You have no reports right now</a></li>
+                                        <li><a class="icon warning-icon" href="#">No reports right now</a></li>
                                     {% endif %}
                                 </ul>
                             </li>
