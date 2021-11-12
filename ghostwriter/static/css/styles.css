@@ -507,6 +507,13 @@ input[type='file'] {
   text-decoration: underline;
 }
 
+.current-report {
+  /* max-width: 40px; */
+  position: absolute;
+  top: 15px;
+  /* right: 25px; */
+}
+
 /* ---------------------------------------------------
     SIDEBAR STYLES
 ----------------------------------------------------- */
@@ -871,6 +878,11 @@ p.severity-box.info {
 .disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btn-disabled {
+  opacity: 0.6;
+  cursor: not-allowed !important;
 }
 
 .button span {
@@ -1843,6 +1855,10 @@ th.icon {
 
 .link-icon:before {
   content: '\f0c1';
+}
+
+.ext-link-icon:before {
+  content: '\f35d';
 }
 
 .server-icon:before {
