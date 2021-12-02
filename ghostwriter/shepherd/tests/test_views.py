@@ -1605,7 +1605,6 @@ class LoadProjectViewTests(TestCase):
     def test_project_data_access(self):
         response = self.client_auth.get(self.uri)
         json_data = response.json()[0]
-        print(json_data)
         self.assertEqual(json_data["fields"]["codename"], self.project.codename)
 
 
