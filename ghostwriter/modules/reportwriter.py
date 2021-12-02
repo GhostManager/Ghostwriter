@@ -1079,11 +1079,12 @@ class Reportwriter:
                         content_text = ""
 
                         # This is a special check for a hyperlink formatted with additional styles
-                        if tag_contents[0].name:
-                            if tag_contents[0].name == "a":
-                                run_styles["hyperlink"] = True
-                                run_styles["hyperlink_url"] = tag_contents[0]["href"]
-                                content_text = tag_contents[0].text
+                        if len(tag_contents) > 0:
+                            if tag_contents[0].name:
+                                if tag_contents[0].name == "a":
+                                    run_styles["hyperlink"] = True
+                                    run_styles["hyperlink_url"] = tag_contents[0]["href"]
+                                    content_text = tag_contents[0].text
                         # No hyperlink, so try to assemble the text for this run
                         else:
                             # Only try to join if there is one item (no nested tags)
