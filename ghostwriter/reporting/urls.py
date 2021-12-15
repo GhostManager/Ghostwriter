@@ -126,27 +126,27 @@ urlpatterns += [
         name="assign_blank_finding",
     ),
     path(
-        "reports/template/<int:pk>",
+        "templates/<int:pk>",
         views.ReportTemplateDetailView.as_view(),
         name="template_detail",
     ),
     path(
-        "reports/template/create",
+        "templates/create",
         views.ReportTemplateCreate.as_view(),
         name="template_create",
     ),
     path(
-        "reports/template/update/<int:pk>",
+        "templates/update/<int:pk>",
         views.ReportTemplateUpdate.as_view(),
         name="template_update",
     ),
     path(
-        "reports/template/delete/<int:pk>",
+        "templates/delete/<int:pk>",
         views.ReportTemplateDelete.as_view(),
         name="template_delete",
     ),
     path(
-        "reports/template/download/<int:pk>",
+        "templates/download/<int:pk>",
         views.ReportTemplateDownload.as_view(),
         name="template_download",
     ),
