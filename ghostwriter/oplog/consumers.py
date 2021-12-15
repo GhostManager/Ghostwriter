@@ -26,7 +26,11 @@ def createOplogEntry(oplog_id):
 
 @database_sync_to_async
 def deleteOplogEntry(oplogEntryId):
-    OplogEntry.objects.get(pk=oplogEntryId).delete()
+    try:
+        OplogEntry.objects.get(pk=oplogEntryId).delete()
+    except OplogEntry.DoesNotExist:
+        # This is fine, it just means the entry was already deleted
+        pass
 
 
 @database_sync_to_async
