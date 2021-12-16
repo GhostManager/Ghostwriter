@@ -11,7 +11,12 @@ from django.dispatch import receiver
 
 # Ghostwriter Libraries
 from ghostwriter.modules.reportwriter import TemplateLinter
-from ghostwriter.reporting.models import Evidence, ReportFindingLink, ReportTemplate
+from ghostwriter.reporting.models import (
+    Evidence,
+    Report,
+    ReportFindingLink,
+    ReportTemplate,
+)
 
 # Using __name__ resolves to ghostwriter.reporting.signals
 logger = logging.getLogger(__name__)
@@ -159,13 +164,17 @@ def adjust_finding_positions_after_delete(sender, instance, **kwargs):
     After deleting a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
     of entries tied to the same :model:`reporting.Report`.
     """
-    # Get all other findings with the same severity for this report ID
-    findings_queryset = ReportFindingLink.objects.filter(
-        Q(report=instance.report.pk) & Q(severity=instance.severity)
-    )
-    if findings_queryset:
-        counter = 1
-        for finding in findings_queryset:
-            # Adjust position to close gap created by removed finding
-            findings_queryset.filter(id=finding.id).update(position=counter)
-            counter += 1
+    try:
+        # Get all other findings with the same severity for this report ID
+        findings_queryset = ReportFindingLink.objects.filter(
+            Q(report=instance.report.pk) & Q(severity=instance.severity)
+        )
+        if findings_queryset:
+            counter = 1
+            for finding in findings_queryset:
+                # Adjust position to close gap created by removed finding
+                findings_queryset.filter(id=finding.id).update(position=counter)
+                counter += 1
+    except Report.DoesNotExist:
+        # Report was deleted, so no need to adjust positions
+        pass
