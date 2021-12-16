@@ -44,6 +44,10 @@ class UserProfile(models.Model):
     @property
     def avatar_url(self):
         try:
-            return self.avatar.url
+            # Only return the image URL if the file is present
+            if os.path.exists(self.avatar.path):
+                return self.avatar.url
+            else:
+                return static("images/default_avatar.png")
         except ValueError:
             return static("images/default_avatar.png")
