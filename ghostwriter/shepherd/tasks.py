@@ -1194,6 +1194,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     ignore_tags = []
     for tag in cloud_config.ignore_tag.split(","):
         ignore_tags.append(tag.strip())
+    logger.info("Ignoring tags: %s", ignore_tags)
 
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
@@ -1251,7 +1252,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # DO Section  #
     ###############
 
-    do_results = fetch_digital_ocean(cloud_config.do_api_key)
+    do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags)
     if do_results["message"]:
         vps_info["errors"]["digital_ocean"] = results["message"]
     else:
