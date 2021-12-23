@@ -9,6 +9,9 @@ from django.utils import timezone
 # 3rd Party Libraries
 import factory
 from factory import Faker
+from faker import Faker as PyFaker
+
+fake = PyFaker()
 
 # Users Factories
 
@@ -53,7 +56,7 @@ class ClientFactory(factory.django.DjangoModelFactory):
     name = Faker("company")
     short_name = Faker("name")
     codename = Faker("name")
-    note = "A note about a client"
+    note = Faker("paragraph")
     timezone = Faker("timezone")
     address = Faker("address")
 
@@ -66,7 +69,7 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     job_title = Faker("job")
     email = Faker("email")
     phone = Faker("phone_number")
-    note = "A note about a client"
+    note = Faker("paragraph")
     timezone = Faker("timezone")
     client = factory.SubFactory(ClientFactory)
 
@@ -90,9 +93,9 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         model = "rolodex.Project"
 
     codename = factory.Sequence(lambda n: "GHOST-%s" % n)
-    start_date = date.today()
-    end_date = date.today() + timedelta(days=20)
-    note = "A project note"
+    start_date = Faker("past_date", start_date="-365d")
+    end_date = Faker("date_between", start_date="-305d", end_date="+60d")
+    note = Faker("paragraph")
     slack_channel = "#ghostwriter"
     complete = False
     client = factory.SubFactory(ClientFactory)
@@ -112,9 +115,9 @@ class ProjectAssignmentFactory(factory.django.DjangoModelFactory):
         start_date=date.today(),
         end_date=date.today() + timedelta(days=20),
     )
-    start_date = date.today()
-    end_date = date.today() + timedelta(days=20)
-    note = "Note about this person's assignment"
+    start_date = factory.SelfAttribute("project.start_date")
+    end_date = factory.SelfAttribute("project.end_date")
+    note = Faker("paragraph")
     operator = factory.SubFactory(UserFactory)
     role = factory.SubFactory(ProjectRoleFactory)
 
@@ -138,12 +141,12 @@ class ProjectObjectiveFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ProjectObjective"
 
-    objective = Faker("sentence")
+    objective = Faker("bs")
     description = Faker("paragraph")
     complete = Faker("boolean")
     position = factory.Sequence(lambda n: n)
     project = factory.SubFactory(ProjectFactory)
-    deadline = Faker("date")
+    deadline = Faker("date_between", start_date="-305d", end_date="+60d")
     status = factory.SubFactory(ObjectiveStatusFactory)
     priority = factory.SubFactory(ObjectivePriorityFactory)
 
@@ -156,15 +159,15 @@ class ProjectSubtaskFactory(factory.django.DjangoModelFactory):
     complete = Faker("boolean")
     status = factory.SubFactory(ObjectiveStatusFactory)
     parent = factory.SubFactory(ProjectObjectiveFactory)
-    deadline = Faker("date")
+    deadline = Faker("date_between", start_date="-305d", end_date="+60d")
 
 
 class ProjectScopeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ProjectScope"
 
-    name = Faker("name")
-    scope = Faker("sentence")
+    name = Faker("word")
+    scope = Faker("ipv4")
     description = Faker("sentence")
     disallowed = Faker("boolean")
     requires_caution = Faker("boolean")
@@ -190,7 +193,7 @@ class SeverityFactory(factory.django.DjangoModelFactory):
         model = "reporting.Severity"
 
     severity = factory.Sequence(lambda n: "Severity %s" % n)
-    weight = 1
+    weight = factory.Sequence(lambda n: n)
 
 
 class FindingTypeFactory(factory.django.DjangoModelFactory):
@@ -308,7 +311,7 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
         model = "reporting.Evidence"
 
     document = factory.django.FileField(filename="evidence.png", data=b"lorem ipsum")
-    friendly_name = Faker("name")
+    friendly_name = factory.Sequence(lambda n: "Evidence %s" % n)
     caption = Faker("sentence")
     description = Faker("sentence")
     finding = factory.SubFactory(ReportFindingLinkFactory)
@@ -427,10 +430,10 @@ class DomainFactory(factory.django.DjangoModelFactory):
     registrar = Faker("company")
     dns_record = Faker("json")
     health_dns = Faker("word")
-    creation = Faker("date")
-    expiration = Faker("date")
+    creation = Faker("past_date")
+    expiration = Faker("future_date")
     vt_permalink = Faker("url")
-    all_cat = Faker("pylist")
+    all_cat = Faker("sentence")
     ibm_xforce_cat = Faker("word")
     talos_cat = Faker("word")
     bluecoat_cat = Faker("word")
@@ -453,8 +456,8 @@ class HistoryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.History"
 
-    start_date = date.today()
-    end_date = date.today() + timedelta(days=20)
+    start_date = Faker("past_date")
+    end_date = Faker("future_date")
     note = Faker("paragraph")
     domain = factory.SubFactory(DomainFactory)
     client = factory.SubFactory(ClientFactory)
@@ -500,8 +503,8 @@ class ServerHistoryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.ServerHistory"
 
-    start_date = date.today()
-    end_date = date.today() + timedelta(days=20)
+    start_date = Faker("past_date")
+    end_date = Faker("future_date")
     note = Faker("paragraph")
     server = factory.SubFactory(StaticServerFactory)
     client = factory.SubFactory(ClientFactory)
