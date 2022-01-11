@@ -101,6 +101,7 @@
                 <tr>
                     <th class="icon ol-list-icon text-center"></th>
                     <th class="align-middle">Finding</th>
+                    <th>CVSS Score</th>
                     <th class="align-middle">
                         <div class="dropdown dropleft">
                             <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Evidence</span>
@@ -144,6 +145,21 @@
                                         title="Click-n-drag to reposition or categorize"
                                     ></td>
                                     <td class="align-middle"><a id="delete-target-content-finding-{{ finding.id }}" class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                    <td class="neutral align-middle" style="color:
+                                        {% if finding.severity.severity == "Critical" %}
+                                            #cc0500
+                                        {% elif finding.severity.severity == "High" %}
+                                            #df3d03
+                                        {% elif finding.severity.severity == "Medium" %}
+                                            #f9a009
+                                        {% elif finding.severity.severity == "Low" %}
+                                            #ffcb0d
+                                        {% elif finding.severity.severity == "Informational" %}
+                                            #53aa33
+                                        {% endif %}
+                                    ">
+                                        <span style="display: inline;">{{ finding.cvss_score }}</span>
+                                    </td>
                                     {% if finding.evidence_set.all %}
                                         <td class="align-middle">
                                             {% for evidence_file in finding.evidence_set.all %}

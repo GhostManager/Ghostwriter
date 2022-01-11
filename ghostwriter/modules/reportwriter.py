@@ -1571,6 +1571,12 @@ class Reportwriter:
             finding["severity_rt"] = RichText(
                 finding["severity"], color=finding["severity_color"]
             )
+            finding["cvss_score_rt"] = RichText(
+                finding["cvss_score"]
+            )
+            finding["cvss_vector_rt"] = RichText(
+                finding["cvss_vector"]
+            )
             # Create subdocuments for each finding section
             finding["affected_entities_rt"] = render_subdocument(
                 finding["affected_entities"], finding

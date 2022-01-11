@@ -204,6 +204,8 @@ class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
                 report=report,
                 assigned_to=self.request.user,
                 position=get_position(report.id, self.object.severity),
+                cvss_score=self.object.cvss_score,
+                cvss_vector=self.object.cvss_vector,
             )
             report_link.save()
 
