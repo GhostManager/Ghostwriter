@@ -8,10 +8,16 @@ from django.utils import timezone
 
 # 3rd Party Libraries
 import factory
+import pytz
 from factory import Faker
 from faker import Faker as PyFaker
 
 fake = PyFaker()
+
+# ``TimezoneFields`` use the "common" timezones, which excludes a few timezones like "Asia\Saigon"
+# Factories select a choice from this list instead of using ``random.choice(TIMEZONES)``
+TIMEZONES = pytz.common_timezones
+
 
 # Users Factories
 
@@ -25,7 +31,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     email = Faker("email")
     name = Faker("name")
     phone = Faker("phone_number")
-    timezone = Faker("timezone")
+    timezone = random.choice(TIMEZONES)
     password = factory.PostGenerationMethodCall("set_password", "mysecret")
 
     @factory.post_generation
@@ -57,7 +63,7 @@ class ClientFactory(factory.django.DjangoModelFactory):
     short_name = Faker("name")
     codename = Faker("name")
     note = Faker("paragraph")
-    timezone = Faker("timezone")
+    timezone = random.choice(TIMEZONES)
     address = Faker("address")
 
 
@@ -70,7 +76,7 @@ class ClientContactFactory(factory.django.DjangoModelFactory):
     email = Faker("email")
     phone = Faker("phone_number")
     note = Faker("paragraph")
-    timezone = Faker("timezone")
+    timezone = random.choice(TIMEZONES)
     client = factory.SubFactory(ClientFactory)
 
 
@@ -93,15 +99,16 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         model = "rolodex.Project"
 
     codename = factory.Sequence(lambda n: "GHOST-%s" % n)
-    start_date = Faker("past_date", start_date="-365d")
-    end_date = Faker("date_between", start_date="-305d", end_date="+60d")
+    # Random dates within a year of each other and at least 7 days apart
+    start_date = Faker("date_between", start_date="-365d", end_date="-182d")
+    end_date = Faker("date_between", start_date="-190d", end_date="+182d")
     note = Faker("paragraph")
     slack_channel = "#ghostwriter"
     complete = False
     client = factory.SubFactory(ClientFactory)
     project_type = factory.SubFactory(ProjectTypeFactory)
     operator = factory.SubFactory(UserFactory)
-    timezone = Faker("timezone")
+    timezone = random.choice(TIMEZONES)
     start_time = Faker("time_object")
     end_time = Faker("time_object")
 
@@ -141,7 +148,7 @@ class ProjectObjectiveFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "rolodex.ProjectObjective"
 
-    objective = Faker("bs")
+    objective = Faker("sentence")
     description = Faker("paragraph")
     complete = Faker("boolean")
     position = factory.Sequence(lambda n: n)
