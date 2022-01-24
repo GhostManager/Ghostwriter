@@ -91,8 +91,8 @@ class FindingForm(forms.ModelForm):
                 <hr />
                 """
             ),
-            Field("description", css_class="enable-evidence-upload"),
-            Field("impact", css_class="enable-evidence-upload"),
+            Field("description"),
+            Field("impact"),
             HTML(
                 """
                 <h4 class="icon shield-icon">Defense</h4>
