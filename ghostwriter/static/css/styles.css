@@ -1489,6 +1489,14 @@ th.icon {
   padding: 0;
 }
 
+.globe-icon:before {
+  content: '\f0ac';
+}
+
+.phone-icon:before {
+  content: '\f095';
+}
+
 .home-icon:before {
   content: '\f015';
 }
