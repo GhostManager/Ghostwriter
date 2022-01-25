@@ -115,7 +115,7 @@
                                             </li>
                                         {% endfor %}
                                     {% else %}
-                                        <li><a class="icon warning-icon" href="#">No reports right now</a></li>
+                                        <li><a href="{% url 'reporting:reports' %}">You have no active reports; click to visit the library.</a></li>
                                     {% endif %}
                                 </ul>
                             </li>
@@ -133,7 +133,7 @@
                                             {% endif %}
                                         {% endfor %}
                                     {% else %}
-                                        <li><a class="icon warning-icon" href="#">You have no project assignments right now</a></li>
+                                        <li><a href="{% url 'rolodex:projects' %}">You have no assignments; click to visit the library.</a></li>
                                     {% endif %}
                                 </ul>
                             </li>
