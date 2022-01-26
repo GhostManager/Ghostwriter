@@ -23,23 +23,13 @@ class UserProfile(models.Model):
         return os.path.join("images", "user_avatars", str(instance.user.id), filename)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    avatar = models.ImageField(upload_to=set_upload_destination, default=None)
+    avatar = models.ImageField(upload_to=set_upload_destination, default=None, blank=True)
 
     class Meta:
 
         ordering = ["user"]
         verbose_name = "User profile"
         verbose_name_plural = "User profiles"
-
-    def save(self, *args, **kwargs):
-        if self.avatar.name is not None:
-            try:
-                os.remove(self.avatar.path)
-            except OSError:  # pragma: no cover
-                pass
-            except ValueError:  # pragma: no cover
-                pass
-        super().save(*args, **kwargs)
 
     @property
     def avatar_url(self):
