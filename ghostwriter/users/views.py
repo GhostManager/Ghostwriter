@@ -3,13 +3,17 @@
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
 
 # 3rd Party Libraries
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
+
+# Ghostwriter Libraries
+from ghostwriter.users.forms import UserChangeForm
 
 User = get_user_model()
 
@@ -36,27 +40,68 @@ class UserDetailView(LoginRequiredMixin, DetailView):
 user_detail_view = UserDetailView.as_view()
 
 
-class UserUpdateView(LoginRequiredMixin, UpdateView):
+# class UserUpdateView(LoginRequiredMixin, UpdateView):
+#     """
+#     Update an individual :model:`users.User`.
+
+#     **Template**
+
+#     :template:`None`
+#     """
+
+#     model = User
+#     fields = ["name"]
+
+#     def get_success_url(self):
+#         return reverse("users:detail", kwargs={"username": self.request.user.username})
+
+#     def get_object(self):
+#         return User.objects.get(username=self.request.user.username)
+
+#     def form_valid(self, form):
+#         messages.add_message(self.request, messages.INFO, _("Infos successfully updated"))
+#         return super().form_valid(form)
+
+
+class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
-    Update an individual :model:`users.User`.
+    Update details for an individual :model:`users.User`.
+
+    **Context**
+
+    ``form``
+        A single ``UserChangeForm`` form.
+    ``cancel_link``
+        Link for the form's Cancel button to return to user's profile page
 
     **Template**
 
-    :template:`None`
+    :template:`home/upload_avatar.html`
     """
-
     model = User
-    fields = ["name"]
+    form_class = UserChangeForm
+    template_name = "home/upload_avatar.html"
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.request.user.id == self.object.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:profile")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("home:profile")
+        return ctx
 
     def get_success_url(self):
-        return reverse("users:detail", kwargs={"username": self.request.user.username})
-
-    def get_object(self):
-        return User.objects.get(username=self.request.user.username)
-
-    def form_valid(self, form):
-        messages.add_message(self.request, messages.INFO, _("Infos successfully updated"))
-        return super().form_valid(form)
+        messages.success(
+            self.request,
+            "Successfully updated your profile",
+            extra_tags="alert-success",
+        )
+        return reverse("home:profile")
 
 
 user_update_view = UserUpdateView.as_view()
