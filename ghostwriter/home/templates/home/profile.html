@@ -26,12 +26,21 @@
     </style>
 
     <!-- User's Avatar -->
-    <a href="{% url 'home:upload_avatar' %}">
+    <a href="{% url 'home:update_profile' request.user.id %}">
         <img class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar">
     </a>
 
     <!-- Users Profile Section -->
     <div class="container profile-container mt-4">
+        <div class="row align-items-center">
+            <div class="col-sm">
+                <p class="bold icon signature-icon">Full Name</p>
+            </div>
+            <div class="col-sm">
+                <p class="text-center">{{ user.name }}</p>
+            </div>
+        </div>
+
         <div class="row align-items-center">
             <div class="col-sm">
                 <p class="bold icon user-icon">Username</p>
@@ -43,19 +52,28 @@
 
         <div class="row align-items-center">
             <div class="col-sm">
-                <p class="bold icon signature-icon">Display Name</p>
+                <p class="bold icon email-icon">Email</p>
             </div>
             <div class="col-sm">
-                <p class="text-center">{{ user.name }}</p>
+                <p class="text-center">{{ user.email }}</p>
             </div>
         </div>
 
         <div class="row align-items-center">
             <div class="col-sm">
-                <p class="bold icon email-icon">Email</p>
+                <p class="bold icon phone-icon">Phone</p>
             </div>
             <div class="col-sm">
-                <p class="text-center">{{ user.email }}</p>
+                <p class="text-center">{{ user.phone }}</p>
+            </div>
+        </div>
+
+        <div class="row align-items-center">
+            <div class="col-sm">
+                <p class="bold icon globe-icon">Timezone</p>
+            </div>
+            <div class="col-sm">
+                <p class="text-center">{{ user.timezone }}</p>
             </div>
         </div>
 
@@ -74,7 +92,13 @@
                 <p class="bold icon groups-icon">Groups</p>
             </div>
             <div class="col-sm">
-                <p class="text-center">{{ user|get_groups }}</p>
+                <p class="text-center">
+                    {% if user|get_groups %}
+                        {{ user|get_groups }}
+                    {% else %}
+                        --
+                    {% endif %}
+                </p>
             </div>
         </div>
     </div>
@@ -83,8 +107,10 @@
     <h4 class="icon user-edit-icon">Update Account Details</h4>
     <hr>
 
-    <div class="btn-group" role="group" aria-label="Basic example">
+    <div class="btn-group" role="group" aria-label="profile-mgmt">
         <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
-        <a class="btn btn-primary" href="{% url 'account_email' %}">Update Email Address</a>
+        <!-- <a class="btn btn-secondary" href="{% url 'account_email' %}">Update Email Address</a> -->
+        <a class="btn btn-secondary" href="{% url 'users:user_update' request.user.id %}">Update Personal Information</a>
+        <a class="btn btn-info" href="{% url 'home:update_profile' request.user.id %}">Update Avatar</a>
     </div>
 {% endblock %}
