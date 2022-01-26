@@ -22,12 +22,12 @@ class User(AbstractUser):
     timezone = TimeZoneField(
         "User's Timezone",
         default="America/Los_Angeles",
-        help_text="Primary timezone of the client",
+        help_text="Primary timezone for this user",
     )
     # The ITU E.164 states phone numbers should not exceed 15 characters
     # We want valid phone numbers, but validating them (here or in forms) is unnecessary
-    # Numbers are not used for anything – and any future use would involve human involvement
-    # The `max_length` allows for people adding spaces, other chars, and extension numbers
+    # Numbers are not used for anything – and any future use would require some human involvement
+    # The ``max_length`` allows for people adding spaces, other chars, and extension numbers
     phone = CharField(
         "Phone",
         max_length=50,
