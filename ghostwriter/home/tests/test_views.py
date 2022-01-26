@@ -162,8 +162,7 @@ class UserProfileTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-
-        cls.uri = reverse("home:upload_avatar")
+        cls.uri = reverse("home:update_profile")
 
     def setUp(self):
         self.client = Client()
