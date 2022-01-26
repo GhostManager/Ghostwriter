@@ -44,7 +44,7 @@ class UserUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.uri = reverse("users:update")
+        cls.uri = reverse("users:user_update")
 
     def setUp(self):
         self.client = Client()
