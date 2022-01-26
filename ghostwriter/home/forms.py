@@ -14,14 +14,14 @@ from ghostwriter.home.models import UserProfile
 
 class UserProfileForm(forms.ModelForm):
     """
-    Upload user profile avatars for individual :model:`home.UserProfile`.
+    Upload user profile avatar for an individual :model:`home.UserProfile`.
     """
 
     class Meta:
         model = UserProfile
         exclude = ("user",)
         widgets = {
-            "avatar": forms.ClearableFileInput(),
+            "avatar": forms.FileInput(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -31,11 +31,13 @@ class UserProfileForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
+        self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             HTML(
                 """
                 <h4 class="icon avatar-upload-icon">Avatar Upload</h4>
+                <p>Your new avatar should be a square (equal height and width) for the best looking results.</p>
                 """
             ),
             Div(
