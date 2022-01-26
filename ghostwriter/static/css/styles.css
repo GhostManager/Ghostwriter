@@ -1740,6 +1740,10 @@ th.icon {
   content: '\f234';
 }
 
+.user-icon-ninja:before {
+  content: '\f504';
+}
+
 .user-gear-icon:before {
   content: '\f4fe';
 }
