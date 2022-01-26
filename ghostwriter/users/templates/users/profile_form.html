@@ -1,0 +1,37 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}User Profile{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'home:profile' %}">Your Profile</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Profile Form</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
+
+    <!-- Avatar Upload Form -->
+    {% crispy form form.helper %}
+{% endblock %}
+
+{% block morescripts %}
+{% endblock %}
