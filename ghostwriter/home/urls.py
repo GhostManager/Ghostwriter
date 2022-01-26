@@ -13,7 +13,9 @@ urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("profile/", views.profile, name="profile"),
     path("management/", views.Management.as_view(), name="management"),
-    path("profile/avatar", views.upload_avatar, name="upload_avatar"),
+    path(
+        "profile/update/<int:user>", views.UpdateProfile.as_view(), name="update_profile"
+    ),
 ]
 
 # URLs for AJAX test functions
