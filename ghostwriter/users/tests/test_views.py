@@ -51,7 +51,7 @@ class UserUpdateViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("users:user_update", kwargs={"username": cls.user.username})
-        cls.redirect_uri = reverse("users:user_detail", kwargs={"username": cls.other_user.username})
+        cls.redirect_uri = reverse("users:redirect")
 
     def setUp(self):
         self.client = Client()
@@ -82,7 +82,6 @@ class UserUpdateViewTests(TestCase):
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, self.redirect_uri)
 
 
 class UserProfileUpdateViewTests(TestCase):
@@ -93,7 +92,7 @@ class UserProfileUpdateViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("users:userprofile_update", kwargs={"username": cls.user.username})
-        cls.redirect_uri = reverse("users:user_detail", kwargs={"username": cls.other_user.username})
+        cls.redirect_uri = reverse("users:redirect")
 
     def setUp(self):
         self.client = Client()
@@ -124,7 +123,6 @@ class UserProfileUpdateViewTests(TestCase):
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, self.redirect_uri)
 
 
 class UserRedirectViewTests(TestCase):

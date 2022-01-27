@@ -74,7 +74,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def handle_no_permission(self):
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that")
-            return redirect("users:redirect", username=self.request.user.username)
+            return redirect("users:redirect")
         else:
             return redirect("home:dashboard")
 
@@ -126,7 +126,7 @@ class UserProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     def handle_no_permission(self):
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that")
-            return redirect("users:redirect", username=self.request.user.username)
+            return redirect("users:redirect")
         else:
             return redirect("home:dashboard")
 
