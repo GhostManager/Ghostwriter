@@ -47,7 +47,7 @@ class UserProfileForm(forms.ModelForm):
                     <label id="filename" class="custom-file-label" for="customFile">Choose an Avatar Image File...</label>
                     """
                 ),
-                css_class="custom-file",
+                css_class="custom-file col-md-8",
             ),
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
