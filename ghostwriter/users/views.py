@@ -42,7 +42,7 @@ class UserDetailView(LoginRequiredMixin, DetailView):
         return get_object_or_404(User, username=self.kwargs.get("username"))
 
     def get_slug_field(self):
-        return 'user__username'
+        return "user__username"
 
 
 user_detail_view = UserDetailView.as_view()
@@ -72,8 +72,11 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return self.request.user.id == self.object.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
-        return redirect("users:user_detail", kwargs={"username": self.request.user.username})
+        if self.request.user.username:
+            messages.warning(self.request, "You do not have permission to access that")
+            return redirect("users:redirect", username=self.request.user.username)
+        else:
+            return redirect("home:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -81,7 +84,8 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return ctx
 
     def get_object(self):
-        return User.objects.get(id=self.request.user.pk)
+        # return User.objects.get(id=self.request.user.pk)
+        return get_object_or_404(User, username=self.kwargs.get("username"))
 
     def get_success_url(self):
         messages.success(
@@ -120,11 +124,15 @@ class UserProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         return self.request.user.id == self.object.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
-        return redirect("users:user_detail", kwargs={"username": self.request.user.username})
+        if self.request.user.username:
+            messages.warning(self.request, "You do not have permission to access that")
+            return redirect("users:redirect", username=self.request.user.username)
+        else:
+            return redirect("home:dashboard")
 
     def get_object(self):
-        return UserProfile.objects.get(id=self.request.user.userprofile.id)
+        id_ = get_object_or_404(User, username=self.kwargs.get("username")).id
+        return get_object_or_404(UserProfile, user_id=id_)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -160,7 +168,7 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse("users:detail", kwargs={"username": self.request.user.username})
+        return reverse("users:user_detail", kwargs={"username": self.request.user.username})
 
 
 user_redirect_view = UserRedirectView.as_view()
