@@ -26,7 +26,7 @@
     </style>
 
     <!-- User's Avatar -->
-    <a href="{% url 'home:update_profile' request.user.id %}">
+    <a href="{% url 'users:user_update' request.user.username %}">
         <img class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar">
     </a>
 
@@ -34,7 +34,7 @@
     <div class="container profile-container mt-4">
         <div class="row align-items-center">
             <div class="col-sm">
-                <p class="bold icon signature-icon">Full Name</p>
+                <p class="bold icon user-icon">Full Name</p>
             </div>
             <div class="col-sm">
                 <p class="text-center">{{ user.name }}</p>
@@ -43,7 +43,7 @@
 
         <div class="row align-items-center">
             <div class="col-sm">
-                <p class="bold icon user-icon">Username</p>
+                <p class="bold icon user-icon-ninja">Username</p>
             </div>
             <div class="col-sm">
                 <p class="text-center">{{ user.username }}</p>
@@ -104,13 +104,15 @@
     </div>
 
     <!-- Account Information Update -->
-    <h4 class="icon user-edit-icon">Update Account Details</h4>
-    <hr>
+    {% if request.user == user %}
+        <h4 class="icon user-edit-icon">Update Account Details</h4>
+        <hr>
 
-    <div class="btn-group" role="group" aria-label="profile-mgmt">
-        <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
-        <!-- <a class="btn btn-secondary" href="{% url 'account_email' %}">Update Email Address</a> -->
-        <a class="btn btn-secondary" href="{% url 'users:user_update' request.user.id %}">Update Personal Information</a>
-        <a class="btn btn-info" href="{% url 'home:update_profile' request.user.id %}">Update Avatar</a>
-    </div>
+        <div class="btn-group" role="group" aria-label="profile-mgmt">
+            <a class="btn btn-primary" href="{% url 'account_change_password' %}">Change Password</a>
+            <!-- <a class="btn btn-secondary" href="{% url 'account_email' %}">Update Email Address</a> -->
+            <a class="btn btn-secondary" href="{% url 'users:user_update' request.user.username %}">Update Personal Information</a>
+            <a class="btn btn-info" href="{% url 'users:userprofile_update' request.user.username %}">Update Avatar</a>
+        </div>
+    {% endif %}
 {% endblock %}
