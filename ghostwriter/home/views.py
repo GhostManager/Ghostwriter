@@ -13,8 +13,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse
-from django.views.generic.edit import UpdateView, View
+from django.views.generic.edit import View
 from django.views.static import serve
 
 # 3rd Party Libraries
@@ -24,9 +23,6 @@ from django_q.tasks import async_task
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
-
-from .forms import UserProfileForm
-from .models import UserProfile
 
 User = get_user_model()
 
@@ -98,62 +94,6 @@ def dashboard(request):
     }
     # Render the HTML template index.html with the data in the context variable
     return render(request, "index.html", context=context)
-
-
-@login_required
-def profile(request):
-    """
-    Display an individual :model:`home.UserProfile`.
-
-    **Template**
-
-    :template:`home/profile.html`
-    """
-    return render(request, "home/profile.html")
-
-
-class UpdateProfile(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
-    """
-    Update a :model:`home.UserProfile` for an individual :model:`users.User`.
-
-    **Context**
-
-    ``form``
-        A single ``UserProfileForm`` form.
-    ``cancel_link``
-        Link for the form's Cancel button to return to user's profile page
-
-    **Template**
-
-    :template:`home/upload_avatar.html`
-    """
-
-    model = UserProfile
-    form_class = UserProfileForm
-    template_name = "home/upload_avatar.html"
-    slug_field = "user"
-    slug_url_kwarg = "user"
-
-    def test_func(self):
-        self.object = self.get_object()
-        return self.request.user.id == self.object.user.id
-
-    def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
-        return redirect("home:profile")
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("home:profile")
-        return ctx
-
-    def get_success_url(self):
-        messages.success(
-            self.request,
-            "Successfully updated your profile",
-            extra_tags="alert-success",
-        )
-        return reverse("home:profile")
 
 
 class Management(LoginRequiredMixin, UserPassesTestMixin, View):
