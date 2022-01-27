@@ -156,36 +156,6 @@ class DashboardTests(TestCase):
         self.assertEqual(len(response.context["user_tasks"]), 3)
 
 
-class UserProfileTests(TestCase):
-    """Collection of tests for :view:`home.profile`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD)
-        cls.uri = reverse("home:update_profile")
-
-    def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-
-    def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_requires_login(self):
-        response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 302)
-
-    def test_view_uses_correct_template(self):
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "home/upload_avatar.html")
-
-
 class ManagementTests(TestCase):
     """Collection of tests for :view:`home.Management`."""
 
