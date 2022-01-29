@@ -480,7 +480,7 @@ class Reportwriter:
             t = "decimal" if num else "bullet"
             return (
                 "w:abstractNum["
-                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{t}"]'
+                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
                 "]/@w:abstractNumId"
             ).format(type=t, **xpath_options[prefer_single])
 
