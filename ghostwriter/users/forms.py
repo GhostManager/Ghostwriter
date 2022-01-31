@@ -3,21 +3,63 @@
 # Django Imports
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import forms, get_user_model
+from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm, ModelMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+
 User = get_user_model()
 
 
-class UserChangeForm(forms.UserChangeForm):  # pragma: no cover
+class UserChangeForm(UserChangeForm):
     """
-    Update an individual :model:`users.User`.
+    Update details for an individual :model:`users.User`.
     """
 
-    class Meta(forms.UserChangeForm.Meta):
-        model = User
+    class Meta:
+        model = get_user_model()
+        fields = (
+            "email",
+            "name",
+            "timezone",
+            "phone",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["phone"].widget.attrs["autocomplete"] = "off"
+        self.fields["phone"].widget.attrs["placeholder"] = "Your Work Number"
+        self.fields["phone"].help_text = "Work phone number for work contacts"
+        self.fields["timezone"].help_text = "Timezone in which you work"
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.form_class = "newitem"
+        self.helper.form_show_labels = False
+        self.helper.layout = Layout(
+            Row(
+                Column("name", css_class="form-group col-md-6 mb-0"),
+                Column("email", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row mt-4",
+            ),
+            Row(
+                Column("phone", css_class="form-group col-md-6 mb-0"),
+                Column("timezone", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            ButtonHolder(
+                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
 
 
 class UserCreationForm(forms.UserCreationForm):  # pragma: no cover

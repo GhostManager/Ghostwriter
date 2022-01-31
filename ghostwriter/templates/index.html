@@ -21,7 +21,27 @@
             <div class="dashboard">
                 <div class="dashboard__item">
                     <div class="card">
-                        <p class="dashboard-header text-center">Your Top Reporting Tasks</p>
+                        <p class="dashboard-header text-center">Project Assignments</p>
+                        <table>
+                            {% if user_projects %}
+                                {% for project in user_projects %}
+                                    <tr>
+                                        <td class="align-middle text-justify"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }})</a></td>
+                                        <td class="align-middle text-right"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.start_date }}–{{ project.project.end_date }}</a></td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td class="align-middle text-center">You have no project assignments.</td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+
+                <div class="dashboard__item">
+                    <div class="card">
+                        <p class="dashboard-header text-center">Top Reporting Tasks</p>
                         {% count_assignments request as assignment_count %}
                         <table>
                             {% if user_tasks %}

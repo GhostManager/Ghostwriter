@@ -13,7 +13,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse
 from django.views.generic.edit import View
 from django.views.static import serve
 
@@ -24,8 +23,6 @@ from django_q.tasks import async_task
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
-
-from .forms import UserProfileForm
 
 User = get_user_model()
 
@@ -97,50 +94,6 @@ def dashboard(request):
     }
     # Render the HTML template index.html with the data in the context variable
     return render(request, "index.html", context=context)
-
-
-@login_required
-def profile(request):
-    """
-    Display an individual :model:`home.UserProfile`.
-
-    **Template**
-
-    :template:`home/profile.html`
-    """
-    return render(request, "home/profile.html")
-
-
-@login_required
-def upload_avatar(request):
-    """
-    Upload an avatar image for an individual :model:`home.UserProfile`.
-
-    **Context**
-
-    ``form``
-        A single ``UserProfileForm`` form.
-    ``cancel_link``
-        Link for the form's Cancel button to return to user's profile page
-
-    **Template**
-
-    :template:`home/upload_avatar.html`
-    """
-
-    if request.method == "POST":
-        form = UserProfileForm(
-            request.POST, request.FILES, instance=request.user.userprofile
-        )
-        if form.is_valid():
-            form.save()
-            return redirect("home:profile")
-    else:
-        form = UserProfileForm()
-    cancel_link = reverse("home:profile")
-    return render(
-        request, "home/upload_avatar.html", {"form": form, "cancel_link": cancel_link}
-    )
 
 
 class Management(LoginRequiredMixin, UserPassesTestMixin, View):

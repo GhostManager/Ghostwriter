@@ -1,23 +1,21 @@
 {% extends "base_generic.html" %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}User Avatar{% endblock %}
+{% block pagetitle %}User Profile{% endblock %}
 
 {% block breadcrumbs %}
     <nav aria-label="breadcrumb">
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'home:profile' %}">Your Profile</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Change Profile Pic</li>
+            <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Profile Form</li>
         </ul>
     </nav>
 {% endblock %}
 
 {% block content %}
     <!-- Current Avatar -->
-    <img class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar">
-
-    <p>Your new avatar should be a square (equal height and width) for the best looking results.</p>
+    <img class="avatar" src="{{ user.userprofile.avatar_url }}" alt="User Image">
 
     <!-- Form Error Section -->
     {% if form.errors %}
@@ -38,10 +36,4 @@
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Script for File Upload -->
-    <script>
-        $('input[type=file]').on('change', function() {
-            $("#filename").text($(this).val());
-        });
-    </script>
 {% endblock %}

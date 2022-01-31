@@ -684,6 +684,7 @@ class TransientServer(models.Model):
         default=list,
         size=5,
         blank=True,
+        null=True,
         help_text="Enter a comma-separated list of IP addresses",
     )
     name = models.CharField(

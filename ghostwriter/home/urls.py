@@ -11,9 +11,7 @@ app_name = "home"
 # URLs for the basic views
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
-    path("profile/", views.profile, name="profile"),
     path("management/", views.Management.as_view(), name="management"),
-    path("profile/avatar", views.upload_avatar, name="upload_avatar"),
 ]
 
 # URLs for AJAX test functions

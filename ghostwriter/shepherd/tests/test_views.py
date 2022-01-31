@@ -1,4 +1,5 @@
 # Standard Libraries
+import json
 import logging
 from datetime import date, timedelta
 
@@ -1583,7 +1584,7 @@ class LoadProjectViewTests(TestCase):
     def setUpTestData(cls):
         cls.project = ProjectFactory()
         cls.user = UserFactory(password=PASSWORD)
-        cls.uri = reverse("shepherd:ajax_load_projects") + "?project=%s" % cls.project.id
+        cls.uri = reverse("shepherd:ajax_load_project") + "?project=%s" % cls.project.id
 
     def setUp(self):
         self.client = Client()
@@ -1600,6 +1601,11 @@ class LoadProjectViewTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_project_data_access(self):
+        response = self.client_auth.get(self.uri)
+        json_data = response.json()[0]
+        self.assertEqual(json_data["fields"]["codename"], self.project.codename)
 
 
 class ProjectDomainsViewTests(TestCase):

@@ -1,9 +1,10 @@
 """This contains all of the views used by the Shepherd application."""
 
 # Standard Libraries
+import json
 import logging
 import logging.config
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 # Django Imports
 from django import forms
@@ -113,7 +114,7 @@ def ajax_load_projects(request):
 @login_required
 def ajax_load_project(request):
     """
-    Retrieve individual :model:`rolodex.Project`.
+    Retrieve individual :model:`rolodex.Project` and return it as JSON.
 
     **Context**
 
@@ -121,9 +122,9 @@ def ajax_load_project(request):
         Individual :model:`rolodex.Project`
     """
     project_id = request.GET.get("project")
-    project = Project.objects.filter(id=project_id)
-    data = serializers.serialize("json", project)
-    return JsonResponse(data)
+    project = Project.objects.get(id=project_id)
+    data = serializers.serialize("json", [project])
+    return JsonResponse(json.loads(data), safe=False)
 
 
 @login_required

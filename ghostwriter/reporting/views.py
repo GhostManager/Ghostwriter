@@ -307,7 +307,7 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, View):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = self.object.id
             self.request.session["active_report"]["title"] = self.object.title
-            message = "{report} is now your active report".format(
+            message = "{report} is now your active report and you will be redirected there in 5 seconds".format(
                 report=self.object.title
             )
             data = {
