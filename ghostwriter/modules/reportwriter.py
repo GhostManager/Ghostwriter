@@ -1450,7 +1450,8 @@ class Reportwriter:
                                     # Recursively process this list and any other nested lists inside of it
                                     if nested_list:
                                         # Increment the list level counter for this nested list
-                                        level += 1
+                                        if not li_contents[0] == "\n":
+                                            level += 1
                                         p = self.parse_nested_html_lists(
                                             nested_list, p, num, finding, level
                                         )
