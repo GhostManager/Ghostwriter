@@ -4,11 +4,21 @@
 from django.urls import path
 
 # Ghostwriter Libraries
-from ghostwriter.users.views import user_detail_view, user_redirect_view, user_update_view
+from ghostwriter.users.views import (
+    user_detail_view,
+    user_redirect_view,
+    user_update_view,
+    userprofile_update_view,
+)
 
 app_name = "users"
 urlpatterns = [
     path("~redirect/", view=user_redirect_view, name="redirect"),
-    path("~update/", view=user_update_view, name="update"),
-    path("<str:username>/", view=user_detail_view, name="detail"),
+    path(
+        "<str:username>/", user_detail_view, name="user_detail"
+    ),
+    path(
+        "<str:username>/update/", user_update_view, name="user_update"
+    ),
+    path("<str:username>/update/avatar/", view=userprofile_update_view, name="userprofile_update"),
 ]

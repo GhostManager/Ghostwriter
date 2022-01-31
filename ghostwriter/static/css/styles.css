@@ -160,7 +160,8 @@ hr {
 }
 
 .navbar-avatar {
-  max-width: 40px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   border-style: solid;
   border-width: 1px;
@@ -505,6 +506,13 @@ input[type='file'] {
   background-color: var(--navbar-breadcrumb-active-background-color);
   color: var(--active-link-color);
   text-decoration: underline;
+}
+
+.current-report {
+  /* max-width: 40px; */
+  position: absolute;
+  top: 15px;
+  /* right: 25px; */
 }
 
 /* ---------------------------------------------------
@@ -871,6 +879,11 @@ p.severity-box.info {
 .disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btn-disabled {
+  opacity: 0.6;
+  cursor: not-allowed !important;
 }
 
 .button span {
@@ -1476,6 +1489,14 @@ th.icon {
   padding: 0;
 }
 
+.globe-icon:before {
+  content: '\f0ac';
+}
+
+.phone-icon:before {
+  content: '\f095';
+}
+
 .home-icon:before {
   content: '\f015';
 }
@@ -1719,6 +1740,10 @@ th.icon {
   content: '\f234';
 }
 
+.user-icon-ninja:before {
+  content: '\f504';
+}
+
 .user-gear-icon:before {
   content: '\f4fe';
 }
@@ -1843,6 +1868,10 @@ th.icon {
 
 .link-icon:before {
   content: '\f0c1';
+}
+
+.ext-link-icon:before {
+  content: '\f35d';
 }
 
 .server-icon:before {

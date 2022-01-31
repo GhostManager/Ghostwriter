@@ -7,6 +7,7 @@ import logging.config
 import traceback
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+from math import ceil
 
 # Django Imports
 from django.db.models import Q
@@ -911,93 +912,125 @@ def fetch_namecheap_domains():
 
     Result status: created, updated, burned, updated & burned
 
-    The returned XML contains entries for domains like this:
+    The returned XML contains entries for domains, errors, warnings, and paging with this structure:
 
-    <RequestedCommand>namecheap.domains.getList</RequestedCommand>
-    <CommandResponse Type="namecheap.domains.getList">
-        <DomainGetListResult>
-            <Domain ID='127'
-            Name='domain1.com'
-            User='owner'
-            Created='02/15/2016'
-            Expires='02/15/2022'
-            IsExpired='False'
-            IsLocked='False'
-            AutoRenew='False'
-            WhoisGuard='ENABLED'
-            IsPremium='true'
-            IsOurDNS='true'/>
-        </DomainGetListResult>
+    <ApiResponse Status="OK" xmlns="http://api.namecheap.com/xml.response">
+        <Errors />
+        <Warnings />
+        <RequestedCommand>namecheap.domains.getList</RequestedCommand>
+        <CommandResponse Type="namecheap.domains.getList">
+            <DomainGetListResult>
+                <Domain ID='127'
+                Name='domain1.com'
+                User='owner'
+                Created='02/15/2016'
+                Expires='02/15/2022'
+                IsExpired='False'
+                IsLocked='False'
+                AutoRenew='False'
+                WhoisGuard='ENABLED'
+                IsPremium='true'
+                IsOurDNS='true'/>
+            </DomainGetListResult>
+            <Paging>
+                <TotalItems>1</TotalItems>
+                <CurrentPage>1</CurrentPage>
+                <PageSize>20</PageSize>
+            </Paging>
+        </CommandResponse>
+    </ApiResponse>
     """
     domains_list = []
     domain_changes = {}
     domain_changes["errors"] = {}
     domain_changes["updates"] = {}
+
+    # Always begin assuming one page of results
+    pages = 1
     session = requests.Session()
-    get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}"
+    get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}&Page={}"
 
     logger.info("Starting Namecheap synchronization task at %s", datetime.now())
 
     namecheap_config = NamecheapConfiguration.get_solo()
 
-    try:
-        # The Namecheap API call requires both usernames, a key, and a whitelisted IP
-        req = session.get(
-            get_domain_list_endpoint.format(
-                namecheap_config.api_username,
-                namecheap_config.api_key,
-                namecheap_config.username,
-                namecheap_config.client_ip,
-                namecheap_config.page_size,
+    # Keep fetching domains until we reach the end of the pages
+    i = 1
+    while i <= pages:
+        try:
+            logger.info("Requesting page %s of %s", i, pages)
+            # The Namecheap API call requires both usernames, a key, and a whitelisted IP
+            req = session.get(
+                get_domain_list_endpoint.format(
+                    namecheap_config.api_username,
+                    namecheap_config.api_key,
+                    namecheap_config.username,
+                    namecheap_config.client_ip,
+                    namecheap_config.page_size,
+                    i,
+                )
             )
-        )
-        # Check if request returned a 200 OK
-        if req.ok:
-            # Convert Namecheap XML into an easy to use object for iteration
-            root = objectify.fromstring(req.content)
-            # Check the status to make sure it says "OK"
-            namecheap_api_result = root.attrib["Status"]
-            if namecheap_api_result == "OK":
-                # Get all "Domain" node attributes from the XML response
-                for domain in root.CommandResponse.DomainGetListResult.Domain:
-                    domains_list.append(domain.attrib)
-            elif namecheap_api_result == "ERROR":
-                error_id = root.Errors[0].Error[0].attrib["Number"]
-                error_msg = root.Errors[0].Error[0].text
-                logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
-                domain_changes["errors"][
-                    "namecheap"
-                ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
-                return domain_changes
+            # Check if request returned a 200 OK
+            if req.ok:
+                # Convert Namecheap XML into an easy to use object for iteration
+                root = objectify.fromstring(req.content)
+                # Check the status to make sure it says "OK"
+                namecheap_api_result = root.attrib["Status"]
+                if namecheap_api_result == "OK":
+                    # Check paging info
+                    total_domains = root.CommandResponse.Paging.TotalItems
+                    current_page = root.CommandResponse.Paging.CurrentPage
+                    page_size = root.CommandResponse.Paging.PageSize
+
+                    # Divide total by page size and round up for total pages
+                    total_pages = ceil(total_domains/page_size)
+                    if total_pages != pages:
+                        logger.info("Updating page total to %s", total_pages)
+                        pages = total_pages
+
+                    # Get all "Domain" node attributes from the XML response
+                    for domain in root.CommandResponse.DomainGetListResult.Domain:
+                        domains_list.append(domain.attrib)
+                elif namecheap_api_result == "ERROR":
+                    error_id = root.Errors[0].Error[0].attrib["Number"]
+                    error_msg = root.Errors[0].Error[0].text
+                    logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
+                    domain_changes["errors"][
+                        "namecheap"
+                    ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
+                    return domain_changes
+                else:
+                    logger.error(
+                        'Namecheap did not return an "OK" or "ERROR" response: %s', req.text
+                    )
+                    domain_changes["errors"][
+                        "namecheap"
+                    ] = 'Namecheap did not return an "OK" or "ERROR" response: {response}'.format(
+                        response=req.text
+                    )
+                    return domain_changes
             else:
                 logger.error(
-                    'Namecheap did not return an "OK" or "ERROR" response: %s', req.text
+                    "Namecheap returned a %s response: %s", req.status_code, req.text
                 )
                 domain_changes["errors"][
                     "namecheap"
-                ] = 'Namecheap did not return an "OK" or "ERROR" response: {response}'.format(
-                    response=req.text
+                ] = "Namecheap returned a {status_code} response: {text}".format(
+                    status_code=req.status_code, text=req.text
                 )
                 return domain_changes
-        else:
-            logger.error(
-                "Namecheap returned a %s response: %s", req.status_code, req.text
-            )
+        except Exception:
+            trace = traceback.format_exc()
+            logger.exception("Namecheap API request failed")
             domain_changes["errors"][
                 "namecheap"
-            ] = "Namecheap returned a {status_code} response: {text}".format(
-                status_code=req.status_code, text=req.text
-            )
+            ] = "The Namecheap API request failed: {traceback}".format(traceback=trace)
             return domain_changes
-    except Exception:
-        trace = traceback.format_exc()
-        logger.exception("Namecheap API request failed")
-        domain_changes["errors"][
-            "namecheap"
-        ] = "The Namecheap API request failed: {traceback}".format(traceback=trace)
-        return domain_changes
 
-    # There's a chance no domains are returned if the provided usernames don't have any domains
+        # Increment page counter
+        i += 1
+
+    # No domains are returned if the provided account doesn't have any domains
     if domains_list:
         # Get the current list of Namecheap domains in the library
         domain_queryset = Domain.objects.filter(registrar="Namecheap")
@@ -1194,6 +1227,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     ignore_tags = []
     for tag in cloud_config.ignore_tag.split(","):
         ignore_tags.append(tag.strip())
+    logger.info("Ignoring tags: %s", ignore_tags)
 
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
@@ -1251,7 +1285,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # DO Section  #
     ###############
 
-    do_results = fetch_digital_ocean(cloud_config.do_api_key)
+    do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags)
     if do_results["message"]:
         vps_info["errors"]["digital_ocean"] = results["message"]
     else:

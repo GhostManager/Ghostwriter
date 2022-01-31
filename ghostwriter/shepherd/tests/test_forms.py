@@ -208,7 +208,7 @@ class DomainFormTests(TestCase):
         end_date = date.today() + timedelta(days=360)
         domain = DomainFactory()
         domain_dict = domain.__dict__
-        domain_dict["name"] = "soemthing.new"
+        domain_dict["name"] = "something.new"
         domain_dict["creation"] = start_date
         domain_dict["expiration"] = end_date
 
@@ -220,7 +220,7 @@ class DomainFormTests(TestCase):
         start_date = date.today() + timedelta(days=360)
         domain = DomainFactory()
         domain_dict = domain.__dict__
-        domain_dict["name"] = "soemthing.new"
+        domain_dict["name"] = "something.new"
         domain_dict["creation"] = start_date
         domain_dict["expiration"] = end_date
 

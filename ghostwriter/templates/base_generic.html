@@ -82,47 +82,58 @@
                         <ul class="list-unstyled components">
                             <p class="sideheader icon icon home-icon">Project Shortcuts</p>
 
+                            <a
+                                {% if request.session.active_report.id and request.session.active_report.title %}
+                                    class="btn btn-primary mb-3 col-10 active-report-shortcut icon ext-link-icon"
+                                    href="{% url 'reporting:report_detail' request.session.active_report.id %}"
+                                    >Jump to Report
+                                {% else %}
+                                    class="btn btn-primary col-10 active-report-shortcut icon ext-link-icon btn-disabled"
+                                    href="{% url 'reporting:report_detail' 00 %}"
+                                    >Select Report Below
+                                {% endif %}
+                            </a>
+
                             <!-- Menu Section -->
                             <li>
-                                <a href="#activeProjectsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle" data-target="#activeProjectsSubmenu">
-                                    Your Active Projects
+                                <a href="#activeReportsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle" data-target="#activeReportsSubmenu">
+                                    My Active Reports
                                     <div class="expand_caret caret"></div>
                                 </a>
-                                <ul class="collapse list-unstyled text-left" id="activeProjectsSubmenu">
-                                    {% if request.user.projectassignment_set.all %}
-                                        {% for assignment in request.user.projectassignment_set.all %}
-                                            <li><a href="{% url 'rolodex:project_detail' assignment.project.id %}">{{ assignment.project }}</a></li>
+                                <ul class="collapse list-unstyled text-left" id="activeReportsSubmenu">
+                                    {% get_reports request as reports %}
+                                    {% if reports %}
+                                        {% for report in reports %}
+                                            <li>
+                                                <a title="Set this report as your active report"
+                                                class="mt-1 mb-1 js-activate-report icon toggle-off-icon
+                                                {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
+                                                    selected-report
+                                                {% endif %}
+                                                " activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">
+                                                {{ report.title }}</a>
+                                            </li>
                                         {% endfor %}
                                     {% else %}
-                                        <li><a class="icon warning-icon" href="#">You have no project assignments right now</a></li>
+                                        <li><a href="{% url 'reporting:reports' %}">You have no active reports; click to visit the library.</a></li>
                                     {% endif %}
                                 </ul>
                             </li>
 
                             <li>
-                                <a href="#activeReportsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle" data-target="#activeReportsSubmenu">
-                                    Your Reports
+                                <a href="#activeProjectsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle" data-target="#activeProjectsSubmenu">
+                                    My Active Projects
                                     <div class="expand_caret caret"></div>
                                 </a>
-                                <ul class="collapse list-unstyled text-left" id="activeReportsSubmenu">
+                                <ul class="collapse list-unstyled text-left" id="activeProjectsSubmenu">
                                     {% if request.user.projectassignment_set.all %}
                                         {% for assignment in request.user.projectassignment_set.all %}
-                                            {% for report in assignment.project.report_set.all %}
-                                                {% if not report.complete %}
-                                                    <li>
-                                                        <a title="Set this report as your active report"
-                                                        class="mt-1 mb-1 js-activate-report icon toggle-off-icon
-                                                        {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
-                                                            selected-report
-                                                        {% endif %}
-                                                        " activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">
-                                                        {{ report.title }}</a>
-                                                    </li>
-                                                {% endif %}
-                                            {% endfor %}
+                                            {% if not assignment.project.complete %}
+                                                <li><a href="{% url 'rolodex:project_detail' assignment.project.id %}">{{ assignment.project }}</a></li>
+                                            {% endif %}
                                         {% endfor %}
                                     {% else %}
-                                        <li><a class="icon warning-icon" href="#">You have no reports right now</a></li>
+                                        <li><a href="{% url 'rolodex:projects' %}">You have no assignments; click to visit the library.</a></li>
                                     {% endif %}
                                 </ul>
                             </li>
@@ -135,7 +146,7 @@
                             <!-- Menu Section -->
                             <li>
                                 <a href="#clientSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle" data-target="#clientSubmenu">
-                                    Manage Clients
+                                    Clients
                                     <div class="expand_caret caret"></div>
                                 </a>
                                 <ul class="collapse list-unstyled text-left" id="clientSubmenu">
@@ -149,7 +160,7 @@
                                 </ul>
                             </li>
                             <li>
-                                <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Manage Findings</a>
+                                <a href="#findingsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Findings</a>
                                 <ul class="collapse list-unstyled text-left" id="findingsSubmenu">
                                 {% comment %} Search for Findings {% endcomment %}
                                     <form class="px-6 py-2" action="{% url 'reporting:findings' %}" method="GET">
@@ -243,7 +254,7 @@
 
                         <!-- Admin Section -->
                         <ul class="list-unstyled components">
-                            <!-- Amin Panel Shortcuts -->
+                            <!-- Admin Panel Shortcuts -->
                             <p class="sideheader icon admin-icon">Administration</p>
                             {% if request.user.is_staff %}
                                 <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
@@ -311,7 +322,7 @@
                         {% block breadcrumbs %}{% endblock %}
 
                         <!-- User Profile & Avatar -->
-                        <a href="{% url 'home:profile' %}"><img class="navbar-avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar"></a>
+                        <a href="{% url 'users:user_detail' request.user.username %}"><img class="navbar-avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar"></a>
                     </div>
                 {% endif %}
 
@@ -376,11 +387,13 @@
 
         <!-- Activate Report with AJAX -->
         <script>
-            $('.js-activate-report').click(function () {
+            $('.js-activate-report').click(function (e) {
                 var clickedBtn = $(this);
                 var url = $(this).attr('activate-report-url');
                 var reportId = $(this).attr('activate-report-id');
                 var csrftoken = $(this).attr('activate-report-csrftoken');
+                var shortcut = $('.active-report-shortcut');
+                var shortcut_url = shortcut.attr('href');
                 // Prep AJAX request with CSRF token
                 $.ajaxSetup({
                     beforeSend: function(xhr, settings) {
@@ -417,12 +430,26 @@
                                     $(this).addClass('toggle-off-icon');
                                 }
                             });
+                            // Update shortcut button
+                            var current_value = shortcut_url.substring(shortcut_url.lastIndexOf('/') + 1);
+                            if (current_value == reportId) {
+                                shortcut.attr('href', shortcut_url);
+                            } else {
+                                shortcut.attr('href', shortcut_url.replace(current_value, reportId));
+                                shortcut.text('Jump to Report');
+                                shortcut.removeClass('btn-disabled');
+                            }
                         }
                         if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
+                            displayToastTop({type:data['result'], string:data['message'], title:'Report Update', delay:5});
+                            setTimeout(function(){
+                                window.location.href = shortcut_url;
+                            }, 5000);
                         }
                     }
                 });
+                // Prevent the AJAX POST from triggering twice
+                e.stopImmediatePropagation();
             });
         </script>
 

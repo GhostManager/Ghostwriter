@@ -480,7 +480,7 @@ class Reportwriter:
             t = "decimal" if num else "bullet"
             return (
                 "w:abstractNum["
-                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{t}"]'
+                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
                 "]/@w:abstractNumId"
             ).format(type=t, **xpath_options[prefer_single])
 
@@ -1079,11 +1079,12 @@ class Reportwriter:
                         content_text = ""
 
                         # This is a special check for a hyperlink formatted with additional styles
-                        if tag_contents[0].name:
-                            if tag_contents[0].name == "a":
-                                run_styles["hyperlink"] = True
-                                run_styles["hyperlink_url"] = tag_contents[0]["href"]
-                                content_text = tag_contents[0].text
+                        if len(tag_contents) > 0:
+                            if tag_contents[0].name:
+                                if tag_contents[0].name == "a":
+                                    run_styles["hyperlink"] = True
+                                    run_styles["hyperlink_url"] = tag_contents[0]["href"]
+                                    content_text = tag_contents[0].text
                         # No hyperlink, so try to assemble the text for this run
                         else:
                             # Only try to join if there is one item (no nested tags)
@@ -1449,7 +1450,8 @@ class Reportwriter:
                                     # Recursively process this list and any other nested lists inside of it
                                     if nested_list:
                                         # Increment the list level counter for this nested list
-                                        level += 1
+                                        if not li_contents[0] == "\n":
+                                            level += 1
                                         p = self.parse_nested_html_lists(
                                             nested_list, p, num, finding, level
                                         )

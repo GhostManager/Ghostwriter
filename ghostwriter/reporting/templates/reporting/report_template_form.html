@@ -8,9 +8,8 @@
         <ul class="breadcrumb">
         {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Templates</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Template Form</li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Report Template Form</li>
         </ul>
     </nav>
 {% endblock %}
