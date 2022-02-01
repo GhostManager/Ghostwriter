@@ -1368,67 +1368,6 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
-                # Update infrastructure if project's dates changed
-                update = form.cleaned_data["update_checkouts"]
-                if update:
-                    if (
-                        "end_date" in form.changed_data
-                        or "start_date" in form.changed_data
-                    ):
-                        logger.info(
-                            "Date changed on Project %s, so updating domain and server checkouts",
-                            self.object.pk,
-                        )
-                        # Get the project's current dates
-                        old_project_data = Project.objects.get(pk=self.object.pk)
-                        old_start_date = old_project_data.start_date
-                        old_end_date = old_project_data.end_date
-                        # Form dates
-                        new_start_date = form.cleaned_data["start_date"]
-                        new_end_date = form.cleaned_data["end_date"]
-                        # Timedelta changes
-                        start_timedelta = new_start_date - old_start_date
-                        end_timedelta = new_end_date - old_end_date
-                        try:
-                            # Update checkouts based on deltas
-                            domain_checkouts = History.objects.filter(
-                                project=self.object.pk
-                            )
-                            server_checkouts = ServerHistory.objects.filter(
-                                project=self.object.pk
-                            )
-                            for checkout in domain_checkouts:
-                                logger.info(
-                                    "Updating checkout for %s from %s - %s to %s - %s",
-                                    checkout.domain,
-                                    checkout.start_date,
-                                    checkout.end_date,
-                                    checkout.start_date + start_timedelta,
-                                    checkout.end_date + end_timedelta,
-                                )
-                                checkout.start_date = (
-                                    checkout.start_date + start_timedelta
-                                )
-                                checkout.end_date = checkout.end_date + end_timedelta
-                                checkout.save()
-                            for checkout in server_checkouts:
-                                logger.info(
-                                    "Updating checkout for %s from %s-%s to %s-%s",
-                                    checkout.server,
-                                    checkout.start_date,
-                                    checkout.end_date,
-                                    checkout.start_date + start_timedelta,
-                                    checkout.end_date + end_timedelta,
-                                )
-                                checkout.start_date = (
-                                    checkout.start_date + start_timedelta
-                                )
-                                checkout.end_date = checkout.end_date + end_timedelta
-                                checkout.save()
-                        except Exception:
-                            message = "Could not update checkouts with your changed project dates. Review your checkouts or uncheck the box for automatic updates."
-                            form.add_error("update_checkouts", message)
-
                 # Save the parent form – will rollback if a child fails validation
                 self.object = form.save()
 
