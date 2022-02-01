@@ -8,9 +8,16 @@ from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
+from ghostwriter.home.models import UserProfile
 from ghostwriter.users.forms import GroupAdminForm
 
 User = get_user_model()
+
+
+class AdminProfileInline(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+    verbose_name_plural = "User profiles"
 
 
 class UserAdmin(auth_admin.UserAdmin):
@@ -56,6 +63,7 @@ class UserAdmin(auth_admin.UserAdmin):
     search_fields = ("username", "name", "email")
     list_editable = ("is_active",)
     list_display_links = ("name", "username", "email")
+    inlines = (AdminProfileInline,)
 
 
 admin.site.register(User, UserAdmin)
