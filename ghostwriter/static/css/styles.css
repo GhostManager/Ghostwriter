@@ -1748,6 +1748,10 @@ th.icon {
   content: '\f4fe';
 }
 
+.user-role-icon:before {
+  content: '\f6cf';
+}
+
 .company-icon:before {
   content: '\f1ad';
 }
