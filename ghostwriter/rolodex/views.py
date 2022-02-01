@@ -770,10 +770,10 @@ def client_list(request):
             "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
-        client_list = Client.objects.filter(name__icontains=search_term).order_by("name")
+        clients = Client.objects.filter(name__icontains=search_term).order_by("name")
     else:
-        client_list = Client.objects.all().order_by("name")
-    client_filter = ClientFilter(request.GET, queryset=client_list)
+        clients = Client.objects.all().order_by("name")
+    client_filter = ClientFilter(request.GET, queryset=clients)
     return render(request, "rolodex/client_list.html", {"filter": client_filter})
 
 
@@ -791,10 +791,10 @@ def project_list(request):
 
     :template:`rolodex/project_list.html`
     """
-    project_list = (
+    projects = (
         Project.objects.select_related("client").all().order_by("complete", "client")
     )
-    filtered_list = ProjectFilter(request.GET, queryset=project_list)
+    filtered_list = ProjectFilter(request.GET, queryset=projects)
     return render(request, "rolodex/project_list.html", {"filter": filtered_list})
 
 

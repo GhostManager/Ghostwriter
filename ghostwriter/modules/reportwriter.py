@@ -101,7 +101,7 @@ def strip_html(s):
     for tag in html.descendants:
         if isinstance(tag, str):
             output += tag
-        elif tag.name == "br" or tag.name == "p":
+        elif tag.name in ("br", "p"):
             output += "\n"
     return output
 
@@ -1216,7 +1216,7 @@ class Reportwriter:
                             if not sub_part.name == "ol" and not sub_part.name == "ul":
                                 if sub_part != "\n":
                                     temp.append(sub_part)
-                            elif sub_part.name == "ol" or sub_part.name == "ul":
+                            elif sub_part.name in ("ol", "ul"):
                                 if sub_part != "\n":
                                     nested_list = sub_part
                         # If ``temp`` isn't empty, process it like any other line
@@ -1423,9 +1423,7 @@ class Reportwriter:
                                             if sub_part != "\n":
                                                 temp.append(sub_part)
                                         # Hold the nested list separately for later
-                                        elif (
-                                            sub_part.name == "ol" or sub_part.name == "ul"
-                                        ):
+                                        elif sub_part.name in ("ol", "ul"):
                                             if sub_part != "\n":
                                                 nested_list = sub_part
 

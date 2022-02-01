@@ -2,11 +2,7 @@
 
 # Django Imports
 from django import forms
-from django.contrib.postgres.forms import (
-    SimpleArrayField,
-    SplitArrayField,
-    SplitArrayWidget,
-)
+from django.contrib.postgres.forms import SplitArrayField
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.urls import reverse

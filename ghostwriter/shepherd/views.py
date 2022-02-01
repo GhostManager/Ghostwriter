@@ -4,7 +4,7 @@
 import json
 import logging
 import logging.config
-from datetime import date, datetime, time
+from datetime import date, datetime
 
 # Django Imports
 from django import forms
@@ -661,6 +661,8 @@ def server_search(request):
                 reverse("rolodex:project_detail", kwargs={"pk": project_id})
             )
         )
+    else:
+        return HttpResponseRedirect(reverse("shepherd:servers"))
 
 
 @login_required
