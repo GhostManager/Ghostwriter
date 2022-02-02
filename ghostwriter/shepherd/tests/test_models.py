@@ -264,7 +264,7 @@ class DomainModelTests(TestCase):
         try:
             domain.get_list()
         except Exception:
-            self.fail("Domain model `get_list` method failed unexpectedly!")
+            self.fail("Domain model `get_list` method for DNS records failed unexpectedly!")
 
 
 class HistoryModelTests(TestCase):
