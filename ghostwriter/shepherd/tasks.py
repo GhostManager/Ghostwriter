@@ -727,12 +727,13 @@ def check_domains(domain=None):
                     domain.burned_explanation = "\n".join(
                         lab_results[domain]["burned_explanation"]
                     )
-            if lab_results[domain]["categories"] != domain.all_cat:
+            if lab_results[domain]["categories"] != domain.categorization:
                 change = "categories updated"
             if lab_results[domain]["categories"]:
-                domain.all_cat = ", ".join(lab_results[domain]["categories"]).title()
+                # Save the JSON data to the JSONField with no alteration (e.g., ``json.dumps()``)
+                domain.categorization = lab_results[domain]["categories"]
             else:
-                domain.all_cat = "Uncategorized"
+                domain.categorization = {"VirusTotal": "Uncategorized"}
             domain.last_health_check = datetime.now()
             domain.save()
             domain_updates[domain.id]["change"] = change

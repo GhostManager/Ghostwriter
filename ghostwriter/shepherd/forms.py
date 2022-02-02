@@ -165,7 +165,7 @@ class DomainForm(forms.ModelForm):
         exclude = (
             "last_used_by",
             "burned_explanation",
-            "all_cat",
+            "categorization",
             "dns_record",
             "health_dns",
             "expired",
@@ -195,27 +195,6 @@ class DomainForm(forms.ModelForm):
         self.fields["health_status"].label = ""
         self.fields["creation"].widget.input_type = "date"
         self.fields["expiration"].widget.input_type = "date"
-        self.fields["bluecoat_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["fortiguard_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["ibm_xforce_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["opendns_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["talos_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["trendmicro_cat"].widget.attrs[
-            "placeholder"
-        ] = "Category A, Category B, ..."
-        self.fields["mx_toolbox_status"].widget.attrs[
-            "placeholder"
-        ] = "Spamhaus Blacklist ..."
         self.fields["note"].widget.attrs[
             "placeholder"
         ] = "Brief Note or Explanation of the Domain"

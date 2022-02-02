@@ -174,60 +174,11 @@ class Domain(models.Model):
         blank=True,
         help_text="VirusTotal's permalink for scan results of this domain",
     )
-    all_cat = models.TextField(
-        "All Categories",
+    categorization = models.JSONField(
+        "Categorization",
         null=True,
         blank=True,
-        help_text="Enter all categories applied to this domain",
-    )
-    ibm_xforce_cat = models.CharField(
-        "IBM X-Force",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by IBM X-Force",
-    )
-    talos_cat = models.CharField(
-        "Cisco Talos",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by Cisco Talos",
-    )
-    bluecoat_cat = models.CharField(
-        "Bluecoat",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by Bluecoat",
-    )
-    fortiguard_cat = models.CharField(
-        "Fortiguard",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by Fortiguard",
-    )
-    opendns_cat = models.CharField(
-        "OpenDNS",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by OpenDNS",
-    )
-    trendmicro_cat = models.CharField(
-        "TrendMicro",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by TrendMicro",
-    )
-    mx_toolbox_status = models.CharField(
-        "MX Toolbox Status",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Enter the domain spam/blacklist status as determined by MX Toolbox",
+        help_text="Categories applied to this domain as JSON - e.g., `source:category`",
     )
     note = models.TextField(
         "Notes",

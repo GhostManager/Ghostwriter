@@ -155,18 +155,9 @@ class DomainAdmin(ImportExportModelAdmin):
         (
             "Categories",
             {
-                "fields": (
-                    "all_cat",
-                    "ibm_xforce_cat",
-                    "talos_cat",
-                    "bluecoat_cat",
-                    "fortiguard_cat",
-                    "opendns_cat",
-                    "trendmicro_cat",
-                )
+                "fields": ("categorization",)
             },
         ),
-        ("Email and Spam", {"fields": ("mx_toolbox_status",)}),
         ("Misc", {"fields": ("note",)}),
     )
 

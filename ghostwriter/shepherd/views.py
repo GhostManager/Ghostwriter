@@ -542,7 +542,7 @@ def domain_list(request):
             Domain.objects.select_related(
                 "domain_status", "whois_status", "health_status"
             )
-            .filter(Q(name__icontains=search_term) | Q(all_cat__icontains=search_term))
+            .filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term))
             .order_by("name")
         )
     else:
