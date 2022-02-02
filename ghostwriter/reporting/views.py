@@ -491,7 +491,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 if docx_template_id == -1 or pptx_template_id == -1:
                     data = {
                         "result": "warning",
-                        "message": "You need to select a template",
+                        "message": "Select both templates before your settings can be saved",
                     }
                 else:
                     if docx_template_id != -1:
