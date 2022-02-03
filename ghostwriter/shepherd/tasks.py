@@ -980,7 +980,6 @@ def fetch_namecheap_domains():
                 if namecheap_api_result == "OK":
                     # Check paging info
                     total_domains = root.CommandResponse.Paging.TotalItems
-                    current_page = root.CommandResponse.Paging.CurrentPage
                     page_size = root.CommandResponse.Paging.PageSize
 
                     # Divide total by page size and round up for total pages
