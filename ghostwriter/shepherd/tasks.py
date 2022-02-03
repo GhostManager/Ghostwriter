@@ -784,19 +784,19 @@ def update_dns(domain=None):
         domains=domain_list, record_types=record_types
     )
 
-    for domain in domain_list:
-        domain_updates[domain.id] = {}
-        domain_updates[domain.id]["domain"] = domain.name
+    for d in domain_list:
+        domain_updates[d.id] = {}
+        domain_updates[d.id]["domain"] = d.name
 
-        if domain.name in dns_records:
+        if d.name in dns_records:
             try:
-                a_record = dns_records[domain.name]["a_record"]
-                mx_record = dns_records[domain.name]["mx_record"]
-                ns_record = dns_records[domain.name]["ns_record"]
-                txt_record = dns_records[domain.name]["txt_record"]
-                soa_record = dns_records[domain.name]["soa_record"]
-                cname_record = dns_records[domain.name]["cname_record"]
-                dmarc_record = dns_records[domain.name]["dmarc_record"]
+                a_record = dns_records[d.name]["a_record"]
+                mx_record = dns_records[d.name]["mx_record"]
+                ns_record = dns_records[d.name]["ns_record"]
+                txt_record = dns_records[d.name]["txt_record"]
+                soa_record = dns_records[d.name]["soa_record"]
+                cname_record = dns_records[d.name]["cname_record"]
+                dmarc_record = dns_records[d.name]["dmarc_record"]
 
                 # Format any lists as strings for storage
                 if isinstance(a_record, list):
@@ -839,21 +839,21 @@ def update_dns(domain=None):
                 dns_records_dict["soa"] = soa_record
 
                 # Look-up the individual domain and save the new record string
-                domain_instance = Domain.objects.get(name=domain.name)
+                domain_instance = Domain.objects.get(name=d.name)
                 domain_instance.dns_record = dns_records_dict
                 domain_instance.save()
-                domain_updates[domain.id]["result"] = "updated"
+                domain_updates[d.id]["result"] = "updated"
             except Exception:
                 trace = traceback.format_exc()
-                logger.exception("Failed updating DNS records for %s", domain.name)
+                logger.exception("Failed updating DNS records for %s", d.name)
                 domain_updates["errors"][
-                    domain.name
+                    d.name
                 ] = "Failed updating DNS records: {traceback}".format(traceback=trace)
         else:
             logger.warning(
-                "The domain %s was not found in the returned DNS records", domain.name
+                "The domain %s was not found in the returned DNS records", d.name
             )
-            domain_updates[domain.id]["result"] = "no results"
+            domain_updates[d.id]["result"] = "no results"
 
     # Log task completed
     logger.info("DNS update completed at %s", datetime.now())
