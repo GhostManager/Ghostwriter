@@ -600,13 +600,13 @@ def release_servers(no_action=False):
     return server_updates
 
 
-def check_domains(domain=None):
+def check_domains(domain_id=None):
     """
     Initiate a check of all :model:`shepherd.Domain` and update the ``domain_status`` values.
 
     **Parameters**
 
-    ``domain``
+    ``domain_id``
         Individual domain's primary key to update only that domain (Default: None)
     """
     domain_updates = {}
@@ -618,22 +618,22 @@ def check_domains(domain=None):
     # Get target domain(s) from the database or the target ``domain``
     domain_list = []
     sleep_time_override = None
-    if domain:
+    if domain_id:
         try:
-            domain_queryset = Domain.objects.get(pk=domain)
+            domain_queryset = Domain.objects.get(pk=domain_id)
             domain_list.append(domain_queryset)
             logger.info(
                 "Checking only one domain, so disabling sleep time for VirusTotal"
             )
             sleep_time_override = 0
         except Domain.DoesNotExist:
-            domain_updates[domain] = {}
-            domain_updates[domain]["change"] = "error"
-            domain_updates["errors"][domain.name] = {}
+            domain_updates[domain_id] = {}
+            domain_updates[domain_id]["change"] = "error"
+            domain_updates["errors"][domain_id] = {}
             domain_updates["errors"][
-                domain.name
-            ] = f"Requested domain ID, {domain}, does not exist"
-            logger.exception("Requested domain ID, %s, does not exist", domain)
+                domain_id
+            ] = f"Requested domain ID, {domain_id}, does not exist"
+            logger.exception("Requested domain ID, %s, does not exist", domain_id)
             return domain_updates
     else:
         # Only fetch domains that are not expired or already burned
@@ -651,25 +651,26 @@ def check_domains(domain=None):
     lab_results = domain_review.check_domain_status()
 
     # Update the domains as needed
-    for domain in lab_results:
+    for k, v in lab_results.items():
+        domain_qs = v["domain_qs"]
         change = "no action"
-        domain_updates[domain.id] = {}
-        domain_updates[domain.id]["domain"] = domain.name
-        if "vt_results" in lab_results[domain]:
-            domain_updates[domain.id]["vt_results"] = lab_results[domain]["vt_results"]
+        domain_updates[k] = {}
+        domain_updates[k]["domain"] = v["domain"]
+        if "vt_results" in lab_results[k]:
+            domain_updates[k]["vt_results"] = lab_results[k]["vt_results"]
         try:
             # Flip status if a domain has been flagged as burned
-            if lab_results[domain]["burned"]:
-                domain.health_status = HealthStatus.objects.get(health_status="Burned")
+            if lab_results[k]["burned"]:
+                domain_qs.health_status = HealthStatus.objects.get(health_status="Burned")
                 change = "burned"
                 if slack_config.enable:
                     slack_data = craft_burned_message(
                         slack_config.slack_username,
                         slack_config.slack_emoji,
                         slack_config.slack_channel,
-                        domain.name,
-                        lab_results[domain]["categories"],
-                        lab_results[domain]["burned_explanation"],
+                        v["domain"],
+                        lab_results[k]["categories"],
+                        lab_results[k]["burned_explanation"],
                     )
                     requests.post(
                         slack_config.webhook_url,
@@ -689,9 +690,9 @@ def check_domains(domain=None):
                             slack_config.slack_username,
                             slack_config.slack_emoji,
                             latest_checkout.project.slack_channel,
-                            domain.name,
-                            lab_results[domain]["categories"],
-                            lab_results[domain]["burned_explanation"],
+                            v["domain"],
+                            lab_results[k]["categories"],
+                            lab_results[k]["burned_explanation"],
                         )
                         requests.post(
                             slack_config.webhook_url,
@@ -700,7 +701,7 @@ def check_domains(domain=None):
                         )
             # If the domain isn't marked as burned, check for any informational warnings
             else:
-                if lab_results[domain]["warnings"]["total"] > 0:
+                if lab_results[k]["warnings"]["total"] > 0:
                     logger.info(
                         "Domain is not burned but there are warnings, so preparing notification"
                     )
@@ -709,9 +710,9 @@ def check_domains(domain=None):
                             slack_config.slack_username,
                             slack_config.slack_emoji,
                             slack_config.slack_channel,
-                            domain.name,
+                            v["domain"],
                             "VirusTotal Submission",
-                            lab_results[domain]["warnings"]["messages"],
+                            lab_results[k]["warnings"]["messages"],
                         )
                         requests.post(
                             slack_config.webhook_url,
@@ -720,29 +721,29 @@ def check_domains(domain=None):
                         )
             # Update other fields for the domain object
             if (
-                lab_results[domain]["burned"]
-                and "burned_explanation" in lab_results[domain]
+                lab_results[k]["burned"]
+                and "burned_explanation" in lab_results[k]
             ):
-                if lab_results[domain]["burned_explanation"]:
-                    domain.burned_explanation = "\n".join(
-                        lab_results[domain]["burned_explanation"]
+                if lab_results[k]["burned_explanation"]:
+                    domain_qs.burned_explanation = "\n".join(
+                        lab_results[k]["burned_explanation"]
                     )
-            if lab_results[domain]["categories"] != domain.categorization:
+            if lab_results[k]["categories"] != domain_qs.categorization:
                 change = "categories updated"
-            if lab_results[domain]["categories"]:
+            if lab_results[k]["categories"]:
                 # Save the JSON data to the JSONField with no alteration (e.g., ``json.dumps()``)
-                domain.categorization = lab_results[domain]["categories"]
+                domain_qs.categorization = lab_results[k]["categories"]
             else:
-                domain.categorization = {"VirusTotal": "Uncategorized"}
-            domain.last_health_check = datetime.now()
-            domain.save()
-            domain_updates[domain.id]["change"] = change
+                domain_qs.categorization = {"VirusTotal": "Uncategorized"}
+            domain_qs.last_health_check = datetime.now()
+            domain_qs.save()
+            domain_updates[k]["change"] = change
         except Exception:
             trace = traceback.format_exc()
-            domain_updates[domain.id]["change"] = "error"
-            domain_updates["errors"][domain.name] = {}
-            domain_updates["errors"][domain.name] = trace
-            logger.exception('Error updating "%s"', domain.name)
+            domain_updates[k]["change"] = "error"
+            domain_updates["errors"][v["domain"]] = {}
+            domain_updates["errors"][v["domain"]] = trace
+            logger.exception('Error updating "%s"', v["domain"])
 
     return domain_updates
 
