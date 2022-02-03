@@ -1013,13 +1013,11 @@ def archive(request, pk):
             zf.writestr("report.pptx", ppt_doc.getvalue())
             zip_directory(evidence_loc, zf)
         zip_buffer.seek(0)
-        with open(os.path.join(archive_loc, report_name + ".zip"), "wb") as archive_file:
+        with open(os.path.join(archive_loc, report_name + ".zip"), "wb+") as archive_file:
             archive_file.write(zip_buffer.read())
             new_archive = Archive(
                 client=report_instance.project.client,
-                report_archive=File(
-                    open(os.path.join(archive_loc, report_name + ".zip"), "rb")
-                ),
+                report_archive=File(archive_file),
             )
         new_archive.save()
         messages.success(
