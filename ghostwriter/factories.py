@@ -436,7 +436,6 @@ class DomainFactory(factory.django.DjangoModelFactory):
     name = Faker("domain_name")
     registrar = Faker("company")
     dns_record = Faker("json")
-    health_dns = Faker("word")
     creation = Faker("past_date")
     expiration = Faker("future_date")
     vt_permalink = Faker("url")

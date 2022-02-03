@@ -167,7 +167,6 @@ class DomainForm(forms.ModelForm):
             "burned_explanation",
             "categorization",
             "dns_record",
-            "health_dns",
             "expired",
         )
         widgets = {

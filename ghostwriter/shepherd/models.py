@@ -148,13 +148,6 @@ class Domain(models.Model):
         blank=True,
         help_text="Enter the domain's DNS records - leave blank if you will run DNS updates later",
     )
-    health_dns = models.CharField(
-        "DNS Health",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text='Enter passive DNS information from VirusTotal - leave blank or enter "Healthy" if you do not know',
-    )
     creation = models.DateField(
         "Purchase Date", help_text="Select the date the domain was purchased"
     )
