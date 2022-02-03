@@ -1040,7 +1040,6 @@ def archive(request, pk):
             "You do not have templates selected for Word and PowerPoint and have not selected default templates",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except Exception:
         messages.error(
             request,

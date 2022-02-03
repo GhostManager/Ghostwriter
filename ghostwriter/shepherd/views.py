@@ -661,8 +661,8 @@ def server_search(request):
                 reverse("rolodex:project_detail", kwargs={"pk": project_id})
             )
         )
-    else:
-        return HttpResponseRedirect(reverse("shepherd:servers"))
+
+    return HttpResponseRedirect(reverse("shepherd:servers"))
 
 
 @login_required
