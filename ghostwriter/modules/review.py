@@ -148,9 +148,11 @@ class DomainReview:
                 domain_categories = {}
                 bad_categories = []
                 burned_explanations = []
-                lab_results[domain] = {}
+                lab_results[domain.id] = {}
                 warnings = []
-                lab_results[domain]["warnings"] = {}
+                lab_results[domain.id]["domain"] = domain.name
+                lab_results[domain.id]["domain_qs"] = domain
+                lab_results[domain.id]["warnings"] = {}
                 logger.info("Starting domain category update for %s", domain.name)
 
                 # Sort the domain information from queryset
@@ -178,7 +180,7 @@ class DomainReview:
                     logger.info("Received results for %s from VirusTotal", domain_name)
 
                     domain_categories = {}
-                    lab_results[domain]["vt_results"] = vt_results["data"]
+                    lab_results[domain.id]["vt_results"] = vt_results["data"]
                     last_update = datetime.fromtimestamp(
                         vt_results["data"]["last_modification_date"]
                     )
@@ -232,18 +234,18 @@ class DomainReview:
                             )
 
                 else:
-                    lab_results[domain]["vt_results"] = "none"
+                    lab_results[domain.id]["vt_results"] = "none"
                     logger.warning(
                         "Did not receive results for %s from VirusTotal", domain_name
                     )
 
                 # Assemble the dictionary to return for this domain
-                lab_results[domain]["burned"] = burned
-                lab_results[domain]["categories"] = domain_categories
-                lab_results[domain]["warnings"]["messages"] = warnings
-                lab_results[domain]["warnings"]["total"] = len(warnings)
+                lab_results[domain.id]["burned"] = burned
+                lab_results[domain.id]["categories"] = domain_categories
+                lab_results[domain.id]["warnings"]["messages"] = warnings
+                lab_results[domain.id]["warnings"]["total"] = len(warnings)
                 if burned:
-                    lab_results[domain]["burned_explanation"] = burned_explanations
+                    lab_results[domain.id]["burned_explanation"] = burned_explanations
 
                 # Sleep for a while for VirusTotal's API
                 sleep(self.sleep_time)
