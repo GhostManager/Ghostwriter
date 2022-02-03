@@ -181,7 +181,7 @@ def prepare_jinja2_env(debug=False):
     else:
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
 
-    env = jinja2.Environment(undefined=undefined, extensions=["jinja2.ext.debug"])
+    env = jinja2.Environment(undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True)
     env.filters["filter_severity"] = filter_severity
     env.filters["filter_type"] = filter_type
     env.filters["strip_html"] = strip_html
