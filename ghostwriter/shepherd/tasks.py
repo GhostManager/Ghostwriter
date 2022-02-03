@@ -5,6 +5,7 @@ import json
 import logging
 import logging.config
 import traceback
+from asgiref.sync import async_to_sync
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from math import ceil
@@ -15,7 +16,6 @@ from django.db.models import Q
 # 3rd Party Libraries
 import nmap
 import requests
-from asgiref.sync import async_to_sync
 from botocore.exceptions import ClientError
 from channels.layers import get_channel_layer
 from lxml import objectify
