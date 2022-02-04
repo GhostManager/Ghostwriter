@@ -2,6 +2,7 @@
 
 # Django Imports
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 # Ghostwriter Libraries
 from ghostwriter.home import views
@@ -40,5 +41,10 @@ urlpatterns += [
         "ajax/management/test/virustotal",
         views.TestVirusTotalConnection.as_view(),
         name="ajax_test_virustotal",
+    ),
+    path(
+        "ajax/session/update",
+        csrf_exempt(views.update_session),
+        name="ajax_update_session",
     ),
 ]
