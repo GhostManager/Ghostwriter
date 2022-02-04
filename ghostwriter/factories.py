@@ -439,7 +439,7 @@ class DomainFactory(factory.django.DjangoModelFactory):
     creation = Faker("past_date")
     expiration = Faker("future_date")
     vt_permalink = Faker("url")
-    categorization = Faker("pydict", value_types=str)
+    categorization = Faker("pydict", value_types=(str,))
     note = Faker("paragraph")
     burned_explanation = Faker("paragraph")
     auto_renew = Faker("boolean")
