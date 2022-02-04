@@ -186,11 +186,11 @@
                             <td class="burned">{{ domain.health_status }}</td>
                         {% endif %}
 
-                        {% ifequal domain.whois_status.whois_status "Enabled" %}
+                        {% if domain.whois_status.whois_status == "Enabled" %}
                             <td class="healthy">{{ domain.whois_status }}</td>
                         {% else %}
                             <td class="burned">{{ domain.whois_status }}</td>
-                        {% endifequal %}
+                        {% endif %}
 
                         <td>
                             {% if domain.last_health_check %}
