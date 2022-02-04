@@ -140,7 +140,7 @@ def ajax_update_project_objectives(request):
     Update the ``position`` and ``status`` fields of all :model:`rolodex.ProjectObjective`
     entries attached to an individual :model:`rolodex.Project`.
     """
-    if request.method == "POST" and request.is_ajax():
+    if request.method == "POST":
         data = request.POST.get("positions")
         project_id = request.POST.get("project")
         priority_class = request.POST.get("priority").replace("_priority", "")
