@@ -288,7 +288,7 @@ class DomainUpdateHealth(LoginRequiredMixin, View):
             if self.domain:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.check_domains",
-                    domain=self.domain.id,
+                    domain_id=self.domain.id,
                     group="Individual Domain Update",
                     hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
                 )
