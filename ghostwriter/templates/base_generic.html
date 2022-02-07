@@ -104,7 +104,7 @@
                                         {% for report in reports %}
                                             <li>
                                                 <a title="Set this report as your active report"
-                                                class="mt-1 mb-1 js-activate-report icon toggle-off-icon
+                                                class="js-activate-report icon toggle-off-icon
                                                 {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
                                                     selected-report
                                                 {% endif %}
