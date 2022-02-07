@@ -3,8 +3,10 @@ import logging
 from datetime import datetime
 
 # Django Imports
+from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import dateformat
 from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
@@ -22,6 +24,7 @@ from ghostwriter.factories import (
     SeverityFactory,
     UserFactory,
 )
+from ghostwriter.modules.reportwriter import format_datetime
 from ghostwriter.reporting.templatetags import report_tags
 
 logging.disable(logging.CRITICAL)
@@ -1296,3 +1299,33 @@ class GenerateReportTests(TestCase):
     def test_view_all_requires_login(self):
         response = self.client.get(self.all_uri)
         self.assertEqual(response.status_code, 302)
+
+
+class ReportTemplateFilterTests(TestCase):
+    """Collection of tests for custom report template filters."""
+
+    @classmethod
+    def setUpTestData(cls):
+        pass
+
+    def setUp(self):
+        self.test_date_string = "%b. %d, %Y"
+        self.new_date_string = "%d/%m/%y"
+
+    def test_format_datetime(self):
+        test_date = dateformat.format(datetime.now(), settings.DATE_FORMAT)
+        try:
+            format_datetime(test_date, self.test_date_string, self.new_date_string)
+        except AttributeError:
+            self.fail("format_datetime() raised an AttributeError unexpectedly!")
+
+    # For future use when locale and language translation is figured out
+    # def test_format_datetime_locales(self):
+    #     locales = ["en-GB", "fr-FR", "de-DE", "es-ES", "it-IT", "ja-JP", "ko-KR", "zh-CN", "zh-TW"]
+    #     for l in locales:
+    #         with self.settings(LANGUAGE_CODE=l):
+    #             try:
+    #                 test_date = dateformat.format(datetime.now(), settings.DATE_FORMAT)
+    #                 format_datetime(test_date, self.test_date_string, self.new_date_string)
+    #             except AttributeError:
+    #                 self.fail("format_datetime() raised an AttributeError unexpectedly with locale %s!", l)
