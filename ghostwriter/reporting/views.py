@@ -7,6 +7,7 @@ import logging
 import logging.config
 import os
 import zipfile
+from asgiref.sync import async_to_sync
 from datetime import datetime
 from socket import gaierror
 
@@ -33,7 +34,6 @@ from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
-from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from docx.image.exceptions import UnrecognizedImageError
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
@@ -488,18 +488,18 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 docx_template_id = int(docx_template_id)
                 pptx_template_id = int(pptx_template_id)
 
-                if docx_template_id == -1 or pptx_template_id == -1:
+                if docx_template_id < 0 or pptx_template_id < 0:
                     data = {
                         "result": "warning",
                         "message": "Select both templates before your settings can be saved",
                     }
                 else:
-                    if docx_template_id != -1:
+                    if docx_template_id >= 0:
                         docx_template_query = ReportTemplate.objects.get(
                             pk=docx_template_id
                         )
                         self.object.docx_template = docx_template_query
-                    if pptx_template_id != -1:
+                    if pptx_template_id >= 0:
                         pptx_template_query = ReportTemplate.objects.get(
                             pk=pptx_template_id
                         )
@@ -532,6 +532,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                 data[
                                     "docx_lint_message"
                                 ] = "Selected Word template has an unknown linter status. Check and lint the template before generating a report."
+                            data["docx_url"] = docx_template_query.get_absolute_url()
                 except Exception:
                     logger.exception("Failed to get the template status")
                     data[
@@ -558,6 +559,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                 data[
                                     "pptx_lint_message"
                                 ] = "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report."
+                            data["pptx_url"] = pptx_template_query.get_absolute_url()
                 except Exception:
                     logger.exception("Failed to get the template status")
                     data[
