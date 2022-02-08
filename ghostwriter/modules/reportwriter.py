@@ -2237,7 +2237,7 @@ class TemplateLinter:
             logger.error("Received a `None` value for template location")
 
         logger.info("Template linting completed")
-        return json.dumps(results)
+        return results
 
     def lint_pptx(self):
         """
@@ -2283,4 +2283,4 @@ class TemplateLinter:
             logger.error("Received a `None` value for template location")
 
         logger.info("Template linting completed")
-        return json.dumps(results)
+        return results

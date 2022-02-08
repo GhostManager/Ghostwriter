@@ -642,7 +642,7 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
         self.object.lint_result = results
         self.object.save()
 
-        data = json.loads(results)
+        data = results
         if data["result"] == "success":
             data[
                 "message"

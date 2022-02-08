@@ -244,11 +244,11 @@ class ReportTemplate(models.Model):
         default=False,
         help_text="Only administrators can edit this template",
     )
-    lint_result = models.TextField(
+    lint_result = models.JSONField(
         "Template Linter Results",
         null=True,
         blank=True,
-        help_text="Results returned by the linter for this template",
+        help_text="Results returned by the linter for this template in JSON format",
     )
     changelog = models.TextField(
         "Template Change Log",
@@ -294,8 +294,7 @@ class ReportTemplate(models.Model):
         result_code = "unknown"
         if self.lint_result:
             try:
-                lint_result = json.loads(self.lint_result)
-                result_code = lint_result["result"]
+                result_code = self.lint_result["result"]
             except json.decoder.JSONDecodeError:  # pragma: no cover
                 logger.exception(
                     "Could not decode data in model as JSON: %s", self.lint_result

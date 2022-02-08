@@ -25,14 +25,11 @@ class ReportConfigurationFormTests(TestCase):
         cls.valid_pptx_template = ReportPptxTemplateFactory()
 
         cls.invalid_docx_template = ReportDocxTemplateFactory()
-        cls.invalid_docx_template.lint_result = json.dumps(
-                {"result": "failed", "warnings": [], "errors": []}
-            )
+        cls.invalid_docx_template.lint_result = {"result": "failed", "warnings": [], "errors": []}
         cls.invalid_docx_template.save()
+
         cls.invalid_pptx_template = ReportPptxTemplateFactory()
-        cls.invalid_pptx_template.lint_result = json.dumps(
-                {"result": "failed", "warnings": [], "errors": []}
-            )
+        cls.invalid_pptx_template.lint_result = {"result": "failed", "warnings": [], "errors": []}
         cls.invalid_pptx_template.save()
 
         cls.config = ReportConfigurationFactory(

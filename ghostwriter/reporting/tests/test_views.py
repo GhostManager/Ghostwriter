@@ -59,10 +59,6 @@ class TemplateTagTests(TestCase):
                 report_tags.get_item(severity_dict, group), severity_dict.get(group)
             )
 
-        lint_json = report_tags.load_json(self.report.docx_template.lint_result)
-        data = {"result": "success", "warnings": [], "errors": []}
-        self.assertEqual(lint_json, data)
-
 
 # Tests related to report modification actions
 
