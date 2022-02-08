@@ -62,6 +62,13 @@ class ClientModelTests(TestCase):
         client.delete()
         assert not self.Client.objects.all().exists()
 
+    def test_get_absolute_url(self):
+        client = ClientFactory(name="SpecterOps, Inc.")
+        try:
+            client.get_absolute_url()
+        except:
+            self.fail("Client.get_absolute_url() raised an exception")
+
 
 class ClientContactModelTests(TestCase):
     """Collection of tests for :model:`rolodex.ClientContact`."""
@@ -161,6 +168,13 @@ class ProjectModelTests(TestCase):
         # Delete
         project.delete()
         assert not self.Project.objects.all().exists()
+
+    def test_get_absolute_url(self):
+        project = ProjectFactory()
+        try:
+            project.get_absolute_url()
+        except:
+            self.fail("Project.get_absolute_url() raised an exception")
 
     def test_checkout_adjustment_signal(self):
         yesterday = date.today() - timedelta(days=1)
