@@ -17,43 +17,10 @@ from ghostwriter.factories import (
     ReportFindingLinkFactory,
     UserFactory,
 )
-from ghostwriter.reporting.templatetags import report_tags
 
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
-
-
-# Tests related to custom template tags and filters
-
-
-class TemplateTagTests(TestCase):
-    """Collection of tests for custom template tags."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
-        cls.report = ReportFactory()
-        for x in range(3):
-            ReportFindingLinkFactory(report=cls.report)
-
-    def setUp(self):
-        pass
-
-    def test_tags(self):
-        queryset = self.ReportFindingLink.objects.all()
-
-        severity_dict = report_tags.group_by_severity(queryset)
-        self.assertEqual(len(severity_dict), 3)
-
-        for group in severity_dict:
-            self.assertEqual(
-                report_tags.get_item(severity_dict, group), severity_dict.get(group)
-            )
-
-        lint_json = report_tags.load_json(self.report.docx_template.lint_result)
-        data = {"result": "success", "warnings": [], "errors": []}
-        self.assertEqual(lint_json, data)
 
 
 # Tests related to report modification actions
