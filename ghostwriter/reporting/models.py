@@ -604,7 +604,7 @@ class Evidence(models.Model):
         verbose_name_plural = "Evidence"
 
     def get_absolute_url(self):
-        return reverse("reporting:evidence_file", args=[str(self.id)])
+        return reverse("reporting:evidence_detail", args=[str(self.id)])
 
     def __str__(self):
         return self.document.name

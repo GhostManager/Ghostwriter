@@ -570,7 +570,7 @@ class ServerHistory(models.Model):
         verbose_name_plural = "Server history"
 
     def get_absolute_url(self):
-        return reverse("shepherd:history_update", args=[str(self.id)])
+        return reverse("shepherd:server_history_update", args=[str(self.id)])
 
     def __str__(self):
         return f"{self.server.ip_address} ({self.server.name}) [{self.activity_type.activity}]"
