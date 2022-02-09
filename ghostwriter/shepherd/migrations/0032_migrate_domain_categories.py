@@ -20,7 +20,10 @@ def convert_to_jsonfield(apps, schema_editor):
             "TrendMicro": entry.trendmicro_cat,
             "MX Toolbox": entry.mx_toolbox_status,
         }
-        entry.categorization = categories
+        # Dump ``dict`` to ``str``
+        cat_json = json.dumps(categories)
+        # Load ``str`` as JSON and save it
+        entry.categorization = json.loads(cat_json)
         entry.save()
 
 
