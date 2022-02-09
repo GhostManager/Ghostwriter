@@ -265,14 +265,6 @@ class DomainModelTests(TestCase):
         except Exception:
             self.fail("Domain model `is_expiring_soon` method failed unexpectedly!")
 
-    def test_method_get_list(self):
-        domain = DomainFactory()
-
-        try:
-            domain.get_list()
-        except Exception:
-            self.fail("Domain model `get_list` method for DNS records failed unexpectedly!")
-
 
 class HistoryModelTests(TestCase):
     """Collection of tests for :model:`shepherd.History`."""

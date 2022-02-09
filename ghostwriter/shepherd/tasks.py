@@ -841,7 +841,7 @@ def update_dns(domain=None):
 
                 # Look-up the individual domain and save the new record string
                 domain_instance = Domain.objects.get(name=d.name)
-                domain_instance.dns_record = dns_records_dict
+                domain_instance.dns = dns_records_dict
                 domain_instance.save()
                 domain_updates[d.id]["result"] = "updated"
             except Exception:

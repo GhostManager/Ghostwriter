@@ -142,11 +142,11 @@ class Domain(models.Model):
         blank=True,
         help_text="Enter the name of the registrar where this domain is registered",
     )
-    dns_record = models.TextField(
+    dns = models.JSONField(
         "DNS Records",
         null=True,
         blank=True,
-        help_text="Enter the domain's DNS records - leave blank if you will run DNS updates later",
+        help_text="Domain's DNS records in JSON format - e.g., `{'mx': 'record', 'a': 'record',}`",
     )
     creation = models.DateField(
         "Purchase Date", help_text="Select the date the domain was purchased"
@@ -171,7 +171,7 @@ class Domain(models.Model):
         "Categorization",
         null=True,
         blank=True,
-        help_text="Categories applied to this domain as JSON - e.g., `source:category`",
+        help_text="Categories applied to this domain in JSON format - e.g., `{'source': 'category',}`",
     )
     note = models.TextField(
         "Notes",
@@ -277,23 +277,6 @@ class Domain(models.Model):
             if not self.auto_renew:
                 expiring_soon = True
         return expiring_soon
-
-    def get_list(self):
-        """
-        Return an instance's dns_record field value as a list.
-        """
-        if self.dns_record:
-            try:
-                json_acceptable_string = self.dns_record.replace('"', "").replace(
-                    "'", '"'
-                )
-                if json_acceptable_string:
-                    return json.loads(json_acceptable_string)
-                return None  # pragma: no cover
-            except Exception:
-                return self.dns_record
-        else:
-            return None  # pragma: no cover
 
     def __str__(self):
         return f"{self.name} ({self.health_status})"

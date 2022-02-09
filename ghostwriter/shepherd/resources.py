@@ -42,7 +42,6 @@ class DomainResource(resources.ModelResource):
         skip_unchanged = True
         exclude = (
             "last_used_by",
-            "dns_record",
         )
 
         export_order = (

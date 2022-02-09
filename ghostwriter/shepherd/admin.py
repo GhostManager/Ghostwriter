@@ -148,7 +148,7 @@ class DomainAdmin(ImportExportModelAdmin):
             "DNS Status",
             {
                 "fields": (
-                    "dns_record",
+                    "dns",
                     "reset_dns",
                 )
             },

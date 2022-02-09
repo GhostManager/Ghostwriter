@@ -114,14 +114,14 @@
                     </div>
                 {% endif %}
 
-                {% if domain.dns_record %}
+                {% if domain.dns %}
                     <table class="table">
                         <tr>
                             <th>Record</th>
                             <th>Value</th>
                         </tr>
-                        {% if domain.get_list.items %}
-                            {% for record, value in domain.get_list.items %}
+                        {% if domain.dns.items %}
+                            {% for record, value in domain.dns.items %}
                                 <tr>
                                     <td class="text-center">{{ record|upper }}</td>
                                     <td class="table-note">
@@ -136,7 +136,7 @@
                         {% else %}
                             <tr>
                                 <td class="text-center">Record Dictionary</td>
-                                <td class="table-note">{{ domain.get_list }}</td>
+                                <td class="table-note">{{ domain.dns }}</td>
                             </tr>
                         {% endif %}
                     </table>
