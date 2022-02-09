@@ -1648,12 +1648,11 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
         self.object = self.get_object()
         file_path = os.path.join(settings.MEDIA_ROOT, self.object.document.path)
         if os.path.exists(file_path):
-            with open(file_path, "rb") as f:
-                return FileResponse(
-                    f,
-                    as_attachment=True,
-                    filename=os.path.basename(file_path),
-                )
+            return FileResponse(
+                open(file_path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_path),
+            )
         raise Http404
 
 
