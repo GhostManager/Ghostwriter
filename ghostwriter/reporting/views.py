@@ -1062,7 +1062,7 @@ def download_archive(request, pk):
             response = HttpResponse(
                 archive_file.read(), content_type="application/x-zip-compressed"
             )
-            response["Content-Disposition"] = "inline; filename=" + os.path.basename(
+            response["Content-Disposition"] = "attachment; filename=" + os.path.basename(
                 file_path
             )
             return response
