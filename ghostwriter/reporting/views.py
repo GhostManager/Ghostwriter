@@ -317,7 +317,7 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, View):
                 "report_url": self.object.get_absolute_url(),
                 "message": message,
             }
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -362,7 +362,7 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -404,7 +404,7 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -462,7 +462,7 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                 self.request.user,
             )
         # Return an error message if the query for the requested status returned DoesNotExist
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
