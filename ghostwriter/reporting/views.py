@@ -515,7 +515,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 try:
                     if docx_template_query:
                         template_status = docx_template_query.get_status()
-                        data["lint_result"] = template_status
+                        data["docx_lint_result"] = template_status
                         if template_status != "success":
                             if template_status == "warning":
                                 data[
@@ -534,15 +534,16 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                     "docx_lint_message"
                                 ] = "Selected Word template has an unknown linter status. Check and lint the template before generating a report."
                             data["docx_url"] = docx_template_query.get_absolute_url()
-                except Exception:
+                except Exception: # pragma: no cover
                     logger.exception("Failed to get the template status")
+                    data["docx_lint_result"] = "failed"
                     data[
                         "docx_lint_message"
                     ] = "Could not retrieve the Word template's linter status. Check and lint the template before generating a report."
                 try:
                     if pptx_template_query:
                         template_status = pptx_template_query.get_status()
-                        data["lint_result"] = template_status
+                        data["pptx_lint_result"] = template_status
                         if template_status != "success":
                             if template_status == "warning":
                                 data[
@@ -561,8 +562,9 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                     "pptx_lint_message"
                                 ] = "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report."
                             data["pptx_url"] = pptx_template_query.get_absolute_url()
-                except Exception:
+                except Exception: # pragma: no cover
                     logger.exception("Failed to get the template status")
+                    data["pptx_lint_result"] = "failed"
                     data[
                         "pptx_lint_message"
                     ] = "Could not retrieve the PowerPoint template's linter status. Check and lint the template before generating a report."
@@ -594,7 +596,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                     pptx_template_id,
                     self.request.user,
                 )
-            except Exception:
+            except Exception: # pragma: no cover
                 data = {
                     "result": "error",
                     "message": "An exception prevented the template change",
