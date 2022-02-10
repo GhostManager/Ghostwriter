@@ -21,11 +21,11 @@
 
     <!-- Archive Files Section -->
     {% if filter.qs|length == 0 %}
-        <p>There are no archived reports to see here.</p>
+        <p class="mt-3">There are no archived reports to see here.</p>
     {% else %}
-        <p>The following reports have been closed out, archived, and are now available below for download.</p>
+        <p class="mt-3">The following reports have been closed out, archived, and are now available below for download.</p>
 
-        <table class="roundedCorners">
+        <table class="roundedCorners table table-sm table-hover">
             <tr>
                 <th>Client</th>
                 <th>Zip Archive</th>
