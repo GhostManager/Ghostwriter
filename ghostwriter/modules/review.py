@@ -10,7 +10,6 @@ properly categorized, has not been flagged in VirusTotal, or tagged with a bad c
 import logging
 import sys
 import traceback
-from datetime import datetime
 from time import sleep
 
 # 3rd Party Libraries
