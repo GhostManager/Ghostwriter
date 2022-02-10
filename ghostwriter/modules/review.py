@@ -181,9 +181,6 @@ class DomainReview:
 
                     domain_categories = {}
                     lab_results[domain.id]["vt_results"] = vt_results["data"]
-                    last_update = datetime.fromtimestamp(
-                        vt_results["data"]["last_modification_date"]
-                    )
 
                     # Check if VT returned the ``categories`` key with a list
                     if "categories" in vt_results["data"]:
