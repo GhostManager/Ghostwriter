@@ -1399,9 +1399,11 @@ class ReportDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        self.request.session["active_report"] = {}
-        self.request.session["active_report"]["id"] = ""
-        self.request.session["active_report"]["title"] = ""
+        # Clear user's session if deleted report is their active report
+        if self.object.pk == self.request.session["active_report"]["id"]:
+            self.request.session["active_report"] = {}
+            self.request.session["active_report"]["id"] = ""
+            self.request.session["active_report"]["title"] = ""
         self.request.session.modified = True
         messages.warning(
             self.request,
