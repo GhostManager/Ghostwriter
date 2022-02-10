@@ -1,7 +1,6 @@
 """Custom template tags for the reporting app."""
 
 # Standard Libraries
-import json
 import logging
 from collections import defaultdict
 
