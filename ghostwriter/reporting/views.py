@@ -18,6 +18,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.files import File
+from django.core.files.base import ContentFile
 from django.db.models import Q
 from django.http import (
     FileResponse,
@@ -950,7 +951,6 @@ def generate_report_name(report_instance):
     return report_name
 
 
-@login_required
 def zip_directory(path, zip_handler):
     """
     Compress the target directory as a Zip file for archiving.
@@ -970,7 +970,7 @@ def archive(request, pk):
     """
     Generate all report types for an individual :model:`reporting.Report`, collect all
     related :model:`reporting.Evidence` and related files, and compress the files into a
-    single Zip file for arhciving.
+    single Zip file for archiving.
     """
     try:
         report_instance = Report.objects.select_related("project", "project__client").get(
@@ -978,27 +978,25 @@ def archive(request, pk):
         )
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
         evidence_path = os.path.join(settings.MEDIA_ROOT)
-        archive_loc = os.path.join(settings.MEDIA_ROOT, "archives")
+        archive_loc = os.path.join(settings.MEDIA_ROOT, "archives/")
         evidence_loc = os.path.join(settings.MEDIA_ROOT, "evidence", str(pk))
         report_name = generate_report_name(report_instance)
 
         # Get the templates for Word and PowerPoint
         if report_instance.docx_template:
-            docx_template = report_instance.docx_template
+            docx_template = report_instance.docx_template.document.path
         else:
             docx_template = ReportTemplate.objects.get(
                 default=True, doc_type__doc_type="docx"
-            )
+            ).document.path
         if report_instance.pptx_template:
-            pptx_template = report_instance.pptx_template
+            pptx_template = report_instance.pptx_template.document.path
         else:
             pptx_template = ReportTemplate.objects.get(
                 default=True, doc_type__doc_type="pptx"
-            )
+            ).document.path
 
-        engine = reportwriter.Reportwriter(
-            report_instance, output_path, evidence_path, template_loc=None
-        )
+        engine = reportwriter.Reportwriter(report_instance, template_loc=None)
         json_doc, word_doc, excel_doc, ppt_doc = engine.generate_all_reports(
             docx_template, pptx_template
         )
@@ -1016,9 +1014,9 @@ def archive(request, pk):
             zip_directory(evidence_loc, zf)
         zip_buffer.seek(0)
         with open(os.path.join(archive_loc, report_name + ".zip"), "wb+") as archive_file:
-            archive_file.write(zip_buffer.read())
+            archive_file = ContentFile(zip_buffer.read(), name=report_name + ".zip")
             new_archive = Archive(
-                client=report_instance.project.client,
+                project=report_instance.project,
                 report_archive=File(archive_file),
             )
         new_archive.save()
@@ -1041,6 +1039,7 @@ def archive(request, pk):
             extra_tags="alert-danger",
         )
     except Exception:
+        logger.exception("Error archiving report")
         messages.error(
             request,
             "Failed to generate one or more documents for the archive",
