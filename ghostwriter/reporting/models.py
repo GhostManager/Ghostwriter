@@ -558,11 +558,11 @@ class Evidence(models.Model):
     and :model:`users.User`.
     """
 
-    def set_upload_destination(instance, filename):
+    def set_upload_destination(self, filename):
         """
         Sets the `upload_to` destination to the evidence folder for the associated report ID.
         """
-        return os.path.join("evidence", str(instance.finding.report.id), filename)
+        return os.path.join("evidence", str(self.finding.report.id), filename)
 
     document = models.FileField(
         upload_to=set_upload_destination,
