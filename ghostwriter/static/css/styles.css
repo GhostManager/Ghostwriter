@@ -592,6 +592,7 @@ input[type='file'] {
   position: absolute;
   top: 15px;
   right: -35px;
+  z-index: 1000;
 }
 
 .square {
