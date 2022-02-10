@@ -695,7 +695,7 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
                 "Successfully cloned your report: {}".format(self.object.title),
                 extra_tags="alert-error",
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -751,7 +751,7 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
                 "Successfully added a blank finding to the report",
                 extra_tags="alert-success",
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -799,7 +799,7 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
                     "finding_type": finding_instance.finding_type,
                 }
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
