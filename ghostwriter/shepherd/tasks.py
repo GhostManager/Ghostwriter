@@ -679,26 +679,29 @@ def check_domains(domain_id=None):
                     )
 
                     # Check if the domain is checked-out and send a message to that project channel
-                    latest_checkout = History.objects.filter(domain=domain).latest(
-                        "end_date"
-                    )
-                    if (
-                        latest_checkout.end_date >= date.today()
-                        and latest_checkout.project.slack_channel
-                    ):
-                        slack_data = craft_burned_message(
-                            slack_config.slack_username,
-                            slack_config.slack_emoji,
-                            latest_checkout.project.slack_channel,
-                            v["domain"],
-                            lab_results[k]["categories"],
-                            lab_results[k]["burned_explanation"],
+                    try:
+                        latest_checkout = History.objects.filter(domain=domain_qs).latest(
+                            "end_date"
                         )
-                        requests.post(
-                            slack_config.webhook_url,
-                            data=slack_data,
-                            headers={"Content-Type": "application/json"},
-                        )
+                        if (
+                            latest_checkout.end_date >= date.today()
+                            and latest_checkout.project.slack_channel
+                        ):
+                            slack_data = craft_burned_message(
+                                slack_config.slack_username,
+                                slack_config.slack_emoji,
+                                latest_checkout.project.slack_channel,
+                                v["domain"],
+                                lab_results[k]["categories"],
+                                lab_results[k]["burned_explanation"],
+                            )
+                            requests.post(
+                                slack_config.webhook_url,
+                                data=slack_data,
+                                headers={"Content-Type": "application/json"},
+                            )
+                    except History.DoesNotExist:
+                        pass
             # If the domain isn't marked as burned, check for any informational warnings
             else:
                 if lab_results[k]["warnings"]["total"] > 0:
