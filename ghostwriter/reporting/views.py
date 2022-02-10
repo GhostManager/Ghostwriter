@@ -1075,8 +1075,8 @@ def export_findings_to_csv(request):
     Export all :model:`reporting.Finding` to a csv file for download.
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    fiinding_resource = FindingResource()
-    dataset = fiinding_resource.export()
+    finding_resource = FindingResource()
+    dataset = finding_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="{timestamp}_findings.csv"'
 
