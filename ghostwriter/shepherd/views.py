@@ -1004,6 +1004,7 @@ def update(request):
     return HttpResponseRedirect(reverse("shepherd:update"))
 
 
+@login_required
 def export_domains_to_csv(request):
     """
     Export all :model:`shepherd.Domain` to a csv file for download.
@@ -1017,6 +1018,7 @@ def export_domains_to_csv(request):
     return response
 
 
+@login_required
 def export_servers_to_csv(request):
     """
     Export all :model:`shepherd.Server` to a csv file for download.
