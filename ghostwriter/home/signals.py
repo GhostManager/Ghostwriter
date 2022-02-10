@@ -27,7 +27,7 @@ def create_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
 
 @receiver(post_init, sender=UserProfile)
-def backup_evidence_path(sender, instance, **kwargs):
+def backup_avatar_path(sender, instance, **kwargs):
     """
     Backup the file path of the old avatar image in the :model:`home.UserProfile`
     instance when a new image is uploaded.
@@ -36,7 +36,7 @@ def backup_evidence_path(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=UserProfile)
-def delete_old_evidence_on_update(sender, instance, **kwargs):
+def delete_old_avatar_on_update(sender, instance, **kwargs):
     """
     Delete the old image file in the :model:`home.UserProfile` instance when a
     new image is uploaded.
@@ -57,7 +57,7 @@ def delete_old_evidence_on_update(sender, instance, **kwargs):
 
 
 @receiver(post_delete, sender=UserProfile)
-def remove_evidence_on_delete(sender, instance, **kwargs):
+def remove_avatar_on_delete(sender, instance, **kwargs):
     """Deletes file from filesystem when related :model:`home.UserProfile` entry is deleted."""
     if instance.avatar:
         if os.path.isfile(instance.avatar.path):
