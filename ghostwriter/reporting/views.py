@@ -1590,40 +1590,15 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
         )
 
     def get_success_url(self):
+        message = "Successfully deleted the template and associated file"
+        if os.path.isfile(self.object.document.path):
+            message = "Successfully deleted the template, but could not delete the associated file"
         messages.success(
             self.request,
-            self.message,
+            message,
             extra_tags="alert-success",
         )
         return reverse("reporting:templates")
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        logger.info(
-            "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
-            self.request.user,
-        )
-        self.message = "Successfully deleted the template and associated file"
-        if os.path.isfile(self.object.document.path):
-            try:
-                os.remove(self.object.document.path)
-                logger.info("Deleted %s", self.object.document.path)
-            except Exception:
-                self.message = "Successfully deleted the template, but could not delete the associated file {}"
-                logger.warning(
-                    "Failed to delete file associated with %s %s: %s",
-                    self.object.__class__.__name__,
-                    self.object.id,
-                    self.object.document.path,
-                )
-        else:
-            logger.info(
-                "Tried to delete template file, but path did not exist: %s",
-                self.object.document.path,
-            )
-        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -2434,48 +2409,17 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
+        message = "Successfully deleted the evidence and associated file"
+        if os.path.isfile(self.object.document.name):
+            message = "Successfully deleted the evidence, but could not delete the associated file"
         messages.success(
             self.request,
-            self.message,
+            message,
             extra_tags="alert-success",
         )
         return reverse(
             "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
         )
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        logger.info(
-            "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
-            self.request.user,
-        )
-        self.message = "Successfully deleted the evidence and associated file"
-        full_path = os.path.join(settings.MEDIA_ROOT, self.object.document.name)
-        directory = os.path.dirname(full_path)
-        if os.path.isfile(full_path):
-            try:
-                os.remove(full_path)
-            except Exception:
-                self.message = "Successfully deleted the evidence, but could not delete the associated file{}"
-                logger.warning(
-                    "Failed to delete file associated with %s %s: %s",
-                    self.object.__class__.__name__,
-                    self.object.id,
-                    full_path,
-                )
-        # Try to delete the directory tree if this was the last/only file
-        try:
-            os.removedirs(directory)
-        except Exception:
-            logger.warning(
-                "Failed to remove empty directory previously associated with %s %s: %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                directory,
-            )
-        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
