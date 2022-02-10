@@ -261,6 +261,12 @@ class ReportTemplateModelTests(TestCase):
         self.assertFalse(os.path.exists(template._current_template.path))
         self.assertTrue(os.path.exists(template.document.path))
 
+    def test_delete_template_signal(self):
+        template = ReportTemplateFactory()
+        self.assertTrue(os.path.exists(template.document.path))
+        template.delete()
+        self.assertFalse(os.path.exists(template.document.path))
+
 
 class ReportModelTests(TestCase):
     """Collection of tests for :model:`reporting.Report`."""
