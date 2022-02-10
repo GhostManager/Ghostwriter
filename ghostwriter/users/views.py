@@ -74,8 +74,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that")
             return redirect("users:redirect")
-        else:
-            return redirect("home:dashboard")
+        return redirect("home:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -126,8 +125,7 @@ class UserProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that")
             return redirect("users:redirect")
-        else:
-            return redirect("home:dashboard")
+        return redirect("home:dashboard")
 
     def get_object(self):
         id_ = get_object_or_404(User, username=self.kwargs.get("username")).id
