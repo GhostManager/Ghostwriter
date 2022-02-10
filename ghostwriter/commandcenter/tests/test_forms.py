@@ -21,9 +21,21 @@ class ReportConfigurationFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.config = ReportConfigurationFactory()
-        cls.docx_template = ReportDocxTemplateFactory()
-        cls.pptx_template = ReportPptxTemplateFactory()
+        cls.valid_docx_template = ReportDocxTemplateFactory()
+        cls.valid_pptx_template = ReportPptxTemplateFactory()
+
+        cls.invalid_docx_template = ReportDocxTemplateFactory()
+        cls.invalid_docx_template.lint_result = {"result": "failed", "warnings": [], "errors": []}
+        cls.invalid_docx_template.save()
+
+        cls.invalid_pptx_template = ReportPptxTemplateFactory()
+        cls.invalid_pptx_template.lint_result = {"result": "failed", "warnings": [], "errors": []}
+        cls.invalid_pptx_template.save()
+
+        cls.config = ReportConfigurationFactory(
+            default_docx_template_id=cls.valid_docx_template.pk,
+            default_pptx_template_id=cls.valid_pptx_template.pk
+        )
 
     def setUp(self):
         pass
@@ -64,11 +76,8 @@ class ReportConfigurationFormTests(TestCase):
         form = self.form_data(**config)
         self.assertTrue(form.is_valid())
 
-        self.docx_template.lint_result = json.dumps(
-            {"result": "failed", "warnings": [], "errors": []}
-        )
-        self.docx_template.save()
-        config["default_docx_template_id"] = self.docx_template.pk
+        # Switch config to the invalid template
+        config["default_docx_template_id"] = self.invalid_docx_template.pk
 
         form = self.form_data(**config)
         errors = form.errors["default_docx_template"].as_data()
@@ -80,11 +89,8 @@ class ReportConfigurationFormTests(TestCase):
         form = self.form_data(**config)
         self.assertTrue(form.is_valid())
 
-        self.pptx_template.lint_result = json.dumps(
-            {"result": "failed", "warnings": [], "errors": []}
-        )
-        self.pptx_template.save()
-        config["default_pptx_template_id"] = self.pptx_template.pk
+        # Switch config to the invalid template
+        config["default_pptx_template_id"] = self.invalid_pptx_template.pk
 
         form = self.form_data(**config)
         errors = form.errors["default_pptx_template"].as_data()

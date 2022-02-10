@@ -6,7 +6,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView
 
 # 3rd Party Libraries
@@ -75,8 +74,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that")
             return redirect("users:redirect")
-        else:
-            return redirect("home:dashboard")
+        return redirect("home:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -127,8 +125,7 @@ class UserProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         if self.request.user.username:
             messages.warning(self.request, "You do not have permission to access that")
             return redirect("users:redirect")
-        else:
-            return redirect("home:dashboard")
+        return redirect("home:dashboard")
 
     def get_object(self):
         id_ = get_object_or_404(User, username=self.kwargs.get("username")).id

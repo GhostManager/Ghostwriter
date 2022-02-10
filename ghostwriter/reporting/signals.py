@@ -57,7 +57,16 @@ def remove_evidence_on_delete(sender, instance, **kwargs):
     """Deletes file from filesystem when related :model:`reporting.Evidence` entry is deleted."""
     if instance.document:
         if os.path.isfile(instance.document.path):
-            os.remove(instance.document.path)
+            try:
+                os.remove(instance.document.path)
+                logger.info("Deleted report template at %s", instance.document.path)
+            except Exception: # pragma: no cover
+                logger.warning(
+                    "Failed to delete file associated with %s %s: %s",
+                    instance.__class__.__name__,
+                    instance.id,
+                    instance.document.path,
+                )
 
 
 @receiver(post_init, sender=ReportTemplate)
@@ -146,7 +155,16 @@ def remove_template_on_delete(sender, instance, **kwargs):
     """Deletes file from filesystem when related :model:`reporting.ReportTemplate` entry is deleted."""
     if instance.document:
         if os.path.isfile(instance.document.path):
-            os.remove(instance.document.path)
+            try:
+                os.remove(instance.document.path)
+                logger.info("Deleted report template at %s", instance.document.path)
+            except Exception: # pragma: no cover
+                logger.warning(
+                    "Failed to delete file associated with %s %s: %s",
+                    instance.__class__.__name__,
+                    instance.id,
+                    instance.document.path,
+                )
 
 
 @receiver(pre_save, sender=ReportFindingLink)

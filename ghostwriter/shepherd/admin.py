@@ -129,16 +129,17 @@ class DomainAdmin(ImportExportModelAdmin):
     )
     list_display_links = ("domain_status", "name")
     list_editable = ("reset_dns",)
+    readonly_fields=('last_health_check',)
     fieldsets = (
-        (None, {"fields": ("name", "domain_status", "creation", "expiration")}),
+        ("General Information", {"fields": ("name", "domain_status", "creation", "expiration", "auto_renew")}),
         (
-            "Health status",
+            "Health Status",
             {
                 "fields": (
                     "last_health_check",
                     "whois_status",
                     "health_status",
-                    "health_dns",
+                    "categorization",
                     "burned_explanation",
                 )
             },
@@ -147,26 +148,11 @@ class DomainAdmin(ImportExportModelAdmin):
             "DNS Status",
             {
                 "fields": (
-                    "dns_record",
+                    "dns",
                     "reset_dns",
                 )
             },
         ),
-        (
-            "Categories",
-            {
-                "fields": (
-                    "all_cat",
-                    "ibm_xforce_cat",
-                    "talos_cat",
-                    "bluecoat_cat",
-                    "fortiguard_cat",
-                    "opendns_cat",
-                    "trendmicro_cat",
-                )
-            },
-        ),
-        ("Email and Spam", {"fields": ("mx_toolbox_status",)}),
         ("Misc", {"fields": ("note",)}),
     )
 

@@ -93,9 +93,10 @@ def test_aws(aws_key, aws_secret):
         message = "Testing authentication to AWS failed: {traceback}".format(
             traceback=trace
         )
+    return {"capable": False, "message": message}
 
 
-def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=[], only_running=False):
+def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=None, only_running=False):
     """
     Authenticate to the AWS EC2 service and fetch all instances.
 
@@ -112,6 +113,8 @@ def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=[], only_running=False):
     """
     message = ""
     instances = []
+    if ignore_tags is None:
+        ignore_tags=[]
     try:
         client = boto3.client(
             "ec2",
@@ -196,7 +199,7 @@ def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=[], only_running=False):
     return {"instances": instances, "message": message}
 
 
-def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=[]):
+def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=None):
     """
     Authenticate to AWS Lightsail and fetch all instances.
 
@@ -210,8 +213,10 @@ def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=[]):
     ``ignore_tags``
         List of tags to ignore for instance filtering
     """
-    instances = []
     message = ""
+    instances = []
+    if ignore_tags is None:
+        ignore_tags=[]
     try:
         # Get all Lightsail instances using the low-level client (no resource option available)
         # Ref: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lightsail.html#Lightsail.Client.get_instances
@@ -295,7 +300,7 @@ def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=[]):
     return {"instances": instances, "message": message}
 
 
-def fetch_aws_s3(aws_key, aws_secret, ignore_tags=[]):
+def fetch_aws_s3(aws_key, aws_secret, ignore_tags=None):
     """
     Authenticate to the AWS S3 service and fetch the names of all buckets.
 
@@ -308,8 +313,10 @@ def fetch_aws_s3(aws_key, aws_secret, ignore_tags=[]):
     ``ignore_tags``
         List of tags to ignore for bucket filtering
     """
-    buckets = []
     message = ""
+    buckets = []
+    if ignore_tags is None:
+        ignore_tags=[]
     try:
         logger.info("Collecting bucket resources from AWS S3")
         # Create an S3 client
@@ -361,7 +368,7 @@ def fetch_aws_s3(aws_key, aws_secret, ignore_tags=[]):
     return {"buckets": buckets, "message": message}
 
 
-def fetch_digital_ocean(api_key, ignore_tags=[]):
+def fetch_digital_ocean(api_key, ignore_tags=None):
     """
     Authenticate to Digital Ocean and fetch all droplets.
 
@@ -376,8 +383,11 @@ def fetch_digital_ocean(api_key, ignore_tags=[]):
     message = ""
     instances = []
     capable = False
-    headers = {"Content-Type": "application/json"}
     active_droplets = None
+    if ignore_tags is None:
+        ignore_tags=[]
+
+    headers = {"Content-Type": "application/json"}
     try:
         active_droplets = requests.get(
             DIGITAL_OCEAN_ENDPOINT,

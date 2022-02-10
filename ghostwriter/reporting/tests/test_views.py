@@ -3,8 +3,10 @@ import logging
 from datetime import datetime
 
 # Django Imports
+from django.conf import settings
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import dateformat
 from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
@@ -22,6 +24,7 @@ from ghostwriter.factories import (
     SeverityFactory,
     UserFactory,
 )
+from ghostwriter.modules.reportwriter import format_datetime
 from ghostwriter.reporting.templatetags import report_tags
 
 logging.disable(logging.CRITICAL)
@@ -55,10 +58,6 @@ class TemplateTagTests(TestCase):
             self.assertEqual(
                 report_tags.get_item(severity_dict, group), severity_dict.get(group)
             )
-
-        lint_json = report_tags.load_json(self.report.docx_template.lint_result)
-        data = {"result": "success", "warnings": [], "errors": []}
-        self.assertEqual(lint_json, data)
 
 
 # Tests related to report modification actions
@@ -195,7 +194,7 @@ class AssignFindingTests(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
 
-class CloneReportTests(TestCase):
+class ReportCloneTests(TestCase):
     """Collection of tests for :view:`reporting.ReportClone`."""
 
     @classmethod
@@ -449,6 +448,37 @@ class FindingDeleteViewTests(TestCase):
         self.assertEqual(response.context["object_to_be_deleted"], self.finding.title)
 
 
+class FindingExportViewTests(TestCase):
+    """Collection of tests for :view:`reporting.export_findings_to_csv`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.num_of_findings = 10
+        cls.findings = []
+        for finding_id in range(cls.num_of_findings):
+            title = f"Finding {finding_id}"
+            cls.findings.append(FindingFactory(title=title))
+        cls.uri = reverse("reporting:export_findings_to_csv")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Type"), "text/csv")
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
 # Tests related to :model:`reporting.Report`
 
 
@@ -530,6 +560,7 @@ class ReportCreateViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        cls.Report = ReportFactory._meta.model
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
         cls.user = UserFactory(password=PASSWORD)
@@ -537,6 +568,7 @@ class ReportCreateViewTests(TestCase):
         cls.project_uri = reverse(
             "reporting:report_create", kwargs={"pk": cls.project.pk}
         )
+        cls.success_uri = reverse("reporting:report_detail", kwargs={"pk": cls.report.pk})
 
     def setUp(self):
         self.client = Client()
@@ -589,6 +621,35 @@ class ReportCreateViewTests(TestCase):
         self.project.complete = False
         self.project.save()
 
+    def test_get_success_url_with_session_vars(self):
+        # Set up session variables to be clear
+        self.session = self.client_auth.session
+        self.session["active_report"] = {}
+        self.session["active_report"]["id"] = ""
+        self.session["active_report"]["title"] = ""
+        self.session.save()
+
+        # Send POST to delete and check if session vars are set
+        response = self.client_auth.post(
+            self.uri,
+            {
+                "title": "New Report Title",
+                "project": self.report.project.pk,
+                "docx_template": self.report.docx_template.pk,
+                "pptx_template": self.report.pptx_template.pk,
+            }
+        )
+
+        # Get report created from request and check response
+        new_report = self.Report.objects.get(title="New Report Title")
+        success_uri = reverse("reporting:report_detail", kwargs={"pk": new_report.pk})
+        self.assertRedirects(response, success_uri)
+        self.session = self.client_auth.session
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": new_report.pk, "title": f"{new_report.title}"},
+        )
+
 
 class ReportUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportUpdate`."""
@@ -598,6 +659,7 @@ class ReportUpdateViewTests(TestCase):
         cls.report = ReportFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("reporting:report_update", kwargs={"pk": cls.report.pk})
+        cls.success_uri = reverse("reporting:report_detail", kwargs={"pk": cls.report.pk})
 
     def setUp(self):
         self.client = Client()
@@ -628,15 +690,44 @@ class ReportUpdateViewTests(TestCase):
             reverse("reporting:report_detail", kwargs={"pk": self.report.pk}),
         )
 
+    def test_get_success_url_with_session_vars(self):
+        # Set up session variables to be clear
+        self.session = self.client_auth.session
+        self.session["active_report"] = {}
+        self.session["active_report"]["id"] = ""
+        self.session["active_report"]["title"] = ""
+        self.session.save()
+
+        # Send POST to delete and check if session vars are set
+        response = self.client_auth.post(
+            self.uri,
+            {
+                "title": self.report.title,
+                "project": self.report.project.pk,
+                "docx_template": self.report.docx_template.pk,
+                "pptx_template": self.report.pptx_template.pk,
+            }
+        )
+        self.assertRedirects(response, self.success_uri)
+        self.session = self.client_auth.session
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": self.report.pk, "title": f"{self.report.title}"},
+        )
+
 
 class ReportDeleteViewTests(TestCase):
     """Collection of tests for :view:`reporting.ReportDelete`."""
 
     @classmethod
     def setUpTestData(cls):
+        cls.Report = ReportFactory._meta.model
         cls.report = ReportFactory()
+        cls.delete_report = ReportFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("reporting:report_delete", kwargs={"pk": cls.report.pk})
+        cls.delete_uri = reverse("reporting:report_delete", kwargs={"pk": cls.delete_report.pk})
+        cls.success_uri = f"{reverse('rolodex:project_detail', kwargs={'pk': cls.delete_report.project.pk})}#reports"
 
     def setUp(self):
         self.client = Client()
@@ -673,6 +764,121 @@ class ReportDeleteViewTests(TestCase):
             "entire report, evidence and all",
         )
         self.assertEqual(response.context["object_to_be_deleted"], self.report.title)
+
+    def test_get_success_url(self):
+        # Set session variables to "activate" target report object
+        self.session = self.client_auth.session
+        self.session["active_report"] = {}
+        self.session["active_report"]["id"] = self.delete_report.id
+        self.session["active_report"]["title"] = self.delete_report.title
+        self.session.save()
+
+        # Send POST to delete and check if session is now cleared
+        response = self.client_auth.post(self.delete_uri)
+        self.session = self.client_auth.session
+        self.assertRedirects(response, self.success_uri)
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": "", "title": ""},
+        )
+
+
+class ReportActivateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportActivate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("reporting:ajax_activate_report", kwargs={"pk": cls.report.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_sets_sessions_variables(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.session = self.client_auth.session
+        self.assertEqual(
+            self.session["active_report"],
+            {"id": self.report.id, "title": self.report.title},
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ReportStatusToggleViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportStatusToggle`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(complete=False)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("reporting:ajax_toggle_report_status", kwargs={"pk": cls.report.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_toggles_value(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.complete, True)
+
+        response = self.client_auth.post(self.uri)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.complete, False)
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ReportDeliveryToggleViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportDeliveryToggle`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(delivered=False)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("reporting:ajax_toggle_report_delivery", kwargs={"pk": cls.report.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_toggles_value(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.delivered, True)
+
+        response = self.client_auth.post(self.uri)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.delivered, False)
+
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 302)
 
 
 # Tests related to :model:`reporting.ReportFindingLink`
@@ -1012,9 +1218,13 @@ class ReportTemplateDownloadTests(TestCase):
             self.client_auth.login(username=self.user.username, password=PASSWORD)
         )
 
-    def test_view_uri_exists_at_desired_location(self):
+    def test_view_uri_returns_desired_download(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+        self.assertEquals(
+            response.get("Content-Disposition"),
+            f'attachment; filename="{self.template.filename}"',
+        )
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -1217,6 +1427,253 @@ class ReportTemplateDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
+class ReportTemplateLintViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportTemplateLint`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.docx_template = ReportDocxTemplateFactory()
+        cls.pptx_template = ReportPptxTemplateFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.docx_uri = reverse("reporting:ajax_lint_report_template", kwargs={"pk": cls.docx_template.pk})
+        cls.pptx_uri = reverse("reporting:ajax_lint_report_template", kwargs={"pk": cls.pptx_template.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        data = {
+            "result": "success",
+            "warnings": [],
+            "errors": [],
+            "message": "Template linter returned results with no errors or warnings"
+        }
+
+        response = self.client_auth.get(self.docx_uri)
+        self.assertEqual(response.status_code, 405)
+
+        response = self.client_auth.post(self.docx_uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        response = self.client_auth.post(self.pptx_uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.docx_uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class UpdateTemplateLintResultsViewTests(TestCase):
+    """Collection of tests for :view:`reporting.UpdateTemplateLintResults`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.template = ReportTemplateFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("reporting:ajax_update_template_lint_results", kwargs={"pk": cls.template.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_returns_desired_download(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ReportTemplateSwapViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportTemplateSwap`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory()
+        cls.docx_template = ReportDocxTemplateFactory()
+        cls.pptx_template = ReportPptxTemplateFactory()
+
+        cls.docx_template_warning = ReportDocxTemplateFactory()
+        cls.docx_template_warning.lint_result = {"result": "warning", "warnings": [], "errors": []}
+        cls.docx_template_warning.save()
+        cls.pptx_template_warning = ReportPptxTemplateFactory()
+        cls.pptx_template_warning.lint_result = {"result": "warning", "warnings": [], "errors": []}
+        cls.pptx_template_warning.save()
+
+        cls.docx_template_error = ReportDocxTemplateFactory()
+        cls.docx_template_error.lint_result = {"result": "error", "warnings": [], "errors": []}
+        cls.docx_template_error.save()
+        cls.pptx_template_error = ReportPptxTemplateFactory()
+        cls.pptx_template_error.lint_result = {"result": "error", "warnings": [], "errors": []}
+        cls.pptx_template_error.save()
+
+        cls.docx_template_failed = ReportDocxTemplateFactory()
+        cls.docx_template_failed.lint_result = {"result": "failed", "warnings": [], "errors": []}
+        cls.docx_template_failed.save()
+        cls.pptx_template_failed = ReportPptxTemplateFactory()
+        cls.pptx_template_failed.lint_result = {"result": "failed", "warnings": [], "errors": []}
+        cls.pptx_template_failed.save()
+
+        cls.docx_template_unknown = ReportDocxTemplateFactory()
+        cls.docx_template_unknown.lint_result = {"result": "unknown", "warnings": [], "errors": []}
+        cls.docx_template_unknown.save()
+        cls.pptx_template_unknown = ReportPptxTemplateFactory()
+        cls.pptx_template_unknown.lint_result = {"result": "unknown", "warnings": [], "errors": []}
+        cls.pptx_template_unknown.save()
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("reporting:ajax_swap_report_template", kwargs={"pk": cls.report.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_valid_templates(self):
+        data = {
+            "result": "success",
+            "message": "Template successfully swapped",
+            "docx_lint_result": "success",
+            "pptx_lint_result": "success",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_invalid_templates(self):
+        data = {
+            "result": "warning",
+            "message": "Select both templates before your settings can be saved",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": -5, "pptx_template": self.pptx_template.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {
+            "result": "error",
+            "message": "Submitted template ID was not an integer",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": "C", "pptx_template": self.pptx_template.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {
+            "result": "error",
+            "message": "Submitted template ID does not exist",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": 1000, "pptx_template": self.pptx_template.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {"result": "error", "message": "Submitted request was incomplete"}
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": "", "pptx_template": self.pptx_template.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_templates_with_linting_errors(self):
+        data = {
+            "result": "success",
+            "message": "Template successfully swapped",
+            "docx_lint_result": "warning",
+            "docx_lint_message": "Selected Word template has warnings from linter. Check the template before generating a report.",
+            "docx_url": f"/reporting/templates/{self.docx_template_warning.pk}",
+            "pptx_lint_result": "warning",
+            "pptx_lint_message": "Selected PowerPoint template has warnings from linter. Check the template before generating a report.",
+            "pptx_url": f"/reporting/templates/{self.pptx_template_warning.pk}",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": self.docx_template_warning.pk, "pptx_template": self.pptx_template_warning.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {
+            "result": "success",
+            "message": "Template successfully swapped",
+            "docx_lint_result": "error",
+            "docx_lint_message": "Selected Word template has linting errors and cannot be used to generate a report.",
+            "docx_url": f"/reporting/templates/{self.docx_template_error.pk}",
+            "pptx_lint_result": "error",
+            "pptx_lint_message": "Selected PowerPoint template has linting errors and cannot be used to generate a report.",
+            "pptx_url": f"/reporting/templates/{self.pptx_template_error.pk}",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": self.docx_template_error.pk, "pptx_template": self.pptx_template_error.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {
+            "result": "success",
+            "message": "Template successfully swapped",
+            "docx_lint_result": "failed",
+            "docx_lint_message": "Selected Word template failed basic linter checks and can't be used to generate a report.",
+            "docx_url": f"/reporting/templates/{self.docx_template_failed.pk}",
+            "pptx_lint_result": "failed",
+            "pptx_lint_message": "Selected PowerPoint template failed basic linter checks and can't be used to generate a report.",
+            "pptx_url": f"/reporting/templates/{self.pptx_template_failed.pk}",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": self.docx_template_failed.pk, "pptx_template": self.pptx_template_failed.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {
+            "result": "success",
+            "message": "Template successfully swapped",
+            "docx_lint_result": "unknown",
+            "docx_lint_message": "Selected Word template has an unknown linter status. Check and lint the template before generating a report.",
+            "docx_url": f"/reporting/templates/{self.docx_template_unknown.pk}",
+            "pptx_lint_result": "unknown",
+            "pptx_lint_message": "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report.",
+            "pptx_url": f"/reporting/templates/{self.pptx_template_unknown.pk}",
+        }
+        response = self.client_auth.post(
+            self.uri,
+            {"docx_template": self.docx_template_unknown.pk, "pptx_template": self.pptx_template_unknown.pk}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+
 # Tests related to generating report types
 
 
@@ -1296,3 +1753,40 @@ class GenerateReportTests(TestCase):
     def test_view_all_requires_login(self):
         response = self.client.get(self.all_uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_view_docx_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.docx_uri)
+        self.assertEqual(
+            response.get("Content-Type"),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+
+
+class ReportTemplateFilterTests(TestCase):
+    """Collection of tests for custom report template filters."""
+
+    @classmethod
+    def setUpTestData(cls):
+        pass
+
+    def setUp(self):
+        self.test_date_string = "%b. %d, %Y"
+        self.new_date_string = "%d/%m/%y"
+
+    def test_format_datetime(self):
+        test_date = dateformat.format(datetime.now(), settings.DATE_FORMAT)
+        try:
+            format_datetime(test_date, self.test_date_string, self.new_date_string)
+        except AttributeError:
+            self.fail("format_datetime() raised an AttributeError unexpectedly!")
+
+    # For future use when locale and language translation is figured out
+    # def test_format_datetime_locales(self):
+    #     locales = ["en-GB", "fr-FR", "de-DE", "es-ES", "it-IT", "ja-JP", "ko-KR", "zh-CN", "zh-TW"]
+    #     for l in locales:
+    #         with self.settings(LANGUAGE_CODE=l):
+    #             try:
+    #                 test_date = dateformat.format(datetime.now(), settings.DATE_FORMAT)
+    #                 format_datetime(test_date, self.test_date_string, self.new_date_string)
+    #             except AttributeError:
+    #                 self.fail("format_datetime() raised an AttributeError unexpectedly with locale %s!", l)

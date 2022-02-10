@@ -1,7 +1,6 @@
 """Custom template tags for the reporting app."""
 
 # Standard Libraries
-import json
 import logging
 from collections import defaultdict
 
@@ -51,21 +50,3 @@ def group_by_severity(queryset):
         severity_dict[str(finding.severity)].append(finding)
     # Return a basic dict because templates can't handle defaultdict
     return dict(severity_dict)
-
-
-@register.filter
-def load_json(data):
-    """
-    Parse a string as JSON and return JSON suitable for iterating.
-
-    **Parameters**
-
-    ``data``
-        String to parse as JSON
-    """
-    try:
-        return json.loads(data)
-    except json.decoder.JSONDecodeError:  # pragma: no cover
-        logger.exception("Could not decode the string in the string: %s", data)
-    except Exception:  # pragma: no cover
-        logger.exception("Encountered an error while trying to decode data as JSON")

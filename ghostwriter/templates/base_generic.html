@@ -62,17 +62,15 @@
         <div class="wrapper">
             <!-- Sidebar Holder -->
             {% if user.is_authenticated %}
-                <nav id="sidebar" onmouseover="sidebarOpen()" onmouseout="sidebarClose()">
+                <nav id="sidebar" class="{% if request.session.sidebar.sticky %}active{% endif %}">
                     <!-- Sidebar Top Section -->
-                    <span>
-
                     <div class="sidebar-header col d-flex align-items-center justify-content-center">
                         <a href="{% url 'home:dashboard' %}">
                             <img src="{% static 'images/all_white_header.png' %}" alt="Ghostwriter">
                         </a>
                         <div class="sidebar-header-tab">
                             <div class="square">
-                                <i class="sidebar-header-tab-icon fas fa-angle-double-right"></i>
+                                <i class="sidebar-toggle-btn fas fa-angle-double-right {% if request.session.sidebar.sticky %}fa-flip-horizontal{% endif %}"></i>
                             </div>
                         </div>
                     </div>
@@ -106,7 +104,7 @@
                                         {% for report in reports %}
                                             <li>
                                                 <a title="Set this report as your active report"
-                                                class="mt-1 mb-1 js-activate-report icon toggle-off-icon
+                                                class="js-activate-report icon toggle-off-icon
                                                 {% if request.session.active_report.id and request.session.active_report.title and request.session.active_report.id == report.id %}
                                                     selected-report
                                                 {% endif %}
@@ -455,8 +453,23 @@
 
         <!-- Script for Sidebar -->
         <script>
-            function sidebarOpen() {$('#sidebar').toggleClass('active');}
-            function sidebarClose() {$('#sidebar').toggleClass('active');}
+            $('.sidebar-header-tab').click(function (e) {
+                sidebarOpen();
+            });
+
+            function sidebarOpen() {
+                $('#sidebar').toggleClass('active');
+                $('.sidebar-toggle-btn').toggleClass("fa-flip-horizontal");
+               // Send AJAX POST request
+               $.ajax({
+                    url: '/home/ajax/session/update',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: {
+                        'session_data': 'sidebar',
+                    },
+                });
+            }
         </script>
 
         <!-- Scripts for Hamburger Menus -->

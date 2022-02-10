@@ -412,6 +412,36 @@ class BurnViewTests(TestCase):
         self.assertEqual(response.context["domain_name"], self.domain.name)
 
 
+class DomainExportViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.export_domains_to_csv`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.num_of_domains = 10
+        cls.domains = []
+        for domain_id in range(cls.num_of_domains):
+            cls.domains.append(DomainFactory())
+        cls.uri = reverse("shepherd:export_domains_to_csv")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Type"), "text/csv")
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
 # Tests related to :model:`shepherd.History`
 
 
@@ -821,6 +851,36 @@ class ServerDeleteViewTests(TestCase):
         )
         self.assertEqual(response.context["object_type"], "static server")
         self.assertEqual(response.context["object_to_be_deleted"], self.server.ip_address)
+
+
+class ServerExportViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.export_servers_to_csv`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.num_of_servers = 10
+        cls.servers = []
+        for server_id in range(cls.num_of_servers):
+            cls.servers.append(StaticServerFactory())
+        cls.uri = reverse("shepherd:export_servers_to_csv")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Type"), "text/csv")
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
 
 
 # Tests related to :model:`shepherd.ServerHistory`

@@ -69,11 +69,11 @@
                             <td class="align-middle burned">{{ domain.health_status }}</td>
                         {% endif %}
 
-                        {% ifequal domain.whois_status.whois_status "Enabled" %}
+                        {% if domain.whois_status.whois_status == "Enabled" %}
                             <td class="align-middle healthy">{{ domain.whois_status }}</td>
                         {% else %}
                             <td class="align-middle burned">{{ domain.whois_status }}</td>
-                        {% endifequal %}
+                        {% endif %}
 
                         <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
 

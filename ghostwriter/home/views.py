@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.generic.edit import View
 from django.views.static import serve
@@ -33,6 +33,31 @@ logger = logging.getLogger(__name__)
 ##################
 # View Functions #
 ##################
+
+
+@login_required
+def update_session(request):
+    """
+    Update the requesting user's session variable based on ``session_data`` in POST.
+    """
+    if request.method=="POST":
+        req_data = request.POST.get("session_data", None)
+        if req_data:
+            if req_data == "sidebar":
+                if "sidebar" in request.session.keys():
+                    request.session["sidebar"]["sticky"] ^= True
+                else:
+                    request.session["sidebar"] = {}
+                    request.session["sidebar"]["sticky"] = True
+            request.session.save()
+        data = {
+            "result": "success",
+            "message": "Session updated",
+        }
+        logger.info("Session updated for user %s", request.session["_auth_user_id"])
+        return JsonResponse(data)
+
+    return HttpResponseNotAllowed(["POST"])
 
 
 @login_required

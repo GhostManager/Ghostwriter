@@ -3,7 +3,7 @@
 <h3 class="icon bug-icon">Linting Results</h3>
 <hr>
 {% if reporttemplate.lint_result %}
-    {% with reporttemplate.lint_result|load_json as lint_result %}
+    {% with reporttemplate.lint_result as lint_result %}
         <div
             {% if lint_result.result == "success" %}
                 class="alert alert-success"

@@ -15,12 +15,12 @@ class UserProfile(models.Model):
     Stores an individual user profile form, related to :model:`users.User`.
     """
 
-    def set_upload_destination(instance, filename):
+    def set_upload_destination(self, filename):
         """
         Set the ``upload_to`` destination to the ``user_avatars`` folder for the
         associated :model:`users.User` entry.
         """
-        return os.path.join("images", "user_avatars", str(instance.user.id), filename)
+        return os.path.join("images", "user_avatars", str(self.user.id), filename)
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to=set_upload_destination, default=None, blank=True)
@@ -37,7 +37,6 @@ class UserProfile(models.Model):
             # Only return the image URL if the file is present
             if os.path.exists(self.avatar.path):
                 return self.avatar.url
-            else:
-                return static("images/default_avatar.png")
+            return static("images/default_avatar.png")
         except ValueError:
             return static("images/default_avatar.png")

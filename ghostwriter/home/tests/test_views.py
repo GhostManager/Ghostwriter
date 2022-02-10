@@ -200,3 +200,37 @@ class ManagementTests(TestCase):
     def test_custom_context_exists(self):
         response = self.client_staff.get(self.uri)
         self.assertIn("timezone", response.context)
+
+
+class UpdateSessionTests(TestCase):
+    """Collection of tests for :view:`home.update_session`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("home:ajax_update_session")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_sticky_sidebar_value(self):
+        self.client_auth.post(self.uri, {"session_data": "sidebar"})
+        session = self.client_auth.session
+        self.assertEqual(session["sidebar"]["sticky"], True)
+
+        self.client_auth.post(self.uri, {"session_data": "sidebar"})
+        session = self.client_auth.session
+        self.assertEqual(session["sidebar"]["sticky"], False)
+
+    def test_invalid_get_method(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 405)

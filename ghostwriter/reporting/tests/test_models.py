@@ -61,6 +61,13 @@ class FindingModelTests(TestCase):
         finding.delete()
         assert not self.Finding.objects.all().exists()
 
+    def test_get_absolute_url(self):
+        finding = FindingFactory()
+        try:
+            finding.get_absolute_url()
+        except:
+            self.fail("Finding.get_absolute_url() raised an exception")
+
 
 class SeverityModelTests(TestCase):
     """Collection of tests for :model:`reporting.Severity`."""
@@ -210,6 +217,13 @@ class ReportTemplateModelTests(TestCase):
         assert not self.ReportTemplate.objects.all().exists()
         assert not os.path.exists(report_template.document.path)
 
+    def test_get_absolute_url(self):
+        template = ReportTemplateFactory()
+        try:
+            template.get_absolute_url()
+        except:
+            self.fail("ReportTemplate.get_absolute_url() raised an exception")
+
     def test_prop_filename(self):
         report_template = ReportTemplateFactory()
         try:
@@ -247,6 +261,12 @@ class ReportTemplateModelTests(TestCase):
         self.assertFalse(os.path.exists(template._current_template.path))
         self.assertTrue(os.path.exists(template.document.path))
 
+    def test_delete_template_signal(self):
+        template = ReportTemplateFactory()
+        self.assertTrue(os.path.exists(template.document.path))
+        template.delete()
+        self.assertFalse(os.path.exists(template.document.path))
+
 
 class ReportModelTests(TestCase):
     """Collection of tests for :model:`reporting.Report`."""
@@ -273,6 +293,13 @@ class ReportModelTests(TestCase):
         # Delete
         report.delete()
         assert not self.Report.objects.all().exists()
+
+    def test_get_absolute_url(self):
+        report = ReportFactory()
+        try:
+            report.get_absolute_url()
+        except:
+            self.fail("Report.get_absolute_url() raised an exception")
 
 
 class ReportFindingLinkModelTests(TestCase):
@@ -331,6 +358,9 @@ class ReportFindingLinkModelTests(TestCase):
         self.assertEqual(cleaned_findings[0].position, second_pos)
         # Assert second finding has moved into first positon
         self.assertEqual(cleaned_findings[1].position, first_pos)
+
+        # Test triggering ``clean()`` method when parent ``Report`` is deleted
+        report.delete()
 
     def test_model_cleaning_severity_change(self):
         report = ReportFactory()
@@ -499,6 +529,13 @@ class EvidenceModelTests(TestCase):
         evidence.delete()
         assert not self.Evidence.objects.all().exists()
         assert not os.path.exists(evidence.document.path)
+
+    def test_get_absolute_url(self):
+        evidence = EvidenceFactory()
+        try:
+            evidence.get_absolute_url()
+        except:
+            self.fail("Evidence.get_absolute_url() raised an exception")
 
     def test_file_extension_validator(self):
         evidence = EvidenceFactory(

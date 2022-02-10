@@ -1,9 +1,9 @@
 """This contains customizations for displaying the Singleton application models in the admin panel."""
 
 # Django Imports
-from django.conf.urls import url
 from django.contrib import admin
 from django.http import HttpResponseRedirect
+from django.urls import re_path
 from django.utils.translation import gettext_lazy as _
 
 from .models import DEFAULT_SINGLETON_INSTANCE_ID
@@ -40,13 +40,13 @@ class SingletonModelAdmin(admin.ModelAdmin):
             "model_name": model_name,
         }
         custom_urls = [
-            url(
+            re_path(
                 r"^history/$",
                 self.admin_site.admin_view(self.history_view),
                 {"object_id": str(self.singleton_instance_id)},
                 name="%s_history" % url_name_prefix,
             ),
-            url(
+            re_path(
                 r"^$",
                 self.admin_site.admin_view(self.change_view),
                 {"object_id": str(self.singleton_instance_id)},

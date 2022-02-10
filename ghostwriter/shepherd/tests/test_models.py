@@ -203,6 +203,13 @@ class DomainModelTests(TestCase):
         domain.delete()
         assert not self.Domain.objects.all().exists()
 
+    def test_get_absolute_url(self):
+        domain = DomainFactory()
+        try:
+            domain.get_absolute_url()
+        except:
+            self.fail("Domain.get_absolute_url() raised an exception")
+
     def test_method_get_domain_age(self):
         creation = date.today() - timedelta(days=360)
         renewed = date.today() + timedelta(days=359)
@@ -258,14 +265,6 @@ class DomainModelTests(TestCase):
         except Exception:
             self.fail("Domain model `is_expiring_soon` method failed unexpectedly!")
 
-    def test_method_get_list(self):
-        domain = DomainFactory()
-
-        try:
-            domain.get_list()
-        except Exception:
-            self.fail("Domain model `get_list` method failed unexpectedly!")
-
 
 class HistoryModelTests(TestCase):
     """Collection of tests for :model:`shepherd.History`."""
@@ -296,6 +295,13 @@ class HistoryModelTests(TestCase):
         # Delete
         entry.delete()
         assert not self.History.objects.all().exists()
+
+    def test_get_absolute_url(self):
+        checkout = HistoryFactory()
+        try:
+            checkout.get_absolute_url()
+        except:
+            self.fail("History.get_absolute_url() raised an exception")
 
     def test_method_will_be_released(self):
         start_date = date.today() - timedelta(days=20)
@@ -472,6 +478,13 @@ class StaticServerModelTests(TestCase):
         server.delete()
         assert not self.StaticServer.objects.all().exists()
 
+    def test_get_absolute_url(self):
+        server = StaticServerFactory()
+        try:
+            server.get_absolute_url()
+        except:
+            self.fail("StaticServer.get_absolute_url() raised an exception")
+
 
 class TransientServerModelTests(TestCase):
     """Collection of tests for :model:`shepherd.TransientServer`."""
@@ -564,6 +577,13 @@ class ServerHistoryModelTests(TestCase):
         # Delete
         entry.delete()
         assert not self.ServerHistory.objects.all().exists()
+
+    def test_get_absolute_url(self):
+        checkout = ServerHistoryFactory()
+        try:
+            checkout.get_absolute_url()
+        except:
+            self.fail("ServerHistory.get_absolute_url() raised an exception")
 
     def test_property_ip_address(self):
         entry = ServerHistoryFactory(

@@ -26,8 +26,8 @@ class DomainFilter(django_filters.FilterSet):
 
     ``name``
         Case insensitive search of the name field contents
-    ``all_cat``
-        Case insensitive search of the all_cat field
+    ``categorization``
+        Case insensitive search of the categorization field
     ``health_status``
         Checkbox choice filter using :model:`shepherd.HealthStatus`
     ``domain_status``
@@ -41,7 +41,7 @@ class DomainFilter(django_filters.FilterSet):
         label="Domain Name Contains",
         widget=TextInput(attrs={"placeholder": "Domain Name", "autocomplete": "off"}),
     )
-    all_cat = django_filters.CharFilter(
+    categorization = django_filters.CharFilter(
         lookup_expr="icontains",
         label="Categories Contain",
         widget=TextInput(attrs={"placeholder": "Category", "autocomplete": "off"}),
@@ -67,7 +67,7 @@ class DomainFilter(django_filters.FilterSet):
 
     class Meta:
         model = Domain
-        fields = ["name", "all_cat", "health_status", "domain_status"]
+        fields = ["name", "categorization", "health_status", "domain_status"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -83,7 +83,7 @@ class DomainFilter(django_filters.FilterSet):
                     css_class="col-md-6",
                 ),
                 Column(
-                    PrependedText("all_cat", '<i class="fas fa-filter"></i>'),
+                    PrependedText("categorization", '<i class="fas fa-filter"></i>'),
                     css_class=" col-md-6",
                 ),
                 css_class="form-row",

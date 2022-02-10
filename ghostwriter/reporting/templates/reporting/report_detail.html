@@ -628,11 +628,11 @@
                         if (data['message']) {
                             displayToastTop({type:data['result'], string:data['message'], title:'Template Update'});
                         }
-                        if (data['docx_message']) {
-                            displayToastTop({type:data['lint_result'], string:data['lint_message'], title:'Template Issue', delay:10});
+                        if (data['docx_lint_message']) {
+                            displayToastTop({type:data['docx_lint_result'], string:data['docx_lint_message'], title:'Template Issue', delay:10});
                         }
-                        if (data['pptx_message']) {
-                            displayToastTop({type:data['lint_result'], string:data['lint_message'], title:'Template Issue', delay:10});
+                        if (data['pptx_lint_message']) {
+                            displayToastTop({type:data['pptx_lint_result'], string:data['pptx_lint_message'], title:'Template Issue', delay:10});
                         }
                     }
                 });

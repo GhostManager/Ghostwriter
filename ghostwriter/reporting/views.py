@@ -7,6 +7,7 @@ import logging
 import logging.config
 import os
 import zipfile
+from asgiref.sync import async_to_sync
 from datetime import datetime
 from socket import gaierror
 
@@ -17,6 +18,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.files import File
+from django.core.files.base import ContentFile
 from django.db.models import Q
 from django.http import (
     FileResponse,
@@ -33,7 +35,6 @@ from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
-from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from docx.image.exceptions import UnrecognizedImageError
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
@@ -316,7 +317,7 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, View):
                 "report_url": self.object.get_absolute_url(),
                 "message": message,
             }
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -361,7 +362,7 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -403,7 +404,7 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -461,7 +462,7 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                 self.request.user,
             )
         # Return an error message if the query for the requested status returned DoesNotExist
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -488,18 +489,18 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 docx_template_id = int(docx_template_id)
                 pptx_template_id = int(pptx_template_id)
 
-                if docx_template_id == -1 or pptx_template_id == -1:
+                if docx_template_id < 0 or pptx_template_id < 0:
                     data = {
                         "result": "warning",
-                        "message": "You need to select a template",
+                        "message": "Select both templates before your settings can be saved",
                     }
                 else:
-                    if docx_template_id != -1:
+                    if docx_template_id >= 0:
                         docx_template_query = ReportTemplate.objects.get(
                             pk=docx_template_id
                         )
                         self.object.docx_template = docx_template_query
-                    if pptx_template_id != -1:
+                    if pptx_template_id >= 0:
                         pptx_template_query = ReportTemplate.objects.get(
                             pk=pptx_template_id
                         )
@@ -514,7 +515,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 try:
                     if docx_template_query:
                         template_status = docx_template_query.get_status()
-                        data["lint_result"] = template_status
+                        data["docx_lint_result"] = template_status
                         if template_status != "success":
                             if template_status == "warning":
                                 data[
@@ -532,15 +533,17 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                 data[
                                     "docx_lint_message"
                                 ] = "Selected Word template has an unknown linter status. Check and lint the template before generating a report."
-                except Exception:
+                            data["docx_url"] = docx_template_query.get_absolute_url()
+                except Exception: # pragma: no cover
                     logger.exception("Failed to get the template status")
+                    data["docx_lint_result"] = "failed"
                     data[
                         "docx_lint_message"
                     ] = "Could not retrieve the Word template's linter status. Check and lint the template before generating a report."
                 try:
                     if pptx_template_query:
                         template_status = pptx_template_query.get_status()
-                        data["lint_result"] = template_status
+                        data["pptx_lint_result"] = template_status
                         if template_status != "success":
                             if template_status == "warning":
                                 data[
@@ -558,8 +561,10 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                 data[
                                     "pptx_lint_message"
                                 ] = "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report."
-                except Exception:
+                            data["pptx_url"] = pptx_template_query.get_absolute_url()
+                except Exception: # pragma: no cover
                     logger.exception("Failed to get the template status")
+                    data["pptx_lint_result"] = "failed"
                     data[
                         "pptx_lint_message"
                     ] = "Could not retrieve the PowerPoint template's linter status. Check and lint the template before generating a report."
@@ -591,7 +596,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                     pptx_template_id,
                     self.request.user,
                 )
-            except Exception:
+            except Exception: # pragma: no cover
                 data = {
                     "result": "error",
                     "message": "An exception prevented the template change",
@@ -640,7 +645,7 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
         self.object.lint_result = results
         self.object.save()
 
-        data = json.loads(results)
+        data = results
         if data["result"] == "success":
             data[
                 "message"
@@ -693,7 +698,7 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
                 "Successfully cloned your report: {}".format(self.object.title),
                 extra_tags="alert-error",
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -749,7 +754,7 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
                 "Successfully added a blank finding to the report",
                 extra_tags="alert-success",
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -797,7 +802,7 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
                     "finding_type": finding_instance.finding_type,
                 }
             )
-        except Exception as exception:
+        except Exception as exception: # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -948,7 +953,6 @@ def generate_report_name(report_instance):
     return report_name
 
 
-@login_required
 def zip_directory(path, zip_handler):
     """
     Compress the target directory as a Zip file for archiving.
@@ -968,7 +972,7 @@ def archive(request, pk):
     """
     Generate all report types for an individual :model:`reporting.Report`, collect all
     related :model:`reporting.Evidence` and related files, and compress the files into a
-    single Zip file for arhciving.
+    single Zip file for archiving.
     """
     try:
         report_instance = Report.objects.select_related("project", "project__client").get(
@@ -976,27 +980,25 @@ def archive(request, pk):
         )
         output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
         evidence_path = os.path.join(settings.MEDIA_ROOT)
-        archive_loc = os.path.join(settings.MEDIA_ROOT, "archives")
+        archive_loc = os.path.join(settings.MEDIA_ROOT, "archives/")
         evidence_loc = os.path.join(settings.MEDIA_ROOT, "evidence", str(pk))
         report_name = generate_report_name(report_instance)
 
         # Get the templates for Word and PowerPoint
         if report_instance.docx_template:
-            docx_template = report_instance.docx_template
+            docx_template = report_instance.docx_template.document.path
         else:
             docx_template = ReportTemplate.objects.get(
                 default=True, doc_type__doc_type="docx"
-            )
+            ).document.path
         if report_instance.pptx_template:
-            pptx_template = report_instance.pptx_template
+            pptx_template = report_instance.pptx_template.document.path
         else:
             pptx_template = ReportTemplate.objects.get(
                 default=True, doc_type__doc_type="pptx"
-            )
+            ).document.path
 
-        engine = reportwriter.Reportwriter(
-            report_instance, output_path, evidence_path, template_loc=None
-        )
+        engine = reportwriter.Reportwriter(report_instance, template_loc=None)
         json_doc, word_doc, excel_doc, ppt_doc = engine.generate_all_reports(
             docx_template, pptx_template
         )
@@ -1013,13 +1015,11 @@ def archive(request, pk):
             zf.writestr("report.pptx", ppt_doc.getvalue())
             zip_directory(evidence_loc, zf)
         zip_buffer.seek(0)
-        with open(os.path.join(archive_loc, report_name + ".zip"), "wb") as archive_file:
-            archive_file.write(zip_buffer.read())
+        with open(os.path.join(archive_loc, report_name + ".zip"), "wb+") as archive_file:
+            archive_file = ContentFile(zip_buffer.read(), name=report_name + ".zip")
             new_archive = Archive(
-                client=report_instance.project.client,
-                report_archive=File(
-                    open(os.path.join(archive_loc, report_name + ".zip"), "rb")
-                ),
+                project=report_instance.project,
+                report_archive=File(archive_file),
             )
         new_archive.save()
         messages.success(
@@ -1040,8 +1040,8 @@ def archive(request, pk):
             "You do not have templates selected for Word and PowerPoint and have not selected default templates",
             extra_tags="alert-danger",
         )
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": pk}))
     except Exception:
+        logger.exception("Error archiving report")
         messages.error(
             request,
             "Failed to generate one or more documents for the archive",
@@ -1062,7 +1062,7 @@ def download_archive(request, pk):
             response = HttpResponse(
                 archive_file.read(), content_type="application/x-zip-compressed"
             )
-            response["Content-Disposition"] = "inline; filename=" + os.path.basename(
+            response["Content-Disposition"] = "attachment; filename=" + os.path.basename(
                 file_path
             )
             return response
@@ -1075,8 +1075,8 @@ def export_findings_to_csv(request):
     Export all :model:`reporting.Finding` to a csv file for download.
     """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    fiinding_resource = FindingResource()
-    dataset = fiinding_resource.export()
+    finding_resource = FindingResource()
+    dataset = finding_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="{timestamp}_findings.csv"'
 
@@ -1401,9 +1401,11 @@ class ReportDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        self.request.session["active_report"] = {}
-        self.request.session["active_report"]["id"] = ""
-        self.request.session["active_report"]["title"] = ""
+        # Clear user's session if deleted report is their active report
+        if self.object.pk == self.request.session["active_report"]["id"]:
+            self.request.session["active_report"] = {}
+            self.request.session["active_report"]["id"] = ""
+            self.request.session["active_report"]["title"] = ""
         self.request.session.modified = True
         messages.warning(
             self.request,
@@ -1592,40 +1594,15 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
         )
 
     def get_success_url(self):
+        message = "Successfully deleted the template and associated file"
+        if os.path.isfile(self.object.document.path):
+            message = "Successfully deleted the template, but could not delete the associated file"
         messages.success(
             self.request,
-            self.message,
+            message,
             extra_tags="alert-success",
         )
         return reverse("reporting:templates")
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        logger.info(
-            "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
-            self.request.user,
-        )
-        self.message = "Successfully deleted the template and associated file"
-        if os.path.isfile(self.object.document.path):
-            try:
-                os.remove(self.object.document.path)
-                logger.info("Deleted %s", self.object.document.path)
-            except Exception:
-                self.message = "Successfully deleted the template, but could not delete the associated file {}"
-                logger.warning(
-                    "Failed to delete file associated with %s %s: %s",
-                    self.object.__class__.__name__,
-                    self.object.id,
-                    self.object.document.path,
-                )
-        else:
-            logger.info(
-                "Tried to delete template file, but path did not exist: %s",
-                self.object.document.path,
-            )
-        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1649,12 +1626,11 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
         self.object = self.get_object()
         file_path = os.path.join(settings.MEDIA_ROOT, self.object.document.path)
         if os.path.exists(file_path):
-            with open(file_path, "rb") as f:
-                return FileResponse(
-                    f,
-                    as_attachment=True,
-                    filename=os.path.basename(file_path),
-                )
+            return FileResponse(
+                open(file_path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_path),
+            )
         raise Http404
 
 
@@ -2437,48 +2413,17 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
+        message = "Successfully deleted the evidence and associated file"
+        if os.path.isfile(self.object.document.name):
+            message = "Successfully deleted the evidence, but could not delete the associated file"
         messages.success(
             self.request,
-            self.message,
+            message,
             extra_tags="alert-success",
         )
         return reverse(
             "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
         )
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        logger.info(
-            "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
-            self.request.user,
-        )
-        self.message = "Successfully deleted the evidence and associated file"
-        full_path = os.path.join(settings.MEDIA_ROOT, self.object.document.name)
-        directory = os.path.dirname(full_path)
-        if os.path.isfile(full_path):
-            try:
-                os.remove(full_path)
-            except Exception:
-                self.message = "Successfully deleted the evidence, but could not delete the associated file{}"
-                logger.warning(
-                    "Failed to delete file associated with %s %s: %s",
-                    self.object.__class__.__name__,
-                    self.object.id,
-                    full_path,
-                )
-        # Try to delete the directory tree if this was the last/only file
-        try:
-            os.removedirs(directory)
-        except Exception:
-            logger.warning(
-                "Failed to remove empty directory previously associated with %s %s: %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                directory,
-            )
-        return super().delete(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

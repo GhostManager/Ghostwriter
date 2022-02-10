@@ -1,7 +1,10 @@
 # Standard Libraries
 import logging
+from base64 import b64decode
 
 # Django Imports
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -51,7 +54,7 @@ class UserUpdateViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("users:user_update", kwargs={"username": cls.user.username})
-        cls.redirect_uri = reverse("users:redirect")
+        cls.success_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
 
     def setUp(self):
         self.client = Client()
@@ -82,6 +85,13 @@ class UserUpdateViewTests(TestCase):
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_successfull_redirect(self):
+        response = self.client_auth.post(
+            self.uri,
+            {"name": self.user.name, "email": self.user.email, "timezone": self.user.timezone, "phone": self.user.phone}
+        )
+        self.assertRedirects(response, self.success_uri)
 
 
 class UserProfileUpdateViewTests(TestCase):
@@ -93,6 +103,15 @@ class UserProfileUpdateViewTests(TestCase):
         cls.other_user = UserFactory(password=PASSWORD)
         cls.uri = reverse("users:userprofile_update", kwargs={"username": cls.user.username})
         cls.redirect_uri = reverse("users:redirect")
+        cls.success_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
+
+        image_data = b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        )
+        image_file = ContentFile(image_data, "fake.png")
+        cls.uploaded_image_file = SimpleUploadedFile(
+            image_file.name, image_file.read(), content_type="image/png"
+        )
 
     def setUp(self):
         self.client = Client()
@@ -123,6 +142,13 @@ class UserProfileUpdateViewTests(TestCase):
     def test_view_blocks_improper_access(self):
         response = self.other_client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_successfull_redirect(self):
+        response = self.client_auth.post(
+            self.uri,
+            {"avatar": self.uploaded_image_file}
+        )
+        self.assertRedirects(response, self.success_uri)
 
 
 class UserRedirectViewTests(TestCase):
@@ -158,6 +184,7 @@ class GhostwriterPasswordChangeViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("account_change_password")
+        cls.success_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
 
     def setUp(self):
         self.client = Client()
@@ -174,3 +201,16 @@ class GhostwriterPasswordChangeViewTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_successfull_redirect(self):
+        response = self.client_auth.post(
+            self.uri,
+            {
+                "oldpassword": PASSWORD,
+                "password1": "IxIGx58vy79hS&sju#Ea",
+                "password2": "IxIGx58vy79hS&sju#Ea"
+            }
+        )
+        self.assertRedirects(response, self.success_uri)
+        self.user.password = PASSWORD
+        self.user.save()

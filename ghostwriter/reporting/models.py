@@ -244,11 +244,11 @@ class ReportTemplate(models.Model):
         default=False,
         help_text="Only administrators can edit this template",
     )
-    lint_result = models.TextField(
+    lint_result = models.JSONField(
         "Template Linter Results",
         null=True,
         blank=True,
-        help_text="Results returned by the linter for this template",
+        help_text="Results returned by the linter for this template in JSON format",
     )
     changelog = models.TextField(
         "Template Change Log",
@@ -281,7 +281,7 @@ class ReportTemplate(models.Model):
         verbose_name_plural = "Report templates"
 
     def get_absolute_url(self):
-        return reverse("reporting:template_file", args=[str(self.id)])
+        return reverse("reporting:template_detail", args=[str(self.id)])
 
     def __str__(self):
         return f"{self.name}"
@@ -294,8 +294,7 @@ class ReportTemplate(models.Model):
         result_code = "unknown"
         if self.lint_result:
             try:
-                lint_result = json.loads(self.lint_result)
-                result_code = lint_result["result"]
+                result_code = self.lint_result["result"]
             except json.decoder.JSONDecodeError:  # pragma: no cover
                 logger.exception(
                     "Could not decode data in model as JSON: %s", self.lint_result
@@ -559,11 +558,11 @@ class Evidence(models.Model):
     and :model:`users.User`.
     """
 
-    def set_upload_destination(instance, filename):
+    def set_upload_destination(self, filename):
         """
         Sets the `upload_to` destination to the evidence folder for the associated report ID.
         """
-        return os.path.join("evidence", str(instance.finding.report.id), filename)
+        return os.path.join("evidence", str(self.finding.report.id), filename)
 
     document = models.FileField(
         upload_to=set_upload_destination,
@@ -604,7 +603,7 @@ class Evidence(models.Model):
         verbose_name_plural = "Evidence"
 
     def get_absolute_url(self):
-        return reverse("reporting:evidence_file", args=[str(self.id)])
+        return reverse("reporting:evidence_detail", args=[str(self.id)])
 
     def __str__(self):
         return self.document.name
