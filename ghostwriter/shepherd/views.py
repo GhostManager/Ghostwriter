@@ -1182,19 +1182,6 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
         )
         return ctx
 
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        latest_history_entry = History.objects.filter(domain=self.object.domain).latest(
-            "id"
-        )
-        if self.object == latest_history_entry:
-            domain_instance = Domain.objects.get(pk=self.object.domain.id)
-            domain_instance.domain_status = DomainStatus.objects.get(
-                domain_status="Available"
-            )
-            domain_instance.save()
-        return super().delete(request, *args, **kwargs)
-
 
 class DomainCreate(LoginRequiredMixin, CreateView):
     """
