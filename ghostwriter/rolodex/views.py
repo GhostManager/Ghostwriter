@@ -794,7 +794,12 @@ def project_list(request):
     projects = (
         Project.objects.select_related("client").all().order_by("complete", "client")
     )
-    filtered_list = ProjectFilter(request.GET, queryset=projects)
+    # Copy the GET request data
+    data = request.GET.copy()
+    # If user has not submitted their own filter, default to showing only active projects
+    if len(data) == 0:
+        data["complete"] = 0
+    filtered_list = ProjectFilter(data, queryset=projects)
     return render(request, "rolodex/project_list.html", {"filter": filtered_list})
 
 
