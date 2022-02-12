@@ -23,8 +23,8 @@
                     <div class="card">
                         <p class="dashboard-header text-center">Project Assignments</p>
                         <table>
-                            {% if user_projects %}
-                                {% for project in user_projects %}
+                            {% if active_projects %}
+                                {% for project in active_projects %}
                                     <tr>
                                         <td class="align-middle text-justify"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }})</a></td>
                                         <td class="align-middle text-right"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.start_date }}–{{ project.project.end_date }}</a></td>
@@ -128,7 +128,11 @@
                     start: '{{ assignment.start_date|date:"Y-m-d" }}',
                     end: '{{ assignment.end_date|plus_days:1|date:"Y-m-d" }}',
                     color: 'var(--primary-color)',
-                    className: 'calendar-exec-icon',
+                    {% if assignment.project.complete %}
+                        classNames: ['calendar-exec-icon', 'calendar-exec-complete',],
+                    {% else %}
+                        classNames: ['calendar-exec-icon'],
+                    {% endif %}
                     url: '{{ assignment.project.get_absolute_url }}',
                 };
                 calendar.addEvent(event);

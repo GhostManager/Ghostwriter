@@ -1138,6 +1138,15 @@ td {
   content: '\f70c';
 }
 
+.calendar-exec-complete .fc-event-title, .calendar-exec-complete .fc-list-event-title {
+  text-decoration: line-through;
+}
+
+.calendar-exec-complete .fc-event-title:after, .calendar-exec-complete .fc-list-event-title:after {
+  content: '\00a0: COMPLETE';
+  display: inline-block;
+}
+
 .calendar-objective-icon .fc-event-title:before, .calendar-task-icon .fc-list-event-title:before {
   font-family: 'Font Awesome 5 Free';
   display: inline-block;

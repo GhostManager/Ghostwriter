@@ -78,11 +78,14 @@ class DashboardTests(TestCase):
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
 
         cls.current_project = ProjectFactory(
-            start_date=date.today(), end_date=date.today() + timedelta(days=14)
+            start_date=date.today() - timedelta(days=14),
+            end_date=date.today(),
+            complete=True
         )
         cls.future_project = ProjectFactory(
             start_date=date.today() + timedelta(days=14),
             end_date=date.today() + timedelta(days=28),
+            complete=False
         )
         ProjectAssignmentFactory(
             project=cls.current_project,
@@ -109,14 +112,10 @@ class DashboardTests(TestCase):
         )
         cls.user_projects = cls.ProjectAssignment.objects.select_related(
             "project", "project__client", "role"
-        ).filter(
-            Q(operator=cls.user)
-            & Q(start_date__lte=date.today())
-            & Q(end_date__gte=date.today())
-        )
-        cls.upcoming_project = cls.ProjectAssignment.objects.select_related(
+        ).filter(Q(operator=cls.user))
+        cls.active_projects = cls.ProjectAssignment.objects.select_related(
             "project", "project__client", "role"
-        ).filter(Q(operator=cls.user) & Q(start_date__gt=date.today()))
+        ).filter(Q(operator=cls.user) & Q(project__complete=False))
 
         cls.uri = reverse("home:dashboard")
 
@@ -144,14 +143,14 @@ class DashboardTests(TestCase):
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("user_projects", response.context)
-        self.assertIn("upcoming_project", response.context)
+        self.assertIn("active_projects", response.context)
         self.assertIn("recent_tasks", response.context)
         self.assertIn("user_tasks", response.context)
-        self.assertEqual(len(response.context["user_projects"]), 1)
+        self.assertEqual(len(response.context["user_projects"]), 2)
         self.assertEqual(response.context["user_projects"][0], self.user_projects[0])
-        self.assertEqual(len(response.context["upcoming_project"]), 1)
+        self.assertEqual(len(response.context["active_projects"]), 1)
         self.assertEqual(
-            response.context["upcoming_project"][0], self.upcoming_project[0]
+            response.context["active_projects"][0], self.active_projects[0]
         )
         self.assertEqual(len(response.context["user_tasks"]), 3)
 
