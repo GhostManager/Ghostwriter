@@ -32,6 +32,32 @@ logging.disable(logging.CRITICAL)
 PASSWORD = "SuperNaturalReporting!"
 
 
+class IndexViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.index`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("shepherd:index")
+        cls.redirect_uri = reverse("home:dashboard")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.post(self.uri)
+        self.assertRedirects(response, self.redirect_uri)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
 # Tests related to :model:`shepherd.Domain`
 
 
@@ -155,6 +181,13 @@ class DomainOverwatchViewTests(TestCase):
         response = self.client_auth.get(self.uri, post_data)
         self.assertEqual(response.status_code, 200)
         data = {"result": "success", "message": ""}
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_missing_values(self):
+        post_data = {"domain": self.unused_domain.pk}
+        response = self.client_auth.get(self.uri, post_data)
+        self.assertEqual(response.status_code, 200)
+        data = {"result": "error"}
         self.assertJSONEqual(force_str(response.content), data)
 
 
@@ -1674,9 +1707,11 @@ class ProjectDomainsViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.project = ProjectFactory()
+        cls.no_checkout_project = ProjectFactory()
         cls.History = HistoryFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("shepherd:ajax_project_domains", kwargs={"pk": cls.project.id})
+        cls.no_checkout_uri = reverse("shepherd:ajax_project_domains", kwargs={"pk": cls.no_checkout_project.id})
 
     def setUp(self):
         self.client = Client()
@@ -1699,3 +1734,7 @@ class ProjectDomainsViewTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_with_no_checkout_records(self):
+        response = self.client_auth.get(self.no_checkout_uri)
+        self.assertEqual(response.status_code, 200)

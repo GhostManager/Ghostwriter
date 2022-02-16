@@ -1,9 +1,11 @@
 # Standard Libraries
 import logging
+import os
 from datetime import datetime
 
 # Django Imports
 from django.conf import settings
+from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import dateformat
@@ -30,6 +32,32 @@ from ghostwriter.reporting.templatetags import report_tags
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+class IndexViewTests(TestCase):
+    """Collection of tests for :view:`reporting.index`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("reporting:index")
+        cls.redirect_uri = reverse("home:dashboard")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.post(self.uri)
+        self.assertRedirects(response, self.redirect_uri)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
 
 
 # Tests related to custom template tags and filters
@@ -1754,12 +1782,26 @@ class GenerateReportTests(TestCase):
         response = self.client.get(self.all_uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_docx_uri_exists_at_desired_location(self):
+    def test_view_docx_with_missing_template(self):
+        good_template = self.report.docx_template
+        bad_template = ReportDocxTemplateFactory()
+        self.report.docx_template = bad_template
+        self.report.save()
+
+        self.assertTrue(os.path.isfile(bad_template.document.path))
+        os.remove(bad_template.document.path)
+        self.assertFalse(os.path.isfile(bad_template.document.path))
+
         response = self.client_auth.get(self.docx_uri)
+        messages = list(get_messages(response.wsgi_request))
         self.assertEqual(
-            response.get("Content-Type"),
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            str(messages[0]),
+            "Your selected Word template could not be found on the server – try uploading it again"
         )
+
+        self.report.docx_template = good_template
+        self.report.save()
+
 
 
 class ReportTemplateFilterTests(TestCase):
