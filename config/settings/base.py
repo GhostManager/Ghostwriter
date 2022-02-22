@@ -2,6 +2,8 @@
 Base settings to build other settings files upon.
 """
 # Standard Libraries
+import os
+from datetime import timedelta
 from pathlib import Path
 
 # Django Imports
@@ -10,7 +12,7 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.2.3-rc2"
+__version__ = "2.3 ALPHA"
 VERSION = __version__
 RELEASE_DATE = "Feb 2022"
 
@@ -75,6 +77,7 @@ DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.admindocs",
     "django.contrib.postgres",
+    "graphene_django",
 ]
 
 THIRD_PARTY_APPS = [
@@ -90,6 +93,7 @@ THIRD_PARTY_APPS = [
     "tinymce",
     "django_bleach",
     "timezone_field",
+    "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
 ]
 
 LOCAL_APPS = [
@@ -128,6 +132,7 @@ MIGRATION_MODULES = {"sites": "ghostwriter.contrib.sites.migrations"}
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#authentication-backends
 AUTHENTICATION_BACKENDS = [
+    "graphql_jwt.backends.JSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
@@ -410,4 +415,22 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 100,
+}
+
+GRAPHENE = {
+    "SCHEMA": "ghostwriter.schema.schema",
+    "MIDDLEWARE": [
+        "graphql_jwt.middleware.JSONWebTokenMiddleware",
+    ],
+}
+
+GRAPHQL_JWT = {
+    "JWT_PAYLOAD_HANDLER": "ghostwriter.utils.jwt_payload",
+    "JWT_AUTH_HEADER_PREFIX": "Bearer",
+    "JWT_VERIFY_EXPIRATION": True,
+    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
+    "JWT_EXPIRATION_DELTA": timedelta(minutes=30),
+    "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
+    "JWT_SECRET_KEY": os.environ["DJANGO_SECRET_KEY"],
+    "JWT_ALGORITHM": "HS256",
 }
