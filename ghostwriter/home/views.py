@@ -1,7 +1,6 @@
 """This contains all of the views used by the Home application."""
 
 # Standard Libraries
-import datetime
 import logging
 
 # Django Imports
