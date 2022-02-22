@@ -215,6 +215,7 @@ class OplogCreate(LoginRequiredMixin, CreateView):
         if self.project:
             name = f"{self.project.client} {self.project.project_type} Log"
             return {"name": name, "project": self.project.id}
+        return {}
 
     def get_success_url(self):
         messages.success(

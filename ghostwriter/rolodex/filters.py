@@ -102,8 +102,19 @@ class ProjectFilter(django_filters.FilterSet):
         Boolean field for filtering incomplete projects based on the ``complete`` field
     ``codename``
         Case insensitive search of the model's ``codename`` field
+    ``client``
+        Case insensitive search of the model's ``client`` field
     """
 
+    client = django_filters.CharFilter(
+        lookup_expr="name__icontains",
+        widget=TextInput(
+            attrs={
+                "placeholder": "Part of Client Name",
+                "autocomplete": "off",
+            }
+        ),
+    )
     codename = django_filters.CharFilter(
         lookup_expr="icontains",
         widget=TextInput(
@@ -130,12 +141,12 @@ class ProjectFilter(django_filters.FilterSet):
     )
 
     STATUS_CHOICES = (
-        (0, "All Projects"),
+        (0, "Active"),
         (1, "Completed"),
     )
 
     complete = django_filters.ChoiceFilter(
-        choices=STATUS_CHOICES, empty_label=None, label="Project status"
+        choices=STATUS_CHOICES, empty_label="All Projects", label="Project status"
     )
 
     class Meta:
@@ -155,25 +166,30 @@ class ProjectFilter(django_filters.FilterSet):
             Div(
                 Row(
                     Column(
+                        PrependedText("client", '<i class="fas fa-filter"></i>'),
+                        css_class="form-group col-md-4 mb-0",
+                    ),
+                    Column(
                         PrependedText("codename", '<i class="fas fa-filter"></i>'),
                         css_class="form-group col-md-4 mb-0",
                     ),
                     Column("complete", css_class="form-group col-md-4 mb-0"),
-                    Column("start_date_range", css_class="form-group col-md-4 mb-0"),
+
                 ),
                 Row(
+                    Column("start_date_range", css_class="form-group col-md-4 mb-0"),
                     Column(
                         PrependedText(
                             "start_date", '<i class="fas fa-hourglass-start"></i>'
                         ),
-                        css_class="form-group col-md-6 mb-0",
+                        css_class="form-group col-md-4 mb-0",
                     ),
                     Column(
                         PrependedText(
                             "end_date",
                             '<i class="fas fa-hourglass-end"></i>',
                         ),
-                        css_class="form-group col-md-6 mb-0",
+                        css_class="form-group col-md-4 mb-0",
                     ),
                     css_class="form-row",
                 ),

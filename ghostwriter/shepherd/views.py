@@ -171,10 +171,7 @@ def ajax_project_domains(request, pk):
     :model:`rolodex.Project`.
     """
     domain_history = {}
-    try:
-        domain_history = History.objects.filter(project=pk)
-    except History.DoesNotExist:
-        logger.error("No domain history found for the requested project")
+    domain_history = History.objects.filter(project=pk)
     data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
 
     return JsonResponse(data, safe=False)

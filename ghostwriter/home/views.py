@@ -1,7 +1,6 @@
 """This contains all of the views used by the Home application."""
 
 # Standard Libraries
-import datetime
 import logging
 
 # Django Imports
@@ -76,9 +75,9 @@ def dashboard(request):
     **Context**
 
     ``user_projects``
-        Active :model:`reporting.ProjectAssignment` for current :model:`users.User`
-    ``upcoming_projects``
-        Future :model:`reporting.ProjectAssignment` for current :model:`users.User`
+        All :model:`reporting.ProjectAssignment` for current :model:`users.User`
+    ``active_projects``
+        All :model:`reporting.ProjectAssignment` for active :model:`rolodex.Project` and current :model:`users.User`
     ``recent_tasks``
         Five most recent :model:`django_q.Task` entries
     ``user_tasks``
@@ -101,19 +100,15 @@ def dashboard(request):
     # Get active :model:`reporting.ProjectAssignment` for current :model:`users.User`
     user_projects = ProjectAssignment.objects.select_related(
         "project", "project__client", "role"
-    ).filter(
-        Q(operator=request.user)
-        & Q(start_date__lte=datetime.datetime.now())
-        & Q(end_date__gte=datetime.datetime.now())
-    )
+    ).filter(operator=request.user)
     # Get future :model:`reporting.ProjectAssignment` for current :model:`users.User`
-    upcoming_project = ProjectAssignment.objects.select_related(
+    active_project = ProjectAssignment.objects.select_related(
         "project", "project__client", "role"
-    ).filter(Q(operator=request.user) & Q(start_date__gt=datetime.datetime.now()))
+    ).filter(Q(operator=request.user) & Q(project__complete=False))
     # Assemble the context dictionary to pass to the dashboard
     context = {
         "user_projects": user_projects,
-        "upcoming_project": upcoming_project,
+        "active_projects": active_project,
         "recent_tasks": recent_tasks,
         "user_tasks": user_tasks,
     }

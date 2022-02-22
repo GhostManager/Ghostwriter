@@ -3,6 +3,7 @@
 # Standard Libraries
 import json
 import logging
+from asgiref.sync import async_to_sync
 from datetime import datetime
 from socket import gaierror
 
@@ -15,7 +16,6 @@ from django.dispatch import receiver
 from django.utils.timezone import make_aware
 
 # 3rd Party Libraries
-from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 # Using __name__ resolves to ghostwriter.oplog.models
@@ -112,7 +112,7 @@ class OplogEntry(models.Model):
     )
 
     def __init__(self, *args, **kwargs):
-        super(OplogEntry, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # Stash the initial date values for future operations
         self.initial_start_date = self.start_date
         self.initial_end_date = self.end_date
