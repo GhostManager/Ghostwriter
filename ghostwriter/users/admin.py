@@ -24,6 +24,7 @@ class UserAdmin(auth_admin.UserAdmin):
     list_display = (
         "name",
         "username",
+        "role",
         "email",
         "is_active",
         "is_staff",
