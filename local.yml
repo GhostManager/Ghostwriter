@@ -43,3 +43,28 @@ services:
       - postgres
     ports: []
     command: /start-queue
+
+  graphql-engine:
+    build:
+      context: .
+      dockerfile: ./compose/local/hasura/Dockerfile
+    depends_on:
+      - postgres
+      - django
+    restart: always
+    ports:
+      - "8080:8080"
+      - "9691:9691"
+    volumes:
+      - ./hasura-docker/metadata:/metadata
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "1"
+        max-size: "10m"
+    env_file:
+      - ./.envs/.local/.postgres
+      - ./.envs/.local/.hasura
+    labels:
+      NAME: "graphql"
+    container_name: graphql
