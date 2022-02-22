@@ -1,0 +1,145 @@
+table:
+  name: reporting_reporttemplate
+  schema: public
+object_relationships:
+- name: rolodex_client
+  using:
+    foreign_key_constraint_on: client_id
+- name: users_user
+  using:
+    foreign_key_constraint_on: uploaded_by_id
+array_relationships:
+- name: reportingReportsByPptxTemplateId
+  using:
+    foreign_key_constraint_on:
+      column: pptx_template_id
+      table:
+        name: reporting_report
+        schema: public
+- name: reporting_reports
+  using:
+    foreign_key_constraint_on:
+      column: docx_template_id
+      table:
+        name: reporting_report
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - changelog
+    - client_id
+    - description
+    - doc_type_id
+    - document
+    - last_update
+    - lint_result
+    - name
+    - protected
+    - upload_date
+    - uploaded_by_id
+  role: manager
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - changelog
+    - client_id
+    - description
+    - doc_type_id
+    - document
+    - last_update
+    - name
+    - protected
+    - upload_date
+    - uploaded_by_id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - protected
+    - document
+    - name
+    - last_update
+    - upload_date
+    - client_id
+    - doc_type_id
+    - id
+    - uploaded_by_id
+    - changelog
+    - description
+    - lint_result
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - protected
+    - document
+    - name
+    - last_update
+    - upload_date
+    - client_id
+    - doc_type_id
+    - id
+    - uploaded_by_id
+    - changelog
+    - description
+    - lint_result
+    filter: {}
+  role: restricted
+- permission:
+    columns:
+    - id
+    - document
+    - name
+    - upload_date
+    - last_update
+    - description
+    - protected
+    - client_id
+    - uploaded_by_id
+    - lint_result
+    - changelog
+    - doc_type_id
+    filter: {}
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - changelog
+    - client_id
+    - description
+    - doc_type_id
+    - document
+    - last_update
+    - name
+    - protected
+    - upload_date
+    - uploaded_by_id
+    filter: {}
+  role: manager
+- permission:
+    check:
+      protected:
+        _neq: true
+    columns:
+    - changelog
+    - client_id
+    - description
+    - doc_type_id
+    - document
+    - last_update
+    - name
+    - protected
+    - upload_date
+    - uploaded_by_id
+    filter:
+      protected:
+        _neq: true
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager

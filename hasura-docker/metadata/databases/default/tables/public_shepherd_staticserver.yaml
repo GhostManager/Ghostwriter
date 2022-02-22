@@ -1,0 +1,35 @@
+table:
+  name: shepherd_staticserver
+  schema: public
+object_relationships:
+- name: shepherd_serverprovider
+  using:
+    foreign_key_constraint_on: server_provider_id
+- name: shepherd_serverstatus
+  using:
+    foreign_key_constraint_on: server_status_id
+- name: users_user
+  using:
+    foreign_key_constraint_on: last_used_by_id
+array_relationships:
+- name: shepherd_auxserveraddresses
+  using:
+    foreign_key_constraint_on:
+      column: static_server_id
+      table:
+        name: shepherd_auxserveraddress
+        schema: public
+- name: shepherd_serverhistories
+  using:
+    foreign_key_constraint_on:
+      column: server_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+- name: shepherd_servernotes
+  using:
+    foreign_key_constraint_on:
+      column: server_id
+      table:
+        name: shepherd_servernote
+        schema: public

@@ -1,0 +1,25 @@
+table:
+  name: shepherd_activitytype
+  schema: public
+array_relationships:
+- name: shepherd_histories
+  using:
+    foreign_key_constraint_on:
+      column: activity_type_id
+      table:
+        name: shepherd_history
+        schema: public
+- name: shepherd_serverhistories
+  using:
+    foreign_key_constraint_on:
+      column: activity_type_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+- name: shepherd_transientservers
+  using:
+    foreign_key_constraint_on:
+      column: activity_type_id
+      table:
+        name: shepherd_transientserver
+        schema: public

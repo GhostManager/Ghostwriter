@@ -1,0 +1,31 @@
+table:
+  name: shepherd_domain
+  schema: public
+object_relationships:
+- name: shepherd_domainstatus
+  using:
+    foreign_key_constraint_on: domain_status_id
+- name: shepherd_healthstatus
+  using:
+    foreign_key_constraint_on: health_status_id
+- name: shepherd_whoisstatus
+  using:
+    foreign_key_constraint_on: whois_status_id
+- name: users_user
+  using:
+    foreign_key_constraint_on: last_used_by_id
+array_relationships:
+- name: shepherd_domainnotes
+  using:
+    foreign_key_constraint_on:
+      column: domain_id
+      table:
+        name: shepherd_domainnote
+        schema: public
+- name: shepherd_histories
+  using:
+    foreign_key_constraint_on:
+      column: domain_id
+      table:
+        name: shepherd_history
+        schema: public

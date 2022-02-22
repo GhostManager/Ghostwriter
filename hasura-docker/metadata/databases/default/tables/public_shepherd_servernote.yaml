@@ -1,0 +1,10 @@
+table:
+  name: shepherd_servernote
+  schema: public
+object_relationships:
+- name: shepherd_staticserver
+  using:
+    foreign_key_constraint_on: server_id
+- name: users_user
+  using:
+    foreign_key_constraint_on: operator_id

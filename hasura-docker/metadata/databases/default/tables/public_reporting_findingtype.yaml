@@ -1,0 +1,31 @@
+table:
+  name: reporting_findingtype
+  schema: public
+array_relationships:
+- name: reporting_findings
+  using:
+    foreign_key_constraint_on:
+      column: finding_type_id
+      table:
+        name: reporting_finding
+        schema: public
+- name: reporting_reportfindinglinks
+  using:
+    foreign_key_constraint_on:
+      column: finding_type_id
+      table:
+        name: reporting_reportfindinglink
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - finding_type
+    - id
+    filter: {}
+  role: restricted
+- permission:
+    columns:
+    - id
+    - finding_type
+    filter: {}
+  role: user

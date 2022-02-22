@@ -1,0 +1,21 @@
+table:
+  name: rolodex_projectobjective
+  schema: public
+object_relationships:
+- name: rolodex_objectivepriority
+  using:
+    foreign_key_constraint_on: priority_id
+- name: rolodex_objectivestatus
+  using:
+    foreign_key_constraint_on: status_id
+- name: rolodex_project
+  using:
+    foreign_key_constraint_on: project_id
+array_relationships:
+- name: rolodex_projectsubtasks
+  using:
+    foreign_key_constraint_on:
+      column: parent_id
+      table:
+        name: rolodex_projectsubtask
+        schema: public

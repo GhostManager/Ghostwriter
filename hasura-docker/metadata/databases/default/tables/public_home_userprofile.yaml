@@ -1,0 +1,63 @@
+table:
+  name: home_userprofile
+  schema: public
+object_relationships:
+- name: users_user
+  using:
+    foreign_key_constraint_on: user_id
+select_permissions:
+- permission:
+    columns:
+    - avatar
+    - role
+    filter:
+      user_id:
+        _eq: X-Hasura-User-Id
+  role: manager
+- permission:
+    columns:
+    - avatar
+    - role
+    filter:
+      user_id:
+        _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    columns:
+    - avatar
+    - role
+    filter:
+      user_id:
+        _eq: X-Hasura-User-Id
+  role: user
+update_permissions:
+- permission:
+    check:
+      user_id:
+        _eq: X-Hasura-User-Id
+    columns:
+    - avatar
+    filter:
+      user_id:
+        _eq: X-Hasura-User-Id
+  role: manager
+- permission:
+    check:
+      user_id:
+        _eq: X-Hasura-User-Id
+    columns:
+    - avatar
+    filter:
+      user_id:
+        _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      user_id:
+        _eq: X-Hasura-User-Id
+    columns:
+    - avatar
+    filter:
+      user_id:
+        _eq: X-Hasura-User-Id
+  role: user

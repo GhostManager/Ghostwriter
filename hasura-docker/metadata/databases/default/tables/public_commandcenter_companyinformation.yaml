@@ -1,0 +1,25 @@
+table:
+  name: commandcenter_companyinformation
+  schema: public
+select_permissions:
+- permission:
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
+    filter: {}
+  role: restricted
+- permission:
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
+    filter: {}
+  role: user

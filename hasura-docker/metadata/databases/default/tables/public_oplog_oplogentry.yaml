@@ -1,0 +1,172 @@
+table:
+  name: oplog_oplogentry
+  schema: public
+configuration:
+  custom_column_names:
+    oplog_id_id: oplog
+  custom_name: oplogentry
+  custom_root_fields:
+    delete: delete_oplogentry
+    delete_by_pk: delete_by_pk_oplogentry
+    insert: insert_oplogentry
+    insert_one: insert_oplogentry_single
+    select: oplogentry
+    select_aggregate: oplogentry_aggregate
+    select_by_pk: oplogentry_by_pk
+    update: update_oplogentry
+    update_by_pk: update_by_pk_oplogentry
+object_relationships:
+- name: oplog_oplog
+  using:
+    foreign_key_constraint_on: oplog_id_id
+insert_permissions:
+- permission:
+    backend_only: false
+    check:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - operator_name
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+  role: restricted
+- permission:
+    backend_only: false
+    check:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - operator_name
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - start_date
+    - end_date
+    - source_ip
+    - dest_ip
+    - tool
+    - user_context
+    - command
+    - description
+    - output
+    - comments
+    - operator_name
+    - oplog_id_id
+    filter:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - id
+    - operator_name
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    filter:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: user
+update_permissions:
+- permission:
+    check:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - operator_name
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    filter:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - operator_name
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    filter:
+      oplog_oplog:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: user

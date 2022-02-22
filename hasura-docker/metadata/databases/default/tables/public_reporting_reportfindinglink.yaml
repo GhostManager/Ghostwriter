@@ -1,0 +1,227 @@
+table:
+  name: reporting_reportfindinglink
+  schema: public
+object_relationships:
+- name: reporting_findingtype
+  using:
+    foreign_key_constraint_on: finding_type_id
+- name: reporting_report
+  using:
+    foreign_key_constraint_on: report_id
+- name: reporting_severity
+  using:
+    foreign_key_constraint_on: severity_id
+- name: users_user
+  using:
+    foreign_key_constraint_on: assigned_to_id
+array_relationships:
+- name: reporting_evidences
+  using:
+    foreign_key_constraint_on:
+      column: finding_id
+      table:
+        name: reporting_evidence
+        schema: public
+- name: reporting_localfindingnotes
+  using:
+    foreign_key_constraint_on:
+      column: finding_id
+      table:
+        name: reporting_localfindingnote
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - affected_entities
+    - assigned_to_id
+    - complete
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - position
+    - references
+    - replication_steps
+    - report_id
+    - severity_id
+    - title
+  role: restricted
+- permission:
+    backend_only: false
+    check:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - affected_entities
+    - assigned_to_id
+    - complete
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - position
+    - references
+    - replication_steps
+    - report_id
+    - severity_id
+    - title
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - complete
+    - title
+    - assigned_to_id
+    - finding_type_id
+    - id
+    - position
+    - report_id
+    - severity_id
+    - affected_entities
+    - description
+    - finding_guidance
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    filter:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    columns:
+    - complete
+    - title
+    - assigned_to_id
+    - finding_type_id
+    - id
+    - position
+    - report_id
+    - severity_id
+    - affected_entities
+    - description
+    - finding_guidance
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    filter:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: user
+update_permissions:
+- permission:
+    check:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - affected_entities
+    - assigned_to_id
+    - complete
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - position
+    - references
+    - replication_steps
+    - report_id
+    - severity_id
+    - title
+    filter:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+    columns:
+    - affected_entities
+    - assigned_to_id
+    - complete
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - position
+    - references
+    - replication_steps
+    - report_id
+    - severity_id
+    - title
+    filter:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: user
+delete_permissions:
+- permission:
+    filter:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    filter:
+      reporting_report:
+        rolodex_project:
+          rolodex_projectassignments:
+            users_user:
+              id:
+                _eq: X-Hasura-User-Id
+  role: user

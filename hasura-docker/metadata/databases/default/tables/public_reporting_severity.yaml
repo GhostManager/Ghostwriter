@@ -1,0 +1,43 @@
+table:
+  name: reporting_severity
+  schema: public
+array_relationships:
+- name: reporting_findings
+  using:
+    foreign_key_constraint_on:
+      column: severity_id
+      table:
+        name: reporting_finding
+        schema: public
+- name: reporting_reportfindinglinks
+  using:
+    foreign_key_constraint_on:
+      column: severity_id
+      table:
+        name: reporting_reportfindinglink
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - severity
+    - weight
+    - color
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - color
+    - severity
+    - id
+    - weight
+    filter: {}
+  role: restricted
+- permission:
+    columns:
+    - color
+    - severity
+    - id
+    - weight
+    filter: {}
+  role: user

@@ -1,0 +1,33 @@
+table:
+  name: rolodex_objectivepriority
+  schema: public
+array_relationships:
+- name: rolodex_projectobjectives
+  using:
+    foreign_key_constraint_on:
+      column: priority_id
+      table:
+        name: rolodex_projectobjective
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - weight
+    - priority
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - priority
+    - id
+    - weight
+    filter: {}
+  role: restricted
+- permission:
+    columns:
+    - priority
+    - id
+    - weight
+    filter: {}
+  role: user

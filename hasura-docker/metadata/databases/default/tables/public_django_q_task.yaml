@@ -1,0 +1,36 @@
+table:
+  name: django_q_task
+  schema: public
+select_permissions:
+- permission:
+    columns:
+    - success
+    - func
+    - group
+    - hook
+    - id
+    - name
+    - attempt_count
+    - args
+    - kwargs
+    - result
+    - started
+    - stopped
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - name
+    - func
+    - hook
+    - args
+    - kwargs
+    - result
+    - started
+    - stopped
+    - success
+    - id
+    - group
+    - attempt_count
+    filter: {}
+  role: user

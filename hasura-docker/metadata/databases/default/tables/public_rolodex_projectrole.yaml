@@ -1,0 +1,11 @@
+table:
+  name: rolodex_projectrole
+  schema: public
+array_relationships:
+- name: rolodex_projectassignments
+  using:
+    foreign_key_constraint_on:
+      column: role_id
+      table:
+        name: rolodex_projectassignment
+        schema: public

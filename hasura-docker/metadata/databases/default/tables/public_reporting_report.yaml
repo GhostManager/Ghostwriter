@@ -1,0 +1,157 @@
+table:
+  name: reporting_report
+  schema: public
+object_relationships:
+- name: reportingReporttemplateByPptxTemplateId
+  using:
+    foreign_key_constraint_on: pptx_template_id
+- name: reporting_reporttemplate
+  using:
+    foreign_key_constraint_on: docx_template_id
+- name: rolodex_project
+  using:
+    foreign_key_constraint_on: project_id
+- name: users_user
+  using:
+    foreign_key_constraint_on: created_by_id
+array_relationships:
+- name: reporting_reportfindinglinks
+  using:
+    foreign_key_constraint_on:
+      column: report_id
+      table:
+        name: reporting_reportfindinglink
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+    columns:
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+  role: restricted
+- permission:
+    backend_only: false
+    check:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+    columns:
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - title
+    - creation
+    - last_update
+    - complete
+    - archived
+    - created_by_id
+    - project_id
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - archived
+    - complete
+    - delivered
+    - title
+    - creation
+    - last_update
+    - created_by_id
+    - docx_template_id
+    - id
+    - pptx_template_id
+    - project_id
+    filter:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    columns:
+    - archived
+    - complete
+    - delivered
+    - title
+    - creation
+    - last_update
+    - created_by_id
+    - docx_template_id
+    - id
+    - pptx_template_id
+    - project_id
+    filter:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - title
+    filter: {}
+  role: manager
+- permission:
+    check:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+    columns:
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    filter:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+  role: user

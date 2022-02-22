@@ -1,0 +1,11 @@
+table:
+  name: shepherd_healthstatus
+  schema: public
+array_relationships:
+- name: shepherd_domains
+  using:
+    foreign_key_constraint_on:
+      column: health_status_id
+      table:
+        name: shepherd_domain
+        schema: public

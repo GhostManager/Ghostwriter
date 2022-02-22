@@ -1,0 +1,138 @@
+table:
+  name: users_user
+  schema: public
+object_relationships:
+- name: home_userprofile
+  using:
+    foreign_key_constraint_on:
+      column: user_id
+      table:
+        name: home_userprofile
+        schema: public
+array_relationships:
+- name: reporting_evidences
+  using:
+    foreign_key_constraint_on:
+      column: uploaded_by_id
+      table:
+        name: reporting_evidence
+        schema: public
+- name: reporting_findingnotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: reporting_findingnote
+        schema: public
+- name: reporting_localfindingnotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: reporting_localfindingnote
+        schema: public
+- name: reporting_reportfindinglinks
+  using:
+    foreign_key_constraint_on:
+      column: assigned_to_id
+      table:
+        name: reporting_reportfindinglink
+        schema: public
+- name: reporting_reports
+  using:
+    foreign_key_constraint_on:
+      column: created_by_id
+      table:
+        name: reporting_report
+        schema: public
+- name: reporting_reporttemplates
+  using:
+    foreign_key_constraint_on:
+      column: uploaded_by_id
+      table:
+        name: reporting_reporttemplate
+        schema: public
+- name: rolodex_clientnotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_clientnote
+        schema: public
+- name: rolodex_projectassignments
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_projectassignment
+        schema: public
+- name: rolodex_projectnotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_projectnote
+        schema: public
+- name: rolodex_projects
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_project
+        schema: public
+- name: shepherd_domainnotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_domainnote
+        schema: public
+- name: shepherd_domains
+  using:
+    foreign_key_constraint_on:
+      column: last_used_by_id
+      table:
+        name: shepherd_domain
+        schema: public
+- name: shepherd_histories
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_history
+        schema: public
+- name: shepherd_serverhistories
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+- name: shepherd_servernotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_servernote
+        schema: public
+- name: shepherd_staticservers
+  using:
+    foreign_key_constraint_on:
+      column: last_used_by_id
+      table:
+        name: shepherd_staticserver
+        schema: public
+- name: shepherd_transientservers
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_transientserver
+        schema: public
+- name: users_user_groups
+  using:
+    foreign_key_constraint_on:
+      column: user_id
+      table:
+        name: users_user_groups
+        schema: public

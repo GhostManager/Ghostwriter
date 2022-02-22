@@ -1,0 +1,10 @@
+table:
+  name: rolodex_projectsubtask
+  schema: public
+object_relationships:
+- name: rolodex_objectivestatus
+  using:
+    foreign_key_constraint_on: status_id
+- name: rolodex_projectobjective
+  using:
+    foreign_key_constraint_on: parent_id

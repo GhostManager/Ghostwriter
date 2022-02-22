@@ -1,0 +1,89 @@
+table:
+  name: reporting_finding
+  schema: public
+object_relationships:
+- name: reporting_findingtype
+  using:
+    foreign_key_constraint_on: finding_type_id
+- name: reporting_severity
+  using:
+    foreign_key_constraint_on: severity_id
+array_relationships:
+- name: reporting_findingnotes
+  using:
+    foreign_key_constraint_on:
+      column: finding_id
+      table:
+        name: reporting_findingnote
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    - severity_id
+    - title
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - title
+    - finding_type_id
+    - id
+    - severity_id
+    - description
+    - finding_guidance
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    filter: {}
+  role: restricted
+- permission:
+    columns:
+    - title
+    - finding_type_id
+    - id
+    - severity_id
+    - description
+    - finding_guidance
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    filter: {}
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    - severity_id
+    - title
+    filter: {}
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: user

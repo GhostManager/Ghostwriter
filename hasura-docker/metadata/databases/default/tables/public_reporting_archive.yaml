@@ -1,0 +1,39 @@
+table:
+  name: reporting_archive
+  schema: public
+object_relationships:
+- name: rolodex_project
+  using:
+    foreign_key_constraint_on: project_id
+select_permissions:
+- permission:
+    columns:
+    - report_archive
+    - id
+    - project_id
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - id
+    - project_id
+    - report_archive
+    filter:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      rolodex_project:
+        rolodex_projectassignments:
+          users_user:
+            id:
+              _eq: X-Hasura-User-Id
+  role: user

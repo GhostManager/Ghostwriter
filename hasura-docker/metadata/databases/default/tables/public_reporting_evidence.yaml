@@ -1,0 +1,155 @@
+table:
+  name: reporting_evidence
+  schema: public
+object_relationships:
+- name: reporting_reportfindinglink
+  using:
+    foreign_key_constraint_on: finding_id
+- name: users_user
+  using:
+    foreign_key_constraint_on: uploaded_by_id
+insert_permissions:
+- permission:
+    backend_only: false
+    check:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+    columns:
+    - caption
+    - description
+    - document
+    - finding_id
+    - friendly_name
+    - upload_date
+  role: restricted
+- permission:
+    backend_only: false
+    check:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+    columns:
+    - caption
+    - description
+    - document
+    - finding_id
+    - friendly_name
+    - upload_date
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - caption
+    - description
+    - document
+    - finding_id
+    - friendly_name
+    - id
+    - upload_date
+    - uploaded_by_id
+    filter:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    columns:
+    - id
+    - document
+    - friendly_name
+    - upload_date
+    - caption
+    - description
+    - finding_id
+    - uploaded_by_id
+    filter:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+  role: user
+update_permissions:
+- permission:
+    check:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+    columns:
+    - caption
+    - description
+    - document
+    - friendly_name
+    - upload_date
+    filter:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+    columns:
+    - caption
+    - description
+    - document
+    - friendly_name
+    filter:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+  role: user
+delete_permissions:
+- permission:
+    filter:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    filter:
+      reporting_reportfindinglink:
+        reporting_report:
+          rolodex_project:
+            rolodex_projectassignments:
+              users_user:
+                id:
+                  _eq: X-Hasura-User-Id
+  role: user

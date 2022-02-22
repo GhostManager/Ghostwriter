@@ -1,0 +1,11 @@
+table:
+  name: shepherd_serverstatus
+  schema: public
+array_relationships:
+- name: shepherd_staticservers
+  using:
+    foreign_key_constraint_on:
+      column: server_status_id
+      table:
+        name: shepherd_staticserver
+        schema: public

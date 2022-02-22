@@ -1,0 +1,16 @@
+table:
+  name: shepherd_domainserverconnection
+  schema: public
+object_relationships:
+- name: rolodex_project
+  using:
+    foreign_key_constraint_on: project_id
+- name: shepherd_history
+  using:
+    foreign_key_constraint_on: domain_id
+- name: shepherd_serverhistory
+  using:
+    foreign_key_constraint_on: static_server_id
+- name: shepherd_transientserver
+  using:
+    foreign_key_constraint_on: transient_server_id

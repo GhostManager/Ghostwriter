@@ -1,0 +1,37 @@
+table:
+  name: rolodex_objectivestatus
+  schema: public
+array_relationships:
+- name: rolodex_projectobjectives
+  using:
+    foreign_key_constraint_on:
+      column: status_id
+      table:
+        name: rolodex_projectobjective
+        schema: public
+- name: rolodex_projectsubtasks
+  using:
+    foreign_key_constraint_on:
+      column: status_id
+      table:
+        name: rolodex_projectsubtask
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - objective_status
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - objective_status
+    - id
+    filter: {}
+  role: restricted
+- permission:
+    columns:
+    - objective_status
+    - id
+    filter: {}
+  role: user

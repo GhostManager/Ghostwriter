@@ -1,0 +1,7 @@
+table:
+  name: rolodex_projectscope
+  schema: public
+object_relationships:
+- name: rolodex_project
+  using:
+    foreign_key_constraint_on: project_id
