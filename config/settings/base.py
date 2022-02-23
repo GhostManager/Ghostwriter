@@ -12,9 +12,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.3 ALPHA"
+__version__ = "2.2.3"
 VERSION = __version__
-RELEASE_DATE = "Feb 2022"
+RELEASE_DATE = "16 Feb 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
