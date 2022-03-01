@@ -43,7 +43,7 @@ class User(AbstractUser):
         blank=True,
         help_text="Enter a phone number for this user",
     )
-    role = models.CharField(max_length=120, choices=active_roles, default="user")
+    role = CharField(max_length=120, choices=active_roles, default="user")
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})
