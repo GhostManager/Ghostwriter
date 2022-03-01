@@ -4,6 +4,7 @@ USE_DOCKER=yes
 IPYTHONDIR=/app/.ipython
 DJANGO_ACCOUNT_ALLOW_REGISTRATION=False
 DJANGO_ACCOUNT_EMAIL_VERIFICATION=none
+DJANGO_SECRET_KEY=changeme
 
 # QCluster
 # ------------------------------------------------------------------------------
