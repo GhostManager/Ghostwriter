@@ -12,9 +12,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.2.3"
+__version__ = "2.3 ALPHA"
 VERSION = __version__
-RELEASE_DATE = "16 Feb 2022"
+RELEASE_DATE = "Feb 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -427,10 +427,12 @@ GRAPHENE = {
 GRAPHQL_JWT = {
     "JWT_PAYLOAD_HANDLER": "ghostwriter.utils.jwt_payload",
     "JWT_AUTH_HEADER_PREFIX": "Bearer",
+    "JWT_VERIFY": True,
     "JWT_VERIFY_EXPIRATION": True,
     "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
-    "JWT_EXPIRATION_DELTA": timedelta(minutes=30),
+    "JWT_EXPIRATION_DELTA": timedelta(hours=8),
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
+    "JWT_AUDIENCE": "Ghostwriter",
     "JWT_SECRET_KEY": os.environ["DJANGO_SECRET_KEY"],
     "JWT_ALGORITHM": "HS256",
 }
