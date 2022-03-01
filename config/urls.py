@@ -17,6 +17,7 @@ from ghostwriter.home.views import protected_serve
 from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
+    graphql_login,
 )
 
 urlpatterns = [
@@ -49,6 +50,7 @@ urlpatterns = [
         {"document_root": settings.MEDIA_ROOT},
     ),
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=False))),
+    path("api/login", csrf_exempt(graphql_login)),
     # Add additional custom paths below this line...
     # Your stuff: custom urls includes go here
 ]
