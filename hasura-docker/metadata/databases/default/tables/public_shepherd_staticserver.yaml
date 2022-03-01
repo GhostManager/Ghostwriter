@@ -1,32 +1,41 @@
 table:
   name: shepherd_staticserver
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    ip_address: ipAddress
+    last_used_by_id: lastUsedById
+    server_provider_id: serverProviderId
+    server_status_id: serverStatusId
+  custom_name: staticServer
+  custom_root_fields: {}
 object_relationships:
-- name: shepherd_serverprovider
+- name: serverProvider
   using:
     foreign_key_constraint_on: server_provider_id
-- name: shepherd_serverstatus
+- name: serverStatus
   using:
     foreign_key_constraint_on: server_status_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: last_used_by_id
 array_relationships:
-- name: shepherd_auxserveraddresses
+- name: auxServerAddresses
   using:
     foreign_key_constraint_on:
       column: static_server_id
       table:
         name: shepherd_auxserveraddress
         schema: public
-- name: shepherd_serverhistories
+- name: checkouts
   using:
     foreign_key_constraint_on:
       column: server_id
       table:
         name: shepherd_serverhistory
         schema: public
-- name: shepherd_servernotes
+- name: comments
   using:
     foreign_key_constraint_on:
       column: server_id

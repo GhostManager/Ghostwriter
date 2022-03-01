@@ -1,7 +1,14 @@
 table:
   name: rolodex_projecttarget
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    ip_address: ipAddress
+    project_id: projectId
+  custom_name: target
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_project
+- name: project
   using:
     foreign_key_constraint_on: project_id

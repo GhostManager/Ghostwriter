@@ -1,10 +1,17 @@
 table:
   name: shepherd_servernote
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    operator_id: operatorId
+    server_id: serverId
+  custom_name: serverNote
+  custom_root_fields: {}
 object_relationships:
-- name: shepherd_staticserver
+- name: staticServer
   using:
     foreign_key_constraint_on: server_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: operator_id

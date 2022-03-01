@@ -1,18 +1,27 @@
 table:
   name: rolodex_projectobjective
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    marked_complete: markedComplete
+    priority_id: priorityId
+    project_id: projectId
+    status_id: statusId
+  custom_name: objective
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_objectivepriority
+- name: objectivePriority
   using:
     foreign_key_constraint_on: priority_id
-- name: rolodex_objectivestatus
+- name: objectiveStatus
   using:
     foreign_key_constraint_on: status_id
-- name: rolodex_project
+- name: project
   using:
     foreign_key_constraint_on: project_id
 array_relationships:
-- name: rolodex_projectsubtasks
+- name: objectiveSubTasks
   using:
     foreign_key_constraint_on:
       column: parent_id

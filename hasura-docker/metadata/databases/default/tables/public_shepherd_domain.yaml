@@ -1,31 +1,44 @@
 table:
   name: shepherd_domain
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    auto_renew: autoRenew
+    domain_status_id: domainStatusId
+    health_status_id: healthStatusId
+    last_health_check: lastHealthCheck
+    last_used_by_id: lastUsedById
+    reset_dns: resetDns
+    vt_permalink: vtPermalink
+    whois_status_id: whoisStatusId
+  custom_name: domain
+  custom_root_fields: {}
 object_relationships:
-- name: shepherd_domainstatus
+- name: domainStatus
   using:
     foreign_key_constraint_on: domain_status_id
-- name: shepherd_healthstatus
+- name: healthStatus
   using:
     foreign_key_constraint_on: health_status_id
-- name: shepherd_whoisstatus
-  using:
-    foreign_key_constraint_on: whois_status_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: last_used_by_id
-array_relationships:
-- name: shepherd_domainnotes
+- name: whoisStatus
   using:
-    foreign_key_constraint_on:
-      column: domain_id
-      table:
-        name: shepherd_domainnote
-        schema: public
-- name: shepherd_histories
+    foreign_key_constraint_on: whois_status_id
+array_relationships:
+- name: checkouts
   using:
     foreign_key_constraint_on:
       column: domain_id
       table:
         name: shepherd_history
+        schema: public
+- name: comments
+  using:
+    foreign_key_constraint_on:
+      column: domain_id
+      table:
+        name: shepherd_domainnote
         schema: public

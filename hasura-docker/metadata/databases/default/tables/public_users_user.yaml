@@ -1,8 +1,18 @@
 table:
   name: users_user
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    date_joined: dateJoined
+    is_active: isActive
+    is_staff: isStaff
+    is_superuser: isSuperuser
+    last_login: lastLogin
+  custom_name: user
+  custom_root_fields: {}
 object_relationships:
-- name: home_userprofile
+- name: profile
   using:
     foreign_key_constraint_on:
       column: user_id
@@ -10,6 +20,13 @@ object_relationships:
         name: home_userprofile
         schema: public
 array_relationships:
+- name: assignments
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_projectassignment
+        schema: public
 - name: reporting_evidences
   using:
     foreign_key_constraint_on:
@@ -58,13 +75,6 @@ array_relationships:
       column: operator_id
       table:
         name: rolodex_clientnote
-        schema: public
-- name: rolodex_projectassignments
-  using:
-    foreign_key_constraint_on:
-      column: operator_id
-      table:
-        name: rolodex_projectassignment
         schema: public
 - name: rolodex_projectnotes
   using:
@@ -128,11 +138,4 @@ array_relationships:
       column: operator_id
       table:
         name: shepherd_transientserver
-        schema: public
-- name: users_user_groups
-  using:
-    foreign_key_constraint_on:
-      column: user_id
-      table:
-        name: users_user_groups
         schema: public

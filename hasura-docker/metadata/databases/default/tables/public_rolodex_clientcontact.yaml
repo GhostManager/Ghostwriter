@@ -1,8 +1,15 @@
 table:
   name: rolodex_clientcontact
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    client_id: clientId
+    job_title: jobTitle
+  custom_name: contacts
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_client
+- name: client
   using:
     foreign_key_constraint_on: client_id
 insert_permissions:
@@ -21,10 +28,10 @@ insert_permissions:
 - permission:
     backend_only: false
     check:
-      rolodex_client:
-        rolodex_projects:
-          rolodex_projectassignments:
-            users_user:
+      client:
+        projects:
+          assignments:
+            user:
               id:
                 _eq: X-Hasura-User-Id
     columns:
@@ -60,10 +67,10 @@ select_permissions:
     - id
     - note
     filter:
-      rolodex_client:
-        rolodex_projects:
-          rolodex_projectassignments:
-            users_user:
+      client:
+        projects:
+          assignments:
+            user:
               id:
                 _eq: X-Hasura-User-Id
   role: restricted
@@ -78,10 +85,10 @@ select_permissions:
     - id
     - note
     filter:
-      rolodex_client:
-        rolodex_projects:
-          rolodex_projectassignments:
-            users_user:
+      client:
+        projects:
+          assignments:
+            user:
               id:
                 _eq: X-Hasura-User-Id
   role: user
@@ -100,10 +107,10 @@ update_permissions:
   role: manager
 - permission:
     check:
-      rolodex_client:
-        rolodex_projects:
-          rolodex_projectassignments:
-            users_user:
+      client:
+        projects:
+          assignments:
+            user:
               id:
                 _eq: X-Hasura-User-Id
     columns:
@@ -115,10 +122,10 @@ update_permissions:
     - phone
     - timezone
     filter:
-      rolodex_client:
-        rolodex_projects:
-          rolodex_projectassignments:
-            users_user:
+      client:
+        projects:
+          assignments:
+            user:
               id:
                 _eq: X-Hasura-User-Id
   role: user
@@ -128,10 +135,10 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      rolodex_client:
-        rolodex_projects:
-          rolodex_projectassignments:
-            users_user:
+      client:
+        projects:
+          assignments:
+            user:
               id:
                 _eq: X-Hasura-User-Id
   role: user

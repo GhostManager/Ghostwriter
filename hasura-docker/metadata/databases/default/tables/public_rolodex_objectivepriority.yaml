@@ -1,8 +1,13 @@
 table:
   name: rolodex_objectivepriority
   schema: public
+configuration:
+  comment: null
+  custom_column_names: {}
+  custom_name: objectivePriority
+  custom_root_fields: {}
 array_relationships:
-- name: rolodex_projectobjectives
+- name: objectives
   using:
     foreign_key_constraint_on:
       column: priority_id

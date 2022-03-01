@@ -1,7 +1,14 @@
 table:
   name: shepherd_auxserveraddress
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    ip_address: ipAddress
+    static_server_id: staticServerId
+  custom_name: auxServerAddresses
+  custom_root_fields: {}
 object_relationships:
-- name: shepherd_staticserver
+- name: server
   using:
     foreign_key_constraint_on: static_server_id

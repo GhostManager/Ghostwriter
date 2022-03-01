@@ -1,24 +1,36 @@
 table:
   name: shepherd_history
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    activity_type_id: activityTypeId
+    client_id: clientId
+    domain_id: domainId
+    end_date: endDate
+    operator_id: operatorId
+    project_id: projectId
+    start_date: startDate
+  custom_name: domainCheckout
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_client
-  using:
-    foreign_key_constraint_on: client_id
-- name: rolodex_project
-  using:
-    foreign_key_constraint_on: project_id
-- name: shepherd_activitytype
+- name: activityType
   using:
     foreign_key_constraint_on: activity_type_id
-- name: shepherd_domain
+- name: client
+  using:
+    foreign_key_constraint_on: client_id
+- name: domain
   using:
     foreign_key_constraint_on: domain_id
-- name: users_user
+- name: project
+  using:
+    foreign_key_constraint_on: project_id
+- name: user
   using:
     foreign_key_constraint_on: operator_id
 array_relationships:
-- name: shepherd_domainserverconnections
+- name: domainServerConnections
   using:
     foreign_key_constraint_on:
       column: domain_id

@@ -1,25 +1,30 @@
 table:
   name: shepherd_activitytype
   schema: public
+configuration:
+  comment: null
+  custom_column_names: {}
+  custom_name: activityType
+  custom_root_fields: {}
 array_relationships:
-- name: shepherd_histories
+- name: cloudServers
+  using:
+    foreign_key_constraint_on:
+      column: activity_type_id
+      table:
+        name: shepherd_transientserver
+        schema: public
+- name: domains
   using:
     foreign_key_constraint_on:
       column: activity_type_id
       table:
         name: shepherd_history
         schema: public
-- name: shepherd_serverhistories
+- name: staticServers
   using:
     foreign_key_constraint_on:
       column: activity_type_id
       table:
         name: shepherd_serverhistory
-        schema: public
-- name: shepherd_transientservers
-  using:
-    foreign_key_constraint_on:
-      column: activity_type_id
-      table:
-        name: shepherd_transientserver
         schema: public

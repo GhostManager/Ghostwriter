@@ -1,13 +1,23 @@
 table:
   name: rolodex_projectassignment
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    end_date: endDate
+    operator_id: operatorId
+    project_id: projectId
+    role_id: roleId
+    start_date: startDate
+  custom_name: projectAssignment
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_project
+- name: project
   using:
     foreign_key_constraint_on: project_id
-- name: rolodex_projectrole
+- name: projectRole
   using:
     foreign_key_constraint_on: role_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: operator_id

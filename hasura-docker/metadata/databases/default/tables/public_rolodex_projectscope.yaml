@@ -1,7 +1,14 @@
 table:
   name: rolodex_projectscope
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    project_id: projectId
+    requires_caution: requiresCaution
+  custom_name: scope
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_project
+- name: project
   using:
     foreign_key_constraint_on: project_id

@@ -1,22 +1,43 @@
 table:
   name: reporting_evidence
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    finding_id: findingId
+    friendly_name: friendlyName
+    upload_date: uploadDate
+    uploaded_by_id: uploadedById
+  custom_name: evidence
+  custom_root_fields: {}
 object_relationships:
-- name: reporting_reportfindinglink
+- name: finding
   using:
     foreign_key_constraint_on: finding_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: uploaded_by_id
 insert_permissions:
 - permission:
     backend_only: false
+    check: {}
+    columns:
+    - caption
+    - description
+    - document
+    - finding_id
+    - friendly_name
+    - upload_date
+    - uploaded_by_id
+  role: manager
+- permission:
+    backend_only: false
     check:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
     columns:
@@ -26,15 +47,17 @@ insert_permissions:
     - finding_id
     - friendly_name
     - upload_date
+    set:
+      uploaded_by_id: x-hasura-User-Id
   role: restricted
 - permission:
     backend_only: false
     check:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
     columns:
@@ -44,6 +67,8 @@ insert_permissions:
     - finding_id
     - friendly_name
     - upload_date
+    set:
+      uploaded_by_id: x-hasura-User-Id
   role: user
 select_permissions:
 - permission:
@@ -53,15 +78,26 @@ select_permissions:
     - document
     - finding_id
     - friendly_name
+    - upload_date
+    - uploaded_by_id
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - caption
+    - description
+    - document
+    - finding_id
+    - friendly_name
     - id
     - upload_date
     - uploaded_by_id
     filter:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
   role: restricted
@@ -76,22 +112,34 @@ select_permissions:
     - finding_id
     - uploaded_by_id
     filter:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
   role: user
 update_permissions:
 - permission:
+    check: {}
+    columns:
+    - caption
+    - description
+    - document
+    - finding_id
+    - friendly_name
+    - upload_date
+    - uploaded_by_id
+    filter: {}
+  role: manager
+- permission:
     check:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
     columns:
@@ -101,21 +149,21 @@ update_permissions:
     - friendly_name
     - upload_date
     filter:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
     columns:
@@ -124,32 +172,35 @@ update_permissions:
     - document
     - friendly_name
     filter:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
 - permission:
+    filter: {}
+  role: manager
+- permission:
     filter:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
-      reporting_reportfindinglink:
-        reporting_report:
-          rolodex_project:
-            rolodex_projectassignments:
-              users_user:
+      finding:
+        report:
+          project:
+            assignments:
+              user:
                 id:
                   _eq: X-Hasura-User-Id
   role: user

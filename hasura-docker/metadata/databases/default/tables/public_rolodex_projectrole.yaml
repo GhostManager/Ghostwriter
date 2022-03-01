@@ -1,8 +1,14 @@
 table:
   name: rolodex_projectrole
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    project_role: projectRole
+  custom_name: projectRole
+  custom_root_fields: {}
 array_relationships:
-- name: rolodex_projectassignments
+- name: assignments
   using:
     foreign_key_constraint_on:
       column: role_id

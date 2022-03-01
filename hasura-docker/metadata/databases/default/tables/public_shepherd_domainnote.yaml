@@ -1,10 +1,17 @@
 table:
   name: shepherd_domainnote
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    domain_id: domainId
+    operator_id: operatorId
+  custom_name: domainNote
+  custom_root_fields: {}
 object_relationships:
-- name: shepherd_domain
+- name: domain
   using:
     foreign_key_constraint_on: domain_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: operator_id

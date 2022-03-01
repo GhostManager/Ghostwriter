@@ -1,98 +1,111 @@
 table:
   name: rolodex_project
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    client_id: clientId
+    end_date: endDate
+    end_time: endTime
+    operator_id: operatorId
+    project_type_id: projectTypeId
+    slack_channel: slackChannel
+    start_date: startDate
+    start_time: startTime
+  custom_name: project
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_client
+- name: client
   using:
     foreign_key_constraint_on: client_id
-- name: rolodex_projecttype
+- name: projectType
   using:
     foreign_key_constraint_on: project_type_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: operator_id
 array_relationships:
-- name: oplog_oplogs
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: oplog_oplog
-        schema: public
-- name: reporting_archives
+- name: archives
   using:
     foreign_key_constraint_on:
       column: project_id
       table:
         name: reporting_archive
         schema: public
-- name: reporting_reports
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: reporting_report
-        schema: public
-- name: rolodex_projectassignments
+- name: assignments
   using:
     foreign_key_constraint_on:
       column: project_id
       table:
         name: rolodex_projectassignment
         schema: public
-- name: rolodex_projectnotes
+- name: cloudServers
+  using:
+    foreign_key_constraint_on:
+      column: project_id
+      table:
+        name: shepherd_transientserver
+        schema: public
+- name: comments
   using:
     foreign_key_constraint_on:
       column: project_id
       table:
         name: rolodex_projectnote
         schema: public
-- name: rolodex_projectobjectives
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projectobjective
-        schema: public
-- name: rolodex_projectscopes
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projectscope
-        schema: public
-- name: rolodex_projecttargets
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projecttarget
-        schema: public
-- name: shepherd_domainserverconnections
+- name: domainServerConnections
   using:
     foreign_key_constraint_on:
       column: project_id
       table:
         name: shepherd_domainserverconnection
         schema: public
-- name: shepherd_histories
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: shepherd_history
-        schema: public
-- name: shepherd_serverhistories
+- name: domains
   using:
     foreign_key_constraint_on:
       column: project_id
       table:
         name: shepherd_serverhistory
         schema: public
-- name: shepherd_transientservers
+- name: objectives
   using:
     foreign_key_constraint_on:
       column: project_id
       table:
-        name: shepherd_transientserver
+        name: rolodex_projectobjective
+        schema: public
+- name: oplogs
+  using:
+    foreign_key_constraint_on:
+      column: project_id
+      table:
+        name: oplog_oplog
+        schema: public
+- name: reports
+  using:
+    foreign_key_constraint_on:
+      column: project_id
+      table:
+        name: reporting_report
+        schema: public
+- name: scopes
+  using:
+    foreign_key_constraint_on:
+      column: project_id
+      table:
+        name: rolodex_projectscope
+        schema: public
+- name: staticServers
+  using:
+    foreign_key_constraint_on:
+      column: project_id
+      table:
+        name: shepherd_history
+        schema: public
+- name: targets
+  using:
+    foreign_key_constraint_on:
+      column: project_id
+      table:
+        name: rolodex_projecttarget
         schema: public

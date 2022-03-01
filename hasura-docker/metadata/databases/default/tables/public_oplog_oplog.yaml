@@ -1,12 +1,18 @@
 table:
   name: oplog_oplog
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    project_id: projectId
+  custom_name: oplog
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_project
+- name: project
   using:
     foreign_key_constraint_on: project_id
 array_relationships:
-- name: oplog_oplogentries
+- name: entries
   using:
     foreign_key_constraint_on:
       column: oplog_id_id
@@ -25,9 +31,9 @@ insert_permissions:
 - permission:
     backend_only: false
     check:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
     columns:
@@ -37,9 +43,9 @@ insert_permissions:
 - permission:
     backend_only: false
     check:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
     columns:
@@ -60,9 +66,9 @@ select_permissions:
     - name
     - project_id
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
   role: restricted
@@ -71,8 +77,8 @@ select_permissions:
     - name
     - project_id
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
+      project:
+        assignments:
           operator_id:
             _eq: X-Hasura-User-Id
   role: user
@@ -87,32 +93,32 @@ update_permissions:
   role: manager
 - permission:
     check:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
     columns:
     - name
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      rolodex_project:
-        rolodex_projectassignments:
+      project:
+        assignments:
           operator_id:
             _eq: X-Hasura-User-Id
     columns:
-    - id
+    - name
     - project_id
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
+      project:
+        assignments:
           operator_id:
             _eq: X-Hasura-User-Id
   role: user
@@ -122,8 +128,8 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
+      project:
+        assignments:
           operator_id:
             _eq: X-Hasura-User-Id
   role: user

@@ -1,21 +1,30 @@
 table:
   name: reporting_report
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    created_by_id: createdById
+    docx_template_id: docxTemplateId
+    pptx_template_id: pptxTemplateId
+    project_id: projectId
+  custom_name: report
+  custom_root_fields: {}
 object_relationships:
-- name: reportingReporttemplateByPptxTemplateId
-  using:
-    foreign_key_constraint_on: pptx_template_id
-- name: reporting_reporttemplate
+- name: docxTemplate
   using:
     foreign_key_constraint_on: docx_template_id
-- name: rolodex_project
+- name: pptxTemplate
+  using:
+    foreign_key_constraint_on: pptx_template_id
+- name: project
   using:
     foreign_key_constraint_on: project_id
-- name: users_user
+- name: user
   using:
     foreign_key_constraint_on: created_by_id
 array_relationships:
-- name: reporting_reportfindinglinks
+- name: findings
   using:
     foreign_key_constraint_on:
       column: report_id
@@ -25,26 +34,43 @@ array_relationships:
 insert_permissions:
 - permission:
     backend_only: false
-    check:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
-            id:
-              _eq: X-Hasura-User-Id
+    check: {}
     columns:
+    - archived
     - complete
     - delivered
     - docx_template_id
     - pptx_template_id
     - project_id
     - title
+    set:
+      created_by_id: x-hasura-User-Id
+  role: manager
+- permission:
+    backend_only: false
+    check:
+      project:
+        assignments:
+          user:
+            id:
+              _eq: X-Hasura-User-Id
+    columns:
+    - archived
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    set:
+      created_by_id: x-hasura-User-Id
   role: restricted
 - permission:
     backend_only: false
     check:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
     columns:
@@ -54,6 +80,8 @@ insert_permissions:
     - pptx_template_id
     - project_id
     - title
+    set:
+      created_by_id: x-hasura-User-Id
   role: user
 select_permissions:
 - permission:
@@ -85,9 +113,9 @@ select_permissions:
     - pptx_template_id
     - project_id
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
   role: restricted
@@ -105,9 +133,9 @@ select_permissions:
     - pptx_template_id
     - project_id
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
   role: user
@@ -115,18 +143,20 @@ update_permissions:
 - permission:
     check: {}
     columns:
+    - archived
     - complete
     - delivered
     - docx_template_id
     - pptx_template_id
+    - project_id
     - title
     filter: {}
   role: manager
 - permission:
     check:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
     columns:
@@ -137,9 +167,9 @@ update_permissions:
     - project_id
     - title
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
   role: user
@@ -149,9 +179,9 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      rolodex_project:
-        rolodex_projectassignments:
-          users_user:
+      project:
+        assignments:
+          user:
             id:
               _eq: X-Hasura-User-Id
   role: user

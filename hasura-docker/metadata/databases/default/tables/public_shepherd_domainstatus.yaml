@@ -1,8 +1,14 @@
 table:
   name: shepherd_domainstatus
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    domain_status: domainStatus
+  custom_name: domainStatus
+  custom_root_fields: {}
 array_relationships:
-- name: shepherd_domains
+- name: domains
   using:
     foreign_key_constraint_on:
       column: domain_status_id

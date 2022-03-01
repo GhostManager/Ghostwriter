@@ -1,6 +1,11 @@
 table:
   name: django_q_task
   schema: public
+configuration:
+  comment: null
+  custom_column_names: {}
+  custom_name: task
+  custom_root_fields: {}
 select_permissions:
 - permission:
     columns:

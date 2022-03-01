@@ -1,25 +1,53 @@
 table:
   name: reporting_reporttemplate
   schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    client_id: clientId
+    doc_type_id: docTypeId
+    last_update: lastUpdate
+    lint_result: lintResult
+    upload_date: uploadDate
+    uploaded_by_id: uploadedById
+  custom_name: template
+  custom_root_fields: {}
 object_relationships:
-- name: rolodex_client
+- name: client
   using:
     foreign_key_constraint_on: client_id
-- name: users_user
+- name: reporting_doctype
+  using:
+    foreign_key_constraint_on: doc_type_id
+- name: user
   using:
     foreign_key_constraint_on: uploaded_by_id
 array_relationships:
-- name: reportingReportsByPptxTemplateId
+- name: commandcenterReportconfigurationsByDefaultPptxTemplateId
   using:
     foreign_key_constraint_on:
-      column: pptx_template_id
+      column: default_pptx_template_id
       table:
-        name: reporting_report
+        name: commandcenter_reportconfiguration
         schema: public
-- name: reporting_reports
+- name: commandcenter_reportconfigurations
+  using:
+    foreign_key_constraint_on:
+      column: default_docx_template_id
+      table:
+        name: commandcenter_reportconfiguration
+        schema: public
+- name: docxTemplates
   using:
     foreign_key_constraint_on:
       column: docx_template_id
+      table:
+        name: reporting_report
+        schema: public
+- name: pptxTemplates
+  using:
+    foreign_key_constraint_on:
+      column: pptx_template_id
       table:
         name: reporting_report
         schema: public
@@ -143,3 +171,8 @@ delete_permissions:
 - permission:
     filter: {}
   role: manager
+- permission:
+    filter:
+      protected:
+        _eq: false
+  role: user
