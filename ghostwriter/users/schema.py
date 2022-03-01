@@ -11,6 +11,7 @@ from graphql_jwt.shortcuts import create_refresh_token, get_token
 class UserType(DjangoObjectType):
     class Meta:
         model = get_user_model()
+        exclude = ("password",)
 
 
 class CreateUser(graphene.Mutation):
@@ -58,6 +59,6 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if user.is_anonymous:
             raise Exception("Authentication Failure: Your must be signed in")
-        if user.userprofile.role != "manager":
+        if user.role != "manager":
             raise Exception("Authentication Failure: Must be Manager")
         return get_user_model().objects.all()
