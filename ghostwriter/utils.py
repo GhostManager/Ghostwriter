@@ -76,5 +76,6 @@ def generate_jwt_token(user, context=None):
         "x-hasura-default-role"
     ] = user.role
     payload["https://hasura.io/jwt/claims"]["x-hasura-user-id"] = str(user.id)
+    payload["https://hasura.io/jwt/claims"]["x-hasura-user-name"] = str(user.username)
 
     return jwt_encode(payload)
