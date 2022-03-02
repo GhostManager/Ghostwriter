@@ -22,6 +22,4 @@
             "source.organizeImports": true
         }
     },
-    "editor.fontFamily": "Inconsolata, Fira Code, Monaco, 'Courier New', monospace",
-    "editor.fontSize": 24,
 }
