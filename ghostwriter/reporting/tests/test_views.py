@@ -1812,7 +1812,7 @@ class ReportTemplateFilterTests(TestCase):
         pass
 
     def setUp(self):
-        self.test_date_string = "%b. %d, %Y"
+        self.test_date_string = "%b %d, %Y"
         self.new_date_string = "%d/%m/%y"
 
     def test_format_datetime(self):
