@@ -26,14 +26,46 @@ insert_permissions:
     - timezone
   role: manager
 - permission:
-    backend_only: false
     check:
-      client:
-        projects:
-          assignments:
-            user:
-              id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
                 _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_clientcontact
+    columns:
+    - client_id
+    - email
+    - job_title
+    - name
+    - note
+    - phone
+    - timezone
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_clientcontact
     columns:
     - client_id
     - email
@@ -57,40 +89,40 @@ select_permissions:
     filter: {}
   role: manager
 - permission:
-    columns:
-    - email
-    - job_title
-    - name
-    - phone
-    - timezone
-    - client_id
-    - id
-    - note
+    columns: "*"
     filter:
-      client:
-        projects:
-          assignments:
-            user:
-              id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
                 _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_clientcontact
   role: restricted
 - permission:
-    columns:
-    - email
-    - job_title
-    - name
-    - phone
-    - timezone
-    - client_id
-    - id
-    - note
+    columns: "*"
     filter:
-      client:
-        projects:
-          assignments:
-            user:
-              id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
                 _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_clientcontact
   role: user
 update_permissions:
 - permission:
@@ -107,12 +139,20 @@ update_permissions:
   role: manager
 - permission:
     check:
-      client:
-        projects:
-          assignments:
-            user:
-              id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
                 _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientcontact
     columns:
     - client_id
     - email
@@ -122,12 +162,60 @@ update_permissions:
     - phone
     - timezone
     filter:
-      client:
-        projects:
-          assignments:
-            user:
-              id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
                 _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientcontact
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientcontact
+    columns:
+    - client_id
+    - email
+    - job_title
+    - name
+    - note
+    - phone
+    - timezone
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientcontact
   role: user
 delete_permissions:
 - permission:
@@ -135,10 +223,35 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      client:
-        projects:
-          assignments:
-            user:
-              id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
                 _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_clientcontact
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_clientcontact
   role: user

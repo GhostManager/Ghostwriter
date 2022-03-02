@@ -26,13 +26,21 @@ insert_permissions:
       operator_id: x-hasura-User-Id
   role: manager
 - permission:
-    backend_only: false
     check:
-      client:
-        projects:
-          assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_clientnote
     columns:
     - client_id
     - note
@@ -40,13 +48,21 @@ insert_permissions:
       operator_id: x-hasura-User-Id
   role: restricted
 - permission:
-    backend_only: false
     check:
-      client:
-        projects:
-          assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_clientnote
     columns:
     - client_id
     - note
@@ -64,38 +80,49 @@ select_permissions:
     filter: {}
   role: manager
 - permission:
-    columns:
-    - client_id
-    - id
-    - operator_id
-    - timestamp
-    - note
+    columns: "*"
     filter:
-      client:
-        projects:
-          assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_clientnote
   role: restricted
 - permission:
-    columns:
-    - client_id
-    - id
-    - operator_id
-    - timestamp
-    - note
+    columns: "*"
     filter:
-      client:
-        projects:
-          assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_clientnote
   role: user
 update_permissions:
 - permission:
     check:
-      operator_id:
-        _eq: X-Hasura-User-Id
+      _and:
+      - operator_id:
+          _eq: X-Hasura-User-Id
+      - note:
+          _neq: "\"\""
     columns:
     - client_id
     - note
@@ -105,31 +132,81 @@ update_permissions:
   role: manager
 - permission:
     check:
-      client:
-        projects:
-          assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - note:
+          _neq: "\"\""
     columns:
     - client_id
     - note
     filter:
-      operator_id:
-        _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      client:
-        projects:
-          assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - note:
+          _neq: "\"\""
     columns:
     - client_id
     - note
     filter:
-      operator_id:
-        _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
 - permission:
@@ -139,11 +216,39 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      operator_id:
-        _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
-      operator_id:
-        _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
   role: user

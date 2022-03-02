@@ -27,46 +27,56 @@ insert_permissions:
     - document
     - finding_id
     - friendly_name
-    - upload_date
-    - uploaded_by_id
+    set:
+      uploaded_by_id: x-hasura-User-Id
   role: manager
 - permission:
-    backend_only: false
     check:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_evidence
     columns:
     - caption
     - description
     - document
     - finding_id
     - friendly_name
-    - upload_date
     set:
       uploaded_by_id: x-hasura-User-Id
   role: restricted
 - permission:
-    backend_only: false
     check:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_evidence
     columns:
     - caption
     - description
     - document
     - finding_id
     - friendly_name
-    - upload_date
     set:
       uploaded_by_id: x-hasura-User-Id
   role: user
@@ -78,47 +88,46 @@ select_permissions:
     - document
     - finding_id
     - friendly_name
+    - id
     - upload_date
     - uploaded_by_id
     filter: {}
   role: manager
 - permission:
-    columns:
-    - caption
-    - description
-    - document
-    - finding_id
-    - friendly_name
-    - id
-    - upload_date
-    - uploaded_by_id
+    columns: "*"
     filter:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_evidence
   role: restricted
 - permission:
-    columns:
-    - id
-    - document
-    - friendly_name
-    - upload_date
-    - caption
-    - description
-    - finding_id
-    - uploaded_by_id
+    columns: "*"
     filter:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_evidence
   role: user
 update_permissions:
 - permission:
@@ -129,56 +138,83 @@ update_permissions:
     - document
     - finding_id
     - friendly_name
-    - upload_date
-    - uploaded_by_id
     filter: {}
   role: manager
 - permission:
     check:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_evidence
     columns:
     - caption
     - description
     - document
+    - finding_id
     - friendly_name
-    - upload_date
     filter:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_evidence
   role: restricted
 - permission:
     check:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_evidence
     columns:
     - caption
     - description
     - document
+    - finding_id
     - friendly_name
     filter:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_evidence
   role: user
 delete_permissions:
 - permission:
@@ -186,21 +222,35 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_evidence
   role: restricted
 - permission:
     filter:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_evidence
   role: user

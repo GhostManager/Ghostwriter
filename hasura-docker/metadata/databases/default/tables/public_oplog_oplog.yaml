@@ -29,25 +29,41 @@ insert_permissions:
     - project_id
   role: manager
 - permission:
-    backend_only: false
     check:
-      project:
-        assignments:
-          user:
-            id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_oplog
     columns:
     - name
     - project_id
   role: restricted
 - permission:
-    backend_only: false
     check:
-      project:
-        assignments:
-          user:
-            id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_oplog
     columns:
     - name
     - project_id
@@ -61,26 +77,40 @@ select_permissions:
     filter: {}
   role: manager
 - permission:
-    columns:
-    - id
-    - name
-    - project_id
+    columns: "*"
     filter:
-      project:
-        assignments:
-          user:
-            id:
-              _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_oplog
   role: restricted
 - permission:
-    columns:
-    - name
-    - project_id
+    columns: "*"
     filter:
-      project:
-        assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_oplog
   role: user
 update_permissions:
 - permission:
@@ -93,34 +123,73 @@ update_permissions:
   role: manager
 - permission:
     check:
-      project:
-        assignments:
-          user:
-            id:
-              _eq: X-Hasura-User-Id
-    columns:
-    - name
-    filter:
-      project:
-        assignments:
-          user:
-            id:
-              _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    check:
-      project:
-        assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplog
     columns:
     - name
     - project_id
     filter:
-      project:
-        assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplog
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplog
+    columns:
+    - name
+    - project_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplog
   role: user
 delete_permissions:
 - permission:
@@ -128,8 +197,35 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      project:
-        assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_oplog
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_oplog
   role: user

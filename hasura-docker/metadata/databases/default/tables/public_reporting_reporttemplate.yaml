@@ -61,27 +61,64 @@ insert_permissions:
     - description
     - doc_type_id
     - document
-    - last_update
-    - lint_result
     - name
     - protected
-    - upload_date
-    - uploaded_by_id
+    set:
+      uploaded_by_id: x-hasura-User-Id
   role: manager
 - permission:
-    backend_only: false
-    check: {}
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_reporttemplate
     columns:
     - changelog
     - client_id
     - description
     - doc_type_id
     - document
-    - last_update
     - name
     - protected
-    - upload_date
-    - uploaded_by_id
+    set:
+      uploaded_by_id: x-hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_reporttemplate
+    columns:
+    - changelog
+    - client_id
+    - description
+    - doc_type_id
+    - document
+    - name
+    - protected
+    set:
+      uploaded_by_id: x-hasura-User-Id
   role: user
 select_permissions:
 - permission:
@@ -101,36 +138,40 @@ select_permissions:
     filter: {}
   role: manager
 - permission:
-    columns:
-    - protected
-    - document
-    - name
-    - last_update
-    - upload_date
-    - client_id
-    - doc_type_id
-    - id
-    - uploaded_by_id
-    - changelog
-    - description
-    - lint_result
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_reporttemplate
   role: restricted
 - permission:
-    columns:
-    - id
-    - document
-    - name
-    - upload_date
-    - last_update
-    - description
-    - protected
-    - client_id
-    - uploaded_by_id
-    - lint_result
-    - changelog
-    - doc_type_id
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_reporttemplate
   role: user
 update_permissions:
 - permission:
@@ -141,31 +182,93 @@ update_permissions:
     - description
     - doc_type_id
     - document
-    - last_update
     - name
     - protected
-    - upload_date
-    - uploaded_by_id
     filter: {}
   role: manager
 - permission:
     check:
-      protected:
-        _neq: true
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_reporttemplate
     columns:
     - changelog
     - client_id
     - description
     - doc_type_id
     - document
-    - last_update
     - name
     - protected
-    - upload_date
-    - uploaded_by_id
     filter:
-      protected:
-        _neq: true
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_reporttemplate
+      - protected:
+          _eq: false
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_reporttemplate
+    columns:
+    - changelog
+    - client_id
+    - description
+    - doc_type_id
+    - document
+    - name
+    - protected
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_reporttemplate
+      - protected:
+          _eq: false
   role: user
 delete_permissions:
 - permission:
@@ -173,6 +276,39 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      protected:
-        _eq: false
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_reporttemplate
+      - protected:
+          _eq: false
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_reporttemplate
+      - protected:
+          _eq: false
   role: user

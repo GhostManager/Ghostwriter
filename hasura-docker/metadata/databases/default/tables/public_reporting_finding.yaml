@@ -44,8 +44,50 @@ insert_permissions:
     - title
   role: manager
 - permission:
-    backend_only: false
-    check: {}
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_finding
+    columns:
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    - severity_id
+    - title
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_finding
     columns:
     - description
     - finding_guidance
@@ -62,50 +104,55 @@ insert_permissions:
 select_permissions:
 - permission:
     columns:
+    - finding_type_id
+    - id
+    - severity_id
+    - title
     - description
     - finding_guidance
-    - finding_type_id
     - host_detection_techniques
     - impact
     - mitigation
     - network_detection_techniques
     - references
     - replication_steps
-    - severity_id
-    - title
     filter: {}
   role: manager
 - permission:
-    columns:
-    - title
-    - finding_type_id
-    - id
-    - severity_id
-    - description
-    - finding_guidance
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_finding
   role: restricted
 - permission:
-    columns:
-    - title
-    - finding_type_id
-    - id
-    - severity_id
-    - description
-    - finding_guidance
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_finding
   role: user
 update_permissions:
 - permission:
@@ -125,7 +172,21 @@ update_permissions:
     filter: {}
   role: manager
 - permission:
-    check: {}
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_finding
     columns:
     - description
     - finding_guidance
@@ -138,12 +199,101 @@ update_permissions:
     - replication_steps
     - severity_id
     - title
-    filter: {}
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_finding
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_finding
+    columns:
+    - description
+    - finding_guidance
+    - finding_type_id
+    - host_detection_techniques
+    - impact
+    - mitigation
+    - network_detection_techniques
+    - references
+    - replication_steps
+    - severity_id
+    - title
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_finding
   role: user
 delete_permissions:
 - permission:
     filter: {}
   role: manager
 - permission:
-    filter: {}
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_finding
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_finding
   role: user

@@ -4,6 +4,9 @@ actions:
     kind: synchronous
     handler: '{{ACTIONS_URL_BASE}}/login'
   permissions:
+  - role: manager
+  - role: restricted
+  - role: user
   - role: public
 custom_types:
   enums: []

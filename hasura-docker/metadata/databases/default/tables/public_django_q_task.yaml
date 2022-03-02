@@ -6,6 +6,66 @@ configuration:
   custom_column_names: {}
   custom_name: task
   custom_root_fields: {}
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - args
+    - attempt_count
+    - func
+    - group
+    - hook
+    - kwargs
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_q
+    columns:
+    - args
+    - attempt_count
+    - func
+    - group
+    - hook
+    - kwargs
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_q
+    columns:
+    - args
+    - attempt_count
+    - func
+    - group
+    - hook
+    - kwargs
+  role: user
 select_permissions:
 - permission:
     columns:
@@ -24,18 +84,38 @@ select_permissions:
     filter: {}
   role: manager
 - permission:
-    columns:
-    - name
-    - func
-    - hook
-    - args
-    - kwargs
-    - result
-    - started
-    - stopped
-    - success
-    - id
-    - group
-    - attempt_count
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_q
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_q
   role: user

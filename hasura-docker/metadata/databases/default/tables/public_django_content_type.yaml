@@ -1,0 +1,17 @@
+table:
+  name: django_content_type
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    app_label: appLabel
+  custom_name: djangoContentType
+  custom_root_fields: {}
+array_relationships:
+- name: authPermissions
+  using:
+    foreign_key_constraint_on:
+      column: content_type_id
+      table:
+        name: auth_permission
+        schema: public

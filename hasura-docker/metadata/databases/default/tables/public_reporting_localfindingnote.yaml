@@ -26,15 +26,21 @@ insert_permissions:
       operator_id: x-hasura-User-Id
   role: manager
 - permission:
-    backend_only: false
     check:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_localfindingnote
     columns:
     - finding_id
     - note
@@ -42,19 +48,24 @@ insert_permissions:
       operator_id: x-hasura-User-Id
   role: restricted
 - permission:
-    backend_only: false
     check:
-      finding:
-        report:
-          project:
-            assignments:
-              user:
-                id:
-                  _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_localfindingnote
     columns:
     - finding_id
     - note
-    - timestamp
     set:
       operator_id: x-hasura-User-Id
   role: user
@@ -69,29 +80,46 @@ select_permissions:
     filter: {}
   role: manager
 - permission:
-    columns:
-    - finding_id
-    - id
-    - operator_id
-    - timestamp
-    - note
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_localfindingnote
   role: restricted
 - permission:
-    columns:
-    - finding_id
-    - id
-    - operator_id
-    - timestamp
-    - note
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_localfindingnote
   role: user
 update_permissions:
 - permission:
     check:
-      user:
-        id:
-          _eq: X-Hasura-User-Id
+      note:
+        _neq: "\"\""
     columns:
     - finding_id
     - note
@@ -102,28 +130,80 @@ update_permissions:
   role: manager
 - permission:
     check:
-      user:
-        id:
-          _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_localfindingnote
+      - note:
+          _neq: "\"\""
     columns:
     - finding_id
     - note
     filter:
-      user:
-        id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_localfindingnote
+      - operator_id:
           _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      user:
-        id:
-          _eq: X-Hasura-User-Id
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_localfindingnote
+      - note:
+          _neq: "\"\""
     columns:
     - finding_id
     - note
     filter:
-      user:
-        id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_localfindingnote
+      - operator_id:
           _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
@@ -135,13 +215,39 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      user:
-        id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_localfindingnote
+      - operator_id:
           _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
-      user:
-        id:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_localfindingnote
+      - operator_id:
           _eq: X-Hasura-User-Id
   role: user

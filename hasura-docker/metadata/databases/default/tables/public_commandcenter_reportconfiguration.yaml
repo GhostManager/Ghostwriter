@@ -38,30 +38,53 @@ select_permissions:
     filter: {}
   role: manager
 - permission:
-    columns:
-    - default_docx_template_id
-    - default_pptx_template_id
-    - id
-    - enable_borders
-    - border_color
-    - label_figure
-    - label_table
-    - prefix_figure
-    - prefix_table
-    - border_weight
-    filter: {}
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_reportconfiguration
   role: restricted
 - permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_reportconfiguration
+  role: user
+update_permissions:
+- permission:
+    check: {}
     columns:
+    - border_color
+    - border_weight
     - default_docx_template_id
     - default_pptx_template_id
-    - id
     - enable_borders
-    - border_color
     - label_figure
     - label_table
     - prefix_figure
     - prefix_table
-    - border_weight
     filter: {}
-  role: user
+  role: manager
