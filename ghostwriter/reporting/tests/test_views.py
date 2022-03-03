@@ -1812,8 +1812,8 @@ class ReportTemplateFilterTests(TestCase):
         pass
 
     def setUp(self):
-        self.test_date_string = "%b %d, %Y"
-        self.new_date_string = "%d/%m/%y"
+        self.test_date_string = "%d %b %Y"
+        self.new_date_string = "%b %d, %y"
 
     def test_format_datetime(self):
         test_date = dateformat.format(datetime.now(), settings.DATE_FORMAT)
