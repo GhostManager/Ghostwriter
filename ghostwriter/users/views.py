@@ -26,17 +26,46 @@ User = get_user_model()
 
 def graphql_login(request):
     """Authentication and JWT generation logic for the ``login`` action."""
+    status = 200
+
+    # Load the request body as JSON
     data = json.loads(request.body)
     data = data["input"]
-    # Authenticate the user with Django
-    user = authenticate(**data)
 
+    # Authenticate the user with Django's back-end
+    user = authenticate(**data)
+    # A successful auth will return a ``User`` object
     if user:
-        jwt_token = utils.generate_jwt_token(user)
-        data = {"token": f"{jwt_token}"}
+        payload, jwt_token = utils.generate_jwt_token(user)
+        data = {"token": f"{jwt_token}", "expires": payload["exp"]}
     else:
-        data = {"token": ""}
-    return JsonResponse(data)
+        status = 403
+        data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
+    return JsonResponse(data, status=status)
+
+
+def graphql_whoami(request):
+    """Authentication and JWT generation logic for the ``login`` action."""
+    status = 200
+
+    # Get the forwarded ``Authorization`` header
+    token = request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
+    if token:
+        try:
+            # Try to decode the JWT token
+            jwt_token = utils.jwt_decode(token)
+            data = {
+                "username": jwt_token["username"],
+                "role": jwt_token["https://hasura.io/jwt/claims"]["x-hasura-default-role"],
+                "expires": jwt_token["exp"],
+            }
+        except Exception as exception:
+            status = 400
+            data = utils.generate_hasura_error_payload(f"{type(exception).__name__}", "JWTInvalid")
+    else:
+        status = 400
+        data = utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing")
+    return JsonResponse(data, status=status)
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
