@@ -1803,7 +1803,6 @@ class GenerateReportTests(TestCase):
         self.report.save()
 
 
-
 class ReportTemplateFilterTests(TestCase):
     """Collection of tests for custom report template filters."""
 
@@ -1812,7 +1811,7 @@ class ReportTemplateFilterTests(TestCase):
         pass
 
     def setUp(self):
-        self.test_date_string = "%b. %d, %Y"
+        self.test_date_string = "%d %b %Y"
         self.new_date_string = "%d/%m/%y"
 
     def test_format_datetime(self):
@@ -1821,14 +1820,3 @@ class ReportTemplateFilterTests(TestCase):
             format_datetime(test_date, self.test_date_string, self.new_date_string)
         except AttributeError:
             self.fail("format_datetime() raised an AttributeError unexpectedly!")
-
-    # For future use when locale and language translation is figured out
-    # def test_format_datetime_locales(self):
-    #     locales = ["en-GB", "fr-FR", "de-DE", "es-ES", "it-IT", "ja-JP", "ko-KR", "zh-CN", "zh-TW"]
-    #     for l in locales:
-    #         with self.settings(LANGUAGE_CODE=l):
-    #             try:
-    #                 test_date = dateformat.format(datetime.now(), settings.DATE_FORMAT)
-    #                 format_datetime(test_date, self.test_date_string, self.new_date_string)
-    #             except AttributeError:
-    #                 self.fail("format_datetime() raised an AttributeError unexpectedly with locale %s!", l)
