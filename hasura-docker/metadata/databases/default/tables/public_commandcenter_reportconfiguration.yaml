@@ -25,20 +25,28 @@ object_relationships:
 select_permissions:
 - permission:
     columns:
-    - id
-    - border_weight
     - border_color
-    - prefix_figure
-    - prefix_table
+    - border_weight
     - default_docx_template_id
     - default_pptx_template_id
     - enable_borders
     - label_figure
     - label_table
+    - prefix_figure
+    - prefix_table
     filter: {}
   role: manager
 - permission:
-    columns: "*"
+    columns:
+    - border_color
+    - border_weight
+    - default_docx_template_id
+    - default_pptx_template_id
+    - enable_borders
+    - label_figure
+    - label_table
+    - prefix_figure
+    - prefix_table
     filter:
       _and:
       - _exists:
@@ -56,7 +64,16 @@ select_permissions:
                       _eq: view_reportconfiguration
   role: restricted
 - permission:
-    columns: "*"
+    columns:
+    - border_color
+    - border_weight
+    - default_docx_template_id
+    - default_pptx_template_id
+    - enable_borders
+    - label_figure
+    - label_table
+    - prefix_figure
+    - prefix_table
     filter:
       _and:
       - _exists:

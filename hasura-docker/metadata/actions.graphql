@@ -5,7 +5,18 @@ type Mutation {
   ): LoginResponse
 }
 
+type Query {
+  whoami: WhoamiOutput
+}
+
 type LoginResponse {
   token: String!
+  expires: date
+}
+
+type WhoamiOutput {
+  username: String!
+  role: String!
+  expires: date
 }
 

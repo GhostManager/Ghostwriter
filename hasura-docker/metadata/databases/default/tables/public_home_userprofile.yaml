@@ -14,13 +14,16 @@ object_relationships:
 select_permissions:
 - permission:
     columns:
-    - id
-    - user_id
     - avatar
-    filter: {}
+    - user_id
+    filter:
+      user_id:
+        _eq: X-Hasura-User-Id
   role: manager
 - permission:
-    columns: "*"
+    columns:
+    - avatar
+    - user_id
     filter:
       _and:
       - _exists:
@@ -38,7 +41,9 @@ select_permissions:
                       _eq: view_userprofile
   role: restricted
 - permission:
-    columns: "*"
+    columns:
+    - avatar
+    - user_id
     filter:
       _and:
       - _exists:

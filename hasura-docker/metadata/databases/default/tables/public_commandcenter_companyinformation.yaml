@@ -15,11 +15,13 @@ select_permissions:
     - company_email
     - company_name
     - company_twitter
-    - id
     filter: {}
   role: manager
 - permission:
-    columns: "*"
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
     filter:
       _and:
       - _exists:
@@ -37,7 +39,10 @@ select_permissions:
                       _eq: view_companyinformation
   role: restricted
 - permission:
-    columns: "*"
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
     filter:
       _and:
       - _exists:
@@ -63,69 +68,3 @@ update_permissions:
     - company_twitter
     filter: {}
   role: manager
-- permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_companyinformation
-    columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_companyinformation
-  role: restricted
-- permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_companyinformation
-    columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_companyinformation
-  role: user
