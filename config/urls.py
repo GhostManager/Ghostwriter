@@ -9,9 +9,6 @@ from django.views import defaults as default_views
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import RedirectView
 
-# 3rd Party Libraries
-from graphene_django.views import GraphQLView
-
 # Ghostwriter Libraries
 from ghostwriter.home.views import protected_serve
 from ghostwriter.users.views import (
@@ -50,7 +47,6 @@ urlpatterns = [
         protected_serve,
         {"document_root": settings.MEDIA_ROOT},
     ),
-    path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=False))),
     path("api/login", csrf_exempt(graphql_login)),
     path("api/whoami", csrf_exempt(graphql_whoami)),
     # Add additional custom paths below this line...

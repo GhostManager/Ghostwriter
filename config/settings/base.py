@@ -12,7 +12,6 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-
 __version__ = "2.2.4"
 VERSION = __version__
 RELEASE_DATE = "9 Mar 2022"
@@ -80,7 +79,6 @@ DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.admindocs",
     "django.contrib.postgres",
-    "graphene_django",
 ]
 
 THIRD_PARTY_APPS = [
@@ -96,7 +94,6 @@ THIRD_PARTY_APPS = [
     "tinymce",
     "django_bleach",
     "timezone_field",
-    "graphql_jwt.refresh_token.apps.RefreshTokenConfig",
 ]
 
 LOCAL_APPS = [
@@ -135,7 +132,6 @@ MIGRATION_MODULES = {"sites": "ghostwriter.contrib.sites.migrations"}
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#authentication-backends
 AUTHENTICATION_BACKENDS = [
-    "graphql_jwt.backends.JSONWebTokenBackend",
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
@@ -405,7 +401,7 @@ BLEACH_STRIP_TAGS = True
 # Strip HTML comments, or leave them in.
 BLEACH_STRIP_COMMENTS = True
 
-# Django REST Configuration
+# Ghostwriter API Configuration
 # ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -420,20 +416,12 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 100,
 }
 
-GRAPHENE = {
-    "SCHEMA": "ghostwriter.schema.schema",
-    "MIDDLEWARE": [
-        "graphql_jwt.middleware.JSONWebTokenMiddleware",
-    ],
-}
-
 GRAPHQL_JWT = {
-    "JWT_PAYLOAD_HANDLER": "ghostwriter.utils.jwt_payload",
     "JWT_AUTH_HEADER_PREFIX": "Bearer",
     "JWT_VERIFY": True,
     "JWT_VERIFY_EXPIRATION": True,
     "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
-    "JWT_EXPIRATION_DELTA": timedelta(hours=8),
+    "JWT_EXPIRATION_DELTA": timedelta(minutes=15),
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_AUDIENCE": "Ghostwriter",
     "JWT_SECRET_KEY": os.environ["DJANGO_SECRET_KEY"],
