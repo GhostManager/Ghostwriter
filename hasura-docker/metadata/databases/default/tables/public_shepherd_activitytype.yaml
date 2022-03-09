@@ -1,0 +1,233 @@
+table:
+  name: shepherd_activitytype
+  schema: public
+configuration:
+  comment: null
+  custom_column_names: {}
+  custom_name: activityType
+  custom_root_fields: {}
+array_relationships:
+- name: cloudServers
+  using:
+    foreign_key_constraint_on:
+      column: activity_type_id
+      table:
+        name: shepherd_transientserver
+        schema: public
+- name: domains
+  using:
+    foreign_key_constraint_on:
+      column: activity_type_id
+      table:
+        name: shepherd_history
+        schema: public
+- name: staticServers
+  using:
+    foreign_key_constraint_on:
+      column: activity_type_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: true
+    check: {}
+    columns:
+    - activity
+  role: manager
+- permission:
+    backend_only: true
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_activitytype
+    columns:
+    - activity
+  role: restricted
+- permission:
+    backend_only: true
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_activitytype
+    columns:
+    - activity
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - activity
+    - id
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_activitytype
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_activitytype
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - activity
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_activitytype
+    columns:
+    - activity
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_activitytype
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_activitytype
+    columns:
+    - activity
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_activitytype
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_activitytype
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_activitytype
+  role: user

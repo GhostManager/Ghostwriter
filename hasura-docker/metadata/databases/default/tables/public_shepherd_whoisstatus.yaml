@@ -1,0 +1,220 @@
+table:
+  name: shepherd_whoisstatus
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    whois_status: whoisStatus
+  custom_name: whoisStatus
+  custom_root_fields: {}
+array_relationships:
+- name: domains
+  using:
+    foreign_key_constraint_on:
+      column: whois_status_id
+      table:
+        name: shepherd_domain
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: true
+    check: {}
+    columns:
+    - whois_status
+  role: manager
+- permission:
+    backend_only: true
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_whoisstatus
+    columns:
+    - whois_status
+  role: restricted
+- permission:
+    backend_only: true
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_whoisstatus
+    columns:
+    - whois_status
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - whois_status
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_whoisstatus
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_whoisstatus
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - whois_status
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_whoisstatus
+    columns:
+    - whois_status
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_whoisstatus
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_whoisstatus
+    columns:
+    - whois_status
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_whoisstatus
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_whoisstatus
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_whoisstatus
+  role: user

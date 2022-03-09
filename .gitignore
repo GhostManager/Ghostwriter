@@ -276,4 +276,5 @@ ssl/*.crt
 ssl/*.key
 ssl/dhparam.pem
 
-.vscode/settings.json
+# Temporary ignore of Cypress front end testing data
+cypress/*

@@ -39,3 +39,10 @@ python-nmap==0.7.1
 python-pptx==0.6.21
 requests==2.27.1
 django-timezone-field==4.2.3
+pyjwt==2.3.0
+
+# For Graphene development testing
+pyyaml==6.0
+uritemplate==4.1.1
+graphene-django==2.15.0
+django-graphql-jwt==0.3.4

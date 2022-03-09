@@ -1,9 +1,14 @@
 """This contains all of the views used by the Users application."""
 
+# Standard Libraries
+import json
+
 # Django Imports
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.serializers import serialize
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, RedirectView, UpdateView
@@ -12,11 +17,28 @@ from django.views.generic import DetailView, RedirectView, UpdateView
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
 
 # Ghostwriter Libraries
+import ghostwriter
+from ghostwriter import utils
 from ghostwriter.home.forms import UserProfileForm
 from ghostwriter.home.models import UserProfile
 from ghostwriter.users.forms import UserChangeForm
 
 User = get_user_model()
+
+
+def graphql_login(request):
+    """Authentication and JWT generation logic for the ``login`` action."""
+    data = json.loads(request.body)
+    data = data["input"]
+    # Authenticate the user with Django
+    user = authenticate(**data)
+
+    if user:
+        jwt_token = utils.generate_jwt_token(user)
+        data = {"token": f"{jwt_token}"}
+    else:
+        data = {"token": ""}
+    return JsonResponse(data)
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
@@ -82,7 +104,6 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return ctx
 
     def get_object(self):
-        # return User.objects.get(id=self.request.user.pk)
         return get_object_or_404(User, username=self.kwargs.get("username"))
 
     def get_success_url(self):

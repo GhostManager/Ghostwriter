@@ -1,0 +1,174 @@
+table:
+  name: reporting_archive
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    project_id: projectId
+    report_archive: reportArchive
+  custom_name: archive
+  custom_root_fields: {}
+object_relationships:
+- name: project
+  using:
+    foreign_key_constraint_on: project_id
+select_permissions:
+- permission:
+    columns:
+    - report_archive
+    - id
+    - project_id
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_archive
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_archive
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - project_id
+    - report_archive
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_archive
+    columns:
+    - project_id
+    - report_archive
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_archive
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_archive
+    columns:
+    - project_id
+    - report_archive
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_archive
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_archive
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_archive
+  role: user

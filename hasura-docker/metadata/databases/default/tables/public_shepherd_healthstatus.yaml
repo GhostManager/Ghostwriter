@@ -1,0 +1,217 @@
+table:
+  name: shepherd_healthstatus
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    health_status: healthStatus
+  custom_name: healthStatus
+  custom_root_fields: {}
+array_relationships:
+- name: domains
+  using:
+    foreign_key_constraint_on:
+      column: health_status_id
+      table:
+        name: shepherd_domain
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: true
+    check: {}
+    columns:
+    - health_status
+  role: manager
+- permission:
+    backend_only: true
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_healthstatus
+    columns:
+    - health_status
+  role: restricted
+- permission:
+    backend_only: true
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_healthstatus
+    columns:
+    - health_status
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - health_status
+    - id
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_healthstatus
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_healthstatus
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns: []
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_healthstatus
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_healthstatus
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_healthstatus
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_healthstatus
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_healthstatus
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_healthstatus
+  role: user

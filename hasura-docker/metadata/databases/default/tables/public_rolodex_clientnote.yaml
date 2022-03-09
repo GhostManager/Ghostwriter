@@ -1,0 +1,254 @@
+table:
+  name: rolodex_clientnote
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    client_id: clientId
+    operator_id: operatorId
+  custom_name: clientNote
+  custom_root_fields: {}
+object_relationships:
+- name: client
+  using:
+    foreign_key_constraint_on: client_id
+- name: user
+  using:
+    foreign_key_constraint_on: operator_id
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - client_id
+    - note
+    set:
+      operator_id: x-hasura-User-Id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_clientnote
+    columns:
+    - client_id
+    - note
+    set:
+      operator_id: x-hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_clientnote
+    columns:
+    - client_id
+    - note
+    set:
+      operator_id: x-hasura-User-Id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - client_id
+    - id
+    - operator_id
+    - timestamp
+    - note
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_clientnote
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_clientnote
+  role: user
+update_permissions:
+- permission:
+    check:
+      _and:
+      - operator_id:
+          _eq: X-Hasura-User-Id
+      - note:
+          _neq: "\"\""
+    columns:
+    - client_id
+    - note
+    filter:
+      operator_id:
+        _eq: X-Hasura-User-Id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - note:
+          _neq: "\"\""
+    columns:
+    - client_id
+    - note
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - note:
+          _neq: "\"\""
+    columns:
+    - client_id
+    - note
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: user
+delete_permissions:
+- permission:
+    filter:
+      operator_id:
+        _eq: X-Hasura-User-Id
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_clientnote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: user

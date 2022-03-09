@@ -1,0 +1,251 @@
+table:
+  name: shepherd_servernote
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    operator_id: operatorId
+    server_id: serverId
+  custom_name: serverNote
+  custom_root_fields: {}
+object_relationships:
+- name: staticServer
+  using:
+    foreign_key_constraint_on: server_id
+- name: user
+  using:
+    foreign_key_constraint_on: operator_id
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - note
+    - server_id
+    set:
+      operator_id: x-hasura-User-Id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_servernote
+    columns:
+    - note
+    - server_id
+    set:
+      operator_id: x-hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_servernote
+    columns:
+    - note
+    - server_id
+    set:
+      operator_id: x-hasura-User-Id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - note
+    - operator_id
+    - server_id
+    - timestamp
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_servernote
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_servernote
+  role: user
+update_permissions:
+- permission:
+    check:
+      note:
+        _neq: "\"\""
+    columns:
+    - note
+    - server_id
+    filter:
+      operator_id:
+        _eq: X-Hasura-User-Id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_servernote
+      - note:
+          _neq: "\"\""
+    columns:
+    - note
+    - server_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_servernote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_servernote
+      - note:
+          _neq: "\"\""
+    columns:
+    - note
+    - server_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_servernote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: user
+delete_permissions:
+- permission:
+    filter:
+      operator_id:
+        _eq: X-Hasura-User-Id
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_servernote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_servernote
+      - operator_id:
+          _eq: X-Hasura-User-Id
+  role: user

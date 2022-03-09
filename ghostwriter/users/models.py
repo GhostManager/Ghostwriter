@@ -9,6 +9,14 @@ from django.utils.translation import gettext_lazy as _
 # 3rd Party Libraries
 from timezone_field import TimeZoneField
 
+# Roles used for user profiles and JWT authentication
+active_roles = (
+    ("user", "user"),
+    ("manager", "manager"),
+    ("admin", "admin"),
+    ("restricted", "restricted"),
+)
+
 
 class User(AbstractUser):
     """
@@ -35,6 +43,7 @@ class User(AbstractUser):
         blank=True,
         help_text="Enter a phone number for this user",
     )
+    role = CharField(max_length=120, choices=active_roles, default="user")
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})

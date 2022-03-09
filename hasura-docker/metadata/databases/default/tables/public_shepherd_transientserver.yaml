@@ -1,0 +1,296 @@
+table:
+  name: shepherd_transientserver
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    activity_type_id: activityTypeId
+    aux_address: auxAddress
+    ip_address: ipAddress
+    operator_id: operatorId
+    project_id: projectId
+    server_provider_id: serverProviderId
+    server_role_id: serverRoleId
+  custom_name: cloudServer
+  custom_root_fields: {}
+object_relationships:
+- name: activityType
+  using:
+    foreign_key_constraint_on: activity_type_id
+- name: project
+  using:
+    foreign_key_constraint_on: project_id
+- name: serverProvider
+  using:
+    foreign_key_constraint_on: server_provider_id
+- name: serverRole
+  using:
+    foreign_key_constraint_on: server_role_id
+- name: user
+  using:
+    foreign_key_constraint_on: operator_id
+array_relationships:
+- name: domainServerConnections
+  using:
+    foreign_key_constraint_on:
+      column: transient_server_id
+      table:
+        name: shepherd_domainserverconnection
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - activity_type_id
+    - aux_address
+    - ip_address
+    - name
+    - note
+    - project_id
+    - server_provider_id
+    - server_role_id
+    set:
+      operator_id: x-hasura-User-Id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_transientserver
+    columns:
+    - activity_type_id
+    - aux_address
+    - ip_address
+    - name
+    - note
+    - project_id
+    - server_provider_id
+    - server_role_id
+    set:
+      operator_id: x-hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_transientserver
+    columns:
+    - activity_type_id
+    - aux_address
+    - ip_address
+    - name
+    - note
+    - project_id
+    - server_provider_id
+    - server_role_id
+    set:
+      operator_id: x-hasura-User-Id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - aux_address
+    - activity_type_id
+    - id
+    - operator_id
+    - project_id
+    - server_provider_id
+    - server_role_id
+    - name
+    - ip_address
+    - note
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_transientserver
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_transientserver
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - activity_type_id
+    - aux_address
+    - ip_address
+    - name
+    - note
+    - project_id
+    - server_provider_id
+    - server_role_id
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_transientserver
+    columns:
+    - activity_type_id
+    - aux_address
+    - ip_address
+    - name
+    - note
+    - project_id
+    - server_provider_id
+    - server_role_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_transientserver
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_transientserver
+    columns:
+    - activity_type_id
+    - aux_address
+    - ip_address
+    - name
+    - note
+    - project_id
+    - server_provider_id
+    - server_role_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_transientserver
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_transientserver
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_transientserver
+  role: user

@@ -1,0 +1,261 @@
+table:
+  name: shepherd_domainserverconnection
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    domain_id: domainId
+    project_id: projectId
+    static_server_id: staticServerId
+    transient_server_id: transientServerId
+  custom_name: domainServerConnection
+  custom_root_fields: {}
+object_relationships:
+- name: cloudServer
+  using:
+    foreign_key_constraint_on: transient_server_id
+- name: domain
+  using:
+    foreign_key_constraint_on: domain_id
+- name: project
+  using:
+    foreign_key_constraint_on: project_id
+- name: staticServer
+  using:
+    foreign_key_constraint_on: static_server_id
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - domain_id
+    - endpoint
+    - project_id
+    - static_server_id
+    - subdomain
+    - transient_server_id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_domainserverconnection
+    columns:
+    - domain_id
+    - endpoint
+    - project_id
+    - static_server_id
+    - subdomain
+    - transient_server_id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_domainserverconnection
+    columns:
+    - domain_id
+    - endpoint
+    - project_id
+    - static_server_id
+    - subdomain
+    - transient_server_id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - domain_id
+    - id
+    - project_id
+    - static_server_id
+    - transient_server_id
+    - endpoint
+    - subdomain
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_domainserverconnection
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_domainserverconnection
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - domain_id
+    - endpoint
+    - project_id
+    - static_server_id
+    - subdomain
+    - transient_server_id
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domainserverconnection
+    columns:
+    - domain_id
+    - endpoint
+    - project_id
+    - static_server_id
+    - subdomain
+    - transient_server_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domainserverconnection
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domainserverconnection
+    columns:
+    - domain_id
+    - endpoint
+    - project_id
+    - static_server_id
+    - subdomain
+    - transient_server_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domainserverconnection
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_domainserverconnection
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_domainserverconnection
+  role: user

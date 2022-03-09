@@ -1,0 +1,16 @@
+actions:
+- name: login
+  definition:
+    kind: synchronous
+    handler: '{{ACTIONS_URL_BASE}}/login'
+  permissions:
+  - role: manager
+  - role: restricted
+  - role: user
+  - role: public
+custom_types:
+  enums: []
+  input_objects: []
+  objects:
+  - name: LoginResponse
+  scalars: []

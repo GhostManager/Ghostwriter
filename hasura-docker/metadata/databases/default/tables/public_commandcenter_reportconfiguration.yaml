@@ -1,0 +1,90 @@
+table:
+  name: commandcenter_reportconfiguration
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    border_color: borderColor
+    border_weight: borderWeight
+    default_docx_template_id: docxTemplateId
+    default_pptx_template_id: pptxTemplateId
+    enable_borders: enableBorders
+    label_figure: labelFigure
+    label_table: labelTable
+    prefix_figure: prefixFigure
+    prefix_table: prefixTable
+  custom_name: reportConfiguration
+  custom_root_fields: {}
+object_relationships:
+- name: docxTemplate
+  using:
+    foreign_key_constraint_on: default_docx_template_id
+- name: pptxTemplate
+  using:
+    foreign_key_constraint_on: default_pptx_template_id
+select_permissions:
+- permission:
+    columns:
+    - id
+    - border_weight
+    - border_color
+    - prefix_figure
+    - prefix_table
+    - default_docx_template_id
+    - default_pptx_template_id
+    - enable_borders
+    - label_figure
+    - label_table
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_reportconfiguration
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_reportconfiguration
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - border_color
+    - border_weight
+    - default_docx_template_id
+    - default_pptx_template_id
+    - enable_borders
+    - label_figure
+    - label_table
+    - prefix_figure
+    - prefix_table
+    filter: {}
+  role: manager
