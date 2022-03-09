@@ -6,31 +6,7 @@ from django.conf import settings
 
 # 3rd Party Libraries
 import jwt
-from graphql_jwt.settings import jwt_settings
 
-
-## JWT payload for Hasura
-def jwt_payload(user, context=None):
-    allowed_roles = [user.role]
-    if user.is_superuser:
-        allowed_roles.append("manager")
-
-    jwt_datetime = datetime.utcnow() + jwt_settings.JWT_EXPIRATION_DELTA
-    jwt_expires = int(jwt_datetime.timestamp())
-    payload = {}
-    payload["username"] = str(user.username)
-    payload["sub"] = str(user.id)
-    payload["sub_name"] = str(user.username)
-    payload["sub_email"] = str(user.email)
-    payload["exp"] = jwt_expires
-    payload["https://hasura.io/jwt/claims"] = {}
-    payload["https://hasura.io/jwt/claims"]["x-hasura-allowed-roles"] = allowed_roles
-    payload["https://hasura.io/jwt/claims"][
-        "x-hasura-default-role"
-    ] = user.role
-    payload["https://hasura.io/jwt/claims"]["x-hasura-user-id"] = str(user.id)
-    payload["https://hasura.io/jwt/claims"]["x-hasura-user"] = str(user.username)
-    return payload
 
 def jwt_encode(payload, context=None):
     return jwt.encode(
@@ -38,6 +14,7 @@ def jwt_encode(payload, context=None):
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
         settings.GRAPHQL_JWT["JWT_ALGORITHM"],
     )
+
 
 def jwt_decode(token, context=None):
     return jwt.decode(
@@ -53,6 +30,7 @@ def jwt_decode(token, context=None):
         issuer=None,
         algorithms=[settings.GRAPHQL_JWT["JWT_ALGORITHM"]],
     )
+
 
 def generate_jwt_token(user, context=None):
     allowed_roles = [user.role]
@@ -78,4 +56,11 @@ def generate_jwt_token(user, context=None):
     payload["https://hasura.io/jwt/claims"]["x-hasura-user-id"] = str(user.id)
     payload["https://hasura.io/jwt/claims"]["x-hasura-user-name"] = str(user.username)
 
-    return jwt_encode(payload)
+    return payload, jwt_encode(payload)
+
+
+def generate_hasura_error_payload(error_message, error_code):
+    return {
+        "message": error_message,
+        "extensions": {"code": error_code, },
+    }
