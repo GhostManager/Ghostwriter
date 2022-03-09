@@ -18,6 +18,7 @@ from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
     graphql_login,
+    graphql_whoami,
 )
 
 urlpatterns = [
@@ -51,6 +52,7 @@ urlpatterns = [
     ),
     path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=False))),
     path("api/login", csrf_exempt(graphql_login)),
+    path("api/whoami", csrf_exempt(graphql_whoami)),
     # Add additional custom paths below this line...
     # Your stuff: custom urls includes go here
 ]
