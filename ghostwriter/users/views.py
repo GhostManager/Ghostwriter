@@ -10,6 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, RedirectView, UpdateView
 
 # 3rd Party Libraries
@@ -24,26 +25,32 @@ from ghostwriter.users.forms import UserChangeForm
 User = get_user_model()
 
 
+@require_http_methods(["POST", ])
 def graphql_login(request):
     """Authentication and JWT generation logic for the ``login`` action."""
     status = 200
 
-    # Load the request body as JSON
-    data = json.loads(request.body)
-    data = data["input"]
+    try:
+        # Load the request body as JSON
+        data = json.loads(request.body)
+        data = data["input"]
 
-    # Authenticate the user with Django's back-end
-    user = authenticate(**data)
-    # A successful auth will return a ``User`` object
-    if user:
-        payload, jwt_token = utils.generate_jwt_token(user)
-        data = {"token": f"{jwt_token}", "expires": payload["exp"]}
-    else:
-        status = 403
-        data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
+        # Authenticate the user with Django's back-end
+        user = authenticate(**data)
+        # A successful auth will return a ``User`` object
+        if user:
+            payload, jwt_token = utils.generate_jwt_token(user)
+            data = {"token": f"{jwt_token}", "expires": payload["exp"]}
+        else:
+            status = 403
+            data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
+    except KeyError:
+        status = 400
+        data = utils.generate_hasura_error_payload("Invalid request body", "InvalidRequestBody")
     return JsonResponse(data, status=status)
 
 
+@require_http_methods(["POST", ])
 def graphql_whoami(request):
     """Authentication and JWT generation logic for the ``login`` action."""
     status = 200
@@ -60,7 +67,7 @@ def graphql_whoami(request):
                 "expires": jwt_token["exp"],
             }
         except Exception as exception:
-            status = 400
+            status = 403
             data = utils.generate_hasura_error_payload(f"{type(exception).__name__}", "JWTInvalid")
     else:
         status = 400
