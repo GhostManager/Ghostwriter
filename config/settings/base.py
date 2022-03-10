@@ -424,8 +424,8 @@ GRAPHQL_JWT = {
     "JWT_EXPIRATION_DELTA": timedelta(minutes=15),
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_AUDIENCE": "Ghostwriter",
-    "JWT_SECRET_KEY": os.environ["DJANGO_SECRET_KEY"],
+    "JWT_SECRET_KEY": env("DJANGO_SECRET_KEY", default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe"),
     "JWT_ALGORITHM": "HS256",
 }
 
-HASURA_ACTION_SECRET = os.environ["HASURA_ACTION_SECRET"]
+HASURA_ACTION_SECRET = env("HASURA_ACTION_SECRET", default="changeme",)
