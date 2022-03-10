@@ -30,23 +30,27 @@ def graphql_login(request):
     """Authentication and JWT generation logic for the ``login`` action."""
     status = 200
 
-    try:
-        # Load the request body as JSON
-        data = json.loads(request.body)
-        data = data["input"]
+    if utils.verify_graphql_request(request.headers):
+        try:
+            # Load the request body as JSON
+            data = json.loads(request.body)
+            data = data["input"]
 
-        # Authenticate the user with Django's back-end
-        user = authenticate(**data)
-        # A successful auth will return a ``User`` object
-        if user:
-            payload, jwt_token = utils.generate_jwt_token(user)
-            data = {"token": f"{jwt_token}", "expires": payload["exp"]}
-        else:
-            status = 403
-            data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
-    except KeyError:
-        status = 400
-        data = utils.generate_hasura_error_payload("Invalid request body", "InvalidRequestBody")
+            # Authenticate the user with Django's back-end
+            user = authenticate(**data)
+            # A successful auth will return a ``User`` object
+            if user:
+                payload, jwt_token = utils.generate_jwt_token(user)
+                data = {"token": f"{jwt_token}", "expires": payload["exp"]}
+            else:
+                status = 403
+                data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
+        except KeyError:
+            status = 400
+            data = utils.generate_hasura_error_payload("Invalid request body", "InvalidRequestBody")
+    else:
+        status = 403
+        data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
     return JsonResponse(data, status=status)
 
 
@@ -55,23 +59,27 @@ def graphql_whoami(request):
     """Authentication and JWT generation logic for the ``login`` action."""
     status = 200
 
-    # Get the forwarded ``Authorization`` header
-    token = request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
-    if token:
-        try:
-            # Try to decode the JWT token
-            jwt_token = utils.jwt_decode(token)
-            data = {
-                "username": jwt_token["username"],
-                "role": jwt_token["https://hasura.io/jwt/claims"]["x-hasura-default-role"],
-                "expires": jwt_token["exp"],
-            }
-        except Exception as exception:
-            status = 403
-            data = utils.generate_hasura_error_payload(f"{type(exception).__name__}", "JWTInvalid")
+    if utils.verify_graphql_request(request.headers):
+        # Get the forwarded ``Authorization`` header
+        token = request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
+        if token:
+            try:
+                # Try to decode the JWT token
+                jwt_token = utils.jwt_decode(token)
+                data = {
+                    "username": jwt_token["username"],
+                    "role": jwt_token["https://hasura.io/jwt/claims"]["x-hasura-default-role"],
+                    "expires": jwt_token["exp"],
+                }
+            except Exception as exception:
+                status = 403
+                data = utils.generate_hasura_error_payload(f"{type(exception).__name__}", "JWTInvalid")
+        else:
+            status = 400
+            data = utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing")
     else:
-        status = 400
-        data = utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing")
+        status = 403
+        data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
     return JsonResponse(data, status=status)
 
 
