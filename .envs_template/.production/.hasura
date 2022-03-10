@@ -7,6 +7,9 @@ HASURA_GRAPHQL_MIGRATIONS_DIR=/migrations
 # Set administrator password/secret for Production
 HASURA_GRAPHQL_ADMIN_SECRET=changeme
 
+# Set passphrase for Hasura Action webhook endpoints
+HASURA_ACTION_SECRET=changeme
+
 # Set JWT secret
 HASURA_GRAPHQL_JWT_SECRET='{ "type": "HS256", "key": "changeme" }'
 HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public
