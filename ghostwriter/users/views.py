@@ -27,7 +27,7 @@ User = get_user_model()
 
 @require_http_methods(["POST", ])
 def graphql_login(request):
-    """Authentication and JWT generation logic for the ``login`` action."""
+    """Authentication and JWT generation logic for the Hasura ``login`` action."""
     status = 200
 
     if utils.verify_graphql_request(request.headers):
@@ -56,7 +56,7 @@ def graphql_login(request):
 
 @require_http_methods(["POST", ])
 def graphql_whoami(request):
-    """Authentication and JWT generation logic for the ``login`` action."""
+    """User verification and information look-up for the Hasura ``whoami`` action."""
     status = 200
 
     if utils.verify_graphql_request(request.headers):
