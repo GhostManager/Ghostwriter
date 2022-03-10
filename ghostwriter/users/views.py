@@ -7,17 +7,16 @@ import json
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.serializers import serialize
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, RedirectView, UpdateView
 
 # 3rd Party Libraries
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
 
 # Ghostwriter Libraries
-import ghostwriter
 from ghostwriter import utils
 from ghostwriter.home.forms import UserProfileForm
 from ghostwriter.home.models import UserProfile
@@ -26,19 +25,62 @@ from ghostwriter.users.forms import UserChangeForm
 User = get_user_model()
 
 
+@require_http_methods(["POST", ])
 def graphql_login(request):
-    """Authentication and JWT generation logic for the ``login`` action."""
-    data = json.loads(request.body)
-    data = data["input"]
-    # Authenticate the user with Django
-    user = authenticate(**data)
+    """Authentication and JWT generation logic for the Hasura ``login`` action."""
+    status = 200
 
-    if user:
-        jwt_token = utils.generate_jwt_token(user)
-        data = {"token": f"{jwt_token}"}
+    if utils.verify_graphql_request(request.headers):
+        try:
+            # Load the request body as JSON
+            data = json.loads(request.body)
+            data = data["input"]
+
+            # Authenticate the user with Django's back-end
+            user = authenticate(**data)
+            # A successful auth will return a ``User`` object
+            if user:
+                payload, jwt_token = utils.generate_jwt_token(user)
+                data = {"token": f"{jwt_token}", "expires": payload["exp"]}
+            else:
+                status = 403
+                data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
+        except KeyError:
+            status = 400
+            data = utils.generate_hasura_error_payload("Invalid request body", "InvalidRequestBody")
     else:
-        data = {"token": ""}
-    return JsonResponse(data)
+        status = 403
+        data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
+    return JsonResponse(data, status=status)
+
+
+@require_http_methods(["POST", ])
+def graphql_whoami(request):
+    """User verification and information look-up for the Hasura ``whoami`` action."""
+    status = 200
+
+    if utils.verify_graphql_request(request.headers):
+        # Get the forwarded ``Authorization`` header
+        token = request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
+        if token:
+            try:
+                # Try to decode the JWT token
+                jwt_token = utils.jwt_decode(token)
+                data = {
+                    "username": jwt_token["username"],
+                    "role": jwt_token["https://hasura.io/jwt/claims"]["x-hasura-default-role"],
+                    "expires": jwt_token["exp"],
+                }
+            except Exception as exception:
+                status = 403
+                data = utils.generate_hasura_error_payload(f"{type(exception).__name__}", "JWTInvalid")
+        else:
+            status = 400
+            data = utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing")
+    else:
+        status = 403
+        data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
+    return JsonResponse(data, status=status)
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):

@@ -77,41 +77,43 @@
             </div>
         </div>
 
-        <div class="row align-items-center">
-            <div class="col-sm">
-                <p class="bold icon user-role-icon">Role</p>
+        {% if request.user == user %}
+            <div class="row align-items-center">
+                <div class="col-sm">
+                    <p class="bold icon user-role-icon">Role</p>
+                </div>
+                <div class="col-sm">
+                    <p class="text-center">
+                        {{ user.role|capfirst }}
+                    </p>
+                </div>
             </div>
-            <div class="col-sm">
-                <p class="text-center">
-                    {{ user.role|capfirst }}
-                </p>
-            </div>
-        </div>
 
-        <div class="row align-items-center">
-            <div class="col-sm">
-                <p class="bold icon access-icon">Access</p>
+            <div class="row align-items-center">
+                <div class="col-sm">
+                    <p class="bold icon access-icon">Access</p>
+                </div>
+                <div class="col-sm">
+                    <p class="text-center">
+                        {% if user.is_superuser %}Superuser{% elif user.is_staff %}Staff{% else %}Normal User{% endif %}
+                    </p>
+                </div>
             </div>
-            <div class="col-sm">
-                <p class="text-center">
-                    {% if user.is_superuser %}Superuser{% elif user.is_staff %}Staff{% else %}Normal User{% endif %}
-                </p>
+            <div class="row align-items-center">
+                <div class="col-sm">
+                    <p class="bold icon groups-icon">Groups</p>
+                </div>
+                <div class="col-sm">
+                    <p class="text-center">
+                        {% if user|get_groups %}
+                            {{ user|get_groups }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </p>
+                </div>
             </div>
-        </div>
-        <div class="row align-items-center">
-            <div class="col-sm">
-                <p class="bold icon groups-icon">Groups</p>
-            </div>
-            <div class="col-sm">
-                <p class="text-center">
-                    {% if user|get_groups %}
-                        {{ user|get_groups }}
-                    {% else %}
-                        --
-                    {% endif %}
-                </p>
-            </div>
-        </div>
+        {% endif %}
     </div>
 
     <!-- Account Information Update -->

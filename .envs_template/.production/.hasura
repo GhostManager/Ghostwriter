@@ -1,12 +1,18 @@
 # Hasura
 # ------------------------------------------------------------------------------
 HASURA_GRAPHQL_SERVER_PORT=8080
-# HASURA_GRAPHQL_METADATA_DIR=/metadata
-# HASURA_GRAPHQL_MIGRATIONS_DIR=/migrations
-HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public
+HASURA_GRAPHQL_METADATA_DIR=/metadata
+HASURA_GRAPHQL_MIGRATIONS_DIR=/migrations
 
 # Set administrator password/secret for Production
 HASURA_GRAPHQL_ADMIN_SECRET=changeme
+
+# Set passphrase for Hasura Action webhook endpoints
+HASURA_ACTION_SECRET=changeme
+
+# Set JWT secret
+HASURA_GRAPHQL_JWT_SECRET='{ "type": "HS256", "key": "changeme" }'
+HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public
 
 # Disable debugging mode and set up for Production
 HASURA_GRAPHQL_DEV_MODE=false
@@ -15,9 +21,10 @@ HASURA_GRAPHQL_ENABLED_LOG_TYPES=startup, http-log, webhook-log, websocket-log, 
 # Set to "false" to disable console
 HASURA_GRAPHQL_ENABLE_CONSOLE=true
 HASURA_GRAPHQL_ENABLE_TELEMETRY=false
+HASURA_GRAPHQL_ENABLE_ALLOWLIST=true
 
 # Disable insecure mode for Production
 HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=false
 
-# Update this with your domain name or IP address
-ACTIONS_URL_BASE: https://<GHOSTWRITER>:443/api
+# Update ``ALLOWED_HOSTS`` in local.py if you change this or the Docker container's name
+ACTIONS_URL_BASE: https://host.docker.internal:443/api
