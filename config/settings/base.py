@@ -12,7 +12,7 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.2.4"
+__version__ = "2.3.0"
 VERSION = __version__
 RELEASE_DATE = "9 Mar 2022"
 
