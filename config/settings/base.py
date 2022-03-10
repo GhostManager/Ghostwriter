@@ -2,7 +2,6 @@
 Base settings to build other settings files upon.
 """
 # Standard Libraries
-import os
 from datetime import timedelta
 from pathlib import Path
 
