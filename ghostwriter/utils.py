@@ -74,7 +74,7 @@ def verify_graphql_request(headers):
     """Verify that the request is a valid GraphQL request."""
     if headers.get("Action-Secret") is None:
         return False
-    else:
-        if headers["Action-Secret"] == settings.HASURA_ACTION_SECRET:
-            return True
-        return False
+
+    if headers["Action-Secret"] == settings.HASURA_ACTION_SECRET:
+        return True
+    return False
