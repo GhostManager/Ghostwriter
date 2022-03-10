@@ -9,6 +9,7 @@ import jwt
 
 
 def jwt_encode(payload, context=None):
+    """Encode a JWT token."""
     return jwt.encode(
         payload,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
@@ -17,6 +18,7 @@ def jwt_encode(payload, context=None):
 
 
 def jwt_decode(token, context=None):
+    """Decode a JWT token."""
     return jwt.decode(
         token,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
@@ -33,6 +35,7 @@ def jwt_decode(token, context=None):
 
 
 def generate_jwt_token(user, context=None):
+    """Generate a JWT token for the user."""
     allowed_roles = [user.role]
     if user.is_superuser:
         allowed_roles.append("manager")
@@ -60,7 +63,18 @@ def generate_jwt_token(user, context=None):
 
 
 def generate_hasura_error_payload(error_message, error_code):
+    """Generate a standard error payload for Hasura."""
     return {
         "message": error_message,
         "extensions": {"code": error_code, },
     }
+
+
+def verify_graphql_request(headers):
+    """Verify that the request is a valid GraphQL request."""
+    if headers.get("Action-Secret") is None:
+        return False
+    else:
+        if headers["Action-Secret"] == settings.HASURA_ACTION_SECRET:
+            return True
+        return False
