@@ -11,6 +11,12 @@
         "reportMissingModuleSource": "none",
     },
     "editor.formatOnSave": true,
+    "[javascript]": {
+        "editor.formatOnSave": false
+    },
+    "[html]": {
+        "editor.formatOnSave": false
+    },
     "files.trimTrailingWhitespace": true,
     "python.formatting.provider": "black",
     "python.formatting.blackArgs": [
