@@ -4,16 +4,10 @@
 from django.contrib import admin
 from django.http import HttpResponseRedirect
 from django.urls import re_path
-from django.utils.translation import gettext_lazy as _
+from django.utils.encoding import force_str
+from django.utils.translation import gettext as _
 
 from .models import DEFAULT_SINGLETON_INSTANCE_ID
-
-try:
-    # Django Imports
-    from django.utils.encoding import force_unicode
-except ImportError:
-    # Django Imports
-    from django.utils.encoding import force_str as force_unicode
 
 
 class SingletonModelAdmin(admin.ModelAdmin):
@@ -29,10 +23,7 @@ class SingletonModelAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
 
-        try:
-            model_name = self.model._meta.model_name
-        except AttributeError:
-            model_name = self.model._meta.module_name.lower()
+        model_name = self.model._meta.model_name
 
         self.model._meta.verbose_name_plural = self.model._meta.verbose_name
         url_name_prefix = "%(app_name)s_%(model_name)s" % {
@@ -57,7 +48,7 @@ class SingletonModelAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def response_change(self, request, obj):
-        msg = _("%(obj)s was changed successfully.") % {"obj": force_unicode(obj)}
+        msg = _("%(obj)s was changed successfully.") % {"obj": force_str(obj)}
         if "_continue" in request.POST:
             self.message_user(request, f"{msg} {_('You may edit it again below.')}")
             return HttpResponseRedirect(request.path)
