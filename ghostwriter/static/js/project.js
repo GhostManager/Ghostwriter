@@ -15,12 +15,6 @@ function displayToastTop({
     }
   }
   delay = delay * 1000;
-  if (type === 'error' && delay === 4000) {
-    delay = 0;
-  }
-  if (type === 'info' && delay === 4000) {
-    delay = 0;
-  }
   toastr.options.timeOut = delay.toString();
   toastr.options.extendedTimeOut = delay.toString();
   toastr.options.escapeHtml = escapeHTML;
