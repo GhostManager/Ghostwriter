@@ -114,7 +114,7 @@ def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=None, only_running=False):
     message = ""
     instances = []
     if ignore_tags is None:
-        ignore_tags=[]
+        ignore_tags = []
     try:
         client = boto3.client(
             "ec2",
@@ -216,7 +216,7 @@ def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=None):
     message = ""
     instances = []
     if ignore_tags is None:
-        ignore_tags=[]
+        ignore_tags = []
     try:
         # Get all Lightsail instances using the low-level client (no resource option available)
         # Ref: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lightsail.html#Lightsail.Client.get_instances
@@ -316,7 +316,7 @@ def fetch_aws_s3(aws_key, aws_secret, ignore_tags=None):
     message = ""
     buckets = []
     if ignore_tags is None:
-        ignore_tags=[]
+        ignore_tags = []
     try:
         logger.info("Collecting bucket resources from AWS S3")
         # Create an S3 client
@@ -385,7 +385,7 @@ def fetch_digital_ocean(api_key, ignore_tags=None):
     capable = False
     active_droplets = None
     if ignore_tags is None:
-        ignore_tags=[]
+        ignore_tags = []
 
     headers = {"Content-Type": "application/json"}
     try:

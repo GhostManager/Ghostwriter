@@ -13,8 +13,6 @@ from ghostwriter.factories import (
     OplogEntryFactory,
     OplogFactory,
     ProjectFactory,
-    ReportFactory,
-    ReportFindingLinkFactory,
     UserFactory,
 )
 

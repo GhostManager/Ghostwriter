@@ -117,7 +117,7 @@ class SeverityModelTests(TestCase):
 
     def test_prop_count(self):
         severity = SeverityFactory(severity="High", weight=2, color="FFFFFF")
-        finding = FindingFactory(severity=severity)
+        FindingFactory(severity=severity)
         try:
             count = severity.count
             self.assertEqual(1, count)
@@ -153,7 +153,7 @@ class FindingTypeModelTests(TestCase):
 
     def test_prop_count(self):
         finding_type = FindingTypeFactory(finding_type="Network")
-        finding = FindingFactory(finding_type=finding_type)
+        FindingFactory(finding_type=finding_type)
         try:
             count = finding_type.count
             self.assertEqual(1, count)

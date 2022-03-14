@@ -125,7 +125,7 @@ def roll_codename(request):
             "Generated new codename at request of %s",
             request.user,
         )
-    except Exception as exception: # pragma: no cover
+    except Exception as exception:  # pragma: no cover
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         log_message = template.format(type(exception).__name__, exception.args)
         logger.error(log_message)
@@ -237,7 +237,7 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                 new_status,
                 self.request.user,
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -279,7 +279,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -445,7 +445,7 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -519,7 +519,7 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
                     "result": "error",
                     "message": "Your new task must have a valid task and due date",
                 }
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -564,7 +564,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -606,7 +606,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -676,7 +676,7 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                     "result": "error",
                     "message": "Task cannot be updated without a valid task and due date",
                 }
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -920,7 +920,7 @@ class ClientCreate(LoginRequiredMixin, CreateView):
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
@@ -1004,7 +1004,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
@@ -1275,7 +1275,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)

@@ -987,7 +987,7 @@ def fetch_namecheap_domains():
                     page_size = root.CommandResponse.Paging.PageSize
 
                     # Divide total by page size and round up for total pages
-                    total_pages = ceil(total_domains/page_size)
+                    total_pages = ceil(total_domains / page_size)
                     if total_pages != pages:
                         logger.info("Updating page total to %s", total_pages)
                         pages = total_pages

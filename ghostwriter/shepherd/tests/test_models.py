@@ -137,7 +137,7 @@ class WhoisStatusModelTests(TestCase):
 
     def test_prop_count_status(self):
         status = WhoisStatusFactory(whois_status="Enabled")
-        domain = DomainFactory(whois_status=status)
+        DomainFactory(whois_status=status)
 
         try:
             count = status.count

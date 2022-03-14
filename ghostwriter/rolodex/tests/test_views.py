@@ -159,21 +159,21 @@ class ProjectObjectiveStatusUpdateViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.in_progress}",})
+        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.in_progress}", })
 
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.in_progress)
 
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.missed}",})
+        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.missed}", })
 
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.missed)
 
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.active}",})
+        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.active}", })
 
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.active)
@@ -284,4 +284,3 @@ class ProjectStatusToggleViewTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
-
