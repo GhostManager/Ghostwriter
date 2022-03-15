@@ -548,9 +548,10 @@ def domain_list(request):
         ).all()
     # Copy the GET request data
     data = request.GET.copy()
-    # If user has not submitted their own filter, default to showing only Available domains
+    # If user has not submitted a filter, default showing Available domains with expiry dates in the future
     if len(data) == 0:
         data["domain_status"] = 1
+        data["exclude_expired"] = True
     domains_filter = DomainFilter(data, queryset=domains_list)
     return render(request, "shepherd/domain_list.html", {"filter": domains_filter})
 

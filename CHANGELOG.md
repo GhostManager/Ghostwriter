@@ -15,9 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * New `HASURA_ACTION_SECRET` envionment variable to templates
   * New utilities for generating and managing JSON Web Tokens for the GraphQL API
 
+# Removed
+
+* Removed "WHOIS Privacy" colum on domain list page to make room for more petinent information
+
 ### Fixed
 
 * Bumped `djangorestframework-api-key` to v2.2.0 to fix REST API key creation (closes #197)
+* Overrode Django's ``get_full_name()`` method used for the admin site so the user's proper full name is displayed in history logs
 
 ### Changed
 
@@ -25,6 +30,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Updated env templates with a `DATE_FORMAT` configuration for managing your preferred format
   * See updated installation documentation on ghostwriter.wiki
 * User profiles now only show the user's role, groups, and Ghostwriter user status to the profile owner
+* Updated nginx.conf to align it with Mozilla's recommendations for nginx v1.21.1 and OpenSSL 1.1.1l
+  * See config: [https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6](https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6)
+* Toast messages for errors are no longer sticky so they do not have to be manually dismissed when covering UI elements
+* Updated singleton models for Django 4.0 support
+* Domain list table now shows an "Expiry" column and "Categories" column now parses the new ``categorization`` JSON field data
+* Domain list filtering now includes a "Filter Expired" toggle that on by default
+  * Filters out domains with expiration dates in the past and `auto_renew` set to `False` even if status is set to "Available"
 
 ## [2.2.3] - 2022-02-16
 
