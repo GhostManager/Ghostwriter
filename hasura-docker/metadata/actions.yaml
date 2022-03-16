@@ -4,7 +4,7 @@ actions:
     kind: synchronous
     handler: '{{ACTIONS_URL_BASE}}/login'
     headers:
-    - name: HASURA_ACTION_SECRET
+    - name: Hasura-Action-Secret
       value_from_env: HASURA_ACTION_SECRET
   permissions:
   - role: manager
@@ -17,7 +17,7 @@ actions:
     handler: '{{ACTIONS_URL_BASE}}/whoami'
     forward_client_headers: true
     headers:
-    - name: HASURA_ACTION_SECRET
+    - name: Hasura-Action-Secret
       value_from_env: HASURA_ACTION_SECRET
   permissions:
   - role: user
