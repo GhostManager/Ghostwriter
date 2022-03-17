@@ -39,7 +39,7 @@ def update_session(request):
     """
     Update the requesting user's session variable based on ``session_data`` in POST.
     """
-    if request.method=="POST":
+    if request.method == "POST":
         req_data = request.POST.get("session_data", None)
         if req_data:
             if req_data == "sidebar":

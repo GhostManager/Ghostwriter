@@ -129,7 +129,7 @@ class DomainAdmin(ImportExportModelAdmin):
     )
     list_display_links = ("domain_status", "name")
     list_editable = ("reset_dns",)
-    readonly_fields=('last_health_check',)
+    readonly_fields = ('last_health_check',)
     fieldsets = (
         ("General Information", {"fields": ("name", "domain_status", "creation", "expiration", "auto_renew")}),
         (

@@ -26,6 +26,7 @@ def create_user_profile(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.create(user=instance)
 
+
 @receiver(post_init, sender=UserProfile)
 def backup_avatar_path(sender, instance, **kwargs):
     """

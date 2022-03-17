@@ -1,7 +1,11 @@
 """This contains all of the model filters used by the Shepherd application."""
 
+# Standard Libraries
+from datetime import date
+
 # Django Imports
 from django import forms
+from django.db.models import Q
 from django.forms.widgets import TextInput
 
 # 3rd Party Libraries
@@ -14,6 +18,9 @@ from crispy_forms.bootstrap import (
 )
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+
+# Ghostwriter Libraries
+from ghostwriter.modules.custom_layout_object import SwitchToggle
 
 from .models import Domain, DomainStatus, HealthStatus, ServerStatus
 
@@ -32,8 +39,8 @@ class DomainFilter(django_filters.FilterSet):
         Checkbox choice filter using :model:`shepherd.HealthStatus`
     ``domain_status``
         Checkbox choice filter using :model:`shepherd.DomainStatus`
-    ``expiration_status``
-        Boolean field to filter expired domains
+    ``exclude_expired``
+        Checkbox to exclude expired domains from search results
     """
 
     name = django_filters.CharFilter(
@@ -57,24 +64,31 @@ class DomainFilter(django_filters.FilterSet):
         label="",
     )
 
-    STATUS_CHOICES = (
-        (0, "Active"),
-        (1, "Expired"),
-    )
-    expiration_status = django_filters.ChoiceFilter(
-        field_name="expired", choices=STATUS_CHOICES, label="Expiration Status"
+    exclude_expired = django_filters.BooleanFilter(
+        label="Filter Expired",
+        method="filter_expired",
+        widget=forms.CheckboxInput,
     )
 
     class Meta:
         model = Domain
         fields = ["name", "categorization", "health_status", "domain_status"]
 
+    def filter_expired(self, queryset, name, value):
+        """
+        Choose to include or exclude expired domains in search results.
+        """
+        if value:
+            # return queryset.filter(Q(expiration__lt=date.today()) & Q(auto_renew=False))
+            return queryset.filter(Q(expiration__gte=date.today()) | Q(auto_renew=True))
+        return queryset
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
         self.helper.form_class = "newitem"
-        self.helper.form_show_labels = False
+        self.helper.form_show_labels = True
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Row(
@@ -84,12 +98,16 @@ class DomainFilter(django_filters.FilterSet):
                 ),
                 Column(
                     PrependedText("categorization", '<i class="fas fa-filter"></i>'),
-                    css_class=" col-md-6",
+                    css_class="col-md-6",
                 ),
                 css_class="form-row",
             ),
             Accordion(
-                AccordionGroup("Domain Status", InlineCheckboxes("domain_status")),
+                AccordionGroup(
+                    "Domain Status",
+                    InlineCheckboxes("domain_status"),
+                    SwitchToggle("exclude_expired")
+                ),
                 AccordionGroup("Health Status", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(

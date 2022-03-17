@@ -3,10 +3,9 @@
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
-<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo;
-<a href="../../">{{ opts.app_config.verbose_name }}</a> &rsaquo;
-<a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
-{% trans 'History' %}
-
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo;
+    <a href="../../">{{ opts.app_config.verbose_name }}</a> &rsaquo;
+    <a href="../">{{ object|truncatewords:"18" }}</a> &rsaquo;
+    {% trans 'History' %}
 </div>
 {% endblock %}

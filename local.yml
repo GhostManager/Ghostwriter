@@ -66,6 +66,3 @@ services:
     env_file:
       - ./.envs/.local/.postgres
       - ./.envs/.local/.hasura
-    labels:
-      NAME: "graphql"
-    container_name: graphql

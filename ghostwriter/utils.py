@@ -72,9 +72,10 @@ def generate_hasura_error_payload(error_message, error_code):
 
 def verify_graphql_request(headers):
     """Verify that the request is a valid GraphQL request."""
-    if headers.get("Action-Secret") is None:
+    HASURA_ACTION_SECRET = headers.get("Hasura-Action-Secret")
+    if HASURA_ACTION_SECRET is None:
         return False
 
-    if headers["Action-Secret"] == settings.HASURA_ACTION_SECRET:
+    if HASURA_ACTION_SECRET == settings.HASURA_ACTION_SECRET:
         return True
     return False

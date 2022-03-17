@@ -64,3 +64,10 @@ class User(AbstractUser):
             display_name = "DISABLED – " + display_name
 
         return display_name
+
+    def get_full_name(self):
+        """
+        Override the default method to return the user's full name. Django uses this to
+        display the user's name in different places in the admin site.
+        """
+        return self.name

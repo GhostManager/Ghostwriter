@@ -179,7 +179,6 @@ class Command(BaseCommand):
             project_domains = []
             project_servers = []
             project_cloud = []
-            scopes = []
             targets = []
             oplogs = []
 
@@ -237,7 +236,7 @@ class Command(BaseCommand):
                     )
 
             # Populate project scope lists
-            scopes = ProjectScopeFactory.create_batch(SCOPES_PER_PROJECT, project=p)
+            ProjectScopeFactory.create_batch(SCOPES_PER_PROJECT, project=p)
 
             # Populate project targets
             targets = ProjectTargetFactory.create_batch(TARGETS_PER_PROJECT, project=p)

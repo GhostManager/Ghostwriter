@@ -903,7 +903,6 @@ class ReportDeliveryToggleViewTests(TestCase):
         self.report.refresh_from_db()
         self.assertEqual(self.report.delivered, False)
 
-
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)

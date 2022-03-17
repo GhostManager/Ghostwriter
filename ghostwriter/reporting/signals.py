@@ -60,7 +60,7 @@ def remove_evidence_on_delete(sender, instance, **kwargs):
             try:
                 os.remove(instance.document.path)
                 logger.info("Deleted report template at %s", instance.document.path)
-            except Exception: # pragma: no cover
+            except Exception:  # pragma: no cover
                 logger.warning(
                     "Failed to delete file associated with %s %s: %s",
                     instance.__class__.__name__,
@@ -158,7 +158,7 @@ def remove_template_on_delete(sender, instance, **kwargs):
             try:
                 os.remove(instance.document.path)
                 logger.info("Deleted report template at %s", instance.document.path)
-            except Exception: # pragma: no cover
+            except Exception:  # pragma: no cover
                 logger.warning(
                     "Failed to delete file associated with %s %s: %s",
                     instance.__class__.__name__,

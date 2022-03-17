@@ -317,7 +317,7 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, View):
                 "report_url": self.object.get_absolute_url(),
                 "message": message,
             }
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -362,7 +362,7 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -404,7 +404,7 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -462,7 +462,7 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                 self.request.user,
             )
         # Return an error message if the query for the requested status returned DoesNotExist
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -534,7 +534,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                     "docx_lint_message"
                                 ] = "Selected Word template has an unknown linter status. Check and lint the template before generating a report."
                             data["docx_url"] = docx_template_query.get_absolute_url()
-                except Exception: # pragma: no cover
+                except Exception:  # pragma: no cover
                     logger.exception("Failed to get the template status")
                     data["docx_lint_result"] = "failed"
                     data[
@@ -562,7 +562,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                                     "pptx_lint_message"
                                 ] = "Selected PowerPoint template has an unknown linter status. Check and lint the template before generating a report."
                             data["pptx_url"] = pptx_template_query.get_absolute_url()
-                except Exception: # pragma: no cover
+                except Exception:  # pragma: no cover
                     logger.exception("Failed to get the template status")
                     data["pptx_lint_result"] = "failed"
                     data[
@@ -596,7 +596,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                     pptx_template_id,
                     self.request.user,
                 )
-            except Exception: # pragma: no cover
+            except Exception:  # pragma: no cover
                 data = {
                     "result": "error",
                     "message": "An exception prevented the template change",
@@ -698,7 +698,7 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
                 "Successfully cloned your report: {}".format(self.object.title),
                 extra_tags="alert-error",
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -754,7 +754,7 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
                 "Successfully added a blank finding to the report",
                 extra_tags="alert-success",
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -802,7 +802,7 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
                     "finding_type": finding_instance.finding_type,
                 }
             )
-        except Exception as exception: # pragma: no cover
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -978,8 +978,8 @@ def archive(request, pk):
         report_instance = Report.objects.select_related("project", "project__client").get(
             pk=pk
         )
-        output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
-        evidence_path = os.path.join(settings.MEDIA_ROOT)
+        # output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
+        # evidence_path = os.path.join(settings.MEDIA_ROOT)
         archive_loc = os.path.join(settings.MEDIA_ROOT, "archives/")
         evidence_loc = os.path.join(settings.MEDIA_ROOT, "evidence", str(pk))
         report_name = generate_report_name(report_instance)
