@@ -27,4 +27,4 @@ HASURA_GRAPHQL_ENABLE_TELEMETRY=false
 HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=true
 
 # Update ``ALLOWED_HOSTS`` in local.py if you change this or the Docker container's name
-ACTIONS_URL_BASE: http://django:8000/api
+ACTIONS_URL_BASE=http://django:8000/api

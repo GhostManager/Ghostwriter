@@ -27,4 +27,4 @@ HASURA_GRAPHQL_ENABLE_ALLOWLIST=true
 HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=false
 
 # Update ``ALLOWED_HOSTS`` in local.py if you change this or the Docker container's name
-ACTIONS_URL_BASE: https://host.docker.internal:443/api
+ACTIONS_URL_BASE=https://host.docker.internal:443/api
