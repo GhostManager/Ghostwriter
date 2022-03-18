@@ -12,12 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added components for upcoming GraphQL API that are only available with _local.yml_ for testing in development environments
   * New Docker container for Hasura GraphQL engine
   * Work-in-progress Hasura metadata for the GraphQL API
-  * New `HASURA_ACTION_SECRET` envionment variable to templates
+  * New `HASURA_ACTION_SECRET` environment variable to templates
   * New utilities for generating and managing JSON Web Tokens for the GraphQL API
 
 # Removed
 
-* Removed "WHOIS Privacy" colum on domain list page to make room for more petinent information
+* Removed "WHOIS Privacy" column on domain list page to make room for more pertinent information
 
 ### Fixed
 
@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Upgraded dependencies to their latest versions (where possible)
   * Django v3.1.13 -> v3.2.11
   * Did not upgrade `docxtpl`
-    * Awaiting to see how the developer wants to proceed with [issue #114](https://github.com/elapouya/python-docx-template/issues/414)
+    *  Awaiting to see how the developer wants to proceed with [issue #114](https://github.com/elapouya/python-docx-template/issues/414)
     * Not upgrading from 0.12 to the latest 0.15.2 has no effect on Ghostwriter at this time
 * Collapsed the `Domain` model's various categorization fields into a single `categorization` field with PostgreSQL's `JSONField` type
   * An important milestone/change for the upcoming GraphQL API
