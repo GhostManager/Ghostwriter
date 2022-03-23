@@ -15,6 +15,7 @@ from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
     graphql_login,
+    graphql_webhook,
     graphql_whoami,
 )
 
@@ -47,6 +48,7 @@ urlpatterns = [
         protected_serve,
         {"document_root": settings.MEDIA_ROOT},
     ),
+    path("api/webhook", csrf_exempt(graphql_webhook)),
     path("api/login", csrf_exempt(graphql_login)),
     path("api/whoami", csrf_exempt(graphql_whoami)),
     # Add additional custom paths below this line...
