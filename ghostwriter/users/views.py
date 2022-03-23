@@ -89,8 +89,7 @@ def graphql_login(request):
             user = authenticate(**data)
             # A successful auth will return a ``User`` object
             if user:
-                exp = datetime(2022, 12, 31, 23, 59, 59).timestamp()
-                payload, jwt_token = utils.generate_jwt_token(user, exp=exp)
+                payload, jwt_token = utils.generate_jwt_token(user)
                 data = {"token": f"{jwt_token}", "expires": payload["exp"]}
             else:
                 status = 401
