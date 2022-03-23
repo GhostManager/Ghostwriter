@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Domain list table now shows an "Expiry" column and "Categories" column now parses the new ``categorization`` JSON field data
 * Domain list filtering now includes a "Filter Expired" toggle that on by default
   * Filters out domains with expiration dates in the past and `auto_renew` set to `False` even if status is set to "Available"
+* The table on the domain list page and the menu on the domain details page will no longer disable the check out option if a domain's status is set to "Burned"
 
 ## [2.2.3] - 2022-02-16
 
