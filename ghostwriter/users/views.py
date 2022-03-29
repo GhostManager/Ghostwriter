@@ -46,7 +46,7 @@ def graphql_webhook(request):
     username = "anonymous"
     payload = None
 
-    token = utils.get_jwt_token_from_request(request)
+    token = utils.get_jwt_from_request(request)
     if token:
         # Attempt to decode and verify the payload
         payload = utils.get_jwt_payload(token)
@@ -54,11 +54,12 @@ def graphql_webhook(request):
         if payload:
             # Verify the proper Hasura claims are present
             if utils.verify_hasura_claims(payload):
-                role = payload["https://hasura.io/jwt/claims"]["X-Hasura-Role"]
-                user_id = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"]
-                username = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Name"]
                 # Verify the user is still active
-                if not utils.verify_jwt_user(user_id):
+                if utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"]):
+                    role = payload["https://hasura.io/jwt/claims"]["X-Hasura-Role"]
+                    user_id = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"]
+                    username = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Name"]
+                else:
                     status = 401
             else:
                 status = 401
@@ -88,7 +89,7 @@ def graphql_login(request):
             user = authenticate(**data)
             # A successful auth will return a ``User`` object
             if user:
-                payload, jwt_token = utils.generate_jwt_token(user)
+                payload, jwt_token = utils.generate_jwt(user)
                 data = {"token": f"{jwt_token}", "expires": payload["exp"]}
             else:
                 status = 401
@@ -110,7 +111,7 @@ def graphql_whoami(request):
 
     if utils.verify_graphql_request(request.headers):
         # Get the forwarded ``Authorization`` header
-        token = utils.get_jwt_token_from_request(request)
+        token = utils.get_jwt_from_request(request)
         if token:
             try:
                 # Try to decode the JWT token

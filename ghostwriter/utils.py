@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-def get_jwt_token_from_request(request):
+def get_jwt_from_request(request):
     """
     Fetch the JSON Web Token from a ``request`` object's ``META`` attribute. The
     token is in the ``Authorization`` header with the ``Bearer `` prefix.
@@ -71,7 +71,7 @@ def get_jwt_payload(token, context=None):
     return payload
 
 
-def generate_jwt_token(user, exp=None, context=None):
+def generate_jwt(user, exp=None, context=None):
     """
     Generate a JWT token for the user. The token will expire after the
     ``JWT_EXPIRATION_DELTA`` setting unless the ``exp`` parameter is set.
