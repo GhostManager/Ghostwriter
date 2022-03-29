@@ -48,9 +48,9 @@ urlpatterns = [
         protected_serve,
         {"document_root": settings.MEDIA_ROOT},
     ),
-    path("api/webhook", csrf_exempt(graphql_webhook)),
-    path("api/login", csrf_exempt(graphql_login)),
-    path("api/whoami", csrf_exempt(graphql_whoami)),
+    path("api/webhook", csrf_exempt(graphql_webhook), name="graphql_webhook"),
+    path("api/login", csrf_exempt(graphql_login), name="graphql_login"),
+    path("api/whoami", csrf_exempt(graphql_whoami), name="graphql_whoami"),
     # Add additional custom paths below this line...
     # Your stuff: custom urls includes go here
 ]
