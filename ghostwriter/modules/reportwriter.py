@@ -232,6 +232,7 @@ class Reportwriter:
         "sub",
         "sup",
         "del",
+        "blockquote"
     ]
 
     # Allowlist for evidence file extensions / filetypes
@@ -1469,6 +1470,22 @@ class Reportwriter:
                                     "Encountered an unknown tag inside of an ordered list: %s",
                                     part.name,
                                 )
+
+                # BLOCKQUOTE – Blockquote Sections
+                elif tag_name == "blockquote":
+                    # Get the tag's contents to check for additional formatting
+                    contents = tag.contents
+
+                    # PowerPoint lacks a blockquote style, so we just add a basic paragraph
+                    if self.report_type == "pptx":
+                        p = self.finding_body_shape.text_frame.add_paragraph()
+                        ALIGNMENT = PP_ALIGN
+                    else:
+                        p = self.sacrificial_doc.add_paragraph()
+                        p.style = "Blockquote"
+
+                    # Pass the contents and new paragraph on to drill down into nested formatting
+                    self.process_nested_tags(contents, p, finding)
                 else:
                     if not isinstance(tag, NavigableString):
                         logger.warning(
@@ -1536,6 +1553,25 @@ class Reportwriter:
             caption_font.name = "Calibri"
             caption_font.size = Pt(9)
             caption_font.italic = True
+
+        if "Blockquote" not in styles:
+            block_style = styles.add_style("Blockquote", WD_STYLE_TYPE.PARAGRAPH)
+            block_style.base_style = styles["Normal"]
+            block_style.hidden = False
+            block_style.quick_style = True
+            block_style.priority = 5
+            # Set font and size
+            block_font = caption_style.font
+            block_font.name = "Calibri"
+            block_font.size = Pt(12)
+            block_font.italic = True
+            # Set alignment
+            block_par = block_style.paragraph_format
+            block_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            block_par.left_indent = Inches(0.2)
+            block_par.right_indent = Inches(0.2)
+            # Keep first and last lines together after repagination
+            block_par.widow_control = True
 
         # Process template context, converting HTML elements to XML as needed
         context = self.process_richtext(self.report_json)
@@ -2192,6 +2228,10 @@ class TemplateLinter:
                     if "List Paragraph" not in document_styles:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): List Paragraph"
+                        )
+                    if "Blockquote" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Blockquote"
                         )
                     logger.info("Completed Word style checks")
 
