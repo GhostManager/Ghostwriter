@@ -1011,7 +1011,7 @@ def export_domains_to_csv(request):
     domain_resource = DomainResource()
     dataset = domain_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_domains.csv"
 
     return response
 
@@ -1025,7 +1025,7 @@ def export_servers_to_csv(request):
     server_resource = StaticServerResource()
     dataset = server_resource.export()
     response = HttpResponse(dataset.csv, content_type="text/csv")
-    response["Content-Disposition"] = f"attachment; filename={timestamp}_findings.csv"
+    response["Content-Disposition"] = f"attachment; filename={timestamp}_servers.csv"
 
     return response
 

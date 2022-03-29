@@ -2,7 +2,6 @@
 
 # Standard Libraries
 import json
-from datetime import datetime
 
 # Django Imports
 from django.contrib import messages
@@ -68,7 +67,7 @@ def graphql_webhook(request):
     data = {
         "X-Hasura-Role": f"{role}",
         "X-Hasura-User-Id": f"{user_id}",
-        "X-Hasura-User-Name": f"{username}"
+        "X-Hasura-User-Name": f"{username}",
     }
 
     return JsonResponse(data, status=status)
