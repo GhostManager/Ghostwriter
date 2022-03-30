@@ -55,14 +55,17 @@ def graphql_webhook(request):
             # Verify the proper Hasura claims are present
             if utils.verify_hasura_claims(payload):
                 # Verify the user is still active
-                if utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"]):
+                if utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]):
                     role = payload["https://hasura.io/jwt/claims"]["X-Hasura-Role"]
                     user_id = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"]
                     username = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Name"]
+                    status = 200
                 else:
                     status = 401
             else:
                 status = 401
+        else:
+            status = 401
 
     # Assemble final authorization data
     data = {
