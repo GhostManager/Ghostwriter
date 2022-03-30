@@ -1705,10 +1705,13 @@ class ProjectDomainsViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        cls.History = HistoryFactory._meta.model
         cls.project = ProjectFactory()
         cls.no_checkout_project = ProjectFactory()
-        cls.History = HistoryFactory._meta.model
+        HistoryFactory.create_batch(3, project=cls.project)
+
         cls.user = UserFactory(password=PASSWORD)
+
         cls.uri = reverse("shepherd:ajax_project_domains", kwargs={"pk": cls.project.id})
         cls.no_checkout_uri = reverse("shepherd:ajax_project_domains", kwargs={"pk": cls.no_checkout_project.id})
 
@@ -1721,13 +1724,11 @@ class ProjectDomainsViewTests(TestCase):
         )
 
     def test_view_uri_exists_at_desired_location(self):
-        HistoryFactory.create_batch(3, project=self.project)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_with_no_history(self):
-        self.History.objects.all().delete()
-        response = self.client_auth.get(self.uri)
+        response = self.client_auth.get(self.no_checkout_uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):

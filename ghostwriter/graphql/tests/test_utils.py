@@ -44,7 +44,7 @@ class JwtUtilsTests(TestCase):
         except AttributeError:
             self.fail("generate_jwt() raised an AttributeError unexpectedly!")
         try:
-            self.assertTrue(utils.verify_jwt_user(self.user.id))
+            self.assertTrue(utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]))
         except AttributeError:
             self.fail("verify_jwt_user() raised an AttributeError unexpectedly!")
         try:
@@ -157,5 +157,5 @@ class JwtUtilsTests(TestCase):
             content_type="application/json",
             **{"HTTP_AUTHORIZATION": f"Bearer {token}", },
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), self.public_data)
