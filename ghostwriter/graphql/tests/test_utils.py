@@ -1,5 +1,6 @@
 # Standard Libraries
 import logging
+from datetime import datetime
 
 # Django Imports
 from django.test import Client, TestCase
@@ -41,24 +42,31 @@ class JwtUtilsTests(TestCase):
     def test_generate_jwt(self):
         try:
             payload, encoded_payload = utils.generate_jwt(self.user)
-        except AttributeError:
+        except Exception:
             self.fail("generate_jwt() raised an AttributeError unexpectedly!")
         try:
             self.assertTrue(utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]))
-        except AttributeError:
+        except Exception:
             self.fail("verify_jwt_user() raised an AttributeError unexpectedly!")
         try:
             self.assertTrue(utils.get_jwt_payload(encoded_payload))
-        except AttributeError:
+        except Exception:
             self.fail("get_jwt_payload() raised an AttributeError unexpectedly!")
         try:
             self.assertTrue(utils.verify_hasura_claims(payload))
-        except AttributeError:
+        except Exception:
             self.fail("verify_hasura_claims() raised an AttributeError unexpectedly!")
+
+    def test_generate_jwt_with_expiration(self):
+        expiration = datetime(2099, 1, 1).timestamp()
+        payload, encoded_payload = utils.generate_jwt(
+            self.user, exp=expiration
+        )
+        self.assertTrue(payload["exp"], expiration)
 
     def test_graphql_login(self):
         data = {
-            "input": {"username": F"{self.user.username}", "password": F"{PASSWORD}"}
+            "input": {"username": F"{self.user.username}", "password": f"{PASSWORD}"}
         }
         response = self.client.post(
             self.login_uri,
@@ -70,9 +78,26 @@ class JwtUtilsTests(TestCase):
         # Test bypasses Hasura so the ``["data"]["login"]`` keys are not present
         self.assertTrue(response.json()["token"])
 
+    def test_graphql_login_with_invalid_credentials(self):
+        data = {
+            "input": {"username": F"{self.user.username}", "password": "Not the Password"}
+        }
+        result = {
+            "message": "Invalid credentials",
+            "extensions": {"code": "InvalidCredentials", },
+        }
+        response = self.client.post(
+            self.login_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(force_str(response.content), result)
+
     def test_graphql_login_requires_secret(self):
         data = {
-            "input": {"username": F"{self.user.username}", "password": F"{PASSWORD}"}
+            "input": {"username": F"{self.user.username}", "password": f"{PASSWORD}"}
         }
         response = self.client.post(
             self.login_uri,
@@ -83,7 +108,7 @@ class JwtUtilsTests(TestCase):
 
     def test_graphql_login_rejects_bad_request(self):
         data = {
-            "bad_input": {"username": F"{self.user.username}", "password": F"{PASSWORD}"}
+            "bad_input": {"username": F"{self.user.username}", "password": f"{PASSWORD}"}
         }
         response = self.client.post(
             self.login_uri,
@@ -92,6 +117,23 @@ class JwtUtilsTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
         )
         self.assertEqual(response.status_code, 400)
+
+    def test_graphql_login_without_secret(self):
+        data = {
+            "input": {"username": F"{self.user.username}", "password": F"{PASSWORD}"}
+        }
+        response = self.client.post(
+            self.login_uri,
+            data=data,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_whoami(self):
         payload, token = utils.generate_jwt(self.user)
@@ -121,7 +163,20 @@ class JwtUtilsTests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
-    def test_graphql_webhookwith_valid_jwt(self):
+    def test_graphql_whoami_without_secret(self):
+        response = self.client.post(
+            self.whoami_uri,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_webhook_with_valid_jwt(self):
         payload, token = utils.generate_jwt(self.user)
         data = {
             "X-Hasura-Role": f"{self.user.role}",
@@ -136,7 +191,7 @@ class JwtUtilsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
-    def test_graphql_webhookwith_valid_jwt_and_inactive_user(self):
+    def test_graphql_webhook_with_valid_jwt_and_inactive_user(self):
         payload, token = utils.generate_jwt(self.user)
         self.user.is_active = False
         self.user.save()
@@ -159,3 +214,19 @@ class JwtUtilsTests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), self.public_data)
+
+    def test_graphql_webhook_without_claims(self):
+        payload, token = utils.generate_jwt(self.user)
+        del payload["https://hasura.io/jwt/claims"]
+        response = self.client.get(
+            self.webhook_uri,
+            content_type="application/json",
+            **{"HTTP_AUTHORIZATION": f"Bearer {token}", },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_verify_hasura_claims_without_claims(self):
+        payload, token = utils.generate_jwt(self.user)
+        del payload["https://hasura.io/jwt/claims"]
+        result = utils.verify_hasura_claims(payload)
+        self.assertFalse(result)
