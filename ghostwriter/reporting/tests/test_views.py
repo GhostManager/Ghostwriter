@@ -1,15 +1,18 @@
 # Standard Libraries
+import json
 import logging
 import os
 from datetime import datetime
 
 # Django Imports
-from django.conf import settings
 from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import dateformat
 from django.utils.encoding import force_str
+
+# 3rd Party Libraries
+from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -18,6 +21,7 @@ from ghostwriter.factories import (
     FindingTypeFactory,
     GenerateMockProject,
     ProjectFactory,
+    ProjectTargetFactory,
     ReportDocxTemplateFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -26,7 +30,16 @@ from ghostwriter.factories import (
     SeverityFactory,
     UserFactory,
 )
-from ghostwriter.modules.reportwriter import format_datetime
+from ghostwriter.modules.custom_serializers import ReportDataSerializer
+from ghostwriter.modules.exceptions import InvalidFilterValue
+from ghostwriter.modules.reportwriter import (
+    add_days,
+    compromised,
+    filter_severity,
+    filter_type,
+    format_datetime,
+    strip_html,
+)
 from ghostwriter.reporting.templatetags import report_tags
 
 logging.disable(logging.CRITICAL)
@@ -1803,19 +1816,121 @@ class GenerateReportTests(TestCase):
 
 
 class ReportTemplateFilterTests(TestCase):
-    """Collection of tests for custom report template filters."""
+    """Collection of tests for custom Jinja2 filters for report templates."""
 
     @classmethod
     def setUpTestData(cls):
-        pass
+        cls.project = ProjectFactory()
+        cls.report = ReportFactory(project=cls.project)
+        cls.critical_sev = SeverityFactory(severity="Critical", weight=0)
+        cls.high_sev = SeverityFactory(severity="High", weight=1)
+        cls.med_sev = SeverityFactory(severity="Medium", weight=1)
+        cls.network_type = FindingTypeFactory(finding_type="Network")
+        cls.web_type = FindingTypeFactory(finding_type="Web")
+        cls.mobile_type = FindingTypeFactory(finding_type="Mobile")
+
+        ReportFindingLinkFactory.create_batch(
+            2,
+            report=cls.report,
+            severity=cls.critical_sev,
+            finding_type=cls.network_type,
+        )
+        ReportFindingLinkFactory.create_batch(
+            2,
+            report=cls.report,
+            severity=cls.high_sev,
+            finding_type=cls.web_type,
+        )
+        ReportFindingLinkFactory.create_batch(
+            2,
+            report=cls.report,
+            severity=cls.med_sev,
+            finding_type=cls.mobile_type,
+        )
+
+        ProjectTargetFactory.create_batch(5, compromised=True, project=cls.project)
+        ProjectTargetFactory.create_batch(5, compromised=False, project=cls.project)
+
+        cls.serializer = ReportDataSerializer(
+            cls.report,
+            exclude=[
+                "id",
+            ],
+        )
+        report_json = JSONRenderer().render(cls.serializer.data)
+        cls.report_json = json.loads(report_json)
+        cls.findings = cls.report_json["findings"]
+        cls.targets = cls.report_json["targets"]
+
+        cls.test_date_string = "d M Y"
+        cls.new_date_string = "M d, Y"
+        cls.test_date = datetime(2022, 3, 28)
 
     def setUp(self):
-        self.test_date_string = "%d %b %Y"
-        self.new_date_string = "%d/%m/%y"
+        pass
 
     def test_format_datetime(self):
-        test_date = dateformat.format(datetime.now(), settings.DATE_FORMAT)
-        try:
-            format_datetime(test_date, self.test_date_string, self.new_date_string)
-        except AttributeError:
-            self.fail("format_datetime() raised an AttributeError unexpectedly!")
+        test_date = dateformat.format(self.test_date, self.test_date_string)
+        new_date = format_datetime(test_date, self.new_date_string)
+        self.assertEqual(new_date, "Mar 28, 2022")
+
+    def test_format_datetime_with_invalid_string(self):
+        test_date = "Not a Date"
+        with self.assertRaises(InvalidFilterValue):
+            format_datetime(test_date, self.new_date_string)
+
+    def test_add_days(self):
+        test_date = dateformat.format(self.test_date, self.test_date_string)
+        future_date = "11 Apr 2022"
+        past_date = "21 Mar 2022"
+
+        new_date = add_days(test_date, 10)
+        self.assertEqual(new_date, future_date)
+
+        new_date = add_days(test_date, -5)
+        self.assertEqual(new_date, past_date)
+
+    def test_add_days_with_invalid_string(self):
+        test_date = "Not a Date"
+        with self.assertRaises(InvalidFilterValue):
+            add_days(test_date, 10)
+
+    def test_compromised(self):
+        filtered_list = compromised(self.targets)
+        self.assertEqual(len(filtered_list), 5)
+
+    def test_compromised_with_invalid_dict(self):
+        targets = "Not a Dict"
+        with self.assertRaises(InvalidFilterValue):
+            compromised(targets)
+
+    def test_filter_type(self):
+        filtered_list = filter_type(self.findings, ["Network", "Web"])
+        self.assertEqual(len(filtered_list), 4)
+
+    def test_filter_type_with_invalid_dict(self):
+        findings = "Not a Dict"
+        with self.assertRaises(InvalidFilterValue):
+            filter_type(findings, ["Network", "Web"])
+
+    def test_filter_type_with_invalid_allowlist(self):
+        with self.assertRaises(InvalidFilterValue):
+            filter_type(self.findings, "Network")
+
+    def test_filter_severity(self):
+        filtered_list = filter_severity(self.findings, ["Critical", "High"])
+        self.assertEqual(len(filtered_list), 4)
+
+    def test_filter_severity_with_invalid_dict(self):
+        findings = "Not a Dict"
+        with self.assertRaises(InvalidFilterValue):
+            filter_severity(findings, ["Critical", "High"])
+
+    def test_filter_severity_with_invalid_allowlist(self):
+        with self.assertRaises(InvalidFilterValue):
+            filter_severity(self.findings, "Critical")
+
+    def test_strip_html(self):
+        test_string = "<p>This is a test<br />with a newline</p>"
+        result = strip_html(test_string)
+        self.assertEqual(result, "This is a test\nwith a newline")
