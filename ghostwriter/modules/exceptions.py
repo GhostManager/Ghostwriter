@@ -2,8 +2,17 @@
 
 
 class MissingTemplate(Exception):
-    """Exception raised when a report template is missing on disk."""
-    pass
+    """
+    Exception raised when a report template is missing for a report.
+
+    **Attributes**
+
+    ``message``
+        Error message to be displayed
+    """
+    def __init__(self, message="No report template selected"):
+        self.message = message
+        super().__init__(self.message)
 
 
 class InvalidFilterValue(Exception):
