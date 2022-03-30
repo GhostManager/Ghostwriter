@@ -50,6 +50,23 @@ def jwt_decode(token, context=None):
     )
 
 
+def jwt_decode_no_verification(token, context=None):
+    """Decode a JWT token without verifying anything."""
+    return jwt.decode(
+        token,
+        settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
+        options={
+            "verify_exp": False,
+            "verify_aud": False,
+            "verify_signature": False,
+        },
+        leeway=timedelta(seconds=0),
+        audience=settings.GRAPHQL_JWT["JWT_AUDIENCE"],
+        issuer=None,
+        algorithms=[settings.GRAPHQL_JWT["JWT_ALGORITHM"]],
+    )
+
+
 def verify_hasura_claims(payload):
     """Verify that the JSON Web Token payload contains the required Hasura claims."""
     if "https://hasura.io/jwt/claims" in payload:
@@ -66,7 +83,12 @@ def get_jwt_payload(token, context=None):
     """Attempt to decode and verify the JWT token and return the payload."""
     try:
         payload = jwt_decode(token, context)
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError):
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
+        try:
+            bad_token = jwt_decode_no_verification(token)
+            logger.warning("%s error with this payload: %s", exception, bad_token)
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
+            logger.error("%s error with this payload: %s", exception, token)
         payload = None
     return payload
 
@@ -134,18 +156,30 @@ def verify_graphql_request(headers):
     return False
 
 
-def verify_jwt_user(user_id):
+def verify_jwt_user(payload):
     """
     Verify that the :model:`users.User` attached to the JSON Web Token payload
     is still active.
     """
     try:
+        role = payload["X-Hasura-Role"]
+        user_id = payload["X-Hasura-User-Id"]
+        username = payload["X-Hasura-User-Name"]
+
         user = User.objects.filter(id=user_id).first()
-        if user.is_active:
+        if (
+            user.is_active
+            and user.username == username
+            and user.role == role
+        ):
             return True
         else:
-            logger.warning("Attempt to login with a JWT for an inactive user: %s", user)
+            logger.warning(
+                "Suspicious login attempt with a valid JWT for user %s with mismatched user details: %s",
+                user,
+                payload
+            )
     except User.DoesNotExist:
-        logger.warning("Received a valid JWT for a user that does not exist %s", user_id)
+        logger.warning("Received a valid JWT for a user ID that does not exist: %s", user_id)
 
     return False
