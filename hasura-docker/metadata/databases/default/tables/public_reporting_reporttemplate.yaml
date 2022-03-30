@@ -68,20 +68,18 @@ insert_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - client_id:
+          _is_null: true
+      - client:
+          invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+      - client:
+          projects:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_reporttemplate
     columns:
     - changelog
     - client_id
@@ -95,20 +93,18 @@ insert_permissions:
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - client_id:
+          _is_null: true
+      - client:
+          invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+      - client:
+          projects:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_reporttemplate
     columns:
     - changelog
     - client_id
@@ -140,38 +136,34 @@ select_permissions:
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - client_id:
+          _is_null: true
+      - client:
+          invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+      - client:
+          projects:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_reporttemplate
   role: restricted
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - client_id:
+          _is_null: true
+      - client:
+          invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+      - client:
+          projects:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_reporttemplate
   role: user
 update_permissions:
 - permission:
@@ -189,19 +181,17 @@ update_permissions:
 - permission:
     check:
       _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      - protected:
+          _eq: false
+      - client:
+          _or:
+          - invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reporttemplate
+          - projects:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
     columns:
     - changelog
     - client_id
@@ -212,38 +202,32 @@ update_permissions:
     - protected
     filter:
       _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reporttemplate
       - protected:
           _eq: false
+      - client:
+          _or:
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - projects:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
       _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      - protected:
+          _eq: false
+      - client:
+          _or:
+          - invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reporttemplate
+          - projects:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
     columns:
     - changelog
     - client_id
@@ -254,21 +238,17 @@ update_permissions:
     - protected
     filter:
       _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reporttemplate
       - protected:
           _eq: false
+      - client:
+          _or:
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - projects:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
 - permission:
@@ -277,38 +257,30 @@ delete_permissions:
 - permission:
     filter:
       _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_reporttemplate
       - protected:
           _eq: false
+      - client:
+          _or:
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - projects:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
       _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_reporttemplate
       - protected:
           _eq: false
+      - client:
+          _or:
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - projects:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: user

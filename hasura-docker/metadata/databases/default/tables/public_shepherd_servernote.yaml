@@ -26,21 +26,7 @@ insert_permissions:
       operator_id: x-hasura-User-Id
   role: manager
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_servernote
+    check: {}
     columns:
     - note
     - server_id
@@ -48,21 +34,7 @@ insert_permissions:
       operator_id: x-hasura-User-Id
   role: restricted
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_servernote
+    check: {}
     columns:
     - note
     - server_id
@@ -81,39 +53,11 @@ select_permissions:
   role: manager
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_servernote
+    filter: {}
   role: restricted
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_servernote
+    filter: {}
   role: user
 update_permissions:
 - permission:
@@ -129,81 +73,25 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_servernote
-      - note:
-          _neq: "\"\""
+      operator_id:
+        _eq: X-Hasura-User-Id
     columns:
     - note
     - server_id
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_servernote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      operator_id:
+        _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_servernote
-      - note:
-          _neq: "\"\""
+      operator_id:
+        _eq: X-Hasura-User-Id
     columns:
     - note
     - server_id
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_servernote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      operator_id:
+        _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
 - permission:
@@ -213,39 +101,11 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_servernote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      operator_id:
+        _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_servernote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      operator_id:
+        _eq: X-Hasura-User-Id
   role: user

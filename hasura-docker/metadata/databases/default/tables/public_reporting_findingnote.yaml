@@ -26,40 +26,20 @@ insert_permissions:
       operator_id: x-hasura-User-Id
   role: manager
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_findingnote
-    columns: "*"
+    check: {}
+    columns:
+    - finding_id
+    - note
+    set:
+      operator_id: x-hasura-User-Id
   role: restricted
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_findingnote
-    columns: "*"
+    check: {}
+    columns:
+    - finding_id
+    - note
+    set:
+      operator_id: x-hasura-User-Id
   role: user
 select_permissions:
 - permission:
@@ -73,39 +53,11 @@ select_permissions:
   role: manager
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_findingnote
+    filter: {}
   role: restricted
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_findingnote
+    filter: {}
   role: user
 update_permissions:
 - permission:
@@ -121,83 +73,27 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_findingnote
-      - note:
-          _neq: "\"\""
+      operator_id:
+        _eq: X-Hasura-User-Id
     columns:
     - finding_id
     - note
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_findingnote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      operator_id:
+        _eq: X-Hasura-User-Id
     set:
       operator_id: x-hasura-User-Id
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_findingnote
-      - note:
-          _neq: "\"\""
+      operator_id:
+        _eq: X-Hasura-User-Id
     columns:
     - finding_id
     - note
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_findingnote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      operator_id:
+        _eq: X-Hasura-User-Id
     set:
       operator_id: x-hasura-User-Id
   role: user
@@ -209,35 +105,11 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_findingnote
+      operator_id:
+        _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_findingnote
+      operator_id:
+        _eq: X-Hasura-User-Id
   role: user
