@@ -3,14 +3,17 @@
 # Django Imports
 from django.contrib import admin
 
-from .models import (
+# Ghostwriter Libraries
+from ghostwriter.rolodex.models import (
     Client,
     ClientContact,
+    ClientInvite,
     ClientNote,
     ObjectivePriority,
     ObjectiveStatus,
     Project,
     ProjectAssignment,
+    ProjectInvite,
     ProjectNote,
     ProjectObjective,
     ProjectRole,
@@ -148,3 +151,25 @@ class ProjectSubTaskAdmin(admin.ModelAdmin):
 class ObjectivePriorityAdmin(admin.ModelAdmin):
     list_display = ("priority", "weight")
     list_display_links = ("priority",)
+
+
+@admin.register(ProjectInvite)
+class ProjectInviteAdmin(admin.ModelAdmin):
+    list_display = ("project", "user")
+    list_filter = ("project", "user")
+    list_display_links = ("project", "user")
+    fieldsets = (
+        ("Invitation", {"fields": ("user", "project")}),
+        ("Misc", {"fields": ("comment",)}),
+    )
+
+
+@admin.register(ClientInvite)
+class ClientInviteAdmin(admin.ModelAdmin):
+    list_display = ("client", "user")
+    list_filter = ("client", "user")
+    list_display_links = ("client", "user")
+    fieldsets = (
+        ("Invitation", {"fields": ("user", "client")}),
+        ("Misc", {"fields": ("comment",)}),
+    )

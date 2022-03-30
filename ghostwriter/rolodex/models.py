@@ -5,6 +5,7 @@ from datetime import time
 
 # Django Imports
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
 
@@ -13,6 +14,8 @@ from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import ReportFindingLink
+
+User = get_user_model()
 
 
 class Client(models.Model):
@@ -683,3 +686,55 @@ class ProjectTarget(models.Model):
 
     def __str__(self):
         return f"{self.hostname} ({self.ip_address})"
+
+
+class ClientInvite(models.Model):
+    """
+    Links an individual :model:`users.User` to a :model:`rolodex.Client` to
+    which they have been granted access.
+    """
+
+    comment = models.TextField(
+        "Comment",
+        null=True,
+        blank=True,
+        help_text="Optional explanation for this invite",
+    )
+    # Foreign Keys
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+
+        ordering = ["client_id", "user_id"]
+        verbose_name = "Client invite"
+        verbose_name_plural = "Client invites"
+
+    def __str__(self):
+        return f"{self.user} ({self.client})"
+
+
+class ProjectInvite(models.Model):
+    """
+    Links an individual :model:`users.User` to a :model:`rolodex.Project` to
+    which they have been granted access.
+    """
+
+    comment = models.TextField(
+        "Comment",
+        null=True,
+        blank=True,
+        help_text="Optional explanation for this invite",
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+
+        ordering = ["project_id", "user_id"]
+        verbose_name = "Project invite"
+        verbose_name_plural = "Project invites"
+
+    def __str__(self):
+        return f"{self.user} ({self.project})"

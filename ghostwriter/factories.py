@@ -369,6 +369,24 @@ class ProjectNoteFactory(factory.django.DjangoModelFactory):
     operator = factory.SubFactory(UserFactory)
 
 
+class ClientInviteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ClientInvite"
+
+    comment = Faker("paragraph")
+    client = factory.SubFactory(ClientFactory)
+    user = factory.SubFactory(UserFactory)
+
+
+class ProjectInviteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ProjectInvite"
+
+    comment = Faker("paragraph")
+    project = factory.SubFactory(ProjectFactory)
+    user = factory.SubFactory(UserFactory)
+
+
 # Oplog Factories
 
 
