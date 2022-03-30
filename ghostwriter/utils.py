@@ -20,12 +20,24 @@ def get_jwt_from_request(request):
     """
     Fetch the JSON Web Token from a ``request`` object's ``META`` attribute. The
     token is in the ``Authorization`` header with the ``Bearer `` prefix.
+
+    **Parameters**
+
+    ``request``
+        Django ``request`` object
     """
     return request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
 
 
-def jwt_encode(payload, context=None):
-    """Encode a JWT token."""
+def jwt_encode(payload):
+    """
+    Encode a JWT token.
+
+    **Parameters**
+
+    ``payload``
+        Plaintext JWT payload to be signed
+    """
     return jwt.encode(
         payload,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
@@ -33,8 +45,15 @@ def jwt_encode(payload, context=None):
     )
 
 
-def jwt_decode(token, context=None):
-    """Decode a JWT token."""
+def jwt_decode(token):
+    """
+    Decode a JWT token.
+
+    **Parameters**
+
+    ``token``
+        Encoded JWT payload
+    """
     return jwt.decode(
         token,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
@@ -50,8 +69,15 @@ def jwt_decode(token, context=None):
     )
 
 
-def jwt_decode_no_verification(token, context=None):
-    """Decode a JWT token without verifying anything."""
+def jwt_decode_no_verification(token):
+    """
+    Decode a JWT token without verifying anything.
+
+    **Parameters**
+
+    ``token``
+        Encoded JWT payload from ``generate_jwt``
+    """
     return jwt.decode(
         token,
         settings.GRAPHQL_JWT["JWT_SECRET_KEY"],
@@ -68,7 +94,14 @@ def jwt_decode_no_verification(token, context=None):
 
 
 def verify_hasura_claims(payload):
-    """Verify that the JSON Web Token payload contains the required Hasura claims."""
+    """
+    Verify that the JSON Web Token payload contains the required Hasura claims.
+
+    **Parameters**
+
+    ``token``
+        Decoded JWT payload from ``get_jwt_payload``
+    """
     if "https://hasura.io/jwt/claims" in payload:
         if (
             "X-Hasura-Role" in payload["https://hasura.io/jwt/claims"]
@@ -79,10 +112,17 @@ def verify_hasura_claims(payload):
     return False
 
 
-def get_jwt_payload(token, context=None):
-    """Attempt to decode and verify the JWT token and return the payload."""
+def get_jwt_payload(token):
+    """
+    Attempt to decode and verify the JWT token and return the payload.
+
+    **Parameters**
+
+    ``token``
+        Encoded JWT payload to be decoded
+    """
     try:
-        payload = jwt_decode(token, context)
+        payload = jwt_decode(token)
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
         try:
             bad_token = jwt_decode_no_verification(token)
@@ -93,7 +133,7 @@ def get_jwt_payload(token, context=None):
     return payload
 
 
-def generate_jwt(user, exp=None, exclude_hasura=False, context=None):
+def generate_jwt(user, exp=None, exclude_hasura=False):
     """
     Generate a JWT token for the user. The token will expire after the
     ``JWT_EXPIRATION_DELTA`` setting unless the ``exp`` parameter is set.
@@ -104,6 +144,8 @@ def generate_jwt(user, exp=None, exclude_hasura=False, context=None):
         The :model:`users.User` object for the token
     ``exp``
         The expiration timestamp for the token
+    ``exclude_hasura``
+        If ``True``, the token will not contain the Hasura claims
     """
     jwt_iat = datetime.utcnow()
     if exp:
@@ -136,6 +178,13 @@ def generate_hasura_error_payload(error_message, error_code):
     Generate a standard error payload for Hasura.
 
     Ref: https://hasura.io/docs/latest/graphql/core/actions/action-handlers.html
+
+    **Parameters**
+
+    ``error_message``
+        Error message to be returned
+    ``error_code``
+        Error code to be returned
     """
     return {
         "message": error_message,
@@ -147,6 +196,11 @@ def verify_graphql_request(headers):
     """
     Verify that the request is a valid request from Hasura using the
     ``HASURA_ACTION_SECRET`` secret shared between Django and Hasura.
+
+    **Parameters**
+
+    ``headers``
+        Headers from a Django ``request`` object
     """
     HASURA_ACTION_SECRET = headers.get("Hasura-Action-Secret")
     if HASURA_ACTION_SECRET is None:
@@ -161,6 +215,11 @@ def verify_jwt_user(payload):
     """
     Verify that the :model:`users.User` attached to the JSON Web Token payload
     is still active.
+
+    **Parameters**
+
+    ``payload``
+        Decoded JWT payload
     """
     try:
         role = payload["X-Hasura-Role"]
