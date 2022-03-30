@@ -93,7 +93,7 @@ def get_jwt_payload(token, context=None):
     return payload
 
 
-def generate_jwt(user, exp=None, context=None):
+def generate_jwt(user, exp=None, exclude_hasura=False, context=None):
     """
     Generate a JWT token for the user. The token will expire after the
     ``JWT_EXPIRATION_DELTA`` setting unless the ``exp`` parameter is set.
@@ -122,10 +122,11 @@ def generate_jwt(user, exp=None, context=None):
     payload["iat"] = jwt_iat
     payload["exp"] = jwt_expires
     # Add custom Hasura claims
-    payload["https://hasura.io/jwt/claims"] = {}
-    payload["https://hasura.io/jwt/claims"]["X-Hasura-Role"] = user.role
-    payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"] = str(user.id)
-    payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Name"] = str(user.username)
+    if not exclude_hasura:
+        payload["https://hasura.io/jwt/claims"] = {}
+        payload["https://hasura.io/jwt/claims"]["X-Hasura-Role"] = user.role
+        payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"] = str(user.id)
+        payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Name"] = str(user.username)
 
     return payload, jwt_encode(payload)
 
