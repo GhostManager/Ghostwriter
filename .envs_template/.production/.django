@@ -2,10 +2,14 @@
 # ------------------------------------------------------------------------------
 # DJANGO_READ_DOT_ENV_FILE=True
 DJANGO_SETTINGS_MODULE=config.settings.production
-DJANGO_SECRET_KEY=changeme
 DJANGO_ADMIN_URL=admin/
 # DJANGO_ALLOWED_HOSTS=.ghostwriter.local
 DATE_FORMAT=d M Y
+
+# Secrets
+# ------------------------------------------------------------------------------
+DJANGO_SECRET_KEY=changeme
+GRAPHQL_JWT_SECRET_KEY=changeme
 
 # Security
 # ------------------------------------------------------------------------------
