@@ -14,15 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Work-in-progress Hasura metadata for the GraphQL API
   * New `HASURA_ACTION_SECRET` environment variable to templates
   * New utilities for generating and managing JSON Web Tokens for the GraphQL API
-
-# Removed
-
-* Removed "WHOIS Privacy" column on domain list page to make room for more pertinent information
-
-### Fixed
-
-* Bumped `djangorestframework-api-key` to v2.2.0 to fix REST API key creation (closes #197)
-* Overrode Django's ``get_full_name()`` method used for the admin site so the user's proper full name is displayed in history logs
+* Added support for block quotes in report templates and WYSIWYG editor
+* Added `ProjectInvite` and `ClientInvite` models to support upcoming role-based access controls
+* Added a menu option to export a project scope to a text file from the project dashboard
+  * Exports only the scope list for easy use with other tools–e.g., Nmap
 
 ### Changed
 
@@ -38,6 +33,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Domain list filtering now includes a "Filter Expired" toggle that on by default
   * Filters out domains with expiration dates in the past and `auto_renew` set to `False` even if status is set to "Available"
 * The table on the domain list page and the menu on the domain details page will no longer disable the check out option if a domain's status is set to "Burned"
+* Simplified usage of the `format_datetime` filter
+  * Filter now accepts only two arguments: the date and the new format string
+  * Format string should use Django values (e.g., `M d, Y`) instead of values translated to Python's standard (e.g., `%b %d, %Y`)
+* Simplified usage of the `add_says` filter
+  * Filter now accepts only two arguments: the date and an integer
+
+### Deprecated
+
+* v2.2.x usage of the `format_datetime` and `add_days` filters is deprecated in v2.3.0
+  * Both filters will no longer accept Python-style `strftime` strings
+  * Both filters no longer needs or accepts the `current_format` and `format_str` parameters
+  * Templates using the old style will fail linting
+
+### Removed
+
+* Removed "WHOIS Privacy" column on domain list page to make room for more pertinent information
+
+### Fixed
+
+* Bumped `djangorestframework-api-key` to v2.2.0 to fix REST API key creation (closes #197)
+* Overrode Django's ``get_full_name()`` method used for the admin site so the user's proper full name is displayed in history logs
+* Fixed project dashboard's "Import Oplog" button not pointing to correct URL
+* Fixed URL conflicts with export links for domains, servers, and findings
 
 ## [2.2.3] - 2022-02-16
 
