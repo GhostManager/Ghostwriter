@@ -309,7 +309,7 @@
                 <p>
                     <a class="icon add-icon btn btn-primary" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
                     <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-                    <a class="icon upload-icon btn btn-info" href="{% url 'oplog:oplog_create_no_project' %}">Import Oplog</a>
+                    <a class="icon upload-icon btn btn-info" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
                 </p>
 
                 {% if project.oplog_set.all %}
