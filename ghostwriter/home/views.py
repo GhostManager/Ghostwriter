@@ -168,7 +168,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 group="AWS Test",
             )
             message = "AWS access key test has been successfully queued"
-        except Exception:
+        except Exception:  # pragma: no cover
             result = "error"
             message = "AWS access key test could not be queued"
 
@@ -203,7 +203,7 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 group="Digital Ocean Test",
             )
             message = "Digital Ocean API key test has been successfully queued"
-        except Exception:
+        except Exception:  # pragma: no cover
             result = "error"
             message = "Digital Ocean API key test could not be queued"
 
@@ -238,7 +238,7 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 group="Namecheap Test",
             )
             message = "Namecheap API test has been successfully queued"
-        except Exception:
+        except Exception:  # pragma: no cover
             result = "error"
             message = "Namecheap API test could not be queued"
 
@@ -273,7 +273,7 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 group="Slack Test",
             )
             message = "Slack Webhook test has been successfully queued"
-        except Exception:
+        except Exception:  # pragma: no cover
             result = "error"
             message = "Slack Webhook test could not be queued"
 
@@ -308,7 +308,7 @@ class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 group="Slack Test",
             )
             message = "VirusTotal API test has been successfully queued"
-        except Exception:
+        except Exception:  # pragma: no cover
             result = "error"
             message = "VirusTotal API test could not be queued"
 
