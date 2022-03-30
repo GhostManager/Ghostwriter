@@ -232,6 +232,7 @@
                                         <button id="scope-dropdown-btn-{{ list.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div id="scope-dropdown-menu-{{ list.id }}" class="dropdown-menu" aria-labelledby="assignment-dropdown-btn_{{ list.id }}">
                                             <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#scopes">Edit Scope</a>
+                                            <a id="scope-export-button-{{ list.id }}" class="dropdown-item js-export-project-scope icon export-icon" href="javascript:void(0);" export-scope-url="{% url 'rolodex:ajax_export_project_scope' list.id %}" export-scope-name="{{ list.name }}">Export Text File</a>
                                             <a id="scope-delete-button-{{ list.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_scope' list.id %}" delete-target-id="{{ list.id }}" delete-target-type="scope">Delete Scope</a>
                                         </div>
                                     </div>
@@ -1142,6 +1143,12 @@
         $(".js-export-oplog").on("click", function () {
             id = $(this).parent().find('.oplog-id').html()
             download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
+        });
+
+        $('.js-export-project-scope').click(function () {
+            var url = $(this).attr('export-scope-url');
+            var name = $(this).attr('export-scope-name');
+            download(url, name.concat('_scope.txt'));
         });
     </script>
 

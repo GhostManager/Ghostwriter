@@ -732,6 +732,21 @@ class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, View):
         return HttpResponse(html)
 
 
+class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, View):
+    """Export scope list from an individual :model:`rolodex.ProjectScope` as a file."""
+
+    model = ProjectScope
+
+    def get(self, *args, **kwargs):
+        lines = []
+        self.object = self.get_object()
+        for row in self.object.scope.split("\n"):
+            lines.append(row)
+        response = HttpResponse(lines, content_type="text/plain")
+        response["Content-Disposition"] = f"attachment; filename={self.object.name}_scope.txt"
+        return response
+
+
 ##################
 # View Functions #
 ##################

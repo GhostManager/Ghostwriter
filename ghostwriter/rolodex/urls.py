@@ -97,6 +97,11 @@ urlpatterns += [
         name="ajax_delete_project_scope",
     ),
     path(
+        "ajax/project/scope/export/<int:pk>",
+        views.ProjectScopeExport.as_view(),
+        name="ajax_export_project_scope",
+    ),
+    path(
         "ajax/project/task/create/<int:pk>",
         views.ProjectTaskCreate.as_view(),
         name="ajax_create_project_task",
