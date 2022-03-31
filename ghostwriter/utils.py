@@ -226,7 +226,7 @@ def verify_jwt_user(payload):
         user_id = payload["X-Hasura-User-Id"]
         username = payload["X-Hasura-User-Name"]
 
-        user = User.objects.filter(id=user_id).first()
+        user = User.objects.get(id=user_id)
         if (
             user.is_active
             and user.username == username
