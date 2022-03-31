@@ -34,7 +34,7 @@ class JwtUtilsTests(TestCase):
     def test_generate_jwt(self):
         try:
             payload, encoded_payload = utils.generate_jwt(self.user)
-        except Exception:
+        except AttributeError:
             self.fail("generate_jwt() raised an AttributeError unexpectedly!")
 
     def test_generate_jwt_with_expiration(self):
@@ -48,21 +48,29 @@ class JwtUtilsTests(TestCase):
         payload, encoded_payload = utils.generate_jwt(self.user)
         try:
             self.assertTrue(utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]))
-        except Exception:
+        except AttributeError:
+            self.fail("verify_jwt_user() raised an AttributeError unexpectedly!")
+
+    def test_verify_jwt_with_invalid_user(self):
+        payload, encoded_payload = utils.generate_jwt(self.user)
+        payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"] = "999"
+        try:
+            self.assertFalse(utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]))
+        except AttributeError:
             self.fail("verify_jwt_user() raised an AttributeError unexpectedly!")
 
     def test_get_jwt_payload(self):
         payload, encoded_payload = utils.generate_jwt(self.user)
         try:
             self.assertTrue(utils.get_jwt_payload(encoded_payload))
-        except Exception:
+        except AttributeError:
             self.fail("get_jwt_payload() raised an AttributeError unexpectedly!")
 
     def test_verify_hasura_claims(self):
         payload, encoded_payload = utils.generate_jwt(self.user)
         try:
             self.assertTrue(utils.verify_hasura_claims(payload))
-        except Exception:
+        except AttributeError:
             self.fail("verify_hasura_claims() raised an AttributeError unexpectedly!")
 
     def test_verify_hasura_claims_without_claims(self):
@@ -73,7 +81,7 @@ class JwtUtilsTests(TestCase):
 
 
 class HasuraWebhookTests(TestCase):
-    """Collection of tests for the `users:graphql_webhook` view."""
+    """Collection of tests for the `users:graphql_webhook`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -143,7 +151,7 @@ class HasuraWebhookTests(TestCase):
 
 
 class HasuraLoginTests(TestCase):
-    """Collection of tests for the `users:graphql_login` view."""
+    """Collection of tests for the `users:graphql_login`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -229,9 +237,27 @@ class HasuraLoginTests(TestCase):
         }
         self.assertJSONEqual(force_str(response.content), result)
 
+    def test_graphql_login_with_invalid_secret(self):
+        data = {
+            "input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}
+        }
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "wrong", },
+        )
+        self.assertEqual(response.status_code, 403)
+
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
 
 class HasuraWhoamiTests(TestCase):
-    """Collection of tests for the `users:graphql_whoami` view."""
+    """Collection of tests for the `users:graphql_whoami`."""
 
     @classmethod
     def setUpTestData(cls):
