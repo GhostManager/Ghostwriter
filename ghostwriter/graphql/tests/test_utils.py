@@ -66,6 +66,18 @@ class JwtUtilsTests(TestCase):
         except AttributeError:
             self.fail("get_jwt_payload() raised an AttributeError unexpectedly!")
 
+    def test_get_jwt_payload_with_invalid_token(self):
+        token = (
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwic3Vi"
+            "X25hbWUiOiJCZW5ueSB0aGUgR2hvc3QiLCJzdWJfZW1haWwiOiJiZW5ue"
+            "UBnaG9zdHdyaXRlci53aWtpIiwidXNlcm5hbWUiOiJiZW5ueSIsImlhdC"
+            "I6MTUxNjIzOTAyMn0.DZSXsRRAr3sS2fIOmhxFxzdzjoMGG-JzKLB2QGGFhFk"
+        )
+        try:
+            self.assertFalse(utils.get_jwt_payload(token))
+        except AttributeError:
+            self.fail("get_jwt_payload() raised an AttributeError unexpectedly!")
+
     def test_verify_hasura_claims(self):
         payload, encoded_payload = utils.generate_jwt(self.user)
         try:
