@@ -108,12 +108,12 @@ def roll_codename(request):
             new_codename = codenames.codename(uppercase=True)
             try:
                 Project.objects.filter(codename__iequal=new_codename)
-                codename_verified = False
+                codename_verified = False  # pragma: no cover
             except Exception:
                 codename_verified = True
             try:
                 Client.objects.filter(codename__iequal=new_codename)
-                codename_verified = False
+                codename_verified = False  # pragma: no cover
             except Exception:
                 codename_verified = True
         data = {

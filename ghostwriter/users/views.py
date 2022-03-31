@@ -157,7 +157,7 @@ class UserDetailView(LoginRequiredMixin, DetailView):
     def get_object(self):
         return get_object_or_404(User, username=self.kwargs.get("username"))
 
-    def get_slug_field(self):
+    def get_slug_field(self):  # pragma: no cover``
         return "user__username"
 
 
@@ -308,7 +308,7 @@ class GhostwriterPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
 account_change_password = GhostwriterPasswordChangeView.as_view()
 
 
-class GhostwriterPasswordSetFromKeyView(PasswordResetFromKeyView):
+class GhostwriterPasswordSetFromKeyView(PasswordResetFromKeyView):  # pragma: no cover
     """
     Reset the password for individual :model:`users.User`.
 
