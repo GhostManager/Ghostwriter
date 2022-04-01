@@ -1,0 +1,297 @@
+table:
+  name: oplog_oplogentry
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    dest_ip: destIp
+    end_date: endDate
+    operator_name: operatorName
+    oplog_id_id: oplog
+    source_ip: sourceIp
+    start_date: startDate
+    user_context: userContext
+  custom_name: oplogEntry
+  custom_root_fields: {}
+object_relationships:
+- name: log
+  using:
+    foreign_key_constraint_on: oplog_id_id
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - operator_name
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_oplogentry
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    set:
+      operator_name: x-hasura-User-Name
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_oplogentry
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    set:
+      operator_name: x-hasura-User-Name
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - oplog_id_id
+    - operator_name
+    - command
+    - comments
+    - description
+    - dest_ip
+    - output
+    - source_ip
+    - tool
+    - user_context
+    - end_date
+    - start_date
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_oplogentry
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_oplogentry
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - operator_name
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplogentry
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplogentry
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplogentry
+    columns:
+    - command
+    - comments
+    - description
+    - dest_ip
+    - end_date
+    - oplog_id_id
+    - output
+    - source_ip
+    - start_date
+    - tool
+    - user_context
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_oplogentry
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_oplogentry
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_oplogentry
+  role: user

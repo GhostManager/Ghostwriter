@@ -1,0 +1,348 @@
+table:
+  name: shepherd_domain
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    auto_renew: autoRenew
+    domain_status_id: domainStatusId
+    health_status_id: healthStatusId
+    last_health_check: lastHealthCheck
+    last_used_by_id: lastUsedById
+    reset_dns: resetDns
+    vt_permalink: vtPermalink
+    whois_status_id: whoisStatusId
+  custom_name: domain
+  custom_root_fields: {}
+object_relationships:
+- name: domainStatus
+  using:
+    foreign_key_constraint_on: domain_status_id
+- name: healthStatus
+  using:
+    foreign_key_constraint_on: health_status_id
+- name: user
+  using:
+    foreign_key_constraint_on: last_used_by_id
+- name: whoisStatus
+  using:
+    foreign_key_constraint_on: whois_status_id
+array_relationships:
+- name: checkouts
+  using:
+    foreign_key_constraint_on:
+      column: domain_id
+      table:
+        name: shepherd_history
+        schema: public
+- name: comments
+  using:
+    foreign_key_constraint_on:
+      column: domain_id
+      table:
+        name: shepherd_domainnote
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - auto_renew
+    - categorization
+    - creation
+    - dns
+    - domain_status_id
+    - expiration
+    - expired
+    - health_status_id
+    - name
+    - note
+    - registrar
+    - reset_dns
+    - vt_permalink
+    - whois_status_id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_domain
+    columns:
+    - auto_renew
+    - burned_explanation
+    - categorization
+    - creation
+    - dns
+    - domain_status_id
+    - expiration
+    - expired
+    - health_status_id
+    - last_health_check
+    - name
+    - note
+    - registrar
+    - reset_dns
+    - vt_permalink
+    - whois_status_id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_domain
+    columns:
+    - auto_renew
+    - burned_explanation
+    - categorization
+    - creation
+    - dns
+    - domain_status_id
+    - expiration
+    - expired
+    - health_status_id
+    - last_health_check
+    - name
+    - note
+    - registrar
+    - reset_dns
+    - vt_permalink
+    - whois_status_id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - domain_status_id
+    - health_status_id
+    - id
+    - last_used_by_id
+    - whois_status_id
+    - auto_renew
+    - expired
+    - reset_dns
+    - name
+    - registrar
+    - vt_permalink
+    - creation
+    - expiration
+    - last_health_check
+    - categorization
+    - dns
+    - burned_explanation
+    - note
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_domain
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_domain
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - auto_renew
+    - burned_explanation
+    - categorization
+    - creation
+    - dns
+    - domain_status_id
+    - expiration
+    - expired
+    - health_status_id
+    - name
+    - note
+    - registrar
+    - reset_dns
+    - vt_permalink
+    - whois_status_id
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domain
+    columns:
+    - auto_renew
+    - burned_explanation
+    - categorization
+    - creation
+    - dns
+    - domain_status_id
+    - expiration
+    - expired
+    - health_status_id
+    - last_health_check
+    - name
+    - note
+    - registrar
+    - reset_dns
+    - vt_permalink
+    - whois_status_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domain
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domain
+    columns:
+    - auto_renew
+    - burned_explanation
+    - categorization
+    - creation
+    - dns
+    - domain_status_id
+    - expiration
+    - expired
+    - health_status_id
+    - last_health_check
+    - name
+    - note
+    - registrar
+    - reset_dns
+    - vt_permalink
+    - whois_status_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_domain
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_domain
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_domain
+  role: user

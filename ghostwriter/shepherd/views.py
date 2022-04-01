@@ -1,6 +1,7 @@
 """This contains all of the views used by the Shepherd application."""
 
 # Standard Libraries
+import json
 import logging
 import logging.config
 from datetime import date, datetime
@@ -113,7 +114,7 @@ def ajax_load_projects(request):
 @login_required
 def ajax_load_project(request):
     """
-    Retrieve individual :model:`rolodex.Project`.
+    Retrieve individual :model:`rolodex.Project` and return it as JSON.
 
     **Context**
 
@@ -121,9 +122,9 @@ def ajax_load_project(request):
         Individual :model:`rolodex.Project`
     """
     project_id = request.GET.get("project")
-    project = Project.objects.filter(id=project_id)
-    data = serializers.serialize("json", project)
-    return JsonResponse(data)
+    project = Project.objects.get(id=project_id)
+    data = serializers.serialize("json", [project])
+    return JsonResponse(json.loads(data), safe=False)
 
 
 @login_required
@@ -170,10 +171,7 @@ def ajax_project_domains(request, pk):
     :model:`rolodex.Project`.
     """
     domain_history = {}
-    try:
-        domain_history = History.objects.filter(project=pk)
-    except History.DoesNotExist:
-        logger.error("No domain history found for the requested project")
+    domain_history = History.objects.filter(project=pk)
     data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
 
     return JsonResponse(data, safe=False)
@@ -287,7 +285,7 @@ class DomainUpdateHealth(LoginRequiredMixin, View):
             if self.domain:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.check_domains",
-                    domain=self.domain.id,
+                    domain_id=self.domain.id,
                     group="Individual Domain Update",
                     hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
                 )
@@ -541,7 +539,7 @@ def domain_list(request):
             Domain.objects.select_related(
                 "domain_status", "whois_status", "health_status"
             )
-            .filter(Q(name__icontains=search_term) | Q(all_cat__icontains=search_term))
+            .filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term))
             .order_by("name")
         )
     else:
@@ -550,9 +548,10 @@ def domain_list(request):
         ).all()
     # Copy the GET request data
     data = request.GET.copy()
-    # If user has not submitted their own filter, default to showing only Available domains
+    # If user has not submitted a filter, default showing Available domains with expiry dates in the future
     if len(data) == 0:
         data["domain_status"] = 1
+        data["exclude_expired"] = True
     domains_filter = DomainFilter(data, queryset=domains_list)
     return render(request, "shepherd/domain_list.html", {"filter": domains_filter})
 
@@ -660,6 +659,8 @@ def server_search(request):
                 reverse("rolodex:project_detail", kwargs={"pk": project_id})
             )
         )
+
+    return HttpResponseRedirect(reverse("shepherd:servers"))
 
 
 @login_required
@@ -1001,6 +1002,7 @@ def update(request):
     return HttpResponseRedirect(reverse("shepherd:update"))
 
 
+@login_required
 def export_domains_to_csv(request):
     """
     Export all :model:`shepherd.Domain` to a csv file for download.
@@ -1014,6 +1016,7 @@ def export_domains_to_csv(request):
     return response
 
 
+@login_required
 def export_servers_to_csv(request):
     """
     Export all :model:`shepherd.Server` to a csv file for download.
@@ -1178,19 +1181,6 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
         )
         return ctx
-
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        latest_history_entry = History.objects.filter(domain=self.object.domain).latest(
-            "id"
-        )
-        if self.object == latest_history_entry:
-            domain_instance = Domain.objects.get(pk=self.object.domain.id)
-            domain_instance.domain_status = DomainStatus.objects.get(
-                domain_status="Available"
-            )
-            domain_instance.save()
-        return super().delete(request, *args, **kwargs)
 
 
 class DomainCreate(LoginRequiredMixin, CreateView):

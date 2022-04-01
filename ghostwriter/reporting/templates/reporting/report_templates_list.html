@@ -7,7 +7,6 @@
     <nav aria-label="breadcrumb">
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'reporting:reports' %}">Reports</a></li>
             <li class="breadcrumb-item active" aria-current="page">Report Templates</li>
         </ul>
     </nav>
@@ -24,14 +23,14 @@
 
         <p><strong>Note:</strong> Only admins may edit protected report templates.</p>
 
-        <table id="reportTable" class="tablesorter table">
+        <table id="reportTemplateTable" class="tablesorter table table-sm table-hover">
             <thead>
                 <tr>
                     <th>Status</th>
                     <th>Doc Type</th>
                     <th>Name</th>
                     <th>Client</th>
-                    <th>Options</th>
+                    <th class="sorter-false">Options</th>
                 </tr>
             </thead>
 
@@ -83,4 +82,21 @@
     {% else %}
         <p>You have not uploaded any templates yet!</p>
     {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#reportTemplateTable").tablesorter(
+                            {
+                                sortInitialOrder: 'desc',
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+        });
+    </script>
 {% endblock %}

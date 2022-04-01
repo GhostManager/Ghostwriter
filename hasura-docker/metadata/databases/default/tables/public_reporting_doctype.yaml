@@ -1,0 +1,60 @@
+table:
+  name: reporting_doctype
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    doc_type: docType
+  custom_name: docType
+  custom_root_fields: {}
+array_relationships:
+- name: templates
+  using:
+    foreign_key_constraint_on:
+      column: doc_type_id
+      table:
+        name: reporting_reporttemplate
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - doc_type
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_doctype
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_doctype
+  role: user

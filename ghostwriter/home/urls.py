@@ -2,6 +2,7 @@
 
 # Django Imports
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 # Ghostwriter Libraries
 from ghostwriter.home import views
@@ -11,9 +12,7 @@ app_name = "home"
 # URLs for the basic views
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
-    path("profile/", views.profile, name="profile"),
     path("management/", views.Management.as_view(), name="management"),
-    path("profile/avatar", views.upload_avatar, name="upload_avatar"),
 ]
 
 # URLs for AJAX test functions
@@ -42,5 +41,10 @@ urlpatterns += [
         "ajax/management/test/virustotal",
         views.TestVirusTotalConnection.as_view(),
         name="ajax_test_virustotal",
+    ),
+    path(
+        "ajax/session/update",
+        csrf_exempt(views.update_session),
+        name="ajax_update_session",
     ),
 ]

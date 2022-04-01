@@ -1,0 +1,60 @@
+table:
+  name: shepherd_whoisstatus
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    whois_status: whoisStatus
+  custom_name: whoisStatus
+  custom_root_fields: {}
+array_relationships:
+- name: domains
+  using:
+    foreign_key_constraint_on:
+      column: whois_status_id
+      table:
+        name: shepherd_domain
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - whois_status
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_whoisstatus
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_whoisstatus
+  role: user

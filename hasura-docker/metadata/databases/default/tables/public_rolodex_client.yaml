@@ -1,0 +1,276 @@
+table:
+  name: rolodex_client
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    short_name: shortName
+  custom_name: client
+  custom_root_fields: {}
+array_relationships:
+- name: comments
+  using:
+    foreign_key_constraint_on:
+      column: client_id
+      table:
+        name: rolodex_clientnote
+        schema: public
+- name: contacts
+  using:
+    foreign_key_constraint_on:
+      column: client_id
+      table:
+        name: rolodex_clientcontact
+        schema: public
+- name: domains
+  using:
+    foreign_key_constraint_on:
+      column: client_id
+      table:
+        name: shepherd_history
+        schema: public
+- name: projects
+  using:
+    foreign_key_constraint_on:
+      column: client_id
+      table:
+        name: rolodex_project
+        schema: public
+- name: servers
+  using:
+    foreign_key_constraint_on:
+      column: client_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+- name: templates
+  using:
+    foreign_key_constraint_on:
+      column: client_id
+      table:
+        name: reporting_reporttemplate
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - address
+    - codename
+    - name
+    - note
+    - short_name
+    - timezone
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_client
+    columns: "*"
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_client
+    columns: "*"
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - name
+    - short_name
+    - codename
+    - note
+    - address
+    - timezone
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_client
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_client
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - address
+    - codename
+    - name
+    - note
+    - short_name
+    - timezone
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_client
+    columns:
+    - address
+    - codename
+    - name
+    - note
+    - short_name
+    - timezone
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_client
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_client
+    columns:
+    - address
+    - codename
+    - name
+    - note
+    - short_name
+    - timezone
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_client
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_client
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_client
+  role: user

@@ -1,0 +1,70 @@
+table:
+  name: commandcenter_companyinformation
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    company_email: email
+    company_name: name
+    company_twitter: twitter
+  custom_name: companyInfo
+  custom_root_fields: {}
+select_permissions:
+- permission:
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_companyinformation
+  role: restricted
+- permission:
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_companyinformation
+  role: user
+update_permissions:
+- permission:
+    check: null
+    columns:
+    - company_email
+    - company_name
+    - company_twitter
+    filter: {}
+  role: manager

@@ -1,0 +1,274 @@
+table:
+  name: shepherd_staticserver
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    ip_address: ipAddress
+    last_used_by_id: lastUsedById
+    server_provider_id: serverProviderId
+    server_status_id: serverStatusId
+  custom_name: staticServer
+  custom_root_fields: {}
+object_relationships:
+- name: serverProvider
+  using:
+    foreign_key_constraint_on: server_provider_id
+- name: serverStatus
+  using:
+    foreign_key_constraint_on: server_status_id
+- name: user
+  using:
+    foreign_key_constraint_on: last_used_by_id
+array_relationships:
+- name: auxServerAddresses
+  using:
+    foreign_key_constraint_on:
+      column: static_server_id
+      table:
+        name: shepherd_auxserveraddress
+        schema: public
+- name: checkouts
+  using:
+    foreign_key_constraint_on:
+      column: server_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+- name: comments
+  using:
+    foreign_key_constraint_on:
+      column: server_id
+      table:
+        name: shepherd_servernote
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - ip_address
+    - name
+    - note
+    - server_provider_id
+    - server_status_id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_staticserver
+    columns:
+    - ip_address
+    - name
+    - note
+    - server_provider_id
+    - server_status_id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_staticserver
+    columns:
+    - ip_address
+    - name
+    - note
+    - server_provider_id
+    - server_status_id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - ip_address
+    - last_used_by_id
+    - name
+    - note
+    - server_provider_id
+    - server_status_id
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_staticserver
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_staticserver
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - ip_address
+    - name
+    - note
+    - server_provider_id
+    - server_status_id
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_staticserver
+    columns:
+    - ip_address
+    - name
+    - note
+    - server_provider_id
+    - server_status_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_staticserver
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_staticserver
+    columns:
+    - ip_address
+    - name
+    - note
+    - server_provider_id
+    - server_status_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_staticserver
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_staticserver
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_staticserver
+  role: user

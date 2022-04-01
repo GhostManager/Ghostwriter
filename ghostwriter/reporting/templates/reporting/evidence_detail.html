@@ -80,13 +80,13 @@
     {% elif filetype == 'text' %}
         {% if file_content %}
             {% for line in file_content %}
-                {% ifequal line "FILE NOT FOUND"%}
+                {% if line == "FILE NOT FOUND"%}
                     <p class="text-center">{{ line }}</p>
                 {% else %}
                     <p class="text-evidence">
                         {{ line }}
                     </p>
-                {% endifequal %}
+                {% endif %}
             {% endfor %}
         {% endif %}
     {% else %}

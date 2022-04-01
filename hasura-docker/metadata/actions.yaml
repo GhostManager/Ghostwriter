@@ -1,0 +1,33 @@
+actions:
+- name: login
+  definition:
+    kind: synchronous
+    handler: '{{ACTIONS_URL_BASE}}/login'
+    headers:
+    - name: Hasura-Action-Secret
+      value_from_env: HASURA_ACTION_SECRET
+  permissions:
+  - role: manager
+  - role: restricted
+  - role: user
+  - role: public
+- name: whoami
+  definition:
+    kind: ""
+    handler: '{{ACTIONS_URL_BASE}}/whoami'
+    forward_client_headers: true
+    headers:
+    - name: Hasura-Action-Secret
+      value_from_env: HASURA_ACTION_SECRET
+  permissions:
+  - role: user
+  - role: restricted
+  - role: manager
+  comment: User `whoami` query for JWT
+custom_types:
+  enums: []
+  input_objects: []
+  objects:
+  - name: LoginResponse
+  - name: WhoamiOutput
+  scalars: []

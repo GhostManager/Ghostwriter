@@ -1,0 +1,302 @@
+table:
+  name: users_user
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    date_joined: dateJoined
+    is_active: isActive
+    is_staff: isStaff
+    is_superuser: isSuperuser
+    last_login: lastLogin
+  custom_name: user
+  custom_root_fields: {}
+object_relationships:
+- name: profile
+  using:
+    foreign_key_constraint_on:
+      column: user_id
+      table:
+        name: home_userprofile
+        schema: public
+array_relationships:
+- name: assignments
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_projectassignment
+        schema: public
+- name: clientNotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_clientnote
+        schema: public
+- name: cloudServers
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_transientserver
+        schema: public
+- name: domainCheckouts
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_history
+        schema: public
+- name: domainNotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_domainnote
+        schema: public
+- name: domains
+  using:
+    foreign_key_constraint_on:
+      column: last_used_by_id
+      table:
+        name: shepherd_domain
+        schema: public
+- name: evidences
+  using:
+    foreign_key_constraint_on:
+      column: uploaded_by_id
+      table:
+        name: reporting_evidence
+        schema: public
+- name: findingNotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: reporting_findingnote
+        schema: public
+- name: groups
+  using:
+    manual_configuration:
+      column_mapping:
+        id: user_id
+      insertion_order: null
+      remote_table:
+        name: users_user_groups
+        schema: public
+- name: projectNotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_projectnote
+        schema: public
+- name: projects
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: rolodex_project
+        schema: public
+- name: reportTemplates
+  using:
+    foreign_key_constraint_on:
+      column: uploaded_by_id
+      table:
+        name: reporting_reporttemplate
+        schema: public
+- name: reportedFindingNotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: reporting_localfindingnote
+        schema: public
+- name: reportedFindings
+  using:
+    foreign_key_constraint_on:
+      column: assigned_to_id
+      table:
+        name: reporting_reportfindinglink
+        schema: public
+- name: reports
+  using:
+    foreign_key_constraint_on:
+      column: created_by_id
+      table:
+        name: reporting_report
+        schema: public
+- name: serverCheckouts
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+- name: serverNotes
+  using:
+    foreign_key_constraint_on:
+      column: operator_id
+      table:
+        name: shepherd_servernote
+        schema: public
+- name: servers
+  using:
+    foreign_key_constraint_on:
+      column: last_used_by_id
+      table:
+        name: shepherd_staticserver
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - email
+    - id
+    - name
+    - phone
+    - timezone
+    - username
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - email
+    - id
+    - name
+    - phone
+    - timezone
+    - username
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_user
+  role: restricted
+- permission:
+    columns:
+    - email
+    - id
+    - name
+    - phone
+    - timezone
+    - username
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_user
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - email
+    - name
+    - phone
+    - timezone
+    - username
+    filter:
+      id:
+        _eq: X-Hasura-User-Id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_user
+    columns:
+    - email
+    - name
+    - phone
+    - timezone
+    - username
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_user
+      - id:
+          _eq: X-Hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_user
+    columns:
+    - email
+    - name
+    - phone
+    - timezone
+    - username
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_user
+      - id:
+          _eq: X-Hasura-User-Id
+  role: user

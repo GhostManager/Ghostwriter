@@ -1,7 +1,6 @@
 """This contains all of the views used by the Home application."""
 
 # Standard Libraries
-import datetime
 import logging
 
 # Django Imports
@@ -11,9 +10,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse
 from django.views.generic.edit import View
 from django.views.static import serve
 
@@ -25,8 +23,6 @@ from django_q.tasks import async_task
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
-from .forms import UserProfileForm
-
 User = get_user_model()
 
 # Using __name__ resolves to ghostwriter.home.views
@@ -36,6 +32,31 @@ logger = logging.getLogger(__name__)
 ##################
 # View Functions #
 ##################
+
+
+@login_required
+def update_session(request):
+    """
+    Update the requesting user's session variable based on ``session_data`` in POST.
+    """
+    if request.method == "POST":
+        req_data = request.POST.get("session_data", None)
+        if req_data:
+            if req_data == "sidebar":
+                if "sidebar" in request.session.keys():
+                    request.session["sidebar"]["sticky"] ^= True
+                else:
+                    request.session["sidebar"] = {}
+                    request.session["sidebar"]["sticky"] = True
+            request.session.save()
+        data = {
+            "result": "success",
+            "message": "Session updated",
+        }
+        logger.info("Session updated for user %s", request.session["_auth_user_id"])
+        return JsonResponse(data)
+
+    return HttpResponseNotAllowed(["POST"])
 
 
 @login_required
@@ -54,9 +75,9 @@ def dashboard(request):
     **Context**
 
     ``user_projects``
-        Active :model:`reporting.ProjectAssignment` for current :model:`users.User`
-    ``upcoming_projects``
-        Future :model:`reporting.ProjectAssignment` for current :model:`users.User`
+        All :model:`reporting.ProjectAssignment` for current :model:`users.User`
+    ``active_projects``
+        All :model:`reporting.ProjectAssignment` for active :model:`rolodex.Project` and current :model:`users.User`
     ``recent_tasks``
         Five most recent :model:`django_q.Task` entries
     ``user_tasks``
@@ -79,68 +100,20 @@ def dashboard(request):
     # Get active :model:`reporting.ProjectAssignment` for current :model:`users.User`
     user_projects = ProjectAssignment.objects.select_related(
         "project", "project__client", "role"
-    ).filter(
-        Q(operator=request.user)
-        & Q(start_date__lte=datetime.datetime.now())
-        & Q(end_date__gte=datetime.datetime.now())
-    )
+    ).filter(operator=request.user)
     # Get future :model:`reporting.ProjectAssignment` for current :model:`users.User`
-    upcoming_project = ProjectAssignment.objects.select_related(
+    active_project = ProjectAssignment.objects.select_related(
         "project", "project__client", "role"
-    ).filter(Q(operator=request.user) & Q(start_date__gt=datetime.datetime.now()))
+    ).filter(Q(operator=request.user) & Q(project__complete=False))
     # Assemble the context dictionary to pass to the dashboard
     context = {
         "user_projects": user_projects,
-        "upcoming_project": upcoming_project,
+        "active_projects": active_project,
         "recent_tasks": recent_tasks,
         "user_tasks": user_tasks,
     }
     # Render the HTML template index.html with the data in the context variable
     return render(request, "index.html", context=context)
-
-
-@login_required
-def profile(request):
-    """
-    Display an individual :model:`home.UserProfile`.
-
-    **Template**
-
-    :template:`home/profile.html`
-    """
-    return render(request, "home/profile.html")
-
-
-@login_required
-def upload_avatar(request):
-    """
-    Upload an avatar image for an individual :model:`home.UserProfile`.
-
-    **Context**
-
-    ``form``
-        A single ``UserProfileForm`` form.
-    ``cancel_link``
-        Link for the form's Cancel button to return to user's profile page
-
-    **Template**
-
-    :template:`home/upload_avatar.html`
-    """
-
-    if request.method == "POST":
-        form = UserProfileForm(
-            request.POST, request.FILES, instance=request.user.userprofile
-        )
-        if form.is_valid():
-            form.save()
-            return redirect("home:profile")
-    else:
-        form = UserProfileForm()
-    cancel_link = reverse("home:profile")
-    return render(
-        request, "home/upload_avatar.html", {"form": form, "cancel_link": cancel_link}
-    )
 
 
 class Management(LoginRequiredMixin, UserPassesTestMixin, View):

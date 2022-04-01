@@ -1,0 +1,274 @@
+table:
+  name: reporting_report
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    created_by_id: createdById
+    docx_template_id: docxTemplateId
+    pptx_template_id: pptxTemplateId
+    project_id: projectId
+  custom_name: report
+  custom_root_fields: {}
+object_relationships:
+- name: docxTemplate
+  using:
+    foreign_key_constraint_on: docx_template_id
+- name: pptxTemplate
+  using:
+    foreign_key_constraint_on: pptx_template_id
+- name: project
+  using:
+    foreign_key_constraint_on: project_id
+- name: user
+  using:
+    foreign_key_constraint_on: created_by_id
+array_relationships:
+- name: findings
+  using:
+    foreign_key_constraint_on:
+      column: report_id
+      table:
+        name: reporting_reportfindinglink
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    set:
+      created_by_id: x-hasura-User-Id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_report
+    columns:
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    set:
+      created_by_id: x-hasura-User-Id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_report
+    columns:
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    set:
+      created_by_id: x-hasura-User-Id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - title
+    - creation
+    - last_update
+    - complete
+    - archived
+    - created_by_id
+    - project_id
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_report
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_report
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - archived
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_report
+    columns:
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_report
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_report
+    columns:
+    - complete
+    - delivered
+    - docx_template_id
+    - pptx_template_id
+    - project_id
+    - title
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_report
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_report
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_report
+  role: user

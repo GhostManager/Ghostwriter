@@ -9,6 +9,14 @@ from django.utils.translation import gettext_lazy as _
 # 3rd Party Libraries
 from timezone_field import TimeZoneField
 
+# Roles used for user profiles and JWT authentication
+active_roles = (
+    ("user", "user"),
+    ("manager", "manager"),
+    ("admin", "admin"),
+    ("restricted", "restricted"),
+)
+
 
 class User(AbstractUser):
     """
@@ -22,12 +30,12 @@ class User(AbstractUser):
     timezone = TimeZoneField(
         "User's Timezone",
         default="America/Los_Angeles",
-        help_text="Primary timezone of the client",
+        help_text="Primary timezone for this user",
     )
     # The ITU E.164 states phone numbers should not exceed 15 characters
     # We want valid phone numbers, but validating them (here or in forms) is unnecessary
-    # Numbers are not used for anything – and any future use would involve human involvement
-    # The `max_length` allows for people adding spaces, other chars, and extension numbers
+    # Numbers are not used for anything – and any future use would require some human involvement
+    # The ``max_length`` allows for people adding spaces, other chars, and extension numbers
     phone = CharField(
         "Phone",
         max_length=50,
@@ -35,6 +43,7 @@ class User(AbstractUser):
         blank=True,
         help_text="Enter a phone number for this user",
     )
+    role = CharField(max_length=120, choices=active_roles, default="user")
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})
@@ -55,3 +64,10 @@ class User(AbstractUser):
             display_name = "DISABLED – " + display_name
 
         return display_name
+
+    def get_full_name(self):
+        """
+        Override the default method to return the user's full name. Django uses this to
+        display the user's name in different places in the admin site.
+        """
+        return self.name

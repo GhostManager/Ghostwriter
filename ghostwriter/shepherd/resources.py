@@ -42,7 +42,6 @@ class DomainResource(resources.ModelResource):
         skip_unchanged = True
         exclude = (
             "last_used_by",
-            "dns_record",
         )
 
         export_order = (
@@ -55,14 +54,7 @@ class DomainResource(resources.ModelResource):
             "expiration",
             "auto_renew",
             "expired",
-            "all_cat",
-            "ibm_xforce_cat",
-            "talos_cat",
-            "bluecoat_cat",
-            "fortiguard_cat",
-            "opendns_cat",
-            "trendmicro_cat",
-            "mx_toolbox_status",
+            "categorization",
             "note",
             "burned_explanation",
         )

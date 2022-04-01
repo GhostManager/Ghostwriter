@@ -1,6 +1,5 @@
 # Standard Libraries
 import logging
-from datetime import date, timedelta
 
 # Django Imports
 from django.test import TestCase

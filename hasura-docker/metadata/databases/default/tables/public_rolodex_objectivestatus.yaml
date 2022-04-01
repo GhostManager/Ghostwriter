@@ -1,0 +1,67 @@
+table:
+  name: rolodex_objectivestatus
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    objective_status: objectiveStatus
+  custom_name: objectiveStatus
+  custom_root_fields: {}
+array_relationships:
+- name: objectiveSubTasks
+  using:
+    foreign_key_constraint_on:
+      column: status_id
+      table:
+        name: rolodex_projectsubtask
+        schema: public
+- name: objectives
+  using:
+    foreign_key_constraint_on:
+      column: status_id
+      table:
+        name: rolodex_projectobjective
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - objective_status
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_objectivestatus
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_objectivestatus
+  role: user

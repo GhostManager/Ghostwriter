@@ -5,8 +5,10 @@ import json
 import logging
 import logging.config
 import traceback
+from asgiref.sync import async_to_sync
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+from math import ceil
 
 # Django Imports
 from django.db.models import Q
@@ -14,7 +16,6 @@ from django.db.models import Q
 # 3rd Party Libraries
 import nmap
 import requests
-from asgiref.sync import async_to_sync
 from botocore.exceptions import ClientError
 from channels.layers import get_channel_layer
 from lxml import objectify
@@ -599,13 +600,13 @@ def release_servers(no_action=False):
     return server_updates
 
 
-def check_domains(domain=None):
+def check_domains(domain_id=None):
     """
     Initiate a check of all :model:`shepherd.Domain` and update the ``domain_status`` values.
 
     **Parameters**
 
-    ``domain``
+    ``domain_id``
         Individual domain's primary key to update only that domain (Default: None)
     """
     domain_updates = {}
@@ -617,22 +618,22 @@ def check_domains(domain=None):
     # Get target domain(s) from the database or the target ``domain``
     domain_list = []
     sleep_time_override = None
-    if domain:
+    if domain_id:
         try:
-            domain_queryset = Domain.objects.get(pk=domain)
+            domain_queryset = Domain.objects.get(pk=domain_id)
             domain_list.append(domain_queryset)
             logger.info(
                 "Checking only one domain, so disabling sleep time for VirusTotal"
             )
             sleep_time_override = 0
         except Domain.DoesNotExist:
-            domain_updates[domain] = {}
-            domain_updates[domain]["change"] = "error"
-            domain_updates["errors"][domain.name] = {}
+            domain_updates[domain_id] = {}
+            domain_updates[domain_id]["change"] = "error"
+            domain_updates["errors"][domain_id] = {}
             domain_updates["errors"][
-                domain.name
-            ] = f"Requested domain ID, {domain}, does not exist"
-            logger.exception("Requested domain ID, %s, does not exist", domain)
+                domain_id
+            ] = f"Requested domain ID, {domain_id}, does not exist"
+            logger.exception("Requested domain ID, %s, does not exist", domain_id)
             return domain_updates
     else:
         # Only fetch domains that are not expired or already burned
@@ -650,25 +651,26 @@ def check_domains(domain=None):
     lab_results = domain_review.check_domain_status()
 
     # Update the domains as needed
-    for domain in lab_results:
+    for k, v in lab_results.items():
+        domain_qs = v["domain_qs"]
         change = "no action"
-        domain_updates[domain.id] = {}
-        domain_updates[domain.id]["domain"] = domain.name
-        if "vt_results" in lab_results[domain]:
-            domain_updates[domain.id]["vt_results"] = lab_results[domain]["vt_results"]
+        domain_updates[k] = {}
+        domain_updates[k]["domain"] = v["domain"]
+        if "vt_results" in lab_results[k]:
+            domain_updates[k]["vt_results"] = lab_results[k]["vt_results"]
         try:
             # Flip status if a domain has been flagged as burned
-            if lab_results[domain]["burned"]:
-                domain.health_status = HealthStatus.objects.get(health_status="Burned")
+            if lab_results[k]["burned"]:
+                domain_qs.health_status = HealthStatus.objects.get(health_status="Burned")
                 change = "burned"
                 if slack_config.enable:
                     slack_data = craft_burned_message(
                         slack_config.slack_username,
                         slack_config.slack_emoji,
                         slack_config.slack_channel,
-                        domain.name,
-                        lab_results[domain]["categories"],
-                        lab_results[domain]["burned_explanation"],
+                        v["domain"],
+                        lab_results[k]["categories"],
+                        lab_results[k]["burned_explanation"],
                     )
                     requests.post(
                         slack_config.webhook_url,
@@ -677,29 +679,32 @@ def check_domains(domain=None):
                     )
 
                     # Check if the domain is checked-out and send a message to that project channel
-                    latest_checkout = History.objects.filter(domain=domain).latest(
-                        "end_date"
-                    )
-                    if (
-                        latest_checkout.end_date >= date.today()
-                        and latest_checkout.project.slack_channel
-                    ):
-                        slack_data = craft_burned_message(
-                            slack_config.slack_username,
-                            slack_config.slack_emoji,
-                            latest_checkout.project.slack_channel,
-                            domain.name,
-                            lab_results[domain]["categories"],
-                            lab_results[domain]["burned_explanation"],
+                    try:
+                        latest_checkout = History.objects.filter(domain=domain_qs).latest(
+                            "end_date"
                         )
-                        requests.post(
-                            slack_config.webhook_url,
-                            data=slack_data,
-                            headers={"Content-Type": "application/json"},
-                        )
+                        if (
+                            latest_checkout.end_date >= date.today()
+                            and latest_checkout.project.slack_channel
+                        ):
+                            slack_data = craft_burned_message(
+                                slack_config.slack_username,
+                                slack_config.slack_emoji,
+                                latest_checkout.project.slack_channel,
+                                v["domain"],
+                                lab_results[k]["categories"],
+                                lab_results[k]["burned_explanation"],
+                            )
+                            requests.post(
+                                slack_config.webhook_url,
+                                data=slack_data,
+                                headers={"Content-Type": "application/json"},
+                            )
+                    except History.DoesNotExist:
+                        pass
             # If the domain isn't marked as burned, check for any informational warnings
             else:
-                if lab_results[domain]["warnings"]["total"] > 0:
+                if lab_results[k]["warnings"]["total"] > 0:
                     logger.info(
                         "Domain is not burned but there are warnings, so preparing notification"
                     )
@@ -708,9 +713,9 @@ def check_domains(domain=None):
                             slack_config.slack_username,
                             slack_config.slack_emoji,
                             slack_config.slack_channel,
-                            domain.name,
+                            v["domain"],
                             "VirusTotal Submission",
-                            lab_results[domain]["warnings"]["messages"],
+                            lab_results[k]["warnings"]["messages"],
                         )
                         requests.post(
                             slack_config.webhook_url,
@@ -719,28 +724,29 @@ def check_domains(domain=None):
                         )
             # Update other fields for the domain object
             if (
-                lab_results[domain]["burned"]
-                and "burned_explanation" in lab_results[domain]
+                lab_results[k]["burned"]
+                and "burned_explanation" in lab_results[k]
             ):
-                if lab_results[domain]["burned_explanation"]:
-                    domain.burned_explanation = "\n".join(
-                        lab_results[domain]["burned_explanation"]
+                if lab_results[k]["burned_explanation"]:
+                    domain_qs.burned_explanation = "\n".join(
+                        lab_results[k]["burned_explanation"]
                     )
-            if lab_results[domain]["categories"] != domain.all_cat:
+            if lab_results[k]["categories"] != domain_qs.categorization:
                 change = "categories updated"
-            if lab_results[domain]["categories"]:
-                domain.all_cat = ", ".join(lab_results[domain]["categories"]).title()
+            if lab_results[k]["categories"]:
+                # Save the JSON data to the JSONField with no alteration (e.g., ``json.dumps()``)
+                domain_qs.categorization = lab_results[k]["categories"]
             else:
-                domain.all_cat = "Uncategorized"
-            domain.last_health_check = datetime.now()
-            domain.save()
-            domain_updates[domain.id]["change"] = change
+                domain_qs.categorization = {"VirusTotal": "Uncategorized"}
+            domain_qs.last_health_check = datetime.now()
+            domain_qs.save()
+            domain_updates[k]["change"] = change
         except Exception:
             trace = traceback.format_exc()
-            domain_updates[domain.id]["change"] = "error"
-            domain_updates["errors"][domain.name] = {}
-            domain_updates["errors"][domain.name] = trace
-            logger.exception('Error updating "%s"', domain.name)
+            domain_updates[k]["change"] = "error"
+            domain_updates["errors"][v["domain"]] = {}
+            domain_updates["errors"][v["domain"]] = trace
+            logger.exception('Error updating "%s"', v["domain"])
 
     return domain_updates
 
@@ -782,19 +788,19 @@ def update_dns(domain=None):
         domains=domain_list, record_types=record_types
     )
 
-    for domain in domain_list:
-        domain_updates[domain.id] = {}
-        domain_updates[domain.id]["domain"] = domain.name
+    for d in domain_list:
+        domain_updates[d.id] = {}
+        domain_updates[d.id]["domain"] = d.name
 
-        if domain.name in dns_records:
+        if d.name in dns_records:
             try:
-                a_record = dns_records[domain.name]["a_record"]
-                mx_record = dns_records[domain.name]["mx_record"]
-                ns_record = dns_records[domain.name]["ns_record"]
-                txt_record = dns_records[domain.name]["txt_record"]
-                soa_record = dns_records[domain.name]["soa_record"]
-                cname_record = dns_records[domain.name]["cname_record"]
-                dmarc_record = dns_records[domain.name]["dmarc_record"]
+                a_record = dns_records[d.name]["a_record"]
+                mx_record = dns_records[d.name]["mx_record"]
+                ns_record = dns_records[d.name]["ns_record"]
+                txt_record = dns_records[d.name]["txt_record"]
+                soa_record = dns_records[d.name]["soa_record"]
+                cname_record = dns_records[d.name]["cname_record"]
+                dmarc_record = dns_records[d.name]["dmarc_record"]
 
                 # Format any lists as strings for storage
                 if isinstance(a_record, list):
@@ -837,21 +843,21 @@ def update_dns(domain=None):
                 dns_records_dict["soa"] = soa_record
 
                 # Look-up the individual domain and save the new record string
-                domain_instance = Domain.objects.get(name=domain.name)
-                domain_instance.dns_record = dns_records_dict
+                domain_instance = Domain.objects.get(name=d.name)
+                domain_instance.dns = dns_records_dict
                 domain_instance.save()
-                domain_updates[domain.id]["result"] = "updated"
+                domain_updates[d.id]["result"] = "updated"
             except Exception:
                 trace = traceback.format_exc()
-                logger.exception("Failed updating DNS records for %s", domain.name)
+                logger.exception("Failed updating DNS records for %s", d.name)
                 domain_updates["errors"][
-                    domain.name
+                    d.name
                 ] = "Failed updating DNS records: {traceback}".format(traceback=trace)
         else:
             logger.warning(
-                "The domain %s was not found in the returned DNS records", domain.name
+                "The domain %s was not found in the returned DNS records", d.name
             )
-            domain_updates[domain.id]["result"] = "no results"
+            domain_updates[d.id]["result"] = "no results"
 
     # Log task completed
     logger.info("DNS update completed at %s", datetime.now())
@@ -911,93 +917,124 @@ def fetch_namecheap_domains():
 
     Result status: created, updated, burned, updated & burned
 
-    The returned XML contains entries for domains like this:
+    The returned XML contains entries for domains, errors, warnings, and paging with this structure:
 
-    <RequestedCommand>namecheap.domains.getList</RequestedCommand>
-    <CommandResponse Type="namecheap.domains.getList">
-        <DomainGetListResult>
-            <Domain ID='127'
-            Name='domain1.com'
-            User='owner'
-            Created='02/15/2016'
-            Expires='02/15/2022'
-            IsExpired='False'
-            IsLocked='False'
-            AutoRenew='False'
-            WhoisGuard='ENABLED'
-            IsPremium='true'
-            IsOurDNS='true'/>
-        </DomainGetListResult>
+    <ApiResponse Status="OK" xmlns="http://api.namecheap.com/xml.response">
+        <Errors />
+        <Warnings />
+        <RequestedCommand>namecheap.domains.getList</RequestedCommand>
+        <CommandResponse Type="namecheap.domains.getList">
+            <DomainGetListResult>
+                <Domain ID='127'
+                Name='domain1.com'
+                User='owner'
+                Created='02/15/2016'
+                Expires='02/15/2022'
+                IsExpired='False'
+                IsLocked='False'
+                AutoRenew='False'
+                WhoisGuard='ENABLED'
+                IsPremium='true'
+                IsOurDNS='true'/>
+            </DomainGetListResult>
+            <Paging>
+                <TotalItems>1</TotalItems>
+                <CurrentPage>1</CurrentPage>
+                <PageSize>20</PageSize>
+            </Paging>
+        </CommandResponse>
+    </ApiResponse>
     """
     domains_list = []
     domain_changes = {}
     domain_changes["errors"] = {}
     domain_changes["updates"] = {}
+
+    # Always begin assuming one page of results
+    pages = 1
     session = requests.Session()
-    get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}"
+    get_domain_list_endpoint = "https://api.namecheap.com/xml.response?ApiUser={}&ApiKey={}&UserName={}&Command=namecheap.domains.getList&ClientIp={}&PageSize={}&Page={}"
 
     logger.info("Starting Namecheap synchronization task at %s", datetime.now())
 
     namecheap_config = NamecheapConfiguration.get_solo()
 
-    try:
-        # The Namecheap API call requires both usernames, a key, and a whitelisted IP
-        req = session.get(
-            get_domain_list_endpoint.format(
-                namecheap_config.api_username,
-                namecheap_config.api_key,
-                namecheap_config.username,
-                namecheap_config.client_ip,
-                namecheap_config.page_size,
+    # Keep fetching domains until we reach the end of the pages
+    i = 1
+    while i <= pages:
+        try:
+            logger.info("Requesting page %s of %s", i, pages)
+            # The Namecheap API call requires both usernames, a key, and a whitelisted IP
+            req = session.get(
+                get_domain_list_endpoint.format(
+                    namecheap_config.api_username,
+                    namecheap_config.api_key,
+                    namecheap_config.username,
+                    namecheap_config.client_ip,
+                    namecheap_config.page_size,
+                    i,
+                )
             )
-        )
-        # Check if request returned a 200 OK
-        if req.ok:
-            # Convert Namecheap XML into an easy to use object for iteration
-            root = objectify.fromstring(req.content)
-            # Check the status to make sure it says "OK"
-            namecheap_api_result = root.attrib["Status"]
-            if namecheap_api_result == "OK":
-                # Get all "Domain" node attributes from the XML response
-                for domain in root.CommandResponse.DomainGetListResult.Domain:
-                    domains_list.append(domain.attrib)
-            elif namecheap_api_result == "ERROR":
-                error_id = root.Errors[0].Error[0].attrib["Number"]
-                error_msg = root.Errors[0].Error[0].text
-                logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
-                domain_changes["errors"][
-                    "namecheap"
-                ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
-                return domain_changes
+            # Check if request returned a 200 OK
+            if req.ok:
+                # Convert Namecheap XML into an easy to use object for iteration
+                root = objectify.fromstring(req.content)
+                # Check the status to make sure it says "OK"
+                namecheap_api_result = root.attrib["Status"]
+                if namecheap_api_result == "OK":
+                    # Check paging info
+                    total_domains = root.CommandResponse.Paging.TotalItems
+                    page_size = root.CommandResponse.Paging.PageSize
+
+                    # Divide total by page size and round up for total pages
+                    total_pages = ceil(total_domains / page_size)
+                    if total_pages != pages:
+                        logger.info("Updating page total to %s", total_pages)
+                        pages = total_pages
+
+                    # Get all "Domain" node attributes from the XML response
+                    for domain in root.CommandResponse.DomainGetListResult.Domain:
+                        domains_list.append(domain.attrib)
+                elif namecheap_api_result == "ERROR":
+                    error_id = root.Errors[0].Error[0].attrib["Number"]
+                    error_msg = root.Errors[0].Error[0].text
+                    logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
+                    domain_changes["errors"][
+                        "namecheap"
+                    ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
+                    return domain_changes
+                else:
+                    logger.error(
+                        'Namecheap did not return an "OK" or "ERROR" response: %s', req.text
+                    )
+                    domain_changes["errors"][
+                        "namecheap"
+                    ] = 'Namecheap did not return an "OK" or "ERROR" response: {response}'.format(
+                        response=req.text
+                    )
+                    return domain_changes
             else:
                 logger.error(
-                    'Namecheap did not return an "OK" or "ERROR" response: %s', req.text
+                    "Namecheap returned a %s response: %s", req.status_code, req.text
                 )
                 domain_changes["errors"][
                     "namecheap"
-                ] = 'Namecheap did not return an "OK" or "ERROR" response: {response}'.format(
-                    response=req.text
+                ] = "Namecheap returned a {status_code} response: {text}".format(
+                    status_code=req.status_code, text=req.text
                 )
                 return domain_changes
-        else:
-            logger.error(
-                "Namecheap returned a %s response: %s", req.status_code, req.text
-            )
+        except Exception:
+            trace = traceback.format_exc()
+            logger.exception("Namecheap API request failed")
             domain_changes["errors"][
                 "namecheap"
-            ] = "Namecheap returned a {status_code} response: {text}".format(
-                status_code=req.status_code, text=req.text
-            )
+            ] = "The Namecheap API request failed: {traceback}".format(traceback=trace)
             return domain_changes
-    except Exception:
-        trace = traceback.format_exc()
-        logger.exception("Namecheap API request failed")
-        domain_changes["errors"][
-            "namecheap"
-        ] = "The Namecheap API request failed: {traceback}".format(traceback=trace)
-        return domain_changes
 
-    # There's a chance no domains are returned if the provided usernames don't have any domains
+        # Increment page counter
+        i += 1
+
+    # No domains are returned if the provided account doesn't have any domains
     if domains_list:
         # Get the current list of Namecheap domains in the library
         domain_queryset = Domain.objects.filter(registrar="Namecheap")
@@ -1194,6 +1231,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     ignore_tags = []
     for tag in cloud_config.ignore_tag.split(","):
         ignore_tags.append(tag.strip())
+    logger.info("Ignoring tags: %s", ignore_tags)
 
     # Fetch Slack configuration information
     slack_config = SlackConfiguration.get_solo()
@@ -1251,7 +1289,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # DO Section  #
     ###############
 
-    do_results = fetch_digital_ocean(cloud_config.do_api_key)
+    do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags)
     if do_results["message"]:
         vps_info["errors"]["digital_ocean"] = results["message"]
     else:

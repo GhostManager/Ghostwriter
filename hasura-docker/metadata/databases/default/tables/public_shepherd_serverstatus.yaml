@@ -1,0 +1,60 @@
+table:
+  name: shepherd_serverstatus
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    server_status: serverStatus
+  custom_name: serverStatus
+  custom_root_fields: {}
+array_relationships:
+- name: servers
+  using:
+    foreign_key_constraint_on:
+      column: server_status_id
+      table:
+        name: shepherd_staticserver
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - server_status
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_serverstatus
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_serverstatus
+  role: user

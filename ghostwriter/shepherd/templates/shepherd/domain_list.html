@@ -44,8 +44,8 @@
                                 </div>
                             </div>
                         </th>
-                        <th>Whois Privacy</th>
                         <th>Domain Age</th>
+                        <th>Expiry</th>
                         <th>Categories</th>
                         <th class="sorter-false">Check-out</th>
                     </tr>
@@ -69,16 +69,20 @@
                             <td class="align-middle burned">{{ domain.health_status }}</td>
                         {% endif %}
 
-                        {% ifequal domain.whois_status.whois_status "Enabled" %}
-                            <td class="align-middle healthy">{{ domain.whois_status }}</td>
-                        {% else %}
-                            <td class="align-middle burned">{{ domain.whois_status }}</td>
-                        {% endifequal %}
-
                         <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
 
-                        {% if domain.all_cat %}
-                            <td class="align-middle">{{ domain.all_cat }}</td>
+                        {% if domain.is_expired %}
+                            <td class="align-middle burned">{{ domain.expiration }}</td>
+                        {% else %}
+                            <td class="align-middle healthy">{{ domain.expiration }}</td>
+                        {% endif %}
+
+                        {% if domain.categorization.items %}
+                            <td class="align-middle">
+                                {% for source, cat in domain.categorization.items %}
+                                    {{ cat }}{% if not forloop.last %},&nbsp;{% endif %}
+                                {% endfor %}
+                            </td>
                         {% else %}
                             <td class="align-middle">No Results</td>
                         {% endif %}

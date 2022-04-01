@@ -107,6 +107,7 @@ class ReportAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Report Details", {"fields": ("project", "title", "created_by")}),
         ("Current Status", {"fields": ("complete", "delivered", "archived")}),
+        ("Templates", {"fields": ("docx_template", "pptx_template")}),
     )
 
 

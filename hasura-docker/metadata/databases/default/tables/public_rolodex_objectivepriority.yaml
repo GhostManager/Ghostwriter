@@ -1,0 +1,60 @@
+table:
+  name: rolodex_objectivepriority
+  schema: public
+configuration:
+  comment: null
+  custom_column_names: {}
+  custom_name: objectivePriority
+  custom_root_fields: {}
+array_relationships:
+- name: objectives
+  using:
+    foreign_key_constraint_on:
+      column: priority_id
+      table:
+        name: rolodex_projectobjective
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - weight
+    - priority
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_objectivepriority
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_objectivepriority
+  role: user

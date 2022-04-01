@@ -1,0 +1,273 @@
+table:
+  name: rolodex_projectassignment
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    end_date: endDate
+    operator_id: operatorId
+    project_id: projectId
+    role_id: roleId
+    start_date: startDate
+  custom_name: projectAssignment
+  custom_root_fields: {}
+object_relationships:
+- name: project
+  using:
+    foreign_key_constraint_on: project_id
+- name: projectRole
+  using:
+    foreign_key_constraint_on: role_id
+- name: user
+  using:
+    foreign_key_constraint_on: operator_id
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - end_date
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_projectassignment
+    columns:
+    - end_date
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_projectassignment
+    columns:
+    - end_date
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - operator_id
+    - project_id
+    - role_id
+    - end_date
+    - start_date
+    - note
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - end_date
+    - id
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_projectassignment
+  role: restricted
+- permission:
+    columns:
+    - end_date
+    - id
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_projectassignment
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - end_date
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectassignment
+    columns:
+    - end_date
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectassignment
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectassignment
+    columns:
+    - end_date
+    - note
+    - operator_id
+    - project_id
+    - role_id
+    - start_date
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectassignment
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_projectassignment
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_projectassignment
+  role: user

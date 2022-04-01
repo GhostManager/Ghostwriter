@@ -101,7 +101,7 @@ def strip_html(s):
     for tag in html.descendants:
         if isinstance(tag, str):
             output += tag
-        elif tag.name == "br" or tag.name == "p":
+        elif tag.name in ("br", "p"):
             output += "\n"
     return output
 
@@ -181,7 +181,7 @@ def prepare_jinja2_env(debug=False):
     else:
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
 
-    env = jinja2.Environment(undefined=undefined, extensions=["jinja2.ext.debug"])
+    env = jinja2.Environment(undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True)
     env.filters["filter_severity"] = filter_severity
     env.filters["filter_type"] = filter_type
     env.filters["strip_html"] = strip_html
@@ -480,7 +480,7 @@ class Reportwriter:
             t = "decimal" if num else "bullet"
             return (
                 "w:abstractNum["
-                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{t}"]'
+                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
                 "]/@w:abstractNumId"
             ).format(type=t, **xpath_options[prefer_single])
 
@@ -1079,11 +1079,12 @@ class Reportwriter:
                         content_text = ""
 
                         # This is a special check for a hyperlink formatted with additional styles
-                        if tag_contents[0].name:
-                            if tag_contents[0].name == "a":
-                                run_styles["hyperlink"] = True
-                                run_styles["hyperlink_url"] = tag_contents[0]["href"]
-                                content_text = tag_contents[0].text
+                        if len(tag_contents) > 0:
+                            if tag_contents[0].name:
+                                if tag_contents[0].name == "a":
+                                    run_styles["hyperlink"] = True
+                                    run_styles["hyperlink_url"] = tag_contents[0]["href"]
+                                    content_text = tag_contents[0].text
                         # No hyperlink, so try to assemble the text for this run
                         else:
                             # Only try to join if there is one item (no nested tags)
@@ -1215,7 +1216,7 @@ class Reportwriter:
                             if not sub_part.name == "ol" and not sub_part.name == "ul":
                                 if sub_part != "\n":
                                     temp.append(sub_part)
-                            elif sub_part.name == "ol" or sub_part.name == "ul":
+                            elif sub_part.name in ("ol", "ul"):
                                 if sub_part != "\n":
                                     nested_list = sub_part
                         # If ``temp`` isn't empty, process it like any other line
@@ -1422,9 +1423,7 @@ class Reportwriter:
                                             if sub_part != "\n":
                                                 temp.append(sub_part)
                                         # Hold the nested list separately for later
-                                        elif (
-                                            sub_part.name == "ol" or sub_part.name == "ul"
-                                        ):
+                                        elif sub_part.name in ("ol", "ul"):
                                             if sub_part != "\n":
                                                 nested_list = sub_part
 
@@ -1449,7 +1448,8 @@ class Reportwriter:
                                     # Recursively process this list and any other nested lists inside of it
                                     if nested_list:
                                         # Increment the list level counter for this nested list
-                                        level += 1
+                                        if not li_contents[0] == "\n":
+                                            level += 1
                                         p = self.parse_nested_html_lists(
                                             nested_list, p, num, finding, level
                                         )
@@ -2243,7 +2243,7 @@ class TemplateLinter:
             logger.error("Received a `None` value for template location")
 
         logger.info("Template linting completed")
-        return json.dumps(results)
+        return results
 
     def lint_pptx(self):
         """
@@ -2289,4 +2289,4 @@ class TemplateLinter:
             logger.error("Received a `None` value for template location")
 
         logger.info("Template linting completed")
-        return json.dumps(results)
+        return results

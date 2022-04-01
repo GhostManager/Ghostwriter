@@ -114,14 +114,14 @@
                     </div>
                 {% endif %}
 
-                {% if domain.dns_record %}
+                {% if domain.dns %}
                     <table class="table">
                         <tr>
                             <th>Record</th>
                             <th>Value</th>
                         </tr>
-                        {% if domain.get_list.items %}
-                            {% for record, value in domain.get_list.items %}
+                        {% if domain.dns.items %}
+                            {% for record, value in domain.dns.items %}
                                 <tr>
                                     <td class="text-center">{{ record|upper }}</td>
                                     <td class="table-note">
@@ -136,7 +136,7 @@
                         {% else %}
                             <tr>
                                 <td class="text-center">Record Dictionary</td>
-                                <td class="table-note">{{ domain.get_list }}</td>
+                                <td class="table-note">{{ domain.dns }}</td>
                             </tr>
                         {% endif %}
                     </table>
@@ -172,7 +172,6 @@
                         <th>Health</th>
                         <th>Whois Privacy</th>
                         <th>Last Update</th>
-                        <th>VirusTotal Categories</th>
                     </tr>
                     <tr>
                         {% if domain.domain_status.domain_status == "Available" %}
@@ -187,11 +186,11 @@
                             <td class="burned">{{ domain.health_status }}</td>
                         {% endif %}
 
-                        {% ifequal domain.whois_status.whois_status "Enabled" %}
+                        {% if domain.whois_status.whois_status == "Enabled" %}
                             <td class="healthy">{{ domain.whois_status }}</td>
                         {% else %}
                             <td class="burned">{{ domain.whois_status }}</td>
-                        {% endifequal %}
+                        {% endif %}
 
                         <td>
                             {% if domain.last_health_check %}
@@ -200,64 +199,26 @@
                                 No Record
                             {% endif %}
                         </td>
-
-                        <td>
-                            {% if domain.all_cat %}
-                                {{ domain.all_cat }}
-                            {% else %}
-                                Refresh categories to poll VirusTotal
-                            {% endif %}
-                        </td>
                     </tr>
                 </table>
 
                 <!-- Categories Section -->
-                <p>These third-parties categorize domains, so you may wish to check these services and track the results. These fields are never automatically updated.</p>
+                <p>The following third-parties have categorized this domain:</p>
                 <table class="table">
                     <tr>
-                        <th>IBM X-Force</th>
-                        <th>Cisco Talos</th>
-                        <th>Bluecoat</th>
-                        <th>Fortiguard</th>
-                        <th>OpenDNS</th>
-                        <th>TrendMicro</th>
+                        <th>Categorizer</th>
+                        <th>Category</th>
                     </tr>
                     <tr>
-                        {% if domain.ibm_xforce_cat %}
-                            <td>{{ domain.ibm_xforce_cat }}</td>
+                        {% if domain.categorization.items %}
+                            {% for source, cat in domain.categorization.items %}
+                                <tr>
+                                    <td>{{ source }}</td>
+                                    <td>{{ cat }}</td>
+                                </tr>
+                            {% endfor %}
                         {% else %}
-                            <td>No Results - check <a class="clickable" href="https://exchange.xforce.ibmcloud.com/url/{{ domain.name }}">X-Force</a></td>
-                        {% endif %}
-
-
-                        {% if domain.talos_cat %}
-                            <td>{{ domain.talos_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://www.talosintelligence.com/reputation_center">Talos</a></td>
-                        {% endif %}
-
-                        {% if domain.bluecoat_cat %}
-                            <td>{{ domain.bluecoat_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://sitereview.bluecoat.com/resource/lookup">Bluecoat</a></td>
-                        {% endif %}
-
-                        {% if domain.fortiguard_cat %}
-                            <td>{{ domain.fortiguard_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://fortiguard.com/webfilter?q={{ domain.name }}">Fortiguard</a></td>
-                        {% endif %}
-
-                        {% if domain.opendns_cat %}
-                            <td>{{ domain.opendns_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://domain.opendns.com/{{ domain.name }}">OpenDNS</a></td>
-                        {% endif %}
-
-                        {% if domain.trendmicro_cat %}
-                            <td>{{ domain.trendmicro_cat }}</td>
-                        {% else %}
-                            <td>No Results - check <a class="clickable" href="https://global.sitesafety.trendmicro.com/">TrendMicro</a></td>
+                            <td>No Results</td><td>Refresh categories to poll VirusTotal</td>
                         {% endif %}
                     </tr>
                 </table>
@@ -272,7 +233,7 @@
                                 <th>Client</th>
                                 <th>Activity Type</th>
                                 <th>Project Type</th>
-                                <th class="sorter-date-range-dmy">Execution Window</th>
+                                <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
                                 <th class="sorter-false">Notes</th>
                                 <th class="sorter-false">Options</th>
                             </tr>

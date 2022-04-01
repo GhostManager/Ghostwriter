@@ -2,6 +2,7 @@
 Base settings to build other settings files upon.
 """
 # Standard Libraries
+from datetime import timedelta
 from pathlib import Path
 
 # Django Imports
@@ -10,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.2.2-rc2"
+__version__ = "2.3.0"
 VERSION = __version__
-RELEASE_DATE = "22 Sept 2021"
+RELEASE_DATE = "16 Mar 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -40,7 +41,9 @@ SITE_ID = 1
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-i18n
 USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
-USE_L10N = True
+USE_L10N = False
+# https://docs.djangoproject.com/en/4.0/ref/settings/#date-format
+DATE_FORMAT = env("DATE_FORMAT", default="d M Y",)
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
@@ -51,6 +54,8 @@ LOCALE_PATHS = [str(ROOT_DIR / "locale")]
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 DATABASES = {"default": env.db("DATABASE_URL")}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
+# https://docs.djangoproject.com/en/stable/ref/settings/#std:setting-DEFAULT_AUTO_FIELD
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # URLS
 # ------------------------------------------------------------------------------
@@ -395,7 +400,7 @@ BLEACH_STRIP_TAGS = True
 # Strip HTML comments, or leave them in.
 BLEACH_STRIP_COMMENTS = True
 
-# Django REST Configuration
+# Ghostwriter API Configuration
 # ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
@@ -409,3 +414,17 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 100,
 }
+
+GRAPHQL_JWT = {
+    "JWT_AUTH_HEADER_PREFIX": "Bearer",
+    "JWT_VERIFY": True,
+    "JWT_VERIFY_EXPIRATION": True,
+    "JWT_LONG_RUNNING_REFRESH_TOKEN": True,
+    "JWT_EXPIRATION_DELTA": timedelta(minutes=15),
+    "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
+    "JWT_AUDIENCE": "Ghostwriter",
+    "JWT_SECRET_KEY": env("DJANGO_SECRET_KEY", default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe"),
+    "JWT_ALGORITHM": "HS256",
+}
+
+HASURA_ACTION_SECRET = env("HASURA_ACTION_SECRET", default="changeme",)

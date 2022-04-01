@@ -78,11 +78,14 @@ class DashboardTests(TestCase):
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
 
         cls.current_project = ProjectFactory(
-            start_date=date.today(), end_date=date.today() + timedelta(days=14)
+            start_date=date.today() - timedelta(days=14),
+            end_date=date.today(),
+            complete=True
         )
         cls.future_project = ProjectFactory(
             start_date=date.today() + timedelta(days=14),
             end_date=date.today() + timedelta(days=28),
+            complete=False
         )
         ProjectAssignmentFactory(
             project=cls.current_project,
@@ -109,14 +112,10 @@ class DashboardTests(TestCase):
         )
         cls.user_projects = cls.ProjectAssignment.objects.select_related(
             "project", "project__client", "role"
-        ).filter(
-            Q(operator=cls.user)
-            & Q(start_date__lte=date.today())
-            & Q(end_date__gte=date.today())
-        )
-        cls.upcoming_project = cls.ProjectAssignment.objects.select_related(
+        ).filter(Q(operator=cls.user))
+        cls.active_projects = cls.ProjectAssignment.objects.select_related(
             "project", "project__client", "role"
-        ).filter(Q(operator=cls.user) & Q(start_date__gt=date.today()))
+        ).filter(Q(operator=cls.user) & Q(project__complete=False))
 
         cls.uri = reverse("home:dashboard")
 
@@ -144,47 +143,16 @@ class DashboardTests(TestCase):
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
         self.assertIn("user_projects", response.context)
-        self.assertIn("upcoming_project", response.context)
+        self.assertIn("active_projects", response.context)
         self.assertIn("recent_tasks", response.context)
         self.assertIn("user_tasks", response.context)
-        self.assertEqual(len(response.context["user_projects"]), 1)
+        self.assertEqual(len(response.context["user_projects"]), 2)
         self.assertEqual(response.context["user_projects"][0], self.user_projects[0])
-        self.assertEqual(len(response.context["upcoming_project"]), 1)
+        self.assertEqual(len(response.context["active_projects"]), 1)
         self.assertEqual(
-            response.context["upcoming_project"][0], self.upcoming_project[0]
+            response.context["active_projects"][0], self.active_projects[0]
         )
         self.assertEqual(len(response.context["user_tasks"]), 3)
-
-
-class UserProfileTests(TestCase):
-    """Collection of tests for :view:`home.profile`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD)
-
-        cls.uri = reverse("home:upload_avatar")
-
-    def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-
-    def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_requires_login(self):
-        response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 302)
-
-    def test_view_uses_correct_template(self):
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "home/upload_avatar.html")
 
 
 class ManagementTests(TestCase):
@@ -231,3 +199,37 @@ class ManagementTests(TestCase):
     def test_custom_context_exists(self):
         response = self.client_staff.get(self.uri)
         self.assertIn("timezone", response.context)
+
+
+class UpdateSessionTests(TestCase):
+    """Collection of tests for :view:`home.update_session`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("home:ajax_update_session")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_sticky_sidebar_value(self):
+        self.client_auth.post(self.uri, {"session_data": "sidebar"})
+        session = self.client_auth.session
+        self.assertEqual(session["sidebar"]["sticky"], True)
+
+        self.client_auth.post(self.uri, {"session_data": "sidebar"})
+        session = self.client_auth.session
+        self.assertEqual(session["sidebar"]["sticky"], False)
+
+    def test_invalid_get_method(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 405)

@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path, re_path
 from django.views import defaults as default_views
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import RedirectView
 
 # Ghostwriter Libraries
@@ -13,6 +14,8 @@ from ghostwriter.home.views import protected_serve
 from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
+    graphql_login,
+    graphql_whoami,
 )
 
 urlpatterns = [
@@ -44,6 +47,8 @@ urlpatterns = [
         protected_serve,
         {"document_root": settings.MEDIA_ROOT},
     ),
+    path("api/login", csrf_exempt(graphql_login)),
+    path("api/whoami", csrf_exempt(graphql_whoami)),
     # Add additional custom paths below this line...
     # Your stuff: custom urls includes go here
 ]

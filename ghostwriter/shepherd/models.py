@@ -2,7 +2,6 @@
 
 # Standard Libraries
 import datetime
-import json
 from datetime import date
 
 # Django Imports
@@ -142,18 +141,11 @@ class Domain(models.Model):
         blank=True,
         help_text="Enter the name of the registrar where this domain is registered",
     )
-    dns_record = models.TextField(
+    dns = models.JSONField(
         "DNS Records",
         null=True,
         blank=True,
-        help_text="Enter the domain's DNS records - leave blank if you will run DNS updates later",
-    )
-    health_dns = models.CharField(
-        "DNS Health",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text='Enter passive DNS information from VirusTotal - leave blank or enter "Healthy" if you do not know',
+        help_text="Domain's DNS records in JSON format - e.g., `{'mx': 'record', 'a': 'record',}`",
     )
     creation = models.DateField(
         "Purchase Date", help_text="Select the date the domain was purchased"
@@ -174,60 +166,11 @@ class Domain(models.Model):
         blank=True,
         help_text="VirusTotal's permalink for scan results of this domain",
     )
-    all_cat = models.TextField(
-        "All Categories",
+    categorization = models.JSONField(
+        "Categorization",
         null=True,
         blank=True,
-        help_text="Enter all categories applied to this domain",
-    )
-    ibm_xforce_cat = models.CharField(
-        "IBM X-Force",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by IBM X-Force",
-    )
-    talos_cat = models.CharField(
-        "Cisco Talos",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by Cisco Talos",
-    )
-    bluecoat_cat = models.CharField(
-        "Bluecoat",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by Bluecoat",
-    )
-    fortiguard_cat = models.CharField(
-        "Fortiguard",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by Fortiguard",
-    )
-    opendns_cat = models.CharField(
-        "OpenDNS",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by OpenDNS",
-    )
-    trendmicro_cat = models.CharField(
-        "TrendMicro",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Provide the list of categories determined by TrendMicro",
-    )
-    mx_toolbox_status = models.CharField(
-        "MX Toolbox Status",
-        max_length=255,
-        null=True,
-        blank=True,
-        help_text="Enter the domain spam/blacklist status as determined by MX Toolbox",
+        help_text="Categories applied to this domain in JSON format - e.g., `{'source': 'category',}`",
     )
     note = models.TextField(
         "Notes",
@@ -333,23 +276,6 @@ class Domain(models.Model):
             if not self.auto_renew:
                 expiring_soon = True
         return expiring_soon
-
-    def get_list(self):
-        """
-        Return an instance's dns_record field value as a list.
-        """
-        if self.dns_record:
-            try:
-                json_acceptable_string = self.dns_record.replace('"', "").replace(
-                    "'", '"'
-                )
-                if json_acceptable_string:
-                    return json.loads(json_acceptable_string)
-                return None  # pragma: no cover
-            except Exception:
-                return self.dns_record
-        else:
-            return None  # pragma: no cover
 
     def __str__(self):
         return f"{self.name} ({self.health_status})"
@@ -626,7 +552,7 @@ class ServerHistory(models.Model):
         verbose_name_plural = "Server history"
 
     def get_absolute_url(self):
-        return reverse("shepherd:history_update", args=[str(self.id)])
+        return reverse("shepherd:server_history_update", args=[str(self.id)])
 
     def __str__(self):
         return f"{self.server.ip_address} ({self.server.name}) [{self.activity_type.activity}]"
@@ -684,6 +610,7 @@ class TransientServer(models.Model):
         default=list,
         size=5,
         blank=True,
+        null=True,
         help_text="Enter a comma-separated list of IP addresses",
     )
     name = models.CharField(

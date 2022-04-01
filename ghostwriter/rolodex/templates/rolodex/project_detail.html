@@ -87,7 +87,7 @@
                     <tr>
                         <td class="text-left bold">Working Hours</td>
                         <td class="text-left">
-                            {% if project.start_time and project.end_time %} {{ project.start_time|date:"G:H" }} to {{ project.end_time|date:"G:H" }} ({{ project.timezone }}) {% else %} No Working Hours Set {% endif %}
+                            {% if project.start_time and project.end_time %} {{ project.start_time|date:"G:i" }} to {{ project.end_time|date:"G:i" }} ({{ project.timezone }}) {% else %} No Working Hours Set {% endif %}
                         </td>
                     </tr>
                     <tr>
@@ -126,7 +126,7 @@
                         <thead>
                             <th class="align-middle">Operator</th>
                             <th class="align-middle">Role</th>
-                            <th class="sorter-date-range-dmy align-middle">Dates</th>
+                            <th class="sorter-date-range-dMMMyyyy align-middle">Dates</th>
                             <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
@@ -472,7 +472,7 @@
                         <thead>
                             <th class="align-middle">Domain Name</th>
                             <th class="align-middle">Purpose</th>
-                            <th class="sorter-date-range-dmy align-middle">Date Range</th>
+                            <th class="sorter-date-range-dMMMyyyy align-middle">Date Range</th>
                             <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false align-middle">Options</th>
                         </thead>

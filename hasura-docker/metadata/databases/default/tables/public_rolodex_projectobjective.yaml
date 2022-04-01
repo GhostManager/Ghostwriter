@@ -1,0 +1,278 @@
+table:
+  name: rolodex_projectobjective
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    marked_complete: markedComplete
+    priority_id: priorityId
+    project_id: projectId
+    status_id: statusId
+  custom_name: objective
+  custom_root_fields: {}
+object_relationships:
+- name: objectivePriority
+  using:
+    foreign_key_constraint_on: priority_id
+- name: objectiveStatus
+  using:
+    foreign_key_constraint_on: status_id
+- name: project
+  using:
+    foreign_key_constraint_on: project_id
+array_relationships:
+- name: objectiveSubTasks
+  using:
+    foreign_key_constraint_on:
+      column: parent_id
+      table:
+        name: rolodex_projectsubtask
+        schema: public
+insert_permissions:
+- permission:
+    backend_only: false
+    check: {}
+    columns:
+    - deadline
+    - description
+    - objective
+    - position
+    - priority_id
+    - project_id
+    - status_id
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_projectobjective
+    columns:
+    - deadline
+    - description
+    - objective
+    - position
+    - priority_id
+    - project_id
+    - status_id
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: add_projectobjective
+    columns:
+    - deadline
+    - description
+    - objective
+    - position
+    - priority_id
+    - project_id
+    - status_id
+  role: user
+select_permissions:
+- permission:
+    columns:
+    - id
+    - priority_id
+    - project_id
+    - status_id
+    - complete
+    - objective
+    - deadline
+    - marked_complete
+    - position
+    - description
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_projectobjective
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_projectobjective
+  role: user
+update_permissions:
+- permission:
+    check: {}
+    columns:
+    - complete
+    - deadline
+    - description
+    - objective
+    - position
+    - priority_id
+    - project_id
+    - status_id
+    filter: {}
+  role: manager
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectobjective
+    columns:
+    - complete
+    - deadline
+    - description
+    - objective
+    - position
+    - priority_id
+    - project_id
+    - status_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectobjective
+  role: restricted
+- permission:
+    check:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectobjective
+    columns:
+    - complete
+    - deadline
+    - description
+    - objective
+    - position
+    - priority_id
+    - project_id
+    - status_id
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: change_projectobjective
+  role: user
+delete_permissions:
+- permission:
+    filter: {}
+  role: manager
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_projectobjective
+  role: restricted
+- permission:
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: delete_projectobjective
+  role: user

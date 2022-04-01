@@ -4,13 +4,19 @@
     "python.linting.enabled": true,
     "python.linting.flake8Args": [
         "--max-line-length=240",
-        "--ignore=E203, W503",
+        "--ignore=E203,E722,W503",
     ],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none",
         "reportMissingModuleSource": "none",
     },
     "editor.formatOnSave": true,
+    "[javascript]": {
+        "editor.formatOnSave": false
+    },
+    "[html]": {
+        "editor.formatOnSave": false
+    },
     "files.trimTrailingWhitespace": true,
     "python.formatting.provider": "black",
     "python.formatting.blackArgs": [

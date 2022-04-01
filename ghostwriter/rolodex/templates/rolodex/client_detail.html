@@ -66,7 +66,7 @@
 
             <!-- POC Tab -->
             <div id="contacts" class="tab-pane">
-                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a>
+                <a class="icon add-icon btn btn-primary mb-1" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a>
                 {% if client.clientcontact_set.all %}
                     <table id="clientTable" class="tablesorter table table-striped">
                         <thead>
@@ -111,14 +111,14 @@
 
             <!-- Project History Tab -->
             <div id="project-history" class="tab-pane">
-                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a>
+                <a class="icon add-icon btn btn-primary mb-1" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a>
                 {% if client.project_set.all %}
                     <table id="projectTable" class="tablesorter table">
                         <thead>
                             <tr>
                                 <th nowrap>Codename</th>
                                 <th>Project Type</th>
-                                <th nowrap class="sorter-date-range-dmy">Execution Window</th>
+                                <th nowrap class="sorter-date-range-dMMMyyyy">Execution Window</th>
                                 <th class="sorter-false">Note</th>
                                 <th class="sorter-false">Options</th>
                             </tr>
@@ -208,7 +208,7 @@
 
             <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
-                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:client_note_add' client.id %}">Add a Note</a>
+                <a class="icon add-icon btn btn-primary mb-1" href="{% url 'rolodex:client_note_add' client.id %}">Add a Note</a>
                 {% if client.clientnote_set.all %}
                     {% for note in client.clientnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
@@ -274,35 +274,6 @@
                             }
                         );
             $('.tablesorter').trigger('update');
-        });
-    </script>
-
-    <!-- Roll Codename with AJAX -->
-    <script>
-        $('.js-roll-codename').click(function () {
-            var url = $(this).attr('roll-codename-url');
-            var clientId = $(this).attr('roll-codename-client');
-            var csrftoken = $(this).attr('roll-codename-csrftoken')
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'client': clientId
-                },
-                success: function (data) {
-                    $('#client-codename').html(data['codename']);
-                }
-            });
         });
     </script>
 

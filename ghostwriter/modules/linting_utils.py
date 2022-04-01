@@ -56,6 +56,7 @@ LINTER_CONTEXT = {
             "start_date": "Mar. 1, 2021",
             "end_date": "Jun. 25, 2021",
             "timezone": "America/Los_Angeles",
+            "phone": "(212) 664-4444",
             "note": "<p>Benny will lead the assessment for the full duration.</p>",
         },
         {
@@ -65,6 +66,7 @@ LINTER_CONTEXT = {
             "start_date": "Mar. 1, 2021",
             "end_date": "Jun. 25, 2021",
             "timezone": "America/Los_Angeles",
+            "phone": "(212) 664-4444",
             "note": "<p>Christopher will provide oversight and assistance (as needed).</p>",
         },
     ],

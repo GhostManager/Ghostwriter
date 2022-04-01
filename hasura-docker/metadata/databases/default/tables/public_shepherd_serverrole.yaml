@@ -1,0 +1,67 @@
+table:
+  name: shepherd_serverrole
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    server_role: serverRole
+  custom_name: serverRole
+  custom_root_fields: {}
+array_relationships:
+- name: cloudServers
+  using:
+    foreign_key_constraint_on:
+      column: server_role_id
+      table:
+        name: shepherd_transientserver
+        schema: public
+- name: staticServers
+  using:
+    foreign_key_constraint_on:
+      column: server_role_id
+      table:
+        name: shepherd_serverhistory
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - server_role
+    filter: {}
+  role: manager
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_serverrole
+  role: restricted
+- permission:
+    columns: "*"
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_serverrole
+  role: user

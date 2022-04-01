@@ -1,0 +1,71 @@
+table:
+  name: shepherd_serverprovider
+  schema: public
+configuration:
+  comment: null
+  custom_column_names:
+    server_provider: serverProvider
+  custom_name: serverProvider
+  custom_root_fields: {}
+array_relationships:
+- name: cloudServers
+  using:
+    foreign_key_constraint_on:
+      column: server_provider_id
+      table:
+        name: shepherd_transientserver
+        schema: public
+- name: staticServers
+  using:
+    foreign_key_constraint_on:
+      column: server_provider_id
+      table:
+        name: shepherd_staticserver
+        schema: public
+select_permissions:
+- permission:
+    columns:
+    - id
+    - server_provider
+    filter: {}
+  role: manager
+- permission:
+    columns:
+    - id
+    - server_provider
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_serverprovider
+  role: restricted
+- permission:
+    columns:
+    - id
+    - server_provider
+    filter:
+      _and:
+      - _exists:
+          _table:
+            name: users_user_groups
+            schema: public
+          _where:
+            _and:
+            - user_id:
+                _eq: X-Hasura-User-Id
+            - authGroup:
+                groupPermissions:
+                  authPermission:
+                    codename:
+                      _eq: view_serverprovider
+  role: user

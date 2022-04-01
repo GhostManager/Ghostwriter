@@ -125,7 +125,7 @@ def roll_codename(request):
             "Generated new codename at request of %s",
             request.user,
         )
-    except Exception as exception:
+    except Exception as exception:  # pragma: no cover
         template = "An exception of type {0} occurred. Arguments:\n{1!r}"
         log_message = template.format(type(exception).__name__, exception.args)
         logger.error(log_message)
@@ -140,7 +140,7 @@ def ajax_update_project_objectives(request):
     Update the ``position`` and ``status`` fields of all :model:`rolodex.ProjectObjective`
     entries attached to an individual :model:`rolodex.Project`.
     """
-    if request.method == "POST" and request.is_ajax():
+    if request.method == "POST":
         data = request.POST.get("positions")
         project_id = request.POST.get("project")
         priority_class = request.POST.get("priority").replace("_priority", "")
@@ -237,7 +237,7 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                 new_status,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -279,7 +279,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -445,7 +445,7 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -519,7 +519,7 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
                     "result": "error",
                     "message": "Your new task must have a valid task and due date",
                 }
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -564,7 +564,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -606,7 +606,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, View):
                 self.object.id,
                 self.request.user,
             )
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -676,7 +676,7 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                     "result": "error",
                     "message": "Task cannot be updated without a valid task and due date",
                 }
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
@@ -770,10 +770,10 @@ def client_list(request):
             "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
-        client_list = Client.objects.filter(name__icontains=search_term).order_by("name")
+        clients = Client.objects.filter(name__icontains=search_term).order_by("name")
     else:
-        client_list = Client.objects.all().order_by("name")
-    client_filter = ClientFilter(request.GET, queryset=client_list)
+        clients = Client.objects.all().order_by("name")
+    client_filter = ClientFilter(request.GET, queryset=clients)
     return render(request, "rolodex/client_list.html", {"filter": client_filter})
 
 
@@ -791,10 +791,15 @@ def project_list(request):
 
     :template:`rolodex/project_list.html`
     """
-    project_list = (
+    projects = (
         Project.objects.select_related("client").all().order_by("complete", "client")
     )
-    filtered_list = ProjectFilter(request.GET, queryset=project_list)
+    # Copy the GET request data
+    data = request.GET.copy()
+    # If user has not submitted their own filter, default to showing only active projects
+    if len(data) == 0:
+        data["complete"] = 0
+    filtered_list = ProjectFilter(data, queryset=projects)
     return render(request, "rolodex/project_list.html", {"filter": filtered_list})
 
 
@@ -914,8 +919,8 @@ class ClientCreate(LoginRequiredMixin, CreateView):
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return `form_invalid` and display errors
-        except Exception as exception:
+        # Otherwise return ``form_invalid`` and display errors
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
@@ -998,8 +1003,8 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
-        # Otherwise return `form_invalid` and display errors
-        except Exception as exception:
+        # Otherwise return ``form_invalid`` and display errors
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
@@ -1270,7 +1275,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
-        except Exception as exception:
+        except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
@@ -1368,67 +1373,6 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
-                # Update infrastructure if project's dates changed
-                update = form.cleaned_data["update_checkouts"]
-                if update:
-                    if (
-                        "end_date" in form.changed_data
-                        or "start_date" in form.changed_data
-                    ):
-                        logger.info(
-                            "Date changed on Project %s, so updating domain and server checkouts",
-                            self.object.pk,
-                        )
-                        # Get the project's current dates
-                        old_project_data = Project.objects.get(pk=self.object.pk)
-                        old_start_date = old_project_data.start_date
-                        old_end_date = old_project_data.end_date
-                        # Form dates
-                        new_start_date = form.cleaned_data["start_date"]
-                        new_end_date = form.cleaned_data["end_date"]
-                        # Timedelta changes
-                        start_timedelta = new_start_date - old_start_date
-                        end_timedelta = new_end_date - old_end_date
-                        try:
-                            # Update checkouts based on deltas
-                            domain_checkouts = History.objects.filter(
-                                project=self.object.pk
-                            )
-                            server_checkouts = ServerHistory.objects.filter(
-                                project=self.object.pk
-                            )
-                            for checkout in domain_checkouts:
-                                logger.info(
-                                    "Updating checkout for %s from %s - %s to %s - %s",
-                                    checkout.domain,
-                                    checkout.start_date,
-                                    checkout.end_date,
-                                    checkout.start_date + start_timedelta,
-                                    checkout.end_date + end_timedelta,
-                                )
-                                checkout.start_date = (
-                                    checkout.start_date + start_timedelta
-                                )
-                                checkout.end_date = checkout.end_date + end_timedelta
-                                checkout.save()
-                            for checkout in server_checkouts:
-                                logger.info(
-                                    "Updating checkout for %s from %s-%s to %s-%s",
-                                    checkout.server,
-                                    checkout.start_date,
-                                    checkout.end_date,
-                                    checkout.start_date + start_timedelta,
-                                    checkout.end_date + end_timedelta,
-                                )
-                                checkout.start_date = (
-                                    checkout.start_date + start_timedelta
-                                )
-                                checkout.end_date = checkout.end_date + end_timedelta
-                                checkout.save()
-                        except Exception:
-                            message = "Could not update checkouts with your changed project dates. Review your checkouts or uncheck the box for automatic updates."
-                            form.add_error("update_checkouts", message)
-
                 # Save the parent form – will rollback if a child fails validation
                 self.object = form.save()
 
