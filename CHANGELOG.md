@@ -57,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed project dashboard's "Import Oplog" button not pointing to correct URL
 * Fixed URL conflicts with export links for domains, servers, and findings
 
+### Security
+
+* Restricted edit and delete actions on notes to close possibility of other users editing or deleting notes they do not own
+
 ## [2.2.3] - 2022-02-16
 
 ### Added
