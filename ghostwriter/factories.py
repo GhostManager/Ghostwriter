@@ -324,6 +324,26 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
     finding = factory.SubFactory(ReportFindingLinkFactory)
     uploaded_by = factory.SubFactory(UserFactory)
 
+    class Params:
+        img = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.png",
+                data=b"lorem ipsum"
+            )
+        )
+        txt = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.txt",
+                data=b"lorem ipsum"
+            )
+        )
+        unknown = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.tar",
+                data=b"lorem ipsum"
+            )
+        )
+
 
 class ArchiveFactory(factory.django.DjangoModelFactory):
     class Meta:
