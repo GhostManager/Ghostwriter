@@ -70,17 +70,18 @@
                             ">
                                 <span style="display: none">{{ finding.severity.weight }}</span>{{ finding.severity.severity }}
                             </td>
-                            <td class="neutral align-middle" style="color:
+                             <!-- CVSS Score -->
+                            <td class="neutral align-middle
                                 {% if finding.severity.severity == "Critical" %}
-                                    #cc0500
+                                    cvss-critical
                                 {% elif finding.severity.severity == "High" %}
-                                    #df3d03
+                                    cvss-high
                                 {% elif finding.severity.severity == "Medium" %}
-                                    #f9a009
+                                    cvss-medium
                                 {% elif finding.severity.severity == "Low" %}
-                                    #ffcb0d
+                                    cvss-low
                                 {% elif finding.severity.severity == "Informational" %}
-                                    #53aa33
+                                    cvss-info
                                 {% endif %}
                             ">
                                 <span style="display: inline;">{{ finding.cvss_score }}</span>

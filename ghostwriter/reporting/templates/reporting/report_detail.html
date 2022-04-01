@@ -145,17 +145,17 @@
                                         title="Click-n-drag to reposition or categorize"
                                     ></td>
                                     <td class="align-middle"><a id="delete-target-content-finding-{{ finding.id }}" class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
-                                    <td class="neutral align-middle" style="color:
+                                    <td class="neutral align-middle
                                         {% if finding.severity.severity == "Critical" %}
-                                            #cc0500
+                                            cvss-critical
                                         {% elif finding.severity.severity == "High" %}
-                                            #df3d03
+                                            cvss-high
                                         {% elif finding.severity.severity == "Medium" %}
-                                            #f9a009
+                                            cvss-medium
                                         {% elif finding.severity.severity == "Low" %}
-                                            #ffcb0d
+                                            cvss-low
                                         {% elif finding.severity.severity == "Informational" %}
-                                            #53aa33
+                                            cvss-info
                                         {% endif %}
                                     ">
                                         <span style="display: inline;">{{ finding.cvss_score }}</span>
