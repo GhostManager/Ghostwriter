@@ -10,8 +10,10 @@ from django.utils.encoding import force_str
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     AuxServerAddressFactory,
+    ClientNoteFactory,
     ObjectiveStatusFactory,
     ProjectFactory,
+    ProjectNoteFactory,
     ProjectObjectiveFactory,
     ProjectScopeFactory,
     StaticServerFactory,
@@ -322,3 +324,161 @@ class ProjectScopeExportViewTests(TestCase):
             response.get("Content-Disposition"),
             f"attachment; filename={self.scope.name}_scope.txt"
         )
+
+
+class ClientNoteUpdateTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientNoteUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ClientNote = ClientNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.note = ClientNoteFactory(operator=cls.user)
+        cls.uri = reverse("rolodex:client_note_edit", kwargs={"pk": cls.note.pk})
+        cls.other_user_note = ClientNoteFactory()
+        cls.other_user_uri = reverse("rolodex:client_note_edit", kwargs={"pk": cls.other_user_note.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_permissions(self):
+        response = self.client_auth.get(self.other_user_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ClientNoteDeleteTests(TestCase):
+    """Collection of tests for :view:`rolodex.ClientNoteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ClientNote = ClientNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        self.ClientNote.objects.all().delete()
+        note = ClientNoteFactory(operator=self.user)
+        uri = reverse("rolodex:ajax_delete_client_note", kwargs={"pk": note.pk})
+
+        self.assertEqual(len(self.ClientNote.objects.all()), 1)
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.ClientNote.objects.all()), 0)
+
+    def test_view_permissions(self):
+        note = ClientNoteFactory()
+        uri = reverse("rolodex:ajax_delete_client_note", kwargs={"pk": note.pk})
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        note = ClientNoteFactory()
+        uri = reverse("rolodex:ajax_delete_client_note", kwargs={"pk": note.pk})
+
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ProjectNoteUpdateTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectNoteUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ProjectNote = ProjectNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.note = ProjectNoteFactory(operator=cls.user)
+        cls.uri = reverse("rolodex:project_note_edit", kwargs={"pk": cls.note.pk})
+        cls.other_user_note = ProjectNoteFactory()
+        cls.other_user_uri = reverse("rolodex:project_note_edit", kwargs={"pk": cls.other_user_note.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_permissions(self):
+        response = self.client_auth.get(self.other_user_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ProjectNoteDeleteTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectNoteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ProjectNote = ProjectNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        self.ProjectNote.objects.all().delete()
+        note = ProjectNoteFactory(operator=self.user)
+        uri = reverse("rolodex:ajax_delete_project_note", kwargs={"pk": note.pk})
+
+        self.assertEqual(len(self.ProjectNote.objects.all()), 1)
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.ProjectNote.objects.all()), 0)
+
+    def test_view_permissions(self):
+        note = ProjectNoteFactory()
+        uri = reverse("rolodex:ajax_delete_project_note", kwargs={"pk": note.pk})
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        note = ProjectNoteFactory()
+        uri = reverse("rolodex:ajax_delete_project_note", kwargs={"pk": note.pk})
+
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)

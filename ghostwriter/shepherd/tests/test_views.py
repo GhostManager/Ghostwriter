@@ -13,12 +13,14 @@ from ghostwriter.factories import (
     ClientFactory,
     CloudServicesConfigurationFactory,
     DomainFactory,
+    DomainNoteFactory,
     DomainServerConnectionFactory,
     DomainStatusFactory,
     HistoryFactory,
     NamecheapConfigurationFactory,
     ProjectFactory,
     ServerHistoryFactory,
+    ServerNoteFactory,
     ServerStatusFactory,
     StaticServerFactory,
     TransientServerFactory,
@@ -1738,3 +1740,161 @@ class ProjectDomainsViewTests(TestCase):
     def test_with_no_checkout_records(self):
         response = self.client_auth.get(self.no_checkout_uri)
         self.assertEqual(response.status_code, 200)
+
+
+class DomainNoteUpdateTests(TestCase):
+    """Collection of tests for :view:`shepherd.DomainNoteUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.DomainNote = DomainNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.note = DomainNoteFactory(operator=cls.user)
+        cls.uri = reverse("shepherd:domain_note_edit", kwargs={"pk": cls.note.pk})
+        cls.other_user_note = DomainNoteFactory()
+        cls.other_user_uri = reverse("shepherd:domain_note_edit", kwargs={"pk": cls.other_user_note.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_permissions(self):
+        response = self.client_auth.get(self.other_user_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class DomainNoteDeleteTests(TestCase):
+    """Collection of tests for :view:`shepherd.DomainNoteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.DomainNote = DomainNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        self.DomainNote.objects.all().delete()
+        note = DomainNoteFactory(operator=self.user)
+        uri = reverse("shepherd:ajax_delete_domain_note", kwargs={"pk": note.pk})
+
+        self.assertEqual(len(self.DomainNote.objects.all()), 1)
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.DomainNote.objects.all()), 0)
+
+    def test_view_permissions(self):
+        note = DomainNoteFactory()
+        uri = reverse("shepherd:ajax_delete_domain_note", kwargs={"pk": note.pk})
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        note = DomainNoteFactory()
+        uri = reverse("shepherd:ajax_delete_domain_note", kwargs={"pk": note.pk})
+
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ServerNoteUpdateTests(TestCase):
+    """Collection of tests for :view:`shepherd.ServerNoteUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ServerNote = ServerNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.note = ServerNoteFactory(operator=cls.user)
+        cls.uri = reverse("shepherd:server_note_edit", kwargs={"pk": cls.note.pk})
+        cls.other_user_note = ServerNoteFactory()
+        cls.other_user_uri = reverse("shepherd:server_note_edit", kwargs={"pk": cls.other_user_note.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_permissions(self):
+        response = self.client_auth.get(self.other_user_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ServerNoteDeleteTests(TestCase):
+    """Collection of tests for :view:`shepherd.ServerNoteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ServerNote = ServerNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        self.ServerNote.objects.all().delete()
+        note = ServerNoteFactory(operator=self.user)
+        uri = reverse("shepherd:ajax_delete_server_note", kwargs={"pk": note.pk})
+
+        self.assertEqual(len(self.ServerNote.objects.all()), 1)
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.ServerNote.objects.all()), 0)
+
+    def test_view_permissions(self):
+        note = ServerNoteFactory()
+        uri = reverse("shepherd:ajax_delete_server_note", kwargs={"pk": note.pk})
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        note = ServerNoteFactory()
+        uri = reverse("shepherd:ajax_delete_server_note", kwargs={"pk": note.pk})
+
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)

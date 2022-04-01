@@ -18,8 +18,10 @@ from rest_framework.renderers import JSONRenderer
 from ghostwriter.factories import (
     EvidenceFactory,
     FindingFactory,
+    FindingNoteFactory,
     FindingTypeFactory,
     GenerateMockProject,
+    LocalFindingNoteFactory,
     ProjectFactory,
     ProjectTargetFactory,
     ReportDocxTemplateFactory,
@@ -1934,3 +1936,161 @@ class ReportTemplateFilterTests(TestCase):
         test_string = "<p>This is a test<br />with a newline</p>"
         result = strip_html(test_string)
         self.assertEqual(result, "This is a test\nwith a newline")
+
+
+class LocalFindingNoteUpdateTests(TestCase):
+    """Collection of tests for :view:`reporting.LocalFindingNoteUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.LocalFindingNote = LocalFindingNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.note = LocalFindingNoteFactory(operator=cls.user)
+        cls.uri = reverse("reporting:local_finding_note_edit", kwargs={"pk": cls.note.pk})
+        cls.other_user_note = LocalFindingNoteFactory()
+        cls.other_user_uri = reverse("reporting:local_finding_note_edit", kwargs={"pk": cls.other_user_note.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_permissions(self):
+        response = self.client_auth.get(self.other_user_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class LocalFindingNoteDeleteTests(TestCase):
+    """Collection of tests for :view:`reporting.LocalFindingNoteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.LocalFindingNote = LocalFindingNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        self.LocalFindingNote.objects.all().delete()
+        note = LocalFindingNoteFactory(operator=self.user)
+        uri = reverse("reporting:ajax_delete_local_finding_note", kwargs={"pk": note.pk})
+
+        self.assertEqual(len(self.LocalFindingNote.objects.all()), 1)
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.LocalFindingNote.objects.all()), 0)
+
+    def test_view_permissions(self):
+        note = LocalFindingNoteFactory()
+        uri = reverse("reporting:ajax_delete_local_finding_note", kwargs={"pk": note.pk})
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        note = LocalFindingNoteFactory()
+        uri = reverse("reporting:ajax_delete_local_finding_note", kwargs={"pk": note.pk})
+
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class FindingNoteUpdateTests(TestCase):
+    """Collection of tests for :view:`reporting.FindingNoteUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.FindingNote = FindingNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.note = FindingNoteFactory(operator=cls.user)
+        cls.uri = reverse("reporting:finding_note_edit", kwargs={"pk": cls.note.pk})
+        cls.other_user_note = FindingNoteFactory()
+        cls.other_user_uri = reverse("reporting:finding_note_edit", kwargs={"pk": cls.other_user_note.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_permissions(self):
+        response = self.client_auth.get(self.other_user_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class FindingNoteDeleteTests(TestCase):
+    """Collection of tests for :view:`reporting.FindingNoteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.FindingNote = FindingNoteFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        self.FindingNote.objects.all().delete()
+        note = FindingNoteFactory(operator=self.user)
+        uri = reverse("reporting:ajax_delete_finding_note", kwargs={"pk": note.pk})
+
+        self.assertEqual(len(self.FindingNote.objects.all()), 1)
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 200)
+
+        data = {"result": "success", "message": "Note successfully deleted!"}
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.assertEqual(len(self.FindingNote.objects.all()), 0)
+
+    def test_view_permissions(self):
+        note = FindingNoteFactory()
+        uri = reverse("reporting:ajax_delete_finding_note", kwargs={"pk": note.pk})
+
+        response = self.client_auth.post(uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        note = FindingNoteFactory()
+        uri = reverse("reporting:ajax_delete_finding_note", kwargs={"pk": note.pk})
+
+        response = self.client.post(uri)
+        self.assertEqual(response.status_code, 302)
