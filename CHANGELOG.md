@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.3.0-rc1] - 2022-04-01
 
 ### Added
 
@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added components for upcoming GraphQL API that are only available with _local.yml_ for testing in development environments
   * New Docker container for Hasura GraphQL engine
   * Work-in-progress Hasura metadata for the GraphQL API
-  * New `HASURA_ACTION_SECRET` environment variable to templates
+  * New `HASURA_ACTION_SECRET` environment variable in env templates
   * New utilities for generating and managing JSON Web Tokens for the GraphQL API
 * Added support for block quotes in report templates and WYSIWYG editor
 * Added `ProjectInvite` and `ClientInvite` models to support upcoming role-based access controls
@@ -28,7 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Updated nginx.conf to align it with Mozilla's recommendations for nginx v1.21.1 and OpenSSL 1.1.1l
   * See config: [https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6](https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6)
 * Toast messages for errors are no longer sticky so they do not have to be manually dismissed when covering UI elements
-* Updated singleton models for Django 4.0 support
 * Domain list table now shows an "Expiry" column and "Categories" column now parses the new ``categorization`` JSON field data
 * Domain list filtering now includes a "Filter Expired" toggle that on by default
   * Filters out domains with expiration dates in the past and `auto_renew` set to `False` even if status is set to "Available"
@@ -53,8 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Bumped `djangorestframework-api-key` to v2.2.0 to fix REST API key creation (closes #197)
-* Overrode Django's ``get_full_name()`` method used for the admin site so the user's proper full name is displayed in history logs
-* Fixed project dashboard's "Import Oplog" button not pointing to correct URL
+* Overrode Django's `get_full_name()` method used for the admin site so the user's proper full name is displayed in history logs
+* Fixed project dashboard's "Import Oplog" button not pointing to the correct URL
 * Fixed URL conflicts with export links for domains, servers, and findings
 
 ### Security
