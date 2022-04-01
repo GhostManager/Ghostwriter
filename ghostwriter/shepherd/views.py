@@ -10,12 +10,12 @@ from datetime import date, datetime
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core import serializers
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -415,12 +415,20 @@ class MonitorCloudInfrastructure(LoginRequiredMixin, View):
         return JsonResponse(data)
 
 
-class ServerNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class ServerNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`shepherd.ServerNote`.
     """
 
     model = ServerNote
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
@@ -435,12 +443,20 @@ class ServerNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class DomainNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class DomainNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`shepherd.DomainNote`.
     """
 
     model = DomainNote
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
@@ -1829,7 +1845,7 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
+class DomainNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual :model:`shepherd.DomainNote`.
 
@@ -1846,6 +1862,14 @@ class DomainNoteUpdate(LoginRequiredMixin, UpdateView):
     model = DomainNote
     form_class = DomainNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
@@ -1914,7 +1938,7 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ServerNoteUpdate(LoginRequiredMixin, UpdateView):
+class ServerNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual :model:`shepherd.ServerNote`.
 
@@ -1933,6 +1957,14 @@ class ServerNoteUpdate(LoginRequiredMixin, UpdateView):
     model = ServerNote
     form_class = ServerNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
