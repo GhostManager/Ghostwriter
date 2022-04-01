@@ -573,6 +573,7 @@ class DomainNoteFactory(factory.django.DjangoModelFactory):
 
     note = Faker("paragraph")
     domain = factory.SubFactory(DomainFactory)
+    operator = factory.SubFactory(UserFactory)
 
 
 class ServerNoteFactory(factory.django.DjangoModelFactory):
@@ -581,6 +582,7 @@ class ServerNoteFactory(factory.django.DjangoModelFactory):
 
     note = Faker("paragraph")
     server = factory.SubFactory(StaticServerFactory)
+    operator = factory.SubFactory(UserFactory)
 
 
 class NamecheapConfigurationFactory(factory.django.DjangoModelFactory):
