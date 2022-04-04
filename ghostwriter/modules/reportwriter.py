@@ -11,16 +11,19 @@ import logging
 import os
 import random
 import re
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 # Django Imports
 from django.conf import settings
+from django.utils.dateformat import format as dateformat
 
 # 3rd Party Libraries
 import docx
 import jinja2
 import pptx
 from bs4 import BeautifulSoup, NavigableString
+from dateutil.parser import parse as parse_datetime
+from dateutil.parser._parser import ParserError
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
@@ -40,6 +43,7 @@ from xlsxwriter.workbook import Workbook
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
+from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.reporting.models import Evidence
 
@@ -60,10 +64,17 @@ def filter_severity(findings, allowlist):
         List of strings matching severity categories to allow through filter
     """
     filtered_values = []
-    allowlist = [severity.lower() for severity in allowlist]
-    for finding in findings:
-        if finding["severity"].lower() in allowlist:
-            filtered_values.append(finding)
+    if isinstance(allowlist, list):
+        allowlist = [severity.lower() for severity in allowlist]
+    else:
+        raise InvalidFilterValue(f'Allowlist passed into `filter_severity()` filter is not a list ("{allowlist}"); must be like `["Critical", "High"]`')
+    try:
+        for finding in findings:
+            if finding["severity"].lower() in allowlist:
+                filtered_values.append(finding)
+    except (KeyError, TypeError):
+        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
+        raise InvalidFilterValue('Invalid list of findings passed into `filter_severity()` filter; must be the `{{ findings }}` object')
     return filtered_values
 
 
@@ -79,10 +90,17 @@ def filter_type(findings, allowlist):
         List of strings matching severity categories to allow through filter
     """
     filtered_values = []
-    allowlist = [type.lower() for type in allowlist]
-    for finding in findings:
-        if finding["finding_type"].lower() in allowlist:
-            filtered_values.append(finding)
+    if isinstance(allowlist, list):
+        allowlist = [type.lower() for type in allowlist]
+    else:
+        raise InvalidFilterValue(f'Allowlist passed into `filter_type()` filter is not a list ("{allowlist}"); must be like `["Network", "Web"]`')
+    try:
+        for finding in findings:
+            if finding["finding_type"].lower() in allowlist:
+                filtered_values.append(finding)
+    except (KeyError, TypeError):
+        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
+        raise InvalidFilterValue('Invalid list of findings passed into `filter_type()` filter; must be the `{{ findings }}` object')
     return filtered_values
 
 
@@ -103,7 +121,7 @@ def strip_html(s):
             output += tag
         elif tag.name in ("br", "p"):
             output += "\n"
-    return output
+    return output.strip()
 
 
 def compromised(targets):
@@ -116,13 +134,17 @@ def compromised(targets):
         List of dictionary objects (JSON) for targets
     """
     filtered_targets = []
-    for target in targets:
-        if target["compromised"]:
-            filtered_targets.append(target)
+    try:
+        for target in targets:
+            if target["compromised"]:
+                filtered_targets.append(target)
+    except (KeyError, TypeError):
+        logger.exception("Error parsing ``targets`` as a list of dictionaries: %s", targets)
+        raise InvalidFilterValue('Invalid list of targets passed into `compromised()` filter; must be the `{{ targets }}` object')
     return filtered_targets
 
 
-def add_days(date, format_str, days):
+def add_days(date, days):
     """
     Add a number of business days to a date.
 
@@ -130,36 +152,46 @@ def add_days(date, format_str, days):
 
     ``date``
         Date string to add business days to
-    ``format_str``
-        The format of the provided date
     ``days``
         Number of business days to add to the date
     """
-    # Loop until all days added
-    date = datetime.strptime(date, format_str)
-    if days > 0:
-        while days > 0:
-            # Add one day to the date
-            date += timedelta(days=1)
-            # Check if the day is a business day
-            weekday = date.weekday()
-            if weekday >= 5:
-                # Return to the top (Sunday is 6)
-                continue
-            # Decrement the number of days to add
-            days -= 1
-    else:
-        # Same as above but in reverse for negative days
-        while days < 0:
-            date -= timedelta(days=1)
-            weekday = date.weekday()
-            if weekday >= 5:
-                continue
-            days += 1
-    return date.strftime(format_str)
+    new_date = None
+    try:
+        days = int(days)
+    except ValueError:
+        logger.exception("Error parsing ``days`` as an integer: %s", days)
+        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into `add_days()` filter')
+
+    try:
+        date_obj = parse_datetime(date)
+        # Loop until all days added
+        if days > 0:
+            while days > 0:
+                # Add one day to the date
+                date_obj += timedelta(days=1)
+                # Check if the day is a business day
+                weekday = date_obj.weekday()
+                if weekday >= 5:
+                    # Return to the top (Sunday is 6)
+                    continue
+                # Decrement the number of days to add
+                days -= 1
+        else:
+            # Same as above but in reverse for negative days
+            while days < 0:
+                date_obj -= timedelta(days=1)
+                weekday = date_obj.weekday()
+                if weekday >= 5:
+                    continue
+                days += 1
+        new_date = dateformat(date_obj, settings.DATE_FORMAT)
+    except ParserError:
+        logger.exception("Error parsing ``date`` as a date: %s", date)
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `add_days()` filter')
+    return new_date
 
 
-def format_datetime(date, current_format, new_format):
+def format_datetime(date, new_format):
     """
     Change the format of a given date string.
 
@@ -170,8 +202,15 @@ def format_datetime(date, current_format, new_format):
     ``format_str``
         The format of the provided date
     """
-    current = datetime.strptime(date, current_format)
-    return current.strftime(new_format)
+    formatted_date = None
+    try:
+        date_obj = parse_datetime(date)
+        formatted_date = dateformat(date_obj, new_format)
+    except ParserError:
+        formatted_date = date
+        logger.exception("Error parsing ``date`` as a date: %s", date)
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `format_datetime()` filter')
+    return formatted_date
 
 
 def prepare_jinja2_env(debug=False):
@@ -232,6 +271,7 @@ class Reportwriter:
         "sub",
         "sup",
         "del",
+        "blockquote"
     ]
 
     # Allowlist for evidence file extensions / filetypes
@@ -1469,6 +1509,22 @@ class Reportwriter:
                                     "Encountered an unknown tag inside of an ordered list: %s",
                                     part.name,
                                 )
+
+                # BLOCKQUOTE – Blockquote Sections
+                elif tag_name == "blockquote":
+                    # Get the tag's contents to check for additional formatting
+                    contents = tag.contents
+
+                    # PowerPoint lacks a blockquote style, so we just add a basic paragraph
+                    if self.report_type == "pptx":
+                        p = self.finding_body_shape.text_frame.add_paragraph()
+                        ALIGNMENT = PP_ALIGN
+                    else:
+                        p = self.sacrificial_doc.add_paragraph()
+                        p.style = "Blockquote"
+
+                    # Pass the contents and new paragraph on to drill down into nested formatting
+                    self.process_nested_tags(contents, p, finding)
                 else:
                     if not isinstance(tag, NavigableString):
                         logger.warning(
@@ -1536,6 +1592,25 @@ class Reportwriter:
             caption_font.name = "Calibri"
             caption_font.size = Pt(9)
             caption_font.italic = True
+
+        if "Blockquote" not in styles:
+            block_style = styles.add_style("Blockquote", WD_STYLE_TYPE.PARAGRAPH)
+            block_style.base_style = styles["Normal"]
+            block_style.hidden = False
+            block_style.quick_style = True
+            block_style.priority = 5
+            # Set font and size
+            block_font = caption_style.font
+            block_font.name = "Calibri"
+            block_font.size = Pt(12)
+            block_font.italic = True
+            # Set alignment
+            block_par = block_style.paragraph_format
+            block_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            block_par.left_indent = Inches(0.2)
+            block_par.right_indent = Inches(0.2)
+            # Keep first and last lines together after repagination
+            block_par.widow_control = True
 
         # Process template context, converting HTML elements to XML as needed
         context = self.process_richtext(self.report_json)
@@ -2193,6 +2268,10 @@ class TemplateLinter:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): List Paragraph"
                         )
+                    if "Blockquote" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Blockquote"
+                        )
                     logger.info("Completed Word style checks")
 
                     # Step 3: Test rendering the document
@@ -2220,6 +2299,12 @@ class TemplateLinter:
                         results = {
                             "result": "failed",
                             "errors": [f"Jinja2 template syntax error: {error.message}"],
+                        }
+                    except InvalidFilterValue as error:
+                        logger.error("Invalid value provided to filter: %s", error)
+                        results = {
+                            "result": "failed",
+                            "errors": [f"Invalid filter value: {error.message}"],
                         }
                 except Exception:
                     logger.exception("Template failed rendering")

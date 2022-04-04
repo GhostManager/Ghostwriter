@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.3.0-rc1] - 2022-04-01
 
 ### Added
 
@@ -12,17 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added components for upcoming GraphQL API that are only available with _local.yml_ for testing in development environments
   * New Docker container for Hasura GraphQL engine
   * Work-in-progress Hasura metadata for the GraphQL API
-  * New `HASURA_ACTION_SECRET` envionment variable to templates
+  * New `HASURA_ACTION_SECRET` environment variable in env templates
   * New utilities for generating and managing JSON Web Tokens for the GraphQL API
-
-# Removed
-
-* Removed "WHOIS Privacy" colum on domain list page to make room for more petinent information
-
-### Fixed
-
-* Bumped `djangorestframework-api-key` to v2.2.0 to fix REST API key creation (closes #197)
-* Overrode Django's ``get_full_name()`` method used for the admin site so the user's proper full name is displayed in history logs
+* Added support for block quotes in report templates and WYSIWYG editor
+* Added `ProjectInvite` and `ClientInvite` models to support upcoming role-based access controls
+* Added a menu option to export a project scope to a text file from the project dashboard
+  * Exports only the scope list for easy use with other tools–e.g., Nmap
 
 ### Changed
 
@@ -33,10 +28,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Updated nginx.conf to align it with Mozilla's recommendations for nginx v1.21.1 and OpenSSL 1.1.1l
   * See config: [https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6](https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6)
 * Toast messages for errors are no longer sticky so they do not have to be manually dismissed when covering UI elements
-* Updated singleton models for Django 4.0 support
 * Domain list table now shows an "Expiry" column and "Categories" column now parses the new ``categorization`` JSON field data
 * Domain list filtering now includes a "Filter Expired" toggle that on by default
   * Filters out domains with expiration dates in the past and `auto_renew` set to `False` even if status is set to "Available"
+* The table on the domain list page and the menu on the domain details page will no longer disable the check out option if a domain's status is set to "Burned"
+* Simplified usage of the `format_datetime` filter
+  * Filter now accepts only two arguments: the date and the new format string
+  * Format string should use Django values (e.g., `M d, Y`) instead of values translated to Python's standard (e.g., `%b %d, %Y`)
+* Simplified usage of the `add_says` filter
+  * Filter now accepts only two arguments: the date and an integer
+
+### Deprecated
+
+* v2.2.x usage of the `format_datetime` and `add_days` filters is deprecated in v2.3.0
+  * Both filters will no longer accept Python-style `strftime` strings
+  * Both filters no longer needs or accepts the `current_format` and `format_str` parameters
+  * Templates using the old style will fail linting
+
+### Removed
+
+* Removed "WHOIS Privacy" column on domain list page to make room for more pertinent information
+
+### Fixed
+
+* Bumped `djangorestframework-api-key` to v2.2.0 to fix REST API key creation (closes #197)
+* Overrode Django's `get_full_name()` method used for the admin site so the user's proper full name is displayed in history logs
+* Fixed project dashboard's "Import Oplog" button not pointing to the correct URL
+* Fixed URL conflicts with export links for domains, servers, and findings
+
+### Security
+
+* Restricted edit and delete actions on notes to close possibility of other users editing or deleting notes they do not own
 
 ## [2.2.3] - 2022-02-16
 
@@ -73,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Upgraded dependencies to their latest versions (where possible)
   * Django v3.1.13 -> v3.2.11
   * Did not upgrade `docxtpl`
-    * Awaiting to see how the developer wants to proceed with [issue #114](https://github.com/elapouya/python-docx-template/issues/414)
+    *  Awaiting to see how the developer wants to proceed with [issue #114](https://github.com/elapouya/python-docx-template/issues/414)
     * Not upgrading from 0.12 to the latest 0.15.2 has no effect on Ghostwriter at this time
 * Collapsed the `Domain` model's various categorization fields into a single `categorization` field with PostgreSQL's `JSONField` type
   * An important milestone/change for the upcoming GraphQL API

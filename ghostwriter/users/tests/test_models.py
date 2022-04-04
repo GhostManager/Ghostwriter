@@ -45,3 +45,9 @@ class UserModelTests(TestCase):
         user.is_active = False
         user.save()
         self.assertEqual(user.get_display_name(), "DISABLED – Cmaddalena")
+        user.is_active = True
+        user.save()
+
+    def test_get_full_name_property(self):
+        user = UserFactory(name="Christopher Maddalena", username="cmaddalena")
+        self.assertEqual(user.get_full_name(), "Christopher Maddalena")

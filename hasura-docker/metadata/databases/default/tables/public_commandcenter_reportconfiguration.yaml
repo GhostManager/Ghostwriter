@@ -30,6 +30,7 @@ select_permissions:
     - default_docx_template_id
     - default_pptx_template_id
     - enable_borders
+    - id
     - label_figure
     - label_table
     - prefix_figure
@@ -43,25 +44,12 @@ select_permissions:
     - default_docx_template_id
     - default_pptx_template_id
     - enable_borders
+    - id
     - label_figure
     - label_table
     - prefix_figure
     - prefix_table
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_reportconfiguration
+    filter: {}
   role: restricted
 - permission:
     columns:
@@ -70,25 +58,12 @@ select_permissions:
     - default_docx_template_id
     - default_pptx_template_id
     - enable_borders
+    - id
     - label_figure
     - label_table
     - prefix_figure
     - prefix_table
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_reportconfiguration
+    filter: {}
   role: user
 update_permissions:
 - permission:

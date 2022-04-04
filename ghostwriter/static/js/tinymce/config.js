@@ -44,27 +44,30 @@ var default_config = {
       },
     toolbar_mode: 'floating',
     plugins: 'visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link',
-    toolbar: 'subscript superscript bold italic underline link | bullist numlist | codesample codeInline | evidenceUpload | removeformat save',
+    toolbar: 'subscript superscript bold italic underline link blockquote | bullist numlist | codesample codeInline | evidenceUpload | removeformat save',
     contextmenu: 'bold italic link removeformat',
     paste_as_text: true,
     paste_data_images: false,
     browser_spellcheck: true,
-    content_style: '.left { text-align: left; }' +
-        'img.left { float: left; }' +
-        'table.left { float: left; }' +
-        '.right { text-align: right; }' +
-        'img.right { float: right; }' +
-        'table.right { float: right; }' +
-        '.center { text-align: center; }' +
-        'img.center { display: block; margin: 0 auto; }' +
-        'table.center { display: block; margin: 0 auto; }' +
-        '.full { text-align: justify; }' +
-        'img.full { display: block; margin: 0 auto; }' +
-        'table.full { display: block; margin: 0 auto; }' +
-        '.bold { font-weight: bold; }' +
-        '.italic { font-style: italic; }' +
-        '.underline { text-decoration: underline; }' +
-        '.tablerow1 { background-color: #D3D3D3; }',
+    content_style: `
+        .left { text-align: left; }
+        img.left { float: left; }
+        table.left { float: left; }
+        .right { text-align: right; }
+        img.right { float: right; }
+        table.right { float: right; }
+        .center { text-align: center; }
+        img.center { display: block; margin: 0 auto; }
+        table.center { display: block; margin: 0 auto; }
+        .full { text-align: justify; }
+        img.full { display: block; margin: 0 auto; }
+        table.full { display: block; margin: 0 auto; }
+        .bold { font-weight: bold; }
+        .italic { font-style: italic; }
+        .underline { text-decoration: underline; }
+        .tablerow1 { background-color: #D3D3D3; }
+        blockquote { border-left: 5px solid #ccc; padding: 0.5em; margin: 0.5em; }
+    `,
     formats: {
         alignleft: {
             selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
@@ -111,6 +114,10 @@ var default_config = {
                 backgroundColor : 'yellow'
             }
         },
+        blockquote: {
+            block: 'blockquote',
+            classes: 'blockquote'
+        }
     },
     style_formats: [
         { title: 'Headings', items: [
@@ -129,7 +136,8 @@ var default_config = {
           { title: 'Superscript', format: 'superscript' },
           { title: 'Subscript', format: 'subscript' },
           { title: 'Code', format: 'code' },
-          { title: 'Highlight', format: 'highlight' }
+          { title: 'Highlight', format: 'highlight' },
+          { title: 'Blockquote', format: 'blockquote' }
         ]},
         { title: 'Align', items: [
           { title: 'Left', format: 'alignleft' },

@@ -324,6 +324,26 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
     finding = factory.SubFactory(ReportFindingLinkFactory)
     uploaded_by = factory.SubFactory(UserFactory)
 
+    class Params:
+        img = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.png",
+                data=b"lorem ipsum"
+            )
+        )
+        txt = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.txt",
+                data=b"lorem ipsum"
+            )
+        )
+        unknown = factory.Trait(
+            document=factory.django.FileField(
+                filename="evidence.tar",
+                data=b"lorem ipsum"
+            )
+        )
+
 
 class ArchiveFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -367,6 +387,24 @@ class ProjectNoteFactory(factory.django.DjangoModelFactory):
     note = Faker("paragraph")
     project = factory.SubFactory(ProjectFactory)
     operator = factory.SubFactory(UserFactory)
+
+
+class ClientInviteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ClientInvite"
+
+    comment = Faker("paragraph")
+    client = factory.SubFactory(ClientFactory)
+    user = factory.SubFactory(UserFactory)
+
+
+class ProjectInviteFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ProjectInvite"
+
+    comment = Faker("paragraph")
+    project = factory.SubFactory(ProjectFactory)
+    user = factory.SubFactory(UserFactory)
 
 
 # Oplog Factories
@@ -555,6 +593,7 @@ class DomainNoteFactory(factory.django.DjangoModelFactory):
 
     note = Faker("paragraph")
     domain = factory.SubFactory(DomainFactory)
+    operator = factory.SubFactory(UserFactory)
 
 
 class ServerNoteFactory(factory.django.DjangoModelFactory):
@@ -563,6 +602,7 @@ class ServerNoteFactory(factory.django.DjangoModelFactory):
 
     note = Faker("paragraph")
     server = factory.SubFactory(StaticServerFactory)
+    operator = factory.SubFactory(UserFactory)
 
 
 class NamecheapConfigurationFactory(factory.django.DjangoModelFactory):

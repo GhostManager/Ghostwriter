@@ -3,8 +3,10 @@ import logging
 from datetime import date, timedelta
 
 # Django Imports
+from django.conf import settings
 from django.db.models import Q
 from django.test import Client, TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 
 # Ghostwriter Libraries
@@ -36,6 +38,7 @@ class TemplateTagTests(TestCase):
         cls.user = UserFactory(password=PASSWORD, groups=(cls.group_1,))
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
+        cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
 
         cls.num_of_findings = 3
         ReportFindingLinkFactory.create_batch(
@@ -64,6 +67,9 @@ class TemplateTagTests(TestCase):
         request = response.wsgi_request
         result = custom_tags.count_assignments(request)
         self.assertEqual(result, self.num_of_findings)
+
+        result = custom_tags.get_reports(request)
+        self.assertEqual(len(result), 1)
 
 
 class DashboardTests(TestCase):
@@ -233,3 +239,202 @@ class UpdateSessionTests(TestCase):
     def test_invalid_get_method(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 405)
+
+
+class TestAWSConnectionTests(TestCase):
+    """Collection of tests for :view:`home.TestAWSConnection`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+
+        cls.uri = reverse("home:ajax_test_aws")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_staff = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_post(self):
+        response = self.client_staff.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_staff(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class TestDOConnectionTests(TestCase):
+    """Collection of tests for :view:`home.TestDOConnection`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+
+        cls.uri = reverse("home:ajax_test_do")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_staff = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_post(self):
+        response = self.client_staff.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_staff(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class TestNamecheapConnectionTests(TestCase):
+    """Collection of tests for :view:`home.TestNamecheapConnection`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+
+        cls.uri = reverse("home:ajax_test_namecheap")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_staff = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_post(self):
+        response = self.client_staff.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_staff(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class TestSlackConnectionTests(TestCase):
+    """Collection of tests for :view:`home.TestSlackConnection`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+
+        cls.uri = reverse("home:ajax_test_slack")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_staff = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_post(self):
+        response = self.client_staff.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_staff(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class TestVirusTotalConnectionTests(TestCase):
+    """Collection of tests for :view:`home.TestSlackConnection`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+
+        cls.uri = reverse("home:ajax_test_virustotal")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_staff = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.assertTrue(
+            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_post(self):
+        response = self.client_staff.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_staff(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ProtectedServeTest(TestCase):
+    """Collection of tests for :view:`home.protected_serve`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+
+        cls.uri = "/media/templates"
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    @override_settings(DEBUG=True)
+    def test_view_uri(self):
+        assert settings.DEBUG
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "ghostwriter.home.views.protected_serve", status_code=404)
+
+    def test_view_uri_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
