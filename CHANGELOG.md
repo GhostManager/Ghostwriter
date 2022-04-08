@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 8 April 2022
+
+### Added
+
+* New options to generate and revoke API tokens with a set expiry date
+* Added Hasura GraphQL engine to production environments
+
+### Changed
+
+* Updated the Nginx configuration to incorporate the Hasura container
+  * For custom domain names, set `server_name` in _nginx.conf to api.<DOMAIN>
+*
+
+### Deprecated
+
+
+### Removed
+
+
+### Fixed
+
+* Pinned `django-bleach` dependency `python-bleach` to address incompatibility with v5
+* Fixed error that blocked creation of default `BlockQuote` style in report template
+
+### Security
+
+
 ## [2.3.0-rc1] - 2022-04-01
 
 ### Added
