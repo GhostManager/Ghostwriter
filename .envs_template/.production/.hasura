@@ -20,7 +20,7 @@ HASURA_GRAPHQL_ENABLED_LOG_TYPES=startup, http-log, webhook-log, websocket-log, 
 # Set to "false" to disable console
 HASURA_GRAPHQL_ENABLE_CONSOLE=true
 HASURA_GRAPHQL_ENABLE_TELEMETRY=false
-HASURA_GRAPHQL_ENABLE_ALLOWLIST=true
+HASURA_GRAPHQL_ENABLE_ALLOWLIST=false
 
 # Disable insecure mode for Production
 HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=false
