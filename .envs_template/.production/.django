@@ -10,6 +10,8 @@ DATE_FORMAT=d M Y
 # ------------------------------------------------------------------------------
 DJANGO_SECRET_KEY=changeme
 GRAPHQL_JWT_SECRET_KEY=changeme
+# Make this the same as `HASURA_ACTION_SECRET` for the Hasura container
+HASURA_ACTION_SECRET=changeme
 
 # Security
 # ------------------------------------------------------------------------------
