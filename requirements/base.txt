@@ -24,8 +24,7 @@ djangorestframework==3.12.4  # https://github.com/encode/django-rest-framework
 boto3==1.18.46
 botocore==1.21.46
 bs4==0.0.1
-django-bleach==1.0.0
-bleach==4.1.0 # Bleach v5 is incompatible with current `django-bleach`
+django-bleach==2.0.0
 django-filter==2.4.0
 django-import-export==2.7.1
 django-q==1.3.9
