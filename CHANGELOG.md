@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 8 April 2022
+## [Unreleased] - 12 April 2022
 
 ### Added
 
@@ -15,21 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Updated the Nginx configuration to incorporate the Hasura container
   * For custom domain names, set `server_name` in _nginx.conf to api.<DOMAIN>
-*
 
 ### Deprecated
 
+* None
 
 ### Removed
 
+* None
 
 ### Fixed
 
-* Pinned `django-bleach` dependency `python-bleach` to address incompatibility with v5
+* Upgraded `django-bleach` dependency to fix error with latest `python-bleach` (Fixes #208)
 * Fixed error that blocked creation of default `BlockQuote` style in report template
+* Fixed domain age column not sorting correctly in domain library table
 
 ### Security
 
+* None
 
 ## [2.3.0-rc1] - 2022-04-01
 
