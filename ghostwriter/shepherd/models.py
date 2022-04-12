@@ -254,7 +254,7 @@ class Domain(models.Model):
             time_delta = self.expiration - self.creation
         else:
             time_delta = date.today() - self.creation
-        return "{} days".format(time_delta.days)
+        return time_delta.days
 
     def is_expired(self):
         """
