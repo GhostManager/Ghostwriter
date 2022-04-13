@@ -194,3 +194,20 @@ update_permissions:
     - whois_status_id
     filter: {}
   role: user
+event_triggers:
+- definition:
+    enable_manual: false
+    insert:
+      columns: "*"
+    update:
+      columns:
+      - name
+  headers:
+  - name: Hasura-Action-Secret
+    value_from_env: HASURA_ACTION_SECRET
+  name: CleanDomainName
+  retry_conf:
+    interval_sec: 10
+    num_retries: 0
+    timeout_sec: 60
+  webhook: "{{ACTIONS_URL_BASE}}/event/domain/update"

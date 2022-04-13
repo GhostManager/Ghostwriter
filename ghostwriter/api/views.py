@@ -16,6 +16,7 @@ import jwt
 # Ghostwriter Libraries
 from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
+from ghostwriter.shepherd.models import Domain
 
 # Using __name__ resolves to ghostwriter.api.views
 logger = logging.getLogger(__name__)
@@ -159,6 +160,22 @@ def graphql_whoami(request):
         else:
             status = 400
             data = utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing")
+    else:
+        status = 403
+        data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
+    return JsonResponse(data, status=status)
+
+
+@require_http_methods(["POST", ])
+def graphql_domain_update_event(request):
+    """Event webhook to fire :model:`shepherd.Domain` signals."""
+    status = 200
+
+    if utils.verify_graphql_request(request.headers):
+        data = json.loads(request.body)
+        object_data = data["event"]["data"]["new"]
+        instance = Domain.objects.get(id=object_data["id"])
+        instance.save()
     else:
         status = 403
         data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
