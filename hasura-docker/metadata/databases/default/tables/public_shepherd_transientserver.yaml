@@ -55,20 +55,18 @@ insert_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_transientserver
     columns:
     - activity_type_id
     - aux_address
@@ -83,20 +81,18 @@ insert_permissions:
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_transientserver
     columns:
     - activity_type_id
     - aux_address
@@ -127,38 +123,34 @@ select_permissions:
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_transientserver
   role: restricted
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_transientserver
   role: user
 update_permissions:
 - permission:
@@ -176,20 +168,18 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_transientserver
     columns:
     - activity_type_id
     - aux_address
@@ -200,37 +190,33 @@ update_permissions:
     - server_provider_id
     - server_role_id
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_transientserver
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_transientserver
     columns:
     - activity_type_id
     - aux_address
@@ -241,20 +227,18 @@ update_permissions:
     - server_provider_id
     - server_role_id
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_transientserver
   role: user
 delete_permissions:
 - permission:
@@ -262,35 +246,31 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_transientserver
   role: restricted
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_transientserver
   role: user

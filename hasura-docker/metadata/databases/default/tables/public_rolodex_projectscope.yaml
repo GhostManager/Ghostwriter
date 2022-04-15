@@ -26,20 +26,18 @@ insert_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_projectscope
     columns:
     - description
     - disallowed
@@ -50,20 +48,18 @@ insert_permissions:
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_projectscope
     columns:
     - description
     - disallowed
@@ -87,38 +83,34 @@ select_permissions:
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_projectscope
   role: restricted
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_projectscope
   role: user
 update_permissions:
 - permission:
@@ -134,20 +126,18 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_projectscope
     columns:
     - description
     - disallowed
@@ -156,37 +146,33 @@ update_permissions:
     - requires_caution
     - scope
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_projectscope
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_projectscope
     columns:
     - description
     - disallowed
@@ -195,20 +181,18 @@ update_permissions:
     - requires_caution
     - scope
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_projectscope
   role: user
 delete_permissions:
 - permission:
@@ -216,35 +200,31 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_projectscope
   role: restricted
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      project:
+        _or:
+        - assignments:
+            operator_id:
+              _eq: X-Hasura-User-Id
+        - invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+        - client:
+            invites:
+              user_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_projectscope
   role: user

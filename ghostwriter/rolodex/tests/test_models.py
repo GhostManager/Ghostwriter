@@ -9,12 +9,14 @@ from django.test import TestCase
 from ghostwriter.factories import (
     ClientContactFactory,
     ClientFactory,
+    ClientInviteFactory,
     ClientNoteFactory,
     HistoryFactory,
     ObjectivePriorityFactory,
     ObjectiveStatusFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ProjectInviteFactory,
     ProjectNoteFactory,
     ProjectObjectiveFactory,
     ProjectRoleFactory,
@@ -595,3 +597,63 @@ class ProjectTargetModelTests(TestCase):
         # Delete
         target.delete()
         assert not self.ProjectTarget.objects.all().exists()
+
+
+class ClientInviteModelTests(TestCase):
+    """Collection of tests for :model:`rolodex.ClientInvite`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ClientInvite = ClientInviteFactory._meta.model
+
+    def test_crud_finding(self):
+        # Create
+        invite = ClientInviteFactory(comment="Basic comment")
+
+        # Read
+        self.assertEqual(invite.comment, "Basic comment")
+        self.assertEqual(invite.pk, invite.id)
+        self.assertQuerysetEqual(
+            self.ClientInvite.objects.all(),
+            [f"<ClientInvite: {invite.user} ({invite.client})>"],
+        )
+
+        # Update
+        invite.comment = "Updated comment"
+        invite.save()
+        invite.refresh_from_db()
+        self.assertEqual(invite.comment, "Updated comment")
+
+        # Delete
+        invite.delete()
+        assert not self.ClientInvite.objects.all().exists()
+
+
+class ProjectInviteModelTests(TestCase):
+    """Collection of tests for :model:`rolodex.ProjectInvite`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ProjectInvite = ProjectInviteFactory._meta.model
+
+    def test_crud_finding(self):
+        # Create
+        invite = ProjectInviteFactory(comment="Basic comment")
+
+        # Read
+        self.assertEqual(invite.comment, "Basic comment")
+        self.assertEqual(invite.pk, invite.id)
+        self.assertQuerysetEqual(
+            self.ProjectInvite.objects.all(),
+            [f"<ProjectInvite: {invite.user} ({invite.project})>"],
+        )
+
+        # Update
+        invite.comment = "Updated comment"
+        invite.save()
+        invite.refresh_from_db()
+        self.assertEqual(invite.comment, "Updated comment")
+
+        # Delete
+        invite.delete()
+        assert not self.ProjectInvite.objects.all().exists()

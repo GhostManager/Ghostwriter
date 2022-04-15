@@ -14,6 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import DetailView, RedirectView, UpdateView
 
 # 3rd Party Libraries
+import jwt
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
 
 # Ghostwriter Libraries
@@ -23,6 +24,57 @@ from ghostwriter.home.models import UserProfile
 from ghostwriter.users.forms import UserChangeForm
 
 User = get_user_model()
+
+
+def graphql_webhook(request):
+    """
+    Authentication and JWT generation logic for the Hasura ``login`` action.
+
+    If request is authorized, the webhook must return a 200 response code. Any
+    unauthorized request must return a 401 response code.
+
+    All requests must return the expected Hasura "session variables" (user ID,
+    username, and user role) in the payload. Unauthorized requests default to
+    using the ``public`` user role with the username ``anonymous`` and user ID
+    of ``-1``.
+
+    Ref: https://hasura.io/docs/latest/graphql/core/auth/authentication/webhook.html
+    """
+    status = 200
+    role = "public"
+    user_id = -1
+    username = "anonymous"
+    payload = None
+
+    token = utils.get_jwt_from_request(request)
+    if token:
+        # Attempt to decode and verify the payload
+        payload = utils.get_jwt_payload(token)
+        # Successful verification returns not ``None``
+        if payload:
+            # Verify the proper Hasura claims are present
+            if utils.verify_hasura_claims(payload):
+                # Verify the user is still active
+                if utils.verify_jwt_user(payload["https://hasura.io/jwt/claims"]):
+                    role = payload["https://hasura.io/jwt/claims"]["X-Hasura-Role"]
+                    user_id = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"]
+                    username = payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Name"]
+                    status = 200
+                else:
+                    status = 401
+            else:
+                status = 401
+        else:
+            status = 401
+
+    # Assemble final authorization data
+    data = {
+        "X-Hasura-Role": f"{role}",
+        "X-Hasura-User-Id": f"{user_id}",
+        "X-Hasura-User-Name": f"{username}",
+    }
+
+    return JsonResponse(data, status=status)
 
 
 @require_http_methods(["POST", ])
@@ -40,11 +92,12 @@ def graphql_login(request):
             user = authenticate(**data)
             # A successful auth will return a ``User`` object
             if user:
-                payload, jwt_token = utils.generate_jwt_token(user)
+                payload, jwt_token = utils.generate_jwt(user)
                 data = {"token": f"{jwt_token}", "expires": payload["exp"]}
             else:
-                status = 403
+                status = 401
                 data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
+        # ``KeyError`` will occur if the request bypasses Hasura
         except KeyError:
             status = 400
             data = utils.generate_hasura_error_payload("Invalid request body", "InvalidRequestBody")
@@ -61,18 +114,18 @@ def graphql_whoami(request):
 
     if utils.verify_graphql_request(request.headers):
         # Get the forwarded ``Authorization`` header
-        token = request.META.get("HTTP_AUTHORIZATION", " ").split(" ")[1]
+        token = utils.get_jwt_from_request(request)
         if token:
             try:
                 # Try to decode the JWT token
                 jwt_token = utils.jwt_decode(token)
                 data = {
                     "username": jwt_token["username"],
-                    "role": jwt_token["https://hasura.io/jwt/claims"]["x-hasura-default-role"],
+                    "role": jwt_token["https://hasura.io/jwt/claims"]["X-Hasura-Role"],
                     "expires": jwt_token["exp"],
                 }
-            except Exception as exception:
-                status = 403
+            except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
+                status = 401
                 data = utils.generate_hasura_error_payload(f"{type(exception).__name__}", "JWTInvalid")
         else:
             status = 400
@@ -104,7 +157,7 @@ class UserDetailView(LoginRequiredMixin, DetailView):
     def get_object(self):
         return get_object_or_404(User, username=self.kwargs.get("username"))
 
-    def get_slug_field(self):
+    def get_slug_field(self):  # pragma: no cover``
         return "user__username"
 
 
@@ -255,7 +308,7 @@ class GhostwriterPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
 account_change_password = GhostwriterPasswordChangeView.as_view()
 
 
-class GhostwriterPasswordSetFromKeyView(PasswordResetFromKeyView):
+class GhostwriterPasswordSetFromKeyView(PasswordResetFromKeyView):  # pragma: no cover
     """
     Reset the password for individual :model:`users.User`.
 

@@ -16,49 +16,19 @@ select_permissions:
     columns:
     - avatar
     - user_id
-    filter:
-      user_id:
-        _eq: X-Hasura-User-Id
+    filter: {}
   role: manager
 - permission:
     columns:
     - avatar
     - user_id
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_userprofile
+    filter: {}
   role: restricted
 - permission:
     columns:
     - avatar
     - user_id
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_userprofile
+    filter: {}
   role: user
 update_permissions:
 - permission:
@@ -73,73 +43,21 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_userprofile
+      user_id:
+        _eq: X-Hasura-User-Id
     columns:
     - avatar
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_userprofile
-      - user_id:
-          _eq: X-Hasura-User-Id
+      user_id:
+        _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_userprofile
+      user_id:
+        _eq: X-Hasura-User-Id
     columns:
     - avatar
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_userprofile
-      - user_id:
-          _eq: X-Hasura-User-Id
+      user_id:
+        _eq: X-Hasura-User-Id
   role: user

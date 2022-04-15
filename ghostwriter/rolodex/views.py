@@ -9,10 +9,10 @@ import logging
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
@@ -108,12 +108,12 @@ def roll_codename(request):
             new_codename = codenames.codename(uppercase=True)
             try:
                 Project.objects.filter(codename__iequal=new_codename)
-                codename_verified = False
+                codename_verified = False  # pragma: no cover
             except Exception:
                 codename_verified = True
             try:
                 Client.objects.filter(codename__iequal=new_codename)
-                codename_verified = False
+                codename_verified = False  # pragma: no cover
             except Exception:
                 codename_verified = True
         data = {
@@ -330,12 +330,20 @@ class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`rolodex.ProjectNote`.
     """
 
     model = ProjectNote
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
@@ -351,12 +359,20 @@ class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ClientNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class ClientNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`rolodex.ClientNote`.
     """
 
     model = ClientNote
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
@@ -732,6 +748,21 @@ class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, View):
         return HttpResponse(html)
 
 
+class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, View):
+    """Export scope list from an individual :model:`rolodex.ProjectScope` as a file."""
+
+    model = ProjectScope
+
+    def get(self, *args, **kwargs):
+        lines = []
+        self.object = self.get_object()
+        for row in self.object.scope.split("\n"):
+            lines.append(row)
+        response = HttpResponse(lines, content_type="text/plain")
+        response["Content-Disposition"] = f"attachment; filename={self.object.name}_scope.txt"
+        return response
+
+
 ##################
 # View Functions #
 ##################
@@ -1096,7 +1127,7 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
+class ClientNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual :model:`rolodex.ClientNote`.
 
@@ -1115,6 +1146,14 @@ class ClientNoteUpdate(LoginRequiredMixin, UpdateView):
     model = ClientNote
     form_class = ClientNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
@@ -1502,7 +1541,7 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
+class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual :model:`rolodex.ProjectNote`.
 
@@ -1521,6 +1560,14 @@ class ProjectNoteUpdate(LoginRequiredMixin, UpdateView):
     model = ProjectNote
     form_class = ProjectNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(

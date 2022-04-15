@@ -10,9 +10,8 @@ HASURA_GRAPHQL_ADMIN_SECRET=changeme
 # Set passphrase for Hasura Action webhook endpoints
 HASURA_ACTION_SECRET=changeme
 
-# Set JWT secret
-HASURA_GRAPHQL_JWT_SECRET='{ "type": "HS256", "key": "changeme" }'
-HASURA_GRAPHQL_UNAUTHORIZED_ROLE=public
+# Hasura authentication and autorization
+HASURA_GRAPHQL_AUTH_HOOK=http://django:8000/api/webhook
 
 # Enable debugging mode – NOT for Production
 HASURA_GRAPHQL_DEV_MODE=true
@@ -27,4 +26,4 @@ HASURA_GRAPHQL_ENABLE_TELEMETRY=false
 HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=true
 
 # Update ``ALLOWED_HOSTS`` in local.py if you change this or the Docker container's name
-ACTIONS_URL_BASE: http://django:8000/api
+ACTIONS_URL_BASE=http://django:8000/api

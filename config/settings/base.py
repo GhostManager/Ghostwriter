@@ -13,7 +13,7 @@ import environ
 
 __version__ = "2.3.0"
 VERSION = __version__
-RELEASE_DATE = "16 Mar 2022"
+RELEASE_DATE = "1 April 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -382,6 +382,7 @@ BLEACH_ALLOWED_TAGS = [
     "h4",
     "h5",
     "h6",
+    "blockquote",
 ]
 # Which HTML attributes are allowed
 BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
@@ -423,7 +424,7 @@ GRAPHQL_JWT = {
     "JWT_EXPIRATION_DELTA": timedelta(minutes=15),
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_AUDIENCE": "Ghostwriter",
-    "JWT_SECRET_KEY": env("DJANGO_SECRET_KEY", default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe"),
+    "JWT_SECRET_KEY": env("GRAPHQL_JWT_SECRET_KEY", default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe"),
     "JWT_ALGORITHM": "HS256",
 }
 

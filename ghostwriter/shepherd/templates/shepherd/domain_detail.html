@@ -26,7 +26,7 @@
             {% if domain.is_expired %}
                 <a class="dropdown-item icon skull-icon" href="#">Domain Expired</a>
             {% else %}
-                {% if domain.domain_status.domain_status == "Available" %}
+                {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
                     <a class="dropdown-item icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}">Checkout Domain</a>
                 {% else %}
                     <a class="dropdown-item icon block-icon" href="#">Domain Unavailable</a>

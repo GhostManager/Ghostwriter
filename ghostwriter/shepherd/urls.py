@@ -206,6 +206,6 @@ urlpatterns += [
 
 # URLs for management functions
 urlpatterns += [
-    path("export/csv/", views.export_domains_to_csv, name="export_domains_to_csv"),
-    path("export/csv/", views.export_servers_to_csv, name="export_servers_to_csv"),
+    path("export/domains/csv/", views.export_domains_to_csv, name="export_domains_to_csv"),
+    path("export/servers/csv/", views.export_servers_to_csv, name="export_servers_to_csv"),
 ]

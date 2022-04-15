@@ -22,42 +22,14 @@ insert_permissions:
     - static_server_id
   role: manager
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_auxserveraddress
+    check: {}
     columns:
     - ip_address
     - primary
     - static_server_id
   role: restricted
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_auxserveraddress
+    check: {}
     columns:
     - ip_address
     - primary
@@ -77,21 +49,7 @@ select_permissions:
     - ip_address
     - primary
     - static_server_id
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_auxserveraddress
+    filter: {}
   role: restricted
 - permission:
     columns:
@@ -99,21 +57,7 @@ select_permissions:
     - ip_address
     - primary
     - static_server_id
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_auxserveraddress
+    filter: {}
   role: user
 update_permissions:
 - permission:
@@ -125,112 +69,28 @@ update_permissions:
     filter: {}
   role: manager
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_auxserveraddress
+    check: {}
     columns:
     - ip_address
     - primary
     - static_server_id
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_auxserveraddress
+    filter: {}
   role: restricted
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_auxserveraddress
+    check: {}
     columns:
     - ip_address
     - primary
     - static_server_id
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_auxserveraddress
+    filter: {}
   role: user
 delete_permissions:
 - permission:
     filter: {}
   role: manager
 - permission:
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_auxserveraddress
+    filter: {}
   role: restricted
 - permission:
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_auxserveraddress
+    filter: {}
   role: user

@@ -27,20 +27,21 @@ insert_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_localfindingnote
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
     columns:
     - finding_id
     - note
@@ -49,20 +50,21 @@ insert_permissions:
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_localfindingnote
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
     columns:
     - finding_id
     - note
@@ -82,38 +84,40 @@ select_permissions:
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_localfindingnote
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_localfindingnote
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
   role: user
 update_permissions:
 - permission:
@@ -130,81 +134,77 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_localfindingnote
-      - note:
-          _neq: "\"\""
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
     columns:
     - finding_id
     - note
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_localfindingnote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_localfindingnote
-      - note:
-          _neq: "\"\""
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
     columns:
     - finding_id
     - note
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_localfindingnote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
 - permission:
@@ -215,39 +215,37 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_localfindingnote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_localfindingnote
-      - operator_id:
-          _eq: X-Hasura-User-Id
+      _or:
+      - finding:
+          report:
+            project:
+              _or:
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
   role: user

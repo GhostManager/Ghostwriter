@@ -29,6 +29,13 @@ array_relationships:
       table:
         name: shepherd_history
         schema: public
+- name: invites
+  using:
+    foreign_key_constraint_on:
+      column: client_id
+      table:
+        name: rolodex_clientinvite
+        schema: public
 - name: projects
   using:
     foreign_key_constraint_on:
@@ -77,8 +84,8 @@ insert_permissions:
                 groupPermissions:
                   authPermission:
                     codename:
-                      _eq: add_client
-    columns: "*"
+                      _eq: add_clientcontact
+    columns: []
   role: restricted
 - permission:
     check:
@@ -95,8 +102,8 @@ insert_permissions:
                 groupPermissions:
                   authPermission:
                     codename:
-                      _eq: add_client
-    columns: "*"
+                      _eq: add_clientcontact
+    columns: []
   role: user
 select_permissions:
 - permission:
@@ -113,38 +120,34 @@ select_permissions:
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - invites:
+          user_id:
+            _eq: X-Hasura-User-Id
+      - projects:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_client
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - invites:
+          user_id:
+            _eq: X-Hasura-User-Id
+      - projects:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_client
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
   role: user
 update_permissions:
 - permission:
@@ -160,20 +163,18 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - invites:
+          user_id:
+            _eq: X-Hasura-User-Id
+      - projects:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_client
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
     columns:
     - address
     - codename
@@ -182,37 +183,33 @@ update_permissions:
     - short_name
     - timezone
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - invites:
+          user_id:
+            _eq: X-Hasura-User-Id
+      - projects:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_client
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - invites:
+          user_id:
+            _eq: X-Hasura-User-Id
+      - projects:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_client
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
     columns:
     - address
     - codename
@@ -221,56 +218,20 @@ update_permissions:
     - short_name
     - timezone
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      _or:
+      - invites:
+          user_id:
+            _eq: X-Hasura-User-Id
+      - projects:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_client
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
 - permission:
     filter: {}
   role: manager
-- permission:
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_client
-  role: restricted
-- permission:
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_client
-  role: user

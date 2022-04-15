@@ -44,21 +44,7 @@ insert_permissions:
     - title
   role: manager
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_finding
+    check: {}
     columns:
     - description
     - finding_guidance
@@ -73,21 +59,7 @@ insert_permissions:
     - title
   role: restricted
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_finding
+    check: {}
     columns:
     - description
     - finding_guidance
@@ -120,39 +92,11 @@ select_permissions:
   role: manager
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_finding
+    filter: {}
   role: restricted
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_finding
+    filter: {}
   role: user
 update_permissions:
 - permission:
@@ -172,21 +116,7 @@ update_permissions:
     filter: {}
   role: manager
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_finding
+    check: {}
     columns:
     - description
     - finding_guidance
@@ -199,38 +129,10 @@ update_permissions:
     - replication_steps
     - severity_id
     - title
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_finding
+    filter: {}
   role: restricted
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_finding
+    check: {}
     columns:
     - description
     - finding_guidance
@@ -243,57 +145,15 @@ update_permissions:
     - replication_steps
     - severity_id
     - title
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_finding
+    filter: {}
   role: user
 delete_permissions:
 - permission:
     filter: {}
   role: manager
 - permission:
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_finding
+    filter: {}
   role: restricted
 - permission:
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_finding
+    filter: {}
   role: user

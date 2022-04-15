@@ -67,20 +67,19 @@ insert_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
     columns:
     - affected_entities
     - assigned_to_id
@@ -102,20 +101,19 @@ insert_permissions:
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
     columns:
     - affected_entities
     - assigned_to_id
@@ -160,38 +158,36 @@ select_permissions:
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     columns: "*"
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: user
 update_permissions:
 - permission:
@@ -217,20 +213,19 @@ update_permissions:
   role: manager
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
     columns:
     - affected_entities
     - assigned_to_id
@@ -249,37 +244,35 @@ update_permissions:
     - severity_id
     - title
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
     columns:
     - affected_entities
     - assigned_to_id
@@ -298,20 +291,19 @@ update_permissions:
     - severity_id
     - title
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: change_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: user
 delete_permissions:
 - permission:
@@ -319,35 +311,33 @@ delete_permissions:
   role: manager
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: restricted
 - permission:
     filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
+      report:
+        project:
+          _or:
+          - assignments:
+              operator_id:
                 _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: delete_reportfindinglink
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
   role: user

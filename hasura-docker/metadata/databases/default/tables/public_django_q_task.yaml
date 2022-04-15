@@ -8,7 +8,7 @@ configuration:
   custom_root_fields: {}
 insert_permissions:
 - permission:
-    backend_only: false
+    backend_only: true
     check: {}
     columns:
     - args
@@ -19,21 +19,8 @@ insert_permissions:
     - kwargs
   role: manager
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_q
+    backend_only: true
+    check: {}
     columns:
     - args
     - attempt_count
@@ -43,21 +30,8 @@ insert_permissions:
     - kwargs
   role: restricted
 - permission:
-    check:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: add_q
+    backend_only: true
+    check: {}
     columns:
     - args
     - attempt_count
@@ -85,37 +59,9 @@ select_permissions:
   role: manager
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_q
+    filter: {}
   role: restricted
 - permission:
     columns: "*"
-    filter:
-      _and:
-      - _exists:
-          _table:
-            name: users_user_groups
-            schema: public
-          _where:
-            _and:
-            - user_id:
-                _eq: X-Hasura-User-Id
-            - authGroup:
-                groupPermissions:
-                  authPermission:
-                    codename:
-                      _eq: view_q
+    filter: {}
   role: user

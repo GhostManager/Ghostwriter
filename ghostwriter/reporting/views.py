@@ -16,7 +16,11 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin,
+    PermissionRequiredMixin,
+    UserPassesTestMixin,
+)
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.db.models import Q
@@ -27,7 +31,7 @@ from django.http import (
     HttpResponseRedirect,
     JsonResponse,
 )
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.views import generic
@@ -228,12 +232,20 @@ class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`reporting.LocalFindingNote`.
     """
 
     model = LocalFindingNote
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
@@ -248,12 +260,20 @@ class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class FindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class FindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`reporting.FindingNote`.
     """
 
     model = FindingNote
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
         self.object = self.get_object()
@@ -2485,7 +2505,7 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
+class FindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.FindingNote`.
 
@@ -2502,6 +2522,14 @@ class FindingNoteUpdate(LoginRequiredMixin, UpdateView):
     model = FindingNote
     form_class = FindingNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -2564,7 +2592,7 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
+class LocalFindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.LocalFindingNote`.
 
@@ -2581,6 +2609,14 @@ class LocalFindingNoteUpdate(LoginRequiredMixin, UpdateView):
     model = LocalFindingNote
     form_class = LocalFindingNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.operator.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
