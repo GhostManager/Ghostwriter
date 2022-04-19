@@ -384,6 +384,7 @@ BLEACH_ALLOWED_TAGS = [
     "h5",
     "h6",
     "blockquote",
+    "br",
 ]
 # Which HTML attributes are allowed
 BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
