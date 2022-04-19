@@ -8,6 +8,7 @@ import socket
 import string
 import struct
 import sys
+from time import sleep
 
 try:
     import requests  # noqa isort:skip
@@ -179,6 +180,7 @@ if len(sys.argv) >= 3:
             )
             sys.exit()
 
-        print(f"... Created {i}/{count} log entries")
+        print(f"... Created {i+1}/{count} log entries")
+        sleep(2.5)
 else:
     show_help()
