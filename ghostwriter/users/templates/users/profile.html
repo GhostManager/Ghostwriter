@@ -37,7 +37,7 @@
                 <p class="bold icon user-icon">Full Name</p>
             </div>
             <div class="col-sm">
-                <p class="text-center">{{ user.name }}</p>
+                <p class="text-center">{% if user.name %}{{ user.name }}{% else %}Missing Full Name{% endif %}</p>
             </div>
         </div>
 
@@ -64,7 +64,7 @@
                 <p class="bold icon phone-icon">Phone</p>
             </div>
             <div class="col-sm">
-                <p class="text-center">{{ user.phone }}</p>
+                <p class="text-center">{% if user.phone %}{{ user.phone }}{% else %}Unavailable{% endif %}</p>
             </div>
         </div>
 
