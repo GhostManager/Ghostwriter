@@ -79,7 +79,7 @@
                         <th>Domain Age</th>
                     </tr>
                     <tr>
-                        <td>{{ domain.registrar }}</td>
+                        <td>{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
                         <td>{{ domain.creation }}</td>
                         {% if domain.is_expired %}
                             <td class="high">{{ domain.expiration }}</td>
@@ -240,12 +240,12 @@
                         </thead>
                         {% for project in domain.history_set.all %}
                             <tr>
-                                <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
-                                <td>{{ project.activity_type }}</td>
-                                <td>{{ project.project.project_type }}</td>
-                                <td>{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
-                                <td class="table-note">{{ project.note|bleach}}</td>
-                                <td>
+                                <td class="align-middle"><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
+                                <td class="align-middle">{{ project.activity_type }}</td>
+                                <td class="align-middle">{{ project.project.project_type }}</td>
+                                <td class="align-middle">{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
+                                <td class="table-note align-middle">{{ project.note|bleach}}</td>
+                                <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="history-dropdown-btn_{{ project.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                                         <div class="dropdown-menu" aria-labelledby="history-dropdown-btn_{{ project.id }}">
