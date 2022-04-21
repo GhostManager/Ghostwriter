@@ -71,6 +71,9 @@ class TemplateTagTests(TestCase):
         result = custom_tags.get_reports(request)
         self.assertEqual(len(result), 1)
 
+        result = custom_tags.settings_value("DATE_FORMAT")
+        self.assertEqual(result, settings.DATE_FORMAT)
+
 
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""
