@@ -4,6 +4,8 @@
 
 {% load bleach_tags %}
 
+{% load custom_tags %}
+
 {% block pagetitle %}Finding Entry{% endblock %}
 
 {% block breadcrumbs %}
@@ -48,19 +50,11 @@
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_start}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in M D, YYYY format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
-                            </tr>
-                            <tr>
-                                {% verbatim %}<td class="text-left align-middle">{{.project_start_uk}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in D M YYYY format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in <em>{% settings_value "DATE_FORMAT" %}</em>  format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_end}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in M D, YYYY format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
-                            </tr>
-                            <tr>
-                                {% verbatim %}<td class="text-left align-middle">{{.project_end_uk}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in D M YYYY format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in <em>{% settings_value "DATE_FORMAT" %}</em>  format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                         {% verbatim %}
                             <tr>
@@ -181,8 +175,6 @@
             { text: '\{\{.caption\}\}', value: '\{\{.caption\}\}' },
             { text: '\{\{.project_start\}\}', value: '\{\{.project_start\}\}' },
             { text: '\{\{.project_end\}\}', value: '\{\{.project_end\}\}' },
-            { text: '\{\{.project_start_uk\}\}', value: '\{\{.project_start_uk\}\}' },
-            { text: '\{\{.project_end_uk\}\}', value: '\{\{.project_end_uk\}\}' },
             { text: '\{\{.project_type\}\}', value: '\{\{.project_type\}\}' },
             {% if reportfindinglink.evidence_set.all  %}
                 {% for finding in reportfindinglink.evidence_set.all %}
