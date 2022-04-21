@@ -124,9 +124,9 @@
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Operator</th>
-                            <th class="align-middle">Role</th>
-                            <th class="sorter-date-range-dMMMyyyy align-middle">Dates</th>
+                            <th class="align-middle pr-4">Operator</th>
+                            <th class="align-middle pr-4">Role</th>
+                            <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
                             <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
@@ -177,7 +177,7 @@
                 {% if project.projectscope_set.all %}
                     <table id="scopeTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Name</th>
+                            <th class="align-middle pr-4">Name</th>
                             <th class="sorter-false align-middle">Preview</th>
                             <th class="sorter-false align-middle"></th>
                             <th class="sorter-false align-middle">Description</th>
@@ -261,9 +261,9 @@
                 {% if project.projecttarget_set.all %}
                     <table id="targetTable" class="tablesorter table table-sm">
                         <thead>
-                            <th class="align-middle">Owned</th>
-                            <th class="align-middle">Target</th>
-                            <th class="align-middle">Note</th>
+                            <th class="align-middle pr-4">Owned</th>
+                            <th class="align-middle pr-4">Target</th>
+                            <th class="sorter-false align-middle pr-4">Note</th>
                             <th class="sorter-false test-center align-middle">Options</th>
                         </thead>
                         {% for target in project.projecttarget_set.all %}
@@ -359,10 +359,10 @@
                 {% if project.report_set.all %}
                     <table id="reportTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Title</th>
-                            <th class="align-middle">Status</th>
-                            <th class="align-middle">Last Update</th>
-                            <th class="align-middle">Created by</th>
+                            <th class="align-middle pr-4">Title</th>
+                            <th class="align-middle pr-4">Status</th>
+                            <th class="align-middle pr-4">Last Update</th>
+                            <th class="align-middle pr-4">Created by</th>
                             <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
                         {% for report in project.report_set.all %}
@@ -516,7 +516,7 @@
                             <div class="input-group-prepend">
                                 <span class="fa fa-search input-group-text" id="inner-server-search-addon"></span>
                             </div>
-                            <input autocomplete="off" type="text" class="form-control" name="server_search" placeholder="Search for a Server to Checkout..." aria-label="servers" aria-describedby="inner-server-search-addon">
+                            <input autocomplete="off" type="text" class="form-control" name="server_search" placeholder="Enter a Server to Checkout..." aria-label="servers" aria-describedby="inner-server-search-addon">
                         </div>
                         <input type="hidden" name="project_id" value="{{ project.id }}" />
                         <input type="submit" style="display: none" />
@@ -536,11 +536,11 @@
                                     </div>
                                 </div>
                             </th>
-                            <th class="align-middle">Other Addresses</th>
-                            <th class="align-middle">Name</th>
-                            <th class="align-middle">Purpose</th>
-                            <th class="align-middle">Role</th>
-                            <th class="align-middle">Provider</th>
+                            <th class="align-middle pr-4">Other Addresses</th>
+                            <th class="align-middle pr-4">Name</th>
+                            <th class="align-middle pr-4">Purpose</th>
+                            <th class="align-middle pr-4">Role</th>
+                            <th class="align-middle pr-4">Provider</th>
                             <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false align-middle">Options</th>
                         </thead>
@@ -621,10 +621,10 @@
                     {% if project.domainserverconnection_set.all %}
                         <table class="table">
                             <tr>
-                                <th class="align-middle">Domain</th>
-                                <th class="align-middle">Server IP</th>
-                                <th class="align-middle">Server name</ht>
-                                <th class="align-middle">CDN Endpoint</th>
+                                <th class="align-middle pr-4">Domain</th>
+                                <th class="align-middle pr-4">Server IP</th>
+                                <th class="align-middle pr-4">Server name</ht>
+                                <th class="align-middle pr-4">CDN Endpoint</th>
                                 <th class="sorter-false align-middle">Options</th>
                             </tr>
                             {% for connection in project.domainserverconnection_set.all %}
