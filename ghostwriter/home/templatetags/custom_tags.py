@@ -2,6 +2,7 @@
 
 # Django Imports
 from django import template
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
 
@@ -74,3 +75,9 @@ def get_reports(request):
             active_reports.append(report)
 
     return active_reports
+
+
+@register.simple_tag
+def settings_value(name):
+    """Return the specified setting value."""
+    return getattr(settings, name, "")
