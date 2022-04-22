@@ -1510,8 +1510,14 @@
                 return local.toJSON().slice(0,10);
             });
 
-            // Set current date as placeholder value for deadline fields
-            $('[name=deadline').val(new Date().toDateInputValue());
+            // Set parent's deadline as placeholder value for deadline fields
+            var rows = document.querySelectorAll('.accordion-row');
+            rows.forEach(function(row) {
+                var parentDeadline = row.getAttribute('deadline-date');
+                var taskList = $('#task-list-' + row.getAttribute('objective-id'))[0];
+                var deadlineField = taskList.querySelectorAll('.add-deadline')[0];
+                deadlineField.value = parentDeadline;
+            });
 
             // Toggle ``readonly`` attribute on fields and save
             $('.edit-todo-input').click(function() {
