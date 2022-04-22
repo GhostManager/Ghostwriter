@@ -81,3 +81,9 @@ def get_reports(request):
 def settings_value(name):
     """Return the specified setting value."""
     return getattr(settings, name, "")
+
+
+@register.filter(name="count_incomplete_objectives")
+def count_incomplete_objectives(queryset):
+    """Return the number of incomplete obejctives"""
+    return queryset.filter(complete=False).count()
