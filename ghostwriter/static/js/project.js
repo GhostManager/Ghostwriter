@@ -5,7 +5,7 @@ function displayToastTop({
   type,
   string,
   title = '',
-  delay = 4,
+  delay = 3,
   escapeHTML = true,
   context = null,
 }) {
