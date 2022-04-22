@@ -1,36 +1,38 @@
+{% load custom_tags %}
+
 <li class="nav-item">
     <a id="id_planning" class="nav-link active tab-icon planning-icon" data-toggle="tab" href="#planning">
-        Planning <span class="badge badge-pill badge-light">{{ project.projectassignment_set.all.count }}</span>
+        Planning
     </a>
 </li>
 <li class="nav-item">
     <a id="id_scopes" class="nav-link tab-icon bullseye-icon" data-toggle="tab" href="#scopes">
-        Scope <span class="badge badge-pill badge-light">{{ project.projectscope_set.all.count }}</span>
+        Scope
     </a>
 </li>
 <li class="nav-item">
     <a id="id_objectives" class="nav-link tab-icon tasks-icon" data-toggle="tab" href="#objectives">
-        Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all.count }}</span>
+        Objectives <span class="badge badge-pill badge-light">{{ project.projectobjective_set.all|count_incomplete_objectives }}</span>
     </a>
 </li>
 <li class="nav-item">
     <a id="id_targets" class="nav-link tab-icon objective-icon" data-toggle="tab" href="#targets">
-        Targets <span class="badge badge-pill badge-light">{{ project.projecttarget_set.all.count }}</span>
+        Targets
     </a>
 </li>
 <li class="nav-item">
     <a id="id_activity" class="nav-link tab-icon history-icon" data-toggle="tab" href="#activity">
-        Logs <span class="badge badge-pill badge-light">{{ project.oplog_set.all.count }}</span>
+        Logs
     </a>
 </li>
 <li class="nav-item">
     <a id="id_documents" class="nav-link tab-icon folder-icon" data-toggle="tab" href="#documents">
-        Documents <span class="badge badge-pill badge-light">{{ project.count_findings }}</span>
+        Reports
     </a>
 </li>
 <li class="nav-item">
     <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
-        Infrastructure <span class="badge badge-pill badge-light">{{ project.history_set.all.count|add:project.serverhistory_set.all.count|add:project.transientserver_set.all.count }}</span>
+        Infrastructure
     </a>
 </li>
 <li class="nav-item">
