@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 12 April 2022
+## [Unreleased] - 21 April 2022
 
 ### Added
 
@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Updated the Nginx configuration to incorporate the Hasura container
   * For custom domain names, set `server_name` in _nginx.conf to api.<DOMAIN>
+* Updated style of the finding preview pages for the finding library
+* Updated style of notes to make them cleaner and easier to manage
+* Project dashboard's "Objectives" tab will now show the current number of incomplete objectives and update when toggling objectives
+* Updated keyword reference panel displayed when editing findings
 
 ### Deprecated
 
@@ -22,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-* None
+* Removed unnecessary status badges on tabs in teh project dashboard that were confusing and not very helpful
 
 ### Fixed
 
