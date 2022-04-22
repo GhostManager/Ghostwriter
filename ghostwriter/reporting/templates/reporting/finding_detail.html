@@ -69,180 +69,131 @@
         </span>
     </div>
 
-    <div id="accordion" class="myaccordion">
-        <!-- Description -->
-        <div class="card">
-            <div class="card-header" id="description" data-toggle="collapse" data-target="#collapseDescription" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link icon writing-icon" data-toggle="collapse" data-target="#collapseDescription" aria-expanded="false" aria-controls="collapseDescription">
-                    Description
-                </a>
-            </div>
-            <div id="collapseDescription" class="finding-collapse collapse show" aria-labelledby="description">
-                <div class="finding-card card-body">
-                    {% if finding.description %}
-                        {{ finding.description|bleach }}
-                    {% else %}
-                        <p>Description write-up is needed.</p>
-                    {% endif %}
-                </div>
+
+    <div id="description" title="description">
+        <h3 class="finding-header icon writing-icon">Description</h3>
+        <hr class="finding-hr" />
+        <div class="finding-content">
+            {% if finding.description %}
+                {{ finding.description|bleach }}
+            {% else %}
+                <p>Description write-up is needed.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="impact" title="impact">
+        <h3 class="finding-header icon impact-icon">Impact</h3>
+        <hr class="finding-hr" />
+        <div class="finding-content">
+            {% if finding.impact %}
+                {{ finding.impact|bleach }}
+            {% else %}
+                <p>Impact write-up is needed.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="impact" title="impact">
+        <h3 class="finding-header icon help-icon">Recommendations</h3>
+        <hr class="finding-hr" />
+        <div class="finding-content">
+            {% if finding.mitigation %}
+                {{ finding.mitigation|bleach }}
+            {% else %}
+                <p>Recommendations are needed.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="detection" title="detection">
+        <h3 class="finding-header icon shield-icon">Detection Recommendations</h3>
+        <hr class="finding-hr" />
+        <div class="finding-content">
+            {% if finding.host_detection_techniques %}
+                <h4 class="text-center">Host Detection</h4>
+                <hr>
+                {{ finding.host_detection_techniques|bleach }}
+            {% endif %}
+
+            {% if finding.network_detection_techniques %}
+                <h4 class="text-center">Network Detection</h4>
+                <hr>
+                {{ finding.network_detection_techniques|bleach }}
+            {% endif %}
+
+            {% if not finding.network_detection_techniques and not finding.host_detection_techniques %}
+                <p>No host or network detections have been written for this finding.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="replication" title="replication">
+        <h3 class="finding-header icon ol-list-icon">Replication Steps</h3>
+        <hr class="finding-hr" />
+        <div class="finding-content">
+            {% if finding.replication_steps %}
+                {{ finding.replication_steps|bleach }}
+            {% else %}
+                <p>Replication steps are needed.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="references" title="references">
+        <h3 class="finding-header icon link-icon">Replication Steps</h3>
+        <hr class="finding-hr" />
+        <div class="finding-content">
+            {% if finding.references %}
+                {{ finding.references|bleach }}
+            {% else %}
+                <p>References are needed.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if finding.finding_guidance %}
+        <div id="guidance" title="guidance">
+            <h3 class="finding-header icon help-icon">Replication Steps</h3>
+            <hr class="finding-hr" />
+            <div class="finding-content">
+                {{ finding.finding_guidance|bleach }}
             </div>
         </div>
+    {% endif %}
 
-        <!-- Impact -->
-        <div class="card">
-            <div class="card-header" id="impact" data-toggle="collapse" data-target="#collapseImpact" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link icon impact-icon" data-toggle="collapse" data-target="#collapseImpact" aria-expanded="false" aria-controls="collapseImpact">
-                    Impact
-                </a>
-            </div>
-            <div id="collapseImpact" class="finding-collapse collapse show" aria-labelledby="impact">
-                <div class="finding-card card-body">
-                    {% if finding.impact %}
-                        {{ finding.impact|bleach }}
-                    {% else %}
-                        <p>Impact write-up is needed.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+    <h3 class="finding-header icon comment-icon">Notes</h3>
+    <hr class="finding-hr" />
 
-        <!-- Recommendations -->
-        <div class="card">
-            <div class="card-header" id="recommendations" data-toggle="collapse" data-target="#collapseRecommendations" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link icon help-icon" data-toggle="collapse" data-target="#collapseRecommendations" aria-expanded="false" aria-controls="collapseRecommendations">
-                    Recommendations
-                </a>
-            </div>
-            <div id="collapseRecommendations" class="finding-collapse collapse show" aria-labelledby="recommendations">
-                <div class="finding-card card-body">
-                    {% if finding.mitigation %}
-                        {{ finding.mitigation|bleach }}
-                    {% else %}
-                        <p>Recommendations are needed.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+    <p class="text-center">
+        <a class="icon add-icon btn btn-primary mb-1" href="{% url 'reporting:finding_note_add' finding.id %}">Add a Note</a>
+    </p>
 
-        <!-- Detections -->
-        <div class="card">
-            <div class="card-header" id="hostdetection" data-toggle="collapse" data-target="#collapseHDetect" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link icon shield-icon" data-toggle="collapse" data-target="#collapseHDetect" aria-expanded="false" aria-controls="collapseHDetect">
-                    Detection Recommendations
-                </a>
-            </div>
-            <div id="collapseHDetect" class="finding-collapse collapse show" aria-labelledby="hostdetection">
-                <div class="finding-card card-body">
-                    {% if finding.host_detection_techniques %}
-                        <h4 class="text-center">Host Detection</h4>
-                        <hr>
+    {% if finding.findingnote_set.all %}
+        {% for note in finding.findingnote_set.all reversed %}
+            <div id="note-container-{{ note.id }}">
+                <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                    <div class="float-left col-10 col-md-10 col-sm-8">
+                        {{ note.note|bleach }}
+                    </div>
 
-                        {{ finding.host_detection_techniques|bleach }}
-                    {% endif %}
-
-                    {% if finding.network_detection_techniques %}
-                    <h4 class="text-center">Network Detection</h4>
-                        <hr>
-
-                        {{ finding.network_detection_techniques|bleach }}
-                    {% endif %}
-
-                    {% if not finding.network_detection_techniques and not finding.host_detection_techniques %}
-                        <p>No host or network detections have been written for this finding.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Replication Steps -->
-        <div class="card">
-            <div class="card-header" id="replication" data-toggle="collapse" data-target="#collapseReplication" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link icon ol-list-icon" data-toggle="collapse" data-target="#collapseReplication" aria-expanded="false" aria-controls="collapseReplication">
-                    Replication Steps
-                </a>
-            </div>
-            <div id="collapseReplication" class="finding-collapse collapse show" aria-labelledby="replication">
-                <div class="finding-card card-body">
-                    {% if finding.replication_steps %}
-                        {{ finding.replication_steps|bleach }}
-                    {% else %}
-                        <p>Replication steps are needed.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- References -->
-        <div class="card">
-            <div class="card-header" id="reference" data-toggle="collapse" data-target="#collapseReference" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link icon link-icon" data-toggle="collapse" data-target="#collapseReference" aria-expanded="false" aria-controls="collapseReference">
-                    References
-                </a>
-            </div>
-            <div id="collapseReference" class="finding-collapse collapse show" aria-labelledby="reference">
-                <div class="finding-card card-body">
-                    {% if finding.references %}
-                        {{ finding.references|bleach }}
-                    {% else %}
-                        <p>References are needed.</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Optional Finding Guidance -->
-        {% if finding.finding_guidance %}
-            <div class="card">
-                <div class="card-header" id="guidance" data-toggle="collapse" data-target="#collapseGuidance" aria-expanded="true">
-                    <a class="accordion-toggle btn btn-link icon guidance-icon" data-toggle="collapse" data-target="#collapseGuidance" aria-expanded="false" aria-controls="collapseGuidance">
-                        Finding Guidance
-                    </a>
-                </div>
-                <div id="collapseGuidance" class="finding-collapse collapse show" aria-labelledby="guidance">
-                    <div class="finding-card card-body">
-                        {{ finding.finding_guidance|bleach }}
+                    <div class="float-right col-2 col-md-2 col-sm-4">
+                        <div><a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a></div>
+                        <div><p class="note-time">{{ note.timestamp }}</p></div>
                     </div>
                 </div>
             </div>
-        {% endif %}
 
-        <!-- Notes -->
-        <div class="card">
-            <div class="card-header" id="notes" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="true">
-                <a class="accordion-toggle btn btn-link icon comment-icon" data-toggle="collapse" data-target="#collapseNotes" aria-expanded="false" aria-controls="collapseNotes">
-                    Notes
-                </a>
-            </div>
-            <div id="collapseNotes" class="finding-collapse collapse show" aria-labelledby="notes">
-                <div class="finding-card card-body">
-                    <p class="text-center">
-                        <a class="icon add-icon" href="{% url 'reporting:finding_note_add' finding.id %}">Add a Note</a>
-                    </p>
-                    {% if finding.findingnote_set.all %}
-                        {% for note in finding.findingnote_set.all reversed %}
-                            <div id="note-container-{{ note.id }}">
-                                <p class="text-center">{{ note.timestamp }}</p>
-                                <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                    <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                                    {% if request.user == note.operator or request.user.is_staff %}
-                                    <div class="dropdown dropleft right">
-                                        <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
-                                                <a class="dropdown-item icon edit-icon" href="{% url 'reporting:finding_note_edit' note.id %}">Edit</a>
-                                                <a id="note-delete-button-{{ note.id }}" class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                    {{ note.note|bleach }}
-                                    <span class="time-right">{{ note.operator.username }}</span>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
+            {% if request.user == note.operator or request.user.is_staff %}
+                <div class="pb-3">
+                    <a class="note-link" href="{% url 'reporting:finding_note_edit' note.id %}">Edit</a> |
+                    <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
                 </div>
-            </div>
-        </div>
-    </div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <p>No notes for this finding.</p>
+    {% endif %}
 {% endblock %}
 
 {% block morescripts %}
