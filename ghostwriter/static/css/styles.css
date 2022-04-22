@@ -445,7 +445,7 @@ input[type='file'] {
 
 .avatar_note {
   width: 70%;
-  height: 100%;
+  height: 70%;
   border-radius: 50%;
   border-style: solid;
   border-width: 1px;
@@ -2194,7 +2194,7 @@ th.icon {
   font-size: var(--main-font-size);
 }
 
-.myaccordion .btn {
+.myaccordion .accordion-toggle.btn {
   font-weight: 600;
   color: #fff;
   padding: 0;
@@ -2233,29 +2233,6 @@ h5 a[aria-expanded=true]:after {
   content: '\2212';
 }
 
-.finding-card {
-  text-align: justify;
-}
-
-.finding-card ul,
-ol {
-  text-align: left;
-}
-
-.finding-card pre {
-  text-align: justify;
-  font-family: 'Courier New', Courier, monospace;
-  padding-left: 10px;
-  white-space: pre-wrap;
-  border: 2px solid #dedede;
-}
-
-.finding-card code {
-  font-size: var(--main-font-size);
-  font-family: 'Courier New', Courier, monospace;
-  color: var(--main-txt-color);
-}
-
 .task-card {
   height: 100%;
   padding: 1rem;
@@ -2263,6 +2240,41 @@ ol {
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* ---------------------------------------------------
+    FINDING PREVIEW STYLES
+----------------------------------------------------- */
+
+.finding-header {
+  text-align: left;
+}
+
+.finding-hr {
+  margin-left: 0;
+}
+
+.finding-content {
+  text-align: justify;
+}
+
+.finding-content ul,
+ol {
+  text-align: left;
+}
+
+.finding-content pre {
+  text-align: justify;
+  font-family: 'Courier New', Courier, monospace;
+  padding-left: 10px;
+  white-space: pre-wrap;
+  border: 2px solid #dedede;
+}
+
+.finding-content code {
+  font-size: var(--main-font-size);
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--main-txt-color);
 }
 
 /* ---------------------------------------------------
@@ -2274,7 +2286,7 @@ ol {
 }
 
 .note-container {
-  width: 70%;
+  width: 90%;
   border: 2px solid #dedede;
   background-color: #f1f1f1;
   border-radius: 5px;
@@ -2318,14 +2330,14 @@ ol {
   margin-right: 0;
 }
 
-.time-right {
-  float: right;
+.note-time {
   color: #aaa;
+  font-size: .8em;
 }
 
-.time-left {
-  float: left;
-  color: #999;
+.note-link {
+  color: var(--primary-color);
+  font-size: .8em;
 }
 
 /* ---------------------------------------------------
