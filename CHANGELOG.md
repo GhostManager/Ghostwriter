@@ -4,12 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0-rc2] - 29 April 2022
+## [2.3.0-rc2] - 2 May 2022
 
 ### Added
 
 * New options to generate and revoke API tokens with a set expiry date
 * Added Hasura GraphQL engine to production environments
+* Usernames are now clickable and open the user's profile page for viewing
 
 ### Changed
 
@@ -35,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Upgraded `django-bleach` dependency to fix error with latest `python-bleach` (Fixes #208)
 * Fixed error that blocked creation of default `BlockQuote` style in report template
 * Fixed domain age column not sorting correctly in domain library table
+* Checkbox in server form will no longer appear way bigger than intended
 
 ### Security
 
