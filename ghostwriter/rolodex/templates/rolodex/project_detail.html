@@ -133,11 +133,13 @@
                         {% for operator in project.projectassignment_set.all %}
                             <tr>
                                 <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle">
-                                    {% if operator.operator.name %}
-                                        {{ operator.operator.name }}
-                                    {% else %}
-                                        Missing Full Name ({{ operator.operator.username|capfirst }})
-                                    {% endif %}
+                                    <a class="clickable" href="{% url 'users:user_detail' operator.operator.username %}">
+                                        {% if operator.operator.name %}
+                                            {{ operator.operator.name }}
+                                        {% else %}
+                                            Missing Full Name ({{ operator.operator.username|capfirst }})
+                                        {% endif %}
+                                    </a>
                                 </td>
                                 <td class="align-middle">{{ operator.role }}</td>
                                 <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
