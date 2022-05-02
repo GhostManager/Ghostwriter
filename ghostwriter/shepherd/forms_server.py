@@ -24,7 +24,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
-from ghostwriter.modules.custom_layout_object import CustomTab, Formset
+from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.rolodex.models import Project
 
 from .models import (
@@ -151,7 +151,7 @@ class AuxServerAddressForm(forms.ModelForm):
                     Row(
                         Column("ip_address", css_class="form-group col-md-6 mb-0"),
                         Column(
-                            Field(
+                            SwitchToggle(
                                 "primary",
                                 css_class="primary-checkbox",
                                 onchange="checkboxUpdate(this)",
