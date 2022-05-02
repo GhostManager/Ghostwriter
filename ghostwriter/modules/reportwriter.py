@@ -1713,7 +1713,10 @@ class Reportwriter:
         keyword_regex = r"\{\{\.(.*?)\}\}"
 
         # Strip out all HTML tags because we can't format text runs for XLSX
-        text = BeautifulSoup(html, "lxml").text
+        if html:
+            text = BeautifulSoup(html, "lxml").text
+        else:
+            text = ""
 
         # Perform the necessary replacements
         if "{{.client}}" in text:
