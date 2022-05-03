@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * New options to generate and revoke API tokens with a set expiry date
 * Added Hasura GraphQL engine to production environments
 * Usernames are now clickable and open the user's profile page for viewing
+* Added a `generateReport` mutation to the GraphQL API capable of returning the JSON report data as a base64 string
 
 ### Changed
 
