@@ -3,11 +3,13 @@
 # Standard Libraries
 import json
 import logging
+from base64 import b64encode
 from datetime import datetime
 
 # Django Imports
 from django.contrib.auth import authenticate, get_user_model
 from django.http import JsonResponse
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 # 3rd Party Libraries
@@ -16,6 +18,8 @@ import jwt
 # Ghostwriter Libraries
 from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
+from ghostwriter.modules.reportwriter import Reportwriter
+from ghostwriter.reporting.models import Report
 from ghostwriter.shepherd.models import Domain
 
 # Using __name__ resolves to ghostwriter.api.views
@@ -148,7 +152,7 @@ def graphql_whoami(request):
             else:
                 try:
                     jwt_token = utils.jwt_decode(token)
-                    user_obj = User.objects.get(id=jwt_token["sub"])
+                    user_obj = utils.get_user_from_token(jwt_token)
                     data = {
                         "username": f"{user_obj.username}",
                         "role": f"{user_obj.role}",
@@ -176,6 +180,47 @@ def graphql_domain_update_event(request):
         object_data = data["event"]["data"]["new"]
         instance = Domain.objects.get(id=object_data["id"])
         instance.save()
+    else:
+        status = 403
+        data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
+    return JsonResponse(data, status=status)
+
+
+@require_http_methods(["POST", ])
+def graphql_generate_report(request):
+    """Endpoint for generating a JSON report with the ``generateReport`` action."""
+    status = 200
+
+    if utils.verify_graphql_request(request.headers):
+        try:
+            input = json.loads(request.body)
+            report_id = input["input"]["id"]
+            report = Report.objects.get(id=report_id)
+
+            token = utils.get_jwt_from_request(request)
+            jwt_token = utils.jwt_decode(token)
+            user_obj = utils.get_user_from_token(jwt_token)
+            if utils.verify_project_access(user_obj, report.project):
+                engine = Reportwriter(report, template_loc=None)
+                json_report = engine.generate_json()
+                report_bytes = json.dumps(json_report).encode("utf-8")
+                base64_bytes = b64encode(report_bytes)
+                base64_string = base64_bytes.decode("utf-8")
+                data = {
+                    "reportData": base64_string,
+                    "docxUrl": reverse("reporting:generate_docx", args=[report_id]),
+                    "xlsxUrl": reverse("reporting:generate_xlsx", args=[report_id]),
+                    "pptxUrl": reverse("reporting:generate_pptx", args=[report_id]),
+                }
+            else:
+                status = 401
+                data = utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized")
+        except Report.DoesNotExist:
+            status = 400
+            data = utils.generate_hasura_error_payload("Report does not exist", "ReportDoesNotExist")
+        except KeyError:
+            status = 400
+            data = utils.generate_hasura_error_payload("Invalid request body", "InvalidRequestBody")
     else:
         status = 403
         data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
