@@ -3,11 +3,17 @@ import logging
 from datetime import datetime
 
 # Django Imports
-from django.test import Client, TestCase
+from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
-from ghostwriter.factories import UserFactory
+from ghostwriter.factories import (
+    ClientInviteFactory,
+    ProjectAssignmentFactory,
+    ProjectFactory,
+    ProjectInviteFactory,
+    UserFactory,
+)
 
 logging.disable(logging.CRITICAL)
 
@@ -22,12 +28,7 @@ class JwtUtilsTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
 
     def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        pass
 
     def test_generate_jwt(self):
         try:
@@ -60,3 +61,41 @@ class JwtUtilsTests(TestCase):
             self.assertFalse(utils.get_jwt_payload(token))
         except AttributeError:
             self.fail("get_jwt_payload() raised an AttributeError unexpectedly!")
+
+    def test_get_user_from_token(self):
+        payload, encoded_payload = utils.generate_jwt(self.user)
+        user_obj = utils.get_user_from_token(payload)
+        try:
+            self.assertEqual(user_obj, self.user)
+        except AttributeError:
+            self.fail("get_user_from_token() raised an AttributeError unexpectedly!")
+
+    def test_verify_project_access(self):
+        project = ProjectFactory()
+        self.assertFalse(utils.verify_project_access(self.user, project))
+
+        self.user.role = "manager"
+        self.user.save()
+        self.assertTrue(utils.verify_project_access(self.user, project))
+        self.user.role = "admin"
+        self.user.save()
+        self.assertTrue(utils.verify_project_access(self.user, project))
+
+        self.user.role = "user"
+        self.user.save()
+        self.assertFalse(utils.verify_project_access(self.user, project))
+
+        assignment = ProjectAssignmentFactory(operator=self.user, project=project)
+        self.assertTrue(utils.verify_project_access(self.user, project))
+        assignment.delete()
+        self.assertFalse(utils.verify_project_access(self.user, project))
+
+        project_invite = ProjectInviteFactory(user=self.user, project=project)
+        self.assertTrue(utils.verify_project_access(self.user, project))
+        project_invite.delete()
+        self.assertFalse(utils.verify_project_access(self.user, project))
+
+        client_invite = ClientInviteFactory(user=self.user, client=project.client)
+        self.assertTrue(utils.verify_project_access(self.user, project))
+        client_invite.delete()
+        self.assertFalse(utils.verify_project_access(self.user, project))
