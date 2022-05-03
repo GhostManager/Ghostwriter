@@ -9,6 +9,9 @@ from django.contrib.auth import get_user_model
 # 3rd Party Libraries
 import jwt
 
+# Ghostwriter Libraries
+from ghostwriter.rolodex.models import ClientInvite, ProjectAssignment, ProjectInvite
+
 # Using __name__ resolves to ghostwriter.utils
 logger = logging.getLogger(__name__)
 
@@ -185,3 +188,40 @@ def verify_graphql_request(headers):
     if HASURA_ACTION_SECRET == settings.HASURA_ACTION_SECRET:
         return True
     return False
+
+
+def verify_project_access(user, project):
+    """
+    Verify that the user has access to the project.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``project``
+        The :model:`projects.Project` object
+    """
+    if user.role == "admin":
+        return True
+    elif user.role == "manager":
+        return True
+    else:
+        assignments = ProjectAssignment.objects.filter(operator=user, project=project)
+        client_invites = ClientInvite.objects.filter(user=user, client=project.client)
+        project_invites = ProjectInvite.objects.filter(user=user, project=project)
+        if any([assignments, client_invites, project_invites]):
+            return True
+    return False
+
+
+def get_user_from_token(token):
+    """
+    Get the user from the JWT token.
+
+    **Parameters**
+
+    ``token``
+        Decoded JWT payload
+    """
+    user_obj = User.objects.get(id=token["sub"])
+    return user_obj
