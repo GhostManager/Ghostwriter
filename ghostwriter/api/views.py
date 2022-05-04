@@ -7,16 +7,22 @@ from base64 import b64encode
 from datetime import datetime
 
 # Django Imports
+from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.views.generic.detail import SingleObjectMixin
+from django.views.generic.edit import CreateView, FormView, View
 
 # 3rd Party Libraries
 import jwt
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
+from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
 from ghostwriter.modules.reportwriter import Reportwriter
 from ghostwriter.reporting.models import Report
@@ -27,6 +33,11 @@ logger = logging.getLogger(__name__)
 
 
 User = get_user_model()
+
+
+#####################
+# GraphQL Functions #
+#####################
 
 
 def graphql_webhook(request):
@@ -225,3 +236,87 @@ def graphql_generate_report(request):
         status = 403
         data = utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized")
     return JsonResponse(data, status=status)
+
+
+##################
+# AJAX Functions #
+##################
+
+
+class ApiKeyRevoke(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """
+    Revoke an individual :model:`users.APIKey`.
+    """
+
+    model = APIKey
+
+    def test_func(self):
+        self.object = self.get_object()
+        return self.object.user.id == self.request.user.id
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that")
+        return redirect("home:dashboard")
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.revoked = True
+        self.object.save()
+        data = {"result": "success", "message": "Token successfully revoked!"}
+        logger.info(
+            "Revoked %s %s by request of %s",
+            self.object.__class__.__name__,
+            self.object.id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
+################
+# View Classes #
+################
+
+
+class ApiKeyCreate(LoginRequiredMixin, FormView):
+    """
+    Create an individual :model:`api.APIKey`.
+
+    **Template**
+
+    :template:`api/token_form.html`
+    """
+
+    form_class = ApiKeyForm
+    template_name = "token_form.html"
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Token successfully saved.",
+            extra_tags="alert-success",
+        )
+        return reverse("users:user_detail", kwargs={"username": self.request.user})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("users:user_detail", kwargs={"username": self.request.user.username})
+        return ctx
+
+    def form_valid(self, form):
+        name = form.cleaned_data["name"]
+        expiry = form.cleaned_data["expiry_date"]
+        try:
+            token_obj, token = APIKey.objects.create_token(name=name, user=self.request.user, expiry_date=expiry)
+            messages.info(
+                self.request,
+                token,
+                extra_tags="api-token no-toast",
+            )
+        except Exception:
+            logger.exception("Failed to create new API key")
+            messages.error(
+                self.request,
+                "Could not generate a token for you – contact your admin!",
+                extra_tags="alert-danger",
+            )
+        return super().form_valid(form)
