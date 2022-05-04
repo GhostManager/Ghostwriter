@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0-rc2] - 2 May 2022
+## [2.3.0-rc2] - 4 May 2022
 
 ### Added
 
@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added Hasura GraphQL engine to production environments
 * Usernames are now clickable and open the user's profile page for viewing
 * Added a `generateReport` mutation to the GraphQL API capable of returning the JSON report data as a base64 string
+* Added user controls for generating and revoking API tokens from the user profile page
 
 ### Changed
 
