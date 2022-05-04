@@ -284,16 +284,17 @@ h6 {
 #scroll-button {
   display: inline-block;
   background-color: var(--button-primary-color);
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   text-align: center;
-  border-radius: 4px;
+  border-radius: 50%;
   margin: 30px;
   position: fixed;
   bottom: 30px;
   right: 30px;
   transition: background-color .3s;
   z-index: 1000;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
 #scroll-button:hover {
@@ -311,8 +312,8 @@ h6 {
   font-weight: 600;
   font-style: normal;
   text-rendering: auto;
-  font-size: 2em;
-  line-height: 50px;
+  font-size: 1.75em;
+  line-height: 40px;
   color: #fff;
 }
 
@@ -352,6 +353,14 @@ h6 {
 .scope-modal-body {
   max-height: 50vh;
   overflow-y: auto;
+}
+
+.token-modal {
+  max-width: 90%;
+}
+
+.confirm-token {
+  word-wrap: break-word;
 }
 
 /* ---------------------------------------------------
@@ -1775,6 +1784,10 @@ th.icon {
   content: '\f0c0';
 }
 
+.user-secret-icon:before {
+  content: '\f21b';
+}
+
 .user-icon-circle:before {
   content: '\f2bd';
 }
@@ -2820,4 +2833,87 @@ th.priority-header.tertiary:before {
 
 .js-connection-status.connected {
   color: var(--healthy-color);
+}
+
+/* ---------------------------------------------------
+    INPUT STYLES
+----------------------------------------------------- */
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 47px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 13px;
+  width: 13px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked+.slider {
+  background-color: var(--primary-color);
+}
+
+input:focus+.slider {
+  box-shadow: 0 0 1px var(--primary-color);
+}
+
+input:checked+.slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.hide-expired-slider::after {
+  position: absolute;
+  right: -105px;
+
+  content: "Hide Expired";
+}
+
+/* ---------------------------------------------------
+    POSITIONING STYLES
+----------------------------------------------------- */
+
+.start-0 {
+  left: 0 !important;
+}
+
+.end-0 {
+  right: 0 !important;
 }
