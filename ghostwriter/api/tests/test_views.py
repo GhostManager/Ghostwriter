@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # Django Imports
 from django.test import Client, TestCase
@@ -19,7 +19,7 @@ PASSWORD = "SuperNaturalReporting!"
 
 
 class HasuraWebhookTests(TestCase):
-    """Collection of tests for the `users:graphql_webhook`."""
+    """Collection of tests for :view:`api:graphql_webhook`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -136,7 +136,7 @@ class HasuraWebhookTests(TestCase):
 
 
 class HasuraLoginTests(TestCase):
-    """Collection of tests for the `users:graphql_login`."""
+    """Collection of tests for :view:`api:graphql_login`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -242,7 +242,7 @@ class HasuraLoginTests(TestCase):
 
 
 class HasuraWhoamiTests(TestCase):
-    """Collection of tests for the `users:graphql_whoami`."""
+    """Collection of tests for :view:`api:graphql_whoami`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -310,3 +310,87 @@ class HasuraWhoamiTests(TestCase):
             "extensions": {"code": "Unauthorized", },
         }
         self.assertJSONEqual(force_str(response.content), result)
+
+
+class ApiKeyRevokeTests(TestCase):
+    """Collection of tests for :view:`api:ApiKeyRevoke`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.other_user = UserFactory(password=PASSWORD)
+        cls.token_obj, cls.token = APIKey.objects.create_token(
+            user=cls.user, name="User's Token"
+        )
+        cls.other_token_obj, cls.other_token = APIKey.objects.create_token(
+            user=cls.other_user, name="Other User's Token"
+        )
+        cls.uri = reverse("api:ajax_revoke_token", kwargs={"pk": cls.token_obj.pk})
+        cls.other_uri = reverse("api:ajax_revoke_token", kwargs={"pk": cls.other_token_obj.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        data = {"result": "success", "message": "Token successfully revoked!"}
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.token_obj.refresh_from_db()
+        self.assertEqual(self.token_obj.revoked, True)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_revoking_another_users_token(self):
+        response = self.client.post(self.other_uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class ApiKeyCreateTests(TestCase):
+    """Collection of tests for :view:`api:ApiKeyCreate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:ajax_create_token")
+        cls.redirect_uri = reverse("users:user_detail", kwargs={"username": cls.user.username})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "token_form.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertEqual(response.context["cancel_link"], self.redirect_uri)
+
+    def test_post_data(self):
+        response = self.client_auth.post(self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now()})
+        self.assertRedirects(response, self.redirect_uri)
+        obj = APIKey.objects.get(name="CreateView Test")
+        self.assertEqual(obj.user, self.user)
