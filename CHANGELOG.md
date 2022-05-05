@@ -17,13 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Updated the Nginx configuration to incorporate the Hasura container
-  * For custom domain names, set `server_name` in _nginx.conf_ to _api.<DOMAIN>_
 * Updated style of the finding preview pages for the finding library
 * Updated style of notes to make them cleaner and easier to manage
 * Project dashboard's "Objectives" tab will now show the current number of incomplete objectives and update when toggling objectives
 * Updated keyword reference panel displayed when editing findings
 * Subtask forms for objectives will now default to the objective's deadline date instead of "today"
-* Objective deadlines will now be automtically adjusted when the parent objective's deadline changes
+* Objective deadlines will now be automatically adjusted when the parent objective's deadline changes
 
 ### Deprecated
 
@@ -36,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * Upgraded `django-bleach` dependency to fix error with latest `python-bleach` (Fixes #208)
-* Fixed error that blocked creation of default `BlockQuote` style in report template
+* Fixed error that blocked creation of default `BlockQuote` style in the report template
 * Fixed domain age column not sorting correctly in domain library table
 * Checkbox in server form will no longer appear way bigger than intended
 
