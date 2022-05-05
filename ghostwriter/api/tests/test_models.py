@@ -79,3 +79,4 @@ class ApiKeyModelTests(TestCase):
         self.assertFalse(APIKey.objects.is_valid(inactive_token))
         self.assertFalse(APIKey.objects.is_valid(revoked_token))
         self.assertFalse(APIKey.objects.is_valid(expired_token))
+        self.assertFalse(APIKey.objects.is_valid("GARBAGE"))

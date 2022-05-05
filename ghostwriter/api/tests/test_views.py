@@ -11,11 +11,19 @@ from django.utils.encoding import force_str
 # Ghostwriter Libraries
 from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
-from ghostwriter.factories import UserFactory
+from ghostwriter.factories import (
+    DomainFactory,
+    ProjectAssignmentFactory,
+    ReportFactory,
+    UserFactory,
+)
 
 logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
+
+
+# Tests related to the authentication webhook
 
 
 class HasuraWebhookTests(TestCase):
@@ -133,6 +141,9 @@ class HasuraWebhookTests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), self.public_data)
+
+
+# Tests related to Hasura Actions
 
 
 class HasuraLoginTests(TestCase):
@@ -310,6 +321,176 @@ class HasuraWhoamiTests(TestCase):
             "extensions": {"code": "Unauthorized", },
         }
         self.assertJSONEqual(force_str(response.content), result)
+
+
+class HasuraGenerateReportTests(TestCase):
+    """Collection of tests for :view:`api:graphql_generate_report`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.assignment = ProjectAssignmentFactory(operator=cls.user)
+        cls.report = ReportFactory(project=cls.assignment.project)
+        cls.uri = reverse("api:graphql_generate_report")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_graphql_generate_report(self):
+        payload, token = utils.generate_jwt(self.user)
+        data = {"input": {"id": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_graphql_generate_report_with_tracked_token(self):
+        user_token_obj, user_token = APIKey.objects.create_token(
+            user=self.user, name="Valid Token"
+        )
+        data = {"input": {"id": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {user_token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_graphql_generate_report_with_invalid_report(self):
+        payload, token = utils.generate_jwt(self.user)
+        data = {"input": {"id": 999}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Report does not exist",
+            "extensions": {"code": "ReportDoesNotExist", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_generate_report_rejects_missing_jwt(self):
+        data = {"input": {"id": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_graphql_generate_report_requires_valid_jwt(self):
+        token = "GARBAGE!"
+        data = {"input": {"id": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_graphql_generate_report_without_secret(self):
+        data = {"input": {"id": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+
+# Tests related to Hasura Event Triggers
+
+
+class HasuraDomainUpdateEventTests(TestCase):
+    """Collection of tests for :view:`api:graphql_domain_update_event`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_domain_update_event")
+        cls.domain = DomainFactory(name="chrismaddalena.com")
+        cls.sample_data = {
+            "event": {
+                "data": {
+                    "new": {
+                        "expired": False,
+                        "registrar": "Hover",
+                        "note": "<p>The personal website and blog of Christopher Maddalena</p>",
+                        "last_health_check": "",
+                        "auto_renew": True,
+                        "expiration": "2023-03-25",
+                        "reset_dns": False,
+                        "vt_permalink": "",
+                        "burned_explanation": "",
+                        "creation": "2010-03-25",
+                        "domain_status_id": 1,
+                        "last_used_by_id": "",
+                        "name": "Chrismaddalena.com",
+                        "categorization": "",
+                        "health_status_id": 1,
+                        "id": 1,
+                        "whois_status_id": 1,
+                        "dns": {}
+                    }
+                },
+            }
+        }
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_graphql_domain_update_event(self):
+        payload, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.sample_data,
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_graphql_domain_update_event_without_secret(self):
+        response = self.client.post(
+            self.uri,
+            data=self.sample_data,
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+
+# Tests related to CBVs for :model:`api:APIKey`
 
 
 class ApiKeyRevokeTests(TestCase):
