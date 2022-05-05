@@ -63,7 +63,7 @@ class HasuraWebhookTests(TestCase):
         )
 
     def test_graphql_webhook_with_valid_jwt(self):
-        payload, token = utils.generate_jwt(self.user)
+        _, token = utils.generate_jwt(self.user)
         data = {
             "X-Hasura-Role": f"{self.user.role}",
             "X-Hasura-User-Id": f"{self.user.id}",
@@ -78,7 +78,7 @@ class HasuraWebhookTests(TestCase):
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_graphql_webhook_with_valid_jwt_and_inactive_user(self):
-        payload, token = utils.generate_jwt(self.user)
+        _, token = utils.generate_jwt(self.user)
         self.user.is_active = False
         self.user.save()
         response = self.client.get(
@@ -269,7 +269,7 @@ class HasuraWhoamiTests(TestCase):
         )
 
     def test_graphql_whoami(self):
-        payload, token = utils.generate_jwt(self.user)
+        _, token = utils.generate_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -331,6 +331,7 @@ class HasuraGenerateReportTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.assignment = ProjectAssignmentFactory(operator=cls.user)
         cls.report = ReportFactory(project=cls.assignment.project)
+        cls.other_report = ReportFactory()
         cls.uri = reverse("api:graphql_generate_report")
 
     def setUp(self):
@@ -342,7 +343,7 @@ class HasuraGenerateReportTests(TestCase):
         )
 
     def test_graphql_generate_report(self):
-        payload, token = utils.generate_jwt(self.user)
+        _, token = utils.generate_jwt(self.user)
         data = {"input": {"id": self.report.pk}}
         response = self.client.post(
             self.uri,
@@ -353,7 +354,7 @@ class HasuraGenerateReportTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_graphql_generate_report_with_tracked_token(self):
-        user_token_obj, user_token = APIKey.objects.create_token(
+        _, user_token = APIKey.objects.create_token(
             user=self.user, name="Valid Token"
         )
         data = {"input": {"id": self.report.pk}}
@@ -366,7 +367,7 @@ class HasuraGenerateReportTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_graphql_generate_report_with_invalid_report(self):
-        payload, token = utils.generate_jwt(self.user)
+        _, token = utils.generate_jwt(self.user)
         data = {"input": {"id": 999}}
         response = self.client.post(
             self.uri,
@@ -379,6 +380,23 @@ class HasuraGenerateReportTests(TestCase):
         result = {
             "message": "Report does not exist",
             "extensions": {"code": "ReportDoesNotExist", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_generate_report_without_access(self):
+        _, token = utils.generate_jwt(self.user)
+        data = {"input": {"id": self.other_report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+        result = {
+            "message": "Unauthorized access",
+            "extensions": {"code": "Unauthorized", },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -415,6 +433,23 @@ class HasuraGenerateReportTests(TestCase):
         result = {
             "message": "Unauthorized access method",
             "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_generate_report_with_invalid_payload(self):
+        _, token = utils.generate_jwt(self.user)
+        data = {"wrong": {"id": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Invalid request body",
+            "extensions": {"code": "InvalidRequestBody", },
         }
         self.assertJSONEqual(force_str(response.content), result)
 

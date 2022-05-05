@@ -320,7 +320,7 @@ class ApiKeyCreate(LoginRequiredMixin, FormView):
                 token,
                 extra_tags="api-token no-toast",
             )
-        except Exception:
+        except Exception:  # pragma: no cover
             logger.exception("Failed to create new API key")
             messages.error(
                 self.request,
