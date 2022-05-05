@@ -112,8 +112,8 @@ def get_jwt_payload(token):
         try:
             bad_token = jwt_decode_no_verification(token)
             logger.warning("%s error with this payload: %s", exception, bad_token)
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
-            logger.error("%s error with this payload: %s", exception, token)
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as verify_exception:
+            logger.error("%s error with this payload: %s", verify_exception, token)
         payload = None
     return payload
 
@@ -203,14 +203,15 @@ def verify_project_access(user, project):
     """
     if user.role == "admin":
         return True
-    elif user.role == "manager":
+
+    if user.role == "manager":
         return True
-    else:
-        assignments = ProjectAssignment.objects.filter(operator=user, project=project)
-        client_invites = ClientInvite.objects.filter(user=user, client=project.client)
-        project_invites = ProjectInvite.objects.filter(user=user, project=project)
-        if any([assignments, client_invites, project_invites]):
-            return True
+
+    assignments = ProjectAssignment.objects.filter(operator=user, project=project)
+    client_invites = ClientInvite.objects.filter(user=user, client=project.client)
+    project_invites = ProjectInvite.objects.filter(user=user, project=project)
+    if any([assignments, client_invites, project_invites]):
+        return True
     return False
 
 

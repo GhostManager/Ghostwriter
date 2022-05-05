@@ -15,7 +15,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.views.generic.detail import SingleObjectMixin
-from django.views.generic.edit import CreateView, FormView, View
+from django.views.generic.edit import FormView, View
 
 # 3rd Party Libraries
 import jwt
@@ -306,7 +306,7 @@ class ApiKeyCreate(LoginRequiredMixin, FormView):
         name = form.cleaned_data["name"]
         expiry = form.cleaned_data["expiry_date"]
         try:
-            token_obj, token = APIKey.objects.create_token(name=name, user=self.request.user, expiry_date=expiry)
+            _, token = APIKey.objects.create_token(name=name, user=self.request.user, expiry_date=expiry)
             messages.info(
                 self.request,
                 token,

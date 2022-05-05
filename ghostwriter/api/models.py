@@ -31,7 +31,7 @@ class BaseAPIKeyManager(models.Manager):
         # Prevent from manually setting the primary key.
         kwargs.pop("id", None)
         obj = self.model(**kwargs)
-        payload, token = self.generate_token(obj)
+        _, token = self.generate_token(obj)
         obj.save()
         return obj, token
 
@@ -147,4 +147,3 @@ class APIKey(AbstractAPIKey):
     """
     Stores a specialized JSON Web Token associated with an individual :model:`users.User`.
     """
-    pass

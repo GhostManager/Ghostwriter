@@ -47,7 +47,7 @@ class APIKeyModelAdmin(admin.ModelAdmin):
         created = not obj.pk
 
         if created:
-            payload, token = self.model.objects.generate_token(obj)
+            _, token = self.model.objects.generate_token(obj)
             obj.token = token
             obj.save()
             message = (
