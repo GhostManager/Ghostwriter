@@ -204,28 +204,36 @@ def graphql_generate_report(request):
 
     if utils.verify_graphql_request(request.headers):
         try:
-            input = json.loads(request.body)
-            report_id = input["input"]["id"]
+            data = json.loads(request.body)
+            report_id = data["input"]["id"]
             report = Report.objects.get(id=report_id)
 
             token = utils.get_jwt_from_request(request)
-            jwt_token = utils.jwt_decode(token)
-            user_obj = utils.get_user_from_token(jwt_token)
-            if utils.verify_project_access(user_obj, report.project):
-                engine = Reportwriter(report, template_loc=None)
-                json_report = engine.generate_json()
-                report_bytes = json.dumps(json_report).encode("utf-8")
-                base64_bytes = b64encode(report_bytes)
-                base64_string = base64_bytes.decode("utf-8")
-                data = {
-                    "reportData": base64_string,
-                    "docxUrl": reverse("reporting:generate_docx", args=[report_id]),
-                    "xlsxUrl": reverse("reporting:generate_xlsx", args=[report_id]),
-                    "pptxUrl": reverse("reporting:generate_pptx", args=[report_id]),
-                }
+            if token:
+                try:
+                    jwt_token = utils.jwt_decode(token)
+                    user_obj = utils.get_user_from_token(jwt_token)
+                    if utils.verify_project_access(user_obj, report.project):
+                        engine = Reportwriter(report, template_loc=None)
+                        json_report = engine.generate_json()
+                        report_bytes = json.dumps(json_report).encode("utf-8")
+                        base64_bytes = b64encode(report_bytes)
+                        base64_string = base64_bytes.decode("utf-8")
+                        data = {
+                            "reportData": base64_string,
+                            "docxUrl": reverse("reporting:generate_docx", args=[report_id]),
+                            "xlsxUrl": reverse("reporting:generate_xlsx", args=[report_id]),
+                            "pptxUrl": reverse("reporting:generate_pptx", args=[report_id]),
+                        }
+                    else:
+                        status = 401
+                        data = utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized")
+                except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError, User.DoesNotExist) as exception:
+                    status = 401
+                    data = utils.generate_hasura_error_payload(f"{type(exception).__name__}", "JWTInvalid")
             else:
-                status = 401
-                data = utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized")
+                status = 400
+                data = utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing")
         except Report.DoesNotExist:
             status = 400
             data = utils.generate_hasura_error_payload("Report does not exist", "ReportDoesNotExist")
