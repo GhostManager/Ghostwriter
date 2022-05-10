@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0-rc2] - 4 May 2022
+## [2.3.0-rc2] - 10 May 2022
 
 ### Added
 
@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Updated keyword reference panel displayed when editing findings
 * Subtask forms for objectives will now default to the objective's deadline date instead of "today"
 * Objective deadlines will now be automatically adjusted when the parent objective's deadline changes
+* Database migrations now set default values for timestamps (current time), timezones ("America/Los_Angeles"), and boolean values (False)
+  * Enables easier creation of new entries via the GraphQL API
 
 ### Deprecated
 
