@@ -124,20 +124,22 @@
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Operator</th>
-                            <th class="align-middle">Role</th>
-                            <th class="sorter-date-range-dMMMyyyy align-middle">Dates</th>
+                            <th class="align-middle pr-4">Operator</th>
+                            <th class="align-middle pr-4">Role</th>
+                            <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
                             <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
                         {% for operator in project.projectassignment_set.all %}
                             <tr>
                                 <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle">
-                                    {% if operator.operator.name %}
-                                        {{ operator.operator.name }}
-                                    {% else %}
-                                        Missing Full Name ({{ operator.operator.username|capfirst }})
-                                    {% endif %}
+                                    <a class="clickable" href="{% url 'users:user_detail' operator.operator.username %}">
+                                        {% if operator.operator.name %}
+                                            {{ operator.operator.name }}
+                                        {% else %}
+                                            Missing Full Name ({{ operator.operator.username|capfirst }})
+                                        {% endif %}
+                                    </a>
                                 </td>
                                 <td class="align-middle">{{ operator.role }}</td>
                                 <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
@@ -177,7 +179,7 @@
                 {% if project.projectscope_set.all %}
                     <table id="scopeTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Name</th>
+                            <th class="align-middle pr-4">Name</th>
                             <th class="sorter-false align-middle">Preview</th>
                             <th class="sorter-false align-middle"></th>
                             <th class="sorter-false align-middle">Description</th>
@@ -261,9 +263,9 @@
                 {% if project.projecttarget_set.all %}
                     <table id="targetTable" class="tablesorter table table-sm">
                         <thead>
-                            <th class="align-middle">Owned</th>
-                            <th class="align-middle">Target</th>
-                            <th class="align-middle">Note</th>
+                            <th class="align-middle pr-4">Owned</th>
+                            <th class="align-middle pr-4">Target</th>
+                            <th class="sorter-false align-middle pr-4">Note</th>
                             <th class="sorter-false test-center align-middle">Options</th>
                         </thead>
                         {% for target in project.projecttarget_set.all %}
@@ -359,10 +361,10 @@
                 {% if project.report_set.all %}
                     <table id="reportTable" class="tablesorter table">
                         <thead>
-                            <th class="align-middle">Title</th>
-                            <th class="align-middle">Status</th>
-                            <th class="align-middle">Last Update</th>
-                            <th class="align-middle">Created by</th>
+                            <th class="align-middle pr-4">Title</th>
+                            <th class="align-middle pr-4">Status</th>
+                            <th class="align-middle pr-4">Last Update</th>
+                            <th class="align-middle pr-4">Created by</th>
                             <th class="sorter-false text-center align-middle">Options</th>
                         </thead>
                         {% for report in project.report_set.all %}
@@ -516,7 +518,7 @@
                             <div class="input-group-prepend">
                                 <span class="fa fa-search input-group-text" id="inner-server-search-addon"></span>
                             </div>
-                            <input autocomplete="off" type="text" class="form-control" name="server_search" placeholder="Search for a Server to Checkout..." aria-label="servers" aria-describedby="inner-server-search-addon">
+                            <input autocomplete="off" type="text" class="form-control" name="server_search" placeholder="Enter a Server to Checkout..." aria-label="servers" aria-describedby="inner-server-search-addon">
                         </div>
                         <input type="hidden" name="project_id" value="{{ project.id }}" />
                         <input type="submit" style="display: none" />
@@ -536,11 +538,11 @@
                                     </div>
                                 </div>
                             </th>
-                            <th class="align-middle">Other Addresses</th>
-                            <th class="align-middle">Name</th>
-                            <th class="align-middle">Purpose</th>
-                            <th class="align-middle">Role</th>
-                            <th class="align-middle">Provider</th>
+                            <th class="align-middle pr-4">Other Addresses</th>
+                            <th class="align-middle pr-4">Name</th>
+                            <th class="align-middle pr-4">Purpose</th>
+                            <th class="align-middle pr-4">Role</th>
+                            <th class="align-middle pr-4">Provider</th>
                             <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false align-middle">Options</th>
                         </thead>
@@ -621,10 +623,10 @@
                     {% if project.domainserverconnection_set.all %}
                         <table class="table">
                             <tr>
-                                <th class="align-middle">Domain</th>
-                                <th class="align-middle">Server IP</th>
-                                <th class="align-middle">Server name</ht>
-                                <th class="align-middle">CDN Endpoint</th>
+                                <th class="align-middle pr-4">Domain</th>
+                                <th class="align-middle pr-4">Server IP</th>
+                                <th class="align-middle pr-4">Server name</ht>
+                                <th class="align-middle pr-4">CDN Endpoint</th>
                                 <th class="sorter-false align-middle">Options</th>
                             </tr>
                             {% for connection in project.domainserverconnection_set.all %}
@@ -669,22 +671,24 @@
                 {% if project.projectnote_set.all %}
                     {% for note in project.projectnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
-                            <p>{{ note.timestamp }}</p>
                             <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                                {% if request.user == note.operator or request.user.is_staff %}
-                                    <div class="dropdown dropleft right">
-                                        <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
-                                            <a class="icon edit-icon" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a>
-                                            <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                                        </div>
-                                    </div>
-                                {% endif %}
-                                {{ note.note|bleach }}
-                                <span class="time-right">{{ note.operator.username }}</span>
+                                <div class="float-left col-10 col-md-10 col-sm-8">
+                                    {{ note.note|bleach }}
+                                </div>
+
+                                <div class="float-right col-2 col-md-2 col-sm-4">
+                                    <div><a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a></div>
+                                    <div><p class="note-time">{{ note.timestamp }}</p></div>
+                                </div>
                             </div>
                         </div>
+
+                        {% if request.user == note.operator or request.user.is_staff %}
+                            <div class="pb-3">
+                                <a class="note-link" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a> |
+                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+                            </div>
+                        {% endif %}
                     {% endfor %}
                 {% else %}
                     <p>No notes for this project.</p>
@@ -1275,6 +1279,7 @@
                     if (data['message']) {
                         displayToastTop({type:data['result'], string:data['message'], title:'Objective Update'});
                     }
+                    update_badges();
                 }
             });
         };
@@ -1507,8 +1512,14 @@
                 return local.toJSON().slice(0,10);
             });
 
-            // Set current date as placeholder value for deadline fields
-            $('[name=deadline').val(new Date().toDateInputValue());
+            // Set parent's deadline as placeholder value for deadline fields
+            var rows = document.querySelectorAll('.accordion-row');
+            rows.forEach(function(row) {
+                var parentDeadline = row.getAttribute('deadline-date');
+                var taskList = $('#task-list-' + row.getAttribute('objective-id'))[0];
+                var deadlineField = taskList.querySelectorAll('.add-deadline')[0];
+                deadlineField.value = parentDeadline;
+            });
 
             // Toggle ``readonly`` attribute on fields and save
             $('.edit-todo-input').click(function() {

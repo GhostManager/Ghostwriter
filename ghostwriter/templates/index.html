@@ -22,20 +22,15 @@
                 <div class="dashboard__item">
                     <div class="card">
                         <p class="dashboard-header text-center">Project Assignments</p>
-                        <table>
-                            {% if active_projects %}
+                        {% if active_projects %}
+                            <ul class="text-left" style="list-style-type: none;">
                                 {% for project in active_projects %}
-                                    <tr>
-                                        <td class="align-middle text-justify"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }})</a></td>
-                                        <td class="align-middle text-right"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.start_date }}–{{ project.project.end_date }}</a></td>
-                                    </tr>
+                                    <li class="pb-2"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }}) {{ project.project.start_date }}–{{ project.project.end_date }}</a></li>
                                 {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td class="align-middle text-center">You have no project assignments.</td>
-                                </tr>
-                            {% endif %}
-                        </table>
+                            </ul>
+                        {% else %}
+                            <p class="align-middle text-center">You have no project assignments.</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -43,20 +38,15 @@
                     <div class="card">
                         <p class="dashboard-header text-center">Top Reporting Tasks</p>
                         {% count_assignments request as assignment_count %}
-                        <table>
-                            {% if user_tasks %}
+                        {% if user_tasks %}
+                            <ul class="text-left" style="list-style-type: none;">
                                 {% for finding in user_tasks %}
-                                    <tr>
-                                        <td class="align-middle text-justify"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
-                                        <td class="align-middle text-right"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.report.project.codename }}</a></td>
-                                    </tr>
+                                    <li class="pb-2"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }} ({{ finding.report.project.codename }})</a></li>
                                 {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td class="align-middle text-center">You have no reporting tasks. Nice!</td>
-                                </tr>
-                            {% endif %}
-                        </table>
+                            </ul>
+                        {% else %}
+                            <p class="align-middle text-center">You have no reporting tasks. Nice!</p>
+                        {% endif %}
                     </div>
                 </div>
 

@@ -2,7 +2,7 @@
 
 {% load determine_primary %}
 
-<tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row {% if objective.complete %}complete{% endif %}" objective-id="{{ objective.id }}" data-id="{{ objective.id }}" toggle-objective-url="{% url 'rolodex:ajax_toggle_project_objective' objective.id %}" objective-csrftoken="{{ csrf_token }}" refresh-objective-url="{% url 'rolodex:ajax_update_objective_row' objective.id %}">
+<tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row {% if objective.complete %}complete{% endif %}" objective-id="{{ objective.id }}" data-id="{{ objective.id }}" toggle-objective-url="{% url 'rolodex:ajax_toggle_project_objective' objective.id %}" objective-csrftoken="{{ csrf_token }}" refresh-objective-url="{% url 'rolodex:ajax_update_objective_row' objective.id %}" deadline-date="{{ objective.deadline|date:"Y-m-d" }}">
     <td class="align-middle">
         <span>
             <input

@@ -222,10 +222,10 @@ class DomainModelTests(TestCase):
 
         try:
             age = domain.get_domain_age()
-            self.assertEqual(age, "360 days")
+            self.assertEqual(age, 360)
 
             age = expired_domain.get_domain_age()
-            self.assertEqual(age, "359 days")
+            self.assertEqual(age, 359)
         except Exception:
             self.fail("Domain model `get_domain_age` method failed unexpectedly!")
 

@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0-rc2] - 10 May 2022
+
+### Added
+
+* New options to generate and revoke API tokens with a set expiry date
+* Added Hasura GraphQL engine to production environments
+* Usernames are now clickable and open the user's profile page for viewing
+* Added a `generateReport` mutation to the GraphQL API capable of returning the JSON report data as a base64 string
+* Added user controls for generating and revoking API tokens from the user profile page
+
+### Changed
+
+* Updated the Nginx configuration to incorporate the Hasura container
+* Updated style of the finding preview pages for the finding library
+* Updated style of notes to make them cleaner and easier to manage
+* Project dashboard's "Objectives" tab will now show the current number of incomplete objectives and update when toggling objectives
+* Updated keyword reference panel displayed when editing findings
+* Subtask forms for objectives will now default to the objective's deadline date instead of "today"
+* Objective deadlines will now be automatically adjusted when the parent objective's deadline changes
+* Database migrations now set default values for timestamps (current time), timezones ("America/Los_Angeles"), and boolean values (False)
+  * Enables easier creation of new entries via the GraphQL API
+
+### Deprecated
+
+* None
+
+### Removed
+
+* Removed unnecessary status badges on tabs in the project dashboard that were confusing and not very helpful
+
+### Fixed
+
+* Upgraded `django-bleach` dependency to fix error with latest `python-bleach` (Fixes #208)
+* Fixed error that blocked creation of default `BlockQuote` style in the report template
+* Fixed domain age column not sorting correctly in domain library table
+* Checkbox in server form will no longer appear way bigger than intended
+
+### Security
+
+* None
+
 ## [2.3.0-rc1] - 2022-04-01
 
 ### Added

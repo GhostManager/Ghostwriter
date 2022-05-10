@@ -65,7 +65,7 @@ array_relationships:
     foreign_key_constraint_on:
       column: project_id
       table:
-        name: shepherd_serverhistory
+        name: shepherd_history
         schema: public
 - name: invites
   using:
@@ -107,7 +107,7 @@ array_relationships:
     foreign_key_constraint_on:
       column: project_id
       table:
-        name: shepherd_history
+        name: shepherd_serverhistory
         schema: public
 - name: targets
   using:

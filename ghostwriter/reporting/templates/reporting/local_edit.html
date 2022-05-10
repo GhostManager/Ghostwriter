@@ -4,6 +4,8 @@
 
 {% load bleach_tags %}
 
+{% load custom_tags %}
+
 {% block pagetitle %}Finding Entry{% endblock %}
 
 {% block breadcrumbs %}
@@ -48,19 +50,11 @@
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_start}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in M D, YYYY format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
-                            </tr>
-                            <tr>
-                                {% verbatim %}<td class="text-left align-middle">{{.project_start_uk}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in D M YYYY format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in <em>{% settings_value "DATE_FORMAT" %}</em>  format: {{ reportfindinglink.report.project.start_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                             <tr>
                                 {% verbatim %}<td class="text-left align-middle">{{.project_end}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in M D, YYYY format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
-                            </tr>
-                            <tr>
-                                {% verbatim %}<td class="text-left align-middle">{{.project_end_uk}}</td>{% endverbatim %}
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in D M YYYY format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in <em>{% settings_value "DATE_FORMAT" %}</em>  format: {{ reportfindinglink.report.project.end_date|date:"DATE_FORMAT" }}</td>
                             </tr>
                         {% verbatim %}
                             <tr>
@@ -115,27 +109,29 @@
             <div id="collapseNotes" class="collapse" aria-labelledby="notes" data-parent="#accordion">
                 <div class="card-body">
                     <p>
-                        <a class="icon add-icon" href="{% url 'reporting:local_finding_note_add' reportfindinglink.id %}">Add a Note</a>
+                        <a class="icon add-icon btn btn-primary mb-3" href="{% url 'reporting:local_finding_note_add' reportfindinglink.id %}">Add a Note</a>
                     </p>
                     {% if reportfindinglink.localfindingnote_set.all %}
                         {% for note in reportfindinglink.localfindingnote_set.all reversed %}
                             <div id="note-container-{{ note.id }}">
-                                <p class="text-center">{{ note.timestamp }}</p>
                                 <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                    <img class="avatar_note right" src="{{ note.operator.userprofile.avatar_url }}" alt="Avatar">
-                                    {% if request.user == note.operator or request.user.is_staff %}
-                                        <div class="dropdown dropleft right">
-                                            <button id="note-dropdown-btn-{{ note.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                            <div id="note-dropdown-menu-{{ note.id }}" class="dropdown-content">
-                                                <a class="icon edit-icon" href="{% url 'reporting:local_finding_note_edit' note.id %}">Edit</a>
-                                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_local_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                    {{ note.note|bleach }}
-                                    <span class="time-right">{{ note.operator.username }}</span>
+                                    <div class="float-left col-10 col-md-10 col-sm-8">
+                                        {{ note.note|bleach }}
+                                    </div>
+
+                                    <div class="float-right col-2 col-md-2 col-sm-4">
+                                        <div><a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a></div>
+                                        <div><p class="note-time">{{ note.timestamp }}</p></div>
+                                    </div>
                                 </div>
                             </div>
+
+                            {% if request.user == note.operator or request.user.is_staff %}
+                                <div class="pb-3">
+                                    <a class="note-link" href="{% url 'reporting:local_finding_note_edit' note.id %}">Edit</a> |
+                                    <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_local_finding_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+                                </div>
+                            {% endif %}
                         {% endfor %}
                     {% endif %}
                 </div>
@@ -181,8 +177,6 @@
             { text: '\{\{.caption\}\}', value: '\{\{.caption\}\}' },
             { text: '\{\{.project_start\}\}', value: '\{\{.project_start\}\}' },
             { text: '\{\{.project_end\}\}', value: '\{\{.project_end\}\}' },
-            { text: '\{\{.project_start_uk\}\}', value: '\{\{.project_start_uk\}\}' },
-            { text: '\{\{.project_end_uk\}\}', value: '\{\{.project_end_uk\}\}' },
             { text: '\{\{.project_type\}\}', value: '\{\{.project_type\}\}' },
             {% if reportfindinglink.evidence_set.all  %}
                 {% for finding in reportfindinglink.evidence_set.all %}

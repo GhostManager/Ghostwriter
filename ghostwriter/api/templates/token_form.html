@@ -1,0 +1,36 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Oplog Creation{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Create Token</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <!-- Instructions Section -->
+    <p>Provide a meaningful name for your token and select an expiry date:</p>
+
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
+
+    <!-- Form Section -->
+    {% crispy form form.helper %}
+{% endblock %}

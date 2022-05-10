@@ -9,6 +9,9 @@ from django.contrib.auth import get_user_model
 # 3rd Party Libraries
 import jwt
 
+# Ghostwriter Libraries
+from ghostwriter.rolodex.models import ClientInvite, ProjectAssignment, ProjectInvite
+
 # Using __name__ resolves to ghostwriter.utils
 logger = logging.getLogger(__name__)
 
@@ -71,7 +74,8 @@ def jwt_decode(token):
 
 def jwt_decode_no_verification(token):
     """
-    Decode a JWT token without verifying anything.
+    Decode a JWT token without verifying anything. Used for logs and trusted
+    :model:`api:APIKey` entries.
 
     **Parameters**
 
@@ -93,25 +97,6 @@ def jwt_decode_no_verification(token):
     )
 
 
-def verify_hasura_claims(payload):
-    """
-    Verify that the JSON Web Token payload contains the required Hasura claims.
-
-    **Parameters**
-
-    ``token``
-        Decoded JWT payload from ``get_jwt_payload``
-    """
-    if "https://hasura.io/jwt/claims" in payload:
-        if (
-            "X-Hasura-Role" in payload["https://hasura.io/jwt/claims"]
-            and "X-Hasura-User-Id" in payload["https://hasura.io/jwt/claims"]
-            and "X-Hasura-User-Name" in payload["https://hasura.io/jwt/claims"]
-        ):
-            return True
-    return False
-
-
 def get_jwt_payload(token):
     """
     Attempt to decode and verify the JWT token and return the payload.
@@ -127,13 +112,13 @@ def get_jwt_payload(token):
         try:
             bad_token = jwt_decode_no_verification(token)
             logger.warning("%s error with this payload: %s", exception, bad_token)
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
-            logger.error("%s error with this payload: %s", exception, token)
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as verify_exception:
+            logger.error("%s error with this payload: %s", verify_exception, token)
         payload = None
     return payload
 
 
-def generate_jwt(user, exp=None, exclude_hasura=False):
+def generate_jwt(user, exp=None):
     """
     Generate a JWT token for the user. The token will expire after the
     ``JWT_EXPIRATION_DELTA`` setting unless the ``exp`` parameter is set.
@@ -155,20 +140,14 @@ def generate_jwt(user, exp=None, exclude_hasura=False):
         jwt_expires = int(jwt_datetime.timestamp())
     payload = {}
     # Add user data to the payload
-    payload["username"] = str(user.username)
+    # payload["username"] = str(user.username)
     payload["sub"] = str(user.id)
     payload["sub_name"] = user.username
     payload["sub_email"] = user.email
     # Add the JWT date and audience to the payload
     payload["aud"] = settings.GRAPHQL_JWT["JWT_AUDIENCE"]
-    payload["iat"] = jwt_iat
+    payload["iat"] = jwt_iat.timestamp()
     payload["exp"] = jwt_expires
-    # Add custom Hasura claims
-    if not exclude_hasura:
-        payload["https://hasura.io/jwt/claims"] = {}
-        payload["https://hasura.io/jwt/claims"]["X-Hasura-Role"] = user.role
-        payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Id"] = str(user.id)
-        payload["https://hasura.io/jwt/claims"]["X-Hasura-User-Name"] = str(user.username)
 
     return payload, jwt_encode(payload)
 
@@ -211,35 +190,39 @@ def verify_graphql_request(headers):
     return False
 
 
-def verify_jwt_user(payload):
+def verify_project_access(user, project):
     """
-    Verify that the :model:`users.User` attached to the JSON Web Token payload
-    is still active.
+    Verify that the user has access to the project.
 
     **Parameters**
 
-    ``payload``
+    ``user``
+        The :model:`users.User` object
+    ``project``
+        The :model:`projects.Project` object
+    """
+    if user.role == "admin":
+        return True
+
+    if user.role == "manager":
+        return True
+
+    assignments = ProjectAssignment.objects.filter(operator=user, project=project)
+    client_invites = ClientInvite.objects.filter(user=user, client=project.client)
+    project_invites = ProjectInvite.objects.filter(user=user, project=project)
+    if any([assignments, client_invites, project_invites]):
+        return True
+    return False
+
+
+def get_user_from_token(token):
+    """
+    Get the user from the JWT token.
+
+    **Parameters**
+
+    ``token``
         Decoded JWT payload
     """
-    try:
-        role = payload["X-Hasura-Role"]
-        user_id = payload["X-Hasura-User-Id"]
-        username = payload["X-Hasura-User-Name"]
-
-        user = User.objects.get(id=user_id)
-        if (
-            user.is_active
-            and user.username == username
-            and user.role == role
-        ):
-            return True
-        else:
-            logger.warning(
-                "Suspicious login attempt with a valid JWT for user %s with mismatched user details: %s",
-                user,
-                payload
-            )
-    except User.DoesNotExist:
-        logger.warning("Received a valid JWT for a user ID that does not exist: %s", user_id)
-
-    return False
+    user_obj = User.objects.get(id=token["sub"])
+    return user_obj

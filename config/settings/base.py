@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.3.0"
+__version__ = "2.3.0-rc2"
 VERSION = __version__
-RELEASE_DATE = "1 April 2022"
+RELEASE_DATE = "4 May 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -104,6 +104,7 @@ LOCAL_APPS = [
     "ghostwriter.oplog.apps.OplogConfig",
     "ghostwriter.commandcenter.apps.CommandCenterConfig",
     "ghostwriter.singleton.apps.SingletonConfig",
+    "ghostwriter.api.apps.ApiConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -383,6 +384,7 @@ BLEACH_ALLOWED_TAGS = [
     "h5",
     "h6",
     "blockquote",
+    "br",
 ]
 # Which HTML attributes are allowed
 BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
