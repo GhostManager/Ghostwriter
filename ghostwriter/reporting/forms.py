@@ -198,6 +198,7 @@ class FindingForm(forms.ModelForm):
                         """
                     ),
                     active=False,
+                    template="accordion_group.html",
                 ),
             ),
             HTML(
