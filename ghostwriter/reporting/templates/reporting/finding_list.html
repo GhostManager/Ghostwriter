@@ -30,7 +30,6 @@
                 <thead>
                     <tr>
                         <th class="sortable">Severity</th>
-                        <th class="sortable">CVSS Score</th>
                         <th class="sortable">Type</span></th>
                         <th class="sortable">Title</th>
                         <th class="sorter-false align-middle">
@@ -68,23 +67,7 @@
                                     info
                                 {% endif %}
                             ">
-                                <span style="display: none">{{ finding.severity.weight }}</span>{{ finding.severity.severity }}
-                            </td>
-                             <!-- CVSS Score -->
-                            <td class="neutral align-middle
-                                {% if finding.severity.severity == "Critical" %}
-                                    cvss-critical
-                                {% elif finding.severity.severity == "High" %}
-                                    cvss-high
-                                {% elif finding.severity.severity == "Medium" %}
-                                    cvss-medium
-                                {% elif finding.severity.severity == "Low" %}
-                                    cvss-low
-                                {% elif finding.severity.severity == "Informational" %}
-                                    cvss-info
-                                {% endif %}
-                            ">
-                                <span style="display: inline;">{{ finding.cvss_score }}</span>
+                                <span style="display: none">{{ finding.severity.weight }}{{ cvss_score }}</span>{{ finding.severity.severity }} {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
                             </td>
                             <!-- Finding Type (e.g. Network) -->
                             <td class="align-middle icon
