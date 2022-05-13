@@ -174,20 +174,20 @@ class Finding(models.Model):
         help_text="Select a finding category that fits",
     )
     cvss_score = models.CharField(
-        'CVSS Score v3.0',
+        "CVSS Score v3.0",
         blank=True,
         max_length=4,
-        help_text='Set the CVSS score for this finding'
+        help_text="Set the CVSS score for this finding"
     )
     cvss_vector = models.CharField(
-        'CVSS Vector v3.0',
+        "CVSS Vector v3.0",
         blank=True,
         max_length=54,
-        help_text='Select the CVSS vector for this finding'
+        help_text="Set the CVSS vector for this finding"
     )
 
     class Meta:
-        ordering = ["severity", "finding_type", "title"]
+        ordering = ["cvss_score", "severity", "finding_type", "title"]
         verbose_name = "Finding"
         verbose_name_plural = "Findings"
 
@@ -482,18 +482,17 @@ class ReportFindingLink(models.Model):
         help_text="Assign the task of editing this finding to a specific operator - defaults to the operator that added it to the report",
     )
     cvss_score = models.CharField(
-        'CVSS Score v3.0',
+        "CVSS Score v3.0",
         blank=True,
         max_length=4,
-        help_text='Set the CVSS score for this finding'
+        help_text="Set the CVSS score for this finding"
     )
     cvss_vector = models.CharField(
-        'CVSS Vector v3.0',
+        "CVSS Vector v3.0",
         blank=True,
         max_length=54,
-        help_text='Select the CVSS vector for this finding'
+        help_text="Set the CVSS vector for this finding"
     )
-
 
     class Meta:
         ordering = ["report", "severity__weight", "position"]
