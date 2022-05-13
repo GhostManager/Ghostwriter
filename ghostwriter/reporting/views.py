@@ -894,13 +894,13 @@ def findings_list(request):
             .filter(
                 Q(title__icontains=search_term) | Q(description__icontains=search_term)
             )
-            .order_by("severity__weight", "finding_type", "title")
+            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
         )
     else:
         findings = (
             Finding.objects.select_related("severity", "finding_type")
             .all()
-            .order_by("severity__weight", "finding_type", "title")
+            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
         )
     findings_filter = FindingFilter(request.GET, queryset=findings)
     return render(request, "reporting/finding_list.html", {"filter": findings_filter})

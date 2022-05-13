@@ -187,7 +187,7 @@ class Finding(models.Model):
     )
 
     class Meta:
-        ordering = ["cvss_score", "severity", "finding_type", "title"]
+        ordering = ["severity", "-cvss_score", "finding_type", "title"]
         verbose_name = "Finding"
         verbose_name_plural = "Findings"
 
