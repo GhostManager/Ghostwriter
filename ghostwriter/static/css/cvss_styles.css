@@ -1,5 +1,5 @@
 #cvssReference { font-size: 100%; }
-fieldset { position: relative; background-color: #f2f2f2; margin-top: 50px; border:0; padding: 1em 0; }
+fieldset { position: relative; background-color: #f2f2f2; margin-top: 5px; border:0; padding: 1em 0; }
 fieldset legend { background-color: #666666; color: #ffffff; margin: 0; width: 100%; padding: 0.5em 0px; text-indent: 1em; }
 fieldset div.metric { padding: 0; margin: 0.5em 0; }
 
