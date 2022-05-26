@@ -187,22 +187,6 @@ class Project(models.Model):
     complete = models.BooleanField(
         "Completed", default=False, help_text="Mark this project as complete"
     )
-    # Foreign keys
-    client = models.ForeignKey(
-        "Client",
-        on_delete=models.CASCADE,
-        null=False,
-        help_text="Select the client to which this project should be attached",
-    )
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
-    project_type = models.ForeignKey(
-        "ProjectType",
-        on_delete=models.PROTECT,
-        null=False,
-        help_text="Select a category for this project that best describes the work being performed",
-    )
     timezone = TimeZoneField(
         "Project Timezone",
         default="America/Los_Angeles",
@@ -221,6 +205,22 @@ class Project(models.Model):
         null=True,
         blank=True,
         help_text="Select the end time for each day",
+    )
+    # Foreign keys
+    client = models.ForeignKey(
+        "Client",
+        on_delete=models.CASCADE,
+        null=False,
+        help_text="Select the client to which this project should be attached",
+    )
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    project_type = models.ForeignKey(
+        "ProjectType",
+        on_delete=models.PROTECT,
+        null=False,
+        help_text="Select a category for this project that best describes the work being performed",
     )
 
     def count_findings(self):
@@ -297,7 +297,7 @@ class ProjectAssignment(models.Model):
     # Foreign keys
     operator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         help_text="Select a user to assign to this project",
@@ -305,7 +305,7 @@ class ProjectAssignment(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
     role = models.ForeignKey(
         ProjectRole,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         help_text="Select a role that best describes the selected user's role in this project",
