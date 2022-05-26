@@ -677,7 +677,7 @@
                                 </div>
 
                                 <div class="float-right col-2 col-md-2 col-sm-4">
-                                    <div><a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a></div>
+                                    <div>{% if note.operator %}<a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}<span class="note-link">Deleted</span>{% endif %}</div>
                                     <div><p class="note-time">{{ note.timestamp }}</p></div>
                                 </div>
                             </div>
