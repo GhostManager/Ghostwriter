@@ -1,4 +1,27 @@
 type Mutation {
+  checkoutDomain(
+    domainId: Int!
+    projectId: Int!
+    startDate: date!
+    endDate: date!
+    activityTypeId: Int!
+    note: String
+  ): checkoutResponse
+}
+
+type Mutation {
+  checkoutServer(
+    serverId: Int!
+    projectId: Int!
+    startDate: date!
+    endDate: date!
+    activityTypeId: Int!
+    serverRoleId: Int!
+    note: String
+  ): checkoutResponse
+}
+
+type Mutation {
   generateReport(
     id: Int!
   ): ReportResponse
@@ -31,5 +54,9 @@ type ReportResponse {
   docxUrl: String!
   xlsxUrl: String!
   pptxUrl: String!
+}
+
+type checkoutResponse {
+  result: String!
 }
 
