@@ -1,17 +1,21 @@
 table:
-  name: auth_group_permissions
   schema: public
+  name: auth_group_permissions
 configuration:
-  comment: null
-  custom_column_names:
-    group_id: groupId
-    permission_id: permissionId
-  custom_name: groupPermission
   custom_root_fields: {}
+  custom_name: groupPermission
+  column_config:
+    permission_id:
+      custom_name: permissionId
+    group_id:
+      custom_name: groupId
+  custom_column_names:
+    permission_id: permissionId
+    group_id: groupId
 object_relationships:
-- name: authGroup
-  using:
-    foreign_key_constraint_on: group_id
-- name: authPermission
-  using:
-    foreign_key_constraint_on: permission_id
+  - name: authGroup
+    using:
+      foreign_key_constraint_on: group_id
+  - name: authPermission
+    using:
+      foreign_key_constraint_on: permission_id

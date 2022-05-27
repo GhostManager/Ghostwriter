@@ -1,158 +1,162 @@
 table:
-  name: reporting_archive
   schema: public
+  name: reporting_archive
 configuration:
-  comment: null
-  custom_column_names:
-    project_id: projectId
-    report_archive: reportArchive
-  custom_name: archive
   custom_root_fields: {}
+  custom_name: archive
+  column_config:
+    report_archive:
+      custom_name: reportArchive
+    project_id:
+      custom_name: projectId
+  custom_column_names:
+    report_archive: reportArchive
+    project_id: projectId
 object_relationships:
-- name: project
-  using:
-    foreign_key_constraint_on: project_id
+  - name: project
+    using:
+      foreign_key_constraint_on: project_id
 select_permissions:
-- permission:
-    columns:
-    - report_archive
-    - id
-    - project_id
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    columns: "*"
-    filter:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - report_archive
+        - id
+        - project_id
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns: '*'
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
 update_permissions:
-- permission:
-    check: {}
-    columns:
-    - project_id
-    - report_archive
-    filter: {}
-  role: manager
-- permission:
-    check:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-    columns:
-    - project_id
-    - report_archive
-    filter:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    check:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-    columns:
-    - project_id
-    - report_archive
-    filter:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - project_id
+        - report_archive
+      filter: {}
+      check: {}
+  - role: restricted
+    permission:
+      columns:
+        - project_id
+        - report_archive
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+      check:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns:
+        - project_id
+        - report_archive
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+      check:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
 delete_permissions:
-- permission:
-    filter: {}
-  role: manager
-- permission:
-    filter:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    filter:
-      project:
-        _or:
-        - assignments:
-            operator_id:
-              _eq: X-Hasura-User-Id
-        - invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-        - client:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      filter: {}
+  - role: restricted
+    permission:
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      filter:
+        project:
+          _or:
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id

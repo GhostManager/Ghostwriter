@@ -1,32 +1,34 @@
 table:
-  name: shepherd_domainstatus
   schema: public
+  name: shepherd_domainstatus
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: domainStatus
+  column_config:
+    domain_status:
+      custom_name: domainStatus
   custom_column_names:
     domain_status: domainStatus
-  custom_name: domainStatus
-  custom_root_fields: {}
 array_relationships:
-- name: domains
-  using:
-    foreign_key_constraint_on:
-      column: domain_status_id
-      table:
-        name: shepherd_domain
-        schema: public
+  - name: domains
+    using:
+      foreign_key_constraint_on:
+        column: domain_status_id
+        table:
+          schema: public
+          name: shepherd_domain
 select_permissions:
-- permission:
-    columns:
-    - domain_status
-    - id
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - domain_status
+        - id
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

@@ -1,32 +1,34 @@
 table:
-  name: reporting_doctype
   schema: public
+  name: reporting_doctype
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: docType
+  column_config:
+    doc_type:
+      custom_name: docType
   custom_column_names:
     doc_type: docType
-  custom_name: docType
-  custom_root_fields: {}
 array_relationships:
-- name: templates
-  using:
-    foreign_key_constraint_on:
-      column: doc_type_id
-      table:
-        name: reporting_reporttemplate
-        schema: public
+  - name: templates
+    using:
+      foreign_key_constraint_on:
+        column: doc_type_id
+        table:
+          schema: public
+          name: reporting_reporttemplate
 select_permissions:
-- permission:
-    columns:
-    - id
-    - doc_type
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - doc_type
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

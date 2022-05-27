@@ -1,159 +1,169 @@
 table:
-  name: reporting_finding
   schema: public
+  name: reporting_finding
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: finding
+  column_config:
+    finding_guidance:
+      custom_name: findingGuidance
+    host_detection_techniques:
+      custom_name: hostDetectionTechniques
+    finding_type_id:
+      custom_name: findingTypeId
+    network_detection_techniques:
+      custom_name: networkDetectionTechniques
+    severity_id:
+      custom_name: severityId
   custom_column_names:
     finding_guidance: findingGuidance
-    finding_type_id: findingTypeId
     host_detection_techniques: hostDetectionTechniques
+    finding_type_id: findingTypeId
     network_detection_techniques: networkDetectionTechniques
     severity_id: severityId
-  custom_name: finding
-  custom_root_fields: {}
 object_relationships:
-- name: severity
-  using:
-    foreign_key_constraint_on: severity_id
-- name: type
-  using:
-    foreign_key_constraint_on: finding_type_id
+  - name: severity
+    using:
+      foreign_key_constraint_on: severity_id
+  - name: type
+    using:
+      foreign_key_constraint_on: finding_type_id
 array_relationships:
-- name: comments
-  using:
-    foreign_key_constraint_on:
-      column: finding_id
-      table:
-        name: reporting_findingnote
-        schema: public
+  - name: comments
+    using:
+      foreign_key_constraint_on:
+        column: finding_id
+        table:
+          schema: public
+          name: reporting_findingnote
 insert_permissions:
-- permission:
-    backend_only: false
-    check: {}
-    columns:
-    - description
-    - finding_guidance
-    - finding_type_id
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    - severity_id
-    - title
-  role: manager
-- permission:
-    check: {}
-    columns:
-    - description
-    - finding_guidance
-    - finding_type_id
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    - severity_id
-    - title
-  role: restricted
-- permission:
-    check: {}
-    columns:
-    - description
-    - finding_guidance
-    - finding_type_id
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    - severity_id
-    - title
-  role: user
+  - role: manager
+    permission:
+      check: {}
+      columns:
+        - description
+        - finding_guidance
+        - finding_type_id
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+        - severity_id
+        - title
+      backend_only: false
+  - role: restricted
+    permission:
+      check: {}
+      columns:
+        - description
+        - finding_guidance
+        - finding_type_id
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+        - severity_id
+        - title
+  - role: user
+    permission:
+      check: {}
+      columns:
+        - description
+        - finding_guidance
+        - finding_type_id
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+        - severity_id
+        - title
 select_permissions:
-- permission:
-    columns:
-    - finding_type_id
-    - id
-    - severity_id
-    - title
-    - description
-    - finding_guidance
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - finding_type_id
+        - id
+        - severity_id
+        - title
+        - description
+        - finding_guidance
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}
 update_permissions:
-- permission:
-    check: null
-    columns:
-    - description
-    - finding_guidance
-    - finding_type_id
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    - severity_id
-    - title
-    filter: {}
-  role: manager
-- permission:
-    check: {}
-    columns:
-    - description
-    - finding_guidance
-    - finding_type_id
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    - severity_id
-    - title
-    filter: {}
-  role: restricted
-- permission:
-    check: {}
-    columns:
-    - description
-    - finding_guidance
-    - finding_type_id
-    - host_detection_techniques
-    - impact
-    - mitigation
-    - network_detection_techniques
-    - references
-    - replication_steps
-    - severity_id
-    - title
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - description
+        - finding_guidance
+        - finding_type_id
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+        - severity_id
+        - title
+      filter: {}
+      check: null
+  - role: restricted
+    permission:
+      columns:
+        - description
+        - finding_guidance
+        - finding_type_id
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+        - severity_id
+        - title
+      filter: {}
+      check: {}
+  - role: user
+    permission:
+      columns:
+        - description
+        - finding_guidance
+        - finding_type_id
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
+        - severity_id
+        - title
+      filter: {}
+      check: {}
 delete_permissions:
-- permission:
-    filter: {}
-  role: manager
-- permission:
-    filter: {}
-  role: restricted
-- permission:
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      filter: {}
+  - role: restricted
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter: {}

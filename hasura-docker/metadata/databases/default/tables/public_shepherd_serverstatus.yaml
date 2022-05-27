@@ -1,32 +1,34 @@
 table:
-  name: shepherd_serverstatus
   schema: public
+  name: shepherd_serverstatus
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: serverStatus
+  column_config:
+    server_status:
+      custom_name: serverStatus
   custom_column_names:
     server_status: serverStatus
-  custom_name: serverStatus
-  custom_root_fields: {}
 array_relationships:
-- name: servers
-  using:
-    foreign_key_constraint_on:
-      column: server_status_id
-      table:
-        name: shepherd_staticserver
-        schema: public
+  - name: servers
+    using:
+      foreign_key_constraint_on:
+        column: server_status_id
+        table:
+          schema: public
+          name: shepherd_staticserver
 select_permissions:
-- permission:
-    columns:
-    - id
-    - server_status
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - server_status
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

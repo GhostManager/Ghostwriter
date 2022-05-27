@@ -1,39 +1,41 @@
 table:
-  name: rolodex_objectivestatus
   schema: public
+  name: rolodex_objectivestatus
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: objectiveStatus
+  column_config:
+    objective_status:
+      custom_name: objectiveStatus
   custom_column_names:
     objective_status: objectiveStatus
-  custom_name: objectiveStatus
-  custom_root_fields: {}
 array_relationships:
-- name: objectiveSubTasks
-  using:
-    foreign_key_constraint_on:
-      column: status_id
-      table:
-        name: rolodex_projectsubtask
-        schema: public
-- name: objectives
-  using:
-    foreign_key_constraint_on:
-      column: status_id
-      table:
-        name: rolodex_projectobjective
-        schema: public
+  - name: objectiveSubTasks
+    using:
+      foreign_key_constraint_on:
+        column: status_id
+        table:
+          schema: public
+          name: rolodex_projectsubtask
+  - name: objectives
+    using:
+      foreign_key_constraint_on:
+        column: status_id
+        table:
+          schema: public
+          name: rolodex_projectobjective
 select_permissions:
-- permission:
-    columns:
-    - id
-    - objective_status
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - objective_status
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

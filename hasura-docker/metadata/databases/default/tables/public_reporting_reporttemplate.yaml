@@ -1,286 +1,233 @@
 table:
-  name: reporting_reporttemplate
   schema: public
+  name: reporting_reporttemplate
 configuration:
-  comment: null
-  custom_column_names:
-    client_id: clientId
-    doc_type_id: docTypeId
-    last_update: lastUpdate
-    lint_result: lintResult
-    upload_date: uploadDate
-    uploaded_by_id: uploadedById
-  custom_name: template
   custom_root_fields: {}
+  custom_name: template
+  column_config:
+    upload_date:
+      custom_name: uploadDate
+    client_id:
+      custom_name: clientId
+    last_update:
+      custom_name: lastUpdate
+    uploaded_by_id:
+      custom_name: uploadedById
+    doc_type_id:
+      custom_name: docTypeId
+    lint_result:
+      custom_name: lintResult
+  custom_column_names:
+    upload_date: uploadDate
+    client_id: clientId
+    last_update: lastUpdate
+    uploaded_by_id: uploadedById
+    doc_type_id: docTypeId
+    lint_result: lintResult
 object_relationships:
-- name: client
-  using:
-    foreign_key_constraint_on: client_id
-- name: reporting_doctype
-  using:
-    foreign_key_constraint_on: doc_type_id
-- name: user
-  using:
-    foreign_key_constraint_on: uploaded_by_id
+  - name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - name: reporting_doctype
+    using:
+      foreign_key_constraint_on: doc_type_id
+  - name: user
+    using:
+      foreign_key_constraint_on: uploaded_by_id
 array_relationships:
-- name: commandcenterReportconfigurationsByDefaultPptxTemplateId
-  using:
-    foreign_key_constraint_on:
-      column: default_pptx_template_id
-      table:
-        name: commandcenter_reportconfiguration
-        schema: public
-- name: commandcenter_reportconfigurations
-  using:
-    foreign_key_constraint_on:
-      column: default_docx_template_id
-      table:
-        name: commandcenter_reportconfiguration
-        schema: public
-- name: docxTemplates
-  using:
-    foreign_key_constraint_on:
-      column: docx_template_id
-      table:
-        name: reporting_report
-        schema: public
-- name: pptxTemplates
-  using:
-    foreign_key_constraint_on:
-      column: pptx_template_id
-      table:
-        name: reporting_report
-        schema: public
-insert_permissions:
-- permission:
-    backend_only: false
-    check: {}
-    columns:
-    - changelog
-    - client_id
-    - description
-    - doc_type_id
-    - document
-    - name
-    - protected
-    set:
-      uploaded_by_id: x-hasura-User-Id
-  role: manager
-- permission:
-    check:
-      _or:
-      - client_id:
-          _is_null: true
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - client:
-          projects:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-    columns:
-    - changelog
-    - client_id
-    - description
-    - doc_type_id
-    - document
-    - name
-    - protected
-    set:
-      uploaded_by_id: x-hasura-User-Id
-  role: restricted
-- permission:
-    check:
-      _or:
-      - client_id:
-          _is_null: true
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - client:
-          projects:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-    columns:
-    - changelog
-    - client_id
-    - description
-    - doc_type_id
-    - document
-    - name
-    - protected
-    set:
-      uploaded_by_id: x-hasura-User-Id
-  role: user
+  - name: commandcenterReportconfigurationsByDefaultPptxTemplateId
+    using:
+      foreign_key_constraint_on:
+        column: default_pptx_template_id
+        table:
+          schema: public
+          name: commandcenter_reportconfiguration
+  - name: commandcenter_reportconfigurations
+    using:
+      foreign_key_constraint_on:
+        column: default_docx_template_id
+        table:
+          schema: public
+          name: commandcenter_reportconfiguration
+  - name: docxTemplates
+    using:
+      foreign_key_constraint_on:
+        column: docx_template_id
+        table:
+          schema: public
+          name: reporting_report
+  - name: pptxTemplates
+    using:
+      foreign_key_constraint_on:
+        column: pptx_template_id
+        table:
+          schema: public
+          name: reporting_report
 select_permissions:
-- permission:
-    columns:
-    - protected
-    - document
-    - name
-    - last_update
-    - upload_date
-    - client_id
-    - doc_type_id
-    - id
-    - uploaded_by_id
-    - changelog
-    - description
-    - lint_result
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter:
-      _or:
-      - client_id:
-          _is_null: true
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - client:
-          projects:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    columns: "*"
-    filter:
-      _or:
-      - client_id:
-          _is_null: true
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - client:
-          projects:
-            invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - protected
+        - document
+        - name
+        - last_update
+        - upload_date
+        - client_id
+        - doc_type_id
+        - id
+        - uploaded_by_id
+        - changelog
+        - description
+        - lint_result
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - client_id:
+              _is_null: true
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - client:
+              projects:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - client_id:
+              _is_null: true
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - client:
+              projects:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
 update_permissions:
-- permission:
-    check: {}
-    columns:
-    - changelog
-    - client_id
-    - description
-    - doc_type_id
-    - document
-    - name
-    - protected
-    filter: {}
-  role: manager
-- permission:
-    check:
-      _and:
-      - protected:
-          _eq: false
-      - client:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - projects:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-    columns:
-    - changelog
-    - client_id
-    - description
-    - doc_type_id
-    - document
-    - name
-    - protected
-    filter:
-      _and:
-      - protected:
-          _eq: false
-      - client:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - projects:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    check:
-      _and:
-      - protected:
-          _eq: false
-      - client:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - projects:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-    columns:
-    - changelog
-    - client_id
-    - description
-    - doc_type_id
-    - document
-    - name
-    - protected
-    filter:
-      _and:
-      - protected:
-          _eq: false
-      - client:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - projects:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - changelog
+        - client_id
+        - description
+        - doc_type_id
+        - document
+        - name
+        - protected
+      filter: {}
+      check: {}
+  - role: restricted
+    permission:
+      columns:
+        - changelog
+        - client_id
+        - description
+        - doc_type_id
+        - document
+        - name
+        - protected
+      filter:
+        _and:
+          - protected:
+              _eq: false
+          - client:
+              _or:
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - projects:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
+      check:
+        _and:
+          - protected:
+              _eq: false
+          - client:
+              _or:
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - projects:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns:
+        - changelog
+        - client_id
+        - description
+        - doc_type_id
+        - document
+        - name
+        - protected
+      filter:
+        _and:
+          - protected:
+              _eq: false
+          - client:
+              _or:
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - projects:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
+      check:
+        _and:
+          - protected:
+              _eq: false
+          - client:
+              _or:
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - projects:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
 delete_permissions:
-- permission:
-    filter: {}
-  role: manager
-- permission:
-    filter:
-      _and:
-      - protected:
-          _eq: false
-      - client:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - projects:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    filter:
-      _and:
-      - protected:
-          _eq: false
-      - client:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - projects:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      filter: {}
+  - role: restricted
+    permission:
+      filter:
+        _and:
+          - protected:
+              _eq: false
+          - client:
+              _or:
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - projects:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      filter:
+        _and:
+          - protected:
+              _eq: false
+          - client:
+              _or:
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - projects:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
