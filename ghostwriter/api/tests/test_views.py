@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 # Django Imports
 from django.test import Client, TestCase
@@ -12,9 +12,15 @@ from django.utils.encoding import force_str
 from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
 from ghostwriter.factories import (
+    ActivityTypeFactory,
     DomainFactory,
+    DomainStatusFactory,
     ProjectAssignmentFactory,
+    ProjectFactory,
     ReportFactory,
+    ServerRoleFactory,
+    ServerStatusFactory,
+    StaticServerFactory,
     UserFactory,
 )
 
@@ -253,7 +259,7 @@ class HasuraLoginTests(TestCase):
 
 
 class HasuraWhoamiTests(TestCase):
-    """Collection of tests for :view:`api:graphql_whoami`."""
+    """Collection of tests for :view:`api:GraphqlWhoami`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -324,7 +330,7 @@ class HasuraWhoamiTests(TestCase):
 
 
 class HasuraGenerateReportTests(TestCase):
-    """Collection of tests for :view:`api:graphql_generate_report`."""
+    """Collection of tests for :view:`api:GraphqlGenerateReport`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -375,11 +381,11 @@ class HasuraGenerateReportTests(TestCase):
             content_type="application/json",
             **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 401)
 
         result = {
-            "message": "Report does not exist",
-            "extensions": {"code": "ReportDoesNotExist", },
+            "message": "Unauthorized access",
+            "extensions": {"code": "Unauthorized", },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -453,6 +459,300 @@ class HasuraGenerateReportTests(TestCase):
         }
         self.assertJSONEqual(force_str(response.content), result)
 
+        data = {"input": {"wrong": self.report.pk}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Invalid request body",
+            "extensions": {"code": "InvalidRequestBody", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+
+class HasuraCheckoutTests(TestCase):
+    """
+    Collection of tests for the :view:``api:CheckoutView`` and the related
+    :view:`api:GraphqlCheckoutDomain` and :view:`api:GraphqlCheckoutServer`.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.activity = ActivityTypeFactory()
+        cls.project = ProjectFactory()
+        cls.other_project = ProjectFactory()
+        cls.assignment = ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+
+        cls.domain_unavailable = DomainStatusFactory(domain_status="Unavailable")
+        cls.domain = DomainFactory()
+        cls.unavailable_domain = DomainFactory(domain_status=cls.domain_unavailable)
+        cls.expired_domain = DomainFactory(expiration=timezone.now() - timedelta(days=1))
+
+        cls.server_unavailable = ServerStatusFactory(server_status="Unavailable")
+        cls.server = StaticServerFactory()
+        cls.unavailable_server = StaticServerFactory(server_status=cls.server_unavailable)
+        cls.server_role = ServerRoleFactory()
+
+        cls.domain_uri = reverse("api:graphql_checkout_domain")
+        cls.server_uri = reverse("api:graphql_checkout_server")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def generate_domain_data(
+        self, project, domain, activity,
+        start_date=date.today() - timedelta(days=1),
+        end_date=date.today() + timedelta(days=1),
+        note=None
+    ):
+        return {
+            "input": {
+                "projectId": project,
+                "domainId": domain,
+                "activityTypeId": activity,
+                "startDate": start_date,
+                "endDate": end_date,
+                "note": note,
+            }
+        }
+
+    def generate_server_data(
+        self, project, server, activity, server_role,
+        start_date=date.today() - timedelta(days=1),
+        end_date=date.today() + timedelta(days=1),
+        note=None
+    ):
+        return {
+            "input": {
+                "projectId": project,
+                "serverId": server,
+                "activityTypeId": activity,
+                "serverRoleId": server_role,
+                "startDate": start_date,
+                "endDate": end_date,
+                "note": note,
+            }
+        }
+
+    def test_graphql_checkout_domain(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(self.project.pk, self.domain.pk, self.activity.pk, note="Test note")
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), {"result": "success", })
+        self.domain.refresh_from_db()
+        self.assertEqual(self.domain.domain_status, self.domain_unavailable)
+
+    def test_graphql_checkout_server(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_server_data(self.project.pk, self.domain.pk, self.activity.pk, self.server_role.pk, note="Test note")
+        response = self.client.post(
+            self.server_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), {"result": "success", })
+        self.server.refresh_from_db()
+        self.assertEqual(self.server.server_status, self.server_unavailable)
+
+    def test_graphql_checkout_object_with_invalid_dates(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(
+            self.project.pk,
+            self.domain.pk,
+            self.activity.pk,
+            start_date=date.today() + timedelta(days=1),
+            end_date=date.today() - timedelta(days=1),
+        )
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "End date is before start date",
+            "extensions": {"code": "InvalidDates", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+        data = self.generate_domain_data(
+            self.project.pk,
+            self.domain.pk,
+            self.activity.pk,
+            start_date="2022-0325",
+            end_date=date.today() - timedelta(days=1),
+        )
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Invalid date values (must be YYYY-MM-DD)",
+            "extensions": {"code": "InvalidDates", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_invalid_object(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(self.project.pk, 999, self.activity.pk)
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Domain does not exist",
+            "extensions": {"code": "DomainDoesNotExist", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_invalid_activity(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(self.project.pk, self.domain.pk, 999)
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Activity Type does not exist",
+            "extensions": {"code": "ActivityTypeDoesNotExist", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_invalid_project(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(999, self.domain.pk, self.activity.pk)
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+        result = {
+            "message": "Unauthorized access",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_unavailable_domain(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(self.project.pk, self.unavailable_domain.pk, self.activity.pk)
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Domain is unavailable",
+            "extensions": {"code": "DomainUnavailable", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_unavailable_server(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_server_data(self.project.pk, self.unavailable_server.pk, self.activity.pk, self.server_role.pk)
+        response = self.client.post(
+            self.server_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Server is unavailable",
+            "extensions": {"code": "ServerUnavailable", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_expired_domain(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(self.project.pk, self.expired_domain.pk, self.activity.pk)
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Domain is expired",
+            "extensions": {"code": "DomainExpired", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_without_project_access(self):
+        _, token = utils.generate_jwt(self.user)
+        data = self.generate_domain_data(self.other_project.pk, self.domain.pk, self.activity.pk)
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+        result = {
+            "message": "Unauthorized access",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_checkout_with_invalid_payload(self):
+        _, token = utils.generate_jwt(self.user)
+        data = {"wrong": {"id": 1}}
+        response = self.client.post(
+            self.domain_uri,
+            data=data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+        result = {
+            "message": "Invalid request body",
+            "extensions": {"code": "InvalidRequestBody", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
 
 # Tests related to Hasura Event Triggers
 
@@ -479,15 +779,16 @@ class HasuraDomainUpdateEventTests(TestCase):
                         "vt_permalink": "",
                         "burned_explanation": "",
                         "creation": "2010-03-25",
-                        "domain_status_id": 1,
+                        "domain_status_id": cls.domain.domain_status.id,
                         "last_used_by_id": "",
                         "name": "Chrismaddalena.com",
                         "categorization": "",
-                        "health_status_id": 1,
-                        "id": 1,
+                        "health_status_id": cls.domain.health_status.id,
+                        "id": cls.domain.id,
                         "whois_status_id": 1,
                         "dns": {}
-                    }
+                    },
+                    "old": {},
                 },
             }
         }

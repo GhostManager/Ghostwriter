@@ -8,11 +8,13 @@ from django.views.decorators.csrf import csrf_exempt
 from ghostwriter.api.views import (
     ApiKeyCreate,
     ApiKeyRevoke,
-    graphql_domain_update_event,
-    graphql_generate_report,
+    GraphqlCheckoutDomain,
+    GraphqlCheckoutServer,
+    GraphqlDomainUpdateEvent,
+    GraphqlGenerateReport,
+    GraphqlWhoami,
     graphql_login,
     graphql_webhook,
-    graphql_whoami,
 )
 
 app_name = "api"
@@ -20,9 +22,11 @@ app_name = "api"
 urlpatterns = [
     path("webhook", csrf_exempt(graphql_webhook), name="graphql_webhook"),
     path("login", csrf_exempt(graphql_login), name="graphql_login"),
-    path("whoami", csrf_exempt(graphql_whoami), name="graphql_whoami"),
-    path("generateReport", csrf_exempt(graphql_generate_report), name="graphql_generate_report"),
-    path("event/domain/update", csrf_exempt(graphql_domain_update_event), name="graphql_domain_update_event"),
+    path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
+    path("generateReport", csrf_exempt(GraphqlGenerateReport.as_view()), name="graphql_generate_report"),
+    path("checkoutDomain", csrf_exempt(GraphqlCheckoutDomain.as_view()), name="graphql_checkout_domain"),
+    path("checkoutServer", csrf_exempt(GraphqlCheckoutServer.as_view()), name="graphql_checkout_server"),
+    path("event/domain/update", csrf_exempt(GraphqlDomainUpdateEvent.as_view()), name="graphql_domain_update_event"),
     path(
         "ajax/token/revoke/<int:pk>",
         ApiKeyRevoke.as_view(),
