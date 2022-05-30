@@ -67,14 +67,20 @@ def filter_severity(findings, allowlist):
     if isinstance(allowlist, list):
         allowlist = [severity.lower() for severity in allowlist]
     else:
-        raise InvalidFilterValue(f'Allowlist passed into `filter_severity()` filter is not a list ("{allowlist}"); must be like `["Critical", "High"]`')
+        raise InvalidFilterValue(
+            f'Allowlist passed into `filter_severity()` filter is not a list ("{allowlist}"); must be like `["Critical", "High"]`'
+        )
     try:
         for finding in findings:
             if finding["severity"].lower() in allowlist:
                 filtered_values.append(finding)
     except (KeyError, TypeError):
-        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
-        raise InvalidFilterValue('Invalid list of findings passed into `filter_severity()` filter; must be the `{{ findings }}` object')
+        logger.exception(
+            "Error parsing ``findings`` as a list of dictionaries: %s", findings
+        )
+        raise InvalidFilterValue(
+            "Invalid list of findings passed into `filter_severity()` filter; must be the `{{ findings }}` object"
+        )
     return filtered_values
 
 
@@ -93,14 +99,20 @@ def filter_type(findings, allowlist):
     if isinstance(allowlist, list):
         allowlist = [type.lower() for type in allowlist]
     else:
-        raise InvalidFilterValue(f'Allowlist passed into `filter_type()` filter is not a list ("{allowlist}"); must be like `["Network", "Web"]`')
+        raise InvalidFilterValue(
+            f'Allowlist passed into `filter_type()` filter is not a list ("{allowlist}"); must be like `["Network", "Web"]`'
+        )
     try:
         for finding in findings:
             if finding["finding_type"].lower() in allowlist:
                 filtered_values.append(finding)
     except (KeyError, TypeError):
-        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
-        raise InvalidFilterValue('Invalid list of findings passed into `filter_type()` filter; must be the `{{ findings }}` object')
+        logger.exception(
+            "Error parsing ``findings`` as a list of dictionaries: %s", findings
+        )
+        raise InvalidFilterValue(
+            "Invalid list of findings passed into `filter_type()` filter; must be the `{{ findings }}` object"
+        )
     return filtered_values
 
 
@@ -139,8 +151,12 @@ def compromised(targets):
             if target["compromised"]:
                 filtered_targets.append(target)
     except (KeyError, TypeError):
-        logger.exception("Error parsing ``targets`` as a list of dictionaries: %s", targets)
-        raise InvalidFilterValue('Invalid list of targets passed into `compromised()` filter; must be the `{{ targets }}` object')
+        logger.exception(
+            "Error parsing ``targets`` as a list of dictionaries: %s", targets
+        )
+        raise InvalidFilterValue(
+            "Invalid list of targets passed into `compromised()` filter; must be the `{{ targets }}` object"
+        )
     return filtered_targets
 
 
@@ -160,7 +176,9 @@ def add_days(date, days):
         days = int(days)
     except ValueError:
         logger.exception("Error parsing ``days`` as an integer: %s", days)
-        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into `add_days()` filter')
+        raise InvalidFilterValue(
+            f'Invalid integer ("{days}") passed into `add_days()` filter'
+        )
 
     try:
         date_obj = parse_datetime(date)
@@ -187,7 +205,9 @@ def add_days(date, days):
         new_date = dateformat(date_obj, settings.DATE_FORMAT)
     except ParserError:
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `add_days()` filter')
+        raise InvalidFilterValue(
+            f'Invalid date string ("{date}") passed into `add_days()` filter'
+        )
     return new_date
 
 
@@ -209,7 +229,9 @@ def format_datetime(date, new_format):
     except ParserError:
         formatted_date = date
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `format_datetime()` filter')
+        raise InvalidFilterValue(
+            f'Invalid date string ("{date}") passed into `format_datetime()` filter'
+        )
     return formatted_date
 
 
@@ -220,7 +242,9 @@ def prepare_jinja2_env(debug=False):
     else:
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
 
-    env = jinja2.Environment(undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True)
+    env = jinja2.Environment(
+        undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True
+    )
     env.filters["filter_severity"] = filter_severity
     env.filters["filter_type"] = filter_type
     env.filters["strip_html"] = strip_html
@@ -271,7 +295,7 @@ class Reportwriter:
         "sub",
         "sup",
         "del",
-        "blockquote"
+        "blockquote",
     ]
 
     # Allowlist for evidence file extensions / filetypes
@@ -1578,9 +1602,9 @@ class Reportwriter:
             codeinline_style.quick_style = True
             codeinline_style.priority = 3
             # Set font and size
-            codeblock_font = codeinline_style.font
-            codeblock_font.name = "Courier New"
-            codeblock_font.size = Pt(11)
+            codeinline_font = codeinline_style.font
+            codeinline_font.name = "Courier New"
+            codeinline_font.size = Pt(11)
 
         if "Caption" not in styles:
             caption_style = styles.add_style("Caption", WD_STYLE_TYPE.PARAGRAPH)
