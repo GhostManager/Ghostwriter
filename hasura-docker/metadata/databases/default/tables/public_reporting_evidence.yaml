@@ -2,7 +2,10 @@ table:
   schema: public
   name: reporting_evidence
 configuration:
-  custom_root_fields: {}
+  custom_root_fields:
+    delete:
+      name: delete_evidenceDirect
+      comment: Delete data bypassing the `delete_evidence` action
   custom_name: evidence
   column_config:
     friendly_name:
@@ -80,7 +83,6 @@ update_permissions:
       columns:
         - caption
         - description
-        - document
         - finding_id
         - friendly_name
       filter: {}
@@ -90,7 +92,6 @@ update_permissions:
       columns:
         - caption
         - description
-        - document
         - finding_id
         - friendly_name
       filter:
@@ -128,7 +129,6 @@ update_permissions:
       columns:
         - caption
         - description
-        - document
         - finding_id
         - friendly_name
       filter:
@@ -147,44 +147,6 @@ update_permissions:
                       user_id:
                         _eq: X-Hasura-User-Id
       check:
-        finding:
-          report:
-            project:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - assignments:
-                    operator_id:
-                      _eq: X-Hasura-User-Id
-                - client:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-delete_permissions:
-  - role: manager
-    permission:
-      filter: {}
-  - role: restricted
-    permission:
-      filter:
-        finding:
-          report:
-            project:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - assignments:
-                    operator_id:
-                      _eq: X-Hasura-User-Id
-                - client:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-  - role: user
-    permission:
-      filter:
         finding:
           report:
             project:

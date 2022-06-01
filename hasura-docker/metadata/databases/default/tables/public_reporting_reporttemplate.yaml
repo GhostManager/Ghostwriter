@@ -2,7 +2,10 @@ table:
   schema: public
   name: reporting_reporttemplate
 configuration:
-  custom_root_fields: {}
+  custom_root_fields:
+    delete:
+      name: delete_templateDirect
+      comment: Delete data bypassing the `delete_template` action
   custom_name: template
   column_config:
     upload_date:
@@ -120,7 +123,6 @@ update_permissions:
         - client_id
         - description
         - doc_type_id
-        - document
         - name
         - protected
       filter: {}
@@ -132,7 +134,6 @@ update_permissions:
         - client_id
         - description
         - doc_type_id
-        - document
         - name
         - protected
       filter:
@@ -168,7 +169,6 @@ update_permissions:
         - client_id
         - description
         - doc_type_id
-        - document
         - name
         - protected
       filter:
@@ -185,40 +185,6 @@ update_permissions:
                       user_id:
                         _eq: X-Hasura-User-Id
       check:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-delete_permissions:
-  - role: manager
-    permission:
-      filter: {}
-  - role: restricted
-    permission:
-      filter:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-  - role: user
-    permission:
-      filter:
         _and:
           - protected:
               _eq: false

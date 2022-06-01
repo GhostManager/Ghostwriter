@@ -23,6 +23,53 @@ actions:
       - role: user
       - role: manager
     comment: Attempt to checkout a server for a project
+  - name: delete_domainCheckout
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/deleteDomainCheckout'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Delete the specified domain checkout and release the domain if deleted entry was the latest checkout
+  - name: delete_evidence
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/deleteEvidence'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Delete the specified evidence file and remove the associated file from the filesystem
+  - name: delete_serverCheckout
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/deleteServerCheckout'
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Delete the specified server checkout and release the server if deleted entry was the latest checkout
+  - name: delete_template
+    definition:
+      kind: synchronous
+      handler: '{{ACTIONS_URL_BASE}}/deleteTemplate'
+      forward_client_headers: true
+      headers:
+        - name: Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+    permissions:
+      - role: user
+      - role: manager
+    comment: Delete the specified template file and remove the associated file from the filesystem
   - name: generateReport
     definition:
       kind: synchronous
@@ -68,4 +115,5 @@ custom_types:
     - name: WhoamiOutput
     - name: ReportResponse
     - name: checkoutResponse
+    - name: deleteResponse
   scalars: []
