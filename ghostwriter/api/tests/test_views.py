@@ -15,9 +15,14 @@ from ghostwriter.factories import (
     ActivityTypeFactory,
     DomainFactory,
     DomainStatusFactory,
+    EvidenceFactory,
+    HistoryFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
+    ReportFindingLinkFactory,
+    ReportTemplateFactory,
+    ServerHistoryFactory,
     ServerRoleFactory,
     ServerStatusFactory,
     StaticServerFactory,
@@ -29,23 +34,21 @@ logging.disable(logging.CRITICAL)
 PASSWORD = "SuperNaturalReporting!"
 
 
-# Tests related to the authentication webhook
+# Tests related to authentication in custom CBVs
 
 
-class HasuraWebhookTests(TestCase):
-    """Collection of tests for :view:`api:graphql_webhook`."""
+class HasuraViewTests(TestCase):
+    """
+    Collection of tests for :view:`api:HasuraView` and
+    :view:`api:HasuraActionView` custom CBVs.
+    """
 
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.inactive_user = UserFactory(password=PASSWORD, is_active=False)
-        cls.uri = reverse("api:graphql_webhook")
-        cls.public_data = {
-            "X-Hasura-Role": "public",
-            "X-Hasura-User-Id": "-1",
-            "X-Hasura-User-Name": "anonymous",
-        }
-
+        cls.uri = reverse("api:graphql_test")
+        # Create valid and invalid JWTs for testing
         yesterday = timezone.now() - timedelta(days=1)
         cls.user_token_obj, cls.user_token = APIKey.objects.create_token(
             user=cls.user, name="Valid Token"
@@ -59,14 +62,168 @@ class HasuraWebhookTests(TestCase):
         cls.revoked_token_obj, cls.revoked_token = APIKey.objects.create_token(
             user=cls.inactive_user, name="Revoked Token", revoked=True
         )
+        # Test data set as required inputs for the test view
+        cls.data = {"input": {"id": 1, "function": "test_func", "args": {"arg1": "test"}}}
 
     def setUp(self):
         self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
+
+    def test_action_with_valid_jwt(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
+        self.assertEqual(response.status_code, 200)
+
+    def test_action_requires_secret(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_AUTHORIZATION": f"Bearer {token}", },
+        )
+        self.assertEqual(response.status_code, 403)
+        result = {
+            "message": "Unauthorized access method",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_action_requires_all_input(self):
+        _, token = utils.generate_jwt(self.user)
+        # Test with no data
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "Missing all required inputs",
+            "extensions": {"code": "InvalidRequestBody", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+        # Test with incomplete data
+        response = self.client.post(
+            self.uri,
+            data={"input": {"id": 1, }},
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "Missing one or more required inputs",
+            "extensions": {"code": "InvalidRequestBody", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_action_with_invalid_json_input(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data="Not JSON",
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_action_requires_jwt(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
+        )
+        self.assertEqual(response.status_code, 400)
+        result = {
+            "message": "No ``Authorization`` header found",
+            "extensions": {"code": "JWTMissing", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_action_with_valid_jwt_and_inactive_user(self):
+        _, token = utils.generate_jwt(self.user)
+        self.user.is_active = False
+        self.user.save()
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+        self.user.is_active = True
+        self.user.save()
+
+    def test_action_with_invalid_jwt(self):
+        token = "GARBAGE!"
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_with_valid_tracked_token(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {self.user_token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_action_with_valid_tracked_token_and_inactive_user(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {self.inactive_token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_with_expired_tracked_token(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {self.expired_token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_action_with_revoked_tracked_token(self):
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {self.revoked_token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+
+# Tests related to theauthetnication webhook
+
+
+class HasuraWebhookTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlAuthenticationWebhook`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_webhook")
+        cls.public_data = {
+            "X-Hasura-Role": "public",
+            "X-Hasura-User-Id": "-1",
+            "X-Hasura-User-Name": "anonymous",
+        }
+
+    def setUp(self):
+        self.client = Client()
 
     def test_graphql_webhook_with_valid_jwt(self):
         _, token = utils.generate_jwt(self.user)
@@ -83,69 +240,12 @@ class HasuraWebhookTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
-    def test_graphql_webhook_with_valid_jwt_and_inactive_user(self):
-        _, token = utils.generate_jwt(self.user)
-        self.user.is_active = False
-        self.user.save()
+    def test_graphql_webhook_without_jwt(self):
         response = self.client.get(
             self.uri,
             content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {token}", },
-        )
-        self.assertEqual(response.status_code, 401)
-        self.assertJSONEqual(force_str(response.content), self.public_data)
-        self.user.is_active = True
-        self.user.save()
-
-    def test_graphql_webhook_with_invalid_jwt(self):
-        token = "GARBAGE!"
-        response = self.client.get(
-            self.uri,
-            content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {token}", },
-        )
-        self.assertEqual(response.status_code, 401)
-        self.assertJSONEqual(force_str(response.content), self.public_data)
-
-    def test_graphql_webhook_with_valid_tracked_token(self):
-        data = {
-            "X-Hasura-Role": f"{self.user.role}",
-            "X-Hasura-User-Id": f"{self.user.id}",
-            "X-Hasura-User-Name": f"{self.user.username}",
-        }
-        response = self.client.get(
-            self.uri,
-            content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {self.user_token}", },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), data)
-
-    def test_graphql_webhook_with_valid_tracked_token_and_inactive_user(self):
-        response = self.client.get(
-            self.uri,
-            content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {self.inactive_token}", },
-        )
-        self.assertEqual(response.status_code, 401)
-        self.assertJSONEqual(force_str(response.content), self.public_data)
-
-    def test_graphql_webhook_with_expired_tracked_token(self):
-        response = self.client.get(
-            self.uri,
-            content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {self.expired_token}", },
-        )
-        self.assertEqual(response.status_code, 401)
-        self.assertJSONEqual(force_str(response.content), self.public_data)
-
-    def test_graphql_webhook_with_revoked_tracked_token(self):
-        response = self.client.get(
-            self.uri,
-            content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {self.revoked_token}", },
-        )
-        self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), self.public_data)
 
 
@@ -162,11 +262,6 @@ class HasuraLoginTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
 
     def test_graphql_login(self):
         data = {
@@ -197,64 +292,6 @@ class HasuraLoginTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
         )
         self.assertEqual(response.status_code, 401)
-        self.assertJSONEqual(force_str(response.content), result)
-
-    def test_graphql_login_requires_secret(self):
-        data = {
-            "input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}
-        }
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-        )
-        self.assertEqual(response.status_code, 403)
-
-    def test_graphql_login_rejects_bad_request(self):
-        data = {
-            "bad_input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}
-        }
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
-        )
-        self.assertEqual(response.status_code, 400)
-
-    def test_graphql_login_without_secret(self):
-        data = {
-            "input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}
-        }
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-        )
-        self.assertEqual(response.status_code, 403)
-
-        result = {
-            "message": "Unauthorized access method",
-            "extensions": {"code": "Unauthorized", },
-        }
-        self.assertJSONEqual(force_str(response.content), result)
-
-    def test_graphql_login_with_invalid_secret(self):
-        data = {
-            "input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}
-        }
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "wrong", },
-        )
-        self.assertEqual(response.status_code, 403)
-
-        result = {
-            "message": "Unauthorized access method",
-            "extensions": {"code": "Unauthorized", },
-        }
         self.assertJSONEqual(force_str(response.content), result)
 
 
@@ -298,36 +335,6 @@ class HasuraWhoamiTests(TestCase):
         # Test bypasses Hasura so the ``["data"]["whoami"]`` keys are not present
         self.assertEqual(response.json()["username"], self.user.username)
 
-    def test_graphql_whoami_rejects_missing_jwt(self):
-        response = self.client.post(
-            self.uri,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
-        )
-        self.assertEqual(response.status_code, 400)
-
-    def test_graphql_whoami_requires_valid_jwt(self):
-        token = "GARBAGE!"
-        response = self.client.post(
-            self.uri,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 401)
-
-    def test_graphql_whoami_without_secret(self):
-        response = self.client.post(
-            self.uri,
-            content_type="application/json",
-        )
-        self.assertEqual(response.status_code, 403)
-
-        result = {
-            "message": "Unauthorized access method",
-            "extensions": {"code": "Unauthorized", },
-        }
-        self.assertJSONEqual(force_str(response.content), result)
-
 
 class HasuraGenerateReportTests(TestCase):
     """Collection of tests for :view:`api:GraphqlGenerateReport`."""
@@ -356,19 +363,6 @@ class HasuraGenerateReportTests(TestCase):
             data=data,
             content_type="application/json",
             **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 200)
-
-    def test_graphql_generate_report_with_tracked_token(self):
-        _, user_token = APIKey.objects.create_token(
-            user=self.user, name="Valid Token"
-        )
-        data = {"input": {"id": self.report.pk}}
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {user_token}"},
         )
         self.assertEqual(response.status_code, 200)
 
@@ -406,78 +400,10 @@ class HasuraGenerateReportTests(TestCase):
         }
         self.assertJSONEqual(force_str(response.content), result)
 
-    def test_graphql_generate_report_rejects_missing_jwt(self):
-        data = {"input": {"id": self.report.pk}}
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
-        )
-        self.assertEqual(response.status_code, 400)
-
-    def test_graphql_generate_report_requires_valid_jwt(self):
-        token = "GARBAGE!"
-        data = {"input": {"id": self.report.pk}}
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 401)
-
-    def test_graphql_generate_report_without_secret(self):
-        data = {"input": {"id": self.report.pk}}
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-        )
-        self.assertEqual(response.status_code, 403)
-
-        result = {
-            "message": "Unauthorized access method",
-            "extensions": {"code": "Unauthorized", },
-        }
-        self.assertJSONEqual(force_str(response.content), result)
-
-    def test_graphql_generate_report_with_invalid_payload(self):
-        _, token = utils.generate_jwt(self.user)
-        data = {"wrong": {"id": self.report.pk}}
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 400)
-
-        result = {
-            "message": "Invalid request body",
-            "extensions": {"code": "InvalidRequestBody", },
-        }
-        self.assertJSONEqual(force_str(response.content), result)
-
-        data = {"input": {"wrong": self.report.pk}}
-        response = self.client.post(
-            self.uri,
-            data=data,
-            content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
-        )
-        self.assertEqual(response.status_code, 400)
-
-        result = {
-            "message": "Invalid request body",
-            "extensions": {"code": "InvalidRequestBody", },
-        }
-        self.assertJSONEqual(force_str(response.content), result)
-
 
 class HasuraCheckoutTests(TestCase):
     """
-    Collection of tests for the :view:``api:CheckoutView`` and the related
+    Collection of tests for the ``HasuraCheckoutView`` class and the related
     :view:`api:GraphqlCheckoutDomain` and :view:`api:GraphqlCheckoutServer`.
     """
 
@@ -561,7 +487,7 @@ class HasuraCheckoutTests(TestCase):
 
     def test_graphql_checkout_server(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(self.project.pk, self.domain.pk, self.activity.pk, self.server_role.pk, note="Test note")
+        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk, note="Test note")
         response = self.client.post(
             self.server_uri,
             data=data,
@@ -736,29 +662,210 @@ class HasuraCheckoutTests(TestCase):
         }
         self.assertJSONEqual(force_str(response.content), result)
 
-    def test_graphql_checkout_with_invalid_payload(self):
+
+class CheckoutDeleteViewTests(TestCase):
+    """
+    Collection of tests for ``CheckoutDeleteView`` class and related
+    :view:`api.GraphqlDomainReleaseAction` and :view:`api.GraphqlServerReleaseAction`.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.domain_uri = reverse("api:graphql_domain_checkout_delete")
+        cls.server_uri = reverse("api:graphql_server_checkout_delete")
+
+        cls.project = ProjectFactory()
+        cls.other_project = ProjectFactory()
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+
+        cls.domain_available = DomainStatusFactory(domain_status="Available")
+        cls.domain_unavailable = DomainStatusFactory(domain_status="Unavailable")
+        cls.domain = DomainFactory(domain_status=cls.domain_unavailable)
+        cls.domain_checkout = HistoryFactory(domain=cls.domain, project=cls.project)
+
+        cls.other_domain = DomainFactory(domain_status=cls.domain_unavailable)
+        cls.other_checkout = HistoryFactory(domain=cls.other_domain, project=cls.other_project)
+
+        cls.server_available = ServerStatusFactory(server_status="Available")
+        cls.server_unavailable = ServerStatusFactory(server_status="Unavailable")
+        cls.server = StaticServerFactory(server_status=cls.server_unavailable)
+        cls.server_checkout = ServerHistoryFactory(server=cls.server, project=cls.project)
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def generate_data(self, checkout_id):
+        return {"input": {"checkoutId": checkout_id, }}
+
+    def test_deleting_domain_checkout(self):
         _, token = utils.generate_jwt(self.user)
-        data = {"wrong": {"id": 1}}
         response = self.client.post(
             self.domain_uri,
-            data=data,
+            data=self.generate_data(self.domain_checkout.pk),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.domain.refresh_from_db()
+        self.assertEqual(self.domain.domain_status, self.domain_available)
+
+    def test_deleting_server_checkout(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.server_uri,
+            data=self.generate_data(self.server_checkout.pk),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.server.refresh_from_db()
+        self.assertEqual(self.server.server_status, self.server_available)
+
+    def test_deleting_domain_checkout_without_access(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.domain_uri,
+            data=self.generate_data(self.other_checkout.pk),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+        result = {
+            "message": "Unauthorized access",
+            "extensions": {"code": "Unauthorized", },
+        }
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_deleting_invalid_checkout(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.domain_uri,
+            data=self.generate_data(checkout_id=999),
             content_type="application/json",
             **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 400)
-
         result = {
-            "message": "Invalid request body",
-            "extensions": {"code": "InvalidRequestBody", },
+            "message": "Checkout does not exist",
+            "extensions": {"code": "HistoryDoesNotExist", },
         }
         self.assertJSONEqual(force_str(response.content), result)
+
+
+class GraphqlDeleteEvidenceActionTests(TestCase):
+    """Collection of tests for :view:`GraphqlDeleteEvidenceAction`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.Evidence = EvidenceFactory._meta.model
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_delete_evidence")
+
+        cls.project = ProjectFactory()
+        cls.other_project = ProjectFactory()
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+
+        cls.report = ReportFactory(project=cls.project)
+        cls.other_report = ReportFactory(project=cls.other_project)
+
+        cls.finding = ReportFindingLinkFactory(report=cls.report)
+        cls.other_finding = ReportFindingLinkFactory(report=cls.other_report)
+
+        cls.evidence = EvidenceFactory(finding=cls.finding)
+        cls.other_evidence = EvidenceFactory(finding=cls.other_finding)
+
+    def setUp(self):
+        self.client = Client()
+
+    def generate_data(self, evidence_id):
+        return {"input": {"evidenceId": evidence_id, }}
+
+    def test_deleting_evidence(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.evidence.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(self.Evidence.objects.filter(id=self.evidence.id).exists())
+
+    def test_deleting_evidence_without_access(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.other_evidence.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+
+class GraphqlDeleteReportTemplateAction(TestCase):
+    """Collection of tests for :view:`GraphqlDeleteReportTemplateAction`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ReportTemplate = ReportTemplateFactory._meta.model
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_delete_template")
+
+        cls.template = ReportTemplateFactory()
+        cls.protected_template = ReportTemplateFactory(protected=True)
+
+    def setUp(self):
+        self.client = Client()
+
+    def generate_data(self, template_id):
+        return {"input": {"templateId": template_id, }}
+
+    def test_deleting_template(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.template.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(self.ReportTemplate.objects.filter(id=self.template.id).exists())
+
+    def test_deleting_protected_template_with_access(self):
+        _, token = utils.generate_jwt(self.mgr_user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_deleting_protected_template_without_access(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "changeme", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
 
 
 # Tests related to Hasura Event Triggers
 
 
-class HasuraDomainUpdateEventTests(TestCase):
-    """Collection of tests for :view:`api:graphql_domain_update_event`."""
+class GraphqlDomainUpdateEventTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlDomainUpdateEvent`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -795,14 +902,8 @@ class HasuraDomainUpdateEventTests(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
 
     def test_graphql_domain_update_event(self):
-        payload, token = utils.generate_jwt(self.user)
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -810,20 +911,8 @@ class HasuraDomainUpdateEventTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": "changeme", },
         )
         self.assertEqual(response.status_code, 200)
-
-    def test_graphql_domain_update_event_without_secret(self):
-        response = self.client.post(
-            self.uri,
-            data=self.sample_data,
-            content_type="application/json",
-        )
-        self.assertEqual(response.status_code, 403)
-
-        result = {
-            "message": "Unauthorized access method",
-            "extensions": {"code": "Unauthorized", },
-        }
-        self.assertJSONEqual(force_str(response.content), result)
+        self.domain.refresh_from_db()
+        self.assertEqual(self.domain.name, "chrismaddalena.com")
 
 
 # Tests related to CBVs for :model:`api:APIKey`
