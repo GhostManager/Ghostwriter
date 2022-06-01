@@ -8,33 +8,35 @@ from django.views.decorators.csrf import csrf_exempt
 from ghostwriter.api.views import (
     ApiKeyCreate,
     ApiKeyRevoke,
+    GraphqlAuthenticationWebhook,
     GraphqlCheckoutDomain,
     GraphqlCheckoutServer,
+    GraphqlDeleteEvidenceAction,
+    GraphqlDeleteReportTemplateAction,
+    GraphqlDomainCheckoutDelete,
     GraphqlDomainUpdateEvent,
     GraphqlGenerateReport,
+    GraphqlLoginAction,
+    GraphqlServerCheckoutDelete,
+    GraphqlTestView,
     GraphqlWhoami,
-    graphql_login,
-    graphql_webhook,
 )
 
 app_name = "api"
 
 urlpatterns = [
-    path("webhook", csrf_exempt(graphql_webhook), name="graphql_webhook"),
-    path("login", csrf_exempt(graphql_login), name="graphql_login"),
+    path("test", csrf_exempt(GraphqlTestView.as_view()), name="graphql_test"),
+    path("webhook", csrf_exempt(GraphqlAuthenticationWebhook.as_view()), name="graphql_webhook"),
+    path("login", csrf_exempt(GraphqlLoginAction.as_view()), name="graphql_login"),
     path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
     path("generateReport", csrf_exempt(GraphqlGenerateReport.as_view()), name="graphql_generate_report"),
     path("checkoutDomain", csrf_exempt(GraphqlCheckoutDomain.as_view()), name="graphql_checkout_domain"),
     path("checkoutServer", csrf_exempt(GraphqlCheckoutServer.as_view()), name="graphql_checkout_server"),
+    path("deleteDomainCheckout", csrf_exempt(GraphqlDomainCheckoutDelete.as_view()), name="graphql_domain_checkout_delete"),
+    path("deleteServerCheckout", csrf_exempt(GraphqlServerCheckoutDelete.as_view()), name="graphql_server_checkout_delete"),
+    path("deleteEvidence", csrf_exempt(GraphqlDeleteEvidenceAction.as_view()), name="graphql_delete_evidence"),
+    path("deleteTemplate", csrf_exempt(GraphqlDeleteReportTemplateAction.as_view()), name="graphql_delete_template"),
     path("event/domain/update", csrf_exempt(GraphqlDomainUpdateEvent.as_view()), name="graphql_domain_update_event"),
-    path(
-        "ajax/token/revoke/<int:pk>",
-        ApiKeyRevoke.as_view(),
-        name="ajax_revoke_token",
-    ),
-    path(
-        "token/create",
-        ApiKeyCreate.as_view(),
-        name="ajax_create_token",
-    ),
+    path("ajax/token/revoke/<int:pk>", ApiKeyRevoke.as_view(), name="ajax_revoke_token"),
+    path("token/create", ApiKeyCreate.as_view(), name="ajax_create_token"),
 ]
