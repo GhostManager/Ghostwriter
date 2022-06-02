@@ -1600,7 +1600,7 @@ class Reportwriter:
             block_style.quick_style = True
             block_style.priority = 5
             # Set font and size
-            block_font = caption_style.font
+            block_font = block_style.font
             block_font.name = "Calibri"
             block_font.size = Pt(12)
             block_font.italic = True
@@ -1719,7 +1719,10 @@ class Reportwriter:
         keyword_regex = r"\{\{\.(.*?)\}\}"
 
         # Strip out all HTML tags because we can't format text runs for XLSX
-        text = BeautifulSoup(html, "lxml").text
+        if html:
+            text = BeautifulSoup(html, "lxml").text
+        else:
+            text = ""
 
         # Perform the necessary replacements
         if "{{.client}}" in text:

@@ -27,27 +27,13 @@
             <table id="domainTable" class="tablesorter table table-sm table-hover">
                 <thead>
                     <tr>
-                        <th id="domain">Domain</th>
-                        <th>
-                            <div class="dropdown dropleft">
-                                <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Status</span>
-                                <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
-                                    <p>If looking for a domain to use, filter for Available domains. Burned domains should not be used. Unavailable and Reserved domains are unavailable for check-out.</p>
-                                </div>
-                            </div>
-                        </th>
-                        <th>
-                            <div class="dropdown dropleft">
-                                <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Health</span>
-                                <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
-                                    <p>The health of a domain is determined by categories and VirusTotal. If the domain is flagged with a bad category or in VirusTotal the domain is considered "Burned" here.</p>
-                                </div>
-                            </div>
-                        </th>
-                        <th>Domain Age</th>
-                        <th>Expiry</th>
-                        <th>Categories</th>
-                        <th class="sorter-false">Check-out</th>
+                        <th id="domain" class="align-middle pr-4">Domain</th>
+                        <th class="align-middle pr-4">Status</th>
+                        <th class="align-middle pr-4">Health</th>
+                        <th class="align-middle pr-4">Age (Days)</th>
+                        <th class="align-middle pr-4">Expiry</th>
+                        <th class="align-middle pr-4">Categories</th>
+                        <th class="sorter-false align-middle">Check-out</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -114,7 +100,7 @@
                                 cssDesc: 'up',
                                 cssNone: 'none',
                                 headers: {
-                                    5: {sorter: 'digit'}
+                                    4: {sorter: 'digit'}
                                 }
                             }
                         );

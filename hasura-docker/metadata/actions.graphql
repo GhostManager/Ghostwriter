@@ -1,4 +1,10 @@
 type Mutation {
+  generateReport(
+    id: Int!
+  ): ReportResponse
+}
+
+type Mutation {
   login(
     username: String!
     password: String!
@@ -18,5 +24,12 @@ type WhoamiOutput {
   username: String!
   role: String!
   expires: date
+}
+
+type ReportResponse {
+  reportData: String!
+  docxUrl: String!
+  xlsxUrl: String!
+  pptxUrl: String!
 }
 

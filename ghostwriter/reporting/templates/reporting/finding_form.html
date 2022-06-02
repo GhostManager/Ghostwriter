@@ -1,5 +1,8 @@
 {% extends "base_generic.html" %}
+
 {% load crispy_forms_tags %}
+
+{% load custom_tags %}
 
 {% block pagetitle %}Finding Form{% endblock %}
 
@@ -39,19 +42,11 @@
                             </tr>
                             <tr>
                                 <td class="text-left align-middle">{{.project_start}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in M D, YYYY format (e.g., October 31, 2020).</td>
-                            </tr>
-                            <tr>
-                                <td class="text-left align-middle">{{.project_start_uk}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in D M YYYY format (e.g., 31 October 2020).</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's start date in <em>{% settings_value "DATE_FORMAT" %}</em> format (e.g., October 31, 2020).</td>
                             </tr>
                             <tr>
                                 <td class="text-left align-middle">{{.project_end}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in M D, YYYY format (e.g., October 31, 2020).</td>
-                            </tr>
-                            <tr>
-                                <td class="text-left align-middle">{{.project_end_uk}}</td>
-                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in D M YYYY format (e.g., 31 October 2020).</td>
+                                <td class="text-left align-middle">This keyword will be replaced with the project's end date in <em>{% settings_value "DATE_FORMAT" %}</em>  format (e.g., October 31, 2020).</td>
                             </tr>
                             <tr>
                                 <td class="text-left align-middle">{{.caption}}</td>

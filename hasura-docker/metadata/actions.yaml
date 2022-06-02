@@ -1,4 +1,16 @@
 actions:
+- name: generateReport
+  definition:
+    kind: synchronous
+    handler: '{{ACTIONS_URL_BASE}}/generateReport'
+    forward_client_headers: true
+    headers:
+    - name: Hasura-Action-Secret
+      value_from_env: HASURA_ACTION_SECRET
+  permissions:
+  - role: user
+  - role: manager
+  comment: Generate a JSON report for the given report ID
 - name: login
   definition:
     kind: synchronous
@@ -30,4 +42,5 @@ custom_types:
   objects:
   - name: LoginResponse
   - name: WhoamiOutput
+  - name: ReportResponse
   scalars: []

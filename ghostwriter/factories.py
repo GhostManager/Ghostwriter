@@ -474,6 +474,7 @@ class ActivityTypeFactory(factory.django.DjangoModelFactory):
 class DomainFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "shepherd.Domain"
+        django_get_or_create = ("name",)
 
     name = Faker("domain_name")
     registrar = Faker("company")

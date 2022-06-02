@@ -14,6 +14,7 @@ from ghostwriter.factories import (
     GroupFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
+    ProjectObjectiveFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     UserFactory,
@@ -39,6 +40,11 @@ class TemplateTagTests(TestCase):
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
         cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+
+        cls.Objective = ProjectObjectiveFactory._meta.model
+        cls.objective = ProjectObjectiveFactory(project=cls.project, complete=False)
+        cls.complete_objective = ProjectObjectiveFactory(project=cls.project, complete=True)
+        cls.objectives = cls.Objective.objects.filter(project=cls.project)
 
         cls.num_of_findings = 3
         ReportFindingLinkFactory.create_batch(
@@ -70,6 +76,12 @@ class TemplateTagTests(TestCase):
 
         result = custom_tags.get_reports(request)
         self.assertEqual(len(result), 1)
+
+        result = custom_tags.settings_value("DATE_FORMAT")
+        self.assertEqual(result, settings.DATE_FORMAT)
+
+        result = custom_tags.count_incomplete_objectives(self.objectives)
+        self.assertEqual(result, 1)
 
 
 class DashboardTests(TestCase):

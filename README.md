@@ -1,9 +1,9 @@
 # Ghostwriter
 
-[![Python Version](https://img.shields.io/badge/Python-3.9-brightgreen.svg)](.)  [![Django Verison](https://img.shields.io/badge/Django-3.2-006400)](.)  [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.)  [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475)
+[![Python Version](https://img.shields.io/badge/Python-3.9-brightgreen.svg)](.)  [![Django Verison](https://img.shields.io/badge/Django-3.2-006400)](.)  [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.)  [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![Black Hat Arsenal 2022](https://img.shields.io/badge/2022-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/asia-22/arsenal/schedule/index.html#ghostwriter-26252)
 
 ![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter?label=Latest%20Release)
-![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date)
+![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date&color=blue)
 
 [![CodeFactor](https://img.shields.io/codefactor/grade/github/GhostManager/Ghostwriter?label=Code%20Quality)](.)  [![Code Coverage](https://img.shields.io/codecov/c/github/GhostManager/Ghostwriter?label=Code%20Coverage)](.)  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5139/badge)](https://bestpractices.coreinfrastructure.org/projects/5139)
 
@@ -15,7 +15,7 @@ Ghostwriter is a Django v3.0 project written in Python 3.9 and is designed to be
 
 ## Details
 
-Check-out the introductory blogpost: [Introducing Ghostwriter](https://posts.specterops.io/introducing-ghostwriter-part-1-61e7bd014aff)
+Check out the introductory blogpost: [Introducing Ghostwriter](https://posts.specterops.io/introducing-ghostwriter-part-1-61e7bd014aff)
 
 This blogpost discusses the design and intent behind Ghostwriter: [Introducing Ghostwriter: Part 2](https://posts.specterops.io/introducing-ghostwriter-part-2-f2d8368a1ed6)
 
@@ -25,7 +25,7 @@ The Ghostwriter Wiki contains everything you need to know to use or customize Gh
 
 [Ghostwriter Wiki](https://ghostwriter.wiki/)
 
-The wiki covers everything from installation and setup information for first time users to database schemas, the project's code style guide, and how to expand or customie parts of the project to fit your needs.
+The wiki covers everything from installation and setup information for first time users to database schemas, the project's code style guide, and how to expand or customize parts of the project to fit your needs.
 
 ## Getting Help
 
@@ -39,9 +39,9 @@ Before submitting an issue, review the [Ghostwriter Wiki](https://ghostwriter.wi
 
 ## Contributing to the Project
 
-Please open issues or submit pull requests! The project team welcomes feedback, new ideas, and external contributions. Before submitting a PR, please check open and closed issues for any previous related discussion. Also, the submitted code must follow the [Code Style Guide](https://ghostwriter.wiki/coding-style-guide/style-guide) to be accepted.
+The project team welcomes feedback, new ideas, and external contributions. Please open issues or submit a pull requests! Before submitting a PR, please check open and closed issues for any previous related discussion. Also, the proposed code must follow the [Code Style Guide](https://ghostwriter.wiki/coding-style-guide/style-guide) to be accepted.
 
-We only ask that you limit PR submissions to those that fix a bug, enhance an existing feature, or add something new.
+We only ask you to limit PR submissions to those that fix a bug, enhance an existing feature, or add something new.
 
 ## Contributions
 
@@ -61,4 +61,4 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 
 Ghostwriter's continuous development would not be possible without [SpecterOps's](https://www.specterops.io/) commitment to transparency and support for open-source development.
 
-[GitBook](https://www.gitbook.com/) supports this project through its hosting of the wiki and granting the Ghostwriter team access to their GitBook Community tier as an open-source project.
+[GitBook](https://www.gitbook.com/) supports this project by hosting the wiki and granting the Ghostwriter team access to their GitBook Community tier as an open-source project.
