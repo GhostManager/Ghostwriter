@@ -1028,7 +1028,7 @@ class Reportwriter:
 
             # These tags apply italic, bold, and underline styles but appear rarely
             elif tag_name == "em":
-                styles_dict["italic_font"] = True
+                styles_dict["italic"] = True
             elif tag_name in ("strong", "b"):
                 styles_dict["bold"] = True
             elif tag_name == "u":
