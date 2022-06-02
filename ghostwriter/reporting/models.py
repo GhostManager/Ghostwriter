@@ -173,10 +173,10 @@ class Finding(models.Model):
         null=True,
         help_text="Select a finding category that fits",
     )
-    cvss_score = models.CharField(
+    cvss_score = models.FloatField(
         "CVSS Score v3.0",
         blank=True,
-        max_length=4,
+        null=True,
         help_text="Set the CVSS score for this finding"
     )
     cvss_vector = models.CharField(
@@ -481,10 +481,10 @@ class ReportFindingLink(models.Model):
         blank=True,
         help_text="Assign the task of editing this finding to a specific operator - defaults to the operator that added it to the report",
     )
-    cvss_score = models.CharField(
+    cvss_score = models.FloatField(
         "CVSS Score v3.0",
         blank=True,
-        max_length=4,
+        null=True,
         help_text="Set the CVSS score for this finding"
     )
     cvss_vector = models.CharField(
