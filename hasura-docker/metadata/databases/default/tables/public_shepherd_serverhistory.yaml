@@ -2,10 +2,7 @@ table:
   schema: public
   name: shepherd_serverhistory
 configuration:
-  custom_root_fields:
-    delete:
-      name: delete_serverCheckoutDirect
-      comment: Delete data bypassing the `delete_serverCheckout` action
+  custom_root_fields: {}
   custom_name: serverCheckout
   column_config:
     server_role_id:

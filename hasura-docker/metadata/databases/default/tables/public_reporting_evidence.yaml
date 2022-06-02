@@ -2,10 +2,7 @@ table:
   schema: public
   name: reporting_evidence
 configuration:
-  custom_root_fields:
-    delete:
-      name: delete_evidenceDirect
-      comment: Delete data bypassing the `delete_evidence` action
+  custom_root_fields: {}
   custom_name: evidence
   column_config:
     friendly_name:

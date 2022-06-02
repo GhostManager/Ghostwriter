@@ -2,10 +2,7 @@ table:
   schema: public
   name: reporting_reporttemplate
 configuration:
-  custom_root_fields:
-    delete:
-      name: delete_templateDirect
-      comment: Delete data bypassing the `delete_template` action
+  custom_root_fields: {}
   custom_name: template
   column_config:
     upload_date:

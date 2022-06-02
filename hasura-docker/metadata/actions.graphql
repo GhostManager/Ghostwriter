@@ -22,25 +22,25 @@ type Mutation {
 }
 
 type Mutation {
-  delete_domainCheckout(
+  deleteDomainCheckout(
     checkoutId: Int!
   ): checkoutResponse
 }
 
 type Mutation {
-  delete_evidence(
+  deleteEvidence(
     evidenceId: Int!
   ): deleteResponse
 }
 
 type Mutation {
-  delete_serverCheckout(
+  deleteServerCheckout(
     checkoutId: Int!
   ): checkoutResponse
 }
 
 type Mutation {
-  delete_template(
+  deleteTemplate(
     templateId: Int!
   ): deleteResponse
 }

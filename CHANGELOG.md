@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added a `generateReport` mutation to the GraphQL API capable of returning the JSON report data as a base64 string
 * Added user controls for generating and revoking API tokens from the user profile page
 * Added `checkoutDomain` and `checkoutServer` actions to the GraphQL API that validate checkouts
-* Added `delete_domainCheckout`, `delete_serverCheckout`, `delete_template`, and `delete_evidence` actions to the GraphQL schema that clean-up the filesystem and database after deletions
+* Added `deleteDomainCheckout`, `deleteServerCheckout`, `deleteTemplate`, and `deleteEvidence` actions to the GraphQL schema that clean-up the filesystem and database after deletions
 
 ### Changed
 

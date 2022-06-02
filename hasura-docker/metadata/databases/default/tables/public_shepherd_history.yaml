@@ -2,10 +2,7 @@ table:
   schema: public
   name: shepherd_history
 configuration:
-  custom_root_fields:
-    delete:
-      name: delete_domainCheckoutDirect
-      comment: Delete data bypassing the `delete_domainCheckout` action
+  custom_root_fields: {}
   custom_name: domainCheckout
   column_config:
     end_date:

@@ -23,7 +23,7 @@ actions:
       - role: user
       - role: manager
     comment: Attempt to checkout a server for a project
-  - name: delete_domainCheckout
+  - name: deleteDomainCheckout
     definition:
       kind: synchronous
       handler: '{{ACTIONS_URL_BASE}}/deleteDomainCheckout'
@@ -35,7 +35,7 @@ actions:
       - role: user
       - role: manager
     comment: Delete the specified domain checkout and release the domain if deleted entry was the latest checkout
-  - name: delete_evidence
+  - name: deleteEvidence
     definition:
       kind: synchronous
       handler: '{{ACTIONS_URL_BASE}}/deleteEvidence'
@@ -47,10 +47,11 @@ actions:
       - role: user
       - role: manager
     comment: Delete the specified evidence file and remove the associated file from the filesystem
-  - name: delete_serverCheckout
+  - name: deleteServerCheckout
     definition:
       kind: synchronous
       handler: '{{ACTIONS_URL_BASE}}/deleteServerCheckout'
+      forward_client_headers: true
       headers:
         - name: Hasura-Action-Secret
           value_from_env: HASURA_ACTION_SECRET
@@ -58,7 +59,7 @@ actions:
       - role: user
       - role: manager
     comment: Delete the specified server checkout and release the server if deleted entry was the latest checkout
-  - name: delete_template
+  - name: deleteTemplate
     definition:
       kind: synchronous
       handler: '{{ACTIONS_URL_BASE}}/deleteTemplate'
