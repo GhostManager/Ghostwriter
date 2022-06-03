@@ -1,32 +1,34 @@
 table:
-  name: rolodex_projecttype
   schema: public
+  name: rolodex_projecttype
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: projectType
+  column_config:
+    project_type:
+      custom_name: projectType
   custom_column_names:
     project_type: projectType
-  custom_name: projectType
-  custom_root_fields: {}
 array_relationships:
-- name: projects
-  using:
-    foreign_key_constraint_on:
-      column: project_type_id
-      table:
-        name: rolodex_project
-        schema: public
+  - name: projects
+    using:
+      foreign_key_constraint_on:
+        column: project_type_id
+        table:
+          schema: public
+          name: rolodex_project
 select_permissions:
-- permission:
-    columns:
-    - id
-    - project_type
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - project_type
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

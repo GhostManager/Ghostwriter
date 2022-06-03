@@ -1,82 +1,100 @@
 table:
-  name: commandcenter_reportconfiguration
   schema: public
+  name: commandcenter_reportconfiguration
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: reportConfiguration
+  column_config:
+    label_table:
+      custom_name: labelTable
+    prefix_figure:
+      custom_name: prefixFigure
+    label_figure:
+      custom_name: labelFigure
+    border_weight:
+      custom_name: borderWeight
+    border_color:
+      custom_name: borderColor
+    prefix_table:
+      custom_name: prefixTable
+    default_docx_template_id:
+      custom_name: docxTemplateId
+    enable_borders:
+      custom_name: enableBorders
+    default_pptx_template_id:
+      custom_name: pptxTemplateId
   custom_column_names:
-    border_color: borderColor
-    border_weight: borderWeight
-    default_docx_template_id: docxTemplateId
-    default_pptx_template_id: pptxTemplateId
-    enable_borders: enableBorders
-    label_figure: labelFigure
     label_table: labelTable
     prefix_figure: prefixFigure
+    label_figure: labelFigure
+    border_weight: borderWeight
+    border_color: borderColor
     prefix_table: prefixTable
-  custom_name: reportConfiguration
-  custom_root_fields: {}
+    default_docx_template_id: docxTemplateId
+    enable_borders: enableBorders
+    default_pptx_template_id: pptxTemplateId
 object_relationships:
-- name: docxTemplate
-  using:
-    foreign_key_constraint_on: default_docx_template_id
-- name: pptxTemplate
-  using:
-    foreign_key_constraint_on: default_pptx_template_id
+  - name: docxTemplate
+    using:
+      foreign_key_constraint_on: default_docx_template_id
+  - name: pptxTemplate
+    using:
+      foreign_key_constraint_on: default_pptx_template_id
 select_permissions:
-- permission:
-    columns:
-    - border_color
-    - border_weight
-    - default_docx_template_id
-    - default_pptx_template_id
-    - enable_borders
-    - id
-    - label_figure
-    - label_table
-    - prefix_figure
-    - prefix_table
-    filter: {}
-  role: manager
-- permission:
-    columns:
-    - border_color
-    - border_weight
-    - default_docx_template_id
-    - default_pptx_template_id
-    - enable_borders
-    - id
-    - label_figure
-    - label_table
-    - prefix_figure
-    - prefix_table
-    filter: {}
-  role: restricted
-- permission:
-    columns:
-    - border_color
-    - border_weight
-    - default_docx_template_id
-    - default_pptx_template_id
-    - enable_borders
-    - id
-    - label_figure
-    - label_table
-    - prefix_figure
-    - prefix_table
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - border_color
+        - border_weight
+        - default_docx_template_id
+        - default_pptx_template_id
+        - enable_borders
+        - id
+        - label_figure
+        - label_table
+        - prefix_figure
+        - prefix_table
+      filter: {}
+  - role: restricted
+    permission:
+      columns:
+        - border_color
+        - border_weight
+        - default_docx_template_id
+        - default_pptx_template_id
+        - enable_borders
+        - id
+        - label_figure
+        - label_table
+        - prefix_figure
+        - prefix_table
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - border_color
+        - border_weight
+        - default_docx_template_id
+        - default_pptx_template_id
+        - enable_borders
+        - id
+        - label_figure
+        - label_table
+        - prefix_figure
+        - prefix_table
+      filter: {}
 update_permissions:
-- permission:
-    check: {}
-    columns:
-    - border_color
-    - border_weight
-    - default_docx_template_id
-    - default_pptx_template_id
-    - enable_borders
-    - label_figure
-    - label_table
-    - prefix_figure
-    - prefix_table
-    filter: {}
-  role: manager
+  - role: manager
+    permission:
+      columns:
+        - border_color
+        - border_weight
+        - default_docx_template_id
+        - default_pptx_template_id
+        - enable_borders
+        - label_figure
+        - label_table
+        - prefix_figure
+        - prefix_table
+      filter: {}
+      check: {}

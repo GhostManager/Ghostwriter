@@ -39,4 +39,4 @@ python-nmap==0.7.1
 python-pptx==0.6.21
 requests==2.27.1
 django-timezone-field==4.2.3
-pyjwt==2.3.0
+pyjwt==2.4.0

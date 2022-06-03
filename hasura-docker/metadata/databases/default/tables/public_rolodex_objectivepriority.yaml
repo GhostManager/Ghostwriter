@@ -1,32 +1,32 @@
 table:
-  name: rolodex_objectivepriority
   schema: public
+  name: rolodex_objectivepriority
 configuration:
-  comment: null
-  custom_column_names: {}
-  custom_name: objectivePriority
   custom_root_fields: {}
+  custom_name: objectivePriority
+  column_config: {}
+  custom_column_names: {}
 array_relationships:
-- name: objectives
-  using:
-    foreign_key_constraint_on:
-      column: priority_id
-      table:
-        name: rolodex_projectobjective
-        schema: public
+  - name: objectives
+    using:
+      foreign_key_constraint_on:
+        column: priority_id
+        table:
+          schema: public
+          name: rolodex_projectobjective
 select_permissions:
-- permission:
-    columns:
-    - id
-    - weight
-    - priority
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - weight
+        - priority
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

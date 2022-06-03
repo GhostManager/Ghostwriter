@@ -1,96 +1,100 @@
 table:
-  name: shepherd_auxserveraddress
   schema: public
+  name: shepherd_auxserveraddress
 configuration:
-  comment: null
-  custom_column_names:
-    ip_address: ipAddress
-    static_server_id: staticServerId
-  custom_name: auxServerAddresses
   custom_root_fields: {}
+  custom_name: auxServerAddresses
+  column_config:
+    static_server_id:
+      custom_name: staticServerId
+    ip_address:
+      custom_name: ipAddress
+  custom_column_names:
+    static_server_id: staticServerId
+    ip_address: ipAddress
 object_relationships:
-- name: server
-  using:
-    foreign_key_constraint_on: static_server_id
+  - name: server
+    using:
+      foreign_key_constraint_on: static_server_id
 insert_permissions:
-- permission:
-    backend_only: false
-    check: {}
-    columns:
-    - ip_address
-    - primary
-    - static_server_id
-  role: manager
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - primary
-    - static_server_id
-  role: restricted
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - primary
-    - static_server_id
-  role: user
+  - role: manager
+    permission:
+      check: {}
+      columns:
+        - ip_address
+        - primary
+        - static_server_id
+      backend_only: false
+  - role: restricted
+    permission:
+      check: {}
+      columns:
+        - ip_address
+        - primary
+        - static_server_id
+  - role: user
+    permission:
+      check: {}
+      columns:
+        - ip_address
+        - primary
+        - static_server_id
 select_permissions:
-- permission:
-    columns:
-    - ip_address
-    - primary
-    - static_server_id
-    filter: {}
-  role: manager
-- permission:
-    columns:
-    - id
-    - ip_address
-    - primary
-    - static_server_id
-    filter: {}
-  role: restricted
-- permission:
-    columns:
-    - id
-    - ip_address
-    - primary
-    - static_server_id
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - ip_address
+        - primary
+        - static_server_id
+      filter: {}
+  - role: restricted
+    permission:
+      columns:
+        - id
+        - ip_address
+        - primary
+        - static_server_id
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - id
+        - ip_address
+        - primary
+        - static_server_id
+      filter: {}
 update_permissions:
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - primary
-    - static_server_id
-    filter: {}
-  role: manager
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - primary
-    - static_server_id
-    filter: {}
-  role: restricted
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - primary
-    - static_server_id
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - ip_address
+        - primary
+        - static_server_id
+      filter: {}
+      check: {}
+  - role: restricted
+    permission:
+      columns:
+        - ip_address
+        - primary
+        - static_server_id
+      filter: {}
+      check: {}
+  - role: user
+    permission:
+      columns:
+        - ip_address
+        - primary
+        - static_server_id
+      filter: {}
+      check: {}
 delete_permissions:
-- permission:
-    filter: {}
-  role: manager
-- permission:
-    filter: {}
-  role: restricted
-- permission:
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      filter: {}
+  - role: restricted
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter: {}

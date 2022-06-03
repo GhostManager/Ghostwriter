@@ -1,134 +1,142 @@
 table:
-  name: shepherd_staticserver
   schema: public
+  name: shepherd_staticserver
 configuration:
-  comment: null
-  custom_column_names:
-    ip_address: ipAddress
-    last_used_by_id: lastUsedById
-    server_provider_id: serverProviderId
-    server_status_id: serverStatusId
-  custom_name: staticServer
   custom_root_fields: {}
+  custom_name: staticServer
+  column_config:
+    last_used_by_id:
+      custom_name: lastUsedById
+    server_status_id:
+      custom_name: serverStatusId
+    ip_address:
+      custom_name: ipAddress
+    server_provider_id:
+      custom_name: serverProviderId
+  custom_column_names:
+    last_used_by_id: lastUsedById
+    server_status_id: serverStatusId
+    ip_address: ipAddress
+    server_provider_id: serverProviderId
 object_relationships:
-- name: serverProvider
-  using:
-    foreign_key_constraint_on: server_provider_id
-- name: serverStatus
-  using:
-    foreign_key_constraint_on: server_status_id
-- name: user
-  using:
-    foreign_key_constraint_on: last_used_by_id
+  - name: serverProvider
+    using:
+      foreign_key_constraint_on: server_provider_id
+  - name: serverStatus
+    using:
+      foreign_key_constraint_on: server_status_id
+  - name: user
+    using:
+      foreign_key_constraint_on: last_used_by_id
 array_relationships:
-- name: auxServerAddresses
-  using:
-    foreign_key_constraint_on:
-      column: static_server_id
-      table:
-        name: shepherd_auxserveraddress
-        schema: public
-- name: checkouts
-  using:
-    foreign_key_constraint_on:
-      column: server_id
-      table:
-        name: shepherd_serverhistory
-        schema: public
-- name: comments
-  using:
-    foreign_key_constraint_on:
-      column: server_id
-      table:
-        name: shepherd_servernote
-        schema: public
+  - name: auxServerAddresses
+    using:
+      foreign_key_constraint_on:
+        column: static_server_id
+        table:
+          schema: public
+          name: shepherd_auxserveraddress
+  - name: checkouts
+    using:
+      foreign_key_constraint_on:
+        column: server_id
+        table:
+          schema: public
+          name: shepherd_serverhistory
+  - name: comments
+    using:
+      foreign_key_constraint_on:
+        column: server_id
+        table:
+          schema: public
+          name: shepherd_servernote
 insert_permissions:
-- permission:
-    backend_only: false
-    check: {}
-    columns:
-    - ip_address
-    - name
-    - note
-    - server_provider_id
-    - server_status_id
-  role: manager
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - name
-    - note
-    - server_provider_id
-    - server_status_id
-  role: restricted
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - name
-    - note
-    - server_provider_id
-    - server_status_id
-  role: user
+  - role: manager
+    permission:
+      check: {}
+      columns:
+        - ip_address
+        - name
+        - note
+        - server_provider_id
+        - server_status_id
+      backend_only: false
+  - role: restricted
+    permission:
+      check: {}
+      columns:
+        - ip_address
+        - name
+        - note
+        - server_provider_id
+        - server_status_id
+  - role: user
+    permission:
+      check: {}
+      columns:
+        - ip_address
+        - name
+        - note
+        - server_provider_id
+        - server_status_id
 select_permissions:
-- permission:
-    columns:
-    - id
-    - ip_address
-    - last_used_by_id
-    - name
-    - note
-    - server_provider_id
-    - server_status_id
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - ip_address
+        - last_used_by_id
+        - name
+        - note
+        - server_provider_id
+        - server_status_id
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}
 update_permissions:
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - name
-    - note
-    - server_provider_id
-    - server_status_id
-    filter: {}
-  role: manager
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - name
-    - note
-    - server_provider_id
-    - server_status_id
-    filter: {}
-  role: restricted
-- permission:
-    check: {}
-    columns:
-    - ip_address
-    - name
-    - note
-    - server_provider_id
-    - server_status_id
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - ip_address
+        - name
+        - note
+        - server_provider_id
+        - server_status_id
+      filter: {}
+      check: {}
+  - role: restricted
+    permission:
+      columns:
+        - ip_address
+        - name
+        - note
+        - server_provider_id
+        - server_status_id
+      filter: {}
+      check: {}
+  - role: user
+    permission:
+      columns:
+        - ip_address
+        - name
+        - note
+        - server_provider_id
+        - server_status_id
+      filter: {}
+      check: {}
 delete_permissions:
-- permission:
-    filter: {}
-  role: manager
-- permission:
-    filter: {}
-  role: restricted
-- permission:
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      filter: {}
+  - role: restricted
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter: {}

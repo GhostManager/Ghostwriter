@@ -33,6 +33,7 @@ class UserFactory(factory.django.DjangoModelFactory):
     phone = Faker("phone_number")
     timezone = random.choice(TIMEZONES)
     password = factory.PostGenerationMethodCall("set_password", "mysecret")
+    role = "user"
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):

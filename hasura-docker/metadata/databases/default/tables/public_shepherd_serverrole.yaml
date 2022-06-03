@@ -1,39 +1,41 @@
 table:
-  name: shepherd_serverrole
   schema: public
+  name: shepherd_serverrole
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: serverRole
+  column_config:
+    server_role:
+      custom_name: serverRole
   custom_column_names:
     server_role: serverRole
-  custom_name: serverRole
-  custom_root_fields: {}
 array_relationships:
-- name: cloudServers
-  using:
-    foreign_key_constraint_on:
-      column: server_role_id
-      table:
-        name: shepherd_transientserver
-        schema: public
-- name: staticServers
-  using:
-    foreign_key_constraint_on:
-      column: server_role_id
-      table:
-        name: shepherd_serverhistory
-        schema: public
+  - name: cloudServers
+    using:
+      foreign_key_constraint_on:
+        column: server_role_id
+        table:
+          schema: public
+          name: shepherd_transientserver
+  - name: staticServers
+    using:
+      foreign_key_constraint_on:
+        column: server_role_id
+        table:
+          schema: public
+          name: shepherd_serverhistory
 select_permissions:
-- permission:
-    columns:
-    - id
-    - server_role
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - server_role
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

@@ -1,32 +1,34 @@
 table:
-  name: rolodex_projectrole
   schema: public
+  name: rolodex_projectrole
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: projectRole
+  column_config:
+    project_role:
+      custom_name: projectRole
   custom_column_names:
     project_role: projectRole
-  custom_name: projectRole
-  custom_root_fields: {}
 array_relationships:
-- name: assignments
-  using:
-    foreign_key_constraint_on:
-      column: role_id
-      table:
-        name: rolodex_projectassignment
-        schema: public
+  - name: assignments
+    using:
+      foreign_key_constraint_on:
+        column: role_id
+        table:
+          schema: public
+          name: rolodex_projectassignment
 select_permissions:
-- permission:
-    columns:
-    - id
-    - project_role
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter: {}
-  role: restricted
-- permission:
-    columns: "*"
-    filter: {}
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - project_role
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter: {}
+  - role: user
+    permission:
+      columns: '*'
+      filter: {}

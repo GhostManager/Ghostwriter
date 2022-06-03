@@ -1,287 +1,301 @@
 table:
-  name: oplog_oplogentry
   schema: public
+  name: oplog_oplogentry
 configuration:
-  comment: null
+  custom_root_fields: {}
+  custom_name: oplogEntry
+  column_config:
+    end_date:
+      custom_name: endDate
+    operator_name:
+      custom_name: operatorName
+    dest_ip:
+      custom_name: destIp
+    start_date:
+      custom_name: startDate
+    user_context:
+      custom_name: userContext
+    oplog_id_id:
+      custom_name: oplog
+    source_ip:
+      custom_name: sourceIp
   custom_column_names:
-    dest_ip: destIp
     end_date: endDate
     operator_name: operatorName
-    oplog_id_id: oplog
-    source_ip: sourceIp
+    dest_ip: destIp
     start_date: startDate
     user_context: userContext
-  custom_name: oplogEntry
-  custom_root_fields: {}
+    oplog_id_id: oplog
+    source_ip: sourceIp
 object_relationships:
-- name: log
-  using:
-    foreign_key_constraint_on: oplog_id_id
+  - name: log
+    using:
+      foreign_key_constraint_on: oplog_id_id
 insert_permissions:
-- permission:
-    backend_only: false
-    check: {}
-    columns:
-    - command
-    - comments
-    - description
-    - dest_ip
-    - end_date
-    - operator_name
-    - oplog_id_id
-    - output
-    - source_ip
-    - start_date
-    - tool
-    - user_context
-  role: manager
-- permission:
-    check:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-    columns:
-    - command
-    - comments
-    - description
-    - dest_ip
-    - end_date
-    - oplog_id_id
-    - output
-    - source_ip
-    - start_date
-    - tool
-    - user_context
-    set:
-      operator_name: x-hasura-User-Name
-  role: restricted
-- permission:
-    check:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-    columns:
-    - command
-    - comments
-    - description
-    - dest_ip
-    - end_date
-    - oplog_id_id
-    - output
-    - source_ip
-    - start_date
-    - tool
-    - user_context
-    set:
-      operator_name: x-hasura-User-Name
-  role: user
+  - role: manager
+    permission:
+      check: {}
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - operator_name
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+      backend_only: false
+  - role: restricted
+    permission:
+      check:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+      set:
+        operator_name: x-hasura-User-Name
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+  - role: user
+    permission:
+      check:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+      set:
+        operator_name: x-hasura-User-Name
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
 select_permissions:
-- permission:
-    columns:
-    - id
-    - oplog_id_id
-    - operator_name
-    - command
-    - comments
-    - description
-    - dest_ip
-    - output
-    - source_ip
-    - tool
-    - user_context
-    - end_date
-    - start_date
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    columns: "*"
-    filter:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - id
+        - oplog_id_id
+        - operator_name
+        - command
+        - comments
+        - description
+        - dest_ip
+        - output
+        - source_ip
+        - tool
+        - user_context
+        - end_date
+        - start_date
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns: '*'
+      filter:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
 update_permissions:
-- permission:
-    check: {}
-    columns:
-    - command
-    - comments
-    - description
-    - dest_ip
-    - end_date
-    - operator_name
-    - oplog_id_id
-    - output
-    - source_ip
-    - start_date
-    - tool
-    - user_context
-    filter: {}
-  role: manager
-- permission:
-    check:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-    columns:
-    - command
-    - comments
-    - description
-    - dest_ip
-    - end_date
-    - oplog_id_id
-    - output
-    - source_ip
-    - start_date
-    - tool
-    - user_context
-    filter:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    check:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-    columns:
-    - command
-    - comments
-    - description
-    - dest_ip
-    - end_date
-    - oplog_id_id
-    - output
-    - source_ip
-    - start_date
-    - tool
-    - user_context
-    filter:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - operator_name
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+      filter: {}
+      check: {}
+  - role: restricted
+    permission:
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+      filter:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+      check:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns:
+        - command
+        - comments
+        - description
+        - dest_ip
+        - end_date
+        - oplog_id_id
+        - output
+        - source_ip
+        - start_date
+        - tool
+        - user_context
+      filter:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+      check:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
 delete_permissions:
-- permission:
-    filter: {}
-  role: manager
-- permission:
-    filter:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    filter:
-      log:
-        project:
-          _or:
-          - invites:
-              user_id:
-                _eq: X-Hasura-User-Id
-          - assignments:
-              operator_id:
-                _eq: X-Hasura-User-Id
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      filter: {}
+  - role: restricted
+    permission:
+      filter:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      filter:
+        log:
+          project:
+            _or:
+              - invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+              - assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
+              - client:
+                  invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id

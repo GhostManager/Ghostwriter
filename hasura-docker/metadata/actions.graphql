@@ -1,4 +1,51 @@
 type Mutation {
+  checkoutDomain(
+    domainId: Int!
+    projectId: Int!
+    startDate: date!
+    endDate: date!
+    activityTypeId: Int!
+    note: String
+  ): checkoutResponse
+}
+
+type Mutation {
+  checkoutServer(
+    serverId: Int!
+    projectId: Int!
+    startDate: date!
+    endDate: date!
+    activityTypeId: Int!
+    serverRoleId: Int!
+    note: String
+  ): checkoutResponse
+}
+
+type Mutation {
+  deleteDomainCheckout(
+    checkoutId: Int!
+  ): checkoutResponse
+}
+
+type Mutation {
+  deleteEvidence(
+    evidenceId: Int!
+  ): deleteResponse
+}
+
+type Mutation {
+  deleteServerCheckout(
+    checkoutId: Int!
+  ): checkoutResponse
+}
+
+type Mutation {
+  deleteTemplate(
+    templateId: Int!
+  ): deleteResponse
+}
+
+type Mutation {
   generateReport(
     id: Int!
   ): ReportResponse
@@ -31,5 +78,13 @@ type ReportResponse {
   docxUrl: String!
   xlsxUrl: String!
   pptxUrl: String!
+}
+
+type checkoutResponse {
+  result: String!
+}
+
+type deleteResponse {
+  result: String!
 }
 

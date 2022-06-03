@@ -1,321 +1,337 @@
 table:
-  name: rolodex_project
   schema: public
+  name: rolodex_project
 configuration:
-  comment: null
-  custom_column_names:
-    client_id: clientId
-    end_date: endDate
-    end_time: endTime
-    operator_id: operatorId
-    project_type_id: projectTypeId
-    slack_channel: slackChannel
-    start_date: startDate
-    start_time: startTime
-  custom_name: project
   custom_root_fields: {}
+  custom_name: project
+  column_config:
+    end_date:
+      custom_name: endDate
+    operator_id:
+      custom_name: operatorId
+    start_date:
+      custom_name: startDate
+    client_id:
+      custom_name: clientId
+    start_time:
+      custom_name: startTime
+    slack_channel:
+      custom_name: slackChannel
+    end_time:
+      custom_name: endTime
+    project_type_id:
+      custom_name: projectTypeId
+  custom_column_names:
+    end_date: endDate
+    operator_id: operatorId
+    start_date: startDate
+    client_id: clientId
+    start_time: startTime
+    slack_channel: slackChannel
+    end_time: endTime
+    project_type_id: projectTypeId
 object_relationships:
-- name: client
-  using:
-    foreign_key_constraint_on: client_id
-- name: projectType
-  using:
-    foreign_key_constraint_on: project_type_id
-- name: user
-  using:
-    foreign_key_constraint_on: operator_id
+  - name: client
+    using:
+      foreign_key_constraint_on: client_id
+  - name: projectType
+    using:
+      foreign_key_constraint_on: project_type_id
+  - name: user
+    using:
+      foreign_key_constraint_on: operator_id
 array_relationships:
-- name: archives
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: reporting_archive
-        schema: public
-- name: assignments
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projectassignment
-        schema: public
-- name: cloudServers
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: shepherd_transientserver
-        schema: public
-- name: comments
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projectnote
-        schema: public
-- name: domainServerConnections
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: shepherd_domainserverconnection
-        schema: public
-- name: domains
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: shepherd_history
-        schema: public
-- name: invites
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projectinvite
-        schema: public
-- name: objectives
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projectobjective
-        schema: public
-- name: oplogs
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: oplog_oplog
-        schema: public
-- name: reports
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: reporting_report
-        schema: public
-- name: scopes
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projectscope
-        schema: public
-- name: staticServers
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: shepherd_serverhistory
-        schema: public
-- name: targets
-  using:
-    foreign_key_constraint_on:
-      column: project_id
-      table:
-        name: rolodex_projecttarget
-        schema: public
+  - name: archives
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: reporting_archive
+  - name: assignments
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: rolodex_projectassignment
+  - name: cloudServers
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: shepherd_transientserver
+  - name: comments
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: rolodex_projectnote
+  - name: domainServerConnections
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: shepherd_domainserverconnection
+  - name: domains
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: shepherd_history
+  - name: invites
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: rolodex_projectinvite
+  - name: objectives
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: rolodex_projectobjective
+  - name: oplogs
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: oplog_oplog
+  - name: reports
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: reporting_report
+  - name: scopes
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: rolodex_projectscope
+  - name: staticServers
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: shepherd_serverhistory
+  - name: targets
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          schema: public
+          name: rolodex_projecttarget
 insert_permissions:
-- permission:
-    backend_only: false
-    check: {}
-    columns:
-    - client_id
-    - codename
-    - end_date
-    - end_time
-    - note
-    - project_type_id
-    - slack_channel
-    - start_date
-    - start_time
-    - timezone
-    set:
-      operator_id: x-hasura-User-Id
-  role: manager
-- permission:
-    check:
-      client:
-        invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-    columns:
-    - client_id
-    - codename
-    - end_date
-    - end_time
-    - note
-    - project_type_id
-    - slack_channel
-    - start_date
-    - start_time
-    - timezone
-    set:
-      operator_id: x-hasura-User-Id
-  role: restricted
-- permission:
-    check:
-      client:
-        invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-    columns:
-    - client_id
-    - codename
-    - end_date
-    - end_time
-    - note
-    - project_type_id
-    - slack_channel
-    - start_date
-    - start_time
-    - timezone
-    set:
-      operator_id: x-hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      check: {}
+      set:
+        operator_id: x-hasura-User-Id
+      columns:
+        - client_id
+        - codename
+        - end_date
+        - end_time
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      backend_only: false
+  - role: restricted
+    permission:
+      check:
+        client:
+          invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+      set:
+        operator_id: x-hasura-User-Id
+      columns:
+        - client_id
+        - codename
+        - end_date
+        - end_time
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+  - role: user
+    permission:
+      check:
+        client:
+          invites:
+            user_id:
+              _eq: X-Hasura-User-Id
+      set:
+        operator_id: x-hasura-User-Id
+      columns:
+        - client_id
+        - codename
+        - end_date
+        - end_time
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
 select_permissions:
-- permission:
-    columns:
-    - client_id
-    - codename
-    - complete
-    - end_date
-    - end_time
-    - id
-    - note
-    - operator_id
-    - project_type_id
-    - slack_channel
-    - start_date
-    - start_time
-    - timezone
-    filter: {}
-  role: manager
-- permission:
-    columns: "*"
-    filter:
-      _or:
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
-      - invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    columns: "*"
-    filter:
-      _or:
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
-      - invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - client_id
+        - codename
+        - complete
+        - end_date
+        - end_time
+        - id
+        - note
+        - operator_id
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      filter: {}
+  - role: restricted
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - assignments:
+              operator_id:
+                _eq: X-Hasura-User-Id
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns: '*'
+      filter:
+        _or:
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - assignments:
+              operator_id:
+                _eq: X-Hasura-User-Id
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
 update_permissions:
-- permission:
-    check: {}
-    columns:
-    - client_id
-    - codename
-    - complete
-    - end_date
-    - end_time
-    - note
-    - project_type_id
-    - slack_channel
-    - start_date
-    - start_time
-    - timezone
-    filter: {}
-  role: manager
-- permission:
-    check:
-      _or:
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
-      - invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-    columns:
-    - client_id
-    - codename
-    - complete
-    - end_date
-    - end_time
-    - note
-    - project_type_id
-    - slack_channel
-    - start_date
-    - start_time
-    - timezone
-    filter:
-      _or:
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
-      - invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-  role: restricted
-- permission:
-    check:
-      _or:
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
-      - invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-    columns:
-    - client_id
-    - codename
-    - complete
-    - end_date
-    - end_time
-    - note
-    - project_type_id
-    - slack_channel
-    - start_date
-    - start_time
-    - timezone
-    filter:
-      _or:
-      - client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
-      - assignments:
-          operator_id:
-            _eq: X-Hasura-User-Id
-      - invites:
-          user_id:
-            _eq: X-Hasura-User-Id
-  role: user
+  - role: manager
+    permission:
+      columns:
+        - client_id
+        - codename
+        - complete
+        - end_date
+        - end_time
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      filter: {}
+      check: {}
+  - role: restricted
+    permission:
+      columns:
+        - client_id
+        - codename
+        - complete
+        - end_date
+        - end_time
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      filter:
+        _or:
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - assignments:
+              operator_id:
+                _eq: X-Hasura-User-Id
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+      check:
+        _or:
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - assignments:
+              operator_id:
+                _eq: X-Hasura-User-Id
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+  - role: user
+    permission:
+      columns:
+        - client_id
+        - codename
+        - complete
+        - end_date
+        - end_time
+        - note
+        - project_type_id
+        - slack_channel
+        - start_date
+        - start_time
+        - timezone
+      filter:
+        _or:
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - assignments:
+              operator_id:
+                _eq: X-Hasura-User-Id
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
+      check:
+        _or:
+          - client:
+              invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+          - assignments:
+              operator_id:
+                _eq: X-Hasura-User-Id
+          - invites:
+              user_id:
+                _eq: X-Hasura-User-Id
 delete_permissions:
-- permission:
-    filter: {}
-  role: manager
+  - role: manager
+    permission:
+      filter: {}

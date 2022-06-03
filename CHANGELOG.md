@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0-rc2] - 10 May 2022
+## [2.3.0-rc2] - 3 June 2022
 
 ### Added
 
@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Usernames are now clickable and open the user's profile page for viewing
 * Added a `generateReport` mutation to the GraphQL API capable of returning the JSON report data as a base64 string
 * Added user controls for generating and revoking API tokens from the user profile page
+* Added `checkoutDomain` and `checkoutServer` actions to the GraphQL API that validate checkouts
+* Added `deleteDomainCheckout`, `deleteServerCheckout`, `deleteTemplate`, and `deleteEvidence` actions to the GraphQL schema that clean-up the filesystem and database after deletions
 
 ### Changed
 
@@ -33,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 * Removed unnecessary status badges on tabs in the project dashboard that were confusing and not very helpful
+* Revoked direct insert permissions for `History` and `ServerHistory` tables used for tracking domain and server checkouts
 
 ### Fixed
 
@@ -40,10 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed error that blocked creation of default `BlockQuote` style in the report template
 * Fixed domain age column not sorting correctly in domain library table
 * Checkbox in server form will no longer appear way bigger than intended
+* Fixed issue where `<em>` tags could cause report generation to fail
 
 ### Security
 
-* None
+* Upgraded `pyjwt` to v2.4.0 to address CVE-2022-29217
 
 ## [2.3.0-rc1] - 2022-04-01
 
