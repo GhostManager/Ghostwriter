@@ -53,7 +53,10 @@ User = get_user_model()
 
 
 class HasuraView(View):
-    """ """
+    """
+    Custom view class that handles Ghostwriter's JWT authentication via
+    the Hasura GraphQL Engine.
+    """
     # Default/expected status code for all JSON responses sent to Hasura
     status = 200
     # Set model for actions that will interact with a specific model
@@ -117,14 +120,14 @@ class HasuraView(View):
 class JwtRequiredMixin:
     """Mixin for ``HasuraView`` to require a JWT to be present in the request header."""
     def dispatch(self, request, *args, **kwargs):
-        # TODO: Could allow use of Hasura's ``x-hasura-admin-secret`` header in lieu of the JWT
+        # This does not allow the use of Hasura's ``x-hasura-admin-secret`` header in lieu of a JWT
         if self.encoded_token:
             return super().dispatch(request, *args, **kwargs)
-        else:
-            return JsonResponse(
-                utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"),
-                status=400
-            )
+
+        return JsonResponse(
+            utils.generate_hasura_error_payload("No ``Authorization`` header found", "JWTMissing"),
+            status=400
+        )
 
 
 class HasuraActionView(HasuraView):
@@ -157,19 +160,18 @@ class HasuraActionView(HasuraView):
                     status=400
                 )
             # Hasura checks for required values, but we check here in case of a discrepency between the GraphQL schema and the view
-            else:
-                for required_input in self.required_inputs:
-                    if required_input not in self.input:
-                        return JsonResponse(
-                            utils.generate_hasura_error_payload("Missing one or more required inputs", "InvalidRequestBody"),
-                            status=400
-                        )
+            for required_input in self.required_inputs:
+                if required_input not in self.input:
+                    return JsonResponse(
+                        utils.generate_hasura_error_payload("Missing one or more required inputs", "InvalidRequestBody"),
+                        status=400
+                    )
             return super().dispatch(request, *args, **kwargs)
-        else:
-            return JsonResponse(
-                utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized"),
-                status=403
-            )
+
+        return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized"),
+            status=403
+        )
 
 
 class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
@@ -267,8 +269,8 @@ class HasuraCheckoutDeleteView(JwtRequiredMixin, HasuraActionView):
             instance.delete()
             data = {"result": "success", }
             return JsonResponse(data, status=self.status)
-        else:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
 class HasuraEventView(View):
@@ -284,6 +286,7 @@ class HasuraEventView(View):
     def setup(self, request, *args, **kwargs):
         try:
             self.data = json.loads(request.body)
+            # Ref: https://hasura.io/docs/latest/graphql/core/event-triggers/payload/
             if "event" in self.data:
                 self.event = self.data["event"]
                 self.old_data = self.data["event"]["data"]["old"]
@@ -295,11 +298,11 @@ class HasuraEventView(View):
     def dispatch(self, request, *args, **kwargs):
         if utils.verify_graphql_request(request.headers):
             return super().dispatch(request, *args, **kwargs)
-        else:
-            return JsonResponse(
-                utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized"),
-                status=403
-            )
+
+        return JsonResponse(
+            utils.generate_hasura_error_payload("Unauthorized access method", "Unauthorized"),
+            status=403
+        )
 
 
 ###########################
@@ -421,8 +424,8 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
                 "pptxUrl": reverse("reporting:generate_pptx", args=[report_id]),
             }
             return JsonResponse(data, status=self.status)
-        else:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
 class GraphqlCheckoutDomain(HasuraCheckoutView):
@@ -550,8 +553,8 @@ class GraphqlDeleteEvidenceAction(JwtRequiredMixin, HasuraActionView):
             evidence.delete()
             data = {"result": "success", }
             return JsonResponse(data, status=self.status)
-        else:
-            return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
+
+        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
 class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):

@@ -78,6 +78,16 @@ class HasuraViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    def test_action_requires_correct_secret(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.data,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": "wrong", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 403)
+
     def test_action_requires_secret(self):
         _, token = utils.generate_jwt(self.user)
         response = self.client.post(
