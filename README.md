@@ -1,17 +1,16 @@
 # Ghostwriter
 
-[![Python Version](https://img.shields.io/badge/Python-3.9-brightgreen.svg)](.)  [![Django Verison](https://img.shields.io/badge/Django-3.2-006400)](.)  [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.)  [![Black Hat Arsenal 2019](https://img.shields.io/badge/2019-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![Black Hat Arsenal 2022](https://img.shields.io/badge/2022-Black%20Hat%20Arsenal-lightgrey.svg)](https://www.blackhat.com/asia-22/arsenal/schedule/index.html#ghostwriter-26252)
-
-![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter?label=Latest%20Release)
-![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date&color=blue)
+[![Python Version](https://img.shields.io/badge/Python-3.9-brightgreen.svg)](.) [![Django Verison](https://img.shields.io/badge/Django-3.2-006400)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) ![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter?label=Latest%20Release) ![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date&color=blue)
 
 [![CodeFactor](https://img.shields.io/codefactor/grade/github/GhostManager/Ghostwriter?label=Code%20Quality)](.)  [![Code Coverage](https://img.shields.io/codecov/c/github/GhostManager/Ghostwriter?label=Code%20Coverage)](.)  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5139/badge)](https://bestpractices.coreinfrastructure.org/projects/5139)
+
+[![Black Hat USA Arsenal 2019 $ 2022](https://img.shields.io/badge/2019%20&%202022-Black%20Hat%20USA%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![Black Hat Asia Arsenal 2022](https://img.shields.io/badge/2022-Black%20Hat%20Asia%20Arsenal-lightgrey.svg)](https://www.blackhat.com/asia-22/arsenal/schedule/index.html#ghostwriter-26252)
 
 [![Build and Run Unit Test Workflow](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml/badge.svg)](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml)
 
 ![ghostwriter](DOCS/images/logo.png)
 
-Ghostwriter is a Django v3.0 project written in Python 3.9 and is designed to be used by a team of operators. The platform is made up of several Django apps that own different roles but work together.
+Ghostwriter is a Django v3.2 project written in Python 3.9 and is designed to be used by a team of operators. The platform is made up of several Django apps that own different roles but work together.
 
 ## Details
 
@@ -21,9 +20,7 @@ This blogpost discusses the design and intent behind Ghostwriter: [Introducing G
 
 ## Documentation
 
-The Ghostwriter Wiki contains everything you need to know to use or customize Ghostwriter:
-
-[Ghostwriter Wiki](https://ghostwriter.wiki/)
+The [Ghostwriter Wiki](https://ghostwriter.wiki/) contains everything you need to know to use or customize Ghostwriter.
 
 The wiki covers everything from installation and setup information for first time users to database schemas, the project's code style guide, and how to expand or customize parts of the project to fit your needs.
 
@@ -31,11 +28,11 @@ The wiki covers everything from installation and setup information for first tim
 
 [![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet)](https://bloodhoundgang.herokuapp.com)
 
-The quickest way to get help is Slack. The BloodHound Slack Team has a #ghostwriter channel for discussing this project and requesting assistance. There is also a #reporting channel for discussing various topics related to writing and managing reports and findings.
+The quickest way to get help is Slack. The BloodHound Slack Team has a *#ghostwriter* channel for discussing this project and requesting assistance. There is also a *#reporting* channel for discussing various topics related to writing and managing reports and findings.
 
 You can submit an issue. If you do, please use the issue template and provide as much information as possible.
 
-Before submitting an issue, review the [Ghostwriter Wiki](https://ghostwriter.wiki/). Many of the common issues new users encounter stem from missing a step (like loading the seed data to prep the database) or an issue with Docker on their host system.
+Before submitting an issue, review the [Ghostwriter Wiki](https://ghostwriter.wiki/). Many of the common issues new users encounter stem from missing an installation step or an issue with Docker on their host system.
 
 ## Contributing to the Project
 
@@ -56,6 +53,7 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 * [@fastlorenzo](https://github.com/fastlorenzo)
 * [@mattreduce](https://github.com/mattreduce)
 * [@dbuentello](https://github.com/dbuentello)
+* [@therealtoastycat](https://github.com/therealtoastycat)
 
 ## Supporters
 
