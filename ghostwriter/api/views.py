@@ -311,8 +311,16 @@ class HasuraEventView(View):
 
 
 class GraphqlTestView(JwtRequiredMixin, HasuraActionView):
-    """Test view for unit testing."""
+    """Test view for unit testing views that use ``HasuraView`` or ``HasuraActionView``."""
     required_inputs = ["id", "function", "args", ]
+
+    def post(self, request, *args, **kwargs):
+        """Test method for unit testing."""
+        return JsonResponse({"result": "success"}, status=self.status)
+
+
+class GraphqlEventTestView(HasuraEventView):
+    """Test view for unit testing views that use ``HasuraEventView``."""
 
     def post(self, request, *args, **kwargs):
         """Test method for unit testing."""
