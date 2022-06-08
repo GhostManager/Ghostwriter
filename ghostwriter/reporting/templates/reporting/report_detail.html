@@ -158,7 +158,7 @@
                                             cvss-info
                                         {% endif %}
                                     ">
-                                        <span style="display: inline;">{{ finding.cvss_score }}</span>
+                                        {% if finding.cvss_score %}{{ finding.cvss_score }}{% else %}--{% endif %}
                                     </td>
                                     {% if finding.evidence_set.all %}
                                         <td class="align-middle">
