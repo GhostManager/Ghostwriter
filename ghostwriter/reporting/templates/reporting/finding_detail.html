@@ -65,7 +65,7 @@
                 bug-icon
             {% endif %}
         ">
-            {{ finding.severity.severity }}
+            {{ finding.severity.severity }} {{ finding.cvss_score}}
         </span>
     </div>
 
@@ -154,7 +154,7 @@
 
     {% if finding.finding_guidance %}
         <div id="guidance" title="guidance">
-            <h3 class="finding-header icon help-icon">Fidning Guidance</h3>
+            <h3 class="finding-header icon help-icon">Finding Guidance</h3>
             <hr class="finding-hr" />
             <div class="finding-content">
                 {{ finding.finding_guidance|bleach }}
