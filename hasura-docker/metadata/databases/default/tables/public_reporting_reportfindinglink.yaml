@@ -67,6 +67,8 @@ insert_permissions:
       columns:
         - affected_entities
         - assigned_to_id
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
@@ -136,6 +138,8 @@ insert_permissions:
       columns:
         - affected_entities
         - assigned_to_id
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
@@ -159,7 +163,9 @@ select_permissions:
         - report_id
         - severity_id
         - complete
+        - cvss_vector
         - title
+        - cvss_score
         - position
         - affected_entities
         - description
@@ -190,7 +196,26 @@ select_permissions:
                       _eq: X-Hasura-User-Id
   - role: user
     permission:
-      columns: '*'
+      columns:
+        - assigned_to_id
+        - finding_type_id
+        - id
+        - report_id
+        - severity_id
+        - complete
+        - cvss_vector
+        - title
+        - cvss_score
+        - position
+        - affected_entities
+        - description
+        - finding_guidance
+        - host_detection_techniques
+        - impact
+        - mitigation
+        - network_detection_techniques
+        - references
+        - replication_steps
       filter:
         report:
           project:
@@ -212,6 +237,8 @@ update_permissions:
         - affected_entities
         - assigned_to_id
         - complete
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
@@ -280,6 +307,8 @@ update_permissions:
         - affected_entities
         - assigned_to_id
         - complete
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
