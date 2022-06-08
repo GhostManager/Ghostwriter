@@ -225,12 +225,10 @@ hr {
 ----------------------------------------------------- */
 
 h1 {
-  width: 100%;
-  height: 125px;
-  display: inline-block;
-  background-color: var(--h1-font-color);
-  margin-top: 0;
-  margin-bottom: 0;
+  text-align: center;
+  color: var(--h1-font-color);
+  font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+  font-size: 2.75em;
 }
 
 h2 {

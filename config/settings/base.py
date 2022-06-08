@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "2.3.0-rc2"
+__version__ = "3.0.0-rc1"
 VERSION = __version__
-RELEASE_DATE = "27 May 2022"
+RELEASE_DATE = "7 June 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -43,7 +43,7 @@ USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
 USE_L10N = False
 # https://docs.djangoproject.com/en/4.0/ref/settings/#date-format
-DATE_FORMAT = env("DATE_FORMAT", default="d M Y",)
+DATE_FORMAT = env("DJANGO_DATE_FORMAT", default="d M Y",)
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
@@ -334,7 +334,7 @@ MESSAGE_TAGS = {
 # health checks can take a long time and will be different for everyone.
 
 Q_CLUSTER = {
-    "name": env("QCLUSTER_NAME", default="soar"),
+    "name": env("DJANGO_QCLUSTER_NAME", default="soar"),
     "timeout": 43200,
     "retry": 43200,
     "recycle": 500,
@@ -426,7 +426,7 @@ GRAPHQL_JWT = {
     "JWT_EXPIRATION_DELTA": timedelta(minutes=15),
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_AUDIENCE": "Ghostwriter",
-    "JWT_SECRET_KEY": env("GRAPHQL_JWT_SECRET_KEY", default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe"),
+    "JWT_SECRET_KEY": env("DJANGO_JWT_SECRET_KEY", default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe"),
     "JWT_ALGORITHM": "HS256",
 }
 
