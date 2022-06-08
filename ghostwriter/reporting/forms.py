@@ -45,8 +45,9 @@ class FindingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
-        self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
         self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
@@ -315,11 +316,12 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             "reporting:upload_evidence_modal",
             kwargs={"pk": self.instance.id, "modal": "modal"},
         )
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["affected_entities"].widget.attrs[
             "placeholder"
         ] = "List of Hostnames or IP Addresses"
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
-        self.fields["title"].widget.attrs["autocomplete"] = "off"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
         self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
