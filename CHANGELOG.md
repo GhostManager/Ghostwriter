@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0-rc1] - 7 June 2022
+## [3.0.0-rc1] - 8 June 2022
 
 ### Added
 
@@ -19,11 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 
-* The individual _.env_ files stored in `.envs/` are no longer used and will be ignored going forward
+* The individual _.env_ files stored in `.envs/` are no longer used and will be ignored by v3.x.x and later
 
 ### Removed
 
-* Removed old environmnt variable templates from the project because they are no longer used for setup
+* Removed old environmnt variable templates from the project because they are no longer used for setup or management
 
 ## [2.3.0-rc2] - 3 June 2022
 
