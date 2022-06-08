@@ -280,6 +280,7 @@ class HasuraEventView(View):
     # Allowed HTTP methods for Event triggers (Hasura will only use POST)
     http_method_names = ["post", ]
     # Initialize default class attributes for event data
+    data = None
     old_data = None
     new_data = None
 
@@ -296,6 +297,13 @@ class HasuraEventView(View):
         super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
+        # Return 400 if no input was found
+        if not self.data:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Missing event data", "InvalidRequestBody"),
+                status=400
+            )
+
         if utils.verify_graphql_request(request.headers):
             return super().dispatch(request, *args, **kwargs)
 
