@@ -67,7 +67,7 @@ class FindingAdmin(ImportExportModelAdmin):
     list_editable = ("severity", "finding_type")
     list_display_links = ("title",)
     fieldsets = (
-        ("General Information", {"fields": ("title", "severity", "finding_type")}),
+        ("General Information", {"fields": ("title", "finding_type", "severity", "cvss_score", "cvss_vector")}),
         ("Finding Guidance", {"fields": ("finding_guidance",)}),
         (
             "Finding Details",
@@ -124,7 +124,7 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "General Information",
-            {"fields": ("title", "severity", "finding_type", "position")},
+            {"fields": ( "position", "title", "finding_type", "severity", "cvss_score", "cvss_vector")},
         ),
         ("Finding Status", {"fields": ("complete", "assigned_to", "report")}),
         ("Finding Guidance", {"fields": ("finding_guidance",)}),

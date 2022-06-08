@@ -2159,6 +2159,10 @@ th.icon {
   display: block;
 }
 
+.card-header {
+  cursor: pointer;
+}
+
 .myaccordion {
   max-width: 100%;
   margin: 10px auto;
