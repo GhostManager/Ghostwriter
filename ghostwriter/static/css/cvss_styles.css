@@ -161,23 +161,23 @@ fieldset input:checked+label {
 }
 
 .cvss-critical {
-    color: #cc0500;
+    color: var(--crit-rating-color);
 }
 
 .cvss-high {
-    color: #df3d03;
+    color: var(--high-rating-color);
 }
 
 .cvss-medium {
-    color: #f9a009;
+    color: var(--med-rating-color);
 }
 
 .cvss-low {
-    color: #ffcb0d;
+    color: var(--low-rating-color);
 }
 
 .cvss-info {
-    color: #53aa33;
+    color: var(--info-rating-color);
 }
 
 #baseMetricScore,

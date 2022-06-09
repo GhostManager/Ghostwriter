@@ -16,9 +16,34 @@ services:
     depends_on:
       - postgres
       - redis
-    env_file:
-      - ./.envs/.production/.django
-      - ./.envs/.production/.postgres
+    labels:
+      name: ghostwriter_django
+    environment:
+      - USE_DOCKER=${USE_DOCKER}
+      - IPYTHONDIR=${IPYTHONDIR}
+      - DJANGO_ACCOUNT_ALLOW_REGISTRATION=${DJANGO_ACCOUNT_ALLOW_REGISTRATION}
+      - DJANGO_ACCOUNT_EMAIL_VERIFICATION=${DJANGO_ACCOUNT_EMAIL_VERIFICATION}
+      - DJANGO_ADMIN_URL=${DJANGO_ADMIN_URL}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DJANGO_DATE_FORMAT=${DJANGO_DATE_FORMAT}
+      - DJANGO_JWT_SECRET_KEY=${DJANGO_JWT_SECRET_KEY}
+      - DJANGO_QCLUSTER_NAME=${DJANGO_QCLUSTER_NAME}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_SECURE_SSL_REDIRECT=${DJANGO_SECURE_SSL_REDIRECT}
+      - DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - MAILGUN_API_KEY=${DJANGO_MAILGUN_API_KEY}
+      - MAILGUN_DOMAIN=${DJANGO_MAILGUN_DOMAIN}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
+      - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
     command: /start
     volumes:
       - production_staticfiles:/app/staticfiles
@@ -33,8 +58,16 @@ services:
     volumes:
       - production_postgres_data:/var/lib/postgresql/data
       - production_postgres_data_backups:/backups
-    env_file:
-      - ./.envs/.production/.postgres
+    labels:
+      name: ghostwriter_postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+    ports:
+      - "${POSTGRES_PORT}:5432"
 
   nginx:
     build: ./compose/production/nginx
@@ -47,12 +80,19 @@ services:
       - production_staticfiles:/app/staticfiles
       - ./compose/production/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./ssl:/ssl
+    labels:
+      name: ghostwriter_nginx
     ports:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
 
   redis:
-    image: redis:5-alpine
+    build:
+      context: .
+      dockerfile: ./compose/production/redis/Dockerfile
+    image: ghostwriter_production_redis
+    labels:
+      name: ghostwriter_redis
     restart: unless-stopped
 
   queue:
@@ -64,26 +104,43 @@ services:
       - postgres
       - django
     ports: []
+    labels:
+      name: ghostwriter_queue
     command: /start-queue
 
-  graphql-engine:
-      build:
-        context: .
-        dockerfile: ./compose/production/hasura/Dockerfile
-      depends_on:
-        - postgres
-        - django
-      restart: always
-      ports:
-        - "8080:8080"
-        - "9691:9691"
-      volumes:
-        - ./hasura-docker/metadata:/metadata
-      logging:
-        driver: "json-file"
-        options:
-          max-file: "1"
-          max-size: "10m"
-      env_file:
-        - ./.envs/.production/.postgres
-        - ./.envs/.production/.hasura
+  graphql_engine:
+    build:
+      context: .
+      dockerfile: ./compose/production/hasura/Dockerfile
+    image: ghostwriter_production_graphql
+    depends_on:
+      - postgres
+      - django
+    restart: always
+    ports:
+      - "${HASURA_GRAPHQL_SERVER_PORT}:8080"
+      - "9691:9691"
+    volumes:
+      - ./hasura-docker/metadata:/metadata
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "1"
+        max-size: "10m"
+    labels:
+      name: ghostwriter_graphql
+    environment:
+      - ACTIONS_URL_BASE=http://${NGINX_HOST}:${NGINX_PORT}/api
+      - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
+      - HASURA_GRAPHQL_ADMIN_SECRET=${HASURA_GRAPHQL_ADMIN_SECRET}
+      - HASURA_GRAPHQL_AUTH_HOOK=http://${NGINX_HOST}:${NGINX_PORT}/api/webhook
+      - HASURA_GRAPHQL_DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      - HASURA_GRAPHQL_DEV_MODE=${HASURA_GRAPHQL_DEV_MODE}
+      - HASURA_GRAPHQL_ENABLE_CONSOLE=${HASURA_GRAPHQL_ENABLE_CONSOLE}
+      - HASURA_GRAPHQL_ENABLED_LOG_TYPES=${HASURA_GRAPHQL_ENABLED_LOG_TYPES}
+      - HASURA_GRAPHQL_ENABLE_TELEMETRY=${HASURA_GRAPHQL_ENABLE_TELEMETRY}
+      - HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY=${HASURA_GRAPHQL_INSECURE_SKIP_TLS_VERIFY}
+      - HASURA_GRAPHQL_LOG_LEVEL=${HASURA_GRAPHQL_LOG_LEVEL}
+      - HASURA_GRAPHQL_METADATA_DIR=${HASURA_GRAPHQL_METADATA_DIR}
+      - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR}
+      - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}

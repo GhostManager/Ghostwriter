@@ -158,7 +158,14 @@
                                             cvss-info
                                         {% endif %}
                                     ">
-                                        <span style="display: inline;">{{ finding.cvss_score }}</span>
+                                        {% if finding.cvss_score %}
+                                        <span
+                                            style="cursor: help"
+                                            data-toggle="tooltip"
+                                            data-placement="top"
+                                            title="{{ finding.cvss_vector }}"
+                                        >{{ finding.cvss_score }}</span>
+                                        {% else %}--{% endif %}
                                     </td>
                                     {% if finding.evidence_set.all %}
                                         <td class="align-middle">

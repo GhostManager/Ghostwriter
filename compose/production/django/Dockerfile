@@ -4,10 +4,9 @@ ENV PYTHONUNBUFFERED 1
 
 ENV PYTHONPATH="$PYTHONPATH:/app/config"
 
-RUN apk --no-cache add build-base
-
-# psycopg2 dependencies
-RUN apk --no-cache add --virtual build-deps gcc python3-dev musl-dev \
+RUN apk --no-cache add build-base \
+    # psycopg2 dependencies
+    && apk --no-cache add --virtual build-deps gcc python3-dev musl-dev \
     && apk --no-cache add postgresql-dev \
     # Pillow dependencies
     && apk --no-cache add jpeg-dev zlib-dev freetype-dev lcms2-dev openjpeg-dev tiff-dev tk-dev tcl-dev \

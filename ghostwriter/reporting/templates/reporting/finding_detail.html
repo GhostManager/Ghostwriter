@@ -63,12 +63,17 @@
                 wireless-icon
             {% else %}
                 bug-icon
+            {% endif %}"
+            {% if finding.cvss_score %}
+                style="cursor: help"
+                data-toggle="tooltip"
+                data-placement="bottom"
+                title="{{ finding.cvss_vector }}"
             {% endif %}
-        ">
-            {{ finding.severity.severity }} {{ finding.cvss_score}}
+        >
+            {{ finding.severity.severity }} {{ finding.cvss_score }}
         </span>
     </div>
-
 
     <div id="description" title="description">
         <h3 class="finding-header icon writing-icon">Description</h3>

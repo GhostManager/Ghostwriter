@@ -41,6 +41,8 @@ insert_permissions:
     permission:
       check: {}
       columns:
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
@@ -72,6 +74,8 @@ insert_permissions:
     permission:
       check: {}
       columns:
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
@@ -90,7 +94,9 @@ select_permissions:
         - finding_type_id
         - id
         - severity_id
+        - cvss_vector
         - title
+        - cvss_score
         - description
         - finding_guidance
         - host_detection_techniques
@@ -112,6 +118,8 @@ update_permissions:
   - role: manager
     permission:
       columns:
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
@@ -128,6 +136,8 @@ update_permissions:
   - role: restricted
     permission:
       columns:
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id
@@ -144,6 +154,8 @@ update_permissions:
   - role: user
     permission:
       columns:
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
         - finding_type_id

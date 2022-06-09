@@ -280,6 +280,7 @@ class HasuraEventView(View):
     # Allowed HTTP methods for Event triggers (Hasura will only use POST)
     http_method_names = ["post", ]
     # Initialize default class attributes for event data
+    data = None
     old_data = None
     new_data = None
 
@@ -296,6 +297,13 @@ class HasuraEventView(View):
         super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
+        # Return 400 if no input was found
+        if not self.data:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Missing event data", "InvalidRequestBody"),
+                status=400
+            )
+
         if utils.verify_graphql_request(request.headers):
             return super().dispatch(request, *args, **kwargs)
 
@@ -311,8 +319,16 @@ class HasuraEventView(View):
 
 
 class GraphqlTestView(JwtRequiredMixin, HasuraActionView):
-    """Test view for unit testing."""
+    """Test view for unit testing views that use ``HasuraView`` or ``HasuraActionView``."""
     required_inputs = ["id", "function", "args", ]
+
+    def post(self, request, *args, **kwargs):
+        """Test method for unit testing."""
+        return JsonResponse({"result": "success"}, status=self.status)
+
+
+class GraphqlEventTestView(HasuraEventView):
+    """Test view for unit testing views that use ``HasuraEventView``."""
 
     def post(self, request, *args, **kwargs):
         """Test method for unit testing."""
