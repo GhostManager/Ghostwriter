@@ -278,3 +278,6 @@ ssl/dhparam.pem
 
 # Temporary ignore of Cypress front end testing data
 cypress/*
+
+# Ignore renamed CLI binary
+ghostwriter-cli
