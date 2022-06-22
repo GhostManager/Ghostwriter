@@ -1,16 +1,20 @@
 # Ghostwriter
 
-[![Python Version](https://img.shields.io/badge/Python-3.9-brightgreen.svg)](.) [![Django Verison](https://img.shields.io/badge/Django-3.2-006400)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) ![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter?label=Latest%20Release) ![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date&color=blue)
+[![Python Version](https://img.shields.io/badge/Python-3.10-brightgreen.svg)](.) [![Django Verison](https://img.shields.io/badge/Django-3.2-006400)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) ![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter?label=Latest%20Release) ![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date&color=blue)
 
 [![CodeFactor](https://img.shields.io/codefactor/grade/github/GhostManager/Ghostwriter?label=Code%20Quality)](.)  [![Code Coverage](https://img.shields.io/codecov/c/github/GhostManager/Ghostwriter?label=Code%20Coverage)](.)  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5139/badge)](https://bestpractices.coreinfrastructure.org/projects/5139)
 
-[![Black Hat USA Arsenal 2019 $ 2022](https://img.shields.io/badge/2019%20&%202022-Black%20Hat%20USA%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![Black Hat Asia Arsenal 2022](https://img.shields.io/badge/2022-Black%20Hat%20Asia%20Arsenal-lightgrey.svg)](https://www.blackhat.com/asia-22/arsenal/schedule/index.html#ghostwriter-26252)
+[![Black Hat USA Arsenal 2019 & 2022](https://img.shields.io/badge/2019%20&%202022-Black%20Hat%20USA%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![Black Hat Asia Arsenal 2022](https://img.shields.io/badge/2022-Black%20Hat%20Asia%20Arsenal-lightgrey.svg)](https://www.blackhat.com/asia-22/arsenal/schedule/index.html#ghostwriter-26252)
 
 [![Build and Run Unit Test Workflow](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml/badge.svg)](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml)
 
 ![ghostwriter](DOCS/images/logo.png)
 
-Ghostwriter is a Django v3.2 project written in Python 3.9 and is designed to be used by a team of operators. The platform is made up of several Django apps that own different roles but work together.
+Ghostwriter is a Django-based web application designed to be used by an individual or a team of red team operators. The platform tracks and manages client and project information, covert infrastructure assets (e.g., servers and domain names), finding templates, report templates, evidence files, and more.
+
+This data is available to Ghostwriter's reporting engine, which generates complete Word (DOCX) reports using Jinja2 templating and your customized report templates. Ghostwriter can also produce reports in XLSX, PPTX, and JSON formats.
+
+Tap into Ghostwriter's GraphQL API to integrate custom project management, reporting workflows, and external tools into Ghostwriter.
 
 ## Details
 
