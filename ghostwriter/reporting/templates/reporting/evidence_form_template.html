@@ -31,7 +31,7 @@
             previewDiv.innerHTML="A preview was not loaded. Evidence type was "+ fileInput.files[0].type
         }
     }
-    $(window).on('paste', function() {
+    $(window).on('paste', function(e) {
         fileInput = document.getElementById('id_document')
         // use event.originalEvent.clipboard for newer chrome versions
         var pastedFileObj = (e.clipboardData  || e.originalEvent.clipboardData);
