@@ -594,7 +594,8 @@ class EvidenceForm(forms.ModelForm):
                 """
                 <h4 class="icon upload-icon">Upload a File</h4>
                 <hr>
-                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).</p>
+                <div id="findingPreview">Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).</div>
+                <hr>
                 """
             ),
             Div(

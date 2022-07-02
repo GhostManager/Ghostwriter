@@ -19,7 +19,31 @@
 
 <!-- Script for File Upload -->
 <script>
+    function renderPreview() {
+        fileInput = document.getElementById('id_document')
+        previewDiv=document.getElementById("findingPreview")
+        if (fileInput.files[0].type.indexOf("image")==0){
+            previewDiv.innerHTML='<img id="loadedImage" alt="image"/ >' 
+            loadedImage.src =URL.createObjectURL(fileInput.files[0])
+            loadedImage.style.border = "thin solid #555555"; 
+        } else {
+            //todo - read X lines from text file?
+            previewDiv.innerHTML="A preview was not loaded. Evidence type was "+ fileInput.files[0].type
+        }
+    }
+    $(window).on('paste', function(e) {
+        fileInput = document.getElementById('id_document')
+        // use event.originalEvent.clipboard for newer chrome versions
+        var pastedFileObj = (e.clipboardData  || e.originalEvent.clipboardData);
+
+        if (pastedFileObj.files.length){
+            fileInput.files = pastedFileObj.files
+            filename.textContent = 'C:\\fakepath\\'+fileInput.files[0].name
+            renderPreview()
+        }
+    });
     $('input[type=file]').on('change', function() {
         $("#filename").text($(this).val());
+        renderPreview()
     });
 </script>
