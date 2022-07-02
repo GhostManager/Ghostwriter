@@ -769,7 +769,24 @@
                     });
                 });
             </script>
+            <!-- Adds in a pretty border to the file input when a file is dragged over -->
             <script>
+		// Query the file drop element
+		const ele = document.getElementById("id_document")
+		// add frame when dragging file into id_doc
+		ele.addEventListener('dragenter', function (e) {
+			filename.classList.add('dragging');
+		});
+		// removes drag class when drag leaves
+		ele.addEventListener('dragleave', function (e) {
+			filename.classList.remove('dragging');
+		});
+		// removes drag class when file is dropped
+		ele.addEventListener('drop', function (e) {
+			filename.classList.remove('dragging');
+		});
+	    </script>
+	    <script>
               document.onload = ParseVector(document.getElementById("id_cvss_vector").value);
               CVSSAutoCalc();
             </script>

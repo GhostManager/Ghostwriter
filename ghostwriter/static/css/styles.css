@@ -2460,6 +2460,10 @@ ol {
   grid-column-end: span 1;
 }
 
+.dragging { 
+  border: 3px dashed var(--button-primary-color); 
+}
+
 @media screen and (min-width: 48rem) {
   .dashboard {
     --column-count: 4;
