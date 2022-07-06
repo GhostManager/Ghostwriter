@@ -67,6 +67,7 @@ insert_permissions:
       columns:
         - affected_entities
         - assigned_to_id
+        - complete
         - cvss_score
         - cvss_vector
         - description
@@ -138,6 +139,7 @@ insert_permissions:
       columns:
         - affected_entities
         - assigned_to_id
+        - complete
         - cvss_score
         - cvss_vector
         - description
