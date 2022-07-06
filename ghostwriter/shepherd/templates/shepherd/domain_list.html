@@ -58,9 +58,9 @@
                         <td class="align-middle">{{ domain.get_domain_age|intcomma }}</td>
 
                         {% if domain.is_expired %}
-                            <td class="align-middle burned">{{ domain.expiration }}</td>
+                            <td class="align-middle burned">{{ domain.expiration|date:"d M Y" }}</td>
                         {% else %}
-                            <td class="align-middle healthy">{{ domain.expiration }}</td>
+                            <td class="align-middle healthy">{{ domain.expiration|date:"d M Y" }}</td>
                         {% endif %}
 
                         {% if domain.categorization.items %}
