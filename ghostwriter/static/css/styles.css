@@ -1121,6 +1121,46 @@ td {
   padding-top: 0;
 }
 
+table.scroll {
+  width: 100%;
+}
+
+table.scroll tbody {
+  display: block;
+}
+
+table.scroll thead,
+table.scroll tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+table.scroll tbody {
+  height: 80.5vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+table.scroll tbody td div {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 200px;
+  width: 100%;
+}
+
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: var(--primary-color);
+  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+}
+
+
 /* ---------------------------------------------------
     CALENDAR STYLES
 ----------------------------------------------------- */
