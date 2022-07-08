@@ -1,0 +1,84 @@
+#!/bin/ash
+# shellcheck shell=dash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+readonly AVATAR_DIR=/app/ghostwriter/media/user_avatars
+readonly EVIDENCE_DIR=/app/ghostwriter/media/evidence
+readonly TEMPLATE_DIR=/app/ghostwriter/media/templates
+
+readonly TEMPLATE_PATH_DOCX=/app/ghostwriter/reporting/templates/reports/template.docx
+readonly TEMPLATE_PATH_PPTX=/app/ghostwriter/reporting/templates/reports/template.pptx
+
+create_dir() {
+  local target_directory="$1"
+  local target_user="${2:-django}"
+
+  if test -d "$target_directory"; then
+    return 0
+  fi
+
+  mkdir -p "$target_directory"
+  chown -R "$target_user": "$target_directory"
+}
+
+prepare() {
+  create_dir "$EVIDENCE_DIR" "${USER:-django}"
+  create_dir "$AVATAR_DIR" "${USER:-django}"
+  create_dir "$TEMPLATE_DIR" "${USER:-django}"
+
+  cp -u -p "$TEMPLATE_PATH_DOCX" "${TEMPLATE_DIR}/"
+  cp -u -p "$TEMPLATE_PATH_PPTX" "${TEMPLATE_DIR}/"
+}
+
+queue() {
+  python manage.py qcluster
+}
+
+live() {
+  python /app/manage.py collectstatic --noinput
+  python /app/manage.py migrate
+  # /usr/local/bin/daphne -b 0.0.0.0 -p 5000 config.asgi:application
+  uvicorn config.asgi:application --host 0.0.0.0 --port 5000
+}
+
+dev() {
+  python manage.py makemigrations
+  python manage.py migrate
+  # python manage.py runserver 0.0.0.0:8000
+  uvicorn config.asgi:application --host 0.0.0.0 --reload
+}
+
+debug() {
+  python -m pip install --upgrade pip
+  python manage.py makemigrations
+  python manage.py migrate
+  pip install debugpy -t /tmp
+  python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000 --nothreading
+}
+
+main() {
+  local target="${1:-live}"
+
+  prepare
+  case "$target" in
+  live | debug | dev)
+    prepare
+    $target
+    ;;
+  queue)
+    $target
+    ;;
+  *)
+    echo >&2 "Unknown target: $target"
+    echo >&2 "Usage: $0 [live|debug|dev|queue]"
+    echo >&2 "Defaulting to production equivalent: $0 live"
+    prepare
+    live
+    ;;
+  esac
+}
+
+main "$@"

@@ -1,0 +1,187 @@
+name: push-container
+
+on:
+  push:
+    branches:
+      - 'master'
+      - 'feature/push-to-container-registry'
+      - 'feature/push-to-container-registry-v3.0.0'
+    tags:
+      - 'v*'
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # at 03:00 on the 1st and 15th of the month
+    - cron:  '0 3 1,15 * *'
+
+env:
+  PLATFORMS: linux/amd64 # multiple platforms can be specified as: linux/amd64,linux/arm64
+
+jobs:
+  build_and_push_container_image:
+    runs-on: ubuntu-latest
+
+    permissions:
+      # when permissions are defined only those that are explicitly set will be enabled
+      # this workflow job currently only requires reading contents and writing packages.
+      # https://docs.github.com/en/actions/reference/authentication-in-a-workflow#modifying-the-permissions-for-the-github_token
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Validate secret defined
+        id: from_secrets
+        run: |
+          github_container_push="true";
+          dockerhub_token_exists="false";
+          dockerhub_username_exists="false";
+          dockerhub_namespace_exists="false";
+
+          [[ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]] && dockerhub_token_exists="true";
+          [[ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]] && dockerhub_username_exists="true";
+          [[ -n "${{ secrets.DOCKERHUB_NAMESPACE }}" ]] && dockerhub_namespace_exists="true";
+          [[ "true" = "${{ secrets.GITHUB_CONTAINER_PUSH_DISABLED }}" ]] && github_container_push="false";
+
+          echo "::set-output name=dockerhub_token_exists::${dockerhub_token_exists}";
+          echo "::set-output name=dockerhub_username_exists::${dockerhub_username_exists}";
+          echo "::set-output name=dockerhub_namespace_exists::${dockerhub_namespace_exists}";
+          echo "::set-output name=github_container_push::${github_container_push}";
+
+      - name: Generate container image names
+        id: generate_image_names
+        run: |
+          repository_name="$(basename "${GITHUB_REPOSITORY}")";
+          images=();
+
+          if [[ "${{ steps.from_secrets.outputs.github_container_push }}" = "true" ]];
+          then
+            # set GITHUB_CONTAINER_PUSH_DISABLED to a value of true to disable pushing to github container registry
+            images+=("ghcr.io/${GITHUB_REPOSITORY}");
+          fi
+
+          if [[ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]] && [[ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]] && [[ -n "${{ secrets.DOCKERHUB_NAMESPACE }}" ]];
+          then
+            # dockerhub repository should be the same as the github repository name, within the dockerhub namespace (organization or personal)
+            images+=("${{ secrets.DOCKERHUB_NAMESPACE }}/${repository_name}");
+          fi
+
+          # join the array for Docker meta job to produce image tags
+          # https://github.com/crazy-max/ghaction-docker-meta#inputs
+          echo "::set-output name=images::$(IFS=,; echo "${images[*]}")";
+
+      - name: Docker ghostwriter meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ steps.generate_image_names.outputs.images }}
+          tags: |
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=edge,branch=master
+            type=ref,event=branch
+            type=ref,event=pr
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: Docker ghostwriter:postgres meta
+        id: meta-postgres
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ steps.generate_image_names.outputs.images }}
+          flavor: |
+            prefix=postgres-
+          tags: |
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=edge,branch=master
+            type=ref,event=branch
+            type=ref,event=pr
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          version: latest
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        # conditions do not have direct access to github secrets so we check the output of the step from_secrets
+        if: ${{ steps.from_secrets.outputs.dockerhub_namespace_exists == 'true' && steps.from_secrets.outputs.dockerhub_token_exists == 'true' && steps.from_secrets.outputs.dockerhub_username_exists == 'true' }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        if: ${{ steps.from_secrets.outputs.github_container_push == 'true' }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          # Caches are scoped to the current branch and parent branch.
+          # Cache miss can happen on first run of a new branch
+          # If there is a matching cache key in the default branch then that should be used.
+          # https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows#matching-a-cache-key
+          # cache key is a hash of the base and production requirements.  Changes to these files will cause a full rebuild.
+          key: ${{ runner.os }}-buildx-${{ hashFiles('requirements/base.txt', 'requirements/production.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build and push - ghostwriter
+        uses: docker/build-push-action@v2
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./compose/django/Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ contains(fromJson('["push", "schedule"]'), github.event_name) }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          # type=gha will replace type=local when a buildx release containing
+          # https://github.com/docker/buildx/commit/5ca0cbff8ed63450a6d4a3b32659e9521d329a43 is published
+          # https://github.com/docker/buildx/pull/535
+          # cache-from: type=gha
+          # cache-to: type=gha
+
+      - name: Build and push - ghostwriter:postgres
+        uses: docker/build-push-action@v2
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./compose/postgres/Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ contains(fromJson('["push", "schedule"]'), github.event_name) }}
+          labels: ${{ steps.meta-postgres.outputs.labels }}
+          tags: ${{ steps.meta-postgres.outputs.tags }}
+          cache-from: type=local,src=/tmp/.buildx-cache-new
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          # type=gha will replace type=local when a buildx release containing
+          # https://github.com/docker/buildx/commit/5ca0cbff8ed63450a6d4a3b32659e9521d329a43 is published
+          # https://github.com/docker/buildx/pull/535
+          # cache-from: type=gha
+          # cache-to: type=gha
+
+      - name: Move cache
+        # This step can be removed when cache-from/cache-to have been updated to use type=gha
+        # https://github.com/docker/build-push-action/issues/252
+        # https://github.com/moby/buildkit/issues/1896
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
