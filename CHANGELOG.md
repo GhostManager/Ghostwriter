@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 8 July 2022
+
+### Changed
+
+* Set defaults on some fields to make it easier to insert new domains, objectives, and findings via GraphQL
+  * New domains will now default to WHOIS enabled, healthy, and available
+  * Objectives will now default to primary priority and position one (top of the list)
+  * Reported findings will now insert into position one (top of the list for its severity category)
+* Log entry fields can now be null to make it easier to insert new entries via GraphQL
+* Improved log entry view to make it easier to view logs
+
+### Fixed
+
+* Fixed "Stand by" message appearing for all users viewing a report when one user generates a report
+* Fixed domain expiration dates not sorting properly in the domain table when date format is changed
+* Fixed operation log entries not loading if null values were present from GraphQL submissions
+* Fixed `complete` field being required for reported findings but unavailable in the GraphQL schema (Fixes #226)
+* Fixed oplog entries not being displayed if they contained null values from GraphQL submissions
+* Fixed log entry tables not showing "No entries to display" row when no entries are available
+
 ## [3.0.0] - 22 June 2022
 
 ### Changed
