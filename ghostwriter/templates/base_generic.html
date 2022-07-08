@@ -81,8 +81,8 @@
         <link rel="stylesheet" href="{% static 'css/cvss_styles.css' %}">
         <script src="{% static 'js/cvsscalc30.js' %}"></script>
         <script src="{% static 'js/cvsscalc30_ui.js' %}"></script>
-        
-        
+
+
     </head>
 
     <body>
@@ -770,8 +770,15 @@
                 });
             </script>
             <script>
-              document.onload = ParseVector(document.getElementById("id_cvss_vector").value);
-              CVSSAutoCalc();
+                function PrepareCVSSCalc() {
+                    var cvss = document.getElementById("id_cvss_vector")
+                    if (cvss != null) {
+                        ParseVector(cvss.value);
+                        CVSSAutoCalc();
+                        console.log("CVSS calculator is ready")
+                    }
+                }
+                document.onload = PrepareCVSSCalc()
             </script>
         {% endblock %}
 
