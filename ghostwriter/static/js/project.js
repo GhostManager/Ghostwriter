@@ -19,6 +19,7 @@ function displayToastTop({
   toastr.options.extendedTimeOut = delay.toString();
   toastr.options.escapeHtml = escapeHTML;
   toastr.options.progressBar = true;
+  toastr.options.closeButton = true;
   let msg;
   if (type === 'success') {
     if (title == '') {
