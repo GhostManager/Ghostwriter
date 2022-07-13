@@ -48,6 +48,13 @@ DATE_FORMAT = env("DJANGO_DATE_FORMAT", default="d M Y",)
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
 LOCALE_PATHS = [str(ROOT_DIR / "locale")]
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
+origins = env(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=""
+)
+if origins:
+    CSRF_TRUSTED_ORIGINS = origins.split(" ")
 
 # DATABASES
 # ------------------------------------------------------------------------------
