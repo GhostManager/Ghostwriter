@@ -704,9 +704,20 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
             report_to_clone.save()
             new_report_pk = report_to_clone.pk
             for finding in findings:
+                evidences = Evidence.objects.select_related("finding").filter(
+                    finding=finding.pk
+                )
                 finding.report = report_to_clone
                 finding.pk = None
                 finding.save()
+
+                for evidence in evidences:
+                    evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
+                    evidence.finding = finding
+                    evidence._current_evidence = None
+                    evidence.document = evidence_file
+                    evidence.pk = None
+                    evidence.save()
 
             logger.info(
                 "Cloned %s %s by request of %s",
