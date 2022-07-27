@@ -281,7 +281,7 @@
                         <ul class="list-unstyled components">
                             <!-- Admin Panel Shortcuts -->
                             <p class="sideheader icon admin-icon">Administration</p>
-                            {% if request.user.is_staff %}
+                            {% if request.user.is_staff or request.user.role == "admin" %}
                                 <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
                                 <li>
                                     <a href="#adminSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Admin Panel</a>
