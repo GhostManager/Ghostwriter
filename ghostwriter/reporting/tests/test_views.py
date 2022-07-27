@@ -1427,16 +1427,22 @@ class ReportTemplateUpdateViewTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory(protected=True)
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, is_staff=True)
         cls.uri = reverse("reporting:template_update", kwargs={"pk": cls.template.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_mgr = Client()
         self.client_admin = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_admin.login(username=self.mgr_user.username, password=PASSWORD)
         )
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
         self.assertTrue(
@@ -1464,6 +1470,8 @@ class ReportTemplateUpdateViewTests(TestCase):
     def test_view_permissions(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
 
 
 class ReportTemplateDeleteViewTests(TestCase):
@@ -1473,16 +1481,22 @@ class ReportTemplateDeleteViewTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory(protected=True)
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, is_staff=True)
         cls.uri = reverse("reporting:template_delete", kwargs={"pk": cls.template.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_mgr = Client()
         self.client_admin = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(
             self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_admin.login(username=self.mgr_user.username, password=PASSWORD)
         )
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
         self.assertTrue(
@@ -1520,6 +1534,8 @@ class ReportTemplateDeleteViewTests(TestCase):
     def test_view_permissions(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
 
 
 class ReportTemplateLintViewTests(TestCase):
