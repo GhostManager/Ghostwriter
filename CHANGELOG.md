@@ -4,7 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 8 July 2022
+## [3.0.1] - 1 August 2022
+
+### Added
+
+* Added the `CSRF_TRUSTED_ORIGINS` to the base configuration to make it easier to add trusted origins for accessing Ghostwriter via a web proxy
+* Oplog ID now appears at the top of the log entries view for easier identification
+* Committed Ghostwriter CLI binaries (v0.2.2) for Windows, macOS, and Linux
+* Added project notes to the serialized report data as a list under `project.notes` (Closes #210)
 
 ### Changed
 
@@ -14,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Reported findings will now insert into position one (top of the list for its severity category)
 * Log entry fields can now be null to make it easier to insert new entries via GraphQL
 * Improved log entry view to make it easier to view logs
+* Users with the `manager` role can now update and delete protected report templates
+* User accounts can now be filtered by role in the admin panel
+* Removed GraphQL `operatorName` field preset to allow this value to be set by the user
 
 ### Fixed
 
@@ -23,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed `complete` field being required for reported findings but unavailable in the GraphQL schema (Fixes #226)
 * Fixed oplog entries not being displayed if they contained null values from GraphQL submissions
 * Fixed log entry tables not showing "No entries to display" row when no entries are available
+* Fixed an issue that could cause an error when making a new activity log with a name longer than 50 characters
+* Fixed minor issue that could prevent PowerPoint generation if multiple evidence images were stacked on top of each other inside a list
 
 ## [3.0.0] - 22 June 2022
 
