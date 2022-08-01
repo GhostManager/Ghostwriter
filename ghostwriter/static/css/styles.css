@@ -2954,3 +2954,26 @@ input:checked+.slider:before {
 .end-0 {
   right: 0 !important;
 }
+
+/* ---------------------------------------------------
+    TEXT CALLOUT STYLES
+----------------------------------------------------- */
+
+.slanted-highlight {
+  position: relative;
+}
+
+.slanted-highlight::before {
+  /* Highlight color */
+  background-color: var(--primary-color);
+
+  content: "";
+  position: absolute;
+  width: calc(100% + 10px);
+  height: 80%;
+  left: -5px;
+  bottom: 0;
+  z-index: -1;
+  transform: rotate(-4deg);
+  opacity: 0.3;
+}
