@@ -195,7 +195,7 @@ class OplogCreate(LoginRequiredMixin, CreateView):
             project = form.instance.project.id
             oplog_name = form.instance.name
             api_key_name = oplog_name
-            api_key, key = APIKey.objects.create_key(name=api_key_name)
+            api_key, key = APIKey.objects.create_key(name=api_key_name[:50])
             # Pass the API key via the messages framework
             messages.info(
                 self.request,

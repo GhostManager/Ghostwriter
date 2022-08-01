@@ -1540,6 +1540,8 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
     def has_permission(self):
         self.object = self.get_object()
         if self.object.protected:
+            if self.request.user.is_staff or self.request.user.role == "manager":
+                return True
             return self.request.user.is_staff
         return self.request.user.is_active
 
@@ -1600,6 +1602,8 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
     def has_permission(self):
         self.object = self.get_object()
         if self.object.protected:
+            if self.request.user.is_staff or self.request.user.role == "manager":
+                return True
             return self.request.user.is_staff
         return self.request.user.is_active
 

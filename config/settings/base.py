@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 VERSION = __version__
-RELEASE_DATE = "22 June 2022"
+RELEASE_DATE = "1 August 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -48,6 +48,13 @@ DATE_FORMAT = env("DJANGO_DATE_FORMAT", default="d M Y",)
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
 LOCALE_PATHS = [str(ROOT_DIR / "locale")]
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
+origins = env(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=""
+)
+if origins:
+    CSRF_TRUSTED_ORIGINS = origins.split(" ")
 
 # DATABASES
 # ------------------------------------------------------------------------------

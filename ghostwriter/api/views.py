@@ -3,6 +3,7 @@
 # Standard Libraries
 import json
 import logging
+from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
 from json import JSONDecodeError
@@ -19,6 +20,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView, View
 
 # 3rd Party Libraries
+from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
 
@@ -27,6 +29,7 @@ from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
 from ghostwriter.modules.reportwriter import Reportwriter
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Evidence, Report, ReportTemplate
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
@@ -613,6 +616,33 @@ class GraphqlDomainUpdateEvent(HasuraEventView):
     def post(self, request, *args, **kwargs):
         instance = Domain.objects.get(id=self.new_data["id"])
         instance.save()
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlOplogEntryCreateEvent(HasuraEventView):
+    """Event webhook to fire :model:`oplog.OplogEntry` insert signals."""
+    def post(self, request, *args, **kwargs):
+        instance = OplogEntry.objects.get(id=self.new_data["id"])
+        instance.save()
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlOplogEntryUpdateEvent(HasuraEventView):
+    """Event webhook to fire :model:`oplog.OplogEntry` update signals."""
+    def post(self, request, *args, **kwargs):
+        instance = OplogEntry.objects.get(id=self.new_data["id"])
+        instance.save()
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlOplogEntryDeleteEvent(HasuraEventView):
+    """Event webhook to fire :model:`oplog.OplogEntry` delete signals."""
+    def post(self, request, *args, **kwargs):
+        channel_layer = get_channel_layer()
+        json_message = json.dumps({"action": "delete", "data": self.old_data["id"]})
+        async_to_sync(channel_layer.group_send)(
+            str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
+        )
         return JsonResponse(self.data, status=self.status)
 
 

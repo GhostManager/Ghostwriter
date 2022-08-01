@@ -313,7 +313,7 @@
         ws_report.onmessage = function (e) {
             var data = JSON.parse(e.data);
             if (data.message['status'] == 'success') {
-                setTimeout(() => {  $('#spinner-modal').modal('toggle'); }, 1000);
+                setTimeout(() => {  $('#spinner-modal').modal('hide'); }, 1000);
             }
         };
 
