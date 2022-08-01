@@ -65,8 +65,6 @@ insert_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
-      set:
-        operator_name: x-hasura-User-Name
       columns:
         - command
         - comments
@@ -95,8 +93,6 @@ insert_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
-      set:
-        operator_name: x-hasura-User-Name
       columns:
         - command
         - comments
@@ -109,6 +105,7 @@ insert_permissions:
         - start_date
         - tool
         - user_context
+        - operator_name
 select_permissions:
   - role: manager
     permission:
@@ -235,6 +232,7 @@ update_permissions:
         - start_date
         - tool
         - user_context
+        - operator_name
       filter:
         log:
           project:
