@@ -36,26 +36,7 @@
     <div class="container">
         <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
     </div>
-
-    <p class="form-spacer"></p>
-
-    <!-- Project Status & Toggles -->
-    <div>
-        <h6>
-            <span data-toggle="tooltip" title="Toggle the project's status between executing and complete">
-                Project Status:
-                {% if project.complete %}
-                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
-                        <span id="js-project-status">Complete!</span> <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i>
-                    </a>
-                {% else %}
-                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
-                        <span id="js-project-status">In Progress</span> <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i>
-                    </a>
-                {% endif %}
-            </span>
-        </h6>
-    </div>
+    <hr />
 
     <p class="form-spacer"></p>
 
@@ -69,11 +50,28 @@
         <div class="tab-content">
             <!-- Planning Tab -->
             <div id="planning" class="tab-pane in active">
+
                 <!-- Details Section -->
                 <h4>Project Details</h4>
                 <hr />
 
                 <table class="table table-borderless table-centered project-details-table">
+                    <tr>
+                        <td class="text-left bold">Project Status</td>
+                        <td class="text-left">
+                            <span data-toggle="tooltip" title="Toggle the project's status between executing and complete">
+                                {% if project.complete %}
+                                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
+                                        <span id="js-project-status">Complete</span> <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
+                                        <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i> <span id="js-project-status">In Progress</span>
+                                    </a>
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
                     <tr>
                         <td class="text-left bold">Codename</td>
                         <td class="text-left">
