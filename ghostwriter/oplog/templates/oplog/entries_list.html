@@ -33,7 +33,15 @@
 
     <div class="container">
         <h2>{{ name }}</h2>
-        <h6>Project: {{ project.client }} {{ project.project_type }}</h6>
+        <h5>
+            <span
+                class="slanted-highlight"
+                data-toggle="tooltip"
+                data-placement="top"
+                title="Oplog ID for use with the API and tools like `mythic_sync` and `cobalt_sync`"
+                style="cursor: help;"
+            >Oplog ID #{{ pk }}</span>
+        </h5>
     </div>
 
     <!-- Oplog Table Section -->
