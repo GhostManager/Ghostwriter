@@ -2690,7 +2690,7 @@ img {
 div.checker span {
   display: -moz-inline-box;
   display: inline-block;
-  zoom: 1;
+  transform: scale(1);
   text-align: center;
   background-position: 0 -260px;
 }
@@ -2722,7 +2722,7 @@ div.selector,
 div.uploader {
   display: -moz-inline-box;
   display: inline-block;
-  zoom: 1;
+  transform: scale(1);
   vertical-align: middle;
 }
 
