@@ -46,3 +46,15 @@ class ApiKeyForm(forms.Form):
                 ),
             ),
         )
+
+    def clean_expiry_date(self):
+        expiry_date = self.cleaned_data["expiry_date"]
+
+        # Check if expiration comes before the creation date
+        if expiry_date:
+            if expiry_date < timezone.now():
+                raise ValidationError(
+                    "The API key expiration date cannot be in the past",
+                    code="invalid_expiry_date",
+                )
+        return expiry_date
