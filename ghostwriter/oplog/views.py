@@ -185,11 +185,6 @@ class OplogCreate(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         # Save the new :model:`oplog.Oplog` instance
         form.save()
-        messages.success(
-            self.request,
-            "New operation log was successfully created",
-            extra_tags="alert-success",
-        )
         # Create new API key for this oplog
         try:
             project = form.instance.project.id
