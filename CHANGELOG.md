@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] - 4 August 2022
+
+### Fixed
+
+* Removed duplicate toast message displayed after the successful creation of a new oplog
+* Fixed GraphQL configuration that could cause webhook authentication to fail
+* Fixed server error when tryign to view entries for an oplog that does not exist
+
+### Changed
+
+* Groups are now hidden on the user profile unless a user is part of a group
+* Adjusted client and project dashboards for better display of information and controls
+* Display of client's timezone has been changed to display the client's current date and time with the abbreviated timezone name
+* API keys now start with an initial expiry date that is +1 days from the current date
+* Project descriptions are now truncated after 35 words to make lengthy descriptions more readable in some sections of the UI
+
+## [3.0.2] - 2 August 2022
+
+### Fixed
+
+* Upgraded `Pillow` dependency to avoid issue between `Pillow` and `setuptools` v63.3.0
+
 ## [3.0.1] - 1 August 2022
 
 ### Added
