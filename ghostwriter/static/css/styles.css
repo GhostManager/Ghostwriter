@@ -73,6 +73,17 @@ hr {
   font-weight: 300;
 }
 
+.hidden-element:before {
+  display: block;
+  width: 100%;
+  height: 1em;
+  content: '';
+}
+
+.description-block {
+  text-align: justify;
+}
+
 /* ---------------------------------------------------
     CUSTOM BOOTSTRAP INPUT STYLES
 ----------------------------------------------------- */
@@ -866,6 +877,10 @@ p.severity-box.info {
 .neutral-background {
   background-color: var(--neutral-rating-color);
   font-weight: 600;
+}
+
+.address p {
+  margin-bottom: 0;
 }
 
 /* ---------------------------------------------------
