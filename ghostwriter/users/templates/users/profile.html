@@ -88,20 +88,19 @@
                     </p>
                 </div>
             </div>
-            <div class="row align-items-center text-left">
-                <div class="col-sm">
-                    <p class="bold icon groups-icon">Groups</p>
-                </div>
-                <div class="col-sm">
-                    <p class="text-center">
-                        {% if user|get_groups %}
+
+            {% if user|get_groups %}
+                <div class="row align-items-center text-left">
+                    <div class="col-sm">
+                        <p class="bold icon groups-icon">Groups</p>
+                    </div>
+                    <div class="col-sm">
+                        <p class="text-center">
                             {{ user|get_groups }}
-                        {% else %}
-                            --
-                        {% endif %}
-                    </p>
+                        </p>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         {% endif %}
     </div>
 
