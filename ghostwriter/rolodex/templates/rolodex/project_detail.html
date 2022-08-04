@@ -94,25 +94,23 @@
                             {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
                         </td>
                     </tr>
-                    {% if project.note %}
-                        <tr>
-                            <td class="text-left bold">Project Description</td>
-                            <td class="text-left">
-                                <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
-                            </td>
-                        </tr>
-                    {% endif %}
+                    <tr>
+                        <td class="text-left bold">Project Description</td>
+                        <td class="text-left">
+                            <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
+                        </td>
+                    </tr>
                 </table>
 
-                {% if project.note %}
-                    <div id="projectDescription" style="display:none;">
+                <div id="projectDescription" class="description-block">
+                    {% if project.note %}
                         {{ project.note|bleach }}
-                    </div>
-                {% else %}
-                    <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
-                {% endif %}
+                    {% else %}
+                        <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+                    {% endif %}
+                </div>
 
-                <p class="form-spacer"></p>
+                <div class="hidden-element"></div>
 
                 <!-- Assignment Section -->
                 <h4>Project Assignments</h4>
@@ -529,7 +527,7 @@
                         <thead>
                             <th class="align-middle">
                                 <div class="dropdown dropleft">
-                                    <span id="address-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
+                                    <span id="address-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
                                     <div id="address-info" class="dropdown-menu dropdown-info-content" aria-labelledby="address-info-btn">
                                         <p>The primary IP address is set in the database and used only to allow users to determine which IP address is used globally to refer to the server.<br />
                                         Only <em>static servers</em> will be links.</p>
@@ -757,10 +755,18 @@
         });
     </script>
 
+    <!-- Hide Project Description -->
+    <script>
+        $('div.description-block').each(function(){
+            $(this).css('height', $(this).height()+'px');
+            $(this).hide();
+        });
+    </script>
+
     <!-- Expand Hidden Project Description -->
     <script>
-        $('#projectDescriptionDropdown').click(function () {
-            $('#projectDescription').toggle('slow');
+        $('#projectDescriptionDropdown').click(function (e) {
+            $('#projectDescription').slideToggle('slow');
             $('#projectDescriptionDropdown').toggleClass('add-icon sub-icon')
         });
     </script>
