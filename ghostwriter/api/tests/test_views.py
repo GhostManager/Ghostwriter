@@ -1222,7 +1222,7 @@ class ApiKeyCreateTests(TestCase):
         self.assertEqual(response.context["cancel_link"], self.redirect_uri)
 
     def test_post_data(self):
-        response = self.client_auth.post(self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now()})
+        response = self.client_auth.post(self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now() + timedelta(days=1)})
         self.assertRedirects(response, self.redirect_uri)
         obj = APIKey.objects.get(name="CreateView Test")
         self.assertEqual(obj.user, self.user)
