@@ -6,6 +6,10 @@
     GENERAL STYLES
 ----------------------------------------------------- */
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   font-family: 'Poppins', 'Font Awesome 5 Free', sans-serif;
   background: var(--main-bg-color);
