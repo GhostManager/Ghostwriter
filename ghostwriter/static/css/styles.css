@@ -991,6 +991,10 @@ p.severity-box.info {
   color: #fff;
 }
 
+button.open {
+  transform: rotate(90deg);
+}
+
 /* ---------------------------------------------------
     TABLE STYLES
 ----------------------------------------------------- */
@@ -1176,6 +1180,19 @@ table.scroll tbody td div {
   -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5);
 }
 
+.hidden-div {
+  display: none;
+}
+
+tr.hidden-row td {
+  padding: 0;
+  border: none;
+}
+
+tr.hidden-row td>div {
+  padding: 5px;
+  border: none;
+}
 
 /* ---------------------------------------------------
     CALENDAR STYLES
