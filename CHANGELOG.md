@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.3] - 4 August 2022
+## [3.0.3] - 5 August 2022
 
 ### Fixed
 
@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Display of client's timezone has been changed to display the client's current date and time with the abbreviated timezone name
 * API keys now start with an initial expiry date that is +1 days from the current date
 * Project descriptions are now truncated after 35 words to make lengthy descriptions more readable in some sections of the UI
+* Infrastructure notes under the project dashboard are now inside collapsible sections for easier reading
+* Upgraded Ghostwriter CLI binaries to v0.2.3
 
 ## [3.0.2] - 2 August 2022
 
