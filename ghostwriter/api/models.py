@@ -136,7 +136,8 @@ class AbstractAPIKey(models.Model):
     def _validate_revoked(self) -> None:
         if self._initial_revoked and not self.revoked:
             raise ValidationError(
-                "The API key has been revoked, which cannot be undone"
+                "The API key has been revoked, which cannot be undone",
+                code="revoked",
             )
 
     def __str__(self) -> str:

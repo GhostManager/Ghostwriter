@@ -88,20 +88,19 @@
                     </p>
                 </div>
             </div>
-            <div class="row align-items-center text-left">
-                <div class="col-sm">
-                    <p class="bold icon groups-icon">Groups</p>
-                </div>
-                <div class="col-sm">
-                    <p class="text-center">
-                        {% if user|get_groups %}
+
+            {% if user|get_groups %}
+                <div class="row align-items-center text-left">
+                    <div class="col-sm">
+                        <p class="bold icon groups-icon">Groups</p>
+                    </div>
+                    <div class="col-sm">
+                        <p class="text-center">
                             {{ user|get_groups }}
-                        {% else %}
-                            --
-                        {% endif %}
-                    </p>
+                        </p>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         {% endif %}
     </div>
 
@@ -145,11 +144,17 @@
                 {% for key in user.apikey_set.get_usable_keys %}
                     <tr>
                         <td class="align-middle">{{ key.name }}</td>
-                        <td class="align-middle">{{ key.created|date:"d M Y H:m" }}</td>
+                        <td class="align-middle">{{ key.created|date:"d M Y @ H:i:s e" }}</td>
                         {% if key.has_expired %}
-                            <td class="align-middle burned js-expired-token">{{ key.expiry_date|date:"d M Y H:m" }}</td>
+                            <td class="align-middle burned js-expired-token">{{ key.expiry_date|date:"d M Y @ H:i:s e" }}</td>
                         {% else %}
-                            <td class="align-middle">{{ key.expiry_date|date:"d M Y H:m" }}</td>
+                            <td class="align-middle">
+                                {% if key.expiry_date %}
+                                    {{ key.expiry_date|date:"d M Y @ H:i:s e" }}
+                                {% else %}
+                                    Never
+                                {% endif %}
+                            </td>
                         {% endif %}
                         <td>
                             <a id="token-revoke-button-{{ key.id }}" class="btn btn-danger js-confirm-revoke" data-toggle="modal" data-target="#confirm-revoke-modal" href="javascript:void(0);" revoke-target-csrftoken="{{ csrf_token }}" revoke-target-url="{% url 'api:ajax_revoke_token' key.id%}" revoke-target-id="{{ key.id }}">

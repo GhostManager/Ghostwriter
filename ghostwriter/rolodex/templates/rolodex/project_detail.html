@@ -94,25 +94,23 @@
                             {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
                         </td>
                     </tr>
-                    {% if project.note %}
-                        <tr>
-                            <td class="text-left bold">Project Description</td>
-                            <td class="text-left">
-                                <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
-                            </td>
-                        </tr>
-                    {% endif %}
+                    <tr>
+                        <td class="text-left bold">Project Description</td>
+                        <td class="text-left">
+                            <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
+                        </td>
+                    </tr>
                 </table>
 
-                {% if project.note %}
-                    <div id="projectDescription" style="display:none;">
+                <div id="projectDescription" class="description-block">
+                    {% if project.note %}
                         {{ project.note|bleach }}
-                    </div>
-                {% else %}
-                    <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
-                {% endif %}
+                    {% else %}
+                        <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+                    {% endif %}
+                </div>
 
-                <p class="form-spacer"></p>
+                <div class="hidden-element"></div>
 
                 <!-- Assignment Section -->
                 <h4>Project Assignments</h4>
@@ -474,8 +472,8 @@
                             <th class="align-middle">Domain Name</th>
                             <th class="align-middle">Purpose</th>
                             <th class="sorter-date-range-dMMMyyyy align-middle">Date Range</th>
-                            <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false align-middle">Options</th>
+                            <th class="sorter-false align-middle">Additional Info</th>
                         </thead>
                         {% for domain in project.history_set.all %}
                             <tr>
@@ -486,7 +484,6 @@
                                 </td>
                                 <td class="align-middle">{{ domain.activity_type }}</td>
                                 <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
-                                <td clss="text-justify align-middle">{{ domain.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="domain-dropdown-btn-{{ domain.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
@@ -495,6 +492,20 @@
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' domain.id %}">Edit Checkout</a>
                                             <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' domain.id %}">Delete Checkout</a>
                                         </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button
+                                        class="expandme btn btn-transaprent"
+                                        onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
+                                        title="Expand to view additional information"
+                                    ></button>
+                                </td>
+                            </tr>
+                            <tr class="hidden-row">
+                                <td colspan=5>
+                                    <div id="hidden-domain-data-{{ domain.id }}" class="hidden-div">
+                                        {{ domain.note|bleach }}
                                     </div>
                                 </td>
                             </tr>
@@ -529,7 +540,7 @@
                         <thead>
                             <th class="align-middle">
                                 <div class="dropdown dropleft">
-                                    <span id="address-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
+                                    <span id="address-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
                                     <div id="address-info" class="dropdown-menu dropdown-info-content" aria-labelledby="address-info-btn">
                                         <p>The primary IP address is set in the database and used only to allow users to determine which IP address is used globally to refer to the server.<br />
                                         Only <em>static servers</em> will be links.</p>
@@ -541,8 +552,8 @@
                             <th class="align-middle pr-4">Purpose</th>
                             <th class="align-middle pr-4">Role</th>
                             <th class="align-middle pr-4">Provider</th>
-                            <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false align-middle">Options</th>
+                            <th class="sorter-false align-middle">Additional Info</th>
                         </thead>
                         {% for server in project.serverhistory_set.all %}
                             {% get_primary_address server.server as primary_address%}
@@ -567,7 +578,6 @@
                                 <td class="align-middle">{{ server.activity_type }}</td>
                                 <td class="align-middle">{{ server.server_role }}</td>
                                 <td class="align-middle">{{ server.server.server_provider }}</td>
-                                <td class="text-justify align-middle">{{ server.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="server-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
@@ -576,6 +586,20 @@
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' server.id %}">Edit Checkout</a>
                                             <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_history_delete' server.id %}">Delete Checkout</a>
                                         </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button
+                                        class="expandme btn btn-transaprent"
+                                        onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
+                                        title="Expand to view additional information"
+                                    ></button>
+                                </td>
+                            </tr>
+                            <tr class="hidden-row">
+                                <td colspan=8>
+                                    <div id="hidden-server-data-{{ server.id }}" class="hidden-div">
+                                        {{ server.note|bleach }}
                                     </div>
                                 </td>
                             </tr>
@@ -592,7 +616,6 @@
                                 <td class="align-middle">{{ server.activity_type }}</td>
                                 <td class="align-middle">{{ server.server_role }}</td>
                                 <td class="align-middle">{{ server.server_provider }}</td>
-                                <td class="text-justify align-middle">{{ server.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="vps-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
@@ -600,6 +623,20 @@
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:vps_update' server.id %}">Edit VPS</a>
                                             <a class="dropdown-item icon trash-icon" id="server-delete-button-{{ server.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id%}" delete-target-id="{{ server.id }}" delete-target-type="server">Delete VPS</a>
                                         </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button
+                                        class="expandme btn btn-transaprent"
+                                        onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
+                                        title="Expand to view additional information"
+                                    ></button>
+                                </td>
+                            </tr>
+                            <tr class="hidden-row">
+                                <td colspan=8>
+                                    <div id="hidden-vps-data-{{ server.id }}" class="hidden-div">
+                                        {{ server.note|bleach }}
                                     </div>
                                 </td>
                             </tr>
@@ -757,10 +794,18 @@
         });
     </script>
 
+    <!-- Hide Project Description -->
+    <script>
+        $('div.description-block').each(function(){
+            $(this).css('height', $(this).height()+'px');
+            $(this).hide();
+        });
+    </script>
+
     <!-- Expand Hidden Project Description -->
     <script>
-        $('#projectDescriptionDropdown').click(function () {
-            $('#projectDescription').toggle('slow');
+        $('#projectDescriptionDropdown').click(function (e) {
+            $('#projectDescription').slideToggle('slow');
             $('#projectDescriptionDropdown').toggleClass('add-icon sub-icon')
         });
     </script>
@@ -940,7 +985,7 @@
                                 console.log(data);
                             }
                         });
-                        // This fires before ``onEnd()` where we adjust the hidden tasks lists so
+                        // This fires before ``onEnd()`` where we adjust the hidden tasks lists so
                         // an "empty" row will still have the hidden row during the remove
                         if (event.from.rows.length == 1) {
                             // Add a placeholder row
@@ -1546,6 +1591,14 @@
 
             prepareTodoList();
         });
+    </script>
+
+    <!-- Show/Hide Hidden Data Rows -->
+    <script type="text/javascript">
+        function showHideRow(btn, row) {
+            btn.toggleClass('open');
+            $("#" + row).slideToggle(500);
+        }
     </script>
 
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
