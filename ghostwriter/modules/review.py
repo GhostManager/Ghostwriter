@@ -181,6 +181,14 @@ class DomainReview:
                     domain_categories = {}
                     lab_results[domain.id]["vt_results"] = vt_results["data"]
 
+                    # Check if the domain is tagged as DGA
+                    if "tags" in vt_results["data"]:
+                        if "dga" in vt_results["data"]["tags"]:
+                            burned = True
+                            burned_explanations.append(
+                                "Domain is tagged with `DGA` for domain generation algorithm, and likely flagged for malware."
+                            )
+
                     # Check if VT returned the ``categories`` key with a list
                     if "categories" in vt_results["data"]:
                         # Store the categories and check each one against the blocklist
@@ -196,9 +204,7 @@ class DomainReview:
                                 )
                                 burned = True
                                 burned_explanations.append(
-                                    "{source} has assigned the domain an undesirable category: {cat}".format(
-                                        source=source, cat=category
-                                    )
+                                    f"{source} has assigned the domain an undesirable category: {category}."
                                 )
 
                     # Check for any detections
@@ -207,7 +213,7 @@ class DomainReview:
                         if analysis_stats["malicious"] > 0:
                             burned = True
                             burned_explanations.append(
-                                "A VirusTotal scanner has flagged the domain as malicious"
+                                "A VirusTotal scanner has flagged the domain as malicious."
                             )
                             logger.warning(
                                 "A VirusTotal scanner has flagged the %s as malicious",
@@ -220,7 +226,7 @@ class DomainReview:
                         if votes["malicious"] > 0:
                             burned = True
                             burned_explanations.append(
-                                "There are {} VirusTotal community votes flagging the the domain as malicious".format(
+                                "There are {} VirusTotal community votes flagging the the domain as malicious.".format(
                                     votes["malicious"]
                                 )
                             )
