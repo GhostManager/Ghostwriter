@@ -269,12 +269,13 @@
                 $('#connectionStatus').html('Connected');
                 $('#connectionStatus').toggleClass('connected');
                 errorDisplayed = false;
-                // Clear all rows after thef irst row in case it's a reconnect
+                // Clear all rows after the first row in case it's a reconnect
                 $table.find("tr:gt(0)").remove();
             }
 
             socket.onmessage = function (e) {
                 message = JSON.parse(e.data)
+                console.log(message)
                 if (message["action"] == "sync") {
                     $('#spinner-modal').modal('toggle');
                     entries = message["data"]
@@ -296,7 +297,6 @@
                     $('#spinner-modal').modal('toggle');
                 }
                 if (message["action"] == "create") {
-                    $('#oplogTableNoEntries').hide()
                     entries = message["data"]
                     entries.forEach(element => {
                         entry = element['fields']
@@ -317,6 +317,7 @@
 
                         hideColumns()
                         $newRow.fadeIn("slow");
+                        $('#oplogTableNoEntries').hide()
                     })
                 }
                 if (message["action"] == "delete") {
@@ -370,7 +371,7 @@
             columnInfo.forEach(function (value, index, array) {
                 checkboxEntry = `
                 <input type="checkbox" id="${value[0]}" checked/>
-                <lablel>${value[2]}</label>
+                <label>${value[2]}</label>
                 `
                 $checkboxList.append(checkboxEntry)
                 headerColumn = `
@@ -388,7 +389,7 @@
                 });
             });
 
-            // Table cell keyboard nvaigation and control
+            // Table cell keyboard navigation and control
             // Move selected cell based on key presses
             // Open the selected cell for editing when the user presses the "Enter" key
             $("body").keydown(function (e) {
