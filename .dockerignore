@@ -1,4 +1,38 @@
+# Exclude anything beginning with `.`
 .*
 !.coveragerc
 !.env
 !.pylintrc
+
+# Exclude all MarkDown and files
+*.md
+
+# Exclude git and editor files
+**/.git
+**/.github
+**/.gitignore
+**/.gitattributes
+**/.vscode
+**/coverage
+
+# Exclude secrets and other hidden files
+**/.env
+**/.aws
+**/.ssh
+**/.DS_Store
+
+# Exclude Docker and Docker Compose files
+**/Dockerfile
+docker-compose.yml
+local.yml
+production.yml
+
+# Exclude Ghostwriter files not needed in a container
+DOCS
+LICENSE
+CONTRIBUTORS.txt
+**/ghostwriter-cli*
+**/ssl
+
+**/venv
+**/env

@@ -38,7 +38,7 @@ class BearerAuth(requests.auth.AuthBase):
 
 def months_between(date1, date2):
     """
-    Compare two dates and return the number of months beetween them.
+    Compare two dates and return the number of months between them.
 
     **Parameters**
 

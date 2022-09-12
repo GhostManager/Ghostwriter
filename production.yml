@@ -123,6 +123,7 @@ services:
       - "9691:9691"
     volumes:
       - ./hasura-docker/metadata:/metadata
+      - ./ssl:/etc/ssl/certs
     logging:
       driver: "json-file"
       options:

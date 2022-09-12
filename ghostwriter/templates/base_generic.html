@@ -664,17 +664,6 @@
 
         {% comment %} Sections for scripts used by forms that use Bootstrap tabs {% endcomment %}
         {% block tabs %}
-            <!-- Switch to Tab from URL and Slow Scroll -->
-            <script>
-                $(window).on('load', function() {
-                    if (window.location.hash) {
-                        $('html, body').animate({
-                            scrollTop: $( $('.nav a[href="' + window.location.hash + '"]') ).offset().top
-                        }, 1000);
-                    }
-                });
-            </script>
-
             <!-- Update Location with Tab Anchor -->
             <script>
                 $(function(){

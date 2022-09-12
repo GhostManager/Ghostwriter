@@ -165,7 +165,8 @@ class SlackConfiguration(SingletonModel):
     slack_alert_target = models.CharField(
         max_length=255,
         default="<!here>",
-        help_text="Alert target for the notifications – blank for no target",
+        help_text="Alert target for the notifications (e.g., <!here>) – blank for no target",
+        blank=True,
     )
 
     def __str__(self):

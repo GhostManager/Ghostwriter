@@ -4,13 +4,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4] - 12 September 2022
+
+### Fixed
+
+* Fixed "No entries to display" reappearing during log syncs under some circumstances
+
+### Added
+
+* Added Slack notification to confirm Slack configuration for a new project
+* Added Slack notification for project date changes and checkout adjustments
+* Added new scheduled task that checks for activity logs for active projects that have not been synced in the last 24 hours and sends a Slack notification to the project channel
+* Added a _.dockeringore_ file to reduce size and build time of Docker images
+* Upgraded Ghostwriter CLI binaries to v0.2.4
+
+### Changed
+
+* Slack alert target can now be left blank if you do not want to target a person or channel
+* Completed projects will no longer appear in the list of projects for a domain checkout
+* Domain health checks will now flag a domain if VirusTotal has applied the `dga` tag to it
+* Slack message formatting has been improved and will no longer include very large task outputs
+* Updated Nginx image to 1.23.1 to enable building it on M1 macOS machines
+
 ## [3.0.3] - 5 August 2022
 
 ### Fixed
 
 * Removed duplicate toast message displayed after the successful creation of a new oplog
 * Fixed GraphQL configuration that could cause webhook authentication to fail
-* Fixed server error when tryign to view entries for an oplog that does not exist
+* Fixed server error when trying to view entries for an oplog that does not exist
 
 ### Changed
 
