@@ -1,7 +1,6 @@
 """This contains all of the model Signals used by the Rolodex application."""
 
 # Standard Libraries
-import json
 import logging
 from datetime import date, timedelta
 
