@@ -42,7 +42,7 @@ def update_project(sender, instance, **kwargs):
     Updates dates for :model:`shepherd.History`, :model:`shepherd.ServerHistory`, and
     :model:`rolodex.ProjectAssignments` whenever the :model:`rolodex.Project` is updated.
     """
-    if instance.initial_slack_channel:
+    if instance.slack_channel:
         slack = SlackNotification()
 
     if kwargs["created"]:
