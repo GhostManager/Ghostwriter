@@ -37,6 +37,7 @@ class OplogForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
+        self.helper.form_show_errors = False
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"

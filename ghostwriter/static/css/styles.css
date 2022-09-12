@@ -6,6 +6,10 @@
     GENERAL STYLES
 ----------------------------------------------------- */
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   font-family: 'Poppins', 'Font Awesome 5 Free', sans-serif;
   background: var(--main-bg-color);
@@ -71,6 +75,17 @@ hr {
   line-height: 20px;
   font-family: 'Roboto Mono';
   font-weight: 300;
+}
+
+.hidden-element:before {
+  display: block;
+  width: 100%;
+  height: 1em;
+  content: '';
+}
+
+.description-block {
+  text-align: justify;
 }
 
 /* ---------------------------------------------------
@@ -868,6 +883,10 @@ p.severity-box.info {
   font-weight: 600;
 }
 
+.address p {
+  margin-bottom: 0;
+}
+
 /* ---------------------------------------------------
     GENERAL BUTTON STYLES
 ----------------------------------------------------- */
@@ -976,6 +995,10 @@ p.severity-box.info {
   color: #fff;
 }
 
+button.open {
+  transform: rotate(90deg);
+}
+
 /* ---------------------------------------------------
     TABLE STYLES
 ----------------------------------------------------- */
@@ -1079,21 +1102,15 @@ tr.severity_row:last-child>td {
 }
 
 th:first-child {
-  -webkit-border-top-left-radius: 5px;
-  -moz-border-radius-topleft: 5px;
-  border-top-left-radius: 5px;
-  -webkit-border-bottom-left-radius: 5px;
-  -moz-border-radius-bottomleft: 5px;
-  border-bottom-left-radius: 5px;
+  -webkit-border-top-left-radius: 0.25em;
+  -moz-border-radius-topleft: 0.25em;
+  border-top-left-radius: 0.25em;
 }
 
 th:last-child {
-  -webkit-border-top-right-radius: 5px;
-  -moz-border-radius-topright: 5px;
-  border-top-right-radius: 5px;
-  -webkit-border-bottom-right-radius: 5px;
-  -moz-border-radius-bottomright: 5px;
-  border-bottom-right-radius: 5px;
+  -webkit-border-top-right-radius: 0.25em;
+  -moz-border-radius-topright: 0.25em;
+  border-top-right-radius: 0.25em;
 }
 
 .form-spacer {
@@ -1125,6 +1142,60 @@ td {
 
 .project-details-table td {
   padding-top: 0;
+}
+
+table.scroll {
+  width: 100%;
+}
+
+table.scroll tbody {
+  display: block;
+}
+
+table.scroll thead,
+table.scroll tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  word-wrap: break-word;
+}
+
+table.scroll tbody {
+  height: 80.5vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+table.scroll tbody td div {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 200px;
+  width: 100%;
+}
+
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: var(--primary-color);
+  -webkit-box-shadow: 0 0 1px rgba(255, 255, 255, .5);
+}
+
+.hidden-div {
+  display: none;
+}
+
+tr.hidden-row td {
+  padding: 0;
+  border: none;
+}
+
+tr.hidden-row td>div {
+  padding: 5px;
+  border: none;
 }
 
 /* ---------------------------------------------------
@@ -2659,7 +2730,7 @@ img {
 div.checker span {
   display: -moz-inline-box;
   display: inline-block;
-  zoom: 1;
+  transform: scale(1);
   text-align: center;
   background-position: 0 -260px;
 }
@@ -2691,7 +2762,7 @@ div.selector,
 div.uploader {
   display: -moz-inline-box;
   display: inline-block;
-  zoom: 1;
+  transform: scale(1);
   vertical-align: middle;
 }
 
@@ -2922,4 +2993,27 @@ input:checked+.slider:before {
 
 .end-0 {
   right: 0 !important;
+}
+
+/* ---------------------------------------------------
+    TEXT CALLOUT STYLES
+----------------------------------------------------- */
+
+.slanted-highlight {
+  position: relative;
+}
+
+.slanted-highlight::before {
+  /* Highlight color */
+  background-color: var(--primary-color);
+
+  content: "";
+  position: absolute;
+  width: calc(100% + 10px);
+  height: 80%;
+  left: -5px;
+  bottom: 0;
+  z-index: -1;
+  transform: rotate(-4deg);
+  opacity: 0.3;
 }

@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "3.0.0"
+__version__ = "3.0.4"
 VERSION = __version__
-RELEASE_DATE = "22 June 2022"
+RELEASE_DATE = "12 September 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -43,11 +43,18 @@ USE_I18N = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-l10n
 USE_L10N = False
 # https://docs.djangoproject.com/en/4.0/ref/settings/#date-format
-DATE_FORMAT = env("DJANGO_DATE_FORMAT", default="d M Y",)
+DATE_FORMAT = env(
+    "DJANGO_DATE_FORMAT",
+    default="d M Y",
+)
 # https://docs.djangoproject.com/en/dev/ref/settings/#use-tz
 USE_TZ = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#locale-paths
 LOCALE_PATHS = [str(ROOT_DIR / "locale")]
+# https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
+origins = env("DJANGO_CSRF_TRUSTED_ORIGINS", default="")
+if origins:
+    CSRF_TRUSTED_ORIGINS = origins.split(" ")
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -426,8 +433,14 @@ GRAPHQL_JWT = {
     "JWT_EXPIRATION_DELTA": timedelta(minutes=15),
     "JWT_REFRESH_EXPIRATION_DELTA": timedelta(days=7),
     "JWT_AUDIENCE": "Ghostwriter",
-    "JWT_SECRET_KEY": env("DJANGO_JWT_SECRET_KEY", default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe"),
+    "JWT_SECRET_KEY": env(
+        "DJANGO_JWT_SECRET_KEY",
+        default="Vso7i8BApwA6km4L50PFRvqcTtGZHLrC1pnKLCXqfTWifhjbGq4nTd6ZrDH2Iobe",
+    ),
     "JWT_ALGORITHM": "HS256",
 }
 
-HASURA_ACTION_SECRET = env("HASURA_ACTION_SECRET", default="changeme",)
+HASURA_ACTION_SECRET = env(
+    "HASURA_ACTION_SECRET",
+    default="changeme",
+)

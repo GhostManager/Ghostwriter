@@ -105,7 +105,7 @@ def OplogListEntries(request, pk):
     :template:`oplog/entries_list.html`
     """
     entries = OplogEntry.objects.filter(oplog_id=pk).order_by("-start_date")
-    oplog_instance = Oplog.objects.get(pk=pk)
+    oplog_instance = get_object_or_404(Oplog, pk=pk)
     context = {
         "entries": entries,
         "pk": pk,
@@ -185,17 +185,12 @@ class OplogCreate(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         # Save the new :model:`oplog.Oplog` instance
         form.save()
-        messages.success(
-            self.request,
-            "New operation log was successfully created",
-            extra_tags="alert-success",
-        )
         # Create new API key for this oplog
         try:
             project = form.instance.project.id
             oplog_name = form.instance.name
             api_key_name = oplog_name
-            api_key, key = APIKey.objects.create_key(name=api_key_name)
+            api_key, key = APIKey.objects.create_key(name=api_key_name[:50])
             # Pass the API key via the messages framework
             messages.info(
                 self.request,

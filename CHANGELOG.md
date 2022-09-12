@@ -4,6 +4,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4] - 12 September 2022
+
+### Fixed
+
+* Fixed "No entries to display" reappearing during log syncs under some circumstances
+
+### Added
+
+* Added Slack notification to confirm Slack configuration for a new project
+* Added Slack notification for project date changes and checkout adjustments
+* Added new scheduled task that checks for activity logs for active projects that have not been synced in the last 24 hours and sends a Slack notification to the project channel
+* Added a _.dockeringore_ file to reduce size and build time of Docker images
+
+### Changed
+
+* Slack alert target can now be left blank if you do not want to target a person or channel
+* Completed projects will no longer appear in the list of projects for a domain checkout
+* Domain health checks will now flag a domain if VirusTotal has applied the `dga` tag to it
+* Slack message formatting has been improved and will no longer include very large task outputs
+* Updated Nginx image to 1.23.1 to enable building it on M1 macOS machines
+
+## [3.0.3] - 5 August 2022
+
+### Fixed
+
+* Removed duplicate toast message displayed after the successful creation of a new oplog
+* Fixed GraphQL configuration that could cause webhook authentication to fail
+* Fixed server error when trying to view entries for an oplog that does not exist
+
+### Changed
+
+* Groups are now hidden on the user profile unless a user is part of a group
+* Adjusted client and project dashboards for better display of information and controls
+* Display of client's timezone has been changed to display the client's current date and time with the abbreviated timezone name
+* API keys now start with an initial expiry date that is +1 days from the current date
+* Project descriptions are now truncated after 35 words to make lengthy descriptions more readable in some sections of the UI
+* Infrastructure notes under the project dashboard are now inside collapsible sections for easier reading
+* Upgraded Ghostwriter CLI binaries to v0.2.3
+
+## [3.0.2] - 2 August 2022
+
+### Fixed
+
+* Upgraded `Pillow` dependency to avoid issue between `Pillow` and `setuptools` v63.3.0
+
+## [3.0.1] - 1 August 2022
+
+### Added
+
+* Added the `CSRF_TRUSTED_ORIGINS` to the base configuration to make it easier to add trusted origins for accessing Ghostwriter via a web proxy
+* Oplog ID now appears at the top of the log entries view for easier identification
+* Committed Ghostwriter CLI binaries (v0.2.2) for Windows, macOS, and Linux
+* Added project notes to the serialized report data as a list under `project.notes` (Closes #210)
+
+### Changed
+
+* Set defaults on some fields to make it easier to insert new domains, objectives, and findings via GraphQL
+  * New domains will now default to WHOIS enabled, healthy, and available
+  * Objectives will now default to primary priority and position one (top of the list)
+  * Reported findings will now insert into position one (top of the list for its severity category)
+* Log entry fields can now be null to make it easier to insert new entries via GraphQL
+* Improved log entry view to make it easier to view logs
+* Users with the `manager` role can now update and delete protected report templates
+* User accounts can now be filtered by role in the admin panel
+* Removed GraphQL `operatorName` field preset to allow this value to be set by the user
+
+### Fixed
+
+* Fixed "Stand by" message appearing for all users viewing a report when one user generates a report
+* Fixed domain expiration dates not sorting properly in the domain table when date format is changed
+* Fixed operation log entries not loading if null values were present from GraphQL submissions
+* Fixed `complete` field being required for reported findings but unavailable in the GraphQL schema (Fixes #226)
+* Fixed oplog entries not being displayed if they contained null values from GraphQL submissions
+* Fixed log entry tables not showing "No entries to display" row when no entries are available
+* Fixed an issue that could cause an error when making a new activity log with a name longer than 50 characters
+* Fixed minor issue that could prevent PowerPoint generation if multiple evidence images were stacked on top of each other inside a list
+
 ## [3.0.0] - 22 June 2022
 
 ### Changed

@@ -36,26 +36,7 @@
     <div class="container">
         <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
     </div>
-
-    <p class="form-spacer"></p>
-
-    <!-- Project Status & Toggles -->
-    <div>
-        <h6>
-            <span data-toggle="tooltip" title="Toggle the project's status between executing and complete">
-                Project Status:
-                {% if project.complete %}
-                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
-                        <span id="js-project-status">Complete!</span> <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i>
-                    </a>
-                {% else %}
-                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
-                        <span id="js-project-status">In Progress</span> <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i>
-                    </a>
-                {% endif %}
-            </span>
-        </h6>
-    </div>
+    <hr />
 
     <p class="form-spacer"></p>
 
@@ -69,11 +50,28 @@
         <div class="tab-content">
             <!-- Planning Tab -->
             <div id="planning" class="tab-pane in active">
+
                 <!-- Details Section -->
                 <h4>Project Details</h4>
                 <hr />
 
                 <table class="table table-borderless table-centered project-details-table">
+                    <tr>
+                        <td class="text-left bold">Project Status</td>
+                        <td class="text-left">
+                            <span data-toggle="tooltip" title="Toggle the project's status between executing and complete">
+                                {% if project.complete %}
+                                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
+                                        <span id="js-project-status">Complete</span> <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
+                                        <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i> <span id="js-project-status">In Progress</span>
+                                    </a>
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
                     <tr>
                         <td class="text-left bold">Codename</td>
                         <td class="text-left">
@@ -96,25 +94,23 @@
                             {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
                         </td>
                     </tr>
-                    {% if project.note %}
-                        <tr>
-                            <td class="text-left bold">Project Description</td>
-                            <td class="text-left">
-                                <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
-                            </td>
-                        </tr>
-                    {% endif %}
+                    <tr>
+                        <td class="text-left bold">Project Description</td>
+                        <td class="text-left">
+                            <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
+                        </td>
+                    </tr>
                 </table>
 
-                {% if project.note %}
-                    <div id="projectDescription" style="display:none;">
+                <div id="projectDescription" class="description-block">
+                    {% if project.note %}
                         {{ project.note|bleach }}
-                    </div>
-                {% else %}
-                    <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
-                {% endif %}
+                    {% else %}
+                        <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+                    {% endif %}
+                </div>
 
-                <p class="form-spacer"></p>
+                <div class="hidden-element"></div>
 
                 <!-- Assignment Section -->
                 <h4>Project Assignments</h4>
@@ -476,8 +472,8 @@
                             <th class="align-middle">Domain Name</th>
                             <th class="align-middle">Purpose</th>
                             <th class="sorter-date-range-dMMMyyyy align-middle">Date Range</th>
-                            <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false align-middle">Options</th>
+                            <th class="sorter-false align-middle">Additional Info</th>
                         </thead>
                         {% for domain in project.history_set.all %}
                             <tr>
@@ -488,7 +484,6 @@
                                 </td>
                                 <td class="align-middle">{{ domain.activity_type }}</td>
                                 <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
-                                <td clss="text-justify align-middle">{{ domain.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="domain-dropdown-btn-{{ domain.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
@@ -497,6 +492,20 @@
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' domain.id %}">Edit Checkout</a>
                                             <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' domain.id %}">Delete Checkout</a>
                                         </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button
+                                        class="expandme btn btn-transaprent"
+                                        onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
+                                        title="Expand to view additional information"
+                                    ></button>
+                                </td>
+                            </tr>
+                            <tr class="hidden-row">
+                                <td colspan=5>
+                                    <div id="hidden-domain-data-{{ domain.id }}" class="hidden-div">
+                                        {{ domain.note|bleach }}
                                     </div>
                                 </td>
                             </tr>
@@ -531,7 +540,7 @@
                         <thead>
                             <th class="align-middle">
                                 <div class="dropdown dropleft">
-                                    <span id="address-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
+                                    <span id="address-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
                                     <div id="address-info" class="dropdown-menu dropdown-info-content" aria-labelledby="address-info-btn">
                                         <p>The primary IP address is set in the database and used only to allow users to determine which IP address is used globally to refer to the server.<br />
                                         Only <em>static servers</em> will be links.</p>
@@ -543,8 +552,8 @@
                             <th class="align-middle pr-4">Purpose</th>
                             <th class="align-middle pr-4">Role</th>
                             <th class="align-middle pr-4">Provider</th>
-                            <th class="sorter-false align-middle">Note</th>
                             <th class="sorter-false align-middle">Options</th>
+                            <th class="sorter-false align-middle">Additional Info</th>
                         </thead>
                         {% for server in project.serverhistory_set.all %}
                             {% get_primary_address server.server as primary_address%}
@@ -569,7 +578,6 @@
                                 <td class="align-middle">{{ server.activity_type }}</td>
                                 <td class="align-middle">{{ server.server_role }}</td>
                                 <td class="align-middle">{{ server.server.server_provider }}</td>
-                                <td class="text-justify align-middle">{{ server.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="server-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
@@ -578,6 +586,20 @@
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' server.id %}">Edit Checkout</a>
                                             <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_history_delete' server.id %}">Delete Checkout</a>
                                         </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button
+                                        class="expandme btn btn-transaprent"
+                                        onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
+                                        title="Expand to view additional information"
+                                    ></button>
+                                </td>
+                            </tr>
+                            <tr class="hidden-row">
+                                <td colspan=8>
+                                    <div id="hidden-server-data-{{ server.id }}" class="hidden-div">
+                                        {{ server.note|bleach }}
                                     </div>
                                 </td>
                             </tr>
@@ -594,7 +616,6 @@
                                 <td class="align-middle">{{ server.activity_type }}</td>
                                 <td class="align-middle">{{ server.server_role }}</td>
                                 <td class="align-middle">{{ server.server_provider }}</td>
-                                <td class="text-justify align-middle">{{ server.note|bleach }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="vps-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
@@ -602,6 +623,20 @@
                                             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:vps_update' server.id %}">Edit VPS</a>
                                             <a class="dropdown-item icon trash-icon" id="server-delete-button-{{ server.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id%}" delete-target-id="{{ server.id }}" delete-target-type="server">Delete VPS</a>
                                         </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <button
+                                        class="expandme btn btn-transaprent"
+                                        onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
+                                        title="Expand to view additional information"
+                                    ></button>
+                                </td>
+                            </tr>
+                            <tr class="hidden-row">
+                                <td colspan=8>
+                                    <div id="hidden-vps-data-{{ server.id }}" class="hidden-div">
+                                        {{ server.note|bleach }}
                                     </div>
                                 </td>
                             </tr>
@@ -759,10 +794,18 @@
         });
     </script>
 
+    <!-- Hide Project Description -->
+    <script>
+        $('div.description-block').each(function(){
+            $(this).css('height', $(this).height()+'px');
+            $(this).hide();
+        });
+    </script>
+
     <!-- Expand Hidden Project Description -->
     <script>
-        $('#projectDescriptionDropdown').click(function () {
-            $('#projectDescription').toggle('slow');
+        $('#projectDescriptionDropdown').click(function (e) {
+            $('#projectDescription').slideToggle('slow');
             $('#projectDescriptionDropdown').toggleClass('add-icon sub-icon')
         });
     </script>
@@ -788,194 +831,198 @@
    <script>
         {% group_by_priority project.projectobjective_set.all as priority_groups %}
         {% for group in priority_groups %}
-            var update_url = $('#objectives-table').attr('objectives-update-url');
-            var project_id = $('#objectives-table').attr('project-id');
-            var csrftoken = $('#objectives-table').attr('objectives-update-csrftoken');
-            var {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_priority, {
-                items: 'tbody > tr',
-                group: 'priority',
-                animation: 150,
-                filter: '.priority-row-placeholder',
-                ghostClass: 'sortable-ghost',
-                handle: '.holdme',
+            try {
+                var update_url = $('#objectives-table').attr('objectives-update-url');
+                var project_id = $('#objectives-table').attr('project-id');
+                var csrftoken = $('#objectives-table').attr('objectives-update-csrftoken');
+                var {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_priority, {
+                    items: 'tbody > tr',
+                    group: 'priority',
+                    animation: 150,
+                    filter: '.priority-row-placeholder',
+                    ghostClass: 'sortable-ghost',
+                    handle: '.holdme',
 
-                // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
-                setData: function (dataTransfer, dragEl) {
-                    dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
-                },
+                    // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
+                    setData: function (dataTransfer, dragEl) {
+                        dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+                    },
 
-                // Element is chosen
-                onChoose: function (event) {
-                    // Close the tasks view on pick-up
-                    if ($('#' + event.item.id).hasClass('open')) {
-                        $('#' + event.item.id).toggleClass('open');
-                        var accordionRow = $('#' + event.item.id).next('.accordion');
-                        if (!accordionRow.is(':visible')) {
-                            accordionRow.show().find('.accordion-content').slideDown();
-                        } else {
-                            accordionRow.find('.accordion-content').slideUp(function() {
-                                if (!$(this).is(':visible')) {
-                                    accordionRow.hide();
+                    // Element is chosen
+                    onChoose: function (event) {
+                        // Close the tasks view on pick-up
+                        if ($('#' + event.item.id).hasClass('open')) {
+                            $('#' + event.item.id).toggleClass('open');
+                            var accordionRow = $('#' + event.item.id).next('.accordion');
+                            if (!accordionRow.is(':visible')) {
+                                accordionRow.show().find('.accordion-content').slideDown();
+                            } else {
+                                accordionRow.find('.accordion-content').slideUp(function() {
+                                    if (!$(this).is(':visible')) {
+                                        accordionRow.hide();
+                                    }
+                                });
+                            }
+                        }
+                    },
+
+                    // Element is unchosen
+                    onUnchoose: function (event) {},
+
+                    // Element dragging started
+                    onStart: function (event) {
+                        event.item.startPos = event.oldIndex;
+                    },
+
+                    // Element dragging started
+                    onEnd: function (event) {
+                        // Check if objective was moved to be after another objective
+                        if(event.item.startPos < event.newIndex){
+                            // Remove and clone the objective's tasks row
+                            var child = $('#tasks-' + event.item.id).remove().clone();
+                            // Place the tasks row after the objective in its new position
+                            $('#' + event.item.id).after(child);
+                            // Move the orphaned tasks row before the moved objective
+                            var child = $('#tasks-' + event.item.id).next('tr').remove().clone();
+                            $('#' + event.item.id).before(child);
+                        }else{
+                            var child = $('#tasks-' + event.item.id).remove().clone();
+                            $('#' + event.item.id).after(child);
+                        }
+                        // Re-init the click functions for task lists following removals and clones
+                        prepareTodoList();
+                    },
+
+                    // Element is dropped into the list from another list
+                    onAdd: function (event) {
+                        // Get the placeholder `tr` if it exists
+                        placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
+                        var positions = {{ group | lower }}_sortable.toArray();
+                        // Prep AJAX request with CSRF token
+                        $.ajaxSetup({
+                            beforeSend: function(xhr, settings) {
+                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
                                 }
-                            });
-                        }
-                    }
-                },
-
-                // Element is unchosen
-                onUnchoose: function (event) {},
-
-                // Element dragging started
-                onStart: function (event) {
-                    event.item.startPos = event.oldIndex;
-                },
-
-                // Element dragging started
-                onEnd: function (event) {
-                    // Check if objective was moved to be after another objective
-                    if(event.item.startPos < event.newIndex){
-                        // Remove and clone the objective's tasks row
-                        var child = $('#tasks-' + event.item.id).remove().clone();
-                        // Place the tasks row after the objective in its new position
-                        $('#' + event.item.id).after(child);
-                        // Move the orphaned tasks row before the moved objective
-                        var child = $('#tasks-' + event.item.id).next('tr').remove().clone();
-                        $('#' + event.item.id).before(child);
-                    }else{
-                        var child = $('#tasks-' + event.item.id).remove().clone();
-                        $('#' + event.item.id).after(child);
-                    }
-                    // Re-init the click functions for task lists following removals and clones
-                    prepareTodoList();
-                },
-
-                // Element is dropped into the list from another list
-                onAdd: function (event) {
-                    // Get the placeholder `tr` if it exists
-                    placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
-                    var positions = {{ group | lower }}_sortable.toArray();
-                    // Prep AJAX request with CSRF token
-                    $.ajaxSetup({
-                        beforeSend: function(xhr, settings) {
-                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
                             }
-                        }
-                    });
-                    // Send AJAX POST request
-                    $.ajax(update_url, {
-                        type: 'POST',
-                        data: {
-                            'project': project_id,
-                            'priority': event.to.id,
-                            'positions': JSON.stringify(positions)
-                        },
-                        success: function (data) {
-                            console.log(data)
-                        }
-                    });
-                    // An "empty" group will have one row, the placeholder row
-                    if (event.to.rows.length > 0) {
-                        if (placeholder !== undefined) {
-                            // Group contains at least one finding, delete the placeholder
-                            placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                        });
+                        // Send AJAX POST request
+                        $.ajax(update_url, {
+                            type: 'POST',
+                            data: {
+                                'project': project_id,
+                                'priority': event.to.id,
+                                'positions': JSON.stringify(positions)
+                            },
+                            success: function (data) {
+                                console.log(data)
+                            }
+                        });
+                        // An "empty" group will have one row, the placeholder row
+                        if (event.to.rows.length > 0) {
+                            if (placeholder !== undefined) {
+                                // Group contains at least one finding, delete the placeholder
+                                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                            };
                         };
-                    };
-                },
+                    },
 
-                // Called by any change to the list (add / update / remove)
-                onSort: function (event) {
-                    // Code here triggers twice for the element if dragged to another group (two sorts)
-                    [].forEach.call(event.item.parentNode.getElementsByClassName('priority_row'), function (el, index) {
-                        var cell = el.getElementsByClassName('holdme')[0];
-                    });
-                },
+                    // Called by any change to the list (add / update / remove)
+                    onSort: function (event) {
+                        // Code here triggers twice for the element if dragged to another group (two sorts)
+                        [].forEach.call(event.item.parentNode.getElementsByClassName('priority_row'), function (el, index) {
+                            var cell = el.getElementsByClassName('holdme')[0];
+                        });
+                    },
 
-                // Changed sorting within list
-                onUpdate: function (event) {
-                    var positions = {{ group | lower }}_sortable.toArray();
-                    // Prep AJAX request with CSRF token
-                    $.ajaxSetup({
-                        beforeSend: function(xhr, settings) {
-                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    // Changed sorting within list
+                    onUpdate: function (event) {
+                        var positions = {{ group | lower }}_sortable.toArray();
+                        // Prep AJAX request with CSRF token
+                        $.ajaxSetup({
+                            beforeSend: function(xhr, settings) {
+                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                                }
                             }
-                        }
-                    });
-                    // Send AJAX POST request
-                    $.ajax(update_url, {
-                        type: 'POST',
-                        data: {
-                            'project': project_id,
-                            'priority': event.item.parentNode.id,
-                            'positions': JSON.stringify(positions)
-                        },
-                        success: function (data) {
-                            console.log(data);
-                        }
-                    });
-                },
-
-                // Element is removed from the list into another list
-                onRemove: function (event) {
-                    // Get the placeholder `tr` if it exists
-                    placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
-                    var positions = {{ group | lower }}_sortable.toArray();
-                    // Prep AJAX request with CSRF token
-                    $.ajaxSetup({
-                        beforeSend: function(xhr, settings) {
-                            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                        });
+                        // Send AJAX POST request
+                        $.ajax(update_url, {
+                            type: 'POST',
+                            data: {
+                                'project': project_id,
+                                'priority': event.item.parentNode.id,
+                                'positions': JSON.stringify(positions)
+                            },
+                            success: function (data) {
+                                console.log(data);
                             }
-                        }
-                    });
-                    // Send AJAX POST request
-                    $.ajax(update_url, {
-                        type: 'POST',
-                        data: {
-                            'project': project_id,
-                            'priority': event.from.id,
-                            'positions': JSON.stringify(positions)
-                        },
-                        success: function (data) {
-                            console.log(data);
-                        }
-                    });
-                    // This fires before ``onEnd()` where we adjust the hidden tasks lists so
-                    // an "empty" row will still have the hidden row during the remove
-                    if (event.from.rows.length == 1) {
-                        // Add a placeholder row
-                        var placeholder_row = event.from.insertRow(0)
-                        placeholder_row.id = '{{ group|lower }}_placeholder'
-                        placeholder_row.className = 'priority-row-placeholder'
-                        placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder', 0)
-                        cell = placeholder_row.insertCell(0);
-                        cell.colSpan = 7
-                        cell.innerHTML = 'Create a {{ group }} objective or drag-and-drop an objective here to update its priority.'
-                    } else {
-                        if (placeholder !== undefined) {
-                            // Otherwise, delete the placeholder
-                            placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                        });
+                    },
+
+                    // Element is removed from the list into another list
+                    onRemove: function (event) {
+                        // Get the placeholder `tr` if it exists
+                        placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
+                        var positions = {{ group | lower }}_sortable.toArray();
+                        // Prep AJAX request with CSRF token
+                        $.ajaxSetup({
+                            beforeSend: function(xhr, settings) {
+                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                                }
+                            }
+                        });
+                        // Send AJAX POST request
+                        $.ajax(update_url, {
+                            type: 'POST',
+                            data: {
+                                'project': project_id,
+                                'priority': event.from.id,
+                                'positions': JSON.stringify(positions)
+                            },
+                            success: function (data) {
+                                console.log(data);
+                            }
+                        });
+                        // This fires before ``onEnd()`` where we adjust the hidden tasks lists so
+                        // an "empty" row will still have the hidden row during the remove
+                        if (event.from.rows.length == 1) {
+                            // Add a placeholder row
+                            var placeholder_row = event.from.insertRow(0)
+                            placeholder_row.id = '{{ group|lower }}_placeholder'
+                            placeholder_row.className = 'priority-row-placeholder'
+                            placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder', 0)
+                            cell = placeholder_row.insertCell(0);
+                            cell.colSpan = 7
+                            cell.innerHTML = 'Create a {{ group }} objective or drag-and-drop an objective here to update its priority.'
+                        } else {
+                            if (placeholder !== undefined) {
+                                // Otherwise, delete the placeholder
+                                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+                            };
                         };
-                    };
-                },
+                    },
 
-                // Event when you move an item in the list or between lists
-                onMove: function (event, originalEvent) {
-                    // Code here triggers with every drag to a new position
-                },
+                    // Event when you move an item in the list or between lists
+                    onMove: function (event, originalEvent) {
+                        // Code here triggers with every drag to a new position
+                    },
 
-                // Attempt to drag a filtered element
-                onFilter: function (event) {},
+                    // Attempt to drag a filtered element
+                    onFilter: function (event) {},
 
-                // Called when creating a clone of element
-                onClone: function (event) {},
+                    // Called when creating a clone of element
+                    onClone: function (event) {},
 
-                // Called when dragging element changes position
-                onChange: function (event) {
-                    // Code here triggers with every move while drag is in progress
-                },
-            });
+                    // Called when dragging element changes position
+                    onChange: function (event) {
+                        // Code here triggers with every move while drag is in progress
+                    },
+                });
+            } catch (error) {
+                console.log('No objectives found for the "{{ group | lower }}" group, so the sortable list is not initialized.');
+            }
         {% endfor %}
     </script>
 
@@ -1544,6 +1591,14 @@
 
             prepareTodoList();
         });
+    </script>
+
+    <!-- Show/Hide Hidden Data Rows -->
+    <script type="text/javascript">
+        function showHideRow(btn, row) {
+            btn.toggleClass('open');
+            $("#" + row).slideToggle(500);
+        }
     </script>
 
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}

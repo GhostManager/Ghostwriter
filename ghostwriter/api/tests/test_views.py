@@ -18,6 +18,7 @@ from ghostwriter.factories import (
     DomainStatusFactory,
     EvidenceFactory,
     HistoryFactory,
+    OplogEntryFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
@@ -1029,6 +1030,117 @@ class GraphqlDomainUpdateEventTests(TestCase):
         self.assertEqual(self.domain.name, "chrismaddalena.com")
 
 
+class GraphqlOplogEntryEventTests(TestCase):
+    """
+    Collection of tests for :view:`api:GraphqlOplogEntryCreateEvent`,
+    :view:`api:GraphqlOplogEntryUpdateEvent`, and :view:`api:GraphqlOplogEntryDeleteEvent`.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.create_uri = reverse("api:graphql_oplogentry_create_event")
+        cls.update_uri = reverse("api:graphql_oplogentry_update_event")
+        cls.delete_uri = reverse("api:graphql_oplogentry_delete_event")
+        cls.oplog_entry = OplogEntryFactory()
+        cls.sample_data = {
+            "event": {
+                "session_variables": None,
+                "op": "INSERT",
+                "data": {
+                    "old": None,
+                    "new": {
+                        "end_date": "2022-08-02T16:37:49.768288+00:00",
+                        "command": None,
+                        "tool": None,
+                        "operator_name": None,
+                        "dest_ip": None,
+                        "start_date": "2022-08-02T16:37:49.768257+00:00",
+                        "user_context": None,
+                        "output": None,
+                        "id": cls.oplog_entry.id,
+                        "comments": None,
+                        "oplog_id_id": cls.oplog_entry.oplog_id.id,
+                        "source_ip": None,
+                        "description": None
+                    }
+                },
+                "trace_context": None
+            },
+            "created_at": "2022-08-02T16:37:49.773219Z",
+            "id": "162a8485-97f4-49a3-9914-82e0f18549e8",
+            "delivery_info": {
+                "max_retries": 0,
+                "current_retry": 0
+            },
+            "trigger": {"name": "CreateOplogEntry"},
+            "table": {"schema": "public", "name": "oplog_oplogentry"}
+        }
+        cls.sample_delete_data = {
+            "event": {
+                "session_variables": None,
+                "op": "DELETE",
+                "data": {
+                    "old": {
+                        "end_date": "2022-08-02T16:37:49.768288+00:00",
+                        "command": None,
+                        "tool": "",
+                        "operator_name": None,
+                        "dest_ip": None,
+                        "start_date": "2022-08-02T16:37:49.768257+00:00",
+                        "user_context": None,
+                        "output": "",
+                        "id": cls.oplog_entry.id,
+                        "comments": None,
+                        "oplog_id_id": cls.oplog_entry.oplog_id.id,
+                        "source_ip": None,
+                        "description": None
+                    },
+                    "new": None
+                },
+                "trace_context": None
+            },
+            "created_at": "2022-08-02T16:49:10.912756Z",
+            "id": "359ddc5c-1f53-44f5-889a-ef1e438632d0",
+            "delivery_info": {
+                "max_retries": 0,
+                "current_retry": 0
+            },
+            "trigger": {"name": "DeleteOplogEntry"},
+            "table": {"schema": "public", "name": "oplog_oplogentry"}
+        }
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_graphql_oplogentry_create_event(self):
+        response = self.client.post(
+            self.create_uri,
+            content_type="application/json",
+            data=self.sample_data,
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_graphql_oplogentry_update_event(self):
+        response = self.client.post(
+            self.update_uri,
+            content_type="application/json",
+            data=self.sample_data,
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_graphql_oplogentry_delete_event(self):
+        response = self.client.post(
+            self.delete_uri,
+            content_type="application/json",
+            data=self.sample_delete_data,
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+        )
+        self.assertEqual(response.status_code, 200)
+
+
 # Tests related to CBVs for :model:`api:APIKey`
 
 
@@ -1110,7 +1222,7 @@ class ApiKeyCreateTests(TestCase):
         self.assertEqual(response.context["cancel_link"], self.redirect_uri)
 
     def test_post_data(self):
-        response = self.client_auth.post(self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now()})
+        response = self.client_auth.post(self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now() + timedelta(days=1)})
         self.assertRedirects(response, self.redirect_uri)
         obj = APIKey.objects.get(name="CreateView Test")
         self.assertEqual(obj.user, self.user)

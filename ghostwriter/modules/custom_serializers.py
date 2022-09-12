@@ -32,6 +32,7 @@ from ghostwriter.rolodex.models import (
     ClientContact,
     Project,
     ProjectAssignment,
+    ProjectNote,
     ProjectObjective,
     ProjectScope,
     ProjectSubTask,
@@ -281,6 +282,24 @@ class ClientSerializer(CustomModelSerializer):
 
     def get_address(self, obj):
         return strip_html(obj.address)
+
+
+class ProjectNoteSerializer(CustomModelSerializer):
+    """Serialize :model:`rolodex:ProjectNote` entries."""
+
+    name = SerializerMethodField("get_operator")
+    timestamp = SerializerMethodField("get_timestamp")
+
+    class Meta:
+        model = ProjectNote
+        exclude = ["operator"]
+        depth = 1
+
+    def get_operator(self, obj):
+        return obj.operator.name
+
+    def get_timestamp(self, obj):
+        return dateformat.format(obj.timestamp, settings.DATE_FORMAT)
 
 
 class ProjectAssignmentSerializer(CustomModelSerializer):
@@ -553,6 +572,8 @@ class ProjectSerializer(CustomModelSerializer):
     end_year = SerializerMethodField("get_end_year")
 
     timezone = TimeZoneSerializerField()
+
+    notes = ProjectNoteSerializer(source="projectnote_set", many=True, exclude=["id", "project"])
 
     class Meta:
         model = Project

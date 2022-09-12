@@ -779,7 +779,10 @@ class Reportwriter:
         """
         p = par._p
         parent_element = p.getparent()
-        parent_element.remove(p)
+        if parent_element is not None:
+            parent_element.remove(p)
+        else:
+            logger.warning("Could not delete paragraph in because it had no parent element")
 
     def write_xml(self, text, par, styles):
         """

@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 # Django Imports
 from django.test import TestCase
@@ -35,7 +35,8 @@ class ApiKeyFormTests(TestCase):
         )
 
     def test_valid_data(self):
-        form = self.form_data(name="Test Entry", expiry_date=datetime.now())
+        form = self.form_data(name="Test Entry", expiry_date=datetime.now() + timedelta(days=1))
+        print(form.errors)
         self.assertTrue(form.is_valid())
 
     def test_empty_name(self):
@@ -49,3 +50,9 @@ class ApiKeyFormTests(TestCase):
         errors = form["expiry_date"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
+
+    def test_expiry_date_in_past(self):
+        form = self.form_data(name="Test Entry", expiry_date=datetime.now())
+        errors = form["expiry_date"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid_expiry_date")

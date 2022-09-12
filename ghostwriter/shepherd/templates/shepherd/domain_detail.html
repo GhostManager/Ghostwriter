@@ -244,7 +244,7 @@
                                 <td class="align-middle">{{ project.activity_type }}</td>
                                 <td class="align-middle">{{ project.project.project_type }}</td>
                                 <td class="align-middle">{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
-                                <td class="table-note align-middle">{{ project.note|bleach}}</td>
+                                <td class="table-note align-middle">{{ project.note|bleach|truncatewords:35 }}</td>
                                 <td class="align-middle">
                                     <div class="dropdown dropleft">
                                         <button id="history-dropdown-btn_{{ project.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>

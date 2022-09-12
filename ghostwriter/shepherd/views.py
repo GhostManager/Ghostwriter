@@ -106,7 +106,9 @@ def ajax_load_projects(request):
     :template:`shepherd/project_dropdown_list.html`
     """
     client_id = request.GET.get("client")
-    projects = Project.objects.filter(client_id=client_id).order_by("codename")
+    projects = Project.objects.filter(
+        Q(client_id=client_id) & Q(complete=False)
+    ).order_by("codename")
 
     return render(request, "shepherd/project_dropdown_list.html", {"projects": projects})
 
@@ -216,7 +218,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
                             namecheap_config=namecheap_config,
                             domain=domain_instance,
                             group="Individual Domain Update",
-                            hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
+                            hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
                         )
         else:
             data = {
@@ -285,15 +287,15 @@ class DomainUpdateHealth(LoginRequiredMixin, View):
             if self.domain:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.check_domains",
-                    domain_id=self.domain.id,
                     group="Individual Domain Update",
-                    hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
+                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
+                    domain_id=self.domain.id,
                 )
             else:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.check_domains",
                     group="Domain Updates",
-                    hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
+                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
                 )
             message = "Successfully queued domain category update task (Task ID {task}) ".format(
                 task=task_id
@@ -332,15 +334,15 @@ class DomainUpdateDNS(LoginRequiredMixin, View):
             if self.domain:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.update_dns",
-                    domain=self.domain.id,
+                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
                     group="Individual DNS Update",
-                    hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
+                    domain=self.domain.id,
                 )
             else:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.update_dns",
                     group="DNS Updates",
-                    hook="ghostwriter.shepherd.tasks.send_slack_complete_msg",
+                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
                 )
             message = "Successfully queued DNS update task (Task ID {task})".format(
                 task=task_id
@@ -348,6 +350,7 @@ class DomainUpdateDNS(LoginRequiredMixin, View):
         except Exception:
             result = "error"
             message = "DNS update task could not be queued"
+            logger.exception(message)
 
         data = {
             "result": result,
@@ -555,7 +558,9 @@ def domain_list(request):
             Domain.objects.select_related(
                 "domain_status", "whois_status", "health_status"
             )
-            .filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term))
+            .filter(
+                Q(name__icontains=search_term) | Q(categorization__icontains=search_term)
+            )
             .order_by("name")
         )
     else:

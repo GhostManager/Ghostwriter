@@ -65,8 +65,6 @@ insert_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
-      set:
-        operator_name: x-hasura-User-Name
       columns:
         - command
         - comments
@@ -95,8 +93,6 @@ insert_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
-      set:
-        operator_name: x-hasura-User-Name
       columns:
         - command
         - comments
@@ -109,6 +105,7 @@ insert_permissions:
         - start_date
         - tool
         - user_context
+        - operator_name
 select_permissions:
   - role: manager
     permission:
@@ -235,6 +232,7 @@ update_permissions:
         - start_date
         - tool
         - user_context
+        - operator_name
       filter:
         log:
           project:
@@ -299,3 +297,43 @@ delete_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
+event_triggers:
+  - name: CreateOplogEntry
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+    retry_conf:
+      num_retries: 0
+      interval_sec: 10
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/oplogentry/create'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET
+  - name: DeleteOplogEntry
+    definition:
+      enable_manual: false
+      delete:
+        columns: '*'
+    retry_conf:
+      num_retries: 0
+      interval_sec: 10
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/oplogentry/delete'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET
+  - name: UpdateOplogEntry
+    definition:
+      enable_manual: false
+      update:
+        columns: '*'
+    retry_conf:
+      num_retries: 0
+      interval_sec: 10
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/oplogentry/update'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET

@@ -1,6 +1,6 @@
 pytz==2021.3  # https://github.com/stub42/pytz
 python-slugify==5.0.2  # https://github.com/un33k/python-slugify
-Pillow==9.0.0  # https://github.com/python-pillow/Pillow
+Pillow==9.2.0  # https://github.com/python-pillow/Pillow
 rcssmin==1.1.0  # https://github.com/ndparker/rcssmin
 argon2-cffi==21.3.0  # https://github.com/hynek/argon2_cffi
 redis==3.5.3  # https://github.com/antirez/redis

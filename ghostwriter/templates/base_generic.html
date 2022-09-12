@@ -81,8 +81,8 @@
         <link rel="stylesheet" href="{% static 'css/cvss_styles.css' %}">
         <script src="{% static 'js/cvsscalc30.js' %}"></script>
         <script src="{% static 'js/cvsscalc30_ui.js' %}"></script>
-        
-        
+
+
     </head>
 
     <body>
@@ -281,7 +281,7 @@
                         <ul class="list-unstyled components">
                             <!-- Admin Panel Shortcuts -->
                             <p class="sideheader icon admin-icon">Administration</p>
-                            {% if request.user.is_staff %}
+                            {% if request.user.is_staff or request.user.role == "admin" %}
                                 <li><a href="{% url 'home:management' %}">Review Configuration</a></li>
                                 <li>
                                     <a href="#adminSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle sidebar-dropdown-toggle">Admin Panel</a>
@@ -664,17 +664,6 @@
 
         {% comment %} Sections for scripts used by forms that use Bootstrap tabs {% endcomment %}
         {% block tabs %}
-            <!-- Switch to Tab from URL and Slow Scroll -->
-            <script>
-                $(window).on('load', function() {
-                    if (window.location.hash) {
-                        $('html, body').animate({
-                            scrollTop: $( $('.nav a[href="' + window.location.hash + '"]') ).offset().top
-                        }, 1000);
-                    }
-                });
-            </script>
-
             <!-- Update Location with Tab Anchor -->
             <script>
                 $(function(){
@@ -769,6 +758,7 @@
                     });
                 });
             </script>
+
             <!-- Adds in a pretty border to the file input when a file is dragged over -->
             <script>
 		// Query the file drop element
@@ -786,9 +776,17 @@
 			filename.classList.remove('dragging');
 		});
 	    </script>
+
 	    <script>
-              document.onload = ParseVector(document.getElementById("id_cvss_vector").value);
-              CVSSAutoCalc();
+                function PrepareCVSSCalc() {
+                    var cvss = document.getElementById("id_cvss_vector")
+                    if (cvss != null) {
+                        ParseVector(cvss.value);
+                        CVSSAutoCalc();
+                        console.log("CVSS calculator is ready")
+                    }
+                }
+                document.onload = PrepareCVSSCalc()
             </script>
         {% endblock %}
 

@@ -24,7 +24,6 @@ from lxml import objectify
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     NamecheapConfiguration,
-    SlackConfiguration,
     VirusTotalConfiguration,
 )
 from ghostwriter.modules.cloud_monitors import (
@@ -35,6 +34,7 @@ from ghostwriter.modules.cloud_monitors import (
     test_aws,
 )
 from ghostwriter.modules.dns_toolkit import DNSCollector
+from ghostwriter.modules.notifications_slack import SlackNotification
 from ghostwriter.modules.review import DomainReview
 
 from .models import (
@@ -56,200 +56,6 @@ logger = logging.getLogger(__name__)
 channel_layer = get_channel_layer()
 
 
-def craft_cloud_message(
-    username,
-    emoji,
-    channel,
-    launch_time,
-    project_name,
-    end_date,
-    cloud_provider,
-    vps_name,
-    ip_address,
-    tags,
-):
-    """
-    Craft a nicely formatted Slack message using blocks for cloud asset notifications.
-    """
-    CLOUD_ASSET_MESSAGE = {
-        "username": username,
-        "icon_emoji": emoji,
-        "channel": channel,
-        "text": ":cloud: Teardown Notification for {} :cloud:".format(project_name),
-        "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": ":cloud: Teardown Notification for {} :cloud:".format(
-                        project_name
-                    ),
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Cloud Provider:*\n{}".format(cloud_provider),
-                    },
-                    {"type": "mrkdwn", "text": "*Instance Name:*\n{}".format(vps_name)},
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Ext IP Address:*\n{}".format(ip_address),
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Launch Date:*\n{}".format(launch_time),
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Project End Date:*\n{}".format(end_date),
-                    },
-                    {"type": "mrkdwn", "text": "*Tags:*\n{}".format(tags)},
-                ],
-            },
-        ],
-    }
-    return json.dumps(CLOUD_ASSET_MESSAGE)
-
-
-def craft_unknown_asset_message(
-    username, emoji, channel, launch_time, cloud_provider, vps_name, ip_address, tags
-):
-    """
-    Craft a nicely formatted Slack message using blocks for cloud assets not found in Ghostwriter.
-    """
-    UNKNOWN_ASSET_MESSAGE = {
-        "username": username,
-        "icon_emoji": emoji,
-        "channel": channel,
-        "text": ":eyes: Untracked Cloud Server :eyes:",
-        "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": ":eyes: Untracked Cloud Server :eyes:",
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "An *untracked* cloud asset is running without being attached to a project. If this asset should be ignored, tag it with one of the configured `Ignore Tags` in settings.",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Cloud Provider:*\n{}".format(cloud_provider),
-                    },
-                    {"type": "mrkdwn", "text": "*Instance Name:*\n{}".format(vps_name)},
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Ext IP Address:*\n{}".format(ip_address),
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Launch Date:*\n{}".format(launch_time),
-                    },
-                    {"type": "mrkdwn", "text": "*Tags:*\n{}".format(tags)},
-                ],
-            },
-        ],
-    }
-    return json.dumps(UNKNOWN_ASSET_MESSAGE)
-
-
-def craft_burned_message(
-    username, emoji, channel, domain, categories, burned_explanation
-):
-    """
-    Craft a nicely formatted Slack message using blocks for newly burned domain names.
-    """
-    BURNED_DOMAIN_MESSAGE = {
-        "username": username,
-        "icon_emoji": emoji,
-        "channel": channel,
-        "text": ":fire: Domain Burned :fire:",
-        "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": ":fire: Domain Burned :fire:",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Domain Name:*\n{}".format(domain),
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Categories:*\n{}".format(", ".join(categories)),
-                    },
-                ],
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "\n".join(burned_explanation),
-                },
-            },
-        ],
-    }
-    return json.dumps(BURNED_DOMAIN_MESSAGE)
-
-
-def craft_warning_message(username, emoji, channel, domain, warning_type, warnings):
-    """
-    Craft a nicely formatted Slack message using blocks for sending warning nessages.
-    """
-    WARNING_MESSAGE = {
-        "username": username,
-        "icon_emoji": emoji,
-        "channel": channel,
-        "text": ":warning: Domain Event :warning:",
-        "blocks": [
-            {
-                "type": "header",
-                "text": {
-                    "type": "plain_text",
-                    "text": ":warning: Domain Event :warning:",
-                },
-            },
-            {
-                "type": "section",
-                "fields": [
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Domain Name:*\n{}".format(domain),
-                    },
-                    {
-                        "type": "mrkdwn",
-                        "text": "*Warning:*\n{}".format(warning_type),
-                    },
-                ],
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": "\n".join(warnings),
-                },
-            },
-        ],
-    }
-    return json.dumps(WARNING_MESSAGE)
-
-
 class BearerAuth(requests.auth.AuthBase):
     """
     Helper class for providing the ``Authorization`` header with ``Requests``.
@@ -263,83 +69,6 @@ class BearerAuth(requests.auth.AuthBase):
     def __call__(self, r):
         r.headers["Authorization"] = "Bearer " + self.token
         return r
-
-
-def send_slack_msg(message, slack_channel=None):
-    """
-    Send a basic Slack message using the global Slack configuration.
-
-    **Parameters**
-
-    ``message``
-        A string to be sent as the Slack message
-    ``slack_channel``
-        Defaults to using the global setting. Can be set to any Slack channel name
-    """
-    slack_config = SlackConfiguration.get_solo()
-
-    if not slack_channel:
-        slack_channel = slack_config.slack_channel
-
-    if slack_config.enable:
-        message = slack_config.slack_alert_target + " " + message
-        slack_data = {
-            "username": slack_config.slack_username,
-            "icon_emoji": slack_config.slack_emoji,
-            "channel": slack_channel,
-            "text": message,
-        }
-        response = requests.post(
-            slack_config.webhook_url,
-            data=json.dumps(slack_data),
-            headers={"Content-Type": "application/json"},
-        )
-        if response.status_code != 200:
-            logger.warning(
-                "Request to Slack returned an error %s, the response was: %s",
-                response.status_code,
-                response.text,
-            )
-    else:
-        logger.warning(
-            "Received request to send Slack message, but Slack notifications are disabled in settings"
-        )
-
-
-def send_slack_complete_msg(task):
-    """
-    Send a basic Slack message using the global Slack configuration upon completion
-    of an ``async_task()``.
-
-    **Parameters**
-
-    ``task``
-        Instance of :model:`django_q.Task`
-    """
-    if task.success:
-        if task.result:
-            send_slack_msg(
-                "{} task has completed its run. It completed successfully and returned:\n {}".format(
-                    task.group, task.result
-                )
-            )
-        else:
-            send_slack_msg(
-                "{} task has completed its run. It completed successfully with no additional result data.".format(
-                    task.group
-                )
-            )
-    else:
-        if task.result:
-            send_slack_msg(
-                "{} task failed with this result: {}".format(task.group, task.result)
-            )
-        else:
-            send_slack_msg(
-                "{} task failed with no result/error data. Check the Django Q admin panel.".format(
-                    task.group
-                )
-            )
 
 
 def namecheap_reset_dns(namecheap_config, domain):
@@ -450,6 +179,7 @@ def release_domains(no_action=False):
     domain_updates = {}
     domain_updates["errors"] = {}
 
+    slack = SlackNotification()
     namecheap_config = NamecheapConfiguration.get_solo()
 
     # Start tracking domain releases
@@ -481,7 +211,7 @@ def release_domains(no_action=False):
                 message = "Your domain, {}, will be released tomorrow! Modify the project's end date as needed.".format(
                     domain.name
                 )
-                send_slack_msg(message, slack_channel)
+                slack.send_msg(message, slack_channel)
         except History.DoesNotExist:
             logger.warning(
                 "The domain %s has no project history, so releasing it", domain.name
@@ -506,7 +236,7 @@ def release_domains(no_action=False):
             else:
                 logger.info("Releasing %s back into the pool.", domain.name)
                 message = "Your domain, {}, has been released.".format(domain.name)
-                send_slack_msg(message, slack_channel)
+                slack.send_msg(message, slack_channel)
                 domain.domain_status = DomainStatus.objects.get(domain_status="Available")
                 domain.save()
                 domain_updates[domain.id]["change"] = "released"
@@ -542,6 +272,8 @@ def release_servers(no_action=False):
     server_updates["errors"] = {}
     servers_to_be_released = []
 
+    slack = SlackNotification()
+
     # First get all server set to ``Unavailable``
     queryset = StaticServer.objects.filter(server_status__server_status="Unavailable")
 
@@ -568,7 +300,7 @@ def release_servers(no_action=False):
                 message = "Your server, {}, will be released tomorrow! Modify the project's end date as needed.".format(
                     server.ip_address
                 )
-                send_slack_msg(message, slack_channel)
+                slack.send_msg(message, slack_channel)
         except ServerHistory.DoesNotExist:
             logger.warning(
                 "The server %s has no project history, so releasing it",
@@ -591,7 +323,7 @@ def release_servers(no_action=False):
             else:
                 logger.info("Releasing %s back into the pool.", server.ip_address)
                 message = "Your server, {}, has been released.".format(server.ip_address)
-                send_slack_msg(message, slack_channel)
+                slack.send_msg(message, slack_channel)
                 server.server_status = ServerStatus.objects.get(server_status="Available")
                 server.save()
                 server_updates[server.id]["change"] = "released"
@@ -613,7 +345,7 @@ def check_domains(domain_id=None):
     domain_updates["errors"] = {}
 
     # Fetch Slack configuration information
-    slack_config = SlackConfiguration.get_solo()
+    slack = SlackNotification()
 
     # Get target domain(s) from the database or the target ``domain``
     domain_list = []
@@ -663,20 +395,21 @@ def check_domains(domain_id=None):
             if lab_results[k]["burned"]:
                 domain_qs.health_status = HealthStatus.objects.get(health_status="Burned")
                 change = "burned"
-                if slack_config.enable:
-                    slack_data = craft_burned_message(
-                        slack_config.slack_username,
-                        slack_config.slack_emoji,
-                        slack_config.slack_channel,
+                if slack.enabled:
+                    blocks = slack.craft_burned_msg(
                         v["domain"],
                         lab_results[k]["categories"],
                         lab_results[k]["burned_explanation"],
                     )
-                    requests.post(
-                        slack_config.webhook_url,
-                        data=slack_data,
-                        headers={"Content-Type": "application/json"},
+                    err = slack.send_msg(
+                        message=f"Domain burned: {v['domain']}",
+                        blocks=blocks,
                     )
+                    if err:
+                        logger.warning(
+                            "Attempt to send a Slack notification returned an error: %s",
+                            err,
+                        )
 
                     # Check if the domain is checked-out and send a message to that project channel
                     try:
@@ -687,19 +420,16 @@ def check_domains(domain_id=None):
                             latest_checkout.end_date >= date.today()
                             and latest_checkout.project.slack_channel
                         ):
-                            slack_data = craft_burned_message(
-                                slack_config.slack_username,
-                                slack_config.slack_emoji,
-                                latest_checkout.project.slack_channel,
-                                v["domain"],
-                                lab_results[k]["categories"],
-                                lab_results[k]["burned_explanation"],
+                            err = slack.send_msg(
+                                message=f"Domain burned: {v['domain']}",
+                                channel=latest_checkout.project.slack_channel,
+                                blocks=blocks,
                             )
-                            requests.post(
-                                slack_config.webhook_url,
-                                data=slack_data,
-                                headers={"Content-Type": "application/json"},
-                            )
+                            if err:
+                                logger.warning(
+                                    "Attempt to send a Slack notification returned an error: %s",
+                                    err,
+                                )
                     except History.DoesNotExist:
                         pass
             # If the domain isn't marked as burned, check for any informational warnings
@@ -708,25 +438,22 @@ def check_domains(domain_id=None):
                     logger.info(
                         "Domain is not burned but there are warnings, so preparing notification"
                     )
-                    if slack_config.enable:
-                        slack_data = craft_warning_message(
-                            slack_config.slack_username,
-                            slack_config.slack_emoji,
-                            slack_config.slack_channel,
-                            v["domain"],
-                            "VirusTotal Submission",
-                            lab_results[k]["warnings"]["messages"],
-                        )
-                        requests.post(
-                            slack_config.webhook_url,
-                            data=slack_data,
-                            headers={"Content-Type": "application/json"},
+                    blocks = slack.craft_warning_msg(
+                        v["domain"],
+                        "VirusTotal Submission",
+                        lab_results[k]["warnings"]["messages"],
+                    )
+                    err = slack.send_msg(
+                        message=f"Domain event warning for {v['domain']}",
+                        blocks=blocks,
+                    )
+                    if err:
+                        logger.warning(
+                            "Attempt to send a Slack notification returned an error: %s",
+                            err,
                         )
             # Update other fields for the domain object
-            if (
-                lab_results[k]["burned"]
-                and "burned_explanation" in lab_results[k]
-            ):
+            if lab_results[k]["burned"] and "burned_explanation" in lab_results[k]:
                 if lab_results[k]["burned_explanation"]:
                     domain_qs.burned_explanation = "\n".join(
                         lab_results[k]["burned_explanation"]
@@ -874,6 +601,8 @@ def scan_servers(only_active=False):
     ``only_active``
         Only scan servers marked as in-use (Default: False)
     """
+    slack = SlackNotification()
+
     # Create the scanner
     scanner = nmap.PortScanner()
     # Get the servers stored as static/owned servers
@@ -904,9 +633,9 @@ def scan_servers(only_active=False):
                         )
                         latest = ServerHistory.objects.filter(server=server)[0]
                         if latest.project.slack_channel:
-                            send_slack_msg(message, latest.project.slack_channel)
+                            slack.send_msg(message, latest.project.slack_channel)
                         else:
-                            send_slack_msg(message)
+                            slack.send_msg(message)
 
 
 def fetch_namecheap_domains():
@@ -998,14 +727,17 @@ def fetch_namecheap_domains():
                 elif namecheap_api_result == "ERROR":
                     error_id = root.Errors[0].Error[0].attrib["Number"]
                     error_msg = root.Errors[0].Error[0].text
-                    logger.error("Namecheap API returned error #%s: %s", error_id, error_msg)
+                    logger.error(
+                        "Namecheap API returned error #%s: %s", error_id, error_msg
+                    )
                     domain_changes["errors"][
                         "namecheap"
                     ] = f"Namecheap API returned error #{error_id}: {error_msg} (see https://www.namecheap.com/support/api/error-codes/)"
                     return domain_changes
                 else:
                     logger.error(
-                        'Namecheap did not return an "OK" or "ERROR" response: %s', req.text
+                        'Namecheap did not return an "OK" or "ERROR" response: %s',
+                        req.text,
                     )
                     domain_changes["errors"][
                         "namecheap"
@@ -1234,7 +966,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     logger.info("Ignoring tags: %s", ignore_tags)
 
     # Fetch Slack configuration information
-    slack_config = SlackConfiguration.get_solo()
+    slack = SlackNotification()
 
     # Create info dict
     vps_info = defaultdict()
@@ -1256,6 +988,7 @@ def review_cloud_infrastructure(aws_only_running=False):
         logger.info("AWS credentials are functional so beginning AWS review")
 
         # Check EC2
+        logger.info("Checking EC2 instances")
         ec2_results = fetch_aws_ec2(
             cloud_config.aws_key, cloud_config.aws_secret, ignore_tags, aws_only_running
         )
@@ -1266,6 +999,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                 vps_info["instances"][instance["id"]] = instance
 
         # Check Lightsail
+        logger.info("Checking Lightsail instances")
         lightsail_results = fetch_aws_lightsail(
             cloud_config.aws_key, cloud_config.aws_secret, ignore_tags
         )
@@ -1276,6 +1010,7 @@ def review_cloud_infrastructure(aws_only_running=False):
                 vps_info["instances"][instance["id"]] = instance
 
         # Check S3
+        logger.info("Checking S3 buckets")
         s3_results = fetch_aws_s3(cloud_config.aws_key, cloud_config.aws_secret)
         if s3_results["message"]:
             vps_info["errors"]["s3"] = results["message"]
@@ -1289,6 +1024,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # DO Section  #
     ###############
 
+    logger.info("Checking EC2 instances")
     do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags)
     if do_results["message"]:
         vps_info["errors"]["digital_ocean"] = results["message"]
@@ -1296,6 +1032,10 @@ def review_cloud_infrastructure(aws_only_running=False):
         if do_results["capable"]:
             for instance in do_results["instances"]:
                 vps_info["instances"][instance["id"]] = instance
+
+    ##################
+    # Notifications  #
+    ##################
 
     # Examine results to identify potentially unneeded/unused machines
     assets_in_use = []
@@ -1329,43 +1069,37 @@ def review_cloud_infrastructure(aws_only_running=False):
                         result.project.end_date,
                         datetime.now().date(),
                     )
-                    if slack_config.enable:
+                    if slack.enabled:
+                        blocks = slack.craft_cloud_msg(
+                            instance["launch_time"],
+                            result.project,
+                            result.project.end_date,
+                            instance["provider"],
+                            instance_name,
+                            instance["public_ip"],
+                            instance["tags"],
+                        )
                         if result.project.slack_channel:
-                            slack_data = craft_cloud_message(
-                                slack_config.slack_username,
-                                slack_config.slack_emoji,
-                                result.project.slack_channel,
-                                instance["launch_time"],
-                                result.project,
-                                result.project.end_date,
-                                instance["provider"],
-                                instance_name,
-                                instance["public_ip"],
-                                instance["tags"],
+                            err = slack.send_msg(
+                                message=f"Teardown notification for {result.project}",
+                                channel=result.project.slack_channel,
+                                blocks=blocks,
                             )
-                            requests.post(
-                                slack_config.webhook_url,
-                                data=slack_data,
-                                headers={"Content-Type": "application/json"},
-                            )
+                            if err:
+                                logger.warning(
+                                    "Attempt to send a Slack notification returned an error: %s",
+                                    err,
+                                )
                         else:
-                            slack_data = craft_cloud_message(
-                                slack_config.slack_username,
-                                slack_config.slack_emoji,
-                                slack_config.slack_channel,
-                                instance["launch_time"],
-                                result.project,
-                                result.project.end_date,
-                                instance["provider"],
-                                instance_name,
-                                instance["public_ip"],
-                                instance["tags"],
+                            err = slack.send_msg(
+                                message=f"Teardown notification for {result.project}",
+                                blocks=blocks,
                             )
-                            requests.post(
-                                slack_config.webhook_url,
-                                data=slack_data,
-                                headers={"Content-Type": "application/json"},
-                            )
+                            if err:
+                                logger.warning(
+                                    "Attempt to send a Slack notification returned an error: %s",
+                                    err,
+                                )
                 else:
                     # Project is still active, so track these assets for later
                     assets_in_use.append(instance_id)
@@ -1381,22 +1115,23 @@ def review_cloud_infrastructure(aws_only_running=False):
                 )
                 assets_in_use.append(instance_id)
             else:
-                if slack_config.enable:
-                    slack_data = craft_unknown_asset_message(
-                        slack_config.slack_username,
-                        slack_config.slack_emoji,
-                        slack_config.slack_channel,
+                if slack.enabled:
+                    blocks = slack.craft_unknown_asset_msg(
                         instance["launch_time"],
                         instance["provider"],
                         instance_name,
                         instance["public_ip"],
                         instance["tags"],
                     )
-                    requests.post(
-                        slack_config.webhook_url,
-                        data=slack_data,
-                        headers={"Content-Type": "application/json"},
+                    err = slack.send_msg(
+                        message="Untracked cloud asset found",
+                        blocks=blocks,
                     )
+                    if err:
+                        logger.warning(
+                            "Attempt to send a Slack notification returned an error: %s",
+                            err,
+                        )
 
     # Return the stale cloud asset data in JSON for the task results
     json_data = json.dumps(dict(vps_info), default=json_datetime_converter, indent=2)
@@ -1620,56 +1355,16 @@ def test_slack_webhook(user):
     """
     Test the Slack Webhook configuration stored in :model:`commandcenter.SlackConfiguration`.
     """
-    slack_config = SlackConfiguration.get_solo()
-    level = "error"
+    slack = SlackNotification()
     logger.info("Starting Slack Webhook test at %s", datetime.now())
     try:
-        if slack_config.enable:
-            slack_data = {
-                "username": slack_config.slack_username,
-                "icon_emoji": slack_config.slack_emoji,
-                "channel": slack_config.slack_channel,
-                "text": f"{slack_config.slack_alert_target} Hello from Ghostwriter :wave:",
-            }
-            response = requests.post(
-                slack_config.webhook_url,
-                data=json.dumps(slack_data),
-                headers={"Content-Type": "application/json"},
-            )
-            if response.ok:
-                level = "success"
-                message = f"Slack accepted the request and you should see a message posted in {slack_config.slack_channel}"
-            elif response.status_code == 400:
-                message = f"Slack accepted the request, but said the user {slack_config.slack_channel} does not exist"
-            elif response.status_code == 403:
-                if "invalid_token" in response.text:
-                    message = "Slack accepted the request, but said your Webhook token is invalid"
-                elif "action_prohibited" in response.text:
-                    message = f"Slack accepted the request, but said your Webhook token cannot send messages to {slack_config.slack_channel}, or is otherwise restricted"
-                else:
-                    message = "Slack accepted the request, but said your Webhook token is not permitted to send messages"
-            elif response.status_code == 404:
-                if "channel_not_found" in response.text:
-                    message = f"Slack accepted the request, but said it could not find the {slack_config.slack_channel} channel"
-                else:
-                    message = f"Slack accepted the request, but said it could not find the {slack_config.slack_channel} channel"
-            elif response.status_code == 410:
-                if "channel_is_archived" in response.text:
-                    message = f"Slack accepted the request, but said the {slack_config.slack_channel} channel is archived"
-                else:
-                    message = f"Slack accepted the request, but said the {slack_config.slack_channel} channel is unavailable - possibly archived?"
-            else:
-                logger.warning(
-                    "Request to Slack returned HTTP code %s with this message: %s",
-                    response.status_code,
-                    response.text,
-                )
-                message = f"Request to Slack returned HTTP code {response.status_code} with this message: {response.text}"
+        error = slack.send_msg("Hello from Ghostwriter :wave:")
+        if error:
+            level = "error"
+            message = error["message"]
         else:
-            logger.warning(
-                "Received request to send Slack message, but Slack notifications are disabled in settings"
-            )
-            message = "Received request to send Slack message, but Slack notifications are disabled in settings"
+            level = "success"
+            message = f"Slack accepted the request and you should see a message posted in {slack.slack_channel}"
     except Exception:
         trace = traceback.format_exc()
         logger.exception("Slack Webhook API request failed")

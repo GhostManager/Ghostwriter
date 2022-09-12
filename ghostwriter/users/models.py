@@ -43,7 +43,12 @@ class User(AbstractUser):
         blank=True,
         help_text="Enter a phone number for this user",
     )
-    role = CharField(max_length=120, choices=active_roles, default="user")
+    role = CharField(
+        max_length=120,
+        choices=active_roles,
+        default="user",
+        help_text="Role used for role-based access controls. Most users should be `user`. Users who need broader access to projects for oversight should be `manager`. See documentation for more details.",
+    )
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})

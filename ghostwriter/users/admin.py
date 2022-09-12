@@ -32,18 +32,20 @@ class UserAdmin(auth_admin.UserAdmin):
         "last_login",
     )
     list_filter = (
+        "role",
         "is_active",
         "is_staff",
         "is_superuser",
     )
 
     fieldsets = (
-        (_("User Information"), {"fields": ("username", "role", "password")}),
+        (_("User Information"), {"fields": ("username", "password")}),
         (_("Personal Information"), {"fields": ("name", "email", "phone", "timezone")}),
         (
             _("User Permissions"),
             {
                 "fields": (
+                    "role",
                     "is_active",
                     "is_staff",
                     "is_superuser",
