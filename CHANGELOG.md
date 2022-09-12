@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added Slack notification for project date changes and checkout adjustments
 * Added new scheduled task that checks for activity logs for active projects that have not been synced in the last 24 hours and sends a Slack notification to the project channel
 * Added a _.dockeringore_ file to reduce size and build time of Docker images
+* Upgraded Ghostwriter CLI binaries to v0.2.4
 
 ### Changed
 
