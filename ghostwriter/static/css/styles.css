@@ -2531,6 +2531,20 @@ ol {
   grid-column-end: span 1;
 }
 
+.custom-file-label::after {
+  content: 'Browse';
+  width: 10%;
+}
+
+.dragging {
+  border: 2px dashed var(--primary-color);
+}
+
+.dragging.custom-file-label::after {
+  border-left: 1px solid #ced4da;
+  content: 'Drop';
+}
+
 @media screen and (min-width: 48rem) {
   .dashboard {
     --column-count: 4;
