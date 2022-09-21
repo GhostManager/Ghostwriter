@@ -940,7 +940,7 @@ def json_datetime_converter(dt):
 
     """
     if isinstance(dt, datetime):
-        return dt.__str__()
+        return str(dt)
     return None
 
 
