@@ -29,7 +29,7 @@ class SlackNotification:
         self.slack_channel = slack_config.slack_channel
         self.slack_alert_target = slack_config.slack_alert_target
 
-    def send_msg(self, message: str, channel: str = None, blocks: list = []) -> dict:
+    def send_msg(self, message: str, channel: str = None, blocks: list = None) -> dict:
         """
         Send a basic Slack message using the Slack configuration. Returns a dictionary
         with errors, if any. The dictionary includes ``code`` and ``message`` keys.
