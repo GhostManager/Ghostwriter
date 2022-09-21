@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from ghostwriter.api.views import (
     ApiKeyCreate,
     ApiKeyRevoke,
+    GraphqlAttachFinding,
     GraphqlAuthenticationWebhook,
     GraphqlCheckoutDomain,
     GraphqlCheckoutServer,
@@ -29,10 +30,12 @@ from ghostwriter.api.views import (
 app_name = "api"
 
 urlpatterns = [
+    # Actions
     path("test", csrf_exempt(GraphqlTestView.as_view()), name="graphql_test"),
     path("test_event", csrf_exempt(GraphqlEventTestView.as_view()), name="graphql_event_test"),
     path("webhook", csrf_exempt(GraphqlAuthenticationWebhook.as_view()), name="graphql_webhook"),
     path("login", csrf_exempt(GraphqlLoginAction.as_view()), name="graphql_login"),
+    path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
     path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
     path("generateReport", csrf_exempt(GraphqlGenerateReport.as_view()), name="graphql_generate_report"),
     path("checkoutDomain", csrf_exempt(GraphqlCheckoutDomain.as_view()), name="graphql_checkout_domain"),
@@ -41,6 +44,8 @@ urlpatterns = [
     path("deleteServerCheckout", csrf_exempt(GraphqlServerCheckoutDelete.as_view()), name="graphql_server_checkout_delete"),
     path("deleteEvidence", csrf_exempt(GraphqlDeleteEvidenceAction.as_view()), name="graphql_delete_evidence"),
     path("deleteTemplate", csrf_exempt(GraphqlDeleteReportTemplateAction.as_view()), name="graphql_delete_template"),
+    path("attachFinding", csrf_exempt(GraphqlAttachFinding.as_view()), name="graphql_attach_finding"),
+    # Events
     path("event/domain/update", csrf_exempt(GraphqlDomainUpdateEvent.as_view()), name="graphql_domain_update_event"),
     path("event/oplogentry/create", csrf_exempt(GraphqlOplogEntryCreateEvent.as_view()), name="graphql_oplogentry_create_event"),
     path("event/oplogentry/update", csrf_exempt(GraphqlOplogEntryUpdateEvent.as_view()), name="graphql_oplogentry_update_event"),

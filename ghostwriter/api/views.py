@@ -28,9 +28,19 @@ from dateutil.parser._parser import ParserError
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
+from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.modules.reportwriter import Reportwriter
 from ghostwriter.oplog.models import OplogEntry
-from ghostwriter.reporting.models import Evidence, Report, ReportTemplate
+from ghostwriter.reporting.models import (
+    Evidence,
+    Finding,
+    FindingType,
+    Report,
+    ReportFindingLink,
+    ReportTemplate,
+    Severity,
+)
+from ghostwriter.reporting.views import get_position
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
     ActivityType,
@@ -162,7 +172,7 @@ class HasuraActionView(HasuraView):
                     utils.generate_hasura_error_payload("Missing all required inputs", "InvalidRequestBody"),
                     status=400
                 )
-            # Hasura checks for required values, but we check here in case of a discrepency between the GraphQL schema and the view
+            # Hasura checks for required values, but we check here in case of a discrepancy between the GraphQL schema and the view
             for required_input in self.required_inputs:
                 if required_input not in self.input:
                     return JsonResponse(
@@ -604,6 +614,40 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
         template.delete()
         data = {"result": "success", }
         return JsonResponse(data, status=self.status)
+
+
+class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
+    """
+    Endpoint for attaching a :model:`reporting.Finding` to a :model:`reporting.Report`
+    as a new :model:`reporting.ReportFindingLink`.
+    """
+    required_inputs = ["findingId", "reportId", ]
+
+    def post(self, request, *args, **kwargs):
+        finding_id = self.input["findingId"]
+        report_id = self.input["reportId"]
+        try:
+            report = Report.objects.get(id=report_id)
+        except Report.DoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Report does not exist", "ReportDoesNotExist"), status=400)
+        try:
+            finding = Finding.objects.get(id=finding_id)
+        except Finding.DoesNotExist:
+            return JsonResponse(utils.generate_hasura_error_payload("Finding does not exist", "FindingDoesNotExist"), status=400)
+
+        if utils.verify_project_access(self.user_obj, report.project):
+            finding_dict = to_dict(finding, resolve_fk=True)
+            report_link = ReportFindingLink(
+                report=report,
+                assigned_to=self.user_obj,
+                position=get_position(report.id, finding.severity),
+                **finding_dict,
+            )
+            report_link.save()
+            data = {"id": report_link.pk,}
+            return JsonResponse(data, status=self.status)
+
+        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
 ##########################
