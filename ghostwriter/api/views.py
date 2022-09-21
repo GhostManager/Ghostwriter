@@ -34,11 +34,9 @@ from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
-    FindingType,
     Report,
     ReportFindingLink,
     ReportTemplate,
-    Severity,
 )
 from ghostwriter.reporting.views import get_position
 from ghostwriter.rolodex.models import Project
