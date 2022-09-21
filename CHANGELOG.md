@@ -118,7 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-* Removed old environmnt variable templates from the project because they are no longer used for setup or management
+* Removed old environment variable templates from the project because they are no longer used for setup or management
 
 ## [2.3.0-rc2] - 3 June 2022
 
@@ -252,7 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Changed default display filter to only show active projects
   * Adjusted project status filter to have three options: all projects, active projects, and completed projects
 * Updated dashboard and calendar to show past and current events for browsing history within the calendar
-  * Past events marked as completed will appear dimed with a strikethrough and `: Complete` added to the end
+  * Past events marked as completed will appear dimmed with a strike-through and `: Complete` added to the end
 * Upgraded dependencies to their latest versions (where possible)
   * Django v3.1.13 -> v3.2.11
   * Did not upgrade `docxtpl`
@@ -506,7 +506,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Adjusted Dockerfile files to fix potential filesystem issues with the latest Alpine Linux image \(submitted by @studebacon with PR \#143\).
 * Added a missing field in the Report Template admin panel
 * "Add to Report" on the finding details page now works
-* Updated delete actions for operation logs to avoid anerror that could prevent the deletion of entries when deleting an entire log
+* Updated delete actions for operation logs to avoid an error that could prevent the deletion of entries when deleting an entire log
 * Domain age calculations are now accurate
 * An invalid value for domain purchase date no longer causes a server error during validation
 * Constrained `Twisted` library to v20.3.0 to fix a potential issue that could come up with Django Channels
