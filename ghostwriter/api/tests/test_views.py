@@ -17,6 +17,7 @@ from ghostwriter.factories import (
     DomainFactory,
     DomainStatusFactory,
     EvidenceFactory,
+    FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
     ProjectAssignmentFactory,
@@ -285,7 +286,7 @@ class HasuraEventViewTests(TestCase):
         self.assertJSONEqual(force_str(response.content), result)
 
 
-# Tests related to theauthetnication webhook
+# Tests related to the authentication webhook
 
 
 class HasuraWebhookTests(TestCase):
@@ -970,6 +971,86 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+
+class GraphqlAttachFindingAction(TestCase):
+    """Collection of tests for :view:`GraphqlAttachFinding`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.other_user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("api:graphql_attach_finding")
+
+        cls.project = ProjectFactory()
+        cls.report = ReportFactory(project=cls.project)
+        cls.finding = FindingFactory()
+        _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
+
+    def setUp(self):
+        self.client = Client()
+
+    def generate_data(self, finding_id, report_id):
+        return {"input": {"findingId": finding_id, "reportId": report_id, }}
+
+    def test_attaching_finding(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.finding.id, self.report.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        new_finding = response.json()["id"]
+        self.assertTrue(self.ReportFindingLink.objects.filter(id=new_finding).exists())
+
+    def test_attaching_finding_with_invalid_report(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.finding.id, 999),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        data = {"message": "Report does not exist", "extensions": {"code": "ReportDoesNotExist"}}
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_attaching_finding_with_invalid_finding(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(999, self.report.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        data = {"message": "Finding does not exist", "extensions": {"code": "FindingDoesNotExist"}}
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_attaching_finding_with_mgr_access(self):
+        _, token = utils.generate_jwt(self.mgr_user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.finding.id, self.report.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_attaching_finding_without_access(self):
+        _, token = utils.generate_jwt(self.other_user)
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.finding.id, self.report.id),
             content_type="application/json",
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
