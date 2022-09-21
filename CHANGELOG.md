@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added an `attachFinding` mutation to the GraphQL API for easily attaching a copy of a finding from the library to a report
+* Added ability to copy/paste evidence into the upload form and view a preview (Thanks to @brandonscholet! Closes PR #228)
 
 ## [3.0.4] - 12 September 2022
 

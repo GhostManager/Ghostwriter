@@ -50,8 +50,12 @@ class FindingForm(forms.ModelForm):
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
+        self.fields["cvss_score"].widget.attrs[
+            "placeholder"
+        ] = "What is the CVSS score ..."
+        self.fields["cvss_vector"].widget.attrs[
+            "placeholder"
+        ] = "What is the CVSS vector ..."
 
         self.fields["mitigation"].widget.attrs[
             "placeholder"
@@ -324,8 +328,12 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
+        self.fields["cvss_score"].widget.attrs[
+            "placeholder"
+        ] = "What is the CVSS score ..."
+        self.fields["cvss_vector"].widget.attrs[
+            "placeholder"
+        ] = "What is the CVSS vector ..."
         self.fields["mitigation"].widget.attrs[
             "placeholder"
         ] = "What needs to be done ..."
@@ -554,7 +562,6 @@ class EvidenceForm(forms.ModelForm):
         self.fields["description"].widget.attrs[
             "placeholder"
         ] = "Brief Description or Note"
-        self.fields["document"].widget.attrs["class"] = "custom-file-input"
         # Don't set form buttons for a modal pop-up
         if self.is_modal:
             submit = None
@@ -594,17 +601,20 @@ class EvidenceForm(forms.ModelForm):
                 """
                 <h4 class="icon upload-icon">Upload a File</h4>
                 <hr>
-                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).</p>
+                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg). Previews for images will appear below.</p>
+                <p><span class="bold">Tip:</span> You copy and paste an image (file or screenshot) into this page!</p>
+                <div id="findingPreview" class="pb-3"></div>
                 """
             ),
             Div(
                 Field(
                     "document",
                     id="id_document",
+                    css_class="custom-file-input",
                 ),
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">Choose evidence file...</label>
+                    <label id="filename" class="custom-file-label" for="customFile">Click here to select or drag and drop your file...</label>
                     """
                 ),
                 css_class="custom-file",
