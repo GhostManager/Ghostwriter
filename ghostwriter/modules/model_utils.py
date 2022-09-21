@@ -30,7 +30,6 @@ def to_dict(instance: django.db.models.Model, include_id: bool = False, resolve_
         data[f.name] = f.value_from_object(instance)
         if isinstance(f, ForeignKey) and resolve_fk:
             fk_id = f.value_from_object(instance)
-            fk_model = f.related_model
             data[f.name] = f.related_model.objects.get(id=fk_id)
     for f in opts.many_to_many:
         data[f.name] = [i.id for i in f.value_from_object(instance)]
