@@ -93,7 +93,7 @@
             <div id="collapseGuidance" class="collapse" aria-labelledby="guidance" data-parent="#accordion">
                 <div class="card-body">
                     {% if reportfindinglink.finding_guidance %}
-                        <p>{{ reportfindinglink.finding_guidance }}</p>
+                        {{ reportfindinglink.finding_guidance|bleach }}
                     {% else %}
                         <p>No guidance was provided for this finding in the library.</p>
                     {% endif %}
