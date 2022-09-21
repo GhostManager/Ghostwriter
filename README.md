@@ -58,6 +58,7 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 * [@mattreduce](https://github.com/mattreduce)
 * [@dbuentello](https://github.com/dbuentello)
 * [@therealtoastycat](https://github.com/therealtoastycat)
+* [@brandonscholet](https://github.com/brandonscholet)
 
 ## Supporters
 
