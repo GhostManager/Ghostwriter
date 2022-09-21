@@ -50,7 +50,7 @@ def update_project(sender, instance, **kwargs):
             "Newly saved project was just created so skipping `post_save` Signal used for updates"
         )
         # If Slack is configured for this project, send a confirmation message
-        if instance.slack_channel:
+        if instance.slack_channel and slack.enabled:
             blocks = [
                 {
                     "type": "header",
@@ -67,16 +67,22 @@ def update_project(sender, instance, **kwargs):
                     },
                 },
             ]
-            slack.send_msg(
+            err = slack.send_msg(
                 "Slack Notifications Configured Successfully",
                 channel=instance.slack_channel,
                 blocks=blocks,
             )
+            if err:
+                logger.warning(
+                    "Attempt to send a Slack notification returned an error: %s",
+                    err,
+                )
     else:
         # If the ``slack_channel`` changed and a channel is still set, send a notification
         if (
             instance.initial_slack_channel != instance.slack_channel
             and instance.slack_channel
+            and slack.enabled
         ):
             blocks = [
                 {
@@ -94,12 +100,16 @@ def update_project(sender, instance, **kwargs):
                     },
                 },
             ]
-            slack.send_msg(
+            err = slack.send_msg(
                 "Notifications Updated Successfully",
                 channel=instance.slack_channel,
                 blocks=blocks,
             )
-
+            if err:
+                logger.warning(
+                    "Attempt to send a Slack notification returned an error: %s",
+                    err,
+                )
         # If project dates changed, update all checkouts
         if (
             instance.initial_start_date != instance.start_date
@@ -145,12 +155,16 @@ the start date and {abs(end_date_delta)} days for the end date.",
                         },
                     },
                 ]
-                slack.send_msg(
+                err = slack.send_msg(
                     "Updated Project Dates",
                     channel=instance.slack_channel,
                     blocks=blocks,
                 )
-
+                if err:
+                    logger.warning(
+                        "Attempt to send a Slack notification returned an error: %s",
+                        err,
+                    )
             for entry in domain_checkouts:
                 # Don't adjust checkouts that are in the past
                 if entry.end_date > today:
