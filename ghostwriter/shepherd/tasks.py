@@ -1026,11 +1026,11 @@ def review_cloud_infrastructure(aws_only_running=False):
         ec2_results = fetch_aws_ec2(
             cloud_config.aws_key, cloud_config.aws_secret, ignore_tags, aws_only_running
         )
+        logger.info(ec2_results["message"])
         if ec2_results["message"]:
-            vps_info["errors"]["ec2"] = results["message"]
-        else:
-            for instance in ec2_results["instances"]:
-                vps_info["instances"][instance["id"]] = instance
+            vps_info["errors"]["ec2"] = ec2_results["message"]
+        for instance in ec2_results["instances"]:
+            vps_info["instances"][instance["id"]] = instance
 
         # Check Lightsail
         logger.info("Checking Lightsail instances")
@@ -1038,19 +1038,17 @@ def review_cloud_infrastructure(aws_only_running=False):
             cloud_config.aws_key, cloud_config.aws_secret, ignore_tags
         )
         if lightsail_results["message"]:
-            vps_info["errors"]["lightsail"] = results["message"]
-        else:
-            for instance in lightsail_results["instances"]:
-                vps_info["instances"][instance["id"]] = instance
+            vps_info["errors"]["lightsail"] = lightsail_results["message"]
+        for instance in lightsail_results["instances"]:
+            vps_info["instances"][instance["id"]] = instance
 
         # Check S3
         logger.info("Checking S3 buckets")
         s3_results = fetch_aws_s3(cloud_config.aws_key, cloud_config.aws_secret)
         if s3_results["message"]:
-            vps_info["errors"]["s3"] = results["message"]
-        else:
-            for bucket in s3_results["buckets"]:
-                vps_info["instances"][bucket["name"]] = bucket
+            vps_info["errors"]["s3"] = s3_results["message"]
+        for bucket in s3_results["buckets"]:
+            vps_info["instances"][bucket["name"]] = bucket
     else:
         vps_info["errors"]["aws"] = results["message"]
 
@@ -1058,10 +1056,10 @@ def review_cloud_infrastructure(aws_only_running=False):
     # DO Section  #
     ###############
 
-    logger.info("Checking EC2 instances")
+    logger.info("Checking Digital Ocean droplets")
     do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags)
     if do_results["message"]:
-        vps_info["errors"]["digital_ocean"] = results["message"]
+        vps_info["errors"]["digital_ocean"] = do_results["message"]
     else:
         if do_results["capable"]:
             for instance in do_results["instances"]:
