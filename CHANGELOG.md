@@ -4,11 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v3.0.5] - 21 September 2022
+## [v3.0.5] - 23 September 2022
 
 ### Fixed
 
 * Fixed finding guidance display when viewing a finding attached to a report
+* Fixed connection errors with an AWS region causing remaining regions to be skipped in the cloud monitoring task
 
 ### Added
 
