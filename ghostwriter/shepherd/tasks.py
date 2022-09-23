@@ -1075,10 +1075,12 @@ def review_cloud_infrastructure(aws_only_running=False):
         all_ip_addresses = []
         if "public_ip" in instance:
             for address in instance["public_ip"]:
-                all_ip_addresses.append(address)
+                if address is not None:
+                    all_ip_addresses.append(address)
         if "private_ip" in instance:
             for address in instance["private_ip"]:
-                all_ip_addresses.append(address)
+                if address is not None:
+                    all_ip_addresses.append(address)
         # Set instance's name to its ID if no name is set
         if instance["name"]:
             instance_name = instance["name"]
