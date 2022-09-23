@@ -29,7 +29,7 @@ class SlackNotification:
         self.slack_channel = slack_config.slack_channel
         self.slack_alert_target = slack_config.slack_alert_target
 
-    def send_msg(self, message: str, channel: str = None, blocks: list = []) -> dict:
+    def send_msg(self, message: str, channel: str = None, blocks: list = None) -> dict:
         """
         Send a basic Slack message using the Slack configuration. Returns a dictionary
         with errors, if any. The dictionary includes ``code`` and ``message`` keys.
@@ -54,7 +54,7 @@ class SlackNotification:
             if self.slack_alert_target:
                 message = f"{self.slack_alert_target} {message}"
 
-            # Assemble the complte Slack POST data
+            # Assemble the complete Slack POST data
             slack_data = {
                 "username": self.slack_username,
                 "icon_emoji": self.slack_emoji,
@@ -72,8 +72,7 @@ class SlackNotification:
                 # Responses for Incoming Webhooks are documented here:
                 # https://api.slack.com/changelog/2016-05-17-changes-to-errors-for-incoming-webhooks
                 if response.ok:
-                    # Everything is fine; return
-                    return error
+                    logger.info("Slack message sent successfully")
                 elif response.status_code == 400:
                     if "user_not_found" in response.text:
                         error["code"] = "user_not_found"
@@ -168,10 +167,14 @@ class SlackNotification:
         ``tags``
             Any tags associated with the cloud asset
         """
-        if isinstance(ip_address, list):
-            ip_address = ", ".join(ip_address)
-        elif ip_address is None:
+        if ip_address:
+            if isinstance(ip_address, list):
+                ip_address = ", ".join(filter(None, ip_address))
+        else:
             ip_address = "None Assigned"
+
+        if not tags:
+            tags = "None Assigned"
 
         blocks = [
             {
@@ -235,10 +238,14 @@ class SlackNotification:
         ``tags``
             Any tags associated with the cloud asset
         """
-        if isinstance(ip_address, list):
-            ip_address = ", ".join(ip_address)
-        elif ip_address is None:
+        if ip_address:
+            if isinstance(ip_address, list):
+                ip_address = ", ".join(filter(None, ip_address))
+        else:
             ip_address = "None Assigned"
+
+        if not tags:
+            tags = "None Assigned"
 
         blocks = [
             {
@@ -500,6 +507,6 @@ def send_slack_complete_msg(task: Task) -> None:
             )
 
         if err:
-            logger.warning("Slack message failed with error: %s", err)
+            logger.warning("Attempt to send a Slack notification returned an error: %s", err)
     except Exception:
         logger.exception("Error sending Slack message")

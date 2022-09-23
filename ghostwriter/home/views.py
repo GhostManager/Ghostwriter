@@ -53,7 +53,6 @@ def update_session(request):
             "result": "success",
             "message": "Session updated",
         }
-        logger.info("Session updated for user %s", request.session["_auth_user_id"])
         return JsonResponse(data)
 
     return HttpResponseNotAllowed(["POST"])

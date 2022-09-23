@@ -27,7 +27,14 @@ def check_project_freshness():
             message = "{} : This project should now be complete but is not marked as such in Ghostwriter. Extend the end date or mark the project and check that all reports have been marked as completed and delivered.".format(
                 project
             )
-            if project.slack_channel:
-                slack.send_msg(message, project.slack_channel)
-            else:
-                slack.send_msg(message)
+            err = None
+            if slack.enabled:
+                if project.slack_channel:
+                    err = slack.send_msg(message, project.slack_channel)
+                else:
+                    err = slack.send_msg(message)
+                if err:
+                    logger.warning(
+                        "Attempt to send a Slack notification returned an error: %s",
+                        err,
+                    )

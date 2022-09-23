@@ -211,7 +211,13 @@ def release_domains(no_action=False):
                 message = "Your domain, {}, will be released tomorrow! Modify the project's end date as needed.".format(
                     domain.name
                 )
-                slack.send_msg(message, slack_channel)
+                if slack.enabled:
+                    err = slack.send_msg(message, slack_channel)
+                    if err:
+                        logger.warning(
+                            "Attempt to send a Slack notification returned an error: %s",
+                            err,
+                        )
         except History.DoesNotExist:
             logger.warning(
                 "The domain %s has no project history, so releasing it", domain.name
@@ -236,7 +242,13 @@ def release_domains(no_action=False):
             else:
                 logger.info("Releasing %s back into the pool.", domain.name)
                 message = "Your domain, {}, has been released.".format(domain.name)
-                slack.send_msg(message, slack_channel)
+                if slack.enabled:
+                    err = slack.send_msg(message, slack_channel)
+                    if err:
+                        logger.warning(
+                            "Attempt to send a Slack notification returned an error: %s",
+                            err,
+                        )
                 domain.domain_status = DomainStatus.objects.get(domain_status="Available")
                 domain.save()
                 domain_updates[domain.id]["change"] = "released"
@@ -300,7 +312,13 @@ def release_servers(no_action=False):
                 message = "Your server, {}, will be released tomorrow! Modify the project's end date as needed.".format(
                     server.ip_address
                 )
-                slack.send_msg(message, slack_channel)
+                if slack.enabled:
+                    err = slack.send_msg(message, slack_channel)
+                    if err:
+                        logger.warning(
+                            "Attempt to send a Slack notification returned an error: %s",
+                            err,
+                        )
         except ServerHistory.DoesNotExist:
             logger.warning(
                 "The server %s has no project history, so releasing it",
@@ -323,7 +341,13 @@ def release_servers(no_action=False):
             else:
                 logger.info("Releasing %s back into the pool.", server.ip_address)
                 message = "Your server, {}, has been released.".format(server.ip_address)
-                slack.send_msg(message, slack_channel)
+                if slack.enabled:
+                    err = slack.send_msg(message, slack_channel)
+                    if err:
+                        logger.warning(
+                            "Attempt to send a Slack notification returned an error: %s",
+                            err,
+                        )
                 server.server_status = ServerStatus.objects.get(server_status="Available")
                 server.save()
                 server_updates[server.id]["change"] = "released"
@@ -401,15 +425,16 @@ def check_domains(domain_id=None):
                         lab_results[k]["categories"],
                         lab_results[k]["burned_explanation"],
                     )
-                    err = slack.send_msg(
-                        message=f"Domain burned: {v['domain']}",
-                        blocks=blocks,
-                    )
-                    if err:
-                        logger.warning(
-                            "Attempt to send a Slack notification returned an error: %s",
-                            err,
+                    if slack.enabled:
+                        err = slack.send_msg(
+                            message=f"Domain burned: {v['domain']}",
+                            blocks=blocks,
                         )
+                        if err:
+                            logger.warning(
+                                "Attempt to send a Slack notification returned an error: %s",
+                                err,
+                            )
 
                     # Check if the domain is checked-out and send a message to that project channel
                     try:
@@ -419,6 +444,7 @@ def check_domains(domain_id=None):
                         if (
                             latest_checkout.end_date >= date.today()
                             and latest_checkout.project.slack_channel
+                            and slack.enabled
                         ):
                             err = slack.send_msg(
                                 message=f"Domain burned: {v['domain']}",
@@ -443,15 +469,16 @@ def check_domains(domain_id=None):
                         "VirusTotal Submission",
                         lab_results[k]["warnings"]["messages"],
                     )
-                    err = slack.send_msg(
-                        message=f"Domain event warning for {v['domain']}",
-                        blocks=blocks,
-                    )
-                    if err:
-                        logger.warning(
-                            "Attempt to send a Slack notification returned an error: %s",
-                            err,
+                    if slack.enabled:
+                        err = slack.send_msg(
+                            message=f"Domain event warning for {v['domain']}",
+                            blocks=blocks,
                         )
+                        if err:
+                            logger.warning(
+                                "Attempt to send a Slack notification returned an error: %s",
+                                err,
+                            )
             # Update other fields for the domain object
             if lab_results[k]["burned"] and "burned_explanation" in lab_results[k]:
                 if lab_results[k]["burned_explanation"]:
@@ -632,10 +659,17 @@ def scan_servers(only_active=False):
                             host, port
                         )
                         latest = ServerHistory.objects.filter(server=server)[0]
-                        if latest.project.slack_channel:
-                            slack.send_msg(message, latest.project.slack_channel)
-                        else:
-                            slack.send_msg(message)
+                        if slack.enabled:
+                            err = None
+                            if latest.project.slack_channel:
+                                err = slack.send_msg(message, latest.project.slack_channel)
+                            else:
+                                err = slack.send_msg(message)
+                            if err:
+                                logger.warning(
+                                    "Attempt to send a Slack notification returned an error: %s",
+                                    err,
+                                )
 
 
 def fetch_namecheap_domains():
@@ -940,7 +974,7 @@ def json_datetime_converter(dt):
 
     """
     if isinstance(dt, datetime):
-        return dt.__str__()
+        return str(dt)
     return None
 
 
@@ -993,10 +1027,9 @@ def review_cloud_infrastructure(aws_only_running=False):
             cloud_config.aws_key, cloud_config.aws_secret, ignore_tags, aws_only_running
         )
         if ec2_results["message"]:
-            vps_info["errors"]["ec2"] = results["message"]
-        else:
-            for instance in ec2_results["instances"]:
-                vps_info["instances"][instance["id"]] = instance
+            vps_info["errors"]["ec2"] = ec2_results["message"]
+        for instance in ec2_results["instances"]:
+            vps_info["instances"][instance["id"]] = instance
 
         # Check Lightsail
         logger.info("Checking Lightsail instances")
@@ -1004,19 +1037,17 @@ def review_cloud_infrastructure(aws_only_running=False):
             cloud_config.aws_key, cloud_config.aws_secret, ignore_tags
         )
         if lightsail_results["message"]:
-            vps_info["errors"]["lightsail"] = results["message"]
-        else:
-            for instance in lightsail_results["instances"]:
-                vps_info["instances"][instance["id"]] = instance
+            vps_info["errors"]["lightsail"] = lightsail_results["message"]
+        for instance in lightsail_results["instances"]:
+            vps_info["instances"][instance["id"]] = instance
 
         # Check S3
         logger.info("Checking S3 buckets")
         s3_results = fetch_aws_s3(cloud_config.aws_key, cloud_config.aws_secret)
         if s3_results["message"]:
-            vps_info["errors"]["s3"] = results["message"]
-        else:
-            for bucket in s3_results["buckets"]:
-                vps_info["instances"][bucket["name"]] = bucket
+            vps_info["errors"]["s3"] = s3_results["message"]
+        for bucket in s3_results["buckets"]:
+            vps_info["instances"][bucket["name"]] = bucket
     else:
         vps_info["errors"]["aws"] = results["message"]
 
@@ -1024,10 +1055,10 @@ def review_cloud_infrastructure(aws_only_running=False):
     # DO Section  #
     ###############
 
-    logger.info("Checking EC2 instances")
+    logger.info("Checking Digital Ocean droplets")
     do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags)
     if do_results["message"]:
-        vps_info["errors"]["digital_ocean"] = results["message"]
+        vps_info["errors"]["digital_ocean"] = do_results["message"]
     else:
         if do_results["capable"]:
             for instance in do_results["instances"]:
@@ -1043,10 +1074,12 @@ def review_cloud_infrastructure(aws_only_running=False):
         all_ip_addresses = []
         if "public_ip" in instance:
             for address in instance["public_ip"]:
-                all_ip_addresses.append(address)
+                if address is not None:
+                    all_ip_addresses.append(address)
         if "private_ip" in instance:
             for address in instance["private_ip"]:
-                all_ip_addresses.append(address)
+                if address is not None:
+                    all_ip_addresses.append(address)
         # Set instance's name to its ID if no name is set
         if instance["name"]:
             instance_name = instance["name"]
@@ -1079,22 +1112,19 @@ def review_cloud_infrastructure(aws_only_running=False):
                             instance["public_ip"],
                             instance["tags"],
                         )
-                        if result.project.slack_channel:
-                            err = slack.send_msg(
-                                message=f"Teardown notification for {result.project}",
-                                channel=result.project.slack_channel,
-                                blocks=blocks,
-                            )
-                            if err:
-                                logger.warning(
-                                    "Attempt to send a Slack notification returned an error: %s",
-                                    err,
+                        if slack.enabled:
+                            err = None
+                            if result.project.slack_channel:
+                                err = slack.send_msg(
+                                    message=f"Teardown notification for {result.project}",
+                                    channel=result.project.slack_channel,
+                                    blocks=blocks,
                                 )
-                        else:
-                            err = slack.send_msg(
-                                message=f"Teardown notification for {result.project}",
-                                blocks=blocks,
-                            )
+                            else:
+                                err = slack.send_msg(
+                                    message=f"Teardown notification for {result.project}",
+                                    blocks=blocks,
+                                )
                             if err:
                                 logger.warning(
                                     "Attempt to send a Slack notification returned an error: %s",
@@ -1136,7 +1166,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # Return the stale cloud asset data in JSON for the task results
     json_data = json.dumps(dict(vps_info), default=json_datetime_converter, indent=2)
     logger.info("Cloud review completed at %s", datetime.now())
-    logger.info("JSON results:\n%s", json_data)
+    logger.debug("JSON results:\n%s", json_data)
     return json_data
 
 
@@ -1358,10 +1388,10 @@ def test_slack_webhook(user):
     slack = SlackNotification()
     logger.info("Starting Slack Webhook test at %s", datetime.now())
     try:
-        error = slack.send_msg("Hello from Ghostwriter :wave:")
-        if error:
+        err = slack.send_msg("Hello from Ghostwriter :wave:")
+        if err:
             level = "error"
-            message = error["message"]
+            message = err["message"]
         else:
             level = "success"
             message = f"Slack accepted the request and you should see a message posted in {slack.slack_channel}"

@@ -94,7 +94,7 @@ def review_active_logs(hours: int = 24) -> dict:
                         blocks=blocks,
                     )
                     if err:
-                        logger.warning("Slack message failed with error: %s", err)
+                        logger.warning("Attempt to send a Slack notification returned an error: %s", err)
                         results["errors"].append(err)
             else:
                 if latest_log_entry:

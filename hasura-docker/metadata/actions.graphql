@@ -1,4 +1,11 @@
 type Mutation {
+  attachFinding(
+    findingId: Int!
+    reportId: Int!
+  ): attachFindingResponse
+}
+
+type Mutation {
   checkoutDomain(
     domainId: Int!
     projectId: Int!
@@ -86,5 +93,9 @@ type checkoutResponse {
 
 type deleteResponse {
   result: String!
+}
+
+type attachFindingResponse {
+  id: Int!
 }
 
