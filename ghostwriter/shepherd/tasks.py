@@ -1026,7 +1026,6 @@ def review_cloud_infrastructure(aws_only_running=False):
         ec2_results = fetch_aws_ec2(
             cloud_config.aws_key, cloud_config.aws_secret, ignore_tags, aws_only_running
         )
-        logger.info(ec2_results["message"])
         if ec2_results["message"]:
             vps_info["errors"]["ec2"] = ec2_results["message"]
         for instance in ec2_results["instances"]:
@@ -1167,7 +1166,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     # Return the stale cloud asset data in JSON for the task results
     json_data = json.dumps(dict(vps_info), default=json_datetime_converter, indent=2)
     logger.info("Cloud review completed at %s", datetime.now())
-    logger.info("JSON results:\n%s", json_data)
+    logger.debug("JSON results:\n%s", json_data)
     return json_data
 
 
