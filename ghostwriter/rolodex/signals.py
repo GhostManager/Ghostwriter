@@ -130,7 +130,7 @@ def update_project(sender, instance, **kwargs):
             logger.info("Start date changed by %s days", start_date_delta)
             logger.info("End date changed by %s days", end_date_delta)
 
-            if instance.slack_channel:
+            if slack.enabled and instance.slack_channel:
                 blocks = [
                     {
                         "type": "header",
