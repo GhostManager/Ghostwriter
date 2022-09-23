@@ -167,10 +167,14 @@ class SlackNotification:
         ``tags``
             Any tags associated with the cloud asset
         """
-        if isinstance(ip_address, list):
-            ip_address = ", ".join(ip_address)
-        elif ip_address is None:
+        if ip_address:
+            if isinstance(ip_address, list):
+                ip_address = ", ".join(filter(None, ip_address))
+        else:
             ip_address = "None Assigned"
+
+        if not tags:
+            tags = "None Assigned"
 
         blocks = [
             {
@@ -234,10 +238,14 @@ class SlackNotification:
         ``tags``
             Any tags associated with the cloud asset
         """
-        if isinstance(ip_address, list):
-            ip_address = ", ".join(ip_address)
-        elif ip_address is None:
+        if ip_address:
+            if isinstance(ip_address, list):
+                ip_address = ", ".join(filter(None, ip_address))
+        else:
             ip_address = "None Assigned"
+
+        if not tags:
+            tags = "None Assigned"
 
         blocks = [
             {
