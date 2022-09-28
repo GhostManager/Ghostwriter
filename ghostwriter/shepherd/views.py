@@ -1309,7 +1309,7 @@ class ServerDetailView(LoginRequiredMixin, DetailView):
     **Context**
 
     ``primary_address``
-        Primary IP address from :model:`shepherd.AuxServerAddress` for :model:`shepherd.SaticServer`
+        Primary IP address from :model:`shepherd.AuxServerAddress` for :model:`shepherd.StaticServer`
 
     **Template**
 

@@ -103,7 +103,7 @@ class GroupAdminForm(ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        # Do the normal form initialisation
+        # Do the normal form initialization
         super().__init__(*args, **kwargs)
         # If it is an existing group (saved objects have a pk)
         if self.instance.pk:

@@ -1857,7 +1857,7 @@ class GenerateReportTests(TestCase):
         response = self.client.get(self.xlsx_uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_pptxx_requires_login(self):
+    def test_view_pptx_requires_login(self):
         response = self.client.get(self.pptx_uri)
         self.assertEqual(response.status_code, 302)
 

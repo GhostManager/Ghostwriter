@@ -118,7 +118,7 @@ def roll_codename(request):
                 codename_verified = True
         data = {
             "result": "success",
-            "message": "Codename successfuly generated",
+            "message": "Codename successfully generated",
             "codename": new_codename,
         }
         logger.info(

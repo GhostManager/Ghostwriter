@@ -34,7 +34,7 @@ class DomainReview:
     ``domain_queryset``
         Queryset for :model:`shepherd:Domain`
     ``sleep_time_override``
-        Number of seconds to sleep betwen VirusTotal API requests
+        Number of seconds to sleep between VirusTotal API requests
         (overrides global configuration)
     """
 

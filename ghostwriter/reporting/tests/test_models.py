@@ -356,7 +356,7 @@ class ReportFindingLinkModelTests(TestCase):
             cleaned_findings.append(f)
         # Assert first finding is now in second position
         self.assertEqual(cleaned_findings[0].position, second_pos)
-        # Assert second finding has moved into first positon
+        # Assert second finding has moved into first position
         self.assertEqual(cleaned_findings[1].position, first_pos)
 
         # Test triggering ``clean()`` method when parent ``Report`` is deleted
@@ -387,7 +387,7 @@ class ReportFindingLinkModelTests(TestCase):
         self.assertEqual(cleaned_findings[0].position, 1)
         self.assertEqual(cleaned_findings[4].position, 5)
 
-    def test_model_cleaning_severity_and_positon_changes(self):
+    def test_model_cleaning_severity_and_position_changes(self):
         report = ReportFactory()
         num_of_findings = 5
         findings = []

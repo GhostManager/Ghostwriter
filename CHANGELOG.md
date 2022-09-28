@@ -645,7 +645,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed error in cloud monitor notification messages that caused messages to contain the same external IP addresses for all VPS instances
 * Fixed bug that caused delete actions on cloud server entries to not be committed
-* Fixed `ref` tags in findings that were ingored if they followed a `ref` tag with a different target
+* Fixed `ref` tags in findings that were ignored if they followed a `ref` tag with a different target
 * Fixed PowerPoint "Conclusion" slide's title
 * Fixed filtering for report template selection dropdowns that caused both document types to appear in all dropdown menus
 

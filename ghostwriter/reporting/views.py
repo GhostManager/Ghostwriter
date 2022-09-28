@@ -432,7 +432,7 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
             logger.error(log_message)
             data = {
                 "result": "error",
-                "message": "Could not update report's deliveery status",
+                "message": "Could not update report's delivery status",
             }
 
         return JsonResponse(data)

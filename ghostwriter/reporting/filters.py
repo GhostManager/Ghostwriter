@@ -22,7 +22,7 @@ class FindingFilter(django_filters.FilterSet):
     ``title``
         Case insensitive search of the title field contents.
     ``severity``
-        Checkbox choice filter using :model:`reporting.Severty`.
+        Checkbox choice filter using :model:`reporting.Severity`.
     ``finding_type``
         Multiple choice filter using :model:`reporting.FindingType`.
     """

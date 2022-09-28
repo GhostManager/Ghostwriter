@@ -1,10 +1,10 @@
 """This contains the custom template tags used by he Rolodex application."""
 
 # Standard Libraries
-from collections import defaultdict
 import datetime
+from collections import defaultdict
 
-
+# Django Imports
 from django import template
 
 # Ghostwriter Libraries
@@ -83,10 +83,10 @@ def get_item(dictionary, key):
 
     **Parameters**
 
-    ``dictonary``
+    ``dictionary``
         Python dictionary object to parse
     ``key``
-        Key name tor etrieve from the dictionary
+        Key name tor retrieve from the dictionary
     """
     # Use `get` to return `None` if not found
     return dictionary.get(key)
