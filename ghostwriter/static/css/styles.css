@@ -1267,6 +1267,10 @@ tr.hidden-row td>div {
   content: '\f00c';
 }
 
+.fc-list {
+  margin-top: 20px;
+}
+
 .fc-list-table tbody tr th .fc-list-day-cushion {
   background-color: var(--secondary-color);
 }
