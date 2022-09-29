@@ -85,6 +85,26 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="dashboard__item">
+                    <div class="card">
+                        <p class="dashboard-header text-center">System Status</p><div class="float-right {% if system_health == "OK" %}led-green{% else %}led-red{% endif %}"></div>
+                        {% if system_health == "OK" %}
+                            <table class="align-middle">
+                                <tr>
+                                    <td class="text-center healthy align-middle">All Systems Go!</td>
+                                </tr>
+                            </table>
+                        {% else %}
+                            <table>
+                                <tr>
+                                    <td class="text-center burned align-middle">Issues Detected!</td>
+                                </tr>
+                            </table>
+                        {% endif %}
+                        <p class="mt-auto">Visit the <a class="clickable italic" href="{% url 'status:healthcheck' %}">Detailed Status Page</a></p>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
