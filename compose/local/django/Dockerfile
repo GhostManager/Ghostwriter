@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED 1
 
 ENV PYTHONDONTWRITEBYTECODE 1
 
-RUN apk --no-cache add build-base \
+RUN apk --no-cache add build-base curl \
     # psycopg2 dependencies
     && apk --no-cache add --virtual build-deps gcc python3-dev musl-dev \
     && apk --no-cache add postgresql-dev \
