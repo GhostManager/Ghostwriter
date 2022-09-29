@@ -1206,15 +1206,21 @@
     <!-- FullCalendar Rendering -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Track the initial calendar view in local storage
+            var defaultView = (localStorage.getItem("fcDefaultViewProject") !== null ? localStorage.getItem("fcDefaultViewProject") : "dayGridWeek");
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridWeek',
+                initialView: defaultView,
                 height: 'auto',
                 headerToolbar: {
                     left: 'today prev,next',
                     center: 'title',
-                    right: 'dayGridWeek dayGridMonth listWeek'
+                    right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
                 },
+                // On view change, save the selected view to local storage so it persists between page loads
+                viewClassNames: function (info) {
+                    localStorage.setItem("fcDefaultViewProject", info.view.type);
+                }
             });
             calendar.render();
             // Add project execution window
