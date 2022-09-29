@@ -432,7 +432,7 @@ class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
 class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
     """
-    Toggle the ``compromised`` field of an individual :model:`rolodex.ProjecTarget`.
+    Toggle the ``compromised`` field of an individual :model:`rolodex.ProjectTarget`.
     """
 
     model = ProjectTarget
