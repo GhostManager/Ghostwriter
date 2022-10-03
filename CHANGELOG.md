@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.0.5] - 3 October 2022
+
+### Added
+
+* Added system health API endpoints and Docker health check commands (see wiki for details)
+* Added `curl` to container images to aid in troubleshooting and enable health checks
+
+### Changed
+
+* Calendar view selection will now persist across sessions and page refreshes
+* Upgraded Ghostwriter CLI binaries to v0.2.5
+* Cloning a report will now clone any evidence files associated with the findings (Thanks to @ly4k! Closes PR #234)
+
 ## [v3.0.5] - 23 September 2022
 
 ### Fixed
