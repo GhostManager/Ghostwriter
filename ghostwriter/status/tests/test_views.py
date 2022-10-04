@@ -1,13 +1,16 @@
 # Standard Libraries
 import logging
+from unittest import skip
 
 # Django Imports
-from django.test import Client, TestCase, TransactionTestCase
+from django.test import Client, TestCase, tag
 from django.urls import reverse
 
 logging.disable(logging.CRITICAL)
 
 
+# Health checks for RAM and disk cannot be completed successfully in the GitHub CI/CD pipeline
+@tag("GitHub")
 class HealthCheckCustomViewTests(TestCase):
     """Collection of tests for :view:`status.HealthCheckCustomView`."""
 
