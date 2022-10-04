@@ -591,7 +591,7 @@ class ProjectNote(models.Model):
 
 class ProjectScope(models.Model):
     """
-    Stores an individual scope list, related to an indiviudal :model:`rolodex.Project`.
+    Stores an individual scope list, related to an individual :model:`rolodex.Project`.
     """
 
     name = models.CharField(
@@ -649,7 +649,7 @@ class ProjectScope(models.Model):
 
 class ProjectTarget(models.Model):
     """
-    Stores an individual target host, related to an indiviudal :model:`rolodex.Project`.
+    Stores an individual target host, related to an individual :model:`rolodex.Project`.
     """
 
     ip_address = models.GenericIPAddressField(

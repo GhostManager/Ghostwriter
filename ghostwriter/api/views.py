@@ -254,7 +254,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
                     utils.generate_hasura_error_payload("End date is before start date", "InvalidDates"),
                     status=400
                 )
-            # Set the optinal inputs (keys will not always exist)
+            # Set the optional inputs (keys will not always exist)
             if "note" in self.input:
                 self.note = self.input["note"]
         else:

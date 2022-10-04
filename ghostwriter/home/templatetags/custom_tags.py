@@ -85,5 +85,5 @@ def settings_value(name):
 
 @register.filter(name="count_incomplete_objectives")
 def count_incomplete_objectives(queryset):
-    """Return the number of incomplete obejctives"""
+    """Return the number of incomplete objectives"""
     return queryset.filter(complete=False).count()

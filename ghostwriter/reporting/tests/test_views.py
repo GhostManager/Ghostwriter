@@ -261,7 +261,9 @@ class ReportCloneTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.report = ReportFactory()
+        cls.Report = ReportFactory._meta.model
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        cls.Evidence = EvidenceFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
 
         cls.num_of_findings = 10
@@ -298,6 +300,62 @@ class ReportCloneTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertIn("reporting/reports/", response.url)
 
+        report_copy = self.Report.objects.latest("id")
+        self.assertEqual(report_copy.title, f"{self.report.title} Copy")
+
+        copied_findings = self.ReportFindingLink.objects.filter(report=report_copy)
+        self.assertEqual(len(copied_findings), 0)
+
+    def test_clone_with_findings(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("reporting/reports/", response.url)
+
+        report_copy = self.Report.objects.latest("id")
+        self.assertEqual(report_copy.title, f"{self.report.title} Copy")
+
+        copied_findings = self.ReportFindingLink.objects.filter(report=report_copy)
+        self.assertEqual(len(copied_findings), self.num_of_findings)
+
+    def test_clone_with_evidence_files(self):
+        self.Evidence.objects.all().delete()
+        report = ReportFactory()
+        finding = ReportFindingLinkFactory(title="Evidence Finding 1", report=report)
+        evidence = EvidenceFactory(finding=finding)
+
+        uri = reverse("reporting:report_clone", kwargs={"pk": report.pk})
+        response = self.client_auth.get(uri)
+        self.assertIn("reporting/reports/", response.url)
+
+        evidence_files = self.Evidence.objects.filter(friendly_name=evidence.friendly_name)
+        self.assertEqual(len(evidence_files), 2)
+
+        # Check the evidence file was copied to the new report's directory
+        report_copy = self.Report.objects.latest("id")
+        evidence_copy = evidence_files.latest("id")
+        assert os.path.exists(evidence_copy.document.path)
+        self.assertIn(f"ghostwriter/media/evidence/{report_copy.pk}", evidence_copy.document.path)
+
+    def test_clone_with_missing_evidence_file(self):
+        self.Evidence.objects.all().delete()
+        report = ReportFactory()
+        finding = ReportFindingLinkFactory(title="Evidence Finding 1", report=report)
+        evidence = EvidenceFactory(finding=finding)
+        evidence_missing_file = EvidenceFactory(finding=finding)
+
+        # Delete evidence file
+        os.remove(evidence_missing_file.document.path)
+
+        uri = reverse("reporting:report_clone", kwargs={"pk": report.pk})
+        response = self.client_auth.get(uri)
+        self.assertIn("reporting/reports/", response.url)
+
+        # Check that the evidence with the missing file was not copied
+        evidence_files = self.Evidence.objects.filter(friendly_name=evidence.friendly_name)
+        self.assertEqual(len(evidence_files), 2)
+        evidence_files = self.Evidence.objects.filter(friendly_name=evidence_missing_file.friendly_name)
+        self.assertEqual(len(evidence_files), 1)
+        # Total = 2 from the original report + 1 from the copy
+        self.assertEqual(len(self.Evidence.objects.all()), 3)
 
 # Tests related to :model:`reporting.Finding`
 
@@ -1857,7 +1915,7 @@ class GenerateReportTests(TestCase):
         response = self.client.get(self.xlsx_uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_pptxx_requires_login(self):
+    def test_view_pptx_requires_login(self):
         response = self.client.get(self.pptx_uri)
         self.assertEqual(response.status_code, 302)
 

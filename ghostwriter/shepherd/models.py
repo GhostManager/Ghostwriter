@@ -101,7 +101,7 @@ class WhoisStatus(models.Model):
 
 class ActivityType(models.Model):
     """
-    Stores an individual acttivity type.
+    Stores an individual activity type.
     """
 
     activity = models.CharField(

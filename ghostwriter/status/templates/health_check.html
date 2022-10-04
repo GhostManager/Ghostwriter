@@ -1,0 +1,33 @@
+{% extends "base_generic_empty.html" %}
+
+{% block pagetitle %}Health Status{% endblock %}
+
+
+{% block content %}
+    <h1>System Status</h1>
+    <table>
+      <thead>
+        <th colspan="2">Service</th>
+        <th>Status</th>
+        <th class="align-right">Time Taken</th>
+      </thead>
+      <tbody>
+        {% for plugin in plugins %}
+          <tr>
+            <td class="icons">
+              <span aria-hidden="true">
+                {% if plugin.status %}
+                  &#9989;
+                {% else %}
+                  &#10060;
+                {% endif %}
+              </span>
+            </td>
+            <td>{{ plugin.identifier }}</td>
+            <td>{{ plugin.pretty_status | linebreaks }}</td>
+            <td class="align-right">{{ plugin.time_taken|floatformat:4 }} seconds</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+{% endblock content %}

@@ -23,7 +23,7 @@ def get_item(dictionary, key):
 
     **Parameters**
 
-    ``dictonary``
+    ``dictionary``
         Python dictionary object to parse
     ``key``
         Key name tor retrieve from the dictionary

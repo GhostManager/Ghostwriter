@@ -247,7 +247,7 @@ class FindingForm(forms.ModelForm):
 
 class ReportForm(forms.ModelForm):
     """
-    Save an individual :model:`reporting.Report` associated with an indivudal
+    Save an individual :model:`reporting.Report` associated with an individual
     :model:`rolodex.Project`.
     """
 

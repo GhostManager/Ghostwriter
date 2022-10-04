@@ -209,12 +209,12 @@ def codename(capitalize=False, uppercase=False, separator=" "):
 
     **Parameters**
 
-    ``captialize``
-        Boolean to determine if the codename should be captialized (Default is False)
+    ``capitalize``
+        Boolean to determine if the codename should be capitalized (Default is False)
     ``uppercase``
         Boolean to determine if the codename should be all uppercase (Default is False)
-    ``seperator``
-        String used to seperate the attribute and object (Default is a single space)
+    ``separator``
+        String used to separate the attribute and object (Default is a single space)
     """
     words = [choice(ATTRIBUTES), choice(OBJECTS)]
     if capitalize:
