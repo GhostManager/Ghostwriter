@@ -1,23 +1,23 @@
 table:
-  schema: public
   name: shepherd_staticserver
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: staticServer
   column_config:
-    last_used_by_id:
-      custom_name: lastUsedById
-    server_status_id:
-      custom_name: serverStatusId
     ip_address:
       custom_name: ipAddress
+    last_used_by_id:
+      custom_name: lastUsedById
     server_provider_id:
       custom_name: serverProviderId
+    server_status_id:
+      custom_name: serverStatusId
   custom_column_names:
-    last_used_by_id: lastUsedById
-    server_status_id: serverStatusId
     ip_address: ipAddress
+    last_used_by_id: lastUsedById
     server_provider_id: serverProviderId
+    server_status_id: serverStatusId
+  custom_name: staticServer
+  custom_root_fields: {}
 object_relationships:
   - name: serverProvider
     using:
@@ -34,22 +34,22 @@ array_relationships:
       foreign_key_constraint_on:
         column: static_server_id
         table:
-          schema: public
           name: shepherd_auxserveraddress
+          schema: public
   - name: checkouts
     using:
       foreign_key_constraint_on:
         column: server_id
         table:
-          schema: public
           name: shepherd_serverhistory
+          schema: public
   - name: comments
     using:
       foreign_key_constraint_on:
         column: server_id
         table:
-          schema: public
           name: shepherd_servernote
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -60,7 +60,6 @@ insert_permissions:
         - note
         - server_provider_id
         - server_status_id
-      backend_only: false
   - role: restricted
     permission:
       check: {}
@@ -133,10 +132,13 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter: {}
   - role: user
     permission:
+      backend_only: false
       filter: {}

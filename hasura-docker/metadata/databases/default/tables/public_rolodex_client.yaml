@@ -1,64 +1,64 @@
 table:
-  schema: public
   name: rolodex_client
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: client
   column_config:
     short_name:
       custom_name: shortName
   custom_column_names:
     short_name: shortName
+  custom_name: client
+  custom_root_fields: {}
 array_relationships:
   - name: comments
     using:
       foreign_key_constraint_on:
         column: client_id
         table:
-          schema: public
           name: rolodex_clientnote
+          schema: public
   - name: contacts
     using:
       foreign_key_constraint_on:
         column: client_id
         table:
-          schema: public
           name: rolodex_clientcontact
+          schema: public
   - name: domains
     using:
       foreign_key_constraint_on:
         column: client_id
         table:
-          schema: public
           name: shepherd_history
+          schema: public
   - name: invites
     using:
       foreign_key_constraint_on:
         column: client_id
         table:
-          schema: public
           name: rolodex_clientinvite
+          schema: public
   - name: projects
     using:
       foreign_key_constraint_on:
         column: client_id
         table:
-          schema: public
           name: rolodex_project
+          schema: public
   - name: servers
     using:
       foreign_key_constraint_on:
         column: client_id
         table:
-          schema: public
           name: shepherd_serverhistory
+          schema: public
   - name: templates
     using:
       foreign_key_constraint_on:
         column: client_id
         table:
-          schema: public
           name: reporting_reporttemplate
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -70,12 +70,14 @@ insert_permissions:
         - note
         - short_name
         - timezone
-      backend_only: false
   - role: restricted
     permission:
       check:
         _and:
           - _exists:
+              _table:
+                name: users_user_groups
+                schema: public
               _where:
                 _and:
                   - user_id:
@@ -85,15 +87,15 @@ insert_permissions:
                         authPermission:
                           codename:
                             _eq: add_clientcontact
-              _table:
-                schema: public
-                name: users_user_groups
       columns: []
   - role: user
     permission:
       check:
         _and:
           - _exists:
+              _table:
+                name: users_user_groups
+                schema: public
               _where:
                 _and:
                   - user_id:
@@ -103,9 +105,6 @@ insert_permissions:
                         authPermission:
                           codename:
                             _eq: add_clientcontact
-              _table:
-                schema: public
-                name: users_user_groups
       columns: []
 select_permissions:
   - role: manager
@@ -236,4 +235,5 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}

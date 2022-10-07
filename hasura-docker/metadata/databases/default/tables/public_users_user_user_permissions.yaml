@@ -1,14 +1,14 @@
 table:
-  schema: public
   name: users_user_user_permissions
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: userPermission
   column_config:
     permission_id:
       custom_name: permissionId
   custom_column_names:
     permission_id: permissionId
+  custom_name: userPermission
+  custom_root_fields: {}
 object_relationships:
   - name: authPermission
     using:

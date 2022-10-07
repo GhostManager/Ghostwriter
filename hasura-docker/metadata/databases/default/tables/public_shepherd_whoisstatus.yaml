@@ -1,22 +1,22 @@
 table:
-  schema: public
   name: shepherd_whoisstatus
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: whoisStatus
   column_config:
     whois_status:
       custom_name: whoisStatus
   custom_column_names:
     whois_status: whoisStatus
+  custom_name: whoisStatus
+  custom_root_fields: {}
 array_relationships:
   - name: domains
     using:
       foreign_key_constraint_on:
         column: whois_status_id
         table:
-          schema: public
           name: shepherd_domain
+          schema: public
 select_permissions:
   - role: manager
     permission:

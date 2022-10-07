@@ -1,19 +1,19 @@
 table:
-  schema: public
   name: rolodex_objectivepriority
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: objectivePriority
   column_config: {}
   custom_column_names: {}
+  custom_name: objectivePriority
+  custom_root_fields: {}
 array_relationships:
   - name: objectives
     using:
       foreign_key_constraint_on:
         column: priority_id
         table:
-          schema: public
           name: rolodex_projectobjective
+          schema: public
 select_permissions:
   - role: manager
     permission:

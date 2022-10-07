@@ -1,17 +1,17 @@
 table:
-  schema: public
   name: rolodex_clientcontact
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: contacts
   column_config:
-    job_title:
-      custom_name: jobTitle
     client_id:
       custom_name: clientId
+    job_title:
+      custom_name: jobTitle
   custom_column_names:
-    job_title: jobTitle
     client_id: clientId
+    job_title: jobTitle
+  custom_name: contacts
+  custom_root_fields: {}
 object_relationships:
   - name: client
     using:
@@ -28,7 +28,6 @@ insert_permissions:
         - note
         - phone
         - timezone
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -216,9 +215,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         client:
           _or:
@@ -235,6 +236,7 @@ delete_permissions:
                         _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         client:
           _or:

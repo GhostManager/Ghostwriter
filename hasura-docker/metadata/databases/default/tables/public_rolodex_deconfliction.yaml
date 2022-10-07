@@ -1,88 +1,136 @@
 table:
-  name: oplog_oplog
+  name: rolodex_deconfliction
   schema: public
 configuration:
   column_config:
+    alert_source:
+      custom_name: alertSource
+    alert_timestamp:
+      custom_name: alertTimestamp
+    created_at:
+      custom_name: createdAt
     project_id:
       custom_name: projectId
+    report_timestamp:
+      custom_name: reportTimestamp
+    response_timestamp:
+      custom_name: responseTimestamp
+    status_id:
+      custom_name: statusId
   custom_column_names:
+    alert_source: alertSource
+    alert_timestamp: alertTimestamp
+    created_at: createdAt
     project_id: projectId
-  custom_name: oplog
+    report_timestamp: reportTimestamp
+    response_timestamp: responseTimestamp
+    status_id: statusId
+  custom_name: deconfliction
   custom_root_fields: {}
 object_relationships:
+  - name: deconflictionStatus
+    using:
+      foreign_key_constraint_on: status_id
   - name: project
     using:
       foreign_key_constraint_on: project_id
-array_relationships:
-  - name: entries
-    using:
-      foreign_key_constraint_on:
-        column: oplog_id_id
-        table:
-          name: oplog_oplogentry
-          schema: public
 insert_permissions:
   - role: manager
     permission:
       check: {}
       columns:
-        - name
+        - alert_source
+        - alert_timestamp
+        - description
         - project_id
+        - report_timestamp
+        - response_timestamp
+        - status_id
+        - title
   - role: restricted
     permission:
       check:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
                   user_id:
                     _eq: X-Hasura-User-Id
       columns:
-        - name
+        - alert_source
+        - alert_timestamp
+        - description
         - project_id
+        - report_timestamp
+        - response_timestamp
+        - status_id
+        - title
   - role: user
     permission:
       check:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
                   user_id:
                     _eq: X-Hasura-User-Id
       columns:
-        - name
+        - alert_source
+        - alert_timestamp
+        - description
         - project_id
+        - report_timestamp
+        - response_timestamp
+        - status_id
+        - title
 select_permissions:
   - role: manager
     permission:
       columns:
-        - name
         - id
         - project_id
+        - status_id
+        - alert_source
+        - title
+        - description
+        - alert_timestamp
+        - created_at
+        - report_timestamp
+        - response_timestamp
       filter: {}
   - role: restricted
     permission:
-      columns: '*'
+      columns:
+        - id
+        - project_id
+        - status_id
+        - alert_source
+        - title
+        - description
+        - alert_timestamp
+        - created_at
+        - report_timestamp
+        - response_timestamp
       filter:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
@@ -90,15 +138,25 @@ select_permissions:
                     _eq: X-Hasura-User-Id
   - role: user
     permission:
-      columns: '*'
+      columns:
+        - id
+        - project_id
+        - status_id
+        - alert_source
+        - title
+        - description
+        - alert_timestamp
+        - created_at
+        - report_timestamp
+        - response_timestamp
       filter:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
@@ -108,23 +166,35 @@ update_permissions:
   - role: manager
     permission:
       columns:
-        - name
+        - alert_source
+        - alert_timestamp
+        - description
         - project_id
+        - report_timestamp
+        - response_timestamp
+        - status_id
+        - title
       filter: {}
       check: {}
   - role: restricted
     permission:
       columns:
-        - name
+        - alert_source
+        - alert_timestamp
+        - description
         - project_id
+        - report_timestamp
+        - response_timestamp
+        - status_id
+        - title
       filter:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
@@ -133,11 +203,11 @@ update_permissions:
       check:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
@@ -146,16 +216,22 @@ update_permissions:
   - role: user
     permission:
       columns:
-        - name
+        - alert_source
+        - alert_timestamp
+        - description
         - project_id
+        - report_timestamp
+        - response_timestamp
+        - status_id
+        - title
       filter:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
@@ -164,11 +240,11 @@ update_permissions:
       check:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
@@ -185,11 +261,11 @@ delete_permissions:
       filter:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:
@@ -201,11 +277,11 @@ delete_permissions:
       filter:
         project:
           _or:
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
             - assignments:
                 operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
                   _eq: X-Hasura-User-Id
             - client:
                 invites:

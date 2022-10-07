@@ -1,17 +1,17 @@
 table:
-  schema: public
   name: shepherd_auxserveraddress
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: auxServerAddresses
   column_config:
-    static_server_id:
-      custom_name: staticServerId
     ip_address:
       custom_name: ipAddress
+    static_server_id:
+      custom_name: staticServerId
   custom_column_names:
-    static_server_id: staticServerId
     ip_address: ipAddress
+    static_server_id: staticServerId
+  custom_name: auxServerAddresses
+  custom_root_fields: {}
 object_relationships:
   - name: server
     using:
@@ -24,7 +24,6 @@ insert_permissions:
         - ip_address
         - primary
         - static_server_id
-      backend_only: false
   - role: restricted
     permission:
       check: {}
@@ -91,10 +90,13 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter: {}
   - role: user
     permission:
+      backend_only: false
       filter: {}

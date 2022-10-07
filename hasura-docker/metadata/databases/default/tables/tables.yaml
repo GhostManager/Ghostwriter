@@ -23,6 +23,8 @@
 - "!include public_rolodex_clientcontact.yaml"
 - "!include public_rolodex_clientinvite.yaml"
 - "!include public_rolodex_clientnote.yaml"
+- "!include public_rolodex_deconfliction.yaml"
+- "!include public_rolodex_deconflictionstatus.yaml"
 - "!include public_rolodex_objectivepriority.yaml"
 - "!include public_rolodex_objectivestatus.yaml"
 - "!include public_rolodex_project.yaml"

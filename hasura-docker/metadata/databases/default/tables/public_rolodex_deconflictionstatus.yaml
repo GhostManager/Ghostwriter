@@ -1,34 +1,38 @@
 table:
-  name: rolodex_projecttype
+  name: rolodex_deconflictionstatus
   schema: public
 configuration:
-  column_config:
-    project_type:
-      custom_name: projectType
-  custom_column_names:
-    project_type: projectType
-  custom_name: projectType
+  column_config: {}
+  custom_column_names: {}
+  custom_name: deconflictionStatus
   custom_root_fields: {}
 array_relationships:
-  - name: projects
+  - name: deconflictions
     using:
       foreign_key_constraint_on:
-        column: project_type_id
+        column: status_id
         table:
-          name: rolodex_project
+          name: rolodex_deconfliction
           schema: public
 select_permissions:
   - role: manager
     permission:
       columns:
         - id
-        - project_type
+        - status
+        - weight
       filter: {}
   - role: restricted
     permission:
-      columns: '*'
+      columns:
+        - id
+        - status
+        - weight
       filter: {}
   - role: user
     permission:
-      columns: '*'
+      columns:
+        - id
+        - status
+        - weight
       filter: {}

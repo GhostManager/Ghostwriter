@@ -1,35 +1,35 @@
 table:
-  schema: public
   name: shepherd_domain
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: domain
   column_config:
-    last_health_check:
-      custom_name: lastHealthCheck
     auto_renew:
       custom_name: autoRenew
+    domain_status_id:
+      custom_name: domainStatusId
+    health_status_id:
+      custom_name: healthStatusId
+    last_health_check:
+      custom_name: lastHealthCheck
+    last_used_by_id:
+      custom_name: lastUsedById
     reset_dns:
       custom_name: resetDns
     vt_permalink:
       custom_name: vtPermalink
-    domain_status_id:
-      custom_name: domainStatusId
-    last_used_by_id:
-      custom_name: lastUsedById
-    health_status_id:
-      custom_name: healthStatusId
     whois_status_id:
       custom_name: whoisStatusId
   custom_column_names:
-    last_health_check: lastHealthCheck
     auto_renew: autoRenew
+    domain_status_id: domainStatusId
+    health_status_id: healthStatusId
+    last_health_check: lastHealthCheck
+    last_used_by_id: lastUsedById
     reset_dns: resetDns
     vt_permalink: vtPermalink
-    domain_status_id: domainStatusId
-    last_used_by_id: lastUsedById
-    health_status_id: healthStatusId
     whois_status_id: whoisStatusId
+  custom_name: domain
+  custom_root_fields: {}
 object_relationships:
   - name: domainStatus
     using:
@@ -49,15 +49,15 @@ array_relationships:
       foreign_key_constraint_on:
         column: domain_id
         table:
-          schema: public
           name: shepherd_history
+          schema: public
   - name: comments
     using:
       foreign_key_constraint_on:
         column: domain_id
         table:
-          schema: public
           name: shepherd_domainnote
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -77,7 +77,6 @@ insert_permissions:
         - reset_dns
         - vt_permalink
         - whois_status_id
-      backend_only: false
   - role: restricted
     permission:
       check: {}
@@ -220,8 +219,8 @@ event_triggers:
         columns:
           - name
     retry_conf:
-      num_retries: 0
       interval_sec: 10
+      num_retries: 0
       timeout_sec: 60
     webhook: '{{ACTIONS_URL_BASE}}/event/domain/update'
     headers:

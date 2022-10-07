@@ -1,23 +1,23 @@
 table:
-  schema: public
   name: shepherd_domainserverconnection
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: domainServerConnection
   column_config:
     domain_id:
       custom_name: domainId
+    project_id:
+      custom_name: projectId
     static_server_id:
       custom_name: staticServerId
     transient_server_id:
       custom_name: transientServerId
-    project_id:
-      custom_name: projectId
   custom_column_names:
     domain_id: domainId
+    project_id: projectId
     static_server_id: staticServerId
     transient_server_id: transientServerId
-    project_id: projectId
+  custom_name: domainServerConnection
+  custom_root_fields: {}
 object_relationships:
   - name: cloudServer
     using:
@@ -42,7 +42,6 @@ insert_permissions:
         - static_server_id
         - subdomain
         - transient_server_id
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -216,9 +215,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         project:
           _or:
@@ -234,6 +235,7 @@ delete_permissions:
                     _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         project:
           _or:
