@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # Django Imports
 from django.test import TestCase
@@ -10,6 +10,8 @@ from ghostwriter.factories import (
     ClientContactFactory,
     ClientFactory,
     ClientNoteFactory,
+    DeconflictionFactory,
+    DeconflictionStatusFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectNoteFactory,
@@ -25,6 +27,7 @@ from ghostwriter.rolodex.forms_client import (
     ClientNoteForm,
 )
 from ghostwriter.rolodex.forms_project import (
+    DeconflictionForm,
     ProjectAssignmentForm,
     ProjectAssignmentFormSet,
     ProjectForm,
@@ -846,3 +849,63 @@ class ProjectTargetFormSetTests(TestCase):
         errors = form.errors[0]
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors["note"].as_data()[0].code, "incomplete")
+
+
+class DeconflictionFormTests(TestCase):
+    """Collection of tests for :form:`rolodex.DeconflictionForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.status = DeconflictionStatusFactory()
+        cls.project = ProjectFactory()
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        title=None,
+        report_timestamp=None,
+        alert_timestamp=None,
+        response_timestamp=None,
+        description=None,
+        alert_source=None,
+        status_id=None,
+        **kwargs,
+    ):
+        return DeconflictionForm(
+            data={
+                "title": title,
+                "report_timestamp": report_timestamp,
+                "alert_timestamp": alert_timestamp,
+                "response_timestamp": response_timestamp,
+                "description": description,
+                "alert_source": alert_source,
+                "status": status_id,
+            },
+        )
+
+    def test_valid_data(self):
+        deconfliction = DeconflictionFactory.build(project=self.project, status=self.status)
+        form = self.form_data(**deconfliction.__dict__)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_data_with_only_required_datetime(self):
+        deconfliction = DeconflictionFactory.build(
+            project=self.project, status=self.status,
+            alert_timestamp=None, response_timestamp=None
+        )
+        form = self.form_data(**deconfliction.__dict__)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_data_without_required_datetime(self):
+        deconfliction = DeconflictionFactory.build(
+            project=self.project, status=self.status,
+            alert_timestamp=None, response_timestamp=None,
+            report_timestamp=None
+        )
+        form = self.form_data(**deconfliction.__dict__)
+        errors = form["report_timestamp"].errors.as_data()
+        self.assertFalse(form.is_valid())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "required")

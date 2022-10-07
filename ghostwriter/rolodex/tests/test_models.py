@@ -11,6 +11,8 @@ from ghostwriter.factories import (
     ClientFactory,
     ClientInviteFactory,
     ClientNoteFactory,
+    DeconflictionFactory,
+    DeconflictionStatusFactory,
     HistoryFactory,
     ObjectivePriorityFactory,
     ObjectiveStatusFactory,
@@ -657,3 +659,68 @@ class ProjectInviteModelTests(TestCase):
         # Delete
         invite.delete()
         assert not self.ProjectInvite.objects.all().exists()
+
+
+class DeconflictionStatusModelTests(TestCase):
+    """Collection of tests for :model:`rolodex.DeconflictionStatus`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.DeconflictionStatus = DeconflictionStatusFactory._meta.model
+
+    def test_crud_finding(self):
+        # Create
+        status = DeconflictionStatusFactory(status="Confirmed")
+
+        # Read
+        self.assertEqual(status.status, "Confirmed")
+        self.assertEqual(status.pk, status.id)
+        self.assertQuerysetEqual(
+            self.DeconflictionStatus.objects.all(),
+            ["<DeconflictionStatus: Confirmed>"],
+        )
+
+        # Update
+        status.status = "Undetermined"
+        status.save()
+        self.assertQuerysetEqual(
+            self.DeconflictionStatus.objects.all(),
+            ["<DeconflictionStatus: Undetermined>"],
+        )
+
+        # Delete
+        status.delete()
+        assert not self.DeconflictionStatus.objects.all().exists()
+
+
+class DeconflictionModelTests(TestCase):
+    """Collection of tests for :model:`rolodex.Deconfliction`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.Deconfliction = DeconflictionFactory._meta.model
+        cls.project = ProjectFactory()
+
+    def test_crud_finding(self):
+        # Create
+        status = DeconflictionFactory(title="Deconfliction Title", project=self.project)
+
+        # Read
+        self.assertEqual(status.title, "Deconfliction Title")
+        self.assertEqual(status.pk, status.id)
+        self.assertQuerysetEqual(
+            self.Deconfliction.objects.all(),
+            [f"<Deconfliction: {self.project}: Deconfliction Title>"],
+        )
+
+        # Update
+        status.title = "New Deconfliction Title"
+        status.save()
+        self.assertQuerysetEqual(
+            self.Deconfliction.objects.all(),
+            [f"<Deconfliction: {self.project}: New Deconfliction Title>"],
+        )
+
+        # Delete
+        status.delete()
+        assert not self.Deconfliction.objects.all().exists()
