@@ -743,8 +743,23 @@ class ReportDataSerializer(CustomModelSerializer):
             total_scope_lines += scope["total"]
 
         finding_order = 0
+        critical_findings = 0
+        high_findings = 0
+        medium_findings = 0
+        low_findings = 0
+        info_findings = 0
         for finding in rep["findings"]:
             finding["ordering"] = finding_order
+            if finding["severity"].lower() == "critical":
+                critical_findings += 1
+            elif finding["severity"].lower() == "high":
+                high_findings += 1
+            elif finding["severity"].lower() == "medium":
+                medium_findings += 1
+            elif finding["severity"].lower() == "low":
+                low_findings += 1
+            elif finding["severity"].lower() == "informational":
+                info_findings += 1
             finding_order += 1
 
         # Add a ``totals`` key to track the values
@@ -752,6 +767,11 @@ class ReportDataSerializer(CustomModelSerializer):
         rep["totals"]["objectives"] = total_objectives
         rep["totals"]["objectives_completed"] = completed_objectives
         rep["totals"]["findings"] = total_findings
+        rep["totals"]["findings_critical"] = critical_findings
+        rep["totals"]["findings_high"] = high_findings
+        rep["totals"]["findings_medium"] = medium_findings
+        rep["totals"]["findings_low"] = low_findings
+        rep["totals"]["findings_info"] = info_findings
         rep["totals"]["scope"] = total_scope_lines
         rep["totals"]["team"] = total_team
         rep["totals"]["targets"] = total_targets
