@@ -351,7 +351,12 @@ LINTER_CONTEXT = {
     "totals": {
         "objectives": 3,
         "objectives_completed": 0,
-        "findings": 7,
+        "findings": 1,
+        "findings_critical": 1,
+        "findings_high": 0,
+        "findings_medium": 0,
+        "findings_low": 0,
+        "findings_info": 0,
         "scope": 6,
         "team": 2,
         "targets": 1,
