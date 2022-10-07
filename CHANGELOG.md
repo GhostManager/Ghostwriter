@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 5 October 2022
+
+### Added
+
+* Findings added to a report via a blank template (i.e., not added from the library) will now appear with a flag  icon for easy identification
+* New deconfliction event tracking feature now available under the "Deconflictions" tab on project dashboards
+
 ## [v3.0.5] - 23 September 2022
 
 ### Fixed
