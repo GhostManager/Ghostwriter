@@ -116,7 +116,7 @@
                 <h4>Project Assignments</h4>
                 <hr />
 
-                <a class="icon edit-icon btn btn-primary mb-1" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+                <a class="icon edit-icon btn btn-primary mb-1 col-3" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
@@ -168,7 +168,7 @@
                 <h4>Scope Lists</h4>
                 <hr />
 
-                <a class="icon edit-icon btn btn-primary mb-3" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
+                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
 
                 <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by objectives.</p>
 
@@ -252,7 +252,7 @@
                 <h4>Targets</h4>
                 <hr />
 
-                <a class="icon edit-icon btn btn-primary mb-3" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
+                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
 
                 <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are interesting.</p>
 
@@ -305,9 +305,9 @@
                 <hr />
 
                 <p>
-                    <a class="icon add-icon btn btn-primary" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
+                    <a class="icon add-icon btn btn-primary col-3" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
                     <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-                    <a class="icon upload-icon btn btn-info" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
+                    <a class="icon upload-icon btn btn-info col-3" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
                 </p>
 
                 {% if project.oplog_set.all %}
@@ -349,7 +349,7 @@
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
                 {% else %}
-                    <a class="icon add-icon btn btn-primary mb-3" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
+                    <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
                 {% endif %}
 
                 <p>View and edit findings by opening the related report (click the link).</p>
@@ -534,7 +534,7 @@
                     </form>
                 </div>
 
-                <p class="mt-3"><a class="icon add-icon btn btn-primary" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
+                <p class="mt-3"><a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
                 {% if project.serverhistory_set.all or project.transientserver_set.all %}
                     <table id="serverTable" class="tablesorter table">
                         <thead>
@@ -653,7 +653,7 @@
                 <!-- Determine if at least one server and one domain -->
                 {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
                     <p>
-                        <a class="icon add-icon btn btn-primary" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
+                        <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
                     </p>
                     {% if project.domainserverconnection_set.all %}
                         <table class="table">
