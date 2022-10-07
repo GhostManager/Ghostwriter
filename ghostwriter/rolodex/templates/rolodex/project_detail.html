@@ -102,11 +102,11 @@
                     </tr>
                 </table>
 
-                <div id="projectDescription" class="description-block">
+                <div id="projectDescription" class="description-block offset-md-2 col-8">
                     {% if project.note %}
                         {{ project.note|bleach }}
                     {% else %}
-                        <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+                        <p class="text-center">No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
                     {% endif %}
                 </div>
 

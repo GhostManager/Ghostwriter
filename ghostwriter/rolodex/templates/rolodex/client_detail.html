@@ -67,17 +67,17 @@
                     </tr>
                 </table>
 
-                <div id="clientDescription" class="description-block">
+                <div id="clientDescription" class="description-block offset-md-2 col-8">
                     {% if client.note %}
                         {{ client.note|bleach }}
                     {% else %}
-                        <p>No additional information provided for this client. <a class="clickable" href="{% url 'rolodex:client_update' client.id %}">Fix that here.</a></p>
+                        <p class="text-center">No additional information provided for this client. <a class="clickable" href="{% url 'rolodex:client_update' client.id %}">Fix that here.</a></p>
                     {% endif %}
                 </div>
 
                 <div class="hidden-element"></div>
 
-                <h4>Business Address</h3>
+                <h5>Business Address</h5>
                 <hr>
 
                 <div class="address">
