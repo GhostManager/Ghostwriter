@@ -2236,7 +2236,7 @@ th.icon {
   display: block;
 }
 
-.card-header {
+.myaccordion .card-header {
   cursor: pointer;
 }
 
