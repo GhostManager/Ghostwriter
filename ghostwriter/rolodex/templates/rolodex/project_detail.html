@@ -696,12 +696,76 @@
                     <p>Check-out/add at least one domain and one server to create an association.</p>
                 {% endif %}
             </div>
-            <div id="notes" class="tab-pane ">
+
+            <div id="deconflictions" class="tab-pane">
+                <!-- Deconflictions Section -->
+                <h4>Deconfliction Events</h4>
+                <hr />
+
+                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_deconfliction_create' project.id %}">Record a Deconfliction</a>
+
+                {% if project.deconfliction_set.all %}
+                    {% for event in project.deconfliction_set.all %}
+                        <div id="decon-card-{{ event.id }}" class="card text-center mb-3">
+                            <div class="card-header">
+                                <h5 class="card-title"><span id="delete-target-content-deconfliction-{{ event.id }}">{{ event.title|title }}</span> ({{ event.status }})</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <p class="card-text">Source: {{ event.alert_source }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="row pt-2">
+                                    <div class="col-sm-4" data-toggle="tooltip" data-placement="top" title="Date and time of the original alert.">
+                                        <p class="card-text">Time Alert Triggered</p>
+                                    </div>
+                                    <div class="col-sm-4" data-toggle="tooltip" data-placement="top" title="Date and time of when we were informed of the event.">
+                                        <p class="card-text">Report Received</p>
+                                    </div>
+                                    <div class="col-sm-4" data-toggle="tooltip" data-placement="top" title="Date and time of our response to the event.">
+                                        <p class="card-text">Response Sent</p>
+                                    </div>
+                                </div>
+                                <div class="row pb-2">
+                                    <div class="col-sm-4">
+                                        <p class="card-text">{% if event.alert_timestamp %}{{ event.alert_timestamp|date:"DATE_FORMAT" }}{% else %}TBD{% endif %}</p>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <p class="card-text">{{ event.report_timestamp|date:"DATE_FORMAT" }}</p>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <p class="card-text">{% if event.response_timestamp %}{{ event.response_timestamp|date:"DATE_FORMAT" }}{% else %}TBD{% endif %}</p>
+                                    </div>
+                                </div>
+
+                                <p class="card-text">
+                                    {% if event.description %}
+                                        {{ event.description|bleach }}
+                                    {% else %}
+                                        <p>No one has added a description of this event. <a class="clickable" href="{% url 'rolodex:project_deconfliction_update' event.id %}">Fix that here.</a></p>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="card-footer text-muted">
+                                <a href="{% url 'rolodex:project_deconfliction_update' event.id %}" class="btn btn-primary col-md-2">Update</a>
+                                <a id="deconfliction-delete-button-{{ event.id }}" class="btn btn-danger col-md-2 js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_deconfliction' event.id %}" delete-target-id="{{ event.id }}" delete-target-type="deconfliction">Delete</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No deconfliction events for this project.</p>
+                {% endif %}
+
+            </div>
+
+            <div id="notes" class="tab-pane">
                 <!-- Notes Section -->
                 <h4>Project Notes</h4>
                 <hr />
 
-                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
+                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
 
                 {% if project.projectnote_set.all %}
                     {% for note in project.projectnote_set.all reversed %}
