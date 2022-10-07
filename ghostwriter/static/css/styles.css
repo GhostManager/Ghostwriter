@@ -1616,6 +1616,14 @@ th.icon {
   padding: 0;
 }
 
+.double-check-icon:before {
+  content: '\f560';
+}
+
+.flag-icon:before {
+  content: '\f024';
+}
+
 .globe-icon:before {
   content: '\f0ac';
 }
