@@ -27,7 +27,7 @@ class Severity(models.Model):
         "Severity",
         max_length=255,
         unique=True,
-        help_text="Name for this severity rating (e.g. High, Low)",
+        help_text="Name for this severity rating (e.g., High, Low)",
     )
     weight = models.IntegerField(
         "Severity Weight",
@@ -459,6 +459,11 @@ class ReportFindingLink(models.Model):
         "Completed",
         default=False,
         help_text="Mark the finding as ready for a QA review",
+    )
+    added_as_blank = models.BooleanField(
+        "Added as Blank",
+        default=False,
+        help_text="Identify a finding that was created for this report instead of copied from the library",
     )
     # Foreign Keys
     severity = models.ForeignKey(
