@@ -48,6 +48,9 @@
         <!-- Info Tab -->
         <div class="tab-content">
             <div id="general" class="tab-pane in active">
+                <h4>Client Details</h4>
+                <hr />
+
                 <table class="table table-borderless table-centered project-details-table">
                     <tr>
                         <td class="text-left bold">Codename</td>
@@ -91,7 +94,10 @@
 
             <!-- POC Tab -->
             <div id="contacts" class="tab-pane">
-                <a class="icon add-icon btn btn-primary mb-1" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a>
+                <h4>Client Contacts</h4>
+                <hr />
+
+                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_update' client.id %}#contacts">Add a Point of Contact</a>
                 {% if client.clientcontact_set.all %}
                     <table id="clientTable" class="tablesorter table table-striped">
                         <thead>
@@ -136,7 +142,10 @@
 
             <!-- Project History Tab -->
             <div id="project-history" class="tab-pane">
-                <a class="icon add-icon btn btn-primary mb-1" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a>
+                <h4>Client Projects</h4>
+                <hr />
+
+                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_create' client.id %}">Add a Project</a>
                 {% if client.project_set.all %}
                     <table id="projectTable" class="tablesorter table">
                         <thead>
@@ -175,7 +184,9 @@
             <div id="infrastructure-history" class="tab-pane">
                 {% if domains or servers or vps %}
                     {% if domains %}
-                        <h4>Domains Used with {{ client.name }}</h4>
+                        <h4>Domains Used with Client</h4>
+                        <hr />
+
                         <table id="domainTable" class="tablesorter table table-striped">
                             <thead>
                                 <tr>
@@ -198,6 +209,8 @@
 
                     {% if servers or vps %}
                         <h4>Servers Used with {{ client.name }}</h4>
+                        <hr />
+
                         <table id="serverTable" class="tablesorter table table-striped">
                             <thead>
                                 <tr>
@@ -233,7 +246,11 @@
 
             <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
-                <a class="icon add-icon btn btn-primary mb-1" href="{% url 'rolodex:client_note_add' client.id %}">Add a Note</a>
+                <h4>Client Notes</h4>
+                <hr />
+
+                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:client_note_add' client.id %}">Add a Note</a>
+
                 {% if client.clientnote_set.all %}
                     {% for note in client.clientnote_set.all reversed %}
                         <div id="note-container-{{ note.id }}">
