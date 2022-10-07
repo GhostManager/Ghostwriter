@@ -738,3 +738,90 @@ class ProjectInvite(models.Model):
 
     def __str__(self):
         return f"{self.user} ({self.project})"
+
+
+class DeconflictionStatus(models.Model):
+    """
+    Stores an individual deconfliction status.
+    """
+
+    status = models.CharField(
+        "Status",
+        max_length=255,
+        unique=True,
+        help_text="Status for a deconfliction request (e.g., Undetermined, Confirmed, Unrelated)",
+    )
+    weight = models.IntegerField(
+        "Status Weight",
+        default=1,
+        help_text="Weight for sorting status",
+    )
+
+    class Meta:
+        ordering = ["weight", "status"]
+        verbose_name = "Deconfliction status"
+        verbose_name_plural = "Deconfliction status"
+
+    def __str__(self):
+        return f"{self.status}"
+
+
+class Deconfliction(models.Model):
+    """
+    Stores an individual deconfliction, related to an individual :model:`rolodex.Project`.
+    """
+
+    created_at = models.DateTimeField(
+        "Timestamp", auto_now_add=True, help_text="Date and time this deconfliction was created"
+    )
+    report_timestamp = models.DateTimeField(
+        "Report Timestamp",
+        help_text="Date and time the client informed you and requested deconfliction"
+    )
+    alert_timestamp = models.DateTimeField(
+        "Alert Timestamp",
+        null=True,
+        blank=True,
+        help_text="Date and time the alert fired"
+    )
+    response_timestamp = models.DateTimeField(
+        "Response Timestamp",
+        null=True,
+        blank=True,
+        help_text="Date and time you responded to the report"
+    )
+    title = models.CharField(
+        "Deconfliction Title",
+        max_length=255,
+        help_text="Provide a descriptive title or headline for this deconfliction",
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a brief description of this deconfliction request",
+    )
+    alert_source = models.CharField(
+        "Alert Source",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Source of the alert (e.g., user reported, EDR, MDR, etc.)",
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+    status = models.ForeignKey(
+        "DeconflictionStatus",
+        on_delete=models.PROTECT,
+        null=True,
+        help_text="Select a status that best reflects the current state of this deconfliction (e.g., undetermined, confirmed assessment activity, or unrelated to assessment activity)",
+    )
+
+    class Meta:
+
+        ordering = ["project", "-created_at", "status__weight", "title"]
+        verbose_name = "Project deconfliction"
+        verbose_name_plural = "Project deconflictions"
+
+    def __str__(self):
+        return f"{self.project}: {self.title}"
