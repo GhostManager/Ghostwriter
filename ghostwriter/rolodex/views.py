@@ -118,7 +118,7 @@ def roll_codename(request):
                 codename_verified = True
         data = {
             "result": "success",
-            "message": "Codename successfuly generated",
+            "message": "Codename successfully generated",
             "codename": new_codename,
         }
         logger.info(
@@ -432,7 +432,7 @@ class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
 class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
     """
-    Toggle the ``compromised`` field of an individual :model:`rolodex.ProjecTarget`.
+    Toggle the ``compromised`` field of an individual :model:`rolodex.ProjectTarget`.
     """
 
     model = ProjectTarget

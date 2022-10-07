@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.0.5] - 3 October 2022
+
+### Added
+
+* Added system health API endpoints and Docker health check commands (see wiki for details)
+* Added `curl` to container images to aid in troubleshooting and enable health checks
+
+### Changed
+
+* Calendar view selection will now persist across sessions and page refreshes
+* Upgraded Ghostwriter CLI binaries to v0.2.5
+* Cloning a report will now clone any evidence files associated with the findings (Thanks to @ly4k! Closes PR #234)
+
 ## [v3.0.5] - 23 September 2022
 
 ### Fixed
@@ -645,7 +658,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed error in cloud monitor notification messages that caused messages to contain the same external IP addresses for all VPS instances
 * Fixed bug that caused delete actions on cloud server entries to not be committed
-* Fixed `ref` tags in findings that were ingored if they followed a `ref` tag with a different target
+* Fixed `ref` tags in findings that were ignored if they followed a `ref` tag with a different target
 * Fixed PowerPoint "Conclusion" slide's title
 * Fixed filtering for report template selection dropdowns that caused both document types to appear in all dropdown menus
 

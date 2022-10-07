@@ -19,6 +19,7 @@ django-redis==5.2.0  # https://github.com/niwinz/django-redis
 channels==3.0.4 # https://channels.readthedocs.io/en/stable/index.html
 channels-redis==3.3.0 # https://github.com/django/channels_redis/
 djangorestframework==3.12.4  # https://github.com/encode/django-rest-framework
+django-health-check==3.17.0  # https://github.com/KristianOellegaard/django-health-check
 
 # Ghostwriter specific
 boto3==1.18.46
@@ -40,3 +41,4 @@ python-pptx==0.6.21
 requests==2.27.1
 django-timezone-field==4.2.3
 pyjwt==2.4.0
+psutil==5.9.2

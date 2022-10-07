@@ -45,6 +45,12 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - WEB_CONCURRENCY=${DJANGO_WEB_CONCURRENCY}
+    healthcheck:
+      test: curl --insecure --fail https://nginx/status/simple/ || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
     command: /start
     volumes:
       - production_staticfiles:/app/staticfiles
@@ -67,6 +73,12 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER=${POSTGRES_USER}
+    healthcheck:
+      test: pg_isready -d $$POSTGRES_DB -U $$POSTGRES_USER
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
     ports:
       - "${POSTGRES_PORT}:5432"
 
@@ -86,6 +98,12 @@ services:
     ports:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
+    healthcheck:
+      test: curl --insecure --fail https://localhost/accounts/login || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
 
   redis:
     build:
@@ -95,6 +113,12 @@ services:
     labels:
       name: ghostwriter_redis
     restart: unless-stopped
+    healthcheck:
+      test: redis-cli --raw incr ping || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
 
   queue:
     <<: *django
@@ -146,3 +170,10 @@ services:
       - HASURA_GRAPHQL_METADATA_DIR=${HASURA_GRAPHQL_METADATA_DIR}
       - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR}
       - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
+    healthcheck:
+      test: curl --insecure --fail http://graphql_engine:8080/healthz || exit 1
+      interval: ${HEALTHCHECK_INTERVAL}
+      timeout: ${HEALTHCHECK_TIMEOUT}
+      retries: ${HEALTHCHECK_RETRIES}
+      start_period: ${HEALTHCHECK_START}
+

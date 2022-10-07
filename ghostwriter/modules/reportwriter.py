@@ -602,7 +602,7 @@ class Reportwriter:
         **Parameters**
 
         ``tag`` : Tag
-            BS4 ``Tag`` witth a ``styles`` attribute
+            BS4 ``Tag`` with a ``styles`` attribute
         """
         tag_styles = {}
         style_str = tag.attrs["style"]
@@ -715,7 +715,7 @@ class Reportwriter:
                         run.add_picture(file_path, width=Inches(6.5))
                     except docx.image.exceptions.UnrecognizedImageError:
                         logger.exception(
-                            "Evidence file known as %s (%s) was not reognized as a %s file.",
+                            "Evidence file known as %s (%s) was not recognized as a %s file.",
                             evidence["friendly_name"],
                             file_path,
                             extension,
@@ -1061,7 +1061,7 @@ class Reportwriter:
             elif tag_name == "u":
                 styles_dict["underline"] = True
 
-            # The ``sub`` and ``sup`` tags desingates subscript and superscript
+            # The ``sub`` and ``sup`` tags designates subscript and superscript
             elif tag_name == "sub":
                 styles_dict["subscript"] = True
             elif tag_name == "sup":
@@ -2236,7 +2236,7 @@ class Reportwriter:
 
     def generate_all_reports(self, docx_template, pptx_template):
         """
-        Generate all availabe report types and return memory streams for each file.
+        Generate all available report types and return memory streams for each file.
         """
         # Generate the JSON report - it just needs to be a string object
         self.report_json = json.loads(self.generate_json())

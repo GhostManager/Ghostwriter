@@ -9,6 +9,7 @@ import os
 import zipfile
 from asgiref.sync import async_to_sync
 from datetime import datetime
+from os.path import exists
 from socket import gaierror
 
 # Django Imports
@@ -432,7 +433,7 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
             logger.error(log_message)
             data = {
                 "result": "error",
-                "message": "Could not update report's deliveery status",
+                "message": "Could not update report's delivery status",
             }
 
         return JsonResponse(data)
@@ -704,9 +705,31 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
             report_to_clone.save()
             new_report_pk = report_to_clone.pk
             for finding in findings:
+                # Get any evidence files attached to the original finding
+                evidences = Evidence.objects.filter(finding=finding.pk)
+                # Create a clone of this finding attached to the new report
                 finding.report = report_to_clone
                 finding.pk = None
                 finding.save()
+                # Clone evidence files and attach them to the new finding
+                for evidence in evidences:
+                    if exists(evidence.document.path):
+                        evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
+                        evidence.finding = finding
+                        evidence._current_evidence = None
+                        evidence.document = evidence_file
+                        evidence.pk = None
+                        evidence.save()
+                    else:
+                        logger.warning(
+                            "Evidence file not found: %s",
+                            evidence.document.path,
+                        )
+                        messages.warning(
+                            self.request,
+                            f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
+                            extra_tags="alert-warning"
+                        )
 
             logger.info(
                 "Cloned %s %s by request of %s",

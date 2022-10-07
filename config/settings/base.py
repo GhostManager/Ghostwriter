@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "3.0.5"
+__version__ = "3.0.6"
 VERSION = __version__
-RELEASE_DATE = "23 September 2022"
+RELEASE_DATE = "03 October 2022"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -100,6 +100,13 @@ THIRD_PARTY_APPS = [
     "tinymce",
     "django_bleach",
     "timezone_field",
+    "health_check",
+    "health_check.db",
+    "health_check.cache",
+    "health_check.storage",
+    "health_check.contrib.migrations",
+    "health_check.contrib.psutil",
+    "health_check.contrib.redis",
 ]
 
 LOCAL_APPS = [
@@ -112,6 +119,7 @@ LOCAL_APPS = [
     "ghostwriter.commandcenter.apps.CommandCenterConfig",
     "ghostwriter.singleton.apps.SingletonConfig",
     "ghostwriter.api.apps.ApiConfig",
+    "ghostwriter.status.apps.StatusConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -444,3 +452,11 @@ HASURA_ACTION_SECRET = env(
     "HASURA_ACTION_SECRET",
     default="changeme",
 )
+
+# Health Checks
+# ------------------------------------------------------------------------------
+HEALTH_CHECK = {
+    "DISK_USAGE_MAX": env("HEALTHCHECK_DISK_USAGE_MAX", default=90),
+    "MEMORY_MIN": env("HEALTHCHECK_MEM_MIN", default=100),
+}
+REDIS_URL = env("REDIS_URL", default="redis://redis:6379")

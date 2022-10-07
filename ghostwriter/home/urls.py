@@ -11,7 +11,7 @@ app_name = "home"
 
 # URLs for the basic views
 urlpatterns = [
-    path("", views.dashboard, name="dashboard"),
+    path("", views.Dashboard.as_view(), name="dashboard"),
     path("management/", views.Management.as_view(), name="management"),
 ]
 

@@ -313,7 +313,7 @@ class ReportTemplate(models.Model):
                 )
             except Exception:  # pragma: no cover
                 logger.exception(
-                    "Encountered an exceptio while trying to decode this as JSON: %s",
+                    "Encountered an exception while trying to decode this as JSON: %s",
                     self.lint_result,
                 )
         return result_code

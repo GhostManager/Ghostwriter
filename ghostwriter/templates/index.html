@@ -85,6 +85,26 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="dashboard__item">
+                    <div class="card">
+                        <p class="dashboard-header text-center">System Status</p><div class="float-right {% if system_health == "OK" %}led-green{% else %}led-red{% endif %}"></div>
+                        {% if system_health == "OK" %}
+                            <table class="align-middle">
+                                <tr>
+                                    <td class="text-center healthy align-middle">All Systems Go!</td>
+                                </tr>
+                            </table>
+                        {% else %}
+                            <table>
+                                <tr>
+                                    <td class="text-center burned align-middle">Issues Detected!</td>
+                                </tr>
+                            </table>
+                        {% endif %}
+                        <p class="mt-auto">Visit the <a class="clickable italic" href="{% url 'status:healthcheck' %}">Detailed Status Page</a></p>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -94,20 +114,26 @@
     <!-- FullCalendar Rendering -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Track the initial calendar view in local storage
+            var defaultView = (localStorage.getItem("fcDefaultView") !== null ? localStorage.getItem("fcDefaultView") : "dayGridWeek");
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridWeek',
+                initialView: defaultView,
                 height: 'auto',
                 headerToolbar: {
                     left: 'today prev,next',
                     center: 'title',
-                    right: 'dayGridWeek dayGridMonth'
+                    right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
                 },
                 eventClick: function(info) {
                     var eventObj = info.event;
                     window.open(eventObj.url);
-                    info.jsEvent.preventDefault(); // prevents browser from following link in current tab.
+                    info.jsEvent.preventDefault(); // Prevents browser from following link in current tab.
                 },
+                // On view change, save the selected view to local storage so it persists between page loads
+                viewClassNames: function (info) {
+                    localStorage.setItem("fcDefaultView", info.view.type);
+                }
             });
             calendar.render();
             {% for assignment in user_projects %}
