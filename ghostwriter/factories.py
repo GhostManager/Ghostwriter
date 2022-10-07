@@ -1,6 +1,6 @@
 # Standard Libraries
 import random
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone
 
 # Django Imports
 from django.contrib.auth import get_user_model
@@ -679,6 +679,28 @@ class VirusTotalConfigurationFactory(factory.django.DjangoModelFactory):
     sleep_time = 20
 
 
+class DeconflictionStatusFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.DeconflictionStatus"
+
+    status = factory.Sequence(lambda n: "Status %s" % n)
+    weight = factory.Sequence(lambda n: n)
+
+
+class DeconflictionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.Deconfliction"
+
+    report_timestamp = Faker("date_time", tzinfo=pytz.UTC)
+    alert_timestamp = Faker("date_time", tzinfo=pytz.UTC)
+    response_timestamp = Faker("date_time", tzinfo=pytz.UTC)
+    title = Faker("sentence")
+    description = Faker("paragraph")
+    alert_source = Faker("word")
+    status = factory.SubFactory(DeconflictionStatusFactory)
+    project = factory.SubFactory(ProjectFactory)
+
+
 def GenerateMockProject(
     num_of_contacts=3,
     num_of_assignments=3,
@@ -689,6 +711,7 @@ def GenerateMockProject(
     num_of_subtasks=5,
     num_of_domains=5,
     num_of_servers=5,
+    num_of_deconflictions=3,
 ):
     # Generate a random client and project
     client = ClientFactory(name="SpecterOps, Inc.")
@@ -758,6 +781,17 @@ def GenerateMockProject(
     domains = HistoryFactory.create_batch(num_of_domains, project=project)
     servers = ServerHistoryFactory.create_batch(num_of_servers, project=project)
     cloud = TransientServerFactory.create_batch(num_of_servers, project=project)
+
+    # Generate deconflictions
+    deconfliction_status = []
+    deconfliction_status.append(DeconflictionStatusFactory(status="Undetermined", weight=0))
+    deconfliction_status.append(DeconflictionStatusFactory(status="Confirmed", weight=1))
+    deconfliction_status.append(DeconflictionStatusFactory(status="Unrelated", weight=2))
+    DeconflictionFactory.create_batch(
+        num_of_deconflictions,
+        project=project,
+        status=random.choice(deconfliction_status),
+    )
 
     for index, domain in enumerate(domains):
         if index % 2 == 0:
