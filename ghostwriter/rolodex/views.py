@@ -1680,7 +1680,9 @@ class DeconflictionUpdate(LoginRequiredMixin, UpdateView):
             "Deconfliction successfully saved.",
             extra_tags="alert-success",
         )
-        return reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        return "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
