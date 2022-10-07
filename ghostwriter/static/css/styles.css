@@ -1600,6 +1600,7 @@ td p {
   vertical-align: middle;
   padding-right: 10px;
   font-size: .75em;
+  display: inline-block;
 }
 
 .icon:after {
