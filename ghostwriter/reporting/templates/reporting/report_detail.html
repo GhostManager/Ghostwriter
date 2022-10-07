@@ -144,7 +144,16 @@
                                         data-placement="top"
                                         title="Click-n-drag to reposition or categorize"
                                     ></td>
-                                    <td class="align-middle"><a id="delete-target-content-finding-{{ finding.id }}" class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
+                                    <td class="align-middle">
+                                        <a id="delete-target-content-finding-{{ finding.id }}"
+                                        {% if finding.added_as_blank %}
+                                            class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top" title="Finding started as a blank template, not from the finding library"
+                                        {% else %}
+                                            class="clickable"
+                                        {% endif %}
+                                        href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
+                                    </a>
+                                    </td>
                                     <td class="neutral align-middle
                                         {% if finding.severity.severity == "Critical" %}
                                             cvss-critical
