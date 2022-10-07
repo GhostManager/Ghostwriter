@@ -30,6 +30,7 @@ from ghostwriter.reporting.models import (
 from ghostwriter.rolodex.models import (
     Client,
     ClientContact,
+    Deconfliction,
     Project,
     ProjectAssignment,
     ProjectNote,
@@ -640,6 +641,16 @@ class ProjectInfrastructureSerializer(CustomModelSerializer):
         depth = 1
 
 
+class DeconflictionSerializer(CustomModelSerializer):
+    """Serialize :model:`rolodex:Deconfliction` entries."""
+
+    status = StringRelatedField()
+
+    class Meta:
+        model = Deconfliction
+        fields = "__all__"
+
+
 class ReportDataSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Project` and all related entries."""
 
@@ -662,6 +673,9 @@ class ReportDataSerializer(CustomModelSerializer):
     )
     scope = ProjectScopeSerializer(
         source="project.projectscope_set", many=True, exclude=["id", "project"]
+    )
+    deconflictions = DeconflictionSerializer(
+        source="project.deconfliction_set", many=True, exclude=["id", "project"]
     )
     infrastructure = ProjectInfrastructureSerializer(source="project")
     findings = FindingLinkSerializer(
