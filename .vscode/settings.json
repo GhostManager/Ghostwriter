@@ -42,6 +42,8 @@
         "commandcenter",
         "csrftoken",
         "dateutil",
+        "deconfliction",
+        "deconflictions",
         "Diffie",
         "DMARC",
         "domainserverconnection",
