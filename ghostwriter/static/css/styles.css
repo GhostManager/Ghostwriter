@@ -15,6 +15,7 @@ body {
   background: var(--main-bg-color);
   color: var(--main-txt-color);
   font-weight: 300;
+  overflow: scroll;
 }
 
 p {
