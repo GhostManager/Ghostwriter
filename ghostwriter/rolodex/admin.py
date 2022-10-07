@@ -9,6 +9,8 @@ from ghostwriter.rolodex.models import (
     ClientContact,
     ClientInvite,
     ClientNote,
+    Deconfliction,
+    DeconflictionStatus,
     ObjectivePriority,
     ObjectiveStatus,
     Project,
@@ -172,4 +174,23 @@ class ClientInviteAdmin(admin.ModelAdmin):
     fieldsets = (
         ("Invitation", {"fields": ("user", "client")}),
         ("Misc", {"fields": ("comment",)}),
+    )
+
+
+@admin.register(DeconflictionStatus)
+class DeconflictionStatusAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Deconfliction)
+class DeconflictionAdmin(admin.ModelAdmin):
+    list_display = ("project", "status", "title")
+    list_filter = ("project", "status")
+    list_display_links = ("project", "status", "title")
+    fieldsets = (
+        (
+            "Deconfliction",
+            {"fields": ("status", "title", "description", "alert_source", "project")},
+        ),
+        ("Timestamps", {"fields": ("report_timestamp", "alert_timestamp", "response_timestamp",)}),
     )

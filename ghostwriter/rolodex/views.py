@@ -28,6 +28,7 @@ from ghostwriter.rolodex.forms_client import (
     ClientNoteForm,
 )
 from ghostwriter.rolodex.forms_project import (
+    DeconflictionForm,
     ProjectAssignmentFormSet,
     ProjectForm,
     ProjectNoteForm,
@@ -39,6 +40,7 @@ from ghostwriter.rolodex.models import (
     Client,
     ClientContact,
     ClientNote,
+    Deconfliction,
     ObjectivePriority,
     ObjectiveStatus,
     Project,
@@ -761,6 +763,27 @@ class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, View):
         response = HttpResponse(lines, content_type="text/plain")
         response["Content-Disposition"] = f"attachment; filename={self.object.name}_scope.txt"
         return response
+
+
+class DeconflictionDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.Deconfliction`.
+    """
+
+    model = Deconfliction
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        obj_id = self.object.id
+        self.object.delete()
+        data = {"result": "success", "message": "Deconfliction event successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            obj_id,
+            self.request.user,
+        )
+        return JsonResponse(data)
 
 
 ##################
@@ -1581,6 +1604,87 @@ class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.project
         ctx["cancel_link"] = "{}#notes".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
+        )
+        return ctx
+
+
+class DeconflictionCreate(LoginRequiredMixin, CreateView):
+    """
+    Create an individual :model:`rolodex.Deconfliction`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to project detail page
+
+    **Template**
+
+    :template:`rolodex/deconfliction_form.html`
+    """
+
+    model = Deconfliction
+    form_class = DeconflictionForm
+    template_name = "rolodex/deconfliction_form.html"
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Deconfliction successfully saved.",
+            extra_tags="alert-success",
+        )
+        return "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        )
+
+    def get_initial(self):
+        return {"status": 1,}
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.project_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+        ctx["project"] = project_instance
+        ctx["cancel_link"] = "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": project_instance.id})
+        )
+        return ctx
+
+
+class DeconflictionUpdate(LoginRequiredMixin, UpdateView):
+    """
+    Update an individual :model:`rolodex.Deconfliction`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to Deconfliction detail page
+
+    **Template**
+
+    :template:`rolodex/deconfliction_form.html`
+    """
+
+    model = Deconfliction
+    form_class = DeconflictionForm
+    template_name = "rolodex/deconfliction_form.html"
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Deconfliction successfully saved.",
+            extra_tags="alert-success",
+        )
+        return reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = "{}#deconflictions".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
