@@ -730,13 +730,13 @@
                                 </div>
                                 <div class="row pb-2">
                                     <div class="col-sm-4">
-                                        <p class="card-text">{% if event.alert_timestamp %}{{ event.alert_timestamp|date:"DATE_FORMAT" }}{% else %}TBD{% endif %}</p>
+                                        <p class="card-text">{% if event.alert_timestamp %}{{ event.alert_timestamp|date:"d M Y @ H:i:s e" }}{% else %}TBD{% endif %}</p>
                                     </div>
                                     <div class="col-sm-4">
-                                        <p class="card-text">{{ event.report_timestamp|date:"DATE_FORMAT" }}</p>
+                                        <p class="card-text">{{ event.report_timestamp|date:"d M Y @ H:i:s e" }}</p>
                                     </div>
                                     <div class="col-sm-4">
-                                        <p class="card-text">{% if event.response_timestamp %}{{ event.response_timestamp|date:"DATE_FORMAT" }}{% else %}TBD{% endif %}</p>
+                                        <p class="card-text">{% if event.response_timestamp %}{{ event.response_timestamp|date:"d M Y @ H:i:s e" }}{% else %}TBD{% endif %}</p>
                                     </div>
                                 </div>
 
