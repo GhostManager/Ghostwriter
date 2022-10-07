@@ -2,8 +2,10 @@
 
 # Django Imports
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
@@ -25,6 +27,7 @@ from crispy_forms.layout import (
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 
 from .models import (
+    Deconfliction,
     Project,
     ProjectAssignment,
     ProjectNote,
@@ -1055,3 +1058,72 @@ class ProjectNoteForm(forms.ModelForm):
                 code="required",
             )
         return note
+
+
+class DeconflictionForm(forms.ModelForm):
+    """
+    Save an individual :model:`rolodex.Deconfliction` associated with an individual
+    :model:`rolodex.Project`.
+    """
+
+    class Meta:
+        model = Deconfliction
+        exclude = ("created_at", "project",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["report_timestamp"].widget.input_type = "datetime-local"
+        self.fields["alert_timestamp"].widget.input_type = "datetime-local"
+        self.fields["response_timestamp"].widget.input_type = "datetime-local"
+        self.fields["report_timestamp"].label = "Date & Time of Report"
+        self.fields["alert_timestamp"].label = "Date & Time the Alert Triggered"
+        self.fields["response_timestamp"].label = "Date & Time of Your Response"
+        self.fields["title"].label = ""
+        self.fields["status"].label = ""
+        self.fields["alert_source"].label = ""
+        self.fields["description"].label = ""
+        self.fields["description"].widget.attrs["rows"] = 5
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Additional information about the alert, source, related activity..."
+        self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Title"
+        self.fields["alert_source"].widget.attrs["placeholder"] = "Source of the Alert – e.g, EDR"
+        self.fields["report_timestamp"].initial = timezone.now()
+        self.helper = FormHelper()
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            Row(
+                Column("title", css_class="form-group col-12 mb-0"),
+                css_class="form-group",
+            ),
+            Row(
+                Column("status", css_class="form-group col-6 mb-0"),
+                Column("alert_source", css_class="form-group col-6 mb-0"),
+                css_class="form-group",
+            ),
+            HTML(
+                f"""
+                <p>You can update these timestamps as you get more information. Use the server's time zone ({settings.TIME_ZONE}).
+                """
+            ),
+            Row(
+                Column(Field("alert_timestamp", step=1), css_class="form-group col-4 mb-0"),
+                Column(Field("report_timestamp", step=1), css_class="form-group col-4 mb-0"),
+                Column(Field("response_timestamp", step=1), css_class="form-group col-4 mb-0"),
+                css_class="form-group",
+            ),
+            Row(
+                Column("description", css_class="form-group col-12 mb-0"),
+                css_class="form-group",
+            ),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
