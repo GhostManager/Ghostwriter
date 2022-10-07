@@ -176,6 +176,18 @@ LINTER_CONTEXT = {
             "requires_caution": True,
         },
     ],
+    "deconflictions": [
+        {
+            "status": "Unrelated",
+            "created_at": "2022-10-06T19:41:20.889055Z",
+            "report_timestamp": "2022-10-06T19:41:20.889055Z",
+            "alert_timestamp": "2022-10-06T19:41:20.889055Z",
+            "response_timestamp": "2022-10-06T19:41:20.889055Z",
+            "title": "A Brief Descriptive Title",
+            "description": "<p>This would be a description of the alert, response, and any related assessment activity.</p>",
+            "alert_source": "EDR",
+        },
+    ],
     "infrastructure": {
         "domains": [
             {
