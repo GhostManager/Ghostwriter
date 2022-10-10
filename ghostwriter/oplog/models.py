@@ -34,6 +34,10 @@ class Oplog(models.Model):
         null=True,
         help_text="Select the project that will own this oplog",
     )
+    mute_notifications = models.BooleanField(
+        default=False,
+        help_text="Mute activity monitoring notifications for this log",
+    )
 
     class Meta:
         unique_together = ["name", "project"]

@@ -43,8 +43,12 @@ def review_active_logs(hours: int = 24) -> dict:
     if yesterday.weekday() < 5:
         slack = SlackNotification()
         active_logs = Oplog.objects.select_related("project").filter(
-            Q(project__complete=False) & Q(project__end_date__gte=today)
+            Q(project__complete=False)
+            & Q(project__end_date__gte=today)
+            & Q(project__start_date__lte=today)
+            & Q(mute_notifications=False)
         )
+        logger.warning(active_logs)
         for log in active_logs:
             # Check if the latest log entry is older than the ``hours`` parameter
             inactive = False

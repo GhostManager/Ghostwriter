@@ -27,6 +27,21 @@
                 <a href="javascript:void(0)" id="importNewEntries" class="dropdown-item icon upload-icon">Import Entries</a>
                 <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
                 <a href="{% url 'rolodex:project_detail' project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
+                {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
+                    <a
+                        href="javascript:void(0)"
+                        class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
+                        toggle-mute-csrftoken="{{ csrf_token }}"
+                        toggle-mute-url="{% url 'oplog:ajax_oplog_mute_toggle' oplog.id %}"
+                        toggle-mute-id="{{ oplog.id }}"
+                    >
+                        {% if oplog.mute_notifications %}
+                            Notifications: Off
+                        {% else %}
+                            Notifications: On
+                        {% endif %}
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -606,6 +621,46 @@
                 download(`/oplog/api/entries?export=csv&&oplog_id={{ pk }}`, filename);
             })
         });
+    </script>
 
+    <!-- Toggle Project Status with AJAX -->
+    <script>
+        $('.js-toggle-mute').click(function () {
+            var toggleLink = $(this);
+            var url = $(this).attr('toggle-mute-url');
+            var oplogId = $(this).attr('toggle-mute-id');
+            var csrftoken = $(this).attr('toggle-mute-csrftoken');
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                    }
+                }
+            });
+            // Send AJAX POST request
+            $.ajax({
+                url: url,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    'oplog': oplogId
+                },
+                success: function (data) {
+                    if (data['toggle']) {
+                        toggleLink.removeClass('notification-bell-icon')
+                        toggleLink.addClass('silenced-notification-icon')
+                        toggleLink.text('Notifications: Off')
+                    } else {
+                        toggleLink.removeClass('silenced-notification-icon')
+                        toggleLink.addClass('notification-bell-icon')
+                        toggleLink.text('Notifications: On')
+                    }
+                    if (data['message']) {
+                        displayToastTop({type:data['result'], string:data['message'], title:'Oplog Update'});
+                    }
+                },
+            });
+        });
     </script>
 {% endblock %}

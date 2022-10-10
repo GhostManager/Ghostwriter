@@ -7,6 +7,7 @@ from datetime import datetime
 # Django Imports
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -264,3 +265,96 @@ class OplogCreateViewTests(TestCase):
 
         self.project.complete = False
         self.project.save()
+
+
+class OplogMuteToggleViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogMuteToggle`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.log = OplogFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
+        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.uri = reverse("oplog:ajax_oplog_mute_toggle", kwargs={"pk": cls.log.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.client_admin = Client()
+        self.client_staff = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+        self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_admin.login(username=self.mgr_user.username, password=PASSWORD)
+        )
+        self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
+        )
+        self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        data = {
+            "result": "success",
+            "message": "Oplog monitor notifications have been muted",
+            "toggle": 1,
+        }
+        self.log.mute_notifications = False
+        self.log.save()
+
+        response = self.client_staff.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.log.refresh_from_db()
+        self.assertEqual(self.log.mute_notifications, True)
+
+        data = {
+            "result": "success",
+            "message": "Oplog monitor notifications have been unmuted",
+            "toggle": 0,
+        }
+        response = self.client_staff.post(self.uri)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        self.log.refresh_from_db()
+        self.assertEqual(self.log.mute_notifications, False)
+
+    def test_view_requires_login(self):
+        response = self.client.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+        data = {
+            "result": "error",
+            "message": "You must be logged in",
+        }
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_permissions(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+        data = {
+            "result": "error",
+            "message": "Only a manager or admin can mute notifications",
+        }
+        self.assertJSONEqual(force_str(response.content), data)
+
+        response = self.client_mgr.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("success", force_str(response.content))
+
+        response = self.client_admin.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("success", force_str(response.content))
+
+        response = self.client_staff.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("success", force_str(response.content))

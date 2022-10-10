@@ -4,7 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v3.0.5] - 3 October 2022
+## [3.0.7] - 10 October 2022
+
+### Fixed
+
+* Fixed evidence files with uppercase extensions not being included in rendered reports (Closes #74)
+
+### Added
+
+* Logs now have an option to mute notifications (available to users with the `admin` and `manager` roles)
+
+### Changed
+
+* Log activity monitor will now only check logs for projects inside the execution window
+* Tweaked report template permissions to allow users with the `admin` role that are not flagged as `staff` to edit or delete protected templates
+
+## [v3.0.6] - 3 October 2022
 
 ### Added
 

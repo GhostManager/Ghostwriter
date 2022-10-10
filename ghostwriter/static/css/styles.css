@@ -1614,6 +1614,15 @@ th.icon {
   padding: 0;
 }
 
+.notification-bell-icon:before {
+  content: '\f0f3';
+}
+
+.silenced-notification-icon:before {
+  content: '\f1f6';
+  color: var(--blocked-color);
+}
+
 .globe-icon:before {
   content: '\f0ac';
 }
@@ -1902,7 +1911,7 @@ th.icon {
 
 .trash-icon:before {
   content: '\f1f8';
-  color: red;
+  color: var(--blocked-color);
 }
 
 .search-icon:before {
