@@ -46,7 +46,7 @@ class OplogMuteToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin
     model = Oplog
 
     def test_func(self):
-        if self.request.user.role == "manager" or self.request.user.role == "admin":
+        if self.request.user.role in ("manager", "admin",):
             return True
         return self.request.user.is_staff
 

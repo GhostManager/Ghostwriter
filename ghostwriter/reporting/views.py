@@ -1563,7 +1563,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
     def has_permission(self):
         self.object = self.get_object()
         if self.object.protected:
-            if self.request.user.role == "manager" or self.request.user.role == "admin":
+            if self.request.user.role in ("manager", "admin",):
                 return True
             return self.request.user.is_staff
         return self.request.user.is_active
