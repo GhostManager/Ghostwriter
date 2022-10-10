@@ -1614,11 +1614,11 @@ th.icon {
   padding: 0;
 }
 
-.mute-notification-icon:before {
+.notification-bell-icon:before {
   content: '\f0f3';
 }
 
-.unmute-notification-icon:before {
+.silenced-notification-icon:before {
   content: '\f1f6';
   color: var(--blocked-color);
 }

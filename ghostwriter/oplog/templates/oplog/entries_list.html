@@ -30,7 +30,7 @@
                 {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
                     <a
                         href="javascript:void(0)"
-                        class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}unmute-notification-icon{% else %}mute-notification-icon{% endif %}"
+                        class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
                         toggle-mute-csrftoken="{{ csrf_token }}"
                         toggle-mute-url="{% url 'oplog:ajax_oplog_mute_toggle' oplog.id %}"
                         toggle-mute-id="{{ oplog.id }}"
@@ -648,12 +648,12 @@
                 },
                 success: function (data) {
                     if (data['toggle']) {
-                        toggleLink.removeClass('mute-notification-icon')
-                        toggleLink.addClass('unmute-notification-icon')
+                        toggleLink.removeClass('notification-bell-icon')
+                        toggleLink.addClass('silenced-notification-icon')
                         toggleLink.text('Notifications: Off')
                     } else {
-                        toggleLink.removeClass('unmute-notification-icon')
-                        toggleLink.addClass('mute-notification-icon')
+                        toggleLink.removeClass('silenced-notification-icon')
+                        toggleLink.addClass('notification-bell-icon')
                         toggleLink.text('Notifications: On')
                     }
                     if (data['message']) {
