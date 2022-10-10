@@ -1614,6 +1614,15 @@ th.icon {
   padding: 0;
 }
 
+.mute-notification-icon:before {
+  content: '\f0f3';
+}
+
+.unmute-notification-icon:before {
+  content: '\f1f6';
+  color: var(--blocked-color);
+}
+
 .globe-icon:before {
   content: '\f0ac';
 }
