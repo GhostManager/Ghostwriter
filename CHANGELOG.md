@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.7] - 10 October 2022
 
+### Fixed
+
+* Fixed evidence files with uppercase extensions not being included in rendered reports (Closes #74)
+
 ### Added
 
 * Logs now have an option to mute notifications (available to users with the `admin` and `manager` roles)
