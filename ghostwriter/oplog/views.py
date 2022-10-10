@@ -6,11 +6,12 @@ import logging
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, HttpResponseRedirect
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
-from django.views.generic.edit import CreateView, DeleteView, UpdateView
+from django.views.generic.detail import SingleObjectMixin
+from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
 from rest_framework import viewsets
@@ -30,6 +31,63 @@ from .serializers import OplogEntrySerializer, OplogSerializer
 
 # Using __name__ resolves to ghostwriter.oplog.views
 logger = logging.getLogger(__name__)
+
+
+##################
+#   AJAX Views   #
+##################
+
+
+class OplogMuteToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """
+    Toggle the ``mute_notifications`` field of an individual :model:`oplog.Oplog`.
+    """
+
+    model = Oplog
+
+    def test_func(self):
+        if self.request.user.role == "manager" or self.request.user.role == "admin":
+            return True
+        return self.request.user.is_staff
+
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            data = {"result": "error", "message": "Only a manager or admin can mute notifications"}
+        else:
+            data = {"result": "error", "message": "You must be logged in"}
+        return JsonResponse(data, status=403)
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        try:
+            if self.object.mute_notifications:
+                self.object.mute_notifications = False
+                data = {
+                    "result": "success",
+                    "message": "Oplog monitor notifications have been unmuted",
+                    "toggle": 0,
+                }
+            else:
+                self.object.mute_notifications = True
+                data = {
+                    "result": "success",
+                    "message": "Oplog monitor notifications have been muted",
+                    "toggle": 1,
+                }
+            self.object.save()
+            logger.info(
+                "Toggled notifications for %s %s by request of %s",
+                self.object.__class__.__name__,
+                self.object.id,
+                self.request.user,
+            )
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {"result": "error", "message": "Could not update mute status for oplog monitor notifications"}
+
+        return JsonResponse(data)
 
 
 ##################
@@ -107,6 +165,7 @@ def OplogListEntries(request, pk):
     entries = OplogEntry.objects.filter(oplog_id=pk).order_by("-start_date")
     oplog_instance = get_object_or_404(Oplog, pk=pk)
     context = {
+        "oplog": oplog_instance,
         "entries": entries,
         "pk": pk,
         "name": oplog_instance.name,

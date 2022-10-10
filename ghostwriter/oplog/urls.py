@@ -1,7 +1,10 @@
 """This contains all of the URL mappings used by the Oplog application."""
 
 
+# Django Imports
 from django.urls import include, path
+
+# 3rd Party Libraries
 from rest_framework import routers
 
 from . import views
@@ -34,4 +37,9 @@ urlpatterns = [
     ),
     path("<int:pk>/entries", views.OplogListEntries, name="oplog_entries"),
     path("import", views.OplogEntriesImport, name="oplog_import"),
+]
+
+# URLs for AJAX requests
+urlpatterns += [
+    path("ajax/oplog/mute/<int:pk>", views.OplogMuteToggle.as_view(), name="ajax_oplog_mute_toggle"),
 ]
