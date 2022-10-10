@@ -62,7 +62,7 @@
                             <span data-toggle="tooltip" title="Toggle the project's status between executing and complete">
                                 {% if project.complete %}
                                     <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
-                                        <span id="js-project-status">Complete</span> <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i>
+                                        <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i> <span id="js-project-status">Complete</span>
                                     </a>
                                 {% else %}
                                     <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
