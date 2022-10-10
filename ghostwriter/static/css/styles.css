@@ -1902,7 +1902,7 @@ th.icon {
 
 .trash-icon:before {
   content: '\f1f8';
-  color: red;
+  color: var(--blocked-color);
 }
 
 .search-icon:before {
