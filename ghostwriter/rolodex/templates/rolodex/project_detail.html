@@ -1236,7 +1236,7 @@
             // Add project assignments
             {% for operator in project.projectassignment_set.all %}
                 var event = {
-                    title: '{{ operator.operator.name|bleach }}',
+                    title: {% if operator.operator.name %}'{{ operator.operator.name|bleach }}'{% else %}'{{ operator.operator.username|bleach }}'{% endif %},
                     allDay: true,
                     startRecur: '{{ operator.start_date|date:"Y-m-d" }}',
                     endRecur: '{{ operator.end_date|plus_days:1|date:"Y-m-d" }}',
