@@ -365,7 +365,16 @@ h6 {
 }
 
 .scope-modal-body {
-  max-height: 50vh;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.oplog-modal-body {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.oplog-modal-dialog {
   overflow-y: auto;
 }
 
@@ -988,6 +997,13 @@ p.severity-box.info {
   background-color: var(--secondary-color);
   border-color: var(--secondary-color);
   color: #fff;
+}
+
+.btn-info:focus {
+  background-color: var(--secondary-color-fade);
+  border-color: var(--secondary-color-fade);
+  color: #fff;
+  box-shadow: 0 0 0 .2rem var(--secondary-color)
 }
 
 .btn-info:hover {
