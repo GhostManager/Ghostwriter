@@ -121,7 +121,6 @@ class ClientContact(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
-
         ordering = ["client", "id"]
         verbose_name = "Client POC"
         verbose_name_plural = "Client POCs"
@@ -143,7 +142,6 @@ class ProjectType(models.Model):
     )
 
     class Meta:
-
         ordering = ["project_type"]
         verbose_name = "Project type"
         verbose_name_plural = "Project types"
@@ -236,7 +234,6 @@ class Project(models.Model):
     count = property(count_findings)
 
     class Meta:
-
         ordering = ["-start_date", "end_date", "client", "project_type"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
@@ -261,7 +258,6 @@ class ProjectRole(models.Model):
     )
 
     class Meta:
-
         ordering = ["project_role"]
         verbose_name = "Project role"
         verbose_name_plural = "Project roles"
@@ -312,7 +308,6 @@ class ProjectAssignment(models.Model):
     )
 
     class Meta:
-
         ordering = ["project", "start_date", "operator"]
         verbose_name = "Project assignment"
         verbose_name_plural = "Project assignments"
@@ -337,7 +332,6 @@ class ObjectiveStatus(models.Model):
     )
 
     class Meta:
-
         ordering = ["objective_status"]
         verbose_name = "Objective status"
         verbose_name_plural = "Objective status"
@@ -364,7 +358,6 @@ class ObjectivePriority(models.Model):
     )
 
     class Meta:
-
         ordering = ["weight", "priority"]
         verbose_name = "Objective priority"
         verbose_name_plural = "Objective priorities"
@@ -440,7 +433,6 @@ class ProjectObjective(models.Model):
     )
 
     class Meta:
-
         ordering = [
             "project",
             "position",
@@ -518,7 +510,6 @@ class ProjectSubTask(models.Model):
     )
 
     class Meta:
-
         ordering = ["parent", "complete", "deadline", "status", "task"]
         verbose_name = "Objective sub-task"
         verbose_name_plural = "Objective sub-tasks"
@@ -549,7 +540,6 @@ class ClientNote(models.Model):
     )
 
     class Meta:
-
         ordering = ["client", "timestamp"]
         verbose_name = "Client note"
         verbose_name_plural = "Client notes"
@@ -580,7 +570,6 @@ class ProjectNote(models.Model):
     )
 
     class Meta:
-
         ordering = ["project", "timestamp"]
         verbose_name = "Project note"
         verbose_name_plural = "Project notes"
@@ -627,7 +616,6 @@ class ProjectScope(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["project", "name"]
         verbose_name = "Project scope list"
         verbose_name_plural = "Project scope lists"
@@ -679,7 +667,6 @@ class ProjectTarget(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["project", "compromised", "ip_address", "hostname"]
         verbose_name = "Project target"
         verbose_name_plural = "Project targets"
@@ -705,7 +692,6 @@ class ClientInvite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["client_id", "user_id"]
         verbose_name = "Client invite"
         verbose_name_plural = "Client invites"
@@ -731,7 +717,6 @@ class ProjectInvite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["project_id", "user_id"]
         verbose_name = "Project invite"
         verbose_name_plural = "Project invites"
@@ -818,10 +803,13 @@ class Deconfliction(models.Model):
     )
 
     class Meta:
-
         ordering = ["project", "-created_at", "status__weight", "title"]
         verbose_name = "Project deconfliction"
         verbose_name_plural = "Project deconflictions"
+
+    @property
+    def logs(self):
+        return DeconflictionLog.objects.filter(deconfliction=self)
 
     def __str__(self):
         return f"{self.project}: {self.title}"
