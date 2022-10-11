@@ -1,7 +1,7 @@
 """This contains all of the database models used by the Rolodex application."""
 
 # Standard Libraries
-from datetime import time
+from datetime import time, timedelta
 
 # Django Imports
 from django.conf import settings
@@ -13,6 +13,7 @@ from django.urls import reverse
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import ReportFindingLink
 
 User = get_user_model()
@@ -808,8 +809,16 @@ class Deconfliction(models.Model):
         verbose_name_plural = "Project deconflictions"
 
     @property
-    def logs(self):
-        return DeconflictionLog.objects.filter(deconfliction=self)
+    def log_entries(self):
+        """Get log entries that precede the alert by one hour."""
+        logs = None
+        if self.alert_timestamp:
+            one_hour_ago = self.alert_timestamp - timedelta(hours=1)
+            logs = OplogEntry.objects.filter(
+                models.Q(oplog_id__project=self.project)
+                & models.Q(start_date__range=(one_hour_ago, self.alert_timestamp))
+            )
+        return logs
 
     def __str__(self):
         return f"{self.project}: {self.title}"
