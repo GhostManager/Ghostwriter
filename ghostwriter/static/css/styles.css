@@ -1330,6 +1330,11 @@ td p {
   cursor: grab;
 }
 
+.tablesorter-header-inner {
+  padding-right: 5px;
+}
+
+​
 /* ---------------------------------------------------
     DROPDOWN MENU STYLES
 ----------------------------------------------------- */
