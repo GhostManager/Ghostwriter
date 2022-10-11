@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 # Django Imports
 from django.test import TestCase
@@ -16,6 +16,8 @@ from ghostwriter.factories import (
     HistoryFactory,
     ObjectivePriorityFactory,
     ObjectiveStatusFactory,
+    OplogEntryFactory,
+    OplogFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ProjectInviteFactory,
@@ -724,3 +726,19 @@ class DeconflictionModelTests(TestCase):
         # Delete
         status.delete()
         assert not self.Deconfliction.objects.all().exists()
+
+    def test_prop_log_entries(self):
+        project = ProjectFactory()
+        deconfliction = DeconflictionFactory(project=project, alert_timestamp=datetime.now(timezone.utc))
+        oplog = OplogFactory(project=project)
+
+        entry_too_old = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(days=1))
+        entry_hour_old = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(hours=1))
+        entry_within_hour = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(minutes=30))
+        entry_recent = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) + timedelta(minutes=5))
+
+        self.assertEqual(len(deconfliction.log_entries), 2)
+        self.assertTrue(entry_hour_old in deconfliction.log_entries)
+        self.assertTrue(entry_within_hour in deconfliction.log_entries)
+        self.assertFalse(entry_too_old in deconfliction.log_entries)
+        self.assertFalse(entry_recent in deconfliction.log_entries)
