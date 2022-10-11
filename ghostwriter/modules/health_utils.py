@@ -9,7 +9,7 @@ from datetime import datetime
 # Django Imports
 from django.conf import settings
 from django.core.cache import caches as django_caches
-from django.db import connections
+from django.db import OperationalError, connections
 
 # 3rd Party Libraries
 import requests
@@ -43,7 +43,7 @@ class HasuraBackend(BaseHealthCheckBackend):
                 elif "WARN" in content:
                     self.add_error(ServiceWarning(f"Hasura reported a warning: {content}"))
             else:
-                self.add_error(HealthCheckException(f"Hasura reported an error"))
+                self.add_error(HealthCheckException("Hasura reported an error"))
         except requests.exceptions.ConnectionError as e:
             self.add_error(ServiceUnavailable("Hasura GraphQL Engine is not responding"), e)
         except requests.exceptions.Timeout as e:
@@ -71,7 +71,7 @@ class DjangoHealthChecks:
             try:
                 if not connection.ensure_connection():
                     status[connection.alias] = True
-            except:  # pragma: no cover
+            except OperationalError:  # pragma: no cover
                 status[connection.alias] = False
 
         return status

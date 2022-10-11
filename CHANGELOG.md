@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Findings added to a report via a blank template (i.e., not added from the library) will now appear with a flag  icon for easy identification
 * New deconfliction event tracking feature now available under the "Deconflictions" tab on project dashboards
 
+## [3.0.7] - 10 October 2022
+
+### Fixed
+
+* Fixed evidence files with uppercase extensions not being included in rendered reports (Closes #74)
+
+### Added
+
+* Logs now have an option to mute notifications (available to users with the `admin` and `manager` roles)
+
+### Changed
+
+* Log activity monitor will now only check logs for projects inside the execution window
+* Tweaked report template permissions to allow users with the `admin` role that are not flagged as `staff` to edit or delete protected templates
+
+## [v3.0.6] - 3 October 2022
+
+### Added
+
+* Added system health API endpoints and Docker health check commands (see wiki for details)
+* Added `curl` to container images to aid in troubleshooting and enable health checks
+
+### Changed
+
+* Calendar view selection will now persist across sessions and page refreshes
+* Upgraded Ghostwriter CLI binaries to v0.2.5
+* Cloning a report will now clone any evidence files associated with the findings (Thanks to @ly4k! Closes PR #234)
+
 ## [v3.0.5] - 23 September 2022
 
 ### Fixed

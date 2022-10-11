@@ -653,7 +653,7 @@ class Reportwriter:
             Paragraph meant to hold the evidence
         """
         file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
-        extension = file_path.split(".")[-1]
+        extension = file_path.split(".")[-1].lower()
 
         # First, check if the file still exists on disk
         if os.path.exists(file_path):

@@ -5,7 +5,7 @@ import logging
 
 # Django Imports
 from django.contrib.auth import get_user_model
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.generic.edit import View
@@ -80,11 +80,10 @@ class HealthCheckCustomView(MainView):
             ):
                 context = self.get_context_data(**kwargs)
                 return self.render_to_response(context, status=status_code)
-            elif media.mime_type in ("application/json", "application/*"):
+            if media.mime_type in ("application/json", "application/*"):
                 return self.render_to_response_json(self.plugins, status_code)
         return HttpResponse(
             "Not Acceptable: Supported content types: text/html, application/json",
             status=406,
             content_type="text/plain",
         )
-
