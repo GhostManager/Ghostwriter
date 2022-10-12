@@ -1092,6 +1092,7 @@ class DeconflictionForm(forms.ModelForm):
         self.fields["alert_source"].widget.attrs["placeholder"] = "Source of the Alert – e.g, EDR"
         self.fields["report_timestamp"].initial = timezone.now()
         self.helper = FormHelper()
+        self.helper.form_show_errors = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Row(
@@ -1127,3 +1128,27 @@ class DeconflictionForm(forms.ModelForm):
                 ),
             ),
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        alert_timestamp = cleaned_data["alert_timestamp"]
+        report_timestamp = cleaned_data["report_timestamp"]
+        response_timestamp = cleaned_data["response_timestamp"]
+
+        if response_timestamp < report_timestamp:
+            self.add_error(
+                "response_timestamp",
+                ValidationError(
+                    _("The response timestamp cannot be before the report timestamp"),
+                    code="invalid_datetime",
+                ),
+            )
+
+        if report_timestamp < alert_timestamp:
+            self.add_error(
+                "report_timestamp",
+                ValidationError(
+                    _("The report timestamp cannot be before the alert timestamp"),
+                    code="invalid_datetime",
+                ),
+            )
