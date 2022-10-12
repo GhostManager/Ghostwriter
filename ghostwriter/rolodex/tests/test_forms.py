@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Django Imports
 from django.test import TestCase
@@ -909,3 +909,24 @@ class DeconflictionFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
+
+    def test_invalid_datetime_values(self):
+        now = datetime.now(timezone.utc)
+        one_hour_ago = now - timedelta(hours=1)
+        one_hour_future = now + timedelta(hours=1)
+
+        deconfliction = DeconflictionFactory.build(
+            project=self.project, status=self.status,
+            alert_timestamp=one_hour_future, response_timestamp=one_hour_ago,
+            report_timestamp=now
+        )
+        form = self.form_data(**deconfliction.__dict__)
+        errors = form.errors.as_data()
+        self.assertFalse(form.is_valid())
+        self.assertEqual(len(errors), 2)
+        self.assertTrue("report_timestamp" and "response_timestamp" in errors)
+
+        error = form["report_timestamp"].errors.as_data()
+        self.assertEqual(error[0].code, "invalid_datetime")
+        error = form["response_timestamp"].errors.as_data()
+        self.assertEqual(error[0].code, "invalid_datetime")
