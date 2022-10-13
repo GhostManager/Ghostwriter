@@ -93,6 +93,8 @@
         "specterops",
         "spreadsheetml",
         "staticfiles",
+        "subdocument",
+        "subdocuments",
         "tablesorter",
         "tablib",
         "transientserver",
@@ -101,6 +103,8 @@
         "Uvicorn",
         "viewsets",
         "virustotal",
+        "whitecard",
+        "whitecards",
         "whois",
         "wordprocessingml",
         "xforce"
