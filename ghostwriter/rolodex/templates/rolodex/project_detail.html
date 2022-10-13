@@ -50,8 +50,6 @@
         <div class="tab-content">
             <!-- Planning Tab -->
             <div id="planning" class="tab-pane in active">
-
-                <!-- Details Section -->
                 <h4>Project Details</h4>
                 <hr />
 
@@ -163,8 +161,47 @@
                 <div id="calendar"></div>
             </div>
 
+            <!-- White Cards Tab -->
+            <div id="whitecards" class="tab-pane">
+                <h4>White Cards</h4>
+                <hr />
+
+                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#whitecards">Add & Edit White Cards</a>
+                {% if project.whitecard_set.all %}
+                    {% for card in project.whitecard_set.all %}
+                        <div id="whitecard-card-{{ card.id }}" class="card text-center mb-3">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ card.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time the client approved this white card.">Issued</span></h6>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <p class="card-text">{{ card.issued|date:"d M Y @ H:i:s e" }}</p>
+                                    </div>
+                                </div>
+
+                                <p class="card-text">
+                                    {% if card.description %}
+                                        {{ card.description|bleach }}
+                                    {% else %}
+                                        <p>No one has added a description of this white card.</p>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No white cards have been added to this project yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Scope Tab -->
             <div id="scopes" class="tab-pane">
-                <!-- Scope Section -->
                 <h4>Scope Lists</h4>
                 <hr />
 
@@ -247,8 +284,8 @@
                 {% include "snippets/project_objectives.html"  %}
             </div>
 
+            <!-- Targets Tab -->
             <div id="targets" class="tab-pane">
-                <!-- Targets Section -->
                 <h4>Targets</h4>
                 <hr />
 
@@ -299,8 +336,9 @@
                     <p>No targets have been set for this project yet.</p>
                 {% endif %}
             </div>
+
+            <!-- Logging Tab -->
             <div id="activity" class="tab-pane">
-                <!-- Logging Section -->
                 <h4>Operation Logs</h4>
                 <hr />
 
@@ -443,8 +481,9 @@
                 {% endif %}
 
             </div>
+
+            <!-- Infrastructure Tab -->
             <div id="infrastructure" class="tab-pane">
-                <!-- Infrastructure Section -->
                 <h4>Project Infrastructure</h4>
                 <hr />
 
@@ -697,8 +736,8 @@
                 {% endif %}
             </div>
 
+            <!-- Deconflictions Tab -->
             <div id="deconflictions" class="tab-pane">
-                <!-- Deconflictions Section -->
                 <h4>Deconfliction Events</h4>
                 <hr />
 
@@ -795,8 +834,8 @@
 
             </div>
 
+            <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
-                <!-- Notes Section -->
                 <h4>Project Notes</h4>
                 <hr />
 
