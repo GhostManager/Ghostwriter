@@ -1726,6 +1726,18 @@ class Reportwriter:
                 if target["note"]:
                     target["note_rt"] = render_subdocument(target["note"], finding=None)
 
+        # Deconfliction Events
+        for event in context["deconflictions"]:
+            if isinstance(event, dict):
+                if event["description"]:
+                    event["description_rt"] = render_subdocument(event["description"], finding=None)
+
+        # White Cards
+        for card in context["whitecards"]:
+            if isinstance(card, dict):
+                if card["description"]:
+                    card["description_rt"] = render_subdocument(card["description"], finding=None)
+
         return context
 
     def process_text_xlsx(self, html, text_format, finding):
