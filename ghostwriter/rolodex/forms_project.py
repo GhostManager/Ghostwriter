@@ -4,7 +4,13 @@
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.forms import formset_factory
+from django.forms.models import (
+    BaseFormSet,
+    BaseInlineFormSet,
+    formset_factory,
+    inlineformset_factory,
+)
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -34,12 +40,15 @@ from .models import (
     ProjectObjective,
     ProjectScope,
     ProjectTarget,
+    WhiteCard,
 )
 
 # Number of "extra" formsets created by default
 # Higher numbers can increase page load times with WYSIWYG editors
 EXTRAS = 0
 
+
+# Custom inline formsets for nested forms
 
 class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
     """
@@ -337,6 +346,54 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                             ),
                         )
 
+
+class BaseWhiteCardInlineFormSet(BaseInlineFormSet):
+    """
+    BaseInlineFormset template for :model:`rolodex.WhiteCard` that adds validation
+    for this model.
+    """
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):  # pragma: no cover
+            return
+        for form in self.forms:
+            if form.cleaned_data:
+                # Only validate if the form is NOT marked for deletion
+                if form.cleaned_data["DELETE"] is False:
+                    title = form.cleaned_data["title"]
+                    issued = form.cleaned_data["issued"]
+
+                    # Check that all objective have a deadline and status
+                    if title and not issued:
+                        form.add_error(
+                            "issued",
+                            ValidationError(
+                                _("Your white card still needs an issued date and time"),
+                                code="incomplete",
+                            ),
+                        )
+                    elif issued and not title:
+                        form.add_error(
+                            "title",
+                            ValidationError(
+                                _("Your white card still needs a title"),
+                                code="incomplete",
+                            ),
+                        )
+                    # Raise an error if dates are out of bounds
+                    # We only check if ``issued`` is after the project's end date because white cards can be issued prior to execution
+                    if self.instance.start_date and issued:
+                        if issued.date() > self.instance.end_date:
+                            form.add_error(
+                                "issued",
+                                ValidationError(
+                                    _("Your selected date is after the project end date"),
+                                    code="invalid_datetime",
+                                ),
+                            )
+
+# Forms used with the inline formsets
 
 class ProjectAssignmentForm(forms.ModelForm):
     """
@@ -753,6 +810,101 @@ class ProjectTargetForm(forms.ModelForm):
         )
 
 
+class WhiteCardForm(forms.ModelForm):
+    """
+    Save an individual :model:`rolodex.WhiteCard` associated with an individual
+    :model:`rolodex.Project`.
+    """
+
+    class Meta:
+        model = WhiteCard
+        exclude = ("project",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["issued"].widget.input_type = "datetime-local"
+        self.fields["description"].widget.attrs["rows"] = 5
+        self.fields["description"].widget.attrs[
+            "placeholder"
+        ] = "Additional information about the white card, the reason for it, limitations, how it affects the assessment, etc..."
+        self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Headline"
+        self.helper = FormHelper()
+        self.helper.form_show_errors = False
+        # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
+        self.helper.form_tag = False
+        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
+        self.helper.disable_csrf = True
+        # Hide the field labels from the model
+        self.helper.form_show_labels = False
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            # Wrap form in a div so Django renders form instances in their own element
+            Div(
+                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
+                Alert(
+                    content=(
+                        """
+                        <strong>White Card Deleted!</strong>
+                        Deletion will be permanent once the form is submitted. Click this alert to undo.
+                        """
+                    ),
+                    css_class="alert alert-danger show formset-undo-button",
+                    style="display:none; cursor:pointer;",
+                    template="alert.html",
+                    block=False,
+                    dismiss=False,
+                ),
+                Div(
+                    HTML(
+                        """
+                        <h6>White Card #<span class="counter">{{ forloop.counter }}</span></h6>
+                        <hr>
+                        """
+                    ),
+                    Row(
+                        Column("title", css_class="col-md-6"),
+                        Column(
+                            FieldWithButtons(
+                                Field("issued", step=1,),
+                                HTML(
+                                    """
+                                    <button
+                                        class="btn btn-secondary"
+                                        type="button"
+                                        onclick="setNow($(this).closest('div').find('input'))"
+                                    >
+                                    Now
+                                    </button>
+                                    """
+                                ),
+                            ),
+                            css_class="col-md-6"
+                        ),
+                    ),
+                    "description",
+                    Row(
+                        Column(
+                            Button(
+                                "formset-del-button",
+                                "Delete White Card",
+                                css_class="btn-sm btn-danger formset-del-button",
+                            ),
+                            css_class="form-group col-md-4 offset-md-4",
+                        ),
+                        Column(
+                            Field("DELETE", style="display: none;"),
+                            css_class="form-group col-md-4 text-center",
+                        ),
+                        css_class="form-row",
+                    ),
+                    css_class="formset",
+                ),
+                css_class="formset-container",
+            )
+        )
+
 # Create the `inlineformset_factory()` objects for `ProjectForm()`
 
 ProjectAssignmentFormSet = inlineformset_factory(
@@ -792,6 +944,15 @@ ProjectTargetFormSet = inlineformset_factory(
     can_delete=True,
 )
 
+WhiteCardFormSet = inlineformset_factory(
+    Project,
+    WhiteCard,
+    form=WhiteCardForm,
+    formset=BaseWhiteCardInlineFormSet,
+    extra=EXTRAS,
+    can_delete=True,
+)
+
 
 class ProjectForm(forms.ModelForm):
     """
@@ -821,16 +982,13 @@ class ProjectForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["start_date"].widget.attrs["autocomplete"] = "off"
-        self.fields["start_date"].widget.attrs["autocomplete"] = "off"
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
-        self.fields["end_date"].widget.attrs["autocomplete"] = "off"
-        self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
         self.fields["start_time"].widget.input_type = "time"
         self.fields["end_time"].widget.input_type = "time"
         self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
-        self.fields["slack_channel"].widget.attrs["autocomplete"] = "off"
         self.fields["note"].widget.attrs["placeholder"] = "Description of the Project"
         # Hide labels for specific fields because ``form_show_labels`` takes priority
         self.fields["start_date"].label = False
@@ -983,6 +1141,27 @@ class ProjectForm(forms.ModelForm):
                     ),
                     link_css_class="tab-icon list-icon",
                     css_id="targets",
+                ),
+                CustomTab(
+                    "White Cards",
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    Formset("whitecards", object_context_name="White Card"),
+                    Button(
+                        "add-whitecard",
+                        "Add White Card",
+                        css_class="btn-block btn-secondary formset-add-card",
+                    ),
+                    HTML(
+                        """
+                        <p class="form-spacer"></p>
+                        """
+                    ),
+                    link_css_class="tab-icon whitecard-icon",
+                    css_id="whitecards",
                 ),
                 template="tab.html",
                 css_class="nav-justified",

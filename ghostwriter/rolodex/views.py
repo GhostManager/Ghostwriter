@@ -35,6 +35,7 @@ from ghostwriter.rolodex.forms_project import (
     ProjectObjectiveFormSet,
     ProjectScopeFormSet,
     ProjectTargetFormSet,
+    WhiteCardFormSet,
 )
 from ghostwriter.rolodex.models import (
     Client,
@@ -1274,6 +1275,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             )
             ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
             ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target")
+            ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card")
         else:
             # Add extra forms to aid in configuration of a new project
             objectives = ProjectObjectiveFormSet(prefix="obj")
@@ -1284,11 +1286,14 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             scopes.extra = 1
             targets = ProjectTargetFormSet(prefix="target")
             targets.extra = 1
+            whitecards = WhiteCardFormSet(prefix="card")
+            whitecards.extra = 1
             # Assign the re-configured formsets to context vars
             ctx["objectives"] = objectives
             ctx["assignments"] = assignments
             ctx["scopes"] = scopes
             ctx["targets"] = targets
+            ctx["whitecards"] = whitecards
         return ctx
 
     def form_valid(self, form):
@@ -1297,6 +1302,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         scopes = ctx["scopes"]
         targets = ctx["targets"]
         objectives = ctx["objectives"]
+        whitecards = ctx["whitecards"]
         assignments = ctx["assignments"]
 
         # Now validate inline formsets
@@ -1326,12 +1332,18 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     targets.instance = self.object
                     targets.save()
 
+                whitecards_valid = whitecards.is_valid()
+                if whitecards_valid:
+                    whitecards.instance = self.object
+                    whitecards.save()
+
                 if (
                     form.is_valid()
                     and objectives_valid
                     and assignments_valid
                     and scopes_valid
                     and targets_valid
+                    and whitecards_valid
                 ):
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
@@ -1406,6 +1418,9 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             ctx["targets"] = ProjectTargetFormSet(
                 self.request.POST, prefix="target", instance=self.object
             )
+            ctx["whitecards"] = WhiteCardFormSet(
+                self.request.POST, prefix="card", instance=self.object
+            )
         else:
             ctx["objectives"] = ProjectObjectiveFormSet(
                 prefix="obj", instance=self.object
@@ -1415,6 +1430,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             )
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
             ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
+            ctx["whitecards"] = WhiteCardFormSet(prefix="card", instance=self.object)
         return ctx
 
     def get_success_url(self):
@@ -1429,6 +1445,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         scopes = ctx["scopes"]
         targets = ctx["targets"]
         objectives = ctx["objectives"]
+        whitecards = ctx["whitecards"]
         assignments = ctx["assignments"]
 
         # Now validate inline formsets
@@ -1458,6 +1475,11 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     targets.instance = self.object
                     targets.save()
 
+                whitecards_valid = whitecards.is_valid()
+                if whitecards_valid:
+                    whitecards.instance = self.object
+                    whitecards.save()
+
                 # Proceed with form submission
                 if (
                     form.is_valid()
@@ -1465,6 +1487,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     and assignments_valid
                     and scopes_valid
                     and targets_valid
+                    and whitecards_valid
                 ):
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
