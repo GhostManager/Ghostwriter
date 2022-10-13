@@ -38,6 +38,7 @@ from ghostwriter.rolodex.models import (
     ProjectScope,
     ProjectSubTask,
     ProjectTarget,
+    WhiteCard,
 )
 from ghostwriter.shepherd.models import (
     AuxServerAddress,
@@ -651,6 +652,14 @@ class DeconflictionSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
+class WhiteCardSerializer(CustomModelSerializer):
+    """Serialize :model:`rolodex:WhiteCard` entries."""
+
+    class Meta:
+        model = WhiteCard
+        fields = "__all__"
+
+
 class ReportDataSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Project` and all related entries."""
 
@@ -676,6 +685,9 @@ class ReportDataSerializer(CustomModelSerializer):
     )
     deconflictions = DeconflictionSerializer(
         source="project.deconfliction_set", many=True, exclude=["id", "project"]
+    )
+    whitecards = WhiteCardSerializer(
+        source="project.whitecard_set", many=True, exclude=["id", "project"]
     )
     infrastructure = ProjectInfrastructureSerializer(source="project")
     findings = FindingLinkSerializer(
