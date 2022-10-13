@@ -1637,6 +1637,10 @@ th.icon {
   padding: 0;
 }
 
+.whitecard-icon:before {
+  content: '\f15b';
+}
+
 .double-check-icon:before {
   content: '\f560';
 }
@@ -2374,6 +2378,10 @@ h5 a[aria-expanded=true]:after {
 
 .card-help-text {
   cursor: help;
+}
+
+.card-title {
+  margin-bottom: 0;
 }
 
 /* ---------------------------------------------------
