@@ -19,6 +19,7 @@ from ghostwriter.factories import (
     ProjectScopeFactory,
     ProjectTargetFactory,
     UserFactory,
+    WhiteCardFactory,
 )
 from ghostwriter.rolodex.forms_client import (
     ClientContactForm,
@@ -38,6 +39,7 @@ from ghostwriter.rolodex.forms_project import (
     ProjectScopeFormSet,
     ProjectTargetForm,
     ProjectTargetFormSet,
+    WhiteCardFormSet,
 )
 
 logging.disable(logging.CRITICAL)
@@ -849,6 +851,69 @@ class ProjectTargetFormSetTests(TestCase):
         errors = form.errors[0]
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors["note"].as_data()[0].code, "incomplete")
+
+
+class WhiteCardFormSetTests(TestCase):
+    """Collection of tests for :form:`rolodex.WhiteCardFormSet`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory()
+        cls.project_dict = cls.project.__dict__
+        cls.whitecard_1 = WhiteCardFactory(project=cls.project)
+        cls.whitecard_2 = WhiteCardFactory(project=cls.project)
+        cls.to_be_deleted = WhiteCardFactory(project=cls.project)
+
+    def form_data(self, data, **kwargs):
+        return instantiate_formset(
+            WhiteCardFormSet, data=data, instance=self.project
+        )
+
+    def test_valid_data(self):
+        to_be_deleted = self.to_be_deleted.__dict__
+        to_be_deleted["DELETE"] = True
+
+        data = [self.whitecard_1.__dict__, self.whitecard_2.__dict__, to_be_deleted]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+    def test_incomplete_form(self):
+        whitecard_1 = self.whitecard_1.__dict__.copy()
+        whitecard_2 = self.whitecard_2.__dict__.copy()
+
+        whitecard_1["title"] = None
+
+        data = [whitecard_1, whitecard_2]
+        form = self.form_data(data)
+        errors = form.errors[0]
+        self.assertFalse(form.is_valid())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["title"].as_data()[0].code, "incomplete")
+
+    def test_blank_form(self):
+        whitecard_1 = self.whitecard_1.__dict__.copy()
+        whitecard_2 = self.whitecard_2.__dict__.copy()
+
+        whitecard_1["title"] = None
+        whitecard_1["description"] = None
+        whitecard_1["issued"] = None
+
+        data = [whitecard_1, whitecard_2]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+    def test_invalid_issued_value(self):
+        whitecard_1 = self.whitecard_1.__dict__.copy()
+        whitecard_2 = self.whitecard_2.__dict__.copy()
+
+        whitecard_1["issued"] = self.project.end_date + timedelta(days=1)
+
+        data = [whitecard_1, whitecard_2]
+        form = self.form_data(data)
+        errors = form.errors[0]
+        self.assertFalse(form.is_valid())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["issued"].as_data()[0].code, "invalid_datetime")
 
 
 class DeconflictionFormTests(TestCase):

@@ -32,6 +32,7 @@ from ghostwriter.factories import (
     ReportFindingLinkFactory,
     ServerHistoryFactory,
     UserFactory,
+    WhiteCardFactory,
 )
 
 logging.disable(logging.CRITICAL)
@@ -742,3 +743,36 @@ class DeconflictionModelTests(TestCase):
         self.assertTrue(entry_within_hour in deconfliction.log_entries)
         self.assertFalse(entry_too_old in deconfliction.log_entries)
         self.assertFalse(entry_recent in deconfliction.log_entries)
+
+
+class WhiteCardModelTests(TestCase):
+    """Collection of tests for :model:`rolodex.WhiteCard`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.WhiteCard = WhiteCardFactory._meta.model
+        cls.project = ProjectFactory()
+
+    def test_crud_finding(self):
+        # Create
+        card = WhiteCardFactory(title="White Card Title", project=self.project)
+
+        # Read
+        self.assertEqual(card.title, "White Card Title")
+        self.assertEqual(card.pk, card.id)
+        self.assertQuerysetEqual(
+            self.WhiteCard.objects.all(),
+            [f"<WhiteCard: {self.project}: White Card Title>"],
+        )
+
+        # Update
+        card.title = "New White Card Title"
+        card.save()
+        self.assertQuerysetEqual(
+            self.WhiteCard.objects.all(),
+            [f"<WhiteCard: {self.project}: New White Card Title>"],
+        )
+
+        # Delete
+        card.delete()
+        assert not self.WhiteCard.objects.all().exists()
