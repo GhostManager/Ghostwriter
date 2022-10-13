@@ -185,8 +185,17 @@ LINTER_CONTEXT = {
             "response_timestamp": "2022-10-06T19:41:20.889055Z",
             "title": "A Brief Descriptive Title",
             "description": "<p>This would be a description of the alert, response, and any related assessment activity.</p>",
+            "description_rt": "",
             "alert_source": "EDR",
         },
+    ],
+    "whitecards": [
+        {
+            "issued": "2022-10-13T19:18:26Z",
+            "title": "Test Card",
+            "description": "Test description",
+            "description_rt": "",
+        }
     ],
     "infrastructure": {
         "domains": [
