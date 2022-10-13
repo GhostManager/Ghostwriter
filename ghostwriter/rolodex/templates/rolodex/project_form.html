@@ -67,6 +67,11 @@
             var project_date = document.getElementById('id_end_date').value;
             deadline_field.val(project_date);
         }
+
+        function setNow(field) {
+            console.log(new Date().toJSON().slice(0,19))
+            field.val(new Date().toJSON().slice(0,19));
+        }
     </script>
 
     <!-- Formset Manipulation Buttons -->
