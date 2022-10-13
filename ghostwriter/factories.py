@@ -701,6 +701,16 @@ class DeconflictionFactory(factory.django.DjangoModelFactory):
     project = factory.SubFactory(ProjectFactory)
 
 
+class WhiteCardFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.WhiteCard"
+
+    issued = Faker("date_time", tzinfo=pytz.UTC)
+    title = Faker("user_name")
+    description = Faker("paragraph")
+    project = factory.SubFactory(ProjectFactory)
+
+
 def GenerateMockProject(
     num_of_contacts=3,
     num_of_assignments=3,
@@ -712,6 +722,7 @@ def GenerateMockProject(
     num_of_domains=5,
     num_of_servers=5,
     num_of_deconflictions=3,
+    num_of_whitecards=3,
 ):
     # Generate a random client and project
     client = ClientFactory(name="SpecterOps, Inc.")
@@ -791,6 +802,12 @@ def GenerateMockProject(
         num_of_deconflictions,
         project=project,
         status=random.choice(deconfliction_status),
+    )
+
+    # Generate white cards
+    WhiteCardFactory.create_batch(
+        num_of_whitecards,
+        project=project,
     )
 
     for index, domain in enumerate(domains):
