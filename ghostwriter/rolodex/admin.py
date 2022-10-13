@@ -23,6 +23,7 @@ from ghostwriter.rolodex.models import (
     ProjectSubTask,
     ProjectTarget,
     ProjectType,
+    WhiteCard,
 )
 
 
@@ -193,4 +194,17 @@ class DeconflictionAdmin(admin.ModelAdmin):
             {"fields": ("status", "title", "description", "alert_source", "project")},
         ),
         ("Timestamps", {"fields": ("report_timestamp", "alert_timestamp", "response_timestamp",)}),
+    )
+
+
+@admin.register(WhiteCard)
+class WhiteCardAdmin(admin.ModelAdmin):
+    list_display = ("project", "title")
+    list_filter = ["project__complete", ]
+    list_display_links = ("project", "title")
+    fieldsets = (
+        (
+            "White Card",
+            {"fields": ("issued", "title", "description")},
+        ),
     )

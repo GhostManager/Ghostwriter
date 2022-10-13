@@ -822,3 +822,36 @@ class Deconfliction(models.Model):
 
     def __str__(self):
         return f"{self.project}: {self.title}"
+
+
+class WhiteCard(models.Model):
+    """
+    Stores an individual white card, related to an individual :model:`rolodex.Project`.
+    """
+
+    issued = models.DateTimeField(
+        "Issued",
+        blank=True,
+        help_text="Date and time the client issued this white card"
+    )
+    title = models.CharField(
+        "Title",
+        max_length=255,
+        blank=True,
+        help_text="Provide a descriptive headline for this white card (e.g., a username, hostname, or short sentence",
+    )
+    description = models.TextField(
+        "Description",
+        blank=True,
+        help_text="Provide a brief description of this white card",
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+        ordering = ["project", "-issued", "title"]
+        verbose_name = "Project white card"
+        verbose_name_plural = "Project white cards"
+
+    def __str__(self):
+        return f"{self.project}: {self.title}"
