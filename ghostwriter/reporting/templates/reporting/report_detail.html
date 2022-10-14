@@ -284,6 +284,7 @@
     <script>
         $('.js-generate-report').click(function () {
             $('#spinner-modal').modal('show');
+            setTimeout(() => {  $('#spinner-modal').modal('hide'); }, 5000);
         });
     </script>
 
@@ -315,7 +316,7 @@
                         console.log('Waiting for connection...')
                         waitForSocketConnection(socket, callback);
                     }
-            }, 5); // wait 5 milisecond for the connection...
+            }, 5); // wait 5 millisecond for the connection...
         }
 
         // Handle receiving messages on channels
