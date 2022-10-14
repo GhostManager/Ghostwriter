@@ -1696,6 +1696,29 @@ class Reportwriter:
             )
             finding["references_rt"] = render_subdocument(finding["references"], finding)
 
+        # Client Notes
+        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None)
+        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], finding=None)
+
+        # Project Notes
+        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None)
+
+        # Assignments
+        for assignment in context["team"]:
+            if isinstance(assignment, dict):
+                if assignment["note"]:
+                    assignment["note_rt"] = render_subdocument(
+                        assignment["note"], finding=None
+                    )
+
+        # Contacts
+        for contact in context["client"]["contacts"]:
+            if isinstance(contact, dict):
+                if contact["note"]:
+                    contact["note_rt"] = render_subdocument(
+                        contact["note"], finding=None
+                    )
+
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
@@ -1729,6 +1752,13 @@ class Reportwriter:
             if isinstance(card, dict):
                 if card["description"]:
                     card["description_rt"] = render_subdocument(card["description"], finding=None)
+
+        # Infrastructure
+        for asset_type in context["infrastructure"]:
+            for asset in context["infrastructure"][asset_type]:
+                if isinstance(asset, dict):
+                    if asset["note"]:
+                        asset["note_rt"] = render_subdocument(asset["note"], finding=None)
 
         return context
 
