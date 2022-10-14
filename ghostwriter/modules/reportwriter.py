@@ -32,7 +32,7 @@ from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt, RGBColor
 from docxtpl import DocxTemplate, RichText
-from jinja2.exceptions import TemplateSyntaxError, UndefinedError
+from jinja2.exceptions import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
 from pptx import Presentation
 from pptx.dml.color import RGBColor as PptxRGBColor
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
@@ -2346,6 +2346,18 @@ class TemplateLinter:
                             "result": "failed",
                             "errors": [f"Invalid filter value: {error.message}"],
                         }
+                    except TypeError as error:
+                        logger.error("Invalid value provided to filter or expression: %s", error)
+                        results = {
+                            "result": "failed",
+                            "errors": [f"Invalid value provided to filter or expression: {error}"],
+                        }
+                    except TemplateRuntimeError as error:
+                        logger.error("Invalid filter or expression: %s", error)
+                        results = {
+                            "result": "failed",
+                            "errors": [f"Invalid filter or expression: {error}"],
+                        }
                 except Exception:
                     logger.exception("Template failed rendering")
                     results = {
@@ -2391,6 +2403,18 @@ class TemplateLinter:
                     results = {
                         "result": "failed",
                         "errors": ["Template file is not a PowerPoint presentation"],
+                    }
+                except TypeError as error:
+                    logger.error("Invalid value provided to filter or expression: %s", error)
+                    results = {
+                        "result": "failed",
+                        "errors": [f"Invalid value provided to filter or expression: {error}"],
+                    }
+                except TemplateRuntimeError as error:
+                    logger.error("Invalid filter or expression: %s", error)
+                    results = {
+                        "result": "failed",
+                        "errors": [f"Invalid filter or expression: {error}"],
                     }
                 except Exception:
                     logger.exception("Template failed rendering")
