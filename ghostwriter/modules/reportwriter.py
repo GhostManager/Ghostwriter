@@ -1112,9 +1112,9 @@ class Reportwriter:
 
             return styles_dict
 
-        # Begin with HTML that could have infinitely nested tags
+        # Begin with HTML that could have indefinitely nested tags
         for part in contents:
-            # Track the styles for this first parent tag
+            # Track the styles for this first parent tag or use the defaults if none
             if styles:
                 parent_styles = styles.copy()
                 run_styles = styles.copy()
@@ -1128,7 +1128,7 @@ class Reportwriter:
 
             # Get the top-level's styles first as it applies to all future runs
             if part_name:
-                # Update styles base don the tag and properties
+                # Update styles based on the tag and properties
                 parent_styles = check_tags(part, parent_styles)
 
                 # Split part into list of text and ``Tag`` objects
@@ -1139,30 +1139,23 @@ class Reportwriter:
                     tag_name = tag.name
 
                     if tag_name and tag_name in self.tag_allowlist:
-                        # Split part into list of text and ``Tag`` objects
-                        tag_contents = tag.contents
-
                         # Construct text to be written as part of this run
                         content_text = ""
 
-                        # This is a special check for a hyperlink formatted with additional styles
-                        if len(tag_contents) > 0:
+                        # Split part into list of text and ``Tag`` objects
+                        tag_contents = tag.contents
+
+                        if len(tag_contents) >= 1:
+                            # Update styles based on the tag and properties
+                            run_styles = check_tags(tag, run_styles)
+
+                            # Check for a hyperlink formatted with additional styles
                             if tag_contents[0].name:
                                 if tag_contents[0].name == "a":
                                     run_styles["hyperlink"] = True
                                     run_styles["hyperlink_url"] = tag_contents[0]["href"]
                                     content_text = tag_contents[0].text
-                        # No hyperlink, so try to assemble the text for this run
-                        else:
-                            # Only try to join if there is one item (no nested tags)
-                            if len(tag_contents) == 1:
-                                content_text = " ".join(tag_contents)
 
-                        # Update styles base don the tag and properties
-                        run_styles = check_tags(tag, run_styles)
-
-                        # Check if there are more nested tags within this object
-                        if len(tag_contents) > 1:
                             # Combine the styles to carry them over to the next loop
                             merged_styles = merge_styles(run_styles, parent_styles)
 
@@ -1170,7 +1163,6 @@ class Reportwriter:
                             self.process_nested_tags(
                                 tag_contents, par, finding, styles=merged_styles
                             )
-
                     elif tag_name:
                         logger.warning(
                             "Ignoring a nested HTML tag not in the allowlist: %s",
@@ -1194,7 +1186,7 @@ class Reportwriter:
             # There are no tags to process, so write the string
             else:
                 if isinstance(part, NavigableString):
-                    par = self.replace_and_write(part, par, finding)
+                    par = self.replace_and_write(part, par, finding, parent_styles)
                 else:
                     par = self.replace_and_write(part.text, par, finding)
         return par
