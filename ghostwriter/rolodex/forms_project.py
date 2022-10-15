@@ -4,13 +4,7 @@
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.forms import formset_factory
-from django.forms.models import (
-    BaseFormSet,
-    BaseInlineFormSet,
-    formset_factory,
-    inlineformset_factory,
-)
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
