@@ -1,17 +1,17 @@
 table:
-  schema: public
   name: rolodex_projecttarget
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: target
   column_config:
-    project_id:
-      custom_name: projectId
     ip_address:
       custom_name: ipAddress
+    project_id:
+      custom_name: projectId
   custom_column_names:
-    project_id: projectId
     ip_address: ipAddress
+    project_id: projectId
+  custom_name: target
+  custom_root_fields: {}
 object_relationships:
   - name: project
     using:
@@ -26,7 +26,6 @@ insert_permissions:
         - ip_address
         - note
         - project_id
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -194,9 +193,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         project:
           _or:
@@ -212,6 +213,7 @@ delete_permissions:
                     _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         project:
           _or:

@@ -1,14 +1,14 @@
 table:
-  schema: public
   name: oplog_oplog
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: oplog
   column_config:
     project_id:
       custom_name: projectId
   custom_column_names:
     project_id: projectId
+  custom_name: oplog
+  custom_root_fields: {}
 object_relationships:
   - name: project
     using:
@@ -19,8 +19,8 @@ array_relationships:
       foreign_key_constraint_on:
         column: oplog_id_id
         table:
-          schema: public
           name: oplog_oplogentry
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -28,7 +28,6 @@ insert_permissions:
       columns:
         - name
         - project_id
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -178,9 +177,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         project:
           _or:
@@ -196,6 +197,7 @@ delete_permissions:
                     _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         project:
           _or:

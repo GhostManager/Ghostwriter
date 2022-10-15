@@ -1,14 +1,14 @@
 table:
-  schema: public
   name: auth_permission
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: authPermission
   column_config:
     content_type_id:
       custom_name: contentTypeId
   custom_column_names:
     content_type_id: contentTypeId
+  custom_name: authPermission
+  custom_root_fields: {}
 object_relationships:
   - name: djangoContentType
     using:
@@ -19,12 +19,12 @@ array_relationships:
       foreign_key_constraint_on:
         column: permission_id
         table:
-          schema: public
           name: auth_group_permissions
+          schema: public
   - name: userPermissions
     using:
       foreign_key_constraint_on:
         column: permission_id
         table:
-          schema: public
           name: users_user_user_permissions
+          schema: public

@@ -36,7 +36,6 @@ class ApiKeyFormTests(TestCase):
 
     def test_valid_data(self):
         form = self.form_data(name="Test Entry", expiry_date=datetime.now() + timedelta(days=1))
-        print(form.errors)
         self.assertTrue(form.is_valid())
 
     def test_empty_name(self):

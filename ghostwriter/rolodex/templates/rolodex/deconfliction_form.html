@@ -1,0 +1,52 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Deconfliction Form{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            {% comment %} Check if `project` is in context marking this as a `DeconflictionCreate` request {% endcomment %}
+                {% if project %}
+                    <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client }}</a></li>
+                    <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project }}" href="{% url 'rolodex:project_detail' project.id %}">{{ project.start_date|date:"DATE_FORMAT" }} {{ project.project_type }}</a></li>
+                {% else %}
+                    <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object.project.client }}" href="{% url 'rolodex:client_detail' object.project.client.id %}">{{ object.project.client }}</a></li>
+                    <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object.project }}" href="{% url 'rolodex:project_detail' object.project.id %}">{{ object.project.start_date|date:"DATE_FORMAT" }} {{ object.project.project_type }}</a></li>
+                {% endif %}
+            {% comment %} Check if `object` is in context to determine if this is a `DeconflictionUpdate` request {% endcomment %}
+            {% if object %}
+                <li class="breadcrumb-item active" aria-current="page">Edit Deconfliction</li>
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">New Deconfliction Form</li>
+            {% endif %}
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <strong class="icon double-check-icon">Deconfliction</strong>
+    <hr>
+
+    <!-- Form Error Section -->
+    {% if form.errors %}
+        <script>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+                {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
+            {% endfor %}
+        </script>
+    {% endif %}
+
+    <!-- Form Section -->
+    {% crispy form form.helper %}
+{% endblock %}
+
+{% block morescripts %}
+{% endblock %}

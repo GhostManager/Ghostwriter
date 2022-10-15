@@ -32,6 +32,7 @@ class ReportDataSerializerTests(TestCase):
         cls.num_of_subtasks = 5
         cls.num_of_domains = 6
         cls.num_of_servers = 3
+        cls.num_of_deconflictions = 3
 
         cls.client, cls.project, cls.report = GenerateMockProject(
             cls.num_of_contacts,
@@ -43,6 +44,7 @@ class ReportDataSerializerTests(TestCase):
             cls.num_of_subtasks,
             cls.num_of_domains,
             cls.num_of_servers,
+            cls.num_of_deconflictions
         )
 
         cls.serializer = ReportDataSerializer(
@@ -74,6 +76,7 @@ class ReportDataSerializerTests(TestCase):
         self.assertTrue("objectives" in report_json)
         self.assertTrue("targets" in report_json)
         self.assertTrue("scope" in report_json)
+        self.assertTrue("deconflictions" in report_json)
         self.assertTrue("infrastructure" in report_json)
         self.assertTrue("findings" in report_json)
         self.assertTrue("docx_template" in report_json)

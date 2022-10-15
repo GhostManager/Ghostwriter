@@ -1,9 +1,7 @@
 table:
-  schema: public
   name: rolodex_clientinvite
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: clientInvite
   column_config:
     client_id:
       custom_name: clientId
@@ -12,6 +10,8 @@ configuration:
   custom_column_names:
     client_id: clientId
     user_id: userId
+  custom_name: clientInvite
+  custom_root_fields: {}
 object_relationships:
   - name: client
     using:
@@ -23,12 +23,12 @@ array_relationships:
   - name: projects
     using:
       manual_configuration:
-        remote_table:
-          schema: public
-          name: rolodex_project
-        insertion_order: null
         column_mapping:
           client_id: client_id
+        insertion_order: null
+        remote_table:
+          name: rolodex_project
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -37,7 +37,6 @@ insert_permissions:
         - client_id
         - comment
         - user_id
-      backend_only: false
 select_permissions:
   - role: manager
     permission:
@@ -83,4 +82,5 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}

@@ -1,17 +1,17 @@
 table:
-  schema: public
   name: auth_group_permissions
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: groupPermission
   column_config:
-    permission_id:
-      custom_name: permissionId
     group_id:
       custom_name: groupId
+    permission_id:
+      custom_name: permissionId
   custom_column_names:
-    permission_id: permissionId
     group_id: groupId
+    permission_id: permissionId
+  custom_name: groupPermission
+  custom_root_fields: {}
 object_relationships:
   - name: authGroup
     using:

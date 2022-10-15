@@ -1,23 +1,23 @@
 table:
-  schema: public
   name: auth_group
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: group
   column_config: {}
   custom_column_names: {}
+  custom_name: group
+  custom_root_fields: {}
 array_relationships:
   - name: groupPermissions
     using:
       foreign_key_constraint_on:
         column: group_id
         table:
-          schema: public
           name: auth_group_permissions
+          schema: public
   - name: users
     using:
       foreign_key_constraint_on:
         column: group_id
         table:
-          schema: public
           name: users_user_groups
+          schema: public

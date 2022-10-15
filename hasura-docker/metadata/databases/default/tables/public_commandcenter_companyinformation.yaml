@@ -1,20 +1,20 @@
 table:
-  schema: public
   name: commandcenter_companyinformation
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: companyInfo
   column_config:
-    company_name:
-      custom_name: name
     company_email:
       custom_name: email
+    company_name:
+      custom_name: name
     company_twitter:
       custom_name: twitter
   custom_column_names:
-    company_name: name
     company_email: email
+    company_name: name
     company_twitter: twitter
+  custom_name: companyInfo
+  custom_root_fields: {}
 select_permissions:
   - role: manager
     permission:

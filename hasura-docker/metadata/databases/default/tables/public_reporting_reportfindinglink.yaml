@@ -1,35 +1,35 @@
 table:
-  schema: public
   name: reporting_reportfindinglink
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: reportedFinding
   column_config:
-    finding_guidance:
-      custom_name: findingGuidance
-    host_detection_techniques:
-      custom_name: hostDetectionTechniques
-    assigned_to_id:
-      custom_name: assignedToId
-    report_id:
-      custom_name: reportId
     affected_entities:
       custom_name: affectedEntities
+    assigned_to_id:
+      custom_name: assignedToId
+    finding_guidance:
+      custom_name: findingGuidance
     finding_type_id:
       custom_name: findingTypeId
+    host_detection_techniques:
+      custom_name: hostDetectionTechniques
     network_detection_techniques:
       custom_name: networkDetectionTechniques
+    report_id:
+      custom_name: reportId
     severity_id:
       custom_name: severityId
   custom_column_names:
-    finding_guidance: findingGuidance
-    host_detection_techniques: hostDetectionTechniques
-    assigned_to_id: assignedToId
-    report_id: reportId
     affected_entities: affectedEntities
+    assigned_to_id: assignedToId
+    finding_guidance: findingGuidance
     finding_type_id: findingTypeId
+    host_detection_techniques: hostDetectionTechniques
     network_detection_techniques: networkDetectionTechniques
+    report_id: reportId
     severity_id: severityId
+  custom_name: reportedFinding
+  custom_root_fields: {}
 object_relationships:
   - name: findingtype
     using:
@@ -49,20 +49,21 @@ array_relationships:
       foreign_key_constraint_on:
         column: finding_id
         table:
-          schema: public
           name: reporting_localfindingnote
+          schema: public
   - name: evidences
     using:
       foreign_key_constraint_on:
         column: finding_id
         table:
-          schema: public
           name: reporting_evidence
+          schema: public
 insert_permissions:
   - role: manager
     permission:
       check: {}
       set:
+        added_as_blank: "true"
         assigned_to_id: x-hasura-User-Id
       columns:
         - affected_entities
@@ -83,7 +84,6 @@ insert_permissions:
         - report_id
         - severity_id
         - title
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -101,6 +101,7 @@ insert_permissions:
                     user_id:
                       _eq: X-Hasura-User-Id
       set:
+        added_as_blank: "true"
         assigned_to_id: x-hasura-User-Id
       columns:
         - affected_entities
@@ -135,6 +136,7 @@ insert_permissions:
                     user_id:
                       _eq: X-Hasura-User-Id
       set:
+        added_as_blank: "true"
         assigned_to_id: x-hasura-User-Id
       columns:
         - affected_entities
@@ -159,25 +161,26 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - assigned_to_id
-        - finding_type_id
-        - id
-        - report_id
-        - severity_id
-        - complete
-        - cvss_vector
-        - title
-        - cvss_score
-        - position
+        - added_as_blank
         - affected_entities
+        - assigned_to_id
+        - complete
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
+        - finding_type_id
         - host_detection_techniques
+        - id
         - impact
         - mitigation
         - network_detection_techniques
+        - position
         - references
         - replication_steps
+        - report_id
+        - severity_id
+        - title
       filter: {}
   - role: restricted
     permission:
@@ -199,25 +202,26 @@ select_permissions:
   - role: user
     permission:
       columns:
-        - assigned_to_id
-        - finding_type_id
-        - id
-        - report_id
-        - severity_id
-        - complete
-        - cvss_vector
-        - title
-        - cvss_score
-        - position
+        - added_as_blank
         - affected_entities
+        - assigned_to_id
+        - complete
+        - cvss_score
+        - cvss_vector
         - description
         - finding_guidance
+        - finding_type_id
         - host_detection_techniques
+        - id
         - impact
         - mitigation
         - network_detection_techniques
+        - position
         - references
         - replication_steps
+        - report_id
+        - severity_id
+        - title
       filter:
         report:
           project:
@@ -355,9 +359,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         report:
           project:
@@ -374,6 +380,7 @@ delete_permissions:
                       _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         report:
           project:

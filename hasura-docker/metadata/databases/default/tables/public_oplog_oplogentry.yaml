@@ -1,32 +1,32 @@
 table:
-  schema: public
   name: oplog_oplogentry
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: oplogEntry
   column_config:
+    dest_ip:
+      custom_name: destIp
     end_date:
       custom_name: endDate
     operator_name:
       custom_name: operatorName
-    dest_ip:
-      custom_name: destIp
-    start_date:
-      custom_name: startDate
-    user_context:
-      custom_name: userContext
     oplog_id_id:
       custom_name: oplog
     source_ip:
       custom_name: sourceIp
+    start_date:
+      custom_name: startDate
+    user_context:
+      custom_name: userContext
   custom_column_names:
+    dest_ip: destIp
     end_date: endDate
     operator_name: operatorName
-    dest_ip: destIp
-    start_date: startDate
-    user_context: userContext
     oplog_id_id: oplog
     source_ip: sourceIp
+    start_date: startDate
+    user_context: userContext
+  custom_name: oplogEntry
+  custom_root_fields: {}
 object_relationships:
   - name: log
     using:
@@ -48,7 +48,6 @@ insert_permissions:
         - start_date
         - tool
         - user_context
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -264,9 +263,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         log:
           project:
@@ -283,6 +284,7 @@ delete_permissions:
                       _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         log:
           project:
@@ -304,8 +306,8 @@ event_triggers:
       insert:
         columns: '*'
     retry_conf:
-      num_retries: 0
       interval_sec: 10
+      num_retries: 0
       timeout_sec: 60
     webhook: '{{ACTIONS_URL_BASE}}/event/oplogentry/create'
     headers:
@@ -313,12 +315,12 @@ event_triggers:
         value_from_env: HASURA_ACTION_SECRET
   - name: DeleteOplogEntry
     definition:
-      enable_manual: false
       delete:
         columns: '*'
+      enable_manual: false
     retry_conf:
-      num_retries: 0
       interval_sec: 10
+      num_retries: 0
       timeout_sec: 60
     webhook: '{{ACTIONS_URL_BASE}}/event/oplogentry/delete'
     headers:
@@ -330,8 +332,8 @@ event_triggers:
       update:
         columns: '*'
     retry_conf:
-      num_retries: 0
       interval_sec: 10
+      num_retries: 0
       timeout_sec: 60
     webhook: '{{ACTIONS_URL_BASE}}/event/oplogentry/update'
     headers:

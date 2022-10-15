@@ -1,20 +1,20 @@
 table:
-  schema: public
   name: rolodex_projectsubtask
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: objectiveSubTask
   column_config:
     marked_complete:
       custom_name: markedComplete
-    status_id:
-      custom_name: statusId
     parent_id:
       custom_name: parentId
+    status_id:
+      custom_name: statusId
   custom_column_names:
     marked_complete: markedComplete
-    status_id: statusId
     parent_id: parentId
+    status_id: statusId
+  custom_name: objectiveSubTask
+  custom_root_fields: {}
 object_relationships:
   - name: objective
     using:
@@ -31,7 +31,6 @@ insert_permissions:
         - parent_id
         - status_id
         - task
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -205,9 +204,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         objective:
           project:
@@ -224,6 +225,7 @@ delete_permissions:
                       _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         objective:
           project:

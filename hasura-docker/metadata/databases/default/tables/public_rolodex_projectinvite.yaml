@@ -1,9 +1,7 @@
 table:
-  schema: public
   name: rolodex_projectinvite
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: projectInvite
   column_config:
     project_id:
       custom_name: projectId
@@ -12,6 +10,8 @@ configuration:
   custom_column_names:
     project_id: projectId
     user_id: userId
+  custom_name: projectInvite
+  custom_root_fields: {}
 object_relationships:
   - name: project
     using:
@@ -23,12 +23,12 @@ array_relationships:
   - name: assignments
     using:
       manual_configuration:
-        remote_table:
-          schema: public
-          name: rolodex_projectassignment
-        insertion_order: null
         column_mapping:
           project_id: project_id
+        insertion_order: null
+        remote_table:
+          name: rolodex_projectassignment
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -37,7 +37,6 @@ insert_permissions:
         - comment
         - project_id
         - user_id
-      backend_only: false
 select_permissions:
   - role: manager
     permission:
@@ -91,4 +90,5 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}

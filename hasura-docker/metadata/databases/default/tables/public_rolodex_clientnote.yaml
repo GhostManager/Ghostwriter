@@ -1,17 +1,17 @@
 table:
-  schema: public
   name: rolodex_clientnote
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: clientNote
   column_config:
-    operator_id:
-      custom_name: operatorId
     client_id:
       custom_name: clientId
+    operator_id:
+      custom_name: operatorId
   custom_column_names:
-    operator_id: operatorId
     client_id: clientId
+    operator_id: operatorId
+  custom_name: clientNote
+  custom_root_fields: {}
 object_relationships:
   - name: client
     using:
@@ -28,7 +28,6 @@ insert_permissions:
       columns:
         - client_id
         - note
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -211,11 +210,13 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: restricted
     permission:
+      backend_only: false
       filter:
         _and:
           - operator_id:
@@ -235,6 +236,7 @@ delete_permissions:
                             _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         _and:
           - operator_id:

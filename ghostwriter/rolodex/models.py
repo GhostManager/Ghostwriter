@@ -1,7 +1,7 @@
 """This contains all of the database models used by the Rolodex application."""
 
 # Standard Libraries
-from datetime import time
+from datetime import time, timedelta
 
 # Django Imports
 from django.conf import settings
@@ -13,6 +13,7 @@ from django.urls import reverse
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import ReportFindingLink
 
 User = get_user_model()
@@ -121,7 +122,6 @@ class ClientContact(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
-
         ordering = ["client", "id"]
         verbose_name = "Client POC"
         verbose_name_plural = "Client POCs"
@@ -143,7 +143,6 @@ class ProjectType(models.Model):
     )
 
     class Meta:
-
         ordering = ["project_type"]
         verbose_name = "Project type"
         verbose_name_plural = "Project types"
@@ -236,7 +235,6 @@ class Project(models.Model):
     count = property(count_findings)
 
     class Meta:
-
         ordering = ["-start_date", "end_date", "client", "project_type"]
         verbose_name = "Project"
         verbose_name_plural = "Projects"
@@ -261,7 +259,6 @@ class ProjectRole(models.Model):
     )
 
     class Meta:
-
         ordering = ["project_role"]
         verbose_name = "Project role"
         verbose_name_plural = "Project roles"
@@ -312,7 +309,6 @@ class ProjectAssignment(models.Model):
     )
 
     class Meta:
-
         ordering = ["project", "start_date", "operator"]
         verbose_name = "Project assignment"
         verbose_name_plural = "Project assignments"
@@ -337,7 +333,6 @@ class ObjectiveStatus(models.Model):
     )
 
     class Meta:
-
         ordering = ["objective_status"]
         verbose_name = "Objective status"
         verbose_name_plural = "Objective status"
@@ -364,7 +359,6 @@ class ObjectivePriority(models.Model):
     )
 
     class Meta:
-
         ordering = ["weight", "priority"]
         verbose_name = "Objective priority"
         verbose_name_plural = "Objective priorities"
@@ -440,7 +434,6 @@ class ProjectObjective(models.Model):
     )
 
     class Meta:
-
         ordering = [
             "project",
             "position",
@@ -518,7 +511,6 @@ class ProjectSubTask(models.Model):
     )
 
     class Meta:
-
         ordering = ["parent", "complete", "deadline", "status", "task"]
         verbose_name = "Objective sub-task"
         verbose_name_plural = "Objective sub-tasks"
@@ -549,7 +541,6 @@ class ClientNote(models.Model):
     )
 
     class Meta:
-
         ordering = ["client", "timestamp"]
         verbose_name = "Client note"
         verbose_name_plural = "Client notes"
@@ -580,7 +571,6 @@ class ProjectNote(models.Model):
     )
 
     class Meta:
-
         ordering = ["project", "timestamp"]
         verbose_name = "Project note"
         verbose_name_plural = "Project notes"
@@ -627,7 +617,6 @@ class ProjectScope(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["project", "name"]
         verbose_name = "Project scope list"
         verbose_name_plural = "Project scope lists"
@@ -679,7 +668,6 @@ class ProjectTarget(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["project", "compromised", "ip_address", "hostname"]
         verbose_name = "Project target"
         verbose_name_plural = "Project targets"
@@ -705,7 +693,6 @@ class ClientInvite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["client_id", "user_id"]
         verbose_name = "Client invite"
         verbose_name_plural = "Client invites"
@@ -731,10 +718,143 @@ class ProjectInvite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=False)
 
     class Meta:
-
         ordering = ["project_id", "user_id"]
         verbose_name = "Project invite"
         verbose_name_plural = "Project invites"
 
     def __str__(self):
         return f"{self.user} ({self.project})"
+
+
+class DeconflictionStatus(models.Model):
+    """
+    Stores an individual deconfliction status.
+    """
+
+    status = models.CharField(
+        "Status",
+        max_length=255,
+        unique=True,
+        help_text="Status for a deconfliction request (e.g., Undetermined, Confirmed, Unrelated)",
+    )
+    weight = models.IntegerField(
+        "Status Weight",
+        default=1,
+        help_text="Weight for sorting status",
+    )
+
+    class Meta:
+        ordering = ["weight", "status"]
+        verbose_name = "Deconfliction status"
+        verbose_name_plural = "Deconfliction status"
+
+    def __str__(self):
+        return f"{self.status}"
+
+
+class Deconfliction(models.Model):
+    """
+    Stores an individual deconfliction, related to an individual :model:`rolodex.Project`.
+    """
+
+    created_at = models.DateTimeField(
+        "Timestamp", auto_now_add=True, help_text="Date and time this deconfliction was created"
+    )
+    report_timestamp = models.DateTimeField(
+        "Report Timestamp",
+        help_text="Date and time the client informed you and requested deconfliction"
+    )
+    alert_timestamp = models.DateTimeField(
+        "Alert Timestamp",
+        null=True,
+        blank=True,
+        help_text="Date and time the alert fired"
+    )
+    response_timestamp = models.DateTimeField(
+        "Response Timestamp",
+        null=True,
+        blank=True,
+        help_text="Date and time you responded to the report"
+    )
+    title = models.CharField(
+        "Deconfliction Title",
+        max_length=255,
+        help_text="Provide a descriptive title or headline for this deconfliction",
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a brief description of this deconfliction request",
+    )
+    alert_source = models.CharField(
+        "Alert Source",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Source of the alert (e.g., user reported, EDR, MDR, etc.)",
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+    status = models.ForeignKey(
+        "DeconflictionStatus",
+        on_delete=models.PROTECT,
+        null=True,
+        help_text="Select a status that best reflects the current state of this deconfliction (e.g., undetermined, confirmed assessment activity, or unrelated to assessment activity)",
+    )
+
+    class Meta:
+        ordering = ["project", "-created_at", "status__weight", "title"]
+        verbose_name = "Project deconfliction"
+        verbose_name_plural = "Project deconflictions"
+
+    @property
+    def log_entries(self):
+        """Get log entries that precede the alert by one hour."""
+        logs = None
+        if self.alert_timestamp:
+            one_hour_ago = self.alert_timestamp - timedelta(hours=1)
+            logs = OplogEntry.objects.filter(
+                models.Q(oplog_id__project=self.project)
+                & models.Q(start_date__range=(one_hour_ago, self.alert_timestamp))
+            )
+        return logs
+
+    def __str__(self):
+        return f"{self.project}: {self.title}"
+
+
+class WhiteCard(models.Model):
+    """
+    Stores an individual white card, related to an individual :model:`rolodex.Project`.
+    """
+
+    issued = models.DateTimeField(
+        "Issued",
+        blank=True,
+        null=True,
+        help_text="Date and time the client issued this white card"
+    )
+    title = models.CharField(
+        "Title",
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Provide a descriptive headline for this white card (e.g., a username, hostname, or short sentence",
+    )
+    description = models.TextField(
+        "Description",
+        blank=True,
+        null=True,
+        help_text="Provide a brief description of this white card",
+    )
+    # Foreign Keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
+
+    class Meta:
+        ordering = ["project", "-issued", "title"]
+        verbose_name = "Project white card"
+        verbose_name_plural = "Project white cards"
+
+    def __str__(self):
+        return f"{self.project}: {self.title}"

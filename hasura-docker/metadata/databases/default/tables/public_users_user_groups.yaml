@@ -1,9 +1,7 @@
 table:
-  schema: public
   name: users_user_groups
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: userGroup
   column_config:
     group_id:
       custom_name: groupId
@@ -12,6 +10,8 @@ configuration:
   custom_column_names:
     group_id: groupId
     user_id: userId
+  custom_name: userGroup
+  custom_root_fields: {}
 object_relationships:
   - name: authGroup
     using:

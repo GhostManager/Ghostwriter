@@ -1,29 +1,29 @@
 table:
-  schema: public
   name: reporting_reporttemplate
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: template
   column_config:
-    upload_date:
-      custom_name: uploadDate
     client_id:
       custom_name: clientId
-    last_update:
-      custom_name: lastUpdate
-    uploaded_by_id:
-      custom_name: uploadedById
     doc_type_id:
       custom_name: docTypeId
+    last_update:
+      custom_name: lastUpdate
     lint_result:
       custom_name: lintResult
+    upload_date:
+      custom_name: uploadDate
+    uploaded_by_id:
+      custom_name: uploadedById
   custom_column_names:
-    upload_date: uploadDate
     client_id: clientId
-    last_update: lastUpdate
-    uploaded_by_id: uploadedById
     doc_type_id: docTypeId
+    last_update: lastUpdate
     lint_result: lintResult
+    upload_date: uploadDate
+    uploaded_by_id: uploadedById
+  custom_name: template
+  custom_root_fields: {}
 object_relationships:
   - name: client
     using:
@@ -40,29 +40,29 @@ array_relationships:
       foreign_key_constraint_on:
         column: default_pptx_template_id
         table:
-          schema: public
           name: commandcenter_reportconfiguration
+          schema: public
   - name: commandcenter_reportconfigurations
     using:
       foreign_key_constraint_on:
         column: default_docx_template_id
         table:
-          schema: public
           name: commandcenter_reportconfiguration
+          schema: public
   - name: docxTemplates
     using:
       foreign_key_constraint_on:
         column: docx_template_id
         table:
-          schema: public
           name: reporting_report
+          schema: public
   - name: pptxTemplates
     using:
       foreign_key_constraint_on:
         column: pptx_template_id
         table:
-          schema: public
           name: reporting_report
+          schema: public
 select_permissions:
   - role: manager
     permission:

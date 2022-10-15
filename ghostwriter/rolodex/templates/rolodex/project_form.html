@@ -67,6 +67,11 @@
             var project_date = document.getElementById('id_end_date').value;
             deadline_field.val(project_date);
         }
+
+        function setNow(field) {
+            console.log(new Date().toJSON().slice(0,19))
+            field.val(new Date().toJSON().slice(0,19));
+        }
     </script>
 
     <!-- Formset Manipulation Buttons -->
@@ -116,6 +121,18 @@
             new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
             // Re-initialize WYSIWYG editor for the new form
             target = 'id_{{ targets.prefix }}-' + parseInt(form_idx) + '-note'
+            tinymce.execCommand('mceAddEditor', false, target);
+        });
+
+        $('.formset-add-{{ whitecards.prefix }}').click(function() {
+            var form_idx = $('#id_{{ whitecards.prefix }}-TOTAL_FORMS').val();
+            $('#formset-{{ whitecards.prefix }}').append($('#empty-form-{{ whitecards.prefix }}').html().replace(/__prefix__/g, form_idx));
+            $('#id_{{ whitecards.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+            var new_form = $('#formset-{{ whitecards.prefix }}').find('div.formset-container').last()
+            new_form.find('span.counter').html(parseInt(form_idx) + 1);
+            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+            // Re-initialize WYSIWYG editor for the new form
+            target = 'id_{{ whitecards.prefix }}-' + parseInt(form_idx) + '-description'
             tinymce.execCommand('mceAddEditor', false, target);
         });
     </script>

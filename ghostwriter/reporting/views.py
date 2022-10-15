@@ -784,6 +784,7 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
                 report=self.object,
                 assigned_to=self.request.user,
                 position=get_position(self.object.id, self.severity),
+                added_as_blank=True,
             )
             report_link.save()
 

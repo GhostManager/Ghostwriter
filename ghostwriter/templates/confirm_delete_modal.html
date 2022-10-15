@@ -123,6 +123,7 @@
         var targetTbody = target.closest('tbody');
         var targetTable = target.closest('table');
         var targetContainer = $('#note-container-' + targetId);
+        var targetCard = $('#decon-card-' + targetId);
         // Prep AJAX request with CSRF token
         $.ajaxSetup({
             beforeSend: function(xhr, settings) {
@@ -148,6 +149,9 @@
                     }
                     if (targetContainer) {
                         targetContainer.remove();
+                    }
+                    if (targetCard) {
+                        targetCard.remove();
                     }
                     // If that was the last row, hide the empty table
                     if (targetTbody.find('tr').length == 0) {

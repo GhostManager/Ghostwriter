@@ -1,35 +1,35 @@
 table:
-  schema: public
   name: rolodex_project
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: project
   column_config:
-    end_date:
-      custom_name: endDate
-    operator_id:
-      custom_name: operatorId
-    start_date:
-      custom_name: startDate
     client_id:
       custom_name: clientId
-    start_time:
-      custom_name: startTime
-    slack_channel:
-      custom_name: slackChannel
+    end_date:
+      custom_name: endDate
     end_time:
       custom_name: endTime
+    operator_id:
+      custom_name: operatorId
     project_type_id:
       custom_name: projectTypeId
+    slack_channel:
+      custom_name: slackChannel
+    start_date:
+      custom_name: startDate
+    start_time:
+      custom_name: startTime
   custom_column_names:
-    end_date: endDate
-    operator_id: operatorId
-    start_date: startDate
     client_id: clientId
-    start_time: startTime
-    slack_channel: slackChannel
+    end_date: endDate
     end_time: endTime
+    operator_id: operatorId
     project_type_id: projectTypeId
+    slack_channel: slackChannel
+    start_date: startDate
+    start_time: startTime
+  custom_name: project
+  custom_root_fields: {}
 object_relationships:
   - name: client
     using:
@@ -46,92 +46,92 @@ array_relationships:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: reporting_archive
+          schema: public
   - name: assignments
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: rolodex_projectassignment
+          schema: public
   - name: cloudServers
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: shepherd_transientserver
+          schema: public
   - name: comments
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: rolodex_projectnote
+          schema: public
   - name: domainServerConnections
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: shepherd_domainserverconnection
+          schema: public
   - name: domains
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: shepherd_history
+          schema: public
   - name: invites
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: rolodex_projectinvite
+          schema: public
   - name: objectives
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: rolodex_projectobjective
+          schema: public
   - name: oplogs
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: oplog_oplog
+          schema: public
   - name: reports
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: reporting_report
+          schema: public
   - name: scopes
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: rolodex_projectscope
+          schema: public
   - name: staticServers
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: shepherd_serverhistory
+          schema: public
   - name: targets
     using:
       foreign_key_constraint_on:
         column: project_id
         table:
-          schema: public
           name: rolodex_projecttarget
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -149,7 +149,6 @@ insert_permissions:
         - start_date
         - start_time
         - timezone
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -334,4 +333,5 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}

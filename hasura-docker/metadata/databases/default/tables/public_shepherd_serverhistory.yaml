@@ -1,35 +1,35 @@
 table:
-  schema: public
   name: shepherd_serverhistory
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: serverCheckout
   column_config:
-    server_role_id:
-      custom_name: serverRoleId
-    end_date:
-      custom_name: endDate
-    server_id:
-      custom_name: serverId
-    operator_id:
-      custom_name: operatorId
     activity_type_id:
       custom_name: activityTypeId
-    start_date:
-      custom_name: startDate
     client_id:
       custom_name: clientId
+    end_date:
+      custom_name: endDate
+    operator_id:
+      custom_name: operatorId
     project_id:
       custom_name: projectId
+    server_id:
+      custom_name: serverId
+    server_role_id:
+      custom_name: serverRoleId
+    start_date:
+      custom_name: startDate
   custom_column_names:
-    server_role_id: serverRoleId
-    end_date: endDate
-    server_id: serverId
-    operator_id: operatorId
     activity_type_id: activityTypeId
-    start_date: startDate
     client_id: clientId
+    end_date: endDate
+    operator_id: operatorId
     project_id: projectId
+    server_id: serverId
+    server_role_id: serverRoleId
+    start_date: startDate
+  custom_name: serverCheckout
+  custom_root_fields: {}
 object_relationships:
   - name: activityType
     using:
@@ -55,8 +55,8 @@ array_relationships:
       foreign_key_constraint_on:
         column: static_server_id
         table:
-          schema: public
           name: shepherd_domainserverconnection
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -72,7 +72,6 @@ insert_permissions:
         - server_id
         - server_role_id
         - start_date
-      backend_only: false
   - role: restricted
     permission:
       check:
