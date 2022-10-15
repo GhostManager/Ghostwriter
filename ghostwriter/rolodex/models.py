@@ -832,17 +832,20 @@ class WhiteCard(models.Model):
     issued = models.DateTimeField(
         "Issued",
         blank=True,
+        null=True,
         help_text="Date and time the client issued this white card"
     )
     title = models.CharField(
         "Title",
         max_length=255,
         blank=True,
+        null=True,
         help_text="Provide a descriptive headline for this white card (e.g., a username, hostname, or short sentence",
     )
     description = models.TextField(
         "Description",
         blank=True,
+        null=True,
         help_text="Provide a brief description of this white card",
     )
     # Foreign Keys
