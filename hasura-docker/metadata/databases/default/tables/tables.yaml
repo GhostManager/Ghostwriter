@@ -37,6 +37,7 @@
 - "!include public_rolodex_projectsubtask.yaml"
 - "!include public_rolodex_projecttarget.yaml"
 - "!include public_rolodex_projecttype.yaml"
+- "!include public_rolodex_whitecard.yaml"
 - "!include public_shepherd_activitytype.yaml"
 - "!include public_shepherd_auxserveraddress.yaml"
 - "!include public_shepherd_domain.yaml"
