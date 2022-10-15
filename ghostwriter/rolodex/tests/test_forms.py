@@ -951,7 +951,16 @@ class DeconflictionFormTests(TestCase):
         )
 
     def test_valid_data(self):
+        now = datetime.now(timezone.utc)
+        one_hour_ago = now - timedelta(hours=1)
+        one_hour_future = now + timedelta(hours=1)
+
         deconfliction = DeconflictionFactory.build(project=self.project, status=self.status)
+
+        deconfliction.alert_timestamp = one_hour_ago
+        deconfliction.report_timestamp = now
+        deconfliction.response_timestamp = one_hour_future
+
         form = self.form_data(**deconfliction.__dict__)
         self.assertTrue(form.is_valid())
 
