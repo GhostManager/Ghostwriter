@@ -77,11 +77,10 @@ update_permissions:
   - role: manager
     permission:
       columns:
-        - id
-        - project_id
-        - title
         - description
         - issued
+        - project_id
+        - title
       filter: {}
       check: {}
   - role: user
