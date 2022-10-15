@@ -6,6 +6,11 @@
     </a>
 </li>
 <li class="nav-item">
+    <a id="id_whitecards" class="nav-link tab-icon whitecard-icon" data-toggle="tab" href="#whitecards">
+        White Cards <span class="badge badge-pill badge-light">{{ project.whitecard_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
     <a id="id_scopes" class="nav-link tab-icon bullseye-icon" data-toggle="tab" href="#scopes">
         Scope
     </a>
@@ -33,6 +38,11 @@
 <li class="nav-item">
     <a id="id_infrastructure" class="nav-link tab-icon server-icon" data-toggle="tab" href="#infrastructure">
         Infrastructure
+    </a>
+</li>
+<li class="nav-item">
+    <a id="id_deconflictions" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#deconflictions">
+        Deconflictions <span class="badge badge-pill badge-light">{{ project.deconfliction_set.all.count }}</span>
     </a>
 </li>
 <li class="nav-item">

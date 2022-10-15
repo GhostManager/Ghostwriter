@@ -1,9 +1,7 @@
 table:
-  schema: public
   name: rolodex_projectnote
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: projectNote
   column_config:
     operator_id:
       custom_name: operatorId
@@ -12,6 +10,8 @@ configuration:
   custom_column_names:
     operator_id: operatorId
     project_id: projectId
+  custom_name: projectNote
+  custom_root_fields: {}
 object_relationships:
   - name: project
     using:
@@ -28,7 +28,6 @@ insert_permissions:
       columns:
         - note
         - project_id
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -200,11 +199,13 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: restricted
     permission:
+      backend_only: false
       filter:
         _and:
           - project:
@@ -223,6 +224,7 @@ delete_permissions:
               _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         _and:
           - project:

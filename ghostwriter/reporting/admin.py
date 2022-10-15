@@ -126,7 +126,7 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
             "General Information",
             {"fields": ( "position", "title", "finding_type", "severity", "cvss_score", "cvss_vector")},
         ),
-        ("Finding Status", {"fields": ("complete", "assigned_to", "report")}),
+        ("Finding Status", {"fields": ("complete", "added_as_blank", "assigned_to", "report")}),
         ("Finding Guidance", {"fields": ("finding_guidance",)}),
         (
             "Finding Details",

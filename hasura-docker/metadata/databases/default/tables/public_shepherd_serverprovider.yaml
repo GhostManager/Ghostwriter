@@ -1,29 +1,29 @@
 table:
-  schema: public
   name: shepherd_serverprovider
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: serverProvider
   column_config:
     server_provider:
       custom_name: serverProvider
   custom_column_names:
     server_provider: serverProvider
+  custom_name: serverProvider
+  custom_root_fields: {}
 array_relationships:
   - name: cloudServers
     using:
       foreign_key_constraint_on:
         column: server_provider_id
         table:
-          schema: public
           name: shepherd_transientserver
+          schema: public
   - name: staticServers
     using:
       foreign_key_constraint_on:
         column: server_provider_id
         table:
-          schema: public
           name: shepherd_staticserver
+          schema: public
 select_permissions:
   - role: manager
     permission:

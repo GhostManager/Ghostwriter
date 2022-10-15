@@ -1,17 +1,17 @@
 table:
-  schema: public
   name: reporting_archive
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: archive
   column_config:
-    report_archive:
-      custom_name: reportArchive
     project_id:
       custom_name: projectId
+    report_archive:
+      custom_name: reportArchive
   custom_column_names:
-    report_archive: reportArchive
     project_id: projectId
+    report_archive: reportArchive
+  custom_name: archive
+  custom_root_fields: {}
 object_relationships:
   - name: project
     using:
@@ -129,9 +129,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         project:
           _or:
@@ -147,6 +149,7 @@ delete_permissions:
                     _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         project:
           _or:

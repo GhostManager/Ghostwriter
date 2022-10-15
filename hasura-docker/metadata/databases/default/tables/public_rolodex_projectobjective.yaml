@@ -1,23 +1,23 @@
 table:
-  schema: public
   name: rolodex_projectobjective
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: objective
   column_config:
+    marked_complete:
+      custom_name: markedComplete
     priority_id:
       custom_name: priorityId
     project_id:
       custom_name: projectId
-    marked_complete:
-      custom_name: markedComplete
     status_id:
       custom_name: statusId
   custom_column_names:
+    marked_complete: markedComplete
     priority_id: priorityId
     project_id: projectId
-    marked_complete: markedComplete
     status_id: statusId
+  custom_name: objective
+  custom_root_fields: {}
 object_relationships:
   - name: objectivePriority
     using:
@@ -34,8 +34,8 @@ array_relationships:
       foreign_key_constraint_on:
         column: parent_id
         table:
-          schema: public
           name: rolodex_projectsubtask
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -48,7 +48,6 @@ insert_permissions:
         - priority_id
         - project_id
         - status_id
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -233,9 +232,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         project:
           _or:
@@ -251,6 +252,7 @@ delete_permissions:
                     _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         project:
           _or:

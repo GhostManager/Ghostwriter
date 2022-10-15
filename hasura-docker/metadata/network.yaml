@@ -1,7 +1,7 @@
 tls_allowlist:
-  - suffix: null
+  - host: host.docker.internal
     permissions: null
-    host: host.docker.internal
-  - suffix: null
+    suffix: null
+  - host: nginx
     permissions: null
-    host: nginx
+    suffix: null

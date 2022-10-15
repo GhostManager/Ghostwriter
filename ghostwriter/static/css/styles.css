@@ -15,6 +15,7 @@ body {
   background: var(--main-bg-color);
   color: var(--main-txt-color);
   font-weight: 300;
+  overflow: scroll;
 }
 
 p {
@@ -364,7 +365,16 @@ h6 {
 }
 
 .scope-modal-body {
-  max-height: 50vh;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.oplog-modal-body {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.oplog-modal-dialog {
   overflow-y: auto;
 }
 
@@ -989,6 +999,13 @@ p.severity-box.info {
   color: #fff;
 }
 
+.btn-info:focus {
+  background-color: var(--secondary-color-fade);
+  border-color: var(--secondary-color-fade);
+  color: #fff;
+  box-shadow: 0 0 0 .2rem var(--secondary-color)
+}
+
 .btn-info:hover {
   background-color: var(--secondary-color-fade);
   border-color: var(--secondary-color-fade);
@@ -1329,6 +1346,11 @@ td p {
   cursor: grab;
 }
 
+.tablesorter-header-inner {
+  padding-right: 5px;
+}
+
+​
 /* ---------------------------------------------------
     DROPDOWN MENU STYLES
 ----------------------------------------------------- */
@@ -1600,6 +1622,7 @@ td p {
   vertical-align: middle;
   padding-right: 10px;
   font-size: .75em;
+  display: inline-block;
 }
 
 .icon:after {
@@ -1612,6 +1635,18 @@ td p {
 th.icon {
   font-size: 1.3em;
   padding: 0;
+}
+
+.whitecard-icon:before {
+  content: '\f15b';
+}
+
+.double-check-icon:before {
+  content: '\f560';
+}
+
+.flag-icon:before {
+  content: '\f024';
 }
 
 .notification-bell-icon:before {
@@ -2243,7 +2278,7 @@ th.icon {
   display: block;
 }
 
-.card-header {
+.myaccordion .card-header {
   cursor: pointer;
 }
 
@@ -2339,6 +2374,14 @@ h5 a[aria-expanded=true]:after {
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.card-help-text {
+  cursor: help;
+}
+
+.card-title {
+  margin-bottom: 0;
 }
 
 /* ---------------------------------------------------

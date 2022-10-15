@@ -1,9 +1,7 @@
 table:
-  schema: public
   name: shepherd_domainnote
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: domainNote
   column_config:
     domain_id:
       custom_name: domainId
@@ -12,6 +10,8 @@ configuration:
   custom_column_names:
     domain_id: domainId
     operator_id: operatorId
+  custom_name: domainNote
+  custom_root_fields: {}
 object_relationships:
   - name: domain
     using:
@@ -28,7 +28,6 @@ insert_permissions:
       columns:
         - domain_id
         - note
-      backend_only: false
   - role: restricted
     permission:
       check: {}
@@ -100,16 +99,19 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: restricted
     permission:
+      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id

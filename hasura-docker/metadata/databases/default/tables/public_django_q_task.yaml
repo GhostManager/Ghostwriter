@@ -1,11 +1,11 @@
 table:
-  schema: public
   name: django_q_task
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: task
   column_config: {}
   custom_column_names: {}
+  custom_name: task
+  custom_root_fields: {}
 insert_permissions:
   - role: manager
     permission:

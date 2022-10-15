@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 14 October 2022
+
+### Fixed
+
+* Fixed a bug that could cause content or styling to be lost inside nested text formatting
+
+### Added
+
+* New deconfliction event tracking feature now available under the "Deconflictions" tab on project dashboards
+* New whitecard tracking feature now available under the "White Cards" tab on project dashboards
+
+### Changed
+
+* Findings added to a report via a blank template (i.e., not added from the library) will now appear with a flag  icon for easy identification
+* All fields that use the WYSIWYG editor now have a `RichText` counterpart available in report templates (Closes [#241](https://github.com/GhostManager/Ghostwriter/issues/241))
+* Improved sample "tutorial" template to cover more advanced usage of filters, variables, and more
+
 ## [3.0.7] - 10 October 2022
 
 ### Fixed

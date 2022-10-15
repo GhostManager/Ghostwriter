@@ -1,0 +1,38 @@
+table:
+  name: rolodex_deconflictionstatus
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: deconflictionStatus
+  custom_root_fields: {}
+array_relationships:
+  - name: deconflictions
+    using:
+      foreign_key_constraint_on:
+        column: status_id
+        table:
+          name: rolodex_deconfliction
+          schema: public
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - id
+        - status
+        - weight
+      filter: {}
+  - role: restricted
+    permission:
+      columns:
+        - id
+        - status
+        - weight
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - id
+        - status
+        - weight
+      filter: {}

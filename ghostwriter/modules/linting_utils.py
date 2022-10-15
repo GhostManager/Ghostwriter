@@ -18,6 +18,7 @@ LINTER_CONTEXT = {
         "codename": "KABLE-01",
         "timezone": "America/Los_Angeles",
         "note": "<p>This is an assessment for Kabletown but targets NBC assets. The goal is to answer specific questions prior to Kabletown absorbing NBC.</p>",
+        "note_rt": "",
         "slack_channel": "#ghostwriter",
         "complete": False,
         "start_time": "09:00:00",
@@ -33,6 +34,7 @@ LINTER_CONTEXT = {
                 "email": "dad@kabletown.family",
                 "phone": "(212) 664-4444",
                 "note": '<p>A self-described "family man," Vietnam veteran, and head of Kabletown. He always seems happy on the surface (laughing incessantly), while directing thinly-veiled insults and threats to subordinates. Handle with care.</p>',
+                "note_rt": "",
             },
             {
                 "name": "John Francis Donaghy",
@@ -41,12 +43,16 @@ LINTER_CONTEXT = {
                 "email": "jack@nbc.com",
                 "phone": "(212) 664-4444",
                 "note": '<p>Prefers to go by "Jack."</p>',
+                "note_rt": "",
             },
         ],
         "name": "Kabletown, Inc.",
         "short_name": "KTOWN",
         "codename": "Totally Not Comcast",
         "note": "<p>Philadelphia-based cable company Kabletown, a fictionalized depiction of the acquisition of NBC Universal by Comcast.</p>",
+        "note_rt": "",
+        "address": "30 Rockefeller Plaza New York City, New York 10112",
+        "address_rt": "",
     },
     "team": [
         {
@@ -58,6 +64,7 @@ LINTER_CONTEXT = {
             "timezone": "America/Los_Angeles",
             "phone": "(212) 664-4444",
             "note": "<p>Benny will lead the assessment for the full duration.</p>",
+            "note_rt": "",
         },
         {
             "role": "Assessment Oversight",
@@ -68,6 +75,7 @@ LINTER_CONTEXT = {
             "timezone": "America/Los_Angeles",
             "phone": "(212) 664-4444",
             "note": "<p>Christopher will provide oversight and assistance (as needed).</p>",
+            "note_rt": "",
         },
     ],
     "objectives": [
@@ -176,6 +184,27 @@ LINTER_CONTEXT = {
             "requires_caution": True,
         },
     ],
+    "deconflictions": [
+        {
+            "status": "Unrelated",
+            "created_at": "2022-10-06T19:41:20.889055Z",
+            "report_timestamp": "2022-10-06T19:41:20.889055Z",
+            "alert_timestamp": "2022-10-06T19:41:20.889055Z",
+            "response_timestamp": "2022-10-06T19:41:20.889055Z",
+            "title": "A Brief Descriptive Title",
+            "description": "<p>This would be a description of the alert, response, and any related assessment activity.</p>",
+            "description_rt": "",
+            "alert_source": "EDR",
+        },
+    ],
+    "whitecards": [
+        {
+            "issued": "2022-10-13T19:18:26Z",
+            "title": "Test Card",
+            "description": "Test description",
+            "description_rt": "",
+        }
+    ],
     "infrastructure": {
         "domains": [
             {
@@ -192,6 +221,7 @@ LINTER_CONTEXT = {
                     }
                 ],
                 "note": "<p>Domain for the first phishing campaign</p>",
+                "note_rt": "",
             },
             {
                 "activity": "Command and Control",
@@ -207,6 +237,7 @@ LINTER_CONTEXT = {
                     }
                 ],
                 "note": "<p>Domain for long-haul C2 comms</p>",
+                "note_rt": "",
             },
             {
                 "activity": "Command and Control",
@@ -222,6 +253,7 @@ LINTER_CONTEXT = {
                     }
                 ],
                 "note": "<p>Domain for the short-haul C2 comms (phishing)</p>",
+                "note_rt": "",
             },
         ],
         "servers": [
@@ -237,6 +269,7 @@ LINTER_CONTEXT = {
                     {"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}
                 ],
                 "note": "<p>Long-haul C2 server</p>",
+                "note_rt": "",
             },
             {
                 "name": "CC-02",
@@ -254,6 +287,7 @@ LINTER_CONTEXT = {
                     }
                 ],
                 "note": "<p>Short-haul C2 server for phishing</p>",
+                "note_rt": "",
             },
         ],
         "cloud": [
@@ -265,6 +299,7 @@ LINTER_CONTEXT = {
                 "ip_address": "30.49.38.30",
                 "name": "SMTP01",
                 "note": "<p>SMTP server for phishing emails; running Gophish</p>",
+                "note_rt": "",
             }
         ],
     },
@@ -339,7 +374,12 @@ LINTER_CONTEXT = {
     "totals": {
         "objectives": 3,
         "objectives_completed": 0,
-        "findings": 7,
+        "findings": 1,
+        "findings_critical": 1,
+        "findings_high": 0,
+        "findings_medium": 0,
+        "findings_low": 0,
+        "findings_info": 0,
         "scope": 6,
         "team": 2,
         "targets": 1,

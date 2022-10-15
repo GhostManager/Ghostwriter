@@ -1,22 +1,22 @@
 table:
-  schema: public
   name: rolodex_projecttype
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: projectType
   column_config:
     project_type:
       custom_name: projectType
   custom_column_names:
     project_type: projectType
+  custom_name: projectType
+  custom_root_fields: {}
 array_relationships:
   - name: projects
     using:
       foreign_key_constraint_on:
         column: project_type_id
         table:
-          schema: public
           name: rolodex_project
+          schema: public
 select_permissions:
   - role: manager
     permission:

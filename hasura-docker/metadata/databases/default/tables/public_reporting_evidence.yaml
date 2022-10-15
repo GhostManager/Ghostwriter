@@ -1,23 +1,23 @@
 table:
-  schema: public
   name: reporting_evidence
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: evidence
   column_config:
+    finding_id:
+      custom_name: findingId
     friendly_name:
       custom_name: friendlyName
     upload_date:
       custom_name: uploadDate
     uploaded_by_id:
       custom_name: uploadedById
-    finding_id:
-      custom_name: findingId
   custom_column_names:
+    finding_id: findingId
     friendly_name: friendlyName
     upload_date: uploadDate
     uploaded_by_id: uploadedById
-    finding_id: findingId
+  custom_name: evidence
+  custom_root_fields: {}
 object_relationships:
   - name: finding
     using:

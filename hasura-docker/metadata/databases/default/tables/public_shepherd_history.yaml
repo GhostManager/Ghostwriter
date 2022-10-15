@@ -1,32 +1,32 @@
 table:
-  schema: public
   name: shepherd_history
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: domainCheckout
   column_config:
-    end_date:
-      custom_name: endDate
-    domain_id:
-      custom_name: domainId
-    operator_id:
-      custom_name: operatorId
     activity_type_id:
       custom_name: activityTypeId
-    start_date:
-      custom_name: startDate
     client_id:
       custom_name: clientId
+    domain_id:
+      custom_name: domainId
+    end_date:
+      custom_name: endDate
+    operator_id:
+      custom_name: operatorId
     project_id:
       custom_name: projectId
+    start_date:
+      custom_name: startDate
   custom_column_names:
-    end_date: endDate
-    domain_id: domainId
-    operator_id: operatorId
     activity_type_id: activityTypeId
-    start_date: startDate
     client_id: clientId
+    domain_id: domainId
+    end_date: endDate
+    operator_id: operatorId
     project_id: projectId
+    start_date: startDate
+  custom_name: domainCheckout
+  custom_root_fields: {}
 object_relationships:
   - name: activityType
     using:
@@ -49,8 +49,8 @@ array_relationships:
       foreign_key_constraint_on:
         column: domain_id
         table:
-          schema: public
           name: shepherd_domainserverconnection
+          schema: public
 select_permissions:
   - role: manager
     permission:

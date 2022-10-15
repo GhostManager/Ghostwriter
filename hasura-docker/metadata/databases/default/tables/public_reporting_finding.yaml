@@ -1,26 +1,26 @@
 table:
-  schema: public
   name: reporting_finding
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: finding
   column_config:
     finding_guidance:
       custom_name: findingGuidance
-    host_detection_techniques:
-      custom_name: hostDetectionTechniques
     finding_type_id:
       custom_name: findingTypeId
+    host_detection_techniques:
+      custom_name: hostDetectionTechniques
     network_detection_techniques:
       custom_name: networkDetectionTechniques
     severity_id:
       custom_name: severityId
   custom_column_names:
     finding_guidance: findingGuidance
-    host_detection_techniques: hostDetectionTechniques
     finding_type_id: findingTypeId
+    host_detection_techniques: hostDetectionTechniques
     network_detection_techniques: networkDetectionTechniques
     severity_id: severityId
+  custom_name: finding
+  custom_root_fields: {}
 object_relationships:
   - name: severity
     using:
@@ -34,8 +34,8 @@ array_relationships:
       foreign_key_constraint_on:
         column: finding_id
         table:
-          schema: public
           name: reporting_findingnote
+          schema: public
 insert_permissions:
   - role: manager
     permission:
@@ -54,7 +54,6 @@ insert_permissions:
         - replication_steps
         - severity_id
         - title
-      backend_only: false
   - role: restricted
     permission:
       check: {}
@@ -172,10 +171,13 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter: {}
   - role: user
     permission:
+      backend_only: false
       filter: {}

@@ -1,26 +1,26 @@
 table:
-  schema: public
   name: rolodex_projectassignment
+  schema: public
 configuration:
-  custom_root_fields: {}
-  custom_name: projectAssignment
   column_config:
     end_date:
       custom_name: endDate
     operator_id:
       custom_name: operatorId
-    start_date:
-      custom_name: startDate
-    role_id:
-      custom_name: roleId
     project_id:
       custom_name: projectId
+    role_id:
+      custom_name: roleId
+    start_date:
+      custom_name: startDate
   custom_column_names:
     end_date: endDate
     operator_id: operatorId
-    start_date: startDate
-    role_id: roleId
     project_id: projectId
+    role_id: roleId
+    start_date: startDate
+  custom_name: projectAssignment
+  custom_root_fields: {}
 object_relationships:
   - name: project
     using:
@@ -42,7 +42,6 @@ insert_permissions:
         - project_id
         - role_id
         - start_date
-      backend_only: false
   - role: restricted
     permission:
       check:
@@ -230,9 +229,11 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
+      backend_only: false
       filter: {}
   - role: restricted
     permission:
+      backend_only: false
       filter:
         project:
           _or:
@@ -248,6 +249,7 @@ delete_permissions:
                   _eq: X-Hasura-User-Id
   - role: user
     permission:
+      backend_only: false
       filter:
         project:
           _or:

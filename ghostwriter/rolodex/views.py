@@ -28,17 +28,20 @@ from ghostwriter.rolodex.forms_client import (
     ClientNoteForm,
 )
 from ghostwriter.rolodex.forms_project import (
+    DeconflictionForm,
     ProjectAssignmentFormSet,
     ProjectForm,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
     ProjectScopeFormSet,
     ProjectTargetFormSet,
+    WhiteCardFormSet,
 )
 from ghostwriter.rolodex.models import (
     Client,
     ClientContact,
     ClientNote,
+    Deconfliction,
     ObjectivePriority,
     ObjectiveStatus,
     Project,
@@ -763,6 +766,27 @@ class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, View):
         return response
 
 
+class DeconflictionDelete(LoginRequiredMixin, SingleObjectMixin, View):
+    """
+    Delete an individual :model:`rolodex.Deconfliction`.
+    """
+
+    model = Deconfliction
+
+    def post(self, *args, **kwargs):
+        self.object = self.get_object()
+        obj_id = self.object.id
+        self.object.delete()
+        data = {"result": "success", "message": "Deconfliction event successfully deleted!"}
+        logger.info(
+            "Deleted %s %s by request of %s",
+            self.object.__class__.__name__,
+            obj_id,
+            self.request.user,
+        )
+        return JsonResponse(data)
+
+
 ##################
 # View Functions #
 ##################
@@ -1251,6 +1275,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             )
             ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
             ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target")
+            ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card")
         else:
             # Add extra forms to aid in configuration of a new project
             objectives = ProjectObjectiveFormSet(prefix="obj")
@@ -1261,11 +1286,14 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
             scopes.extra = 1
             targets = ProjectTargetFormSet(prefix="target")
             targets.extra = 1
+            whitecards = WhiteCardFormSet(prefix="card")
+            whitecards.extra = 1
             # Assign the re-configured formsets to context vars
             ctx["objectives"] = objectives
             ctx["assignments"] = assignments
             ctx["scopes"] = scopes
             ctx["targets"] = targets
+            ctx["whitecards"] = whitecards
         return ctx
 
     def form_valid(self, form):
@@ -1274,6 +1302,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         scopes = ctx["scopes"]
         targets = ctx["targets"]
         objectives = ctx["objectives"]
+        whitecards = ctx["whitecards"]
         assignments = ctx["assignments"]
 
         # Now validate inline formsets
@@ -1303,12 +1332,18 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     targets.instance = self.object
                     targets.save()
 
+                whitecards_valid = whitecards.is_valid()
+                if whitecards_valid:
+                    whitecards.instance = self.object
+                    whitecards.save()
+
                 if (
                     form.is_valid()
                     and objectives_valid
                     and assignments_valid
                     and scopes_valid
                     and targets_valid
+                    and whitecards_valid
                 ):
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
@@ -1383,6 +1418,9 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             ctx["targets"] = ProjectTargetFormSet(
                 self.request.POST, prefix="target", instance=self.object
             )
+            ctx["whitecards"] = WhiteCardFormSet(
+                self.request.POST, prefix="card", instance=self.object
+            )
         else:
             ctx["objectives"] = ProjectObjectiveFormSet(
                 prefix="obj", instance=self.object
@@ -1392,6 +1430,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
             )
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
             ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
+            ctx["whitecards"] = WhiteCardFormSet(prefix="card", instance=self.object)
         return ctx
 
     def get_success_url(self):
@@ -1406,6 +1445,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         scopes = ctx["scopes"]
         targets = ctx["targets"]
         objectives = ctx["objectives"]
+        whitecards = ctx["whitecards"]
         assignments = ctx["assignments"]
 
         # Now validate inline formsets
@@ -1435,6 +1475,11 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     targets.instance = self.object
                     targets.save()
 
+                whitecards_valid = whitecards.is_valid()
+                if whitecards_valid:
+                    whitecards.instance = self.object
+                    whitecards.save()
+
                 # Proceed with form submission
                 if (
                     form.is_valid()
@@ -1442,6 +1487,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     and assignments_valid
                     and scopes_valid
                     and targets_valid
+                    and whitecards_valid
                 ):
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
@@ -1581,6 +1627,89 @@ class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.project
         ctx["cancel_link"] = "{}#notes".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
+        )
+        return ctx
+
+
+class DeconflictionCreate(LoginRequiredMixin, CreateView):
+    """
+    Create an individual :model:`rolodex.Deconfliction`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to project detail page
+
+    **Template**
+
+    :template:`rolodex/deconfliction_form.html`
+    """
+
+    model = Deconfliction
+    form_class = DeconflictionForm
+    template_name = "rolodex/deconfliction_form.html"
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Deconfliction successfully saved.",
+            extra_tags="alert-success",
+        )
+        return "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        )
+
+    def get_initial(self):
+        return {"status": 1,}
+
+    def form_valid(self, form, **kwargs):
+        self.object = form.save(commit=False)
+        self.object.project_id = self.kwargs.get("pk")
+        self.object.save()
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+        ctx["project"] = project_instance
+        ctx["cancel_link"] = "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": project_instance.id})
+        )
+        return ctx
+
+
+class DeconflictionUpdate(LoginRequiredMixin, UpdateView):
+    """
+    Update an individual :model:`rolodex.Deconfliction`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to Deconfliction detail page
+
+    **Template**
+
+    :template:`rolodex/deconfliction_form.html`
+    """
+
+    model = Deconfliction
+    form_class = DeconflictionForm
+    template_name = "rolodex/deconfliction_form.html"
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Deconfliction successfully saved.",
+            extra_tags="alert-success",
+        )
+        return "{}#deconflictions".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
+        )
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = "{}#deconflictions".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx

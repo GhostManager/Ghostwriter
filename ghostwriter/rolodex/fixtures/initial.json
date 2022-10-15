@@ -99,5 +99,29 @@
       "weight": "2",
       "priority": "Tertiary"
     }
+  },
+  {
+    "model": "rolodex.deconflictionstatus",
+    "pk": 1,
+    "fields": {
+      "status": "Undetermined",
+      "weight": "1"
+    }
+  },
+  {
+    "model": "rolodex.deconflictionstatus",
+    "pk": 2,
+    "fields": {
+      "status": "Confirmed",
+      "weight": "2"
+    }
+  },
+  {
+    "model": "rolodex.deconflictionstatus",
+    "pk": 1,
+    "fields": {
+      "status": "Unrelated",
+      "weight": "3"
+    }
   }
 ]

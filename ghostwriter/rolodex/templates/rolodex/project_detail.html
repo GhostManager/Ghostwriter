@@ -50,8 +50,6 @@
         <div class="tab-content">
             <!-- Planning Tab -->
             <div id="planning" class="tab-pane in active">
-
-                <!-- Details Section -->
                 <h4>Project Details</h4>
                 <hr />
 
@@ -102,11 +100,11 @@
                     </tr>
                 </table>
 
-                <div id="projectDescription" class="description-block">
+                <div id="projectDescription" class="description-block offset-md-2 col-8">
                     {% if project.note %}
                         {{ project.note|bleach }}
                     {% else %}
-                        <p>No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+                        <p class="text-center">No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
                     {% endif %}
                 </div>
 
@@ -116,7 +114,7 @@
                 <h4>Project Assignments</h4>
                 <hr />
 
-                <a class="icon edit-icon btn btn-primary mb-1" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+                <a class="icon edit-icon btn btn-primary mb-1 col-3" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
                 {% if project.projectassignment_set.all %}
                     <table id="assignmentTable" class="tablesorter table">
                         <thead>
@@ -163,12 +161,51 @@
                 <div id="calendar"></div>
             </div>
 
+            <!-- White Cards Tab -->
+            <div id="whitecards" class="tab-pane">
+                <h4>White Cards</h4>
+                <hr />
+
+                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#whitecards">Add & Edit White Cards</a>
+                {% if project.whitecard_set.all %}
+                    {% for card in project.whitecard_set.all %}
+                        <div id="whitecard-card-{{ card.id }}" class="card text-center mb-3">
+                            <div class="card-header">
+                                <h5 class="card-title">{{ card.title }}</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time the client approved this white card.">Issued</span></h6>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <p class="card-text">{{ card.issued|date:"d M Y @ H:i:s e" }}</p>
+                                    </div>
+                                </div>
+
+                                <p class="card-text">
+                                    {% if card.description %}
+                                        {{ card.description|bleach }}
+                                    {% else %}
+                                        <p>No one has added a description of this white card.</p>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No white cards have been added to this project yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Scope Tab -->
             <div id="scopes" class="tab-pane">
-                <!-- Scope Section -->
                 <h4>Scope Lists</h4>
                 <hr />
 
-                <a class="icon edit-icon btn btn-primary mb-3" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
+                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
 
                 <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by objectives.</p>
 
@@ -217,7 +254,7 @@
                                         data-placement="top"
                                         title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
                                     >
-                                        <button type="button" class="btn btn-info icon expand-btn" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
+                                        <button type="button" class="btn btn-info icon ext-link-icon" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
                                             Expand
                                         </button>
                                     </div>
@@ -247,12 +284,12 @@
                 {% include "snippets/project_objectives.html"  %}
             </div>
 
+            <!-- Targets Tab -->
             <div id="targets" class="tab-pane">
-                <!-- Targets Section -->
                 <h4>Targets</h4>
                 <hr />
 
-                <a class="icon edit-icon btn btn-primary mb-3" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
+                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
 
                 <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are interesting.</p>
 
@@ -299,15 +336,16 @@
                     <p>No targets have been set for this project yet.</p>
                 {% endif %}
             </div>
+
+            <!-- Logging Tab -->
             <div id="activity" class="tab-pane">
-                <!-- Logging Section -->
                 <h4>Operation Logs</h4>
                 <hr />
 
                 <p>
-                    <a class="icon add-icon btn btn-primary" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
+                    <a class="icon add-icon btn btn-primary col-3" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
                     <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-                    <a class="icon upload-icon btn btn-info" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
+                    <a class="icon upload-icon btn btn-info col-3" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
                 </p>
 
                 {% if project.oplog_set.all %}
@@ -349,7 +387,7 @@
                 {% if project.complete %}
                     <p>The project is marked as complete so no additional reports may be created.</p>
                 {% else %}
-                    <a class="icon add-icon btn btn-primary mb-3" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
+                    <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
                 {% endif %}
 
                 <p>View and edit findings by opening the related report (click the link).</p>
@@ -443,8 +481,9 @@
                 {% endif %}
 
             </div>
+
+            <!-- Infrastructure Tab -->
             <div id="infrastructure" class="tab-pane">
-                <!-- Infrastructure Section -->
                 <h4>Project Infrastructure</h4>
                 <hr />
 
@@ -534,7 +573,7 @@
                     </form>
                 </div>
 
-                <p class="mt-3"><a class="icon add-icon btn btn-primary" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
+                <p class="mt-3"><a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
                 {% if project.serverhistory_set.all or project.transientserver_set.all %}
                     <table id="serverTable" class="tablesorter table">
                         <thead>
@@ -653,7 +692,7 @@
                 <!-- Determine if at least one server and one domain -->
                 {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
                     <p>
-                        <a class="icon add-icon btn btn-primary" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
+                        <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
                     </p>
                     {% if project.domainserverconnection_set.all %}
                         <table class="table">
@@ -696,12 +735,111 @@
                     <p>Check-out/add at least one domain and one server to create an association.</p>
                 {% endif %}
             </div>
-            <div id="notes" class="tab-pane ">
-                <!-- Notes Section -->
+
+            <!-- Deconflictions Tab -->
+            <div id="deconflictions" class="tab-pane">
+                <h4>Deconfliction Events</h4>
+                <hr />
+
+                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_deconfliction_create' project.id %}">Record a Deconfliction</a>
+
+                {% if project.deconfliction_set.all %}
+                    {% for event in project.deconfliction_set.all %}
+                        <div id="decon-card-{{ event.id }}" class="card text-center mb-3">
+                            <div class="card-header">
+                                <h5 class="card-title"><span id="delete-target-content-deconfliction-{{ event.id }}">{{ event.title|title }}</span> ({{ event.status }})</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-sm-4">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Source of the alert (e.g., EDR).">Alert Source</span></h6>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time of the original alert.">Time Alert Triggered</span></h6>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Log entries from the hour before the alert.">Log Entries</span></h6>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-4">
+                                        <p class="card-text">{{ event.alert_source }}</p>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <p class="card-text">{% if event.alert_timestamp %}{{ event.alert_timestamp|date:"d M Y @ H:i:s e" }}{% else %}TBD{% endif %}</p>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <p class="card-text">
+                                            {% if event.alert_timestamp %}
+                                                {% if event.log_entries %}
+                                                    <button type="button" class="btn btn-info icon ext-link-icon col-4" data-toggle="modal" data-target="#id_deconfliction_{{ event.id }}">
+                                                        {{ event.log_entries|length }} Entries
+                                                    </button>
+                                                {% else %}
+                                                    No entries
+                                                {% endif %}
+                                            {% else %}
+                                                TBD
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="row pt-2">
+                                    <div class="col-sm-4">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time of when we were informed of the event.">Report Received</span></h6>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time of our response to the event.">Response Sent</span></h6>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Time delay between report and response.">Response Delay</span></h6>
+                                    </div>
+                                </div>
+                                <div class="row pb-2">
+                                    <div class="col-sm-4">
+                                        <p class="card-text">{{ event.report_timestamp|date:"d M Y @ H:i:s e" }}</p>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <p class="card-text">{% if event.response_timestamp %}{{ event.response_timestamp|date:"d M Y @ H:i:s e" }}{% else %}TBD{% endif %}</p>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <p class="card-text">
+                                            {% if event.response_timestamp %}
+                                                {{ event.response_timestamp|timeuntil:event.report_timestamp }}
+                                            {% else %}
+                                                TBD
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <p class="card-text">
+                                    {% if event.description %}
+                                        {{ event.description|bleach }}
+                                    {% else %}
+                                        <p>No one has added a description of this event. <a class="clickable" href="{% url 'rolodex:project_deconfliction_update' event.id %}">Fix that here.</a></p>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="card-footer text-muted">
+                                <a href="{% url 'rolodex:project_deconfliction_update' event.id %}" class="btn btn-primary col-md-2">Update</a>
+                                <a id="deconfliction-delete-button-{{ event.id }}" class="btn btn-danger col-md-2 js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_deconfliction' event.id %}" delete-target-id="{{ event.id }}" delete-target-type="deconfliction">Delete</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No deconfliction events for this project.</p>
+                {% endif %}
+
+            </div>
+
+            <!-- Notes Tab -->
+            <div id="notes" class="tab-pane">
                 <h4>Project Notes</h4>
                 <hr />
 
-                <a class="icon add-icon btn btn-primary mb-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
+                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
 
                 {% if project.projectnote_set.all %}
                     {% for note in project.projectnote_set.all reversed %}
@@ -1290,6 +1428,56 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-primary js-copy-scope" data-clipboard-target="#modal_scope_{{ list.id }}">Copy to Clipboard</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+
+    {% comment %} Generate modals for displaying log entries for deconfliction events {% endcomment %}
+    {% for event in project.deconfliction_set.all %}
+        <div class="modal " id="id_deconfliction_{{ event.id }}" tabindex="-1" role="dialog" aria-labelledby="deconfliction_modal_{{ event.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-xl oplog-modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related Log Entries</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div id="modal_deconfliction_{{ event.id }}" class="modal-body oplog-modal-body">
+                        <p>Log entries from the hour prior to the alert timestamp, sorted from most recent to oldest.</p>
+                        <table id="projectTable" class="tablesorter table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th class="align-middle">Start Date</th>
+                                    <th class="align-middle">Destination</th>
+                                    <th class="align-middle">Tool</th>
+                                    <th class="salign-middle">User</th>
+                                    <th class="align-middle">Command</th>
+                                    <th class="align-middle">Description</th>
+                                    <th class="align-middle">Comments</th>
+                                    <th class="align-middle">Operator</th>
+                                </tr>
+                            </thead>
+                            {% for entry in event.log_entries %}
+                                <tr>
+                                    <td class="align-middle">{% if entry.start_date %}{{ entry.start_date|date:"d M Y @ H:i:s e" }}{% endif %}</td>
+                                    <td class="align-middle">{% if entry.dest_ip %}{{ entry.dest_ip }}{% endif %}</td>
+                                    <td class="align-middle">{% if entry.tool %}{{ entry.tool }}{% endif %}</td>
+                                    <td class="align-middle">{% if entry.user_context %}{{ entry.user_context }}{% endif %}</td>
+                                    <td class="align-middle">{% if entry.command %}{{ entry.command }}{% endif %}</td>
+                                    <td class="align-middle">{% if entry.description %}{{ entry.description }}{% endif %}</td>
+                                    <td class="align-middle">{% if entry.comments %}{{ entry.comments }}{% endif %}</td>
+                                    <td class="align-middle">{% if entry.operator_name %}{{ entry.operator_name }}{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+
+                    <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     </div>
                 </div>
