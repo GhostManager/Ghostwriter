@@ -118,7 +118,7 @@
   },
   {
     "model": "rolodex.deconflictionstatus",
-    "pk": 1,
+    "pk": 3,
     "fields": {
       "status": "Unrelated",
       "weight": "3"
