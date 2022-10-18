@@ -85,7 +85,7 @@ hr {
   content: '';
 }
 
-.description-block {
+.description-block p {
   text-align: justify;
 }
 
