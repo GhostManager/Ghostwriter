@@ -312,7 +312,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
 
     class Meta:
         model = ReportFindingLink
-        exclude = ("report", "position", "finding_guidance")
+        exclude = ("report", "position", "finding_guidance", "added_as_blank", )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

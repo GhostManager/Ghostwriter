@@ -238,22 +238,6 @@ class DomainForm(forms.ModelForm):
                 Column("health_status", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
-            Row(
-                Column("bluecoat_cat", css_class="form-group col-md-6 mb-0"),
-                Column("fortiguard_cat", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("ibm_xforce_cat", css_class="form-group col-md-6 mb-0"),
-                Column("trendmicro_cat", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("opendns_cat", css_class="form-group col-md-6 mb-0"),
-                Column("talos_cat", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            "mx_toolbox_status",
             HTML(
                 """
                 <h4 class="icon comment-icon">Additional Information</h4>

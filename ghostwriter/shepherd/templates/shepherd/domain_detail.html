@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags humanize %}
+{% load bleach_tags humanize custom_tags %}
 
 {% block pagetitle %}{{ domain.name }} Details{% endblock %}
 
@@ -42,34 +42,37 @@
     <div class="container">
         <h2>{{ domain.name }}</h2>
     </div>
+    <hr />
 
     <div>
-        <!-- Description Section -->
-        <h3>Domain Description</h3>
-        <hr>
-        {% if domain.note %}
-            <p>{{ domain.note|bleach }}</p>
-        {% else %}
-            <p>No additional information provided for this domain.</p>
-        {% endif %}
-
-        {% if domain.is_expired %}
-            <div class="alert alert-danger" role="alert">
-                Domain is <strong>Expired</strong>, so this data is now read-only.
-            </div>
-        {% endif %}
-
-        <p class="form-spacer"></p>
-
         <!-- Navigation Tabs -->
         {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
         <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'shepherd:ajax_update_domain_badges' domain.id %}">
             {% include "snippets/domain_nav_tabs.html" %}
         </ul>
 
+        <!-- General Tab -->
         <div class="tab-content">
             <div id="details" class="tab-pane in active">
-                <!-- General Domain Section -->
+                <h4>Domain Details</h4>
+                <hr>
+
+                {% if domain.is_expired %}
+                    <div class="alert alert-danger" role="alert">
+                        Domain is <strong>Expired</strong>, so this data is now read-only.
+                    </div>
+                {% endif %}
+
+                <div id="domainDescription" class="d-flex justify-content-center description-block">
+                    <div>
+                        {% if domain.note %}
+                            {{ domain.note|strip_empty_tags|bleach }}
+                        {% else %}
+                            <p>No additional information provided for this domain.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <table class="table">
                     <tr>
                         <th>Registrar</th>
@@ -96,11 +99,14 @@
                 </table>
             </div>
 
-            <!-- DNS Records Section -->
+            <!-- DNS Records Tab -->
             <div id="dns" class="tab-pane">
+                <h4>DNS Records</h4>
+                <hr />
+
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
                     </p>
                 {% endif %}
 
@@ -145,11 +151,14 @@
                 {% endif %}
             </div>
 
-            <!-- Domain Health Section -->
+            <!-- Domain Health Tab -->
             <div id="health" class="tab-pane">
+                <h4>Domain Health</h4>
+                <hr />
+
                 {% if not domain.is_expired %}
                     <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
+                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
                     </p>
                 {% endif %}
 
@@ -202,7 +211,7 @@
                     </tr>
                 </table>
 
-                <!-- Categories Section -->
+                <!-- Health Tab -->
                 <p>The following third-parties have categorized this domain:</p>
                 <table class="table">
                     <tr>
@@ -224,8 +233,11 @@
                 </table>
             </div>
 
-            <!-- Project History Tab -->
+            <!-- History Tab -->
             <div id="history" class="tab-pane">
+                <h4>Domain History</h4>
+                <hr />
+
                 {% if domain.history_set.all %}
                     <table id="project-table" class="tablesorter table table-striped">
                         <thead>
@@ -264,8 +276,11 @@
 
             <!-- Notes Tab -->
             <div id="notes" class="tab-pane">
+                <h4>Domain Notes</h4>
+                <hr />
+
                 <p>
-                    <a class="icon add-icon btn btn-primary" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
+                    <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
                 </p>
                 {% if domain.domainnote_set.all %}
                     {% for note in domain.domainnote_set.all reversed %}

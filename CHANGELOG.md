@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 18 October 2022
+
+### Fixed
+
+* Fixed "added as blank" flag being cleared from a finding following an update
+* Fixed initial data for `DeconflictionStatus` model missing a status option
+
+### Changed
+
+* Increased size of the modal for previewing log entries related to deconfliction events
+* Adjusted the design of the domain and server dashboards to match the new design of the client and project dashboards
+
 ## [3.1.0] - 14 October 2022
 
 ### Fixed

@@ -1,0 +1,19 @@
+{% load humanize %}
+
+<li class="nav-item active">
+    <a class="nav-link active icon info-icon" data-toggle="tab" href="#details">
+        General
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link icon history-icon" data-toggle="tab" href="#history">
+        Project History
+        <span class="badge badge-pill badge-light">{{ staticserver.serverhistory_set.all.count }}</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
+        Notes
+        <span class="badge badge-pill badge-light">{{ staticserver.servernote_set.all.count }}</span>
+    </a>
+</li>
