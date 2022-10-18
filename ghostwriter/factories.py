@@ -316,6 +316,7 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     network_detection_techniques = Faker("paragraph")
     references = Faker("paragraph")
     finding_guidance = Faker("paragraph")
+    added_as_blank = Faker("boolean")
 
 
 class EvidenceFactory(factory.django.DjangoModelFactory):
