@@ -53,6 +53,8 @@ class DomainReview:
         "gambling",
         "scam/questionable/illegal",
         "malicious sources/malnets",
+        "malware repository",
+        "spyware and malware",
     ]
 
     # Variables for web browsing
