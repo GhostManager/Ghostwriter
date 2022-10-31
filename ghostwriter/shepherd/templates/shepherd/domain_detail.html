@@ -223,7 +223,7 @@
                             {% for source, cat in domain.categorization.items %}
                                 <tr>
                                     <td>{{ source }}</td>
-                                    <td>{{ cat }}</td>
+                                    <td>{{ cat|title }}</td>
                                 </tr>
                             {% endfor %}
                         {% else %}
