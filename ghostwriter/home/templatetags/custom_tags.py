@@ -6,6 +6,9 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
 
+# 3rd Party Libraries
+from bs4 import BeautifulSoup
+
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -87,3 +90,12 @@ def settings_value(name):
 def count_incomplete_objectives(queryset):
     """Return the number of incomplete objectives"""
     return queryset.filter(complete=False).count()
+
+@register.filter(name="strip_empty_tags")
+def strip_empty_tags(content):
+    """Strip empty tags from HTML content."""
+    soup = BeautifulSoup(content , "lxml")
+    for x in soup.find_all():
+        if len(x.get_text(strip=True)) == 0:
+            x.extract()
+    return soup.prettify()

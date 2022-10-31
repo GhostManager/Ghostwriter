@@ -1438,7 +1438,7 @@
     {% comment %} Generate modals for displaying log entries for deconfliction events {% endcomment %}
     {% for event in project.deconfliction_set.all %}
         <div class="modal " id="id_deconfliction_{{ event.id }}" tabindex="-1" role="dialog" aria-labelledby="deconfliction_modal_{{ event.id }}" aria-hidden="true">
-            <div class="modal-dialog modal-xl oplog-modal-dialog" role="document">
+            <div class="modal-dialog modal-super-sized oplog-modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related Log Entries</h5>
@@ -1455,7 +1455,7 @@
                                     <th class="align-middle">Start Date</th>
                                     <th class="align-middle">Destination</th>
                                     <th class="align-middle">Tool</th>
-                                    <th class="salign-middle">User</th>
+                                    <th class="align-middle">User</th>
                                     <th class="align-middle">Command</th>
                                     <th class="align-middle">Description</th>
                                     <th class="align-middle">Comments</th>
