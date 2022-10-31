@@ -2498,6 +2498,10 @@ ol {
   font-size: 1.2em;
 }
 
+.badge-primary {
+  background-color: var(--secondary-color);
+}
+
 /* ---------------------------------------------------
     MEDIAQUERIES
 ----------------------------------------------------- */
@@ -2543,7 +2547,7 @@ ol {
   flex-wrap: wrap;
   grid-template-rows: 70px 1fr 70px;
   grid-template-columns: 250px 1fr;
-  grid-template-areas: 'header header''nav    main''footer footer';
+  grid-template-areas: 'header header' 'nav    main' 'footer footer';
 }
 
 .admin__main {

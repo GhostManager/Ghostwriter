@@ -44,15 +44,26 @@ class DomainReview:
     # Categories we don't want to see
     # These are lowercase to avoid inconsistencies with how each service might return the categories
     blocklist = [
+        "adult/mature content",
+        "extreme",
+        "gambling",
+        "hacking",
+        "malicious outbound data/botnets",
+        "malicious sources",
+        "malicious sources/malnets",
+        "malware repository",
+        "nudity",
         "phishing",
-        "web ads/analytics",
-        "suspicious",
         "placeholders",
         "pornography",
-        "spam",
-        "gambling",
+        "potentially unwanted software",
         "scam/questionable/illegal",
-        "malicious sources/malnets",
+        "spam",
+        "spyware and malware",
+        "suspicious",
+        "violence/hate/racism",
+        "weapons",
+        "web ads/analytics"
     ]
 
     # Variables for web browsing
