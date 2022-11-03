@@ -6,6 +6,7 @@ import json
 import logging
 import logging.config
 import os
+import re
 import zipfile
 from asgiref.sync import async_to_sync
 from datetime import datetime
@@ -35,6 +36,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
+from django.utils import dateformat, timezone
 from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
@@ -47,7 +49,7 @@ from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from xlsxwriter.workbook import Workbook
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import ReportConfiguration
+from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules import reportwriter
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.rolodex.models import Project, ProjectAssignment
@@ -985,18 +987,39 @@ def upload_evidence_modal_success(request):
 def generate_report_name(report_instance):
     """
     Generate a filename for a report based on the current time and attributes of an
-    individual :model:`reporting.Report`. All periods and commas are removed to keep
+    individual :model:`reporting.Report`. All illegal characters are removed to keep
     the filename browser-friendly.
     """
 
-    def replace_chars(report_name):
-        return report_name.replace(".", "").replace(",", "")
+    def replace_placeholders(report_name, report_instance):
+        """Replace placeholders in the report name with the appropriate values."""
+        company_info = CompanyInformation.get_solo()
+        report_name = report_name.replace("{company}", company_info.company_name)
+        report_name = report_name.replace("{client}", report_instance.project.client.name)
+        report_name = report_name.replace("{date}", dateformat.format(timezone.now(), settings.DATE_FORMAT))
+        report_name = report_name.replace("{assessment_type}", report_instance.project.project_type.project_type)
+        return report_name
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    client_name = report_instance.project.client
-    assessment_type = report_instance.project.project_type
-    report_name = replace_chars(f"{timestamp}_{client_name}_{assessment_type}")
-    return report_name
+    def replace_date_format(report_name):
+        """Replace date format placeholders in the report name with the appropriate values."""
+        # Find all strings wrapped in curly braces
+        datetime_regex = r"(?<=\{)(.*?)(?=\})"
+        for match in re.findall(datetime_regex, report_name):
+            strfmt = dateformat.format(timezone.now(), match)
+            report_name = report_name.replace(match, strfmt)
+        return report_name
+
+    def replace_chars(report_name):
+        """Remove illegal characters from the report name."""
+        report_name =  report_name.replace("–", "-")
+        return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", report_name)
+
+    report_config = ReportConfiguration.get_solo()
+    report_name = report_config.report_filename
+    report_name = replace_placeholders(report_name, report_instance)
+    report_name = replace_date_format(report_name)
+    report_name = replace_chars(report_name)
+    return report_name.strip()
 
 
 def zip_directory(path, zip_handler):

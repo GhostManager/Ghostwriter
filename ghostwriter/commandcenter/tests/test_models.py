@@ -4,10 +4,14 @@ import logging
 # Django Imports
 from django.test import TestCase
 
+# 3rd Party Libraries
+import pytz
+
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     CloudServicesConfigurationFactory,
     CompanyInformationFactory,
+    GeneralConfigurationFactory,
     NamecheapConfigurationFactory,
     ReportConfigurationFactory,
     SlackConfigurationFactory,
@@ -267,3 +271,36 @@ class VirusTotalConfigurationTests(TestCase):
         sanitized = entry.sanitized_api_key
         self.assertNotEqual(entry.api_key, sanitized)
         self.assertIn(replacement, sanitized)
+
+
+class GeneralConfigurationTests(TestCase):
+    """Collection of tests for :model:`commandcenter.GeneralConfiguration`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.GeneralConfiguration = GeneralConfigurationFactory._meta.model
+
+    def test_crud_finding(self):
+        # Create
+        entry = GeneralConfigurationFactory(default_timezone="UTC")
+
+        # Read
+        self.assertEqual(entry.default_timezone, "UTC")
+        self.assertEqual(entry.pk, 1)
+
+        # Update
+        entry.default_timezone = "US/Pacific"
+        entry.save()
+        entry.refresh_from_db()
+        self.assertEqual(entry.default_timezone, pytz.timezone("US/Pacific"))
+
+        # Delete
+        entry.delete()
+        self.assertFalse(self.GeneralConfiguration.objects.all().exists())
+
+    def test_get_solo_method(self):
+        try:
+            entry = self.GeneralConfiguration.get_solo()
+            self.assertEqual(entry.pk, 1)
+        except Exception:
+            self.fail("GeneralConfiguration model `get_solo` method failed unexpectedly!")
