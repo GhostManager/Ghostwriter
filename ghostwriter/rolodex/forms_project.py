@@ -24,9 +24,9 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
-
-from .models import (
+from ghostwriter.rolodex.models import (
     Deconfliction,
     Project,
     ProjectAssignment,
@@ -976,6 +976,7 @@ class ProjectForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        general_config = GeneralConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
@@ -984,6 +985,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["end_time"].widget.input_type = "time"
         self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
         self.fields["note"].widget.attrs["placeholder"] = "Description of the Project"
+        self.fields["timezone"].initial = general_config.default_timezone
         # Hide labels for specific fields because ``form_show_labels`` takes priority
         self.fields["start_date"].label = False
         self.fields["end_date"].label = False

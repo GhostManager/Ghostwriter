@@ -23,9 +23,9 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import GeneralConfiguration
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset
-
-from .models import Client, ClientContact, ClientNote
+from ghostwriter.rolodex.models import Client, ClientContact, ClientNote
 
 # Number of "extra" formsets created by default
 # Higher numbers can increase page load times with WYSIWYG editors
@@ -109,6 +109,7 @@ class ClientContactForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        general_config = GeneralConfiguration.get_solo()
         self.fields["name"].widget.attrs["placeholder"] = "Full Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["email"].widget.attrs["placeholder"] = "Email Address"
@@ -120,6 +121,7 @@ class ClientContactForm(forms.ModelForm):
         self.fields["note"].widget.attrs[
             "placeholder"
         ] = "Brief Description of of the POC or a Note"
+        self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
         self.helper.form_tag = False
@@ -211,6 +213,7 @@ class ClientForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        general_config = GeneralConfiguration.get_solo()
         self.fields["name"].widget.attrs["placeholder"] = "Full Company Name"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["short_name"].widget.attrs["placeholder"] = "Short Company Name"
@@ -221,6 +224,7 @@ class ClientForm(forms.ModelForm):
         self.fields["address"].widget.attrs[
             "placeholder"
         ] = "Company's Address for Reporting or Shipping"
+        self.fields["timezone"].initial = general_config.default_timezone
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
