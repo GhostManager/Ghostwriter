@@ -5,10 +5,12 @@ import os
 from datetime import datetime
 
 # Django Imports
+from django.conf import settings
 from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
-from django.utils import dateformat
+from django.utils import timezone
+from django.utils.dateformat import format as dateformat
 from django.utils.encoding import force_str
 
 # 3rd Party Libraries
@@ -16,6 +18,7 @@ from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    CompanyInformationFactory,
     EvidenceFactory,
     FindingFactory,
     FindingNoteFactory,
@@ -24,6 +27,7 @@ from ghostwriter.factories import (
     LocalFindingNoteFactory,
     ProjectFactory,
     ProjectTargetFactory,
+    ReportConfigurationFactory,
     ReportDocxTemplateFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -43,6 +47,7 @@ from ghostwriter.modules.reportwriter import (
     strip_html,
 )
 from ghostwriter.reporting.templatetags import report_tags
+from ghostwriter.reporting.views import generate_report_name
 
 logging.disable(logging.CRITICAL)
 
@@ -1887,6 +1892,28 @@ class GenerateReportTests(TestCase):
             self.client_auth.login(username=self.user.username, password=PASSWORD)
         )
 
+    def test_generate_report_name(self):
+        company_config = CompanyInformationFactory()
+        ReportConfigurationFactory(
+            report_filename="{D d m Y} {date} {company} - {client} {assessment_type} Report <>:\'/|?.,:;[]"
+        )
+
+        current_date = timezone.now()
+        date_format = dateformat(current_date, "D d m Y")
+        date_str = dateformat(current_date, settings.DATE_FORMAT)
+
+        # Remove any periods or commas that can appear in the `Faker` generated names
+        client = self.project.client.name.replace(",", "").replace(".", "")
+        company = company_config.company_name.replace(",", "").replace(".", "")
+
+        assessment = self.project.project_type.project_type
+
+        report_name = generate_report_name(self.report)
+        self.assertEqual(
+            report_name,
+            f"{date_format} {date_str} {company} - {client} {assessment} Report",
+        )
+
     def test_view_json_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.json_uri)
         self.assertEqual(response.status_code, 200)
@@ -2015,7 +2042,7 @@ class ReportTemplateFilterTests(TestCase):
         pass
 
     def test_format_datetime(self):
-        test_date = dateformat.format(self.test_date, self.test_date_string)
+        test_date = dateformat(self.test_date, self.test_date_string)
         new_date = format_datetime(test_date, self.new_date_string)
         self.assertEqual(new_date, "Mar 28, 2022")
 
@@ -2025,7 +2052,7 @@ class ReportTemplateFilterTests(TestCase):
             format_datetime(test_date, self.new_date_string)
 
     def test_add_days(self):
-        test_date = dateformat.format(self.test_date, self.test_date_string)
+        test_date = dateformat(self.test_date, self.test_date_string)
         future_date = "11 Apr 2022"
         past_date = "21 Mar 2022"
 
