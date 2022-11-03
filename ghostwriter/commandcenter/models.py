@@ -3,6 +3,9 @@
 # Django Imports
 from django.db import models
 
+# 3rd Party Libraries
+from timezone_field import TimeZoneField
+
 # Ghostwriter Libraries
 from ghostwriter.singleton.models import SingletonModel
 
@@ -110,6 +113,12 @@ class ReportConfiguration(SingletonModel):
         max_length=255,
         default="Table",
         help_text="The label that comes before the table number and caption in Word reports",
+    )
+    report_filename = models.CharField(
+        "Default Name for Report Downloads",
+        max_length=255,
+        default="{Y-m-d}_{His} {company} - {client} {assessment_type} Report",
+        help_text="Name of the report file when downloaded that can include the following variables: date, company, client, assessment_type, and date format string values",
     )
     # Foreign Keys
     default_docx_template = models.ForeignKey(
@@ -268,3 +277,17 @@ class VirusTotalConfiguration(SingletonModel):
     @property
     def sanitized_api_key(self):
         return sanitize(self.api_key)
+
+
+class GeneralConfiguration(SingletonModel):
+    default_timezone = TimeZoneField(
+        "Default Timezone",
+        default="America/Los_Angeles",
+        help_text="Select a default timezone for clients and projects",
+    )
+
+    def __str__(self):
+        return "General Settings"
+
+    class Meta:
+        verbose_name = "General Settings"

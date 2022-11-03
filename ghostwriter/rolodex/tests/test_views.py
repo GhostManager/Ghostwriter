@@ -10,6 +10,7 @@ from django.utils.encoding import force_str
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     AuxServerAddressFactory,
+    ClientFactory,
     ClientNoteFactory,
     ObjectiveStatusFactory,
     ProjectFactory,
@@ -18,6 +19,13 @@ from ghostwriter.factories import (
     ProjectScopeFactory,
     StaticServerFactory,
     UserFactory,
+)
+from ghostwriter.rolodex.forms_project import (
+    ProjectAssignmentFormSet,
+    ProjectObjectiveFormSet,
+    ProjectScopeFormSet,
+    ProjectTargetFormSet,
+    WhiteCardFormSet,
 )
 from ghostwriter.rolodex.templatetags import determine_primary
 
@@ -482,3 +490,80 @@ class ProjectNoteDeleteTests(TestCase):
 
         response = self.client.post(uri)
         self.assertEqual(response.status_code, 302)
+
+
+class ProjectCreateTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectNoteDelete`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.Project = ProjectFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.project_client = ClientFactory()
+        cls.uri = reverse("rolodex:project_create", kwargs={"pk": cls.project_client.pk})
+        cls.no_client_uri = reverse("rolodex:project_create_no_client")
+        cls.client_cancel_uri = reverse("rolodex:client_detail", kwargs={"pk": cls.project_client.pk})
+        cls.no_client_cancel_uri = reverse("rolodex:projects")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(
+            self.client_auth.login(username=self.user.username, password=PASSWORD)
+        )
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        response = self.client_auth.get(self.no_client_uri)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(self.no_client_uri)
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(self.no_client_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(self.no_client_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/project_form.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn("objectives", response.context)
+        self.assertIn("assignments", response.context)
+        self.assertIn("scopes", response.context)
+        self.assertIn("targets", response.context)
+        self.assertIn("whitecards", response.context)
+        self.assertIn("cancel_link", response.context)
+
+        self.assertTrue(isinstance(response.context["objectives"], ProjectObjectiveFormSet))
+        self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
+        self.assertTrue(isinstance(response.context["scopes"], ProjectScopeFormSet))
+        self.assertTrue(isinstance(response.context["targets"], ProjectTargetFormSet))
+        self.assertTrue(isinstance(response.context["whitecards"], WhiteCardFormSet))
+        self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
+        self.assertEqual(response.context["cancel_link"], self.client_cancel_uri)
+
+        response = self.client_auth.get(self.no_client_uri)
+        self.assertEqual(response.context["cancel_link"], self.no_client_cancel_uri)
+
+    def test_initial_form_values(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("client", response.context["form"].initial)
+        self.assertIn("codename", response.context["form"].initial)
+        self.assertEqual(response.context["client"], self.project_client)
+
+        response = self.client_auth.get(self.no_client_uri)
+        self.assertIn("client", response.context["form"].initial)
+        self.assertEqual(response.context["client"], "")
