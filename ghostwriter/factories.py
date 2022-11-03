@@ -635,6 +635,7 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     label_figure = Faker("word")
     prefix_table = Faker("word")
     label_table = Faker("word")
+    report_filename = "{Y-m-d}_{His} {company} - {client} {assessment_type} Report"
     default_docx_template = factory.SubFactory(ReportDocxTemplateFactory)
     default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
 
@@ -678,6 +679,13 @@ class VirusTotalConfigurationFactory(factory.django.DjangoModelFactory):
     enable = Faker("boolean")
     api_key = Faker("credit_card_number")
     sleep_time = 20
+
+
+class GeneralConfigurationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.GeneralConfiguration"
+
+    default_timezone = random.choice(TIMEZONES)
 
 
 class DeconflictionStatusFactory(factory.django.DjangoModelFactory):
