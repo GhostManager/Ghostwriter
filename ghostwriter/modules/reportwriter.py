@@ -1237,6 +1237,72 @@ class Reportwriter:
 
         **Parameters**
 
+        ``part``
+            BeautifulSoup 4 Tag object to parse
+        ``prev_p``
+            Previous paragraph to link the next list item
+        ``num``
+            Boolean to determine if the line item will be numbered
+        ``finding``
+            Report finding currently being processed
+        ``level``
+            Indentation level for the list item (Defaults to 0)
+        """
+        # Check if this element has any ``ul`` or ``ol`` tags anywhere in its contents
+        if tag.ol or tag.ul:
+            temp = []
+            nested_list = None
+            li_contents = tag.contents
+            # Loop over the contents of the list item to find the nested lists
+            for part in tag:
+                # Newlines will appear between elements, ignore them
+                if part != "\n":
+                    # If the tag name is ``ul`` or ``ol``, tack it as a nested list
+                    if part.name in ("ol", "ul"):
+                        num = bool(part.name == "ol")
+                        nested_list = part
+                    # Put everything else in a temporary list to be processed later
+                    else:
+                        temp.append(part)
+
+            # Make the list paragraph here to pick up any changes to the list style (e.g, ``num``)
+            p = self._create_list_paragraph(prev_p, level, num)
+
+            # If ``temp`` isn't empty, process it like any other line
+            if temp:
+                # A length of ``1`` means no nested tags
+                if len(temp) == 1:
+                    # If the first list item is a ``Tag`` process for styling
+                    if temp[0].name:
+                        self._process_nested_html_tags(temp, p, finding)
+                    # Otherwise, just write the XML
+                    else:
+                        self._replace_and_write(temp[0], p, finding)
+                else:
+                    self._process_nested_html_tags(temp, p, finding)
+
+            # If we have nested list(s), recursively process them by re-entering ``_parse_html_lists``
+            if nested_list:
+                # Increment the indentation level
+                if not li_contents[0] == "\n":
+                    level += 1
+                p = self._parse_html_lists(nested_list, p, num, finding, level)
+        # No nested list items, proceed as normal
+        # This is where we catch ``li`` tags with nested tags like hyperlinks
+        else:
+            p = self._create_list_paragraph(prev_p, level, num)
+            self._process_nested_html_tags(tag.contents, p, finding)
+        return p
+
+    def _parse_html_lists(self, tag, prev_p, num, finding, level=0):
+        """
+        Recursively parse deeply nested lists. This checks for ``<ol>`` or ``<ul>`` tags
+        and keeps parsing until all nested lists are found and processed.
+
+        Returns the last paragraph object created.
+
+        **Parameters**
+
         ``tag``
             BeautifulSoup 4 Tag object to parse
         ``prev_p``
@@ -1248,79 +1314,51 @@ class Reportwriter:
         ``level``
             Indentation level for the list item (Defaults to 0)
         """
-        p = prev_p
+        # Get the individuals contents of the tag
         contents = tag.contents
+        # Loop over the contents to find nested lists
+        # Nested lists are ``ol`` or ``ul`` tags inside ``li`` tags
         for part in contents:
+            # Handle ``li`` tags which might contain more lists
             if part.name == "li":
                 li_contents = part.contents
                 # A length of ``1`` means there are no nested tags
                 if len(li_contents) == 1:
-                    p = self.create_list_paragraph(prev_p, level, num)
+                    p = self._create_list_paragraph(prev_p, level, num)
                     if li_contents[0].name:
-                        self.process_nested_tags(li_contents, p, finding)
+                        self._process_nested_html_tags(li_contents, p, finding)
                     else:
-                        self.replace_and_write(part.text, p, finding)
+                        self._replace_and_write(part.text, p, finding)
                 # Bigger lists mean more tags, so process nested tags
                 else:
-                    # Check if this part has any ``ul`` or ``ol`` tags
-                    if part.ol or part.ul:
-                        # Get everything between the ``<li>`` and the next nested ``<ol>`` or ``<ul>``
-                        temp = []
-                        nested_list = None
-                        for sub_part in part:
-                            # Add everything NOT a nested list to ``temp``
-                            # This holds text and nested tags that come before the first list tag
-                            if not sub_part.name == "ol" and not sub_part.name == "ul":
-                                if sub_part != "\n":
-                                    temp.append(sub_part)
-                            elif sub_part.name in ("ol", "ul"):
-                                if sub_part != "\n":
-                                    nested_list = sub_part
-                        # If ``temp`` isn't empty, process it like any other line
-                        if temp:
-                            p = self.create_list_paragraph(prev_p, level, num)
-                            if len(temp) == 1:
-                                if temp[0].name:
-                                    self.process_nested_tags(temp, p, finding)
-                                else:
-                                    self.replace_and_write(temp[0], p, finding)
-                            else:
-                                self.process_nested_tags(temp, p, finding)
-                        # Recursively process this list and any other nested lists inside of it
-                        if nested_list:
-                            # Increment the list level counter for this nested list
-                            level += 1
-                            p = self.parse_nested_html_lists(
-                                nested_list, p, num, finding, level
-                            )
-                    else:
-                        p = self.create_list_paragraph(prev_p, level, num)
-                        self.process_nested_tags(part.contents, p, finding)
+                    # Handle nested lists
+                    p = self._parse_nested_html_lists(part, prev_p, num, finding, level)
+                # Track the paragraph used for this list item to link subsequent list paragraphs
                 prev_p = p
             # If ``ol`` tag encountered, increment ``level`` and switch to numbered list
             elif part.name == "ol":
                 level += 1
-                p = self.parse_nested_html_lists(part, prev_p, num, finding, level)
+                p = self._parse_html_lists(part, prev_p, True, finding, level)
             # If ``ul`` tag encountered, increment ``level`` and switch to bulleted list
             elif part.name == "ul":
                 level += 1
-                p = self.parse_nested_html_lists(part, prev_p, num, finding, level)
+                p = self._parse_html_lists(part, prev_p, False, finding, level)
             # No change in list type, so proceed with writing the line
             elif part.name:
-                p = self.create_list_paragraph(prev_p, level, num)
-                self.process_nested_tags(part, p, finding)
+                p = self._create_list_paragraph(prev_p, level, num)
+                self._process_nested_html_tags(part, p, finding)
+            # Handle tags that are not handled above
             else:
                 if not isinstance(part, NavigableString):
                     logger.warning("Encountered an unknown tag for a list: %s", part.name)
                 else:
                     if part.strip() != "":
-                        p = self.create_list_paragraph(prev_p, level, num)
-                        self.replace_and_write(part.strip(), p, finding)
-
+                        p = self._create_list_paragraph(prev_p, level, num)
+                        self._replace_and_write(part.strip(), p, finding)
         # Return last paragraph created
         return p
 
-    def process_text_xml(self, text, finding=None):
+    def _process_text_xml(self, text, finding=None):
         """
         Process the provided text from the specified finding to parse keywords for
         evidence placement and formatting for Office XML.
