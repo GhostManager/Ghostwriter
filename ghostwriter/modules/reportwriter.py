@@ -20,6 +20,7 @@ from django.utils.dateformat import format as dateformat
 # 3rd Party Libraries
 import docx
 import jinja2
+import jinja2.sandbox
 import pptx
 from bs4 import BeautifulSoup, NavigableString
 from dateutil.parser import parse as parse_datetime
@@ -242,7 +243,7 @@ def prepare_jinja2_env(debug=False):
     else:
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
 
-    env = jinja2.Environment(
+    env = jinja2.sandbox.SandboxedEnvironment(
         undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True
     )
     env.filters["filter_severity"] = filter_severity
