@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Switched to a sandbox environment for Jinja2 to restrict access to private object attributes inside report templates (Fixes [#266](https://github.com/GhostManager/Ghostwriter/issues/266))
   * Sandbox security will be monitored and improved upon, as needed, in future releases
-  * Please see security advisory for details:
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-rpqr-g6cp-f3h2](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-rpqr-g6cp-f3h2)
 
 ## [3.1.3] - 3 November 2022
 
