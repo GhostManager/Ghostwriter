@@ -933,11 +933,8 @@ class Reportwriter:
         cross_refs = []
         if match:
             for var in match:
-                logger.debug("Processing a potential template expression: %s", var)
-
                 # Check for and track cross-references separately for later action
                 if var.startswith("ref "):
-                    logger.debug("Tracking a cross-reference: %s", var)
                     # Track reference with the curly braces restored for later
                     cross_refs.append("{{.%s}}" % var)
                 # Process anything that is not a cross-reference now in the match loop
