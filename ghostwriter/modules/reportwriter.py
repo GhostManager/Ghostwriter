@@ -1332,8 +1332,6 @@ class Reportwriter:
         ``finding``
             Current report finding being processed
         """
-        prev_p = None
-
         if text:
             # Clean text to make it XML compatible for Office XML
             text = "".join(c for c in text if self._valid_xml_char_ordinal(c))
@@ -1440,92 +1438,13 @@ class Reportwriter:
                 # OL & UL – Ordered/Numbered & Unordered Lists
                 elif tag_name in ("ol", "ul"):
                     # Ordered/numbered lists need numbers and linked paragraphs
-                    p = None
                     prev_p = None
                     num = bool(tag_name == "ol")
-
                     # In HTML, sub-items in a list are nested HTML lists
                     # We need to check every list item for formatted and additional lists
                     # While tracking which level of the list we are working with
-                    contents = tag.contents
-                    for part in contents:
-                        # Reset list indentation level for each loop
-                        level = 0
-                        # Check if the tag is a list item, ``<li>``
-                        if part.name == "li":
-                            # A list length of ``1`` means no other tags to process
-                            li_contents = part.contents
-                            if len(li_contents) == 1:
-                                # Create the paragraph for this list item
-                                p = self.create_list_paragraph(prev_p, level, num)
-                                if li_contents[0].name:
-                                    p = self.process_nested_tags(li_contents, p, finding)
-                                else:
-                                    p = self.replace_and_write(part.text, p, finding)
-                            # Bigger lists mean more tags, so process nested tags
-                            else:
-                                # Check if this part has any ``ul`` or ``ol`` tags
-                                if part.ol or part.ul:
-                                    # Get everything between the ``<li>`` and the first nested ``<ol>`` or ``<ul>``
-                                    temp = []
-                                    nested_list = None
-
-                                    for sub_part in part:
-                                        # Add everything NOT a nested list to temp
-                                        # This holds text and nested tags that come before the first list tag
-                                        if (
-                                            not sub_part.name == "ol"
-                                            and not sub_part.name == "ul"
-                                        ):
-                                            if sub_part != "\n":
-                                                temp.append(sub_part)
-                                        # Hold the nested list separately for later
-                                        elif sub_part.name in ("ol", "ul"):
-                                            if sub_part != "\n":
-                                                nested_list = sub_part
-
-                                    # If ``temp`` isn't empty, process it like any other line
-                                    if temp:
-                                        p = self.create_list_paragraph(prev_p, level, num)
-                                        # Again, length of ``1`` means no nested tags
-                                        if len(temp) == 1:
-                                            # If the first list item is a ``Tag`` process for styling
-                                            if temp[0].name:
-                                                p = self.process_nested_tags(
-                                                    temp, p, finding
-                                                )
-                                            # Otherwise, just write the XML
-                                            else:
-                                                p = self.replace_and_write(
-                                                    temp[0], p, finding
-                                                )
-                                        else:
-                                            p = self.process_nested_tags(temp, p, finding)
-
-                                    # Recursively process this list and any other nested lists inside of it
-                                    if nested_list:
-                                        # Increment the list level counter for this nested list
-                                        if not li_contents[0] == "\n":
-                                            level += 1
-                                        p = self.parse_nested_html_lists(
-                                            nested_list, p, num, finding, level
-                                        )
-
-                                # No nested list, proceed as normal
-                                else:
-                                    p = self.create_list_paragraph(prev_p, level, num)
-                                    p = self.process_nested_tags(
-                                        part.contents, p, finding
-                                    )
-
-                            # Track the paragraph used for this list item to link subsequent list paragraphs
-                            prev_p = p
-                        else:
-                            if not isinstance(part, NavigableString):
-                                logger.warning(
-                                    "Encountered an unknown tag inside of an ordered list: %s",
-                                    part.name,
-                                )
+                    level = 0
+                    prev_p = self._parse_html_lists(tag, prev_p, num, finding, level)
 
                 # BLOCKQUOTE – Blockquote Sections
                 elif tag_name == "blockquote":
