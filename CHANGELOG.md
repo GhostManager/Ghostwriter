@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.4] - 11 November 2022
+
+### Fixed
+
+* Fixed an issue with lists that caused list items to be indented incorrectly in Word documents (Fixes [#264](https://github.com/GhostManager/Ghostwriter/issues/264))
+
+### Security
+
+* Switched to a sandbox environment for Jinja2 to restrict access to private object attributes inside report templates (Fixes [#266](https://github.com/GhostManager/Ghostwriter/issues/266))
+  * Sandbox security will be monitored and improved upon, as needed, in future releases
+  * Please see security advisory for details:
+
 ## [3.1.3] - 3 November 2022
 
 ### Added
