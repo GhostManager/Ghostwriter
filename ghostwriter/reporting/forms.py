@@ -1,5 +1,8 @@
 """This contains all of the forms used by the Reporting application."""
 
+# Standard Libraries
+import re
+
 # Django Imports
 from django import forms
 from django.core.exceptions import ValidationError
@@ -30,6 +33,7 @@ from ghostwriter.reporting.models import (
     Report,
     ReportFindingLink,
     ReportTemplate,
+    Severity,
 )
 from ghostwriter.rolodex.models import Project
 
@@ -915,3 +919,45 @@ class SelectReportTemplateForm(forms.ModelForm):
                 """
             ),
         )
+
+
+class SeverityForm(forms.ModelForm):
+    """
+    Save an individual :model:`reporting.Severity`.
+    """
+
+    class Meta:
+        model = Severity
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super(SeverityForm, self).__init__(*args, **kwargs)
+
+    def clean_color(self, *args, **kwargs):
+        color = self.cleaned_data["color"]
+        regex = "^(?:[0-9a-fA-F]{1,2}){3}$"
+        valid_hex_regex = re.compile(regex)
+        if color:
+            if "#" in color:
+                raise ValidationError(
+                    _(
+                        "Do not include the # symbol in the color field."
+                    ),
+                    "invalid",
+                )
+            if len(color) < 6:
+                raise ValidationError(
+                    _(
+                        "Your hex color code should be six characters in length."
+                    ),
+                    "invalid",
+                )
+            if not re.search(valid_hex_regex, color):
+                raise ValidationError(
+                    _(
+                        "Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A)."
+                    ),
+                    "invalid",
+                )
+
+        return color
