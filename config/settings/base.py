@@ -107,6 +107,7 @@ THIRD_PARTY_APPS = [
     "health_check.contrib.migrations",
     "health_check.contrib.psutil",
     "health_check.contrib.redis",
+    "taggit",
 ]
 
 LOCAL_APPS = [
@@ -460,3 +461,7 @@ HEALTH_CHECK = {
     "MEMORY_MIN": env("HEALTHCHECK_MEM_MIN", default=100),
 }
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
+
+# Tagging
+# ------------------------------------------------------------------------------
+TAGGIT_CASE_INSENSITIVE = True
