@@ -36,7 +36,7 @@
 
     <!-- Finding Severity Badge -->
     <div>
-        <span class="px-3 py-2 badge badge-dark severity-badge
+        <span class="px-3 py-2 badge badge-dark severity-badge mb-2
             {% if finding.severity.severity == "Critical" %}
                 critical-background
             {% elif finding.severity.severity == "High" %}
@@ -74,6 +74,10 @@
             {{ finding.severity.severity }} {{ finding.cvss_score }}
         </span>
     </div>
+
+    {% for tag in finding.tags.all %}
+        <span class="badge badge-secondary">{{ tag }}</span>
+    {% endfor %}
 
     <div id="description" title="description">
         <h3 class="finding-header icon writing-icon">Description</h3>
