@@ -20,12 +20,22 @@ def should_add_record(record):
 
 
 class Command(loaddata.Command):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            dest="force",
+            help="Apply all fixtures even if they already exist.",
+        )
+        super().add_arguments(parser)
+
     def handle(self, *args, **options):
         """
         Altered ``handle`` method to skip records that already exist.
 
         Based on this StackOverflow answer: https://stackoverflow.com/a/68894033
         """
+        self.force_apply = options["force"]
         args = list(args)
 
         # Read the original JSON file
@@ -34,7 +44,11 @@ class Command(loaddata.Command):
             json_list = json.load(json_file)
 
         # Filter out records that already exists
-        json_list_filtered = list(filter(should_add_record, json_list))
+        if not self.force_apply:
+            json_list_filtered = list(filter(should_add_record, json_list))
+        else:
+            self.stdout.write(self.style.WARNING("Applying all fixtures."))
+            json_list_filtered = json_list
         if not json_list_filtered:
             self.stdout.write(self.style.SUCCESS("All required records are present; no new data to load."))
             return

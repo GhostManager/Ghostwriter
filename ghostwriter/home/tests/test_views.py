@@ -56,6 +56,9 @@ class ManagementCommandsTestCase(TestCase):
         self.assertIn("Found 16 new records to insert into the database.", out)
         out = self.call_command("ghostwriter/reporting/fixtures/initial.json")
         self.assertIn("All required records are present; no new data to load.", out)
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force")
+        self.assertIn("Applying all fixtures.", out)
+        self.assertIn("Found 16 new records to insert into the database.", out)
 
 # Tests related to custom template tags and filters
 
