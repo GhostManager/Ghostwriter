@@ -36,10 +36,10 @@ class Command(loaddata.Command):
         # Filter out records that already exists
         json_list_filtered = list(filter(should_add_record, json_list))
         if not json_list_filtered:
-            print("All required records are present; no new data to load.")
+            self.stdout.write(self.style.SUCCESS("All required records are present; no new data to load."))
             return
         else:
-            print(f"Found {len(json_list) - len(json_list_filtered)} new records to insert into the database.")
+            self.stdout.write(self.style.WARNING(f"Found {len(json_list_filtered)} new records to insert into the database."))
 
         # Write the updated JSON file
         file_dir_and_name, file_ext = os.path.splitext(file_name)
