@@ -12,7 +12,11 @@ from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 
-from .validators import validate_evidence_extension
+# 3rd Party Libraries
+from taggit.managers import TaggableManager
+
+# Ghostwriter Libraries
+from ghostwriter.reporting.validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
 logger = logging.getLogger(__name__)
@@ -160,6 +164,7 @@ class Finding(models.Model):
         blank=True,
         help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
+    tags = TaggableManager()
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",

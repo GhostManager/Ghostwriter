@@ -64,12 +64,12 @@ class FindingTypeAdmin(admin.ModelAdmin):
 @admin.register(Finding)
 class FindingAdmin(ImportExportModelAdmin):
     resource_class = FindingResource
-    list_display = ("title", "severity", "finding_type")
-    list_filter = ("severity", "finding_type")
+    list_display = ("title", "severity", "finding_type",)
+    list_filter = ("severity", "finding_type", "tags",)
     list_editable = ("severity", "finding_type")
     list_display_links = ("title",)
     fieldsets = (
-        ("General Information", {"fields": ("title", "finding_type", "severity", "cvss_score", "cvss_vector")}),
+        ("General Information", {"fields": ("title", "finding_type", "severity", "cvss_score", "cvss_vector", "tags",)}),
         ("Finding Guidance", {"fields": ("finding_guidance",)}),
         (
             "Finding Details",

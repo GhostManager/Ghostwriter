@@ -22,6 +22,7 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
+from taggit.forms import TagField, TagWidget
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
@@ -42,6 +43,8 @@ class FindingForm(forms.ModelForm):
     """
     Save an individual :model:`reporting.Finding`.
     """
+
+    tags = TagField()
 
     class Meta:
         model = Finding
@@ -91,7 +94,11 @@ class FindingForm(forms.ModelForm):
                 <hr />
                 """
             ),
-            "title",
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0",),
+                css_class="form-row",
+            ),
             Row(
                 Column("finding_type", css_class="form-group col-md-6 mb-0"),
                 Column("severity", css_class="form-group col-md-6 mb-0"),
