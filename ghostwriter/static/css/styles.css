@@ -2492,6 +2492,7 @@ ol {
 
 .badge {
   margin-left: 5px;
+  font-weight: 300;
 }
 
 .severity-badge {
