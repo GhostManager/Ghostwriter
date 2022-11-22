@@ -3199,3 +3199,10 @@ input:checked+.slider:before {
   border-radius: 50%;
   box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #304701 0 -1px 9px, var(--button-primary-color) 0 2px 12px;
 }
+
+/* ---------------------------------------------------
+    SOCIAL ACCOUNT BUTTONS
+----------------------------------------------------- */
+.socialaccount_providers {
+  padding: 0px;
+}
