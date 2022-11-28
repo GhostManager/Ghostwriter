@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* Added a checks the hex color value provided for severity categories
+* Added form validation to confirm the hex color value provided for a severity category is valid
 
 ### Changed
 
