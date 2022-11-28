@@ -36,7 +36,7 @@
 
     <!-- Finding Severity Badge -->
     <div>
-        <span class="px-3 py-2 badge badge-dark severity-badge mb-2
+        <span class="badge badge-dark
             {% if finding.severity.severity == "Critical" %}
                 critical-background
             {% elif finding.severity.severity == "High" %}
@@ -71,13 +71,12 @@
                 title="{{ finding.cvss_vector }}"
             {% endif %}
         >
-            {{ finding.severity.severity }} {{ finding.cvss_score }}
+            {{ finding.severity.severity }} {%if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
         </span>
+        {% for tag in finding.tags.names %}
+            <span class="badge badge-secondary">{{ tag|bleach }}</span>
+        {% endfor %}
     </div>
-
-    {% for tag in finding.tags.names %}
-        <span class="badge badge-secondary">{{ tag|bleach }}</span>
-    {% endfor %}
 
     <div id="description" title="description">
         <h3 class="finding-header icon writing-icon">Description</h3>
@@ -175,7 +174,7 @@
     <hr class="finding-hr" />
 
     <p class="text-center">
-        <a class="icon add-icon btn btn-primary mb-1" href="{% url 'reporting:finding_note_add' finding.id %}">Add a Note</a>
+        <a class="icon add-icon btn btn-primary mb-1 col-3" href="{% url 'reporting:finding_note_add' finding.id %}">Add a Note</a>
     </p>
 
     {% if finding.findingnote_set.all %}

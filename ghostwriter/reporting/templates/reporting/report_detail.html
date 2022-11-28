@@ -34,10 +34,10 @@
     <div class="container">
         <h2>{{ report.title }}</h2>
     </div>
-
     {% for tag in report.tags.names %}
         <span class="badge badge-secondary">{{ tag|bleach }}</span>
     {% endfor %}
+    <hr>
 
     <!-- Report Status & Toggles -->
     <h6 class="row justify-content-md-center">

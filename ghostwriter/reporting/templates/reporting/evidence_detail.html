@@ -33,10 +33,10 @@
     <div class="container">
         <h2>{{ evidence.friendly_name }}</h2>
     </div>
-
     {% for tag in evidence.tags.names %}
         <span class="badge badge-secondary">{{ tag|bleach }}</span>
     {% endfor %}
+    <hr>
 
     <!-- File Information Section -->
     <table class="table table-borderless table-centered">
