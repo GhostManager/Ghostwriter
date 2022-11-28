@@ -53,6 +53,12 @@
 
                 <table class="table table-borderless table-centered project-details-table">
                     <tr>
+                        <td class="text-left bold">Short Name</td>
+                        <td class="text-left">
+                            {% if client.short_name %} {{ client.short_name }} {% else %} No Short Name {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
                         <td class="text-left bold">Codename</td>
                         <td class="text-left">
                             {% if client.codename %} {{ client.codename }} {% else %} No Codename {% endif %}
@@ -71,6 +77,11 @@
                 </table>
 
                 <div id="clientDescription" class="description-block offset-md-2 col-8">
+                    {% if client.tags.names %}
+                        <div class="pb-2">
+                            {% for tag in client.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+                        </div>
+                    {% endif %}
                     {% if client.note %}
                         {{ client.note|bleach }}
                     {% else %}

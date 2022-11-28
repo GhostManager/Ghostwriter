@@ -101,6 +101,11 @@
                 </table>
 
                 <div id="projectDescription" class="description-block offset-md-2 col-8">
+                    {% if project.tags.all %}
+                        <div class="pb-2">
+                            {% for tag in project.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+                        </div>
+                    {% endif %}
                     {% if project.note %}
                         {{ project.note|bleach }}
                     {% else %}
