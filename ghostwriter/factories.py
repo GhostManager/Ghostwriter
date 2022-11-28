@@ -67,6 +67,15 @@ class ClientFactory(factory.django.DjangoModelFactory):
     timezone = random.choice(TIMEZONES)
     address = Faker("address")
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
 
 class ClientContactFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -112,6 +121,15 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     timezone = random.choice(TIMEZONES)
     start_time = Faker("time_object")
     end_time = Faker("time_object")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class ProjectAssignmentFactory(factory.django.DjangoModelFactory):
@@ -229,6 +247,15 @@ class FindingFactory(factory.django.DjangoModelFactory):
     references = Faker("paragraph")
     finding_guidance = Faker("paragraph")
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
 
 class DocTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -249,6 +276,15 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     client = None
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx")
     uploaded_by = factory.SubFactory(UserFactory)
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
@@ -294,6 +330,15 @@ class ReportFactory(factory.django.DjangoModelFactory):
     delivered = False
     created_by = factory.SubFactory(UserFactory)
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
 
 class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -317,6 +362,15 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     references = Faker("paragraph")
     finding_guidance = Faker("paragraph")
     added_as_blank = Faker("boolean")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class EvidenceFactory(factory.django.DjangoModelFactory):
@@ -349,6 +403,15 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
                 data=b"lorem ipsum"
             )
         )
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class ArchiveFactory(factory.django.DjangoModelFactory):
@@ -441,6 +504,15 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
     operator_name = Faker("name")
     oplog_id = factory.SubFactory(OplogFactory)
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
 
 # Shepherd Factories
 
@@ -494,6 +566,15 @@ class DomainFactory(factory.django.DjangoModelFactory):
     health_status = factory.SubFactory(HealthStatusFactory)
     domain_status = factory.SubFactory(DomainStatusFactory)
     last_used_by = factory.SubFactory(UserFactory)
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class HistoryFactory(factory.django.DjangoModelFactory):
