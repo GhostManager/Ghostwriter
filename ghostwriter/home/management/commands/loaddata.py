@@ -6,9 +6,6 @@ import os
 from django.apps import apps
 from django.core.management.commands import loaddata
 
-# Ghostwriter Libraries
-from ghostwriter.reporting.models import ReportTemplate, Severity
-
 
 def should_add_record(record):
     """
@@ -40,7 +37,7 @@ class Command(loaddata.Command):
 
         # Read the original JSON file
         file_name = args[0]
-        with open(file_name) as json_file:
+        with open(file_name, "r", encoding="utf-8") as json_file:
             json_list = json.load(json_file)
 
         # Filter out records that already exists
@@ -52,13 +49,12 @@ class Command(loaddata.Command):
         if not json_list_filtered:
             self.stdout.write(self.style.SUCCESS("All required records are present; no new data to load."))
             return
-        else:
-            self.stdout.write(self.style.WARNING(f"Found {len(json_list_filtered)} new records to insert into the database."))
+        self.stdout.write(self.style.WARNING(f"Found {len(json_list_filtered)} new records to insert into the database."))
 
         # Write the updated JSON file
         file_dir_and_name, file_ext = os.path.splitext(file_name)
         file_name_temp = f"{file_dir_and_name}_temp{file_ext}"
-        with open(file_name_temp, "w") as json_file_temp:
+        with open(file_name_temp, "w", encoding="utf-8") as json_file_temp:
             json.dump(json_list_filtered, json_file_temp)
 
         # Pass the request to the actual loaddata (parent functionality)
