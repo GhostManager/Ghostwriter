@@ -44,6 +44,7 @@ EXTRAS = 0
 
 # Custom inline formsets for nested forms
 
+
 class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
     """
     BaseInlineFormset template for :model:`rolodex.ProjectObjective` that adds validation
@@ -387,7 +388,9 @@ class BaseWhiteCardInlineFormSet(BaseInlineFormSet):
                                 ),
                             )
 
+
 # Forms used with the inline formsets
+
 
 class ProjectAssignmentForm(forms.ModelForm):
     """
@@ -823,7 +826,9 @@ class WhiteCardForm(forms.ModelForm):
         self.fields["description"].widget.attrs[
             "placeholder"
         ] = "Additional information about the white card, the reason for it, limitations, how it affects the assessment, etc..."
-        self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Headline"
+        self.fields["title"].widget.attrs[
+            "placeholder"
+        ] = "Brief and Descriptive Headline"
         self.helper = FormHelper()
         self.helper.form_show_errors = False
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
@@ -861,7 +866,10 @@ class WhiteCardForm(forms.ModelForm):
                         Column("title", css_class="col-md-6"),
                         Column(
                             FieldWithButtons(
-                                Field("issued", step=1,),
+                                Field(
+                                    "issued",
+                                    step=1,
+                                ),
                                 HTML(
                                     """
                                     <button
@@ -874,7 +882,7 @@ class WhiteCardForm(forms.ModelForm):
                                     """
                                 ),
                             ),
-                            css_class="col-md-6"
+                            css_class="col-md-6",
                         ),
                     ),
                     "description",
@@ -898,6 +906,7 @@ class WhiteCardForm(forms.ModelForm):
                 css_class="formset-container",
             )
         )
+
 
 # Create the `inlineformset_factory()` objects for `ProjectForm()`
 
@@ -986,14 +995,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
         self.fields["note"].widget.attrs["placeholder"] = "Description of the Project"
         self.fields["timezone"].initial = general_config.default_timezone
-        # Hide labels for specific fields because ``form_show_labels`` takes priority
-        self.fields["start_date"].label = False
-        self.fields["end_date"].label = False
-        self.fields["note"].label = False
-        self.fields["slack_channel"].label = False
-        self.fields["project_type"].label = False
-        self.fields["client"].label = False
-        self.fields["codename"].label = False
+        self.fields["tags"].widget.attrs["placeholder"] = "evasive, on-site, travel, ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -1045,8 +1047,9 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     Row(
-                        Column("project_type", css_class="form-group col-md-6 mb-0"),
-                        Column("slack_channel", css_class="form-group col-md-6 mb-0"),
+                        Column("project_type", css_class="form-group col-md-4 mb-0"),
+                        Column("slack_channel", css_class="form-group col-md-4 mb-0"),
+                        Column("tags", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
                     "update_checkouts",
@@ -1243,7 +1246,10 @@ class DeconflictionForm(forms.ModelForm):
 
     class Meta:
         model = Deconfliction
-        exclude = ("created_at", "project",)
+        exclude = (
+            "created_at",
+            "project",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1264,7 +1270,9 @@ class DeconflictionForm(forms.ModelForm):
             "placeholder"
         ] = "Additional information about the alert, source, related activity..."
         self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Title"
-        self.fields["alert_source"].widget.attrs["placeholder"] = "Source of the Alert – e.g, EDR"
+        self.fields["alert_source"].widget.attrs[
+            "placeholder"
+        ] = "Source of the Alert – e.g, EDR"
         self.fields["report_timestamp"].initial = timezone.now()
         self.helper = FormHelper()
         self.helper.form_show_errors = False
@@ -1285,9 +1293,15 @@ class DeconflictionForm(forms.ModelForm):
                 """
             ),
             Row(
-                Column(Field("alert_timestamp", step=1), css_class="form-group col-4 mb-0"),
-                Column(Field("report_timestamp", step=1), css_class="form-group col-4 mb-0"),
-                Column(Field("response_timestamp", step=1), css_class="form-group col-4 mb-0"),
+                Column(
+                    Field("alert_timestamp", step=1), css_class="form-group col-4 mb-0"
+                ),
+                Column(
+                    Field("report_timestamp", step=1), css_class="form-group col-4 mb-0"
+                ),
+                Column(
+                    Field("response_timestamp", step=1), css_class="form-group col-4 mb-0"
+                ),
                 css_class="form-group",
             ),
             Row(

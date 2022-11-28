@@ -225,11 +225,12 @@ class ClientForm(forms.ModelForm):
             "placeholder"
         ] = "Company's Address for Reporting or Shipping"
         self.fields["timezone"].initial = general_config.default_timezone
+        self.fields["tags"].widget.attrs["placeholder"] = "bank, industry:finance, ..."
+        # self.fields["tags"].required = False
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
-        self.helper.form_show_labels = False
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.layout = Layout(
@@ -241,9 +242,13 @@ class ClientForm(forms.ModelForm):
                         <p class="form-spacer"></p>
                         """
                     ),
-                    "name",
                     Row(
-                        Column("short_name", css_class="form-group col-md-4 mb-0"),
+                        Column("name", css_class="form-group col-md-6 mb-0"),
+                        Column("short_name", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("tags", css_class="form-group col-md-4 mb-0"),
                         Column(
                             FieldWithButtons(
                                 "codename",

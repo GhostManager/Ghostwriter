@@ -13,6 +13,9 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+# 3rd Party Libraries
+from taggit.managers import TaggableManager
+
 
 class HealthStatus(models.Model):
     """
@@ -199,6 +202,7 @@ class Domain(models.Model):
         default=False,
         help_text="Reset DNS records (if possible) after this domain is used",
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     whois_status = models.ForeignKey(
         "WhoisStatus",

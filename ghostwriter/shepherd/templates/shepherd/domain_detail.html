@@ -44,6 +44,10 @@
     </div>
     <hr />
 
+    {% for tag in domain.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    {% endfor %}
+
     <div>
         <!-- Navigation Tabs -->
         {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
