@@ -10,6 +10,7 @@ from django.db import models
 from django.urls import reverse
 
 # 3rd Party Libraries
+from taggit.managers import TaggableManager
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
@@ -61,6 +62,7 @@ class Client(models.Model):
         blank=True,
         help_text="An address to be used for reports or shipping",
     )
+    tags = TaggableManager(blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -205,6 +207,7 @@ class Project(models.Model):
         blank=True,
         help_text="Select the end time for each day",
     )
+    tags = TaggableManager(blank=True)
     # Foreign keys
     client = models.ForeignKey(
         "Client",
@@ -758,23 +761,25 @@ class Deconfliction(models.Model):
     """
 
     created_at = models.DateTimeField(
-        "Timestamp", auto_now_add=True, help_text="Date and time this deconfliction was created"
+        "Timestamp",
+        auto_now_add=True,
+        help_text="Date and time this deconfliction was created",
     )
     report_timestamp = models.DateTimeField(
         "Report Timestamp",
-        help_text="Date and time the client informed you and requested deconfliction"
+        help_text="Date and time the client informed you and requested deconfliction",
     )
     alert_timestamp = models.DateTimeField(
         "Alert Timestamp",
         null=True,
         blank=True,
-        help_text="Date and time the alert fired"
+        help_text="Date and time the alert fired",
     )
     response_timestamp = models.DateTimeField(
         "Response Timestamp",
         null=True,
         blank=True,
-        help_text="Date and time you responded to the report"
+        help_text="Date and time you responded to the report",
     )
     title = models.CharField(
         "Deconfliction Title",
@@ -833,7 +838,7 @@ class WhiteCard(models.Model):
         "Issued",
         blank=True,
         null=True,
-        help_text="Date and time the client issued this white card"
+        help_text="Date and time the client issued this white card",
     )
     title = models.CharField(
         "Title",

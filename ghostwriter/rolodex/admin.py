@@ -29,8 +29,8 @@ from ghostwriter.rolodex.models import (
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ("name", "short_name", "codename")
-    list_filter = ("name",)
+    list_display = ("name", "short_name", "codename", "tag_list")
+    list_filter = ("name", "tags")
     list_display_links = ("name", "short_name", "codename")
     fieldsets = (
         (
@@ -39,6 +39,12 @@ class ClientAdmin(admin.ModelAdmin):
         ),
         ("Misc", {"fields": ("note",)}),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
 
 
 @admin.register(ClientContact)
@@ -64,8 +70,9 @@ class ProjectAdmin(admin.ModelAdmin):
         "start_date",
         "end_date",
         "complete",
+        "tags",
     )
-    list_filter = ("client",)
+    list_filter = ("client", "complete", "tags")
     list_display_links = ("client", "codename")
     fieldsets = (
         ("General Information", {"fields": ("client", "codename", "project_type")}),
@@ -84,6 +91,12 @@ class ProjectAdmin(admin.ModelAdmin):
         ),
         ("Misc", {"fields": ("slack_channel", "note")}),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
 
 
 @admin.register(ProjectType)
@@ -193,14 +206,25 @@ class DeconflictionAdmin(admin.ModelAdmin):
             "Deconfliction",
             {"fields": ("status", "title", "description", "alert_source", "project")},
         ),
-        ("Timestamps", {"fields": ("report_timestamp", "alert_timestamp", "response_timestamp",)}),
+        (
+            "Timestamps",
+            {
+                "fields": (
+                    "report_timestamp",
+                    "alert_timestamp",
+                    "response_timestamp",
+                )
+            },
+        ),
     )
 
 
 @admin.register(WhiteCard)
 class WhiteCardAdmin(admin.ModelAdmin):
     list_display = ("project", "title")
-    list_filter = ["project__complete", ]
+    list_filter = [
+        "project__complete",
+    ]
     list_display_links = ("project", "title")
     fieldsets = (
         (
