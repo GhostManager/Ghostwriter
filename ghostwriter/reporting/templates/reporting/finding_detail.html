@@ -75,8 +75,8 @@
         </span>
     </div>
 
-    {% for tag in finding.tags.all %}
-        <span class="badge badge-secondary">{{ tag }}</span>
+    {% for tag in finding.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
     {% endfor %}
 
     <div id="description" title="description">

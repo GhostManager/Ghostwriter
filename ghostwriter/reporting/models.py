@@ -164,7 +164,7 @@ class Finding(models.Model):
         blank=True,
         help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
-    tags = TaggableManager()
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
@@ -182,13 +182,13 @@ class Finding(models.Model):
         "CVSS Score v3.0",
         blank=True,
         null=True,
-        help_text="Set the CVSS score for this finding"
+        help_text="Set the CVSS score for this finding",
     )
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
         max_length=54,
-        help_text="Set the CVSS vector for this finding"
+        help_text="Set the CVSS vector for this finding",
     )
 
     class Meta:
@@ -273,6 +273,7 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Add a line explaining any file changes",
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
@@ -347,6 +348,7 @@ class Report(models.Model):
     archived = models.BooleanField(
         "Archived", default=False, help_text="Mark the report as archived"
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     project = models.ForeignKey(
         "rolodex.Project",
@@ -470,6 +472,7 @@ class ReportFindingLink(models.Model):
         default=False,
         help_text="Identify a finding that was created for this report instead of copied from the library",
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
@@ -495,13 +498,13 @@ class ReportFindingLink(models.Model):
         "CVSS Score v3.0",
         blank=True,
         null=True,
-        help_text="Set the CVSS score for this finding"
+        help_text="Set the CVSS score for this finding",
     )
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
         max_length=54,
-        help_text="Set the CVSS vector for this finding"
+        help_text="Set the CVSS vector for this finding",
     )
 
     class Meta:
@@ -625,6 +628,7 @@ class Evidence(models.Model):
         blank=True,
         help_text="Describe this evidence to your team",
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE)
     uploaded_by = models.ForeignKey(

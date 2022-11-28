@@ -216,6 +216,7 @@ class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
                 cvss_vector=self.object.cvss_vector,
             )
             report_link.save()
+            report_link.tags.add(*self.object.tags.all())
 
             message = "{} successfully added to your active report".format(self.object)
             data = {"result": "success", "message": message}
@@ -235,7 +236,9 @@ class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class LocalFindingNoteDelete(
+    LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View
+):
     """
     Delete an individual :model:`reporting.LocalFindingNote`.
     """
@@ -716,7 +719,9 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
                 # Clone evidence files and attach them to the new finding
                 for evidence in evidences:
                     if exists(evidence.document.path):
-                        evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
+                        evidence_file = File(
+                            evidence.document, os.path.basename(evidence.document.name)
+                        )
                         evidence.finding = finding
                         evidence._current_evidence = None
                         evidence.document = evidence_file
@@ -730,7 +735,7 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
                         messages.warning(
                             self.request,
                             f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
-                            extra_tags="alert-warning"
+                            extra_tags="alert-warning",
                         )
 
             logger.info(
@@ -996,8 +1001,12 @@ def generate_report_name(report_instance):
         company_info = CompanyInformation.get_solo()
         report_name = report_name.replace("{company}", company_info.company_name)
         report_name = report_name.replace("{client}", report_instance.project.client.name)
-        report_name = report_name.replace("{date}", dateformat.format(timezone.now(), settings.DATE_FORMAT))
-        report_name = report_name.replace("{assessment_type}", report_instance.project.project_type.project_type)
+        report_name = report_name.replace(
+            "{date}", dateformat.format(timezone.now(), settings.DATE_FORMAT)
+        )
+        report_name = report_name.replace(
+            "{assessment_type}", report_instance.project.project_type.project_type
+        )
         return report_name
 
     def replace_date_format(report_name):
@@ -1011,7 +1020,7 @@ def generate_report_name(report_instance):
 
     def replace_chars(report_name):
         """Remove illegal characters from the report name."""
-        report_name =  report_name.replace("–", "-")
+        report_name = report_name.replace("–", "-")
         return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", report_name)
 
     report_config = ReportConfiguration.get_solo()
@@ -1200,6 +1209,19 @@ class FindingCreate(LoginRequiredMixin, CreateView):
             extra_tags="alert-success",
         )
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form):
+        try:
+            if form.is_valid():
+                obj = form.save(commit=False)
+                obj.save()
+                form.save_m2m()
+                return super().form_valid(form)
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.error(message)
+            return super().form_invalid(form)
 
 
 class FindingUpdate(LoginRequiredMixin, UpdateView):
@@ -1391,7 +1413,17 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         form.instance.created_by = self.request.user
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["title"] = form.instance.title
-        return super().form_valid(form)
+        try:
+            if form.is_valid():
+                obj = form.save(commit=False)
+                obj.save()
+                form.save_m2m()
+                return super().form_valid(form)
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.error(message)
+            return super().form_invalid(form)
 
     def get_initial(self):
         if self.project:
@@ -1452,7 +1484,17 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
         self.request.session["active_report"]["id"] = form.instance.id
         self.request.session["active_report"]["title"] = form.instance.title
         self.request.session.modified = True
-        return super().form_valid(form)
+        try:
+            if form.is_valid():
+                obj = form.save(commit=False)
+                obj.save()
+                form.save_m2m()
+                return super().form_valid(form)
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.error(message)
+            return super().form_invalid(form)
 
     def get_success_url(self):
         messages.success(
@@ -1575,6 +1617,7 @@ class ReportTemplateCreate(LoginRequiredMixin, CreateView):
         self.object = form.save(commit=False)
         self.object.uploaded_by = self.request.user
         self.object.save()
+        form.save_m2m()
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -1600,7 +1643,10 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
     def has_permission(self):
         self.object = self.get_object()
         if self.object.protected:
-            if self.request.user.role in ("manager", "admin",):
+            if self.request.user.role in (
+                "manager",
+                "admin",
+            ):
                 return True
             return self.request.user.is_staff
         return self.request.user.is_active
@@ -1634,6 +1680,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         self.object = form.save(commit=False)
         self.object.uploaded_by = self.request.user
         self.object.save()
+        form.save_m2m()
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -2290,7 +2337,17 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                     except gaierror:
                         # WebSocket are unavailable (unit testing)
                         pass
-        return super().form_valid(form)
+        try:
+            if form.is_valid():
+                obj = form.save(commit=False)
+                obj.save()
+                form.save_m2m()
+                return super().form_valid(form)
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.error(message)
+            return super().form_invalid(form)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -2415,6 +2472,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
         self.object.uploaded_by = self.request.user
         self.object.finding = self.finding_instance
         self.object.save()
+        form.save_m2m()
         if os.path.isfile(self.object.document.path):
             messages.success(
                 self.request,
@@ -2475,6 +2533,19 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
         return reverse(
             "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
         )
+
+    def form_valid(self, form):
+        try:
+            if form.is_valid():
+                obj = form.save(commit=False)
+                obj.save()
+                form.save_m2m()
+                return super().form_valid(form)
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(exception).__name__, exception.args)
+            logger.error(message)
+            return super().form_invalid(form)
 
 
 class EvidenceDelete(LoginRequiredMixin, DeleteView):
