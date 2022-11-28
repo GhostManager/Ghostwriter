@@ -22,7 +22,6 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-from taggit.forms import TagField, TagWidget
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
@@ -43,8 +42,6 @@ class FindingForm(forms.ModelForm):
     """
     Save an individual :model:`reporting.Finding`.
     """
-
-    tags = TagField()
 
     class Meta:
         model = Finding
@@ -82,6 +79,7 @@ class FindingForm(forms.ModelForm):
         self.fields["finding_guidance"].widget.attrs[
             "placeholder"
         ] = "When using this finding in a report be sure to include ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -96,7 +94,10 @@ class FindingForm(forms.ModelForm):
             ),
             Row(
                 Column("title", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0",),
+                Column(
+                    "tags",
+                    css_class="form-group col-md-6 mb-0",
+                ),
                 css_class="form-row",
             ),
             Row(
@@ -285,13 +286,18 @@ class ReportForm(forms.ModelForm):
         )
         self.fields["docx_template"].label = "DOCX Template"
         self.fields["pptx_template"].label = "PPTX Template"
+        self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.layout = Layout(
-            "title",
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             "project",
             HTML(
                 """
@@ -323,7 +329,12 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
 
     class Meta:
         model = ReportFindingLink
-        exclude = ("report", "position", "finding_guidance", "added_as_blank", )
+        exclude = (
+            "report",
+            "position",
+            "finding_guidance",
+            "added_as_blank",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -360,6 +371,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["references"].widget.attrs[
             "placeholder"
         ] = "Some useful links and references ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -375,7 +387,11 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 """
             ),
             Row(
-                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("title", css_class="form-group col-md-12 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 Column("assigned_to", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
@@ -555,6 +571,7 @@ class EvidenceForm(forms.ModelForm):
             "document",
             "description",
             "caption",
+            "tags",
         )
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
@@ -567,6 +584,7 @@ class EvidenceForm(forms.ModelForm):
         self.fields["caption"].required = True
         self.fields["caption"].widget.attrs["autocomplete"] = "off"
         self.fields["caption"].widget.attrs["placeholder"] = "Report Caption"
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
@@ -604,9 +622,10 @@ class EvidenceForm(forms.ModelForm):
             ),
             Row(
                 Column("friendly_name", css_class="form-group col-md-6 mb-0"),
-                Column("caption", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
+            "caption",
             "description",
             HTML(
                 """
@@ -751,6 +770,8 @@ class ReportTemplateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
@@ -762,9 +783,9 @@ class ReportTemplateForm(forms.ModelForm):
         ] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
+        self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
-        self.helper.form_show_labels = False
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.attrs = {"enctype": "multipart/form-data"}
@@ -777,18 +798,23 @@ class ReportTemplateForm(forms.ModelForm):
                 """
             ),
             Row(
-                Column("name", css_class="form-group col-md-7 mb-0"),
-                Column("doc_type", css_class="form-group col-md-5 mb-0"),
+                Column("name", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
-                Column("client", css_class="form-group col-md-7 mb-0"),
+                Column("doc_type", css_class="form-group col-md-6 mb-0"),
+                Column("client", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
                 Column(
                     SwitchToggle(
                         "protected",
                     ),
-                    css_class="form-group col-md-5 mb-0",
+                    css_class="form-group col-md-12 mb-0",
                 ),
+                css_class="form-row pb-2",
             ),
             "description",
             HTML(
@@ -944,16 +970,12 @@ class SeverityForm(forms.ModelForm):
         if color:
             if "#" in color:
                 raise ValidationError(
-                    _(
-                        "Do not include the # symbol in the color field."
-                    ),
+                    _("Do not include the # symbol in the color field."),
                     "invalid",
                 )
             if len(color) < 6:
                 raise ValidationError(
-                    _(
-                        "Your hex color code should be six characters in length."
-                    ),
+                    _("Your hex color code should be six characters in length."),
                     "invalid",
                 )
             if not re.search(valid_hex_regex, color):

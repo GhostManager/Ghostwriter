@@ -35,6 +35,10 @@
         <h2>{{ reporttemplate.name }}</h2>
     </div>
 
+    {% for tag in reporttemplate.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    {% endfor %}
+
     {% if reporttemplate.protected %}
         <div
             {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
