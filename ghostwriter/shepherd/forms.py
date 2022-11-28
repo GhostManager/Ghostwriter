@@ -183,25 +183,20 @@ class DomainForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Domain"
-        self.fields["name"].label = ""
         self.fields["registrar"].widget.attrs["placeholder"] = "Registrar"
-        self.fields["registrar"].label = ""
         self.fields["domain_status"].empty_label = "-- Select Status --"
-        self.fields["domain_status"].label = ""
         self.fields["whois_status"].empty_label = "-- Select Status --"
-        self.fields["whois_status"].label = ""
         self.fields["health_status"].empty_label = "-- Select Status --"
-        self.fields["health_status"].label = ""
         self.fields["creation"].widget.input_type = "date"
         self.fields["expiration"].widget.input_type = "date"
         self.fields["note"].widget.attrs[
             "placeholder"
         ] = "Brief Note or Explanation of the Domain"
         self.fields["note"].label = ""
+        self.fields["tags"].widget.attrs["placeholder"] = "phishing, categorized, ..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
-        self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.form_id = "checkout-form"
         self.helper.layout = Layout(
@@ -211,10 +206,14 @@ class DomainForm(forms.ModelForm):
                 <hr>
                 """
             ),
-            "name",
+            Row(
+                Column("name", css_class="form-group col-md-6 mb-0"),
+                Column("registrar", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             Row(
                 Column("domain_status", css_class="form-group col-md-6 mb-0"),
-                Column("registrar", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(

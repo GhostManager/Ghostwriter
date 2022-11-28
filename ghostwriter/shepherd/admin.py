@@ -117,7 +117,7 @@ class DomainAdmin(ImportExportModelAdmin):
         "last_health_check",
         "registrar",
         "reset_dns",
-        "note",
+        "tag_list",
     )
     list_filter = (
         "domain_status",
@@ -126,12 +126,16 @@ class DomainAdmin(ImportExportModelAdmin):
         "registrar",
         "auto_renew",
         "reset_dns",
+        "tags",
     )
     list_display_links = ("domain_status", "name")
     list_editable = ("reset_dns",)
-    readonly_fields = ('last_health_check',)
+    readonly_fields = ("last_health_check",)
     fieldsets = (
-        ("General Information", {"fields": ("name", "domain_status", "creation", "expiration", "auto_renew")}),
+        (
+            "General Information",
+            {"fields": ("name", "domain_status", "creation", "expiration", "auto_renew")},
+        ),
         (
             "Health Status",
             {
@@ -141,6 +145,7 @@ class DomainAdmin(ImportExportModelAdmin):
                     "health_status",
                     "categorization",
                     "burned_explanation",
+                    "tags",
                 )
             },
         ),
@@ -155,6 +160,12 @@ class DomainAdmin(ImportExportModelAdmin):
         ),
         ("Misc", {"fields": ("note",)}),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
 
 
 @admin.register(HealthStatus)
