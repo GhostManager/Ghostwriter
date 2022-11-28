@@ -16,6 +16,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
     StringRelatedField,
 )
+from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
@@ -129,11 +130,12 @@ class CompanyInfoSerializer(CustomModelSerializer):
         exclude = ["id", "company_name", "company_twitter", "company_email"]
 
 
-class EvidenceSerializer(CustomModelSerializer):
+class EvidenceSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Evidence` entries."""
 
     path = SerializerMethodField("get_path")
     url = SerializerMethodField("get_url")
+    tags = TagListSerializerField()
 
     class Meta:
         model = Evidence
@@ -148,7 +150,7 @@ class EvidenceSerializer(CustomModelSerializer):
         return obj.document.url
 
 
-class FindingSerializer(CustomModelSerializer):
+class FindingSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Finding` entries."""
 
     finding_type = StringRelatedField()
@@ -156,6 +158,7 @@ class FindingSerializer(CustomModelSerializer):
     severity_color = SerializerMethodField("get_severity_color")
     severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
+    tags = TagListSerializerField()
 
     class Meta:
         model = Finding
@@ -171,7 +174,7 @@ class FindingSerializer(CustomModelSerializer):
         return obj.severity.color_hex
 
 
-class FindingLinkSerializer(CustomModelSerializer):
+class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:ReportFindingLink` entries."""
 
     assigned_to = SerializerMethodField("get_assigned_to")
@@ -180,6 +183,7 @@ class FindingLinkSerializer(CustomModelSerializer):
     severity_color = SerializerMethodField("get_severity_color")
     severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
+    tags = TagListSerializerField()
 
     # Include a copy of the ``mitigation`` field as ``recommendation`` to match legacy JSON output
     recommendation = serializers.CharField(source="mitigation")
@@ -220,7 +224,7 @@ class ReportTemplateSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class ReportSerializer(CustomModelSerializer):
+class ReportSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Report` entries."""
 
     created_by = StringRelatedField()
@@ -232,6 +236,8 @@ class ReportSerializer(CustomModelSerializer):
     findings = FindingLinkSerializer(
         source="reportfindinglink_set", many=True, exclude=["id", "report"]
     )
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Report
@@ -257,7 +263,7 @@ class ClientContactSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class ClientSerializer(CustomModelSerializer):
+class ClientSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`rolodex:Client` entries."""
 
     short_name = SerializerMethodField("get_short_name")
@@ -272,6 +278,8 @@ class ClientSerializer(CustomModelSerializer):
     )
 
     timezone = TimeZoneSerializerField()
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Client
@@ -429,8 +437,10 @@ class AuxServerAddressSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class DomainSerializer(CustomModelSerializer):
+class DomainSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`shepherd:Domain` entries."""
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Domain
@@ -559,7 +569,7 @@ class TransientServerSerializer(CustomModelSerializer):
         ]
 
 
-class ProjectSerializer(CustomModelSerializer):
+class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`rolodex:Project` entries."""
 
     name = SerializerMethodField("get_name")
@@ -575,7 +585,11 @@ class ProjectSerializer(CustomModelSerializer):
 
     timezone = TimeZoneSerializerField()
 
-    notes = ProjectNoteSerializer(source="projectnote_set", many=True, exclude=["id", "project"])
+    notes = ProjectNoteSerializer(
+        source="projectnote_set", many=True, exclude=["id", "project"]
+    )
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Project
