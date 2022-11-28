@@ -2531,7 +2531,7 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
             extra_tags="alert-success",
         )
         return reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
+            "reporting:evidence_detail", kwargs={"pk": self.object.pk}
         )
 
     def form_valid(self, form):
