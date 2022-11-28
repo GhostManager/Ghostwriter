@@ -194,7 +194,8 @@ class ClientFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.org = ClientFactory()
+        cls.tags = ["foo", "bar", "foo:bar", "foo and bar"]
+        cls.org = ClientFactory(tags=cls.tags)
         cls.client_dict = cls.org.__dict__
 
     def setUp(self):
@@ -208,6 +209,7 @@ class ClientFormTests(TestCase):
         note=None,
         timezone=None,
         address=None,
+        tags=None,
         **kwargs,
     ):
         return ClientForm(
@@ -218,6 +220,7 @@ class ClientFormTests(TestCase):
                 "note": note,
                 "timezone": timezone,
                 "address": address,
+                "tags": tags,
             },
         )
 
@@ -233,6 +236,14 @@ class ClientFormTests(TestCase):
 
         form = self.form_data(**client)
         self.assertFalse(form.is_valid())
+
+    def test_tags(self):
+        client = self.client_dict.copy()
+        client["name"] = "Tagged Client"
+        client["tags"] = self.org.tags.names()
+
+        form = self.form_data(**client)
+        self.assertTrue(form.is_valid())
 
 
 class ClientNoteFormTests(TestCase):
@@ -464,7 +475,8 @@ class ProjectFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.project = ProjectFactory()
+        cls.tags = ["foo", "bar", "foo:bar", "foo and bar"]
+        cls.project = ProjectFactory(tags=cls.tags)
         cls.project_dict = cls.project.__dict__
 
     def setUp(self):
@@ -521,6 +533,13 @@ class ProjectFormTests(TestCase):
         errors = form.errors["slack_channel"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid_channel")
+
+    def test_tags(self):
+        project = self.project_dict.copy()
+        project["tags"] = self.project.tags.names()
+
+        form = self.form_data(**project)
+        self.assertTrue(form.is_valid())
 
 
 class ProjectAssignmentFormSetTests(TestCase):
@@ -865,9 +884,7 @@ class WhiteCardFormSetTests(TestCase):
         cls.to_be_deleted = WhiteCardFactory(project=cls.project)
 
     def form_data(self, data, **kwargs):
-        return instantiate_formset(
-            WhiteCardFormSet, data=data, instance=self.project
-        )
+        return instantiate_formset(WhiteCardFormSet, data=data, instance=self.project)
 
     def test_valid_data(self):
         to_be_deleted = self.to_be_deleted.__dict__
@@ -955,7 +972,9 @@ class DeconflictionFormTests(TestCase):
         one_hour_ago = now - timedelta(hours=1)
         one_hour_future = now + timedelta(hours=1)
 
-        deconfliction = DeconflictionFactory.build(project=self.project, status=self.status)
+        deconfliction = DeconflictionFactory.build(
+            project=self.project, status=self.status
+        )
 
         deconfliction.alert_timestamp = one_hour_ago
         deconfliction.report_timestamp = now
@@ -966,17 +985,21 @@ class DeconflictionFormTests(TestCase):
 
     def test_valid_data_with_only_required_datetime(self):
         deconfliction = DeconflictionFactory.build(
-            project=self.project, status=self.status,
-            alert_timestamp=None, response_timestamp=None
+            project=self.project,
+            status=self.status,
+            alert_timestamp=None,
+            response_timestamp=None,
         )
         form = self.form_data(**deconfliction.__dict__)
         self.assertTrue(form.is_valid())
 
     def test_valid_data_without_required_datetime(self):
         deconfliction = DeconflictionFactory.build(
-            project=self.project, status=self.status,
-            alert_timestamp=None, response_timestamp=None,
-            report_timestamp=None
+            project=self.project,
+            status=self.status,
+            alert_timestamp=None,
+            response_timestamp=None,
+            report_timestamp=None,
         )
         form = self.form_data(**deconfliction.__dict__)
         errors = form["report_timestamp"].errors.as_data()
@@ -990,9 +1013,11 @@ class DeconflictionFormTests(TestCase):
         one_hour_future = now + timedelta(hours=1)
 
         deconfliction = DeconflictionFactory.build(
-            project=self.project, status=self.status,
-            alert_timestamp=one_hour_future, response_timestamp=one_hour_ago,
-            report_timestamp=now
+            project=self.project,
+            status=self.status,
+            alert_timestamp=one_hour_future,
+            response_timestamp=one_hour_ago,
+            report_timestamp=now,
         )
         form = self.form_data(**deconfliction.__dict__)
         errors = form.errors.as_data()
