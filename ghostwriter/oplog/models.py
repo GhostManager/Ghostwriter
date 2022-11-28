@@ -17,6 +17,7 @@ from django.utils.timezone import make_aware
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
+from taggit.managers import TaggableManager
 
 # Using __name__ resolves to ghostwriter.oplog.models
 logger = logging.getLogger(__name__)
@@ -67,53 +68,47 @@ class OplogEntry(models.Model):
         blank=True,
         help_text="Provide the source hostname / IP from which the command originated.",
     )
-
     dest_ip = models.TextField(
         "Destination IP/Hostname",
         null=True,
         blank=True,
         help_text="Provide the destination hostname / ip on which the command was ran.",
     )
-
     tool = models.TextField(
         "Tool name", null=True, blank=True, help_text="The tool used to execute the action",
     )
-
     user_context = models.TextField(
         "User Context",
         null=True,
         blank=True,
         help_text="The user context that executed the command",
     )
-
     command = models.TextField(
         "Command",
         null=True,
         blank=True,
         help_text="The command that was executed",
     )
-
     description = models.TextField(
         "Description",
         null=True,
         blank=True,
         help_text="A description of why the command was executed and expected results.",
     )
-
     output = models.TextField(
         "Output",
         null=True,
         blank=True,
         help_text="The output of the executed command",
     )
-
     comments = models.TextField(
         "Comments",
         null=True,
         blank=True,
         help_text="Any additional comments or useful information.",
     )
-
+    tags = TaggableManager(blank=True)
+    # Foreign Keys
     operator_name = models.CharField(
         "Operator",
         null=True,
