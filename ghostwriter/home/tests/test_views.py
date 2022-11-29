@@ -1,9 +1,11 @@
 # Standard Libraries
 import logging
 from datetime import date, timedelta
+from io import StringIO
 
 # Django Imports
 from django.conf import settings
+from django.core.management import call_command
 from django.db.models import Q
 from django.test import Client, TestCase
 from django.test.utils import override_settings
@@ -25,6 +27,38 @@ logging.disable(logging.CRITICAL)
 
 PASSWORD = "SuperNaturalReporting!"
 
+
+# Tests related to custom management commands
+
+class ManagementCommandsTestCase(TestCase):
+    """Collection of tests for custom template tags."""
+
+    @classmethod
+    def setUpTestData(cls):
+        pass
+
+    def setUp(self):
+        pass
+
+    def call_command(self, *args, **kwargs):
+        out = StringIO()
+        call_command(
+            "loaddata",
+            *args,
+            stdout=out,
+            stderr=StringIO(),
+            **kwargs,
+        )
+        return out.getvalue()
+
+    def test_loaddata_command(self):
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json")
+        self.assertIn("Found 16 new records to insert into the database.", out)
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json")
+        self.assertIn("All required records are present; no new data to load.", out)
+        out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force")
+        self.assertIn("Applying all fixtures.", out)
+        self.assertIn("Found 16 new records to insert into the database.", out)
 
 # Tests related to custom template tags and filters
 

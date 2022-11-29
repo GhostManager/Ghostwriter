@@ -6,7 +6,9 @@ from django.contrib import admin
 # 3rd Party Libraries
 from import_export.admin import ImportExportModelAdmin
 
-from .models import (
+# Ghostwriter Libraries
+from ghostwriter.reporting.forms import SeverityForm
+from ghostwriter.reporting.models import (
     Archive,
     DocType,
     Evidence,
@@ -19,7 +21,7 @@ from .models import (
     ReportTemplate,
     Severity,
 )
-from .resources import FindingResource
+from ghostwriter.reporting.resources import FindingResource
 
 
 @admin.register(Archive)
@@ -147,7 +149,8 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
 
 @admin.register(Severity)
 class SeverityAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("severity", "color")
+    form = SeverityForm
 
 
 @admin.register(ReportTemplate)
