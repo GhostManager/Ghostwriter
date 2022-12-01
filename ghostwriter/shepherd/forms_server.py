@@ -209,13 +209,16 @@ class ServerForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
         self.fields["name"].widget.attrs["placeholder"] = "Hostname"
+        self.fields["name"].label = "Hostname"
         self.fields["server_status"].empty_label = "-- Select Status --"
+        self.fields["server_status"].label = "Server Status"
         self.fields["server_provider"].empty_label = "-- Select Provider --"
+        self.fields["server_provider"].label = "Server Provider"
         self.fields["note"].widget.attrs["placeholder"] = ""
+        self.fields["tags"].widget.attrs["placeholder"] = "hashcat, GPU:8, ..."
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
-        self.helper.form_show_labels = False
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"
         self.helper.layout = Layout(
@@ -227,8 +230,12 @@ class ServerForm(forms.ModelForm):
                         <p class="form-spacer"></p>
                         """
                     ),
-                    "ip_address",
-                    "name",
+                    Row(
+                        Column("ip_address", css_class="form-group col-md-6 mb-0"),
+                        Column("name", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    "tags",
                     Row(
                         Column("server_status", css_class="form-group col-md-6 mb-0"),
                         Column("server_provider", css_class="form-group col-md-6 mb-0"),

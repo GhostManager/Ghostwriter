@@ -1401,7 +1401,9 @@ class ServerCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                self.object = form.save(commit=False)
+                self.object.save()
+                form.save_m2m()
                 addresses_valid = addresses.is_valid()
                 if addresses_valid:
                     addresses.instance = self.object
@@ -1416,6 +1418,11 @@ class ServerCreate(LoginRequiredMixin, CreateView):
             message = template.format(type(exception).__name__, exception.args)
             logger.error(message)
             return super().form_invalid(form)
+
+    def get_initial(self):
+        return {
+            "server_status": 1,
+        }
 
 
 class ServerUpdate(LoginRequiredMixin, UpdateView):
@@ -1469,7 +1476,9 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                self.object = form.save(commit=False)
+                self.object.save()
+                form.save_m2m()
                 addresses_valid = addresses.is_valid()
                 if addresses_valid:
                     addresses.instance = self.object
