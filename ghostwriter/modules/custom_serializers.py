@@ -21,6 +21,7 @@ from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -493,12 +494,13 @@ class DomainHistorySerializer(CustomModelSerializer):
         return dateformat.format(obj.end_date, settings.DATE_FORMAT)
 
 
-class StaticServerSerializer(CustomModelSerializer):
+class StaticServerSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`shepherd.StaticServer` entries."""
 
     provider = serializers.CharField(source="server_provider")
     status = serializers.CharField(source="server_status")
     last_used_by = StringRelatedField()
+    tags = TagListSerializerField()
 
     class Meta:
         model = StaticServer
@@ -671,6 +673,15 @@ class WhiteCardSerializer(CustomModelSerializer):
 
     class Meta:
         model = WhiteCard
+        fields = "__all__"
+
+
+class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
+    """Serialize :model:`oplog.OplogEntry` entries."""
+    tags = TagListSerializerField()
+
+    class Meta:
+        model = OplogEntry
         fields = "__all__"
 
 
