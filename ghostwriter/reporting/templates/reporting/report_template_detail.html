@@ -34,10 +34,10 @@
     <div class="container">
         <h2>{{ reporttemplate.name }}</h2>
     </div>
-
     {% for tag in reporttemplate.tags.names %}
         <span class="badge badge-secondary">{{ tag|bleach }}</span>
     {% endfor %}
+    <hr>
 
     {% if reporttemplate.protected %}
         <div
