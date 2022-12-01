@@ -43,3 +43,4 @@ django-timezone-field==4.2.3
 pyjwt==2.4.0
 psutil==5.9.2
 django-taggit==3.0.0
+django-bootstrap-modal-forms==2.2.0
