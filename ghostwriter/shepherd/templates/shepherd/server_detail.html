@@ -37,7 +37,10 @@
     <div class="container">
         <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
     </div>
-    <hr />
+    {% for tag in staticserver.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    {% endfor %}
+    <hr>
 
     <div>
         <!-- Navigation Tabs -->

@@ -134,7 +134,7 @@ class DomainAdmin(ImportExportModelAdmin):
     fieldsets = (
         (
             "General Information",
-            {"fields": ("name", "domain_status", "creation", "expiration", "auto_renew")},
+            {"fields": ("name", "domain_status", "creation", "expiration", "auto_renew", "tags",)},
         ),
         (
             "Health Status",
@@ -145,7 +145,6 @@ class DomainAdmin(ImportExportModelAdmin):
                     "health_status",
                     "categorization",
                     "burned_explanation",
-                    "tags",
                 )
             },
         ),
@@ -238,7 +237,7 @@ class StaticServerAdmin(ImportExportModelAdmin):
     fieldsets = (
         (
             "Basic Server Information",
-            {"fields": ("ip_address", "name", "server_status", "server_provider")},
+            {"fields": ("ip_address", "name", "server_status", "server_provider", "tags",)},
         ),
         (
             "Misc",
@@ -250,6 +249,12 @@ class StaticServerAdmin(ImportExportModelAdmin):
             },
         ),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
 
 
 @admin.register(TransientServer)

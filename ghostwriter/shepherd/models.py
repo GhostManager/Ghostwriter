@@ -443,6 +443,7 @@ class StaticServer(models.Model):
         blank=True,
         help_text="Enter the server's name (typically hostname)",
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     server_status = models.ForeignKey(
         ServerStatus,
