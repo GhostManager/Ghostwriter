@@ -10,8 +10,12 @@ from django.core.serializers import serialize
 # 3rd Party Libraries
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from rest_framework.renderers import JSONRenderer
+from rest_framework.utils.serializer_helpers import ReturnList
 
-from .models import OplogEntry
+# Ghostwriter Libraries
+from ghostwriter.modules.custom_serializers import OplogEntrySerializer
+from ghostwriter.oplog.models import OplogEntry
 
 # Using __name__ resolves to ghostwriter.oplog.consumers
 logger = logging.getLogger(__name__)
@@ -46,24 +50,27 @@ def editOplogEntry(oplogEntryId, modifiedRow):
     entry = OplogEntry.objects.get(pk=oplogEntryId)
 
     for key, value in modifiedRow.items():
-        setattr(entry, key, value)
+        if key == "tags":
+            value = value.split(",")
+            entry.tags.set(value)
+        else:
+            setattr(entry, key, value)
 
     entry.save()
 
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
-    def getLogEntries(self, oplogId, offset):
+    def getLogEntries(self, oplogId:int, offset:int) -> ReturnList:
         entries = OplogEntry.objects.filter(oplog_id=oplogId).order_by("-start_date")
         if len(entries) == offset:
-            serialized_entries = json.loads(serialize("json", []))
+            serialized_entries = OplogEntrySerializer(entries, many=True).data
         else:
             if len(entries) < (offset + 100):
-                serialized_entries = json.loads(serialize("json", entries[offset:]))
+                serialized_entries = OplogEntrySerializer(entries[offset:], many=True).data
             else:
-                serialized_entries = json.loads(
-                    serialize("json", entries[offset : offset + 100])
-                )
+                serialized_entries = OplogEntrySerializer(entries[offset : offset + 100], many=True).data
+
         return serialized_entries
 
     async def send_oplog_entry(self, event):
