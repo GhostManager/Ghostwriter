@@ -9,8 +9,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.template.loader import render_to_string
 from django.urls import reverse
-from django.views.generic.detail import SingleObjectMixin
+from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
@@ -152,31 +153,26 @@ def OplogEntriesImport(request):
     return render(request, "oplog/oplog_import.html")
 
 
-@login_required
-def OplogListEntries(request, pk):
-    """
-    Display all :model:`oplog.OplogEntry` associated with an individual
-    :model:`oplog.Oplog`.
-
-    **Template**
-
-    :template:`oplog/entries_list.html`
-    """
-    entries = OplogEntry.objects.filter(oplog_id=pk).order_by("-start_date")
-    oplog_instance = get_object_or_404(Oplog, pk=pk)
-    context = {
-        "oplog": oplog_instance,
-        "entries": entries,
-        "pk": pk,
-        "name": oplog_instance.name,
-        "project": oplog_instance.project,
-    }
-    return render(request, "oplog/entries_list.html", context=context)
-
-
 ################
 # View Classes #
 ################
+
+
+class OplogListEntries(LoginRequiredMixin, DetailView):
+    """
+    Display an individual :model:`oplog.Oplog`.
+
+    **Context**
+
+    ``entries``
+        :model:`oplog:OplogEntry` entries associated with the :model:`oplog.Oplog`.
+
+    **Template**
+
+    :template:`oplog/oplog_detail.html`
+    """
+
+    model = Oplog
 
 
 class OplogCreate(LoginRequiredMixin, CreateView):
@@ -241,6 +237,7 @@ class OplogCreate(LoginRequiredMixin, CreateView):
             )
         return form
 
+    # TODO: The use of DRF and DRF API keys will be DEPRECATED in the near future and this section will need to be removed
     def form_valid(self, form):
         # Save the new :model:`oplog.Oplog` instance
         form.save()
@@ -280,37 +277,61 @@ class OplogCreate(LoginRequiredMixin, CreateView):
         return reverse("oplog:index")
 
 
-class OplogEntryCreate(LoginRequiredMixin, CreateView):
+class OplogUpdate(LoginRequiredMixin, UpdateView):
     """
-    Create an individual :model:`oplog.OplogEntry`.
+    Update an individual :model:`oplog.Oplog`.
 
     **Template**
 
-    :template:`oplog/oplogentry_form.html`
+    :template:`oplog/oplog_form.html`
     """
 
-    model = OplogEntry
-    form_class = OplogEntryForm
+    model = Oplog
+    form_class = OplogForm
 
     def get_success_url(self):
-        return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
+        return reverse("oplog:oplog_entries", args=(self.object.id,))
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("oplog:oplog_entries", kwargs={"pk": self.object.pk})
+        return ctx
 
 
-class OplogEntryUpdate(LoginRequiredMixin, UpdateView):
+class AjaxTemplateMixin(object):
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(self, "ajax_template_name"):
+            split = self.template_name.split(".html")
+            split[-1] = "_inner"
+            split.append(".html")
+            self.ajax_template_name = "".join(split)
+        if request.is_ajax():
+            self.template_name = self.ajax_template_name
+        return super(AjaxTemplateMixin, self).dispatch(request, *args, **kwargs)
+
+
+class OplogEntryUpdate(LoginRequiredMixin, AjaxTemplateMixin, UpdateView):
     """
     Update an individual :model:`oplog.OplogEntry`.
 
     **Template**
 
-    :template:`oplog/oplogentry_form.html`
+    :template:`oplog/oplog_modal.html`
     """
 
     model = OplogEntry
-    fields = "__all__"
+    form_class = OplogEntryForm
+    template_name = "oplog/oplogentry_form.html"
+    ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
 
     def get_success_url(self):
-        """Override the function to return to the new record after creation."""
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
+
+    def form_valid(self, form, **kwargs):
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class OplogEntryDelete(LoginRequiredMixin, DeleteView):
@@ -325,6 +346,7 @@ class OplogEntryDelete(LoginRequiredMixin, DeleteView):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
 
 
+# TODO: The use of DRF and DRF API keys will be DEPRECATED in the near future and this section will need to be removed
 class OplogEntryViewSet(viewsets.ModelViewSet):
     serializer_class = OplogEntrySerializer
     queryset = OplogEntry.objects.all()
@@ -351,6 +373,7 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+# TODO: The use of DRF and DRF API keys will be DEPRECATED in the near future and this section will need to be removed
 class OplogViewSet(viewsets.ModelViewSet):
     queryset = Oplog.objects.all()
     serializer_class = OplogSerializer

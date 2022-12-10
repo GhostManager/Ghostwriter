@@ -20,22 +20,18 @@ urlpatterns = [
     path("api/", include(router.urls)),
     path("create/<int:pk>", views.OplogCreate.as_view(), name="oplog_create"),
     path("create/", views.OplogCreate.as_view(), name="oplog_create_no_project"),
+    path("update/<int:pk>", views.OplogUpdate.as_view(), name="oplog_update"),
     path(
-        "<int:pk>/entries/create",
-        views.OplogEntryCreate.as_view(),
-        name="oplog_entry_create",
-    ),
-    path(
-        "<int:pk>/entries/update",
+        "entry/update/<int:pk>",
         views.OplogEntryUpdate.as_view(),
         name="oplog_entry_update",
     ),
     path(
-        "<int:pk>/entries/delete",
+        "entry/delete/<int:pk>",
         views.OplogEntryDelete.as_view(),
         name="oplog_entry_delete",
     ),
-    path("<int:pk>/entries", views.OplogListEntries, name="oplog_entries"),
+    path("<int:pk>/entries", views.OplogListEntries.as_view(), name="oplog_entries"),
     path("import", views.OplogEntriesImport, name="oplog_import"),
 ]
 
