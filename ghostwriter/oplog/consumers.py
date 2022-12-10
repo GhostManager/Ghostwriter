@@ -3,14 +3,11 @@
 # Standard Libraries
 import json
 import logging
-
-# Django Imports
-from django.core.serializers import serialize
+from copy import deepcopy
 
 # 3rd Party Libraries
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from rest_framework.renderers import JSONRenderer
 from rest_framework.utils.serializer_helpers import ReturnList
 
 # Ghostwriter Libraries
@@ -22,11 +19,8 @@ logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
-def createOplogEntry(oplog_id):
-    newEntry = OplogEntry.objects.create(oplog_id_id=oplog_id)
-    newEntry.output = ""
-    newEntry.save()
-
+def createOplogEntry(oplog_id, user):
+    OplogEntry.objects.create(oplog_id_id=oplog_id, operator_name=user.username)
 
 @database_sync_to_async
 def deleteOplogEntry(oplogEntryId):
@@ -36,27 +30,14 @@ def deleteOplogEntry(oplogEntryId):
         # This is fine, it just means the entry was already deleted
         pass
 
-
 @database_sync_to_async
 def copyOplogEntry(oplogEntryId):
     entry = OplogEntry.objects.get(pk=oplogEntryId)
     if entry:
-        entry.pk = None
-        entry.save()
-
-
-@database_sync_to_async
-def editOplogEntry(oplogEntryId, modifiedRow):
-    entry = OplogEntry.objects.get(pk=oplogEntryId)
-
-    for key, value in modifiedRow.items():
-        if key == "tags":
-            value = value.split(",")
-            entry.tags.set(value)
-        else:
-            setattr(entry, key, value)
-
-    entry.save()
+        copy = deepcopy(entry)
+        copy.pk = None
+        copy.save()
+        copy.tags.add(*entry.tags.all())
 
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
@@ -64,7 +45,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
     def getLogEntries(self, oplogId:int, offset:int) -> ReturnList:
         entries = OplogEntry.objects.filter(oplog_id=oplogId).order_by("-start_date")
         if len(entries) == offset:
-            serialized_entries = OplogEntrySerializer(entries, many=True).data
+            serialized_entries = OplogEntrySerializer([], many=True).data
         else:
             if len(entries) < (offset + 100):
                 serialized_entries = OplogEntrySerializer(entries[offset:], many=True).data
@@ -96,16 +77,13 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         if json_data["action"] == "delete":
             oplog_entry_id = int(json_data["oplogEntryId"])
             await deleteOplogEntry(oplog_entry_id)
+
         if json_data["action"] == "copy":
             oplog_entry_id = int(json_data["oplogEntryId"])
             await copyOplogEntry(oplog_entry_id)
 
-        if json_data["action"] == "edit":
-            oplog_entry_id = int(json_data["oplogEntryId"])
-            await editOplogEntry(oplog_entry_id, json_data["modifiedRow"])
-
         if json_data["action"] == "create":
-            await createOplogEntry(json_data["oplog_id"])
+            await createOplogEntry(json_data["oplog_id"], self.scope["user"])
 
         if json_data["action"] == "sync":
             oplog_id = json_data["oplog_id"]
