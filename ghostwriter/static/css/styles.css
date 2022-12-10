@@ -1128,7 +1128,19 @@ th:first-child {
   border-top-left-radius: 0.25em;
 }
 
+.first-col {
+  -webkit-border-top-left-radius: 0.25em;
+  -moz-border-radius-topleft: 0.25em;
+  border-top-left-radius: 0.25em;
+}
+
 th:last-child {
+  -webkit-border-top-right-radius: 0.25em;
+  -moz-border-radius-topright: 0.25em;
+  border-top-right-radius: 0.25em;
+}
+
+.last-col {
   -webkit-border-top-right-radius: 0.25em;
   -moz-border-radius-topright: 0.25em;
   border-top-right-radius: 0.25em;
@@ -1190,8 +1202,36 @@ table.scroll tbody {
 table.scroll tbody td div {
   overflow-x: hidden;
   overflow-y: auto;
-  max-height: 200px;
+  max-height: 150px;
   width: 100%;
+}
+
+table.table-oplog thead th,
+table.table-oplog tbody tr {
+  font-size: .9rem;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+table.table-oplog tbody tr:hover>td {
+  color: var(--primary-color);
+  transform: scale(1.05);
+  transition: all .15s ease;
+}
+
+table.table-oplog tbody tr>td .btn i.fa-copy:hover {
+  color: var(--primary-color);
+}
+
+table.table-oplog tbody tr>td .btn i.fa-trash:hover {
+  color: var(--blocked-color);
+}
+
+table.table-oplog tbody tr>td .btn:hover {
+  cursor: pointer;
+  transform: scale(1.5);
+  transition: all .15s ease;
 }
 
 ::-webkit-scrollbar {
@@ -2008,6 +2048,18 @@ th.icon {
 
 .expand-icon:before {
   content: '\f31e';
+}
+
+.open-icon:before {
+  content: '\f101';
+  display: inline-block;
+  transition: all .5s ease-in-out;
+}
+
+.open-icon.open:before {
+  -webkit-transform: rotate(90deg);
+  transform: translateY(4px) translateX(-5px) rotate(90deg);
+  transition: all .5s ease-in-out;
 }
 
 .calendar-icon:before {
@@ -3056,6 +3108,30 @@ input:checked+.slider:before {
   right: -105px;
 
   content: "Hide Expired";
+}
+
+.custom-control-input:focus~.custom-control-label::before {
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 0.2rem var(--primary-color) !important;
+}
+
+.custom-control-input:checked~.custom-control-label::before {
+  border-color: var(--secondary-color) !important;
+  background-color: var(--primary-color) !important;
+}
+
+.custom-control-input:active~.custom-control-label::before {
+  border-color: var(--secondary-color) !important;
+  background-color: var(--primary-color) !important;
+}
+
+.custom-control-input:focus:not(:checked)~.custom-control-label::before {
+  border-color: var(--secondary-color) !important;
+}
+
+.custom-control-input-green:not(:disabled):active~.custom-control-label::before {
+  border-color: var(--secondary-color) !important;
+  background-color: var(--primary-color) !important;
 }
 
 /* ---------------------------------------------------
