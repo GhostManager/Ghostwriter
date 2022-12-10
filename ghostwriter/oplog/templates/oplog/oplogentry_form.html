@@ -4,29 +4,9 @@
 {% block pagetitle %}Operation Log Entry{% endblock %}
 
 {% block content %}
-<p>Enter log details:</p>
+    <!-- Instruction -->
+    <p>Fill-out this form as completely as possible with information related to this activity:</p>
 
-<!-- Form Section -->
-<form class="newitem" action="" method="post">
-    {% csrf_token %}
-
-    <!-- General Section -->
-    <strong><i class="fas fa-database"></i> Operation Log Entry Details</strong>
-    <hr>
-    {{ form.oplog_id|as_crispy_field }}
-    {{ form.start_date|as_crispy_field }}
-    {{ form.end_date|as_crispy_field }}
-    {{ form.source_ip|as_crispy_field }}
-    {{ form.dest_ip|as_crispy_field }}
-    {{ form.tool|as_crispy_field }}
-    {{ form.user_context|as_crispy_field }}
-    {{ form.command|as_crispy_field }}
-    {{ form.description|as_crispy_field }}
-    {{ form.output|as_crispy_field }}
-    {{ form.comments|as_crispy_field }}
-    {{ form.operator_name|as_crispy_field }}
-
-    <input type="submit" class="btn btn-primary" value="Save">
-    <button onclick="window.history.back();" class="btn btn-secondary" type="button">Cancel</button>
-</form>
+    {% comment %} Form section included from inner template {% endcomment %}
+    {% include "oplog/snippets/oplog_modal_inner.html" with form=form %}
 {% endblock %}
