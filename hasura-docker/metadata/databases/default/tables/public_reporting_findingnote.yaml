@@ -103,19 +103,16 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: restricted
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
   - role: user
     permission:
-      backend_only: false
       filter:
         operator_id:
           _eq: X-Hasura-User-Id
