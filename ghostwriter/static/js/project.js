@@ -1,4 +1,4 @@
-/* Project specific Javascript goes here. */
+/* Project-specific JavaScript goes here. */
 
 // Function to display Toastr notifications
 function displayToastTop({
@@ -62,6 +62,7 @@ function csrfSafeMethod(method) {
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method);
 }
 
+// Generate a filename for a download with the current date and time
 function generateDownloadName(name) {
     var d = new Date();
     var year = d.getFullYear();
@@ -86,6 +87,7 @@ function generateDownloadName(name) {
     return filename
 }
 
+// Update the status badges on the tab bar
 function update_badges() {
   // Get the update URL from the ``nav-tabs`` element
   var navTabs = $('.nav-tabs');
@@ -102,4 +104,25 @@ function update_badges() {
           targetTab.tab('show');
       });
   }
+}
+
+// Escape HTML characters in a string to make it safe for display
+function jsEscape(s){
+  if (s) {
+      return s.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  } else {
+      return '';
+  }
+}
+
+// Download a file from a URL and save it with a given filename
+function download(url, filename) {
+  fetch(url).then(function (t) {
+      return t.blob().then((b) => {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(b);
+          a.setAttribute('download', filename);
+          a.click();
+      });
+  });
 }
