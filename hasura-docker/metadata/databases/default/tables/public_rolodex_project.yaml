@@ -69,6 +69,13 @@ array_relationships:
         table:
           name: rolodex_projectnote
           schema: public
+  - name: deconflictions
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          name: rolodex_deconfliction
+          schema: public
   - name: domainServerConnections
     using:
       foreign_key_constraint_on:
@@ -131,6 +138,13 @@ array_relationships:
         column: project_id
         table:
           name: rolodex_projecttarget
+          schema: public
+  - name: whitecards
+    using:
+      foreign_key_constraint_on:
+        column: project_id
+        table:
+          name: rolodex_whitecard
           schema: public
 insert_permissions:
   - role: manager
@@ -333,5 +347,4 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
-      backend_only: false
       filter: {}
