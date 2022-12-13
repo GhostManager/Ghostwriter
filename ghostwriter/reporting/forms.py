@@ -963,9 +963,6 @@ class SeverityForm(forms.ModelForm):
         model = Severity
         fields = "__all__"
 
-    def __init__(self, *args, **kwargs):
-        super(SeverityForm, self).__init__(*args, **kwargs)
-
     def clean_color(self, *args, **kwargs):
         color = self.cleaned_data["color"]
         regex = "^(?:[0-9a-fA-F]{1,2}){3}$"
