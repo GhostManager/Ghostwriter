@@ -1037,7 +1037,7 @@ def zip_directory(path, zip_handler):
     """
     # Walk the target directory
     abs_src = os.path.abspath(path)
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         # Add each file to the zip file handler
         for file in files:
             absname = os.path.abspath(os.path.join(root, file))
@@ -1211,17 +1211,10 @@ class FindingCreate(LoginRequiredMixin, CreateView):
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class FindingUpdate(LoginRequiredMixin, UpdateView):
@@ -1259,17 +1252,10 @@ class FindingUpdate(LoginRequiredMixin, UpdateView):
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class FindingDelete(LoginRequiredMixin, DeleteView):
@@ -1413,17 +1399,10 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         form.instance.created_by = self.request.user
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["title"] = form.instance.title
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
     def get_initial(self):
         if self.project:
@@ -1484,17 +1463,10 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
         self.request.session["active_report"]["id"] = form.instance.id
         self.request.session["active_report"]["title"] = form.instance.title
         self.request.session.modified = True
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
     def get_success_url(self):
         messages.success(
@@ -1709,7 +1681,7 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
     def has_permission(self):
         self.object = self.get_object()
         if self.object.protected:
-            if self.request.user.role == "manager" or self.request.user.role == "admin":
+            if self.request.user.role in ("manager", "admin"):
                 return True
             return self.request.user.is_staff
         return self.request.user.is_active
@@ -2337,17 +2309,10 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                     except gaierror:
                         # WebSocket are unavailable (unit testing)
                         pass
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -2535,17 +2500,10 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
         )
 
     def form_valid(self, form):
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class EvidenceDelete(LoginRequiredMixin, DeleteView):

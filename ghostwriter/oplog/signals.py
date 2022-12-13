@@ -77,4 +77,3 @@ def delete_oplog_entry(sender, instance, **kwargs):
     except gaierror:  # pragma: no cover
         # WebSocket are unavailable (unit testing)
         pass
-

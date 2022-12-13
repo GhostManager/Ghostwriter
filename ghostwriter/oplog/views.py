@@ -9,7 +9,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, render
-from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
@@ -298,7 +297,7 @@ class OplogUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class AjaxTemplateMixin(object):
+class AjaxTemplateMixin():
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(self, "ajax_template_name"):
             split = self.template_name.split(".html")
@@ -307,7 +306,7 @@ class AjaxTemplateMixin(object):
             self.ajax_template_name = "".join(split)
         if request.is_ajax():
             self.template_name = self.ajax_template_name
-        return super(AjaxTemplateMixin, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class OplogEntryUpdate(LoginRequiredMixin, AjaxTemplateMixin, UpdateView):

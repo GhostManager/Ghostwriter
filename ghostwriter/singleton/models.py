@@ -60,12 +60,12 @@ class SingletonModel(models.Model):
     def get_solo(cls):
         cache_name = getattr(settings, "SOLO_CACHE", settings.SOLO_CACHE)
         if not cache_name:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
+            obj, _ = cls.objects.get_or_create(pk=cls.singleton_instance_id)
             return obj
         cache = get_cache(cache_name)
         cache_key = cls.get_cache_key()
         obj = cache.get(cache_key)
         if not obj:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
+            obj, _ = cls.objects.get_or_create(pk=cls.singleton_instance_id)
             obj.set_to_cache()
         return obj

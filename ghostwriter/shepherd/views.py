@@ -1233,17 +1233,10 @@ class DomainCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form):
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class DomainUpdate(LoginRequiredMixin, UpdateView):
@@ -1277,17 +1270,10 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        try:
-            if form.is_valid():
-                obj = form.save(commit=False)
-                obj.save()
-                form.save_m2m()
-                return super().form_valid(form)
-        except Exception as exception:  # pragma: no cover
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
-            return super().form_invalid(form)
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class DomainDelete(LoginRequiredMixin, DeleteView):

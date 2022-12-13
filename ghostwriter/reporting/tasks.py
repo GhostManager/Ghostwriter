@@ -35,7 +35,7 @@ def zip_directory(path, zip_handler):
     """
     # Walk the target directory
     abs_src = os.path.abspath(path)
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         # Add each file to the zip file handler
         for file in files:
             absname = os.path.abspath(os.path.join(root, file))
