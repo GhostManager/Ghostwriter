@@ -45,8 +45,12 @@ def group_by_severity(queryset):
     all_severity = Severity.objects.all().order_by("weight")
     severity_dict = defaultdict(list)
     for severity in all_severity:
-        severity_dict[str(severity)] = []
+        severity_dict[str(severity)] = {
+            "tpl_name": f"severity_{severity.weight}",
+            "findings": [],
+            "weight": severity.weight,
+        }
     for finding in queryset:
-        severity_dict[str(finding.severity)].append(finding)
+        severity_dict[str(finding.severity)]["findings"].append(finding)
     # Return a basic dict because templates can't handle defaultdict
     return dict(severity_dict)

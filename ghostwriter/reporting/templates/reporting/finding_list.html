@@ -55,13 +55,13 @@
                         <tr>
                             <!-- Severity Column -->
                             <td class="align-middle
-                                {% if finding.severity.severity == "Critical" %}
+                                {% if finding.severity.weight == 1 %}
                                     critical
-                                {% elif finding.severity.severity == "High" %}
+                                {% elif finding.severity.weight == 2 %}
                                     high
-                                {% elif finding.severity.severity == "Medium" %}
+                                {% elif finding.severity.weight == 3 %}
                                     medium
-                                {% elif finding.severity.severity == "Low" %}
+                                {% elif finding.severity.weight == 4 %}
                                     low
                                 {% else %}
                                     info
