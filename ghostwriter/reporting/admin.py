@@ -205,7 +205,7 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
 
 @admin.register(Severity)
 class SeverityAdmin(admin.ModelAdmin):
-    list_display = ("severity", "color")
+    list_display = ("severity", "color", "weight")
     form = SeverityForm
 
 
@@ -219,7 +219,10 @@ class ReportTemplateAdmin(admin.ModelAdmin):
         "tag_list",
     )
     readonly_fields = ("get_status",)
-    list_filter = ("client", "tags",)
+    list_filter = (
+        "client",
+        "tags",
+    )
     list_display_links = ("name",)
     fieldsets = (
         (
