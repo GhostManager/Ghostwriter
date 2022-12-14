@@ -471,17 +471,13 @@ class SelectReportTemplateFormTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_blank_docx_template(self):
-        form = self.form_data(
-            instance=self.report, docx_template=None, pptx_template=self.pptx_template
-        )
+        form = self.form_data(instance=self.report, docx_template=None, pptx_template=self.pptx_template)
         errors = form["docx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
 
     def test_blank_pptx_template(self):
-        form = self.form_data(
-            instance=self.report, docx_template=self.docx_template, pptx_template=None
-        )
+        form = self.form_data(instance=self.report, docx_template=self.docx_template, pptx_template=None)
         errors = form["pptx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")

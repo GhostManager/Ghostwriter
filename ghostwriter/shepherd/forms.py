@@ -3,20 +3,18 @@
 # Standard Libraries
 from datetime import date
 
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 # Django Imports
 from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-# 3rd Party Libraries
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
-
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
-
 from .models import (
     Domain,
     DomainNote,
@@ -63,9 +61,7 @@ class CheckoutForm(forms.ModelForm):
         self.fields["project"].queryset = Project.objects.none()
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This domain will be used for..."
+        self.fields["note"].widget.attrs["placeholder"] = "This domain will be used for..."
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
@@ -115,15 +111,11 @@ class CheckoutForm(forms.ModelForm):
         if "client" in self.data:
             try:
                 client_id = int(self.data.get("client"))
-                self.fields["project"].queryset = Project.objects.filter(
-                    client_id=client_id
-                ).order_by("codename")
+                self.fields["project"].queryset = Project.objects.filter(client_id=client_id).order_by("codename")
             except (ValueError, TypeError):  # pragma: no cover
                 pass
         elif self.instance.pk:
-            self.fields["project"].queryset = self.instance.client.project_set.order_by(
-                "codename"
-            )
+            self.fields["project"].queryset = self.instance.client.project_set.order_by("codename")
 
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]
@@ -131,9 +123,7 @@ class CheckoutForm(forms.ModelForm):
 
         # Check if end_date comes before the start_date
         if end_date < start_date:
-            raise ValidationError(
-                _("The provided end date comes before the start date"), code="invalid"
-            )
+            raise ValidationError(_("The provided end date comes before the start date"), code="invalid")
         return end_date
 
     def clean_domain(self):
@@ -147,9 +137,7 @@ class CheckoutForm(forms.ModelForm):
                 raise ValidationError(_("This domain has expired!"), code="expired")
             if domain.domain_status == unavailable:
                 raise ValidationError(
-                    _(
-                        "Someone beat you to it – This domain has already been checked out!"
-                    ),
+                    _("Someone beat you to it – This domain has already been checked out!"),
                     code="unavailable",
                 )
         return domain
@@ -189,9 +177,7 @@ class DomainForm(forms.ModelForm):
         self.fields["health_status"].empty_label = "-- Select Status --"
         self.fields["creation"].widget.input_type = "date"
         self.fields["expiration"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Brief Note or Explanation of the Domain"
+        self.fields["note"].widget.attrs["placeholder"] = "Brief Note or Explanation of the Domain"
         self.fields["note"].label = ""
         self.fields["tags"].widget.attrs["placeholder"] = "phishing, categorized, ..."
         self.helper = FormHelper()
@@ -283,35 +269,27 @@ class DomainLinkForm(forms.ModelForm):
     def __init__(self, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if project:
-            self.fields["static_server"].queryset = ServerHistory.objects.filter(
-                project=project
-            ).order_by("activity_type", "server_role")
-            self.fields["transient_server"].queryset = TransientServer.objects.filter(
-                project=project
-            ).order_by("activity_type", "server_role")
-            self.fields["domain"].queryset = History.objects.filter(
-                project=project
-            ).order_by("activity_type")
+            self.fields["static_server"].queryset = ServerHistory.objects.filter(project=project).order_by(
+                "activity_type", "server_role"
+            )
+            self.fields["transient_server"].queryset = TransientServer.objects.filter(project=project).order_by(
+                "activity_type", "server_role"
+            )
+            self.fields["domain"].queryset = History.objects.filter(project=project).order_by("activity_type")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["domain"].empty_label = "-- Select a Domain [Required] --"
-        self.fields[
-            "domain"
-        ].label_from_instance = lambda obj: f"{obj.domain.name} ({obj.activity_type})"
+        self.fields["domain"].label_from_instance = lambda obj: f"{obj.domain.name} ({obj.activity_type})"
 
         self.fields["static_server"].empty_label = "-- Select Static Server --"
         self.fields[
             "static_server"
-        ].label_from_instance = (
-            lambda obj: f"{obj.server.ip_address} ({obj.server_role} | {obj.activity_type})"
-        )
+        ].label_from_instance = lambda obj: f"{obj.server.ip_address} ({obj.server_role} | {obj.activity_type})"
 
         self.fields["transient_server"].empty_label = "-- Select VPS --"
         self.fields[
             "transient_server"
-        ].label_from_instance = (
-            lambda obj: f"{obj.ip_address} ({obj.server_role} | {obj.activity_type})"
-        )
+        ].label_from_instance = lambda obj: f"{obj.ip_address} ({obj.server_role} | {obj.activity_type})"
 
         self.helper = FormHelper()
         self.helper.form_method = "post"
@@ -356,13 +334,8 @@ class DomainLinkForm(forms.ModelForm):
     def clean(self):
         if self.cleaned_data["static_server"] and self.cleaned_data["transient_server"]:
             raise ValidationError(_("Select only one server"), code="invalid_selection")
-        if (
-            not self.cleaned_data["static_server"]
-            and not self.cleaned_data["transient_server"]
-        ):
-            raise ValidationError(
-                _("You must select one server"), code="invalid_selection"
-            )
+        if not self.cleaned_data["static_server"] and not self.cleaned_data["transient_server"]:
+            raise ValidationError(_("You must select one server"), code="invalid_selection")
 
 
 class DomainNoteForm(forms.ModelForm):
@@ -372,7 +345,6 @@ class DomainNoteForm(forms.ModelForm):
     """
 
     class Meta:
-
         model = DomainNote
         fields = ("note",)
 
@@ -417,9 +389,7 @@ class BurnForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["burned_explanation"].widget.attrs[
-            "placeholder"
-        ] = "This domain was flagged for..."
+        self.fields["burned_explanation"].widget.attrs["placeholder"] = "This domain was flagged for..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_class = "newitem"

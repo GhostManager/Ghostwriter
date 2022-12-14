@@ -3,12 +3,6 @@
 # Standard Libraries
 import re
 
-# Django Imports
-from django import forms
-from django.core.exceptions import ValidationError
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
 from crispy_forms.helper import FormHelper
@@ -22,6 +16,12 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
+
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
@@ -54,28 +54,14 @@ class FindingForm(forms.ModelForm):
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS vector ..."
+        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
+        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
 
-        self.fields["mitigation"].widget.attrs[
-            "placeholder"
-        ] = "What needs to be done ..."
-        self.fields["replication_steps"].widget.attrs[
-            "placeholder"
-        ] = "How to reproduce/find this issue ..."
-        self.fields["host_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on an endpoint ..."
-        self.fields["network_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on a network ..."
-        self.fields["references"].widget.attrs[
-            "placeholder"
-        ] = "Some useful links and references ..."
+        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
+        self.fields["replication_steps"].widget.attrs["placeholder"] = "How to reproduce/find this issue ..."
+        self.fields["host_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on an endpoint ..."
+        self.fields["network_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on a network ..."
+        self.fields["references"].widget.attrs["placeholder"] = "Some useful links and references ..."
         self.fields["finding_guidance"].widget.attrs[
             "placeholder"
         ] = "When using this finding in a report be sure to include ..."
@@ -271,9 +257,7 @@ class ReportForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.project_instance = project
         # Limit the list to just projects not marked as complete
-        active_projects = Project.objects.filter(complete=False).order_by(
-            "-start_date", "client", "project_type"
-        )
+        active_projects = Project.objects.filter(complete=False).order_by("-start_date", "client", "project_type")
         if active_projects:
             self.fields["project"].empty_label = "-- Select an Active Project --"
         else:
@@ -281,9 +265,7 @@ class ReportForm(forms.ModelForm):
         self.fields["project"].queryset = active_projects
         self.fields[
             "project"
-        ].label_from_instance = (
-            lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
-        )
+        ].label_from_instance = lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
         self.fields["docx_template"].label = "DOCX Template"
         self.fields["pptx_template"].label = "PPTX Template"
         self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
@@ -344,33 +326,17 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         )
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["affected_entities"].widget.attrs[
-            "placeholder"
-        ] = "List of Hostnames or IP Addresses"
+        self.fields["affected_entities"].widget.attrs["placeholder"] = "List of Hostnames or IP Addresses"
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS vector ..."
-        self.fields["mitigation"].widget.attrs[
-            "placeholder"
-        ] = "What needs to be done ..."
-        self.fields["replication_steps"].widget.attrs[
-            "placeholder"
-        ] = "How to reproduce/find this issue ..."
-        self.fields["host_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on an endpoint ..."
-        self.fields["network_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on a network ..."
-        self.fields["references"].widget.attrs[
-            "placeholder"
-        ] = "Some useful links and references ..."
+        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
+        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
+        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
+        self.fields["replication_steps"].widget.attrs["placeholder"] = "How to reproduce/find this issue ..."
+        self.fields["host_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on an endpoint ..."
+        self.fields["network_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on a network ..."
+        self.fields["references"].widget.attrs["placeholder"] = "Some useful links and references ..."
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -588,17 +554,13 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
-        self.fields["description"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description or Note"
+        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
         # Don't set form buttons for a modal pop-up
         if self.is_modal:
             submit = None
             cancel_button = None
         else:
-            submit = Submit(
-                "submit-button", "Submit", css_class="btn btn-primary col-md-4"
-            )
+            submit = Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4")
             cancel_button = HTML(
                 """
                 <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
@@ -670,9 +632,7 @@ class EvidenceForm(forms.ModelForm):
             for evidence in report_queryset:
                 if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
                     raise ValidationError(
-                        _(
-                            "This friendly name has already been used for a file attached to this finding."
-                        ),
+                        _("This friendly name has already been used for a file attached to this finding."),
                         "duplicate",
                     )
         return friendly_name
@@ -775,12 +735,8 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
         self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
-        self.fields["description"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description on Template Usage"
-        self.fields["changelog"].widget.attrs[
-            "placeholder"
-        ] = "Track Template Modifications"
+        self.fields["description"].widget.attrs["placeholder"] = "Brief Description on Template Usage"
+        self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
@@ -877,9 +833,7 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_id = "report-template-swap-form"
         self.helper.form_tag = True
-        self.helper.form_action = reverse(
-            "reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id}
-        )
+        self.helper.form_action = reverse("reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id})
         self.helper.layout = Layout(
             Row(
                 Column(
@@ -980,9 +934,7 @@ class SeverityForm(forms.ModelForm):
                 )
             if not re.search(valid_hex_regex, color):
                 raise ValidationError(
-                    _(
-                        "Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A)."
-                    ),
+                    _("Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A)."),
                     "invalid",
                 )
 

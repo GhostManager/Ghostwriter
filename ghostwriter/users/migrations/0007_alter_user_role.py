@@ -5,15 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0006_user_role'),
+        ("users", "0006_user_role"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='user',
-            name='role',
-            field=models.CharField(choices=[('user', 'user'), ('manager', 'manager'), ('admin', 'admin'), ('restricted', 'restricted')], default='user', help_text="Role used for role-based access controls. Most users should be `user`. Users who need broader access to projects for oversight should be `manager`. See documentation for more details.", max_length=120),
+            model_name="user",
+            name="role",
+            field=models.CharField(
+                choices=[("user", "user"), ("manager", "manager"), ("admin", "admin"), ("restricted", "restricted")],
+                default="user",
+                help_text="Role used for role-based access controls. Most users should be `user`. Users who need broader access to projects for oversight should be `manager`. See documentation for more details.",
+                max_length=120,
+            ),
         ),
     ]

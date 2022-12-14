@@ -14,9 +14,7 @@ def convert_to_jsonfield(apps, schema_editor):
         # Run ``Domain`` model's old ``get_list()`` method to convert ``str`` to JSON
         try:
             record = {}
-            json_acceptable_string = entry.dns_record.replace('"', "").replace(
-                "'", '"'
-            )
+            json_acceptable_string = entry.dns_record.replace('"', "").replace("'", '"')
             if json_acceptable_string:
                 record = json.loads(json_acceptable_string)
             entry.dns = record
@@ -27,9 +25,8 @@ def convert_to_jsonfield(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0036_auto_20220209_1815'),
+        ("shepherd", "0036_auto_20220209_1815"),
     ]
 
     operations = [

@@ -2,13 +2,12 @@
 import logging
 import os
 
+# 3rd Party Libraries
+import factory
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.test import TestCase
-
-# 3rd Party Libraries
-import factory
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -238,16 +237,12 @@ class ReportTemplateModelTests(TestCase):
             status = docx_report_template.get_status()
             self.assertEqual("success", status)
         except Exception:
-            self.fail(
-                "ReportTemplate model `get_status` method failed unexpectedly with DOCX template!"
-            )
+            self.fail("ReportTemplate model `get_status` method failed unexpectedly with DOCX template!")
         try:
             status = pptx_report_template.get_status()
             self.assertEqual("success", status)
         except Exception:
-            self.fail(
-                "ReportTemplate model `get_status` method failed unexpectedly with PPTX template!"
-            )
+            self.fail("ReportTemplate model `get_status` method failed unexpectedly with PPTX template!")
 
     def test_clean_template_signal(self):
         template = ReportDocxTemplateFactory()
@@ -340,9 +335,7 @@ class ReportFindingLinkModelTests(TestCase):
         num_of_findings = 10
         findings = []
         for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity)
-            )
+            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
         # New position values
         first_pos = 1
         second_pos = 2
@@ -367,9 +360,7 @@ class ReportFindingLinkModelTests(TestCase):
         num_of_findings = 10
         findings = []
         for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity)
-            )
+            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
         # Bump the first half of the findings to the new severity in reverse order
         for f in reversed(range(5)):
             findings[f].severity = self.high_severity
@@ -453,9 +444,7 @@ class ReportFindingLinkModelTests(TestCase):
         num_of_findings = 10
         findings = []
         for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity)
-            )
+            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
         findings[0].position = 100
         findings[0].save()
         findings[0].refresh_from_db()
@@ -538,11 +527,7 @@ class EvidenceModelTests(TestCase):
             self.fail("Evidence.get_absolute_url() raised an exception")
 
     def test_file_extension_validator(self):
-        evidence = EvidenceFactory(
-            document=factory.django.FileField(
-                filename="evidence.PnG", data=b"lorem ipsum"
-            )
-        )
+        evidence = EvidenceFactory(document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum"))
         self.assertEqual(evidence.filename, "evidence.PnG")
 
     def test_prop_filename(self):
@@ -553,11 +538,7 @@ class EvidenceModelTests(TestCase):
             self.fail("Evidence model `filename` property failed unexpectedly!")
 
     def test_delete_old_evidence_on_update_signal(self):
-        evidence = EvidenceFactory(
-            document=factory.django.FileField(
-                filename="evidence.txt", data=b"lorem ipsum"
-            )
-        )
+        evidence = EvidenceFactory(document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"))
         evidence.document = SimpleUploadedFile("new_evidence.txt", b"lorem ipsum")
         evidence.save()
 

@@ -5,7 +5,6 @@ from django.contrib import admin
 
 # Ghostwriter Libraries
 from ghostwriter.singleton.admin import SingletonModelAdmin
-
 from .forms import ReportConfigurationForm
 from .models import (
     CloudServicesConfiguration,
@@ -30,19 +29,41 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
     fieldsets = (
         (
             "Borders",
-            {"fields": ("enable_borders", "border_weight", "border_color",)},
+            {
+                "fields": (
+                    "enable_borders",
+                    "border_weight",
+                    "border_color",
+                )
+            },
         ),
         (
             "Figures",
-            {"fields": ("prefix_figure", "label_figure",)},
+            {
+                "fields": (
+                    "prefix_figure",
+                    "label_figure",
+                )
+            },
         ),
         (
             "Tables",
-            {"fields": ("prefix_table", "label_table",)},
+            {
+                "fields": (
+                    "prefix_table",
+                    "label_table",
+                )
+            },
         ),
         (
             "Report Generation",
-            {"fields": ("report_filename", "default_docx_template", "default_pptx_template",)},
+            {
+                "fields": (
+                    "report_filename",
+                    "default_docx_template",
+                    "default_pptx_template",
+                )
+            },
         ),
     )
 

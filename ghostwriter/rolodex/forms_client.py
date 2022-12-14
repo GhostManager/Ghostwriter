@@ -1,12 +1,5 @@
 """This contains all client-related forms used by the Rolodex application."""
 
-# Django Imports
-from django import forms
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import gettext_lazy as _
-
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
@@ -21,6 +14,13 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
+
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import GeneralConfiguration
@@ -118,9 +118,7 @@ class ClientContactForm(forms.ModelForm):
         self.fields["job_title"].widget.attrs["autocomplete"] = "off"
         self.fields["phone"].widget.attrs["placeholder"] = "Phone Number"
         self.fields["phone"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description of of the POC or a Note"
+        self.fields["note"].widget.attrs["placeholder"] = "Brief Description of of the POC or a Note"
         self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
@@ -218,12 +216,8 @@ class ClientForm(forms.ModelForm):
         self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["short_name"].widget.attrs["placeholder"] = "Short Company Name"
         self.fields["short_name"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description of the Organization or a Note"
-        self.fields["address"].widget.attrs[
-            "placeholder"
-        ] = "Company's Address for Reporting or Shipping"
+        self.fields["note"].widget.attrs["placeholder"] = "Brief Description of the Organization or a Note"
+        self.fields["address"].widget.attrs["placeholder"] = "Company's Address for Reporting or Shipping"
         self.fields["timezone"].initial = general_config.default_timezone
         self.fields["tags"].widget.attrs["placeholder"] = "bank, industry:finance, ..."
         # self.fields["tags"].required = False

@@ -5,17 +5,16 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0028_clientinvite_projectinvite'),
+        ("rolodex", "0028_clientinvite_projectinvite"),
     ]
 
     operations = [
         migrations.RunSQL(
-            'ALTER TABLE rolodex_clientnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;',
+            "ALTER TABLE rolodex_clientnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE rolodex_projectnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;',
+            "ALTER TABLE rolodex_projectnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;",
         ),
         migrations.RunSQL(
             "ALTER TABLE rolodex_client ALTER COLUMN timezone SET DEFAULT 'America/Los_Angeles';",
@@ -27,21 +26,21 @@ class Migration(migrations.Migration):
             "ALTER TABLE rolodex_project ALTER COLUMN timezone SET DEFAULT 'America/Los_Angeles';",
         ),
         migrations.RunSQL(
-            'ALTER TABLE rolodex_project ALTER COLUMN complete SET DEFAULT FALSE;',
+            "ALTER TABLE rolodex_project ALTER COLUMN complete SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE rolodex_projectobjective ALTER COLUMN complete SET DEFAULT FALSE;',
+            "ALTER TABLE rolodex_projectobjective ALTER COLUMN complete SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE rolodex_projectsubtask ALTER COLUMN complete SET DEFAULT FALSE;',
+            "ALTER TABLE rolodex_projectsubtask ALTER COLUMN complete SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE rolodex_projectscope ALTER COLUMN disallowed SET DEFAULT FALSE;',
+            "ALTER TABLE rolodex_projectscope ALTER COLUMN disallowed SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE rolodex_projectscope ALTER COLUMN requires_caution SET DEFAULT FALSE;',
+            "ALTER TABLE rolodex_projectscope ALTER COLUMN requires_caution SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE rolodex_projecttarget ALTER COLUMN compromised SET DEFAULT FALSE;',
+            "ALTER TABLE rolodex_projecttarget ALTER COLUMN compromised SET DEFAULT FALSE;",
         ),
     ]

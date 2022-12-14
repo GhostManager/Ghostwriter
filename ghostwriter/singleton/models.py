@@ -11,7 +11,6 @@ try:
 except ImportError:  # pragma: no cover
     from django.core.cache import get_cache  # noqa isort:skip
 
-
 # Default ID for each singleton model
 DEFAULT_SINGLETON_INSTANCE_ID = 1
 

@@ -159,9 +159,7 @@ urlpatterns += [
         views.ProjectCreate.as_view(),
         name="project_create_no_client",
     ),
-    path(
-        "projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"
-    ),
+    path("projects/create/<int:pk>", views.ProjectCreate.as_view(), name="project_create"),
     path(
         "projects/update/<int:pk>",
         views.ProjectUpdate.as_view(),

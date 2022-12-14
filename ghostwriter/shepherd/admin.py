@@ -134,7 +134,16 @@ class DomainAdmin(ImportExportModelAdmin):
     fieldsets = (
         (
             "General Information",
-            {"fields": ("name", "domain_status", "creation", "expiration", "auto_renew", "tags",)},
+            {
+                "fields": (
+                    "name",
+                    "domain_status",
+                    "creation",
+                    "expiration",
+                    "auto_renew",
+                    "tags",
+                )
+            },
         ),
         (
             "Health Status",
@@ -237,7 +246,15 @@ class StaticServerAdmin(ImportExportModelAdmin):
     fieldsets = (
         (
             "Basic Server Information",
-            {"fields": ("ip_address", "name", "server_status", "server_provider", "tags",)},
+            {
+                "fields": (
+                    "ip_address",
+                    "name",
+                    "server_status",
+                    "server_provider",
+                    "tags",
+                )
+            },
         ),
         (
             "Misc",

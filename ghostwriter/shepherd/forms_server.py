@@ -1,13 +1,5 @@
 """This contains all server-related forms used by the Shepherd application."""
 
-# Django Imports
-from django import forms
-from django.contrib.postgres.forms import SplitArrayField
-from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, TabHolder
 from crispy_forms.helper import FormHelper
@@ -23,10 +15,17 @@ from crispy_forms.layout import (
     Submit,
 )
 
+# Django Imports
+from django import forms
+from django.contrib.postgres.forms import SplitArrayField
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.rolodex.models import Project
-
 from .models import (
     AuxServerAddress,
     ServerHistory,
@@ -90,9 +89,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "primary",
                             ValidationError(
-                                _(
-                                    "You can not mark two addresses as the primary address"
-                                ),
+                                _("You can not mark two addresses as the primary address"),
                                 code="duplicate",
                             ),
                         )
@@ -286,12 +283,9 @@ class TransientServerForm(forms.ModelForm):
     :model:`rolodex.Project`.
     """
 
-    aux_address = SplitArrayField(
-        forms.GenericIPAddressField(), size=3, remove_trailing_nulls=True
-    )
+    aux_address = SplitArrayField(forms.GenericIPAddressField(), size=3, remove_trailing_nulls=True)
 
     class Meta:
-
         model = TransientServer
         fields = "__all__"
         widgets = {
@@ -364,7 +358,6 @@ class ServerNoteForm(forms.ModelForm):
     """
 
     class Meta:
-
         model = ServerNote
         fields = ("note",)
 
@@ -482,15 +475,11 @@ class ServerCheckoutForm(forms.ModelForm):
         if "client" in self.data:
             try:
                 client_id = int(self.data.get("client"))
-                self.fields["project"].queryset = Project.objects.filter(
-                    client_id=client_id
-                ).order_by("codename")
+                self.fields["project"].queryset = Project.objects.filter(client_id=client_id).order_by("codename")
             except (ValueError, TypeError):  # pragma: no cover
                 pass
         elif self.instance.pk:
-            self.fields["project"].queryset = self.instance.client.project_set.order_by(
-                "codename"
-            )
+            self.fields["project"].queryset = self.instance.client.project_set.order_by("codename")
 
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]
@@ -498,9 +487,7 @@ class ServerCheckoutForm(forms.ModelForm):
 
         # Check if end_date comes before the start_date
         if end_date < start_date:
-            raise ValidationError(
-                _("The provided end date comes before the start date."), code="invalid"
-            )
+            raise ValidationError(_("The provided end date comes before the start date."), code="invalid")
         return end_date
 
     def clean_server(self):
@@ -510,9 +497,7 @@ class ServerCheckoutForm(forms.ModelForm):
             unavailable = ServerStatus.objects.get(server_status="Unavailable")
             if server.server_status == unavailable:
                 raise ValidationError(
-                    _(
-                        "Someone beat you to it – This server has already been checked out!"
-                    ),
+                    _("Someone beat you to it – This server has already been checked out!"),
                     code="unavailable",
                 )
         return server

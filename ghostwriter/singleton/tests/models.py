@@ -8,9 +8,7 @@ from ghostwriter.singleton.models import SingletonModel
 
 class SiteConfiguration(SingletonModel):
     site_name = models.CharField(max_length=255, default="Default Config")
-    file = models.FileField(
-        upload_to="files", default=SimpleUploadedFile("default-file.pdf", None)
-    )
+    file = models.FileField(upload_to="files", default=SimpleUploadedFile("default-file.pdf", None))
 
     def __unicode__(self):
         return "Site Configuration"

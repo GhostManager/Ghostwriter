@@ -5,42 +5,41 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0032_migrate_domain_categories'),
+        ("shepherd", "0032_migrate_domain_categories"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='domain',
-            name='all_cat',
+            model_name="domain",
+            name="all_cat",
         ),
         migrations.RemoveField(
-            model_name='domain',
-            name='bluecoat_cat',
+            model_name="domain",
+            name="bluecoat_cat",
         ),
         migrations.RemoveField(
-            model_name='domain',
-            name='fortiguard_cat',
+            model_name="domain",
+            name="fortiguard_cat",
         ),
         migrations.RemoveField(
-            model_name='domain',
-            name='ibm_xforce_cat',
+            model_name="domain",
+            name="ibm_xforce_cat",
         ),
         migrations.RemoveField(
-            model_name='domain',
-            name='mx_toolbox_status',
+            model_name="domain",
+            name="mx_toolbox_status",
         ),
         migrations.RemoveField(
-            model_name='domain',
-            name='opendns_cat',
+            model_name="domain",
+            name="opendns_cat",
         ),
         migrations.RemoveField(
-            model_name='domain',
-            name='talos_cat',
+            model_name="domain",
+            name="talos_cat",
         ),
         migrations.RemoveField(
-            model_name='domain',
-            name='trendmicro_cat',
+            model_name="domain",
+            name="trendmicro_cat",
         ),
     ]

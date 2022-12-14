@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def createOplogEntry(oplog_id, user):
     OplogEntry.objects.create(oplog_id_id=oplog_id, operator_name=user.username)
 
+
 @database_sync_to_async
 def deleteOplogEntry(oplogEntryId):
     try:
@@ -29,6 +30,7 @@ def deleteOplogEntry(oplogEntryId):
     except OplogEntry.DoesNotExist:
         # This is fine, it just means the entry was already deleted
         pass
+
 
 @database_sync_to_async
 def copyOplogEntry(oplogEntryId):
@@ -42,7 +44,7 @@ def copyOplogEntry(oplogEntryId):
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
-    def getLogEntries(self, oplogId:int, offset:int) -> ReturnList:
+    def getLogEntries(self, oplogId: int, offset: int) -> ReturnList:
         entries = OplogEntry.objects.filter(oplog_id=oplogId).order_by("-start_date")
         if len(entries) == offset:
             serialized_entries = OplogEntrySerializer([], many=True).data

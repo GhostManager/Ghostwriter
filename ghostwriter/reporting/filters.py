@@ -1,14 +1,14 @@
 """This contains all of the model filters used by the Reporting application."""
 
-# Django Imports
-from django import forms
-from django.forms.widgets import TextInput
-
 # 3rd Party Libraries
 import django_filters
 from crispy_forms.bootstrap import InlineCheckboxes, PrependedText
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
+
+# Django Imports
+from django import forms
+from django.forms.widgets import TextInput
 
 from .models import Archive, Finding, FindingType, Report, Severity
 
@@ -118,9 +118,7 @@ class ReportFilter(django_filters.FilterSet):
         (1, "Completed"),
     )
 
-    complete = django_filters.ChoiceFilter(
-        choices=STATUS_CHOICES, empty_label=None, label="Report Status"
-    )
+    complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label=None, label="Report Status")
 
     class Meta:
         model = Report

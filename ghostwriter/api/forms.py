@@ -1,8 +1,11 @@
 """This contains all of the forms used by the API application."""
 
-
 # Standard Libraries
 from datetime import timedelta
+
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Django Imports
 from django import forms
@@ -10,22 +13,22 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-# 3rd Party Libraries
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
-
 
 class ApiKeyForm(forms.Form):
     """
     Save an individual :model:`oplog.Oplog`.
     """
+
     name = forms.CharField()
     expiry_date = forms.DateTimeField(
         input_formats=["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M"],
     )
 
     class Meta:
-        fields = ["name", "expiry_date", ]
+        fields = [
+            "name",
+            "expiry_date",
+        ]
 
     def __init__(self, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,7 +36,9 @@ class ApiKeyForm(forms.Form):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["expiry_date"].widget.input_type = "datetime-local"
         self.fields["expiry_date"].initial = timezone.now() + timedelta(days=1)
-        self.fields["expiry_date"].help_text = f"Pick a date / time and then select AM or PM (uses server's time zone–{settings.TIME_ZONE})"
+        self.fields[
+            "expiry_date"
+        ].help_text = f"Pick a date / time and then select AM or PM (uses server's time zone–{settings.TIME_ZONE})"
         self.fields["name"].help_text = "Enter a name to help you identify this API key later"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()

@@ -126,7 +126,7 @@ class Command(BaseCommand):
                 whois_status=random.choice(WHOIS_STATUS),
                 health_status=random.choice(HEALTH_STATUS),
                 domain_status=random.choice(DOMAIN_STATUS),
-                last_used_by=random.choice(USERS)
+                last_used_by=random.choice(USERS),
             )
             domains.append(d)
 
@@ -137,7 +137,7 @@ class Command(BaseCommand):
             s = StaticServerFactory(
                 server_provider=random.choice(PROVIDERS),
                 server_status=random.choice(SERVER_STATUS),
-                last_used_by=random.choice(USERS)
+                last_used_by=random.choice(USERS),
             )
             servers.append(s)
 
@@ -184,9 +184,7 @@ class Command(BaseCommand):
 
             for _ in range(USERS_PER_PROJECT):
                 a = ProjectAssignmentFactory(
-                    project=p,
-                    operator=random.choice(USERS),
-                    role=random.choice(PROJECT_ROLES)
+                    project=p, operator=random.choice(USERS), role=random.choice(PROJECT_ROLES)
                 )
                 assignments.append(a)
 
@@ -244,9 +242,7 @@ class Command(BaseCommand):
             # Populate project objectives + subtasks
             for _ in range(OBJS_PER_PROJECT):
                 o = ProjectObjectiveFactory(
-                    project=p,
-                    status=random.choice(OBJ_STATUS),
-                    priority=random.choice(OBJ_PRIORITIES)
+                    project=p, status=random.choice(OBJ_STATUS), priority=random.choice(OBJ_PRIORITIES)
                 )
                 objectives.append(o)
 

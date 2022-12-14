@@ -4,20 +4,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0009_auxserveraddress'),
+        ("shepherd", "0009_auxserveraddress"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='auxserveraddress',
-            name='primary',
-            field=models.BooleanField(default=False, help_text="Mark the address as the server's primary address", verbose_name='Primary Address'),
+            model_name="auxserveraddress",
+            name="primary",
+            field=models.BooleanField(
+                default=False,
+                help_text="Mark the address as the server's primary address",
+                verbose_name="Primary Address",
+            ),
         ),
         migrations.AlterField(
-            model_name='auxserveraddress',
-            name='ip_address',
-            field=models.GenericIPAddressField(help_text='Enter the auxiliary IP address for the server', verbose_name='IP Address'),
+            model_name="auxserveraddress",
+            name="ip_address",
+            field=models.GenericIPAddressField(
+                help_text="Enter the auxiliary IP address for the server", verbose_name="IP Address"
+            ),
         ),
     ]

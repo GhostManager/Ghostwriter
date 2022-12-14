@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('commandcenter', '0001_initial'),
+        ("commandcenter", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='cloudservicesconfiguration',
-            name='ignore_tag',
-            field=models.CharField(default='gw_ignore', help_text='Ghostwriter will ignore cloud assets with one of these tags (comma-separated list)', max_length=255, verbose_name='Ignore Tags'),
+            model_name="cloudservicesconfiguration",
+            name="ignore_tag",
+            field=models.CharField(
+                default="gw_ignore",
+                help_text="Ghostwriter will ignore cloud assets with one of these tags (comma-separated list)",
+                max_length=255,
+                verbose_name="Ignore Tags",
+            ),
         ),
     ]

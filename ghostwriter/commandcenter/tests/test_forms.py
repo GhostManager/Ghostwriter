@@ -32,8 +32,7 @@ class ReportConfigurationFormTests(TestCase):
         cls.invalid_pptx_template.save()
 
         cls.config = ReportConfigurationFactory(
-            default_docx_template_id=cls.valid_docx_template.pk,
-            default_pptx_template_id=cls.valid_pptx_template.pk
+            default_docx_template_id=cls.valid_docx_template.pk, default_pptx_template_id=cls.valid_pptx_template.pk
         )
 
     def setUp(self):

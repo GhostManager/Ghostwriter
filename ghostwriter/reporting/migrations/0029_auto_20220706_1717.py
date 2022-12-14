@@ -5,16 +5,11 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0028_auto_20220608_1808'),
+        ("reporting", "0028_auto_20220608_1808"),
     ]
 
     operations = [
-        migrations.RunSQL(
-            'ALTER TABLE reporting_reportfindinglink ALTER COLUMN complete SET DEFAULT FALSE;'
-        ),
-        migrations.RunSQL(
-            'ALTER TABLE reporting_reportfindinglink ALTER COLUMN position SET DEFAULT 1;'
-        ),
+        migrations.RunSQL("ALTER TABLE reporting_reportfindinglink ALTER COLUMN complete SET DEFAULT FALSE;"),
+        migrations.RunSQL("ALTER TABLE reporting_reportfindinglink ALTER COLUMN position SET DEFAULT 1;"),
     ]

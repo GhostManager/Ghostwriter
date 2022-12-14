@@ -44,7 +44,7 @@ class ReportDataSerializerTests(TestCase):
             cls.num_of_subtasks,
             cls.num_of_domains,
             cls.num_of_servers,
-            cls.num_of_deconflictions
+            cls.num_of_deconflictions,
         )
 
         cls.serializer = ReportDataSerializer(

@@ -23,7 +23,6 @@ from tablib import Dataset
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex.models import Project
-
 from .admin import OplogEntryResource
 from .forms import OplogEntryForm, OplogForm
 from .models import Oplog, OplogEntry
@@ -46,7 +45,10 @@ class OplogMuteToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin
     model = Oplog
 
     def test_func(self):
-        if self.request.user.role in ("manager", "admin",):
+        if self.request.user.role in (
+            "manager",
+            "admin",
+        ):
             return True
         return self.request.user.is_staff
 
@@ -145,9 +147,7 @@ def OplogEntriesImport(request):
             "Successfully imported log data",
             extra_tags="alert-success",
         )
-        return HttpResponseRedirect(
-            reverse("oplog:oplog_entries", kwargs={"pk": oplog_id})
-        )
+        return HttpResponseRedirect(reverse("oplog:oplog_entries", kwargs={"pk": oplog_id}))
 
     return render(request, "oplog/oplog_import.html")
 
@@ -219,9 +219,7 @@ class OplogCreate(LoginRequiredMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.project
         if self.project:
-            ctx["cancel_link"] = reverse(
-                "rolodex:project_detail", kwargs={"pk": self.project.pk}
-            )
+            ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.project.pk})
         else:
             ctx["cancel_link"] = reverse("oplog:index")
         return ctx
@@ -249,7 +247,7 @@ class OplogCreate(LoginRequiredMixin, CreateView):
             # Pass the API key via the messages framework
             messages.info(
                 self.request,
-                f'The logging API key for project { project } and log "{ api_key }" is: { key }\r\nPlease store it somewhere safe: you will not be able to see it again.',
+                f'The logging API key for project {project} and log "{api_key}" is: {key}\r\nPlease store it somewhere safe: you will not be able to see it again.',
                 extra_tags="api-key no-toast",
             )
         except Exception:
@@ -297,7 +295,7 @@ class OplogUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class AjaxTemplateMixin():
+class AjaxTemplateMixin:
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(self, "ajax_template_name"):
             split = self.template_name.split(".html")
@@ -357,9 +355,7 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
             queryset = OplogEntry.objects.all().order_by("-start_date")
         else:
             oplog_id = self.request.query_params["oplog_id"]
-            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by(
-                "-start_date"
-            )
+            queryset = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
         if "export" in request.query_params:
             export_format = request.query_params["export"]
             dataset = OplogEntryResource().export(queryset)

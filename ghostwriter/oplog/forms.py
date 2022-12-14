@@ -1,17 +1,15 @@
 """This contains all of the forms used by the Oplog application."""
 
-
 # Standard Libraries
 from datetime import datetime
-
-# Django Imports
-from django import forms
-from django.urls import reverse
-from django.utils.timezone import make_aware
 
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+# Django Imports
+from django import forms
+from django.urls import reverse
+from django.utils.timezone import make_aware
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -69,6 +67,7 @@ class OplogEntryForm(forms.ModelForm):
     """
     Save an individual :model:`oplog.OplogEntry`.
     """
+
     start_date = forms.DateTimeField(
         input_formats=["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M"],
     )

@@ -38,9 +38,7 @@ class OplogListTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -80,9 +78,7 @@ class OplogListEntriesTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -100,9 +96,7 @@ class OplogListEntriesTests(TestCase):
     def test_custom_context_exists(self):
         response = self.client_auth.get(self.uri)
 
-        entries = self.OplogEntry.objects.filter(oplog_id=self.oplog.pk).order_by(
-            "-start_date"
-        )
+        entries = self.OplogEntry.objects.filter(oplog_id=self.oplog.pk).order_by("-start_date")
         self.assertIn("entries", response.context)
         self.assertIn("pk", response.context)
         self.assertIn("name", response.context)
@@ -135,9 +129,7 @@ class OplogEntriesImportTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -169,9 +161,7 @@ class OplogEntriesImportTests(TestCase):
             "operator_name",
         ]
         with open(filename, "w") as csvfile:
-            writer = csv.DictWriter(
-                csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_NONE
-            )
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_NONE)
             writer.writeheader()
             for entry in self.OplogEntry.objects.all():
                 row = {}
@@ -208,9 +198,7 @@ class OplogCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -286,21 +274,13 @@ class OplogMuteToggleViewTests(TestCase):
         self.client_admin = Client()
         self.client_staff = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.mgr_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.mgr_user.username, password=PASSWORD))
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
         self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {

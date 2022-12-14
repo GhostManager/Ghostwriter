@@ -31,9 +31,7 @@ class ReportConsumer(AsyncWebsocketConsumer):
         message = text_data_json["message"]
 
         # Send message to project group
-        await self.channel_layer.group_send(
-            self.report_group_name, {"type": "message", "message": message}
-        )
+        await self.channel_layer.group_send(self.report_group_name, {"type": "message", "message": message})
 
     # Message type of ``message`` for general communication
     async def message(self, event):

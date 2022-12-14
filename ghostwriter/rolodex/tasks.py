@@ -7,7 +7,6 @@ from datetime import date
 
 # Ghostwriter Libraries
 from ghostwriter.modules.notifications_slack import SlackNotification
-
 from .models import Project
 
 # Using __name__ resolves to ghostwriter.rolodex.tasks

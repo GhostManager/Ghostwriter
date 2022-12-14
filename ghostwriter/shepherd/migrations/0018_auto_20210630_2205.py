@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0017_domain_reset_dns'),
+        ("shepherd", "0017_domain_reset_dns"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='transientserver',
-            name='note',
-            field=models.TextField(blank=True, help_text='Use this area to provide project-related notes, such as how the server will be used', null=True, verbose_name='Notes'),
+            model_name="transientserver",
+            name="note",
+            field=models.TextField(
+                blank=True,
+                help_text="Use this area to provide project-related notes, such as how the server will be used",
+                null=True,
+                verbose_name="Notes",
+            ),
         ),
     ]

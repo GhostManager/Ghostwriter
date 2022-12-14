@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0001_initial'),
+        ("shepherd", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='serverprovider',
-            name='server_provider',
-            field=models.CharField(help_text='Name of the server provider (e.g. Amazon Web Services, Azure)', max_length=100, unique=True),
+            model_name="serverprovider",
+            name="server_provider",
+            field=models.CharField(
+                help_text="Name of the server provider (e.g. Amazon Web Services, Azure)", max_length=100, unique=True
+            ),
         ),
     ]

@@ -27,9 +27,7 @@ class ApiKeyModelTests(TestCase):
 
     def test_crud(self):
         # Create
-        token_obj, token = APIKey.objects.create_token(
-            user=self.user, name="Valid Token"
-        )
+        token_obj, token = APIKey.objects.create_token(user=self.user, name="Valid Token")
         self.assertTrue(token_obj)
 
         # Read
@@ -72,7 +70,9 @@ class ApiKeyModelTests(TestCase):
     def test_is_valid(self):
         _, valid_token = APIKey.objects.create_token(user=self.user, name="Valid Token")
         _, inactive_token = APIKey.objects.create_token(user=self.inactive_user, name="Inactive Token")
-        _, revoked_token = APIKey.objects.create_token(user=self.user, name="Revoked Token", revoked=True, expiry_date=timezone.now()+timedelta(days=5))
+        _, revoked_token = APIKey.objects.create_token(
+            user=self.user, name="Revoked Token", revoked=True, expiry_date=timezone.now() + timedelta(days=5)
+        )
         _, expired_token = APIKey.objects.create_token(user=self.user, name="Expired Token", expiry_date=self.yesterday)
 
         self.assertTrue(APIKey.objects.is_valid(valid_token))

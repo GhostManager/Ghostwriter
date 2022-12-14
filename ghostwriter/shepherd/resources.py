@@ -40,9 +40,7 @@ class DomainResource(resources.ModelResource):
     class Meta:
         model = Domain
         skip_unchanged = True
-        exclude = (
-            "last_used_by",
-        )
+        exclude = ("last_used_by",)
 
         export_order = (
             "id",
