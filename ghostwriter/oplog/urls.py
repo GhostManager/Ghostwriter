@@ -1,9 +1,7 @@
 """This contains all of the URL mappings used by the Oplog application."""
 
-
 # Django Imports
 from django.urls import include, path
-
 # 3rd Party Libraries
 from rest_framework import routers
 

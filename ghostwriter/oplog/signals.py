@@ -3,17 +3,16 @@
 # Standard Libraries
 import json
 import logging
-from asgiref.sync import async_to_sync
 from datetime import datetime
 from socket import gaierror
 
+from asgiref.sync import async_to_sync
+# 3rd Party Libraries
+from channels.layers import get_channel_layer
 # Django Imports
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils.timezone import make_aware
-
-# 3rd Party Libraries
-from channels.layers import get_channel_layer
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
@@ -49,9 +48,7 @@ def signal_oplog_entry(sender, instance, **kwargs):
         serialized_entry = OplogEntrySerializer(instance).data
         json_message = json.dumps({"action": "create", "data": serialized_entry})
 
-        async_to_sync(channel_layer.group_send)(
-            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
-        )
+        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
     except gaierror:  # pragma: no cover
         # WebSocket are unavailable (unit testing)
         pass
@@ -68,9 +65,7 @@ def delete_oplog_entry(sender, instance, **kwargs):
         oplog_id = instance.oplog_id.id
         entry_id = instance.id
         json_message = json.dumps({"action": "delete", "data": entry_id})
-        async_to_sync(channel_layer.group_send)(
-            str(oplog_id), {"type": "send_oplog_entry", "text": json_message}
-        )
+        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
     except Oplog.DoesNotExist:  # pragma: no cover
         # Oplog has been deleted and this is a cascading delete
         pass

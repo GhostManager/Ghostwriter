@@ -47,9 +47,7 @@ def delete_old_avatar_on_update(sender, instance, **kwargs):
             if instance._current_avatar.path not in instance.avatar.path:
                 try:
                     os.remove(instance._current_avatar.path)
-                    logger.info(
-                        "Deleted old avatar image file %s", instance._current_avatar.path
-                    )
+                    logger.info("Deleted old avatar image file %s", instance._current_avatar.path)
                 except Exception:  # pragma: no cover
                     logger.exception(
                         "Failed deleting old avatar image file: %s",

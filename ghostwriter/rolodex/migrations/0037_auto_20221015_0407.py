@@ -4,20 +4,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0036_whitecard'),
+        ("rolodex", "0036_whitecard"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='whitecard',
-            name='issued',
-            field=models.DateTimeField(blank=True, help_text='Date and time the client issued this white card', null=True, verbose_name='Issued'),
+            model_name="whitecard",
+            name="issued",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="Date and time the client issued this white card",
+                null=True,
+                verbose_name="Issued",
+            ),
         ),
         migrations.AlterField(
-            model_name='whitecard',
-            name='title',
-            field=models.CharField(blank=True, help_text='Provide a descriptive headline for this white card (e.g., a username, hostname, or short sentence', max_length=255, null=True, verbose_name='Title'),
+            model_name="whitecard",
+            name="title",
+            field=models.CharField(
+                blank=True,
+                help_text="Provide a descriptive headline for this white card (e.g., a username, hostname, or short sentence",
+                max_length=255,
+                null=True,
+                verbose_name="Title",
+            ),
         ),
     ]

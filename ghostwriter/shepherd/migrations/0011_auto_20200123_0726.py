@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0010_auto_20200123_0204'),
+        ("shepherd", "0010_auto_20200123_0204"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='auxserveraddress',
-            name='ip_address',
-            field=models.GenericIPAddressField(help_text='Enter the auxiliary IP address for the server', unique=True, verbose_name='IP Address'),
+            model_name="auxserveraddress",
+            name="ip_address",
+            field=models.GenericIPAddressField(
+                help_text="Enter the auxiliary IP address for the server", unique=True, verbose_name="IP Address"
+            ),
         ),
     ]

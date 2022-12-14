@@ -9,7 +9,6 @@ from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.generic.edit import View
-
 # 3rd Party Libraries
 from health_check.views import MainView, MediaType
 

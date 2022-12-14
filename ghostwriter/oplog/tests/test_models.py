@@ -2,11 +2,10 @@
 import logging
 from datetime import datetime
 
-# Django Imports
-from django.test import TestCase
-
 # 3rd Party Libraries
 import pytz
+# Django Imports
+from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import OplogEntryFactory, OplogFactory

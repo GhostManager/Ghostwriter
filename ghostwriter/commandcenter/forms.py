@@ -24,9 +24,7 @@ class ReportConfigurationForm(forms.ModelForm):
             docx_template_status = docx_template.get_status()
             if docx_template_status in ("error", "failed"):
                 raise ValidationError(
-                    _(
-                        "Your selected Word template failed linting and cannot be used as a default template"
-                    ),
+                    _("Your selected Word template failed linting and cannot be used as a default template"),
                     "invalid",
                 )
         return docx_template
@@ -37,9 +35,7 @@ class ReportConfigurationForm(forms.ModelForm):
             pptx_template_status = pptx_template.get_status()
             if pptx_template_status in ("error", "failed"):
                 raise ValidationError(
-                    _(
-                        "Your selected PowerPoint template failed linting and cannot be used as a default template"
-                    ),
+                    _("Your selected PowerPoint template failed linting and cannot be used as a default template"),
                     "invalid",
                 )
         return pptx_template

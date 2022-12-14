@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('commandcenter', '0013_reportconfiguration_report_filename'),
+        ("commandcenter", "0013_reportconfiguration_report_filename"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='reportconfiguration',
-            name='report_filename',
-            field=models.CharField(default='{Y-m-d}_{His} {company} - {client} {assessment_type} Report', help_text='Name of the report file when downloaded that can include the following variables: date, company, client, assessment_type, and date format string values', max_length=255, verbose_name='Default Name for Report Downloads'),
+            model_name="reportconfiguration",
+            name="report_filename",
+            field=models.CharField(
+                default="{Y-m-d}_{His} {company} - {client} {assessment_type} Report",
+                help_text="Name of the report file when downloaded that can include the following variables: date, company, client, assessment_type, and date format string values",
+                max_length=255,
+                verbose_name="Default Name for Report Downloads",
+            ),
         ),
     ]

@@ -2,19 +2,18 @@
 import logging
 from datetime import datetime, timedelta
 
+# 3rd Party Libraries
+import jwt
+
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
-
-# 3rd Party Libraries
-import jwt
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex.models import ClientInvite, ProjectAssignment, ProjectInvite
 
 # Using __name__ resolves to ghostwriter.utils
 logger = logging.getLogger(__name__)
-
 
 User = get_user_model()
 
@@ -167,7 +166,9 @@ def generate_hasura_error_payload(error_message, error_code):
     """
     return {
         "message": error_message,
-        "extensions": {"code": error_code, },
+        "extensions": {
+            "code": error_code,
+        },
     }
 
 

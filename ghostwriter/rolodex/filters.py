@@ -1,14 +1,14 @@
 """This contains all of the model filters used by the Rolodex application."""
 
-# Django Imports
-from django import forms
-from django.forms.widgets import TextInput
-
 # 3rd Party Libraries
 import django_filters
 from crispy_forms.bootstrap import PrependedText
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
+
+# Django Imports
+from django import forms
+from django.forms.widgets import TextInput
 
 from .models import Client, Project
 
@@ -136,18 +136,14 @@ class ProjectFilter(django_filters.FilterSet):
         label="End Date",
         widget=forms.DateInput(attrs={"type": "date", "class": "dateinput form-control"}),
     )
-    start_date_range = django_filters.DateRangeFilter(
-        field_name="start_date", empty_label="-- Relative Start Date --"
-    )
+    start_date_range = django_filters.DateRangeFilter(field_name="start_date", empty_label="-- Relative Start Date --")
 
     STATUS_CHOICES = (
         (0, "Active"),
         (1, "Completed"),
     )
 
-    complete = django_filters.ChoiceFilter(
-        choices=STATUS_CHOICES, empty_label="All Projects", label="Project status"
-    )
+    complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label="All Projects", label="Project status")
 
     class Meta:
         model = Project
@@ -174,14 +170,11 @@ class ProjectFilter(django_filters.FilterSet):
                         css_class="form-group col-md-4 mb-0",
                     ),
                     Column("complete", css_class="form-group col-md-4 mb-0"),
-
                 ),
                 Row(
                     Column("start_date_range", css_class="form-group col-md-4 mb-0"),
                     Column(
-                        PrependedText(
-                            "start_date", '<i class="fas fa-hourglass-start"></i>'
-                        ),
+                        PrependedText("start_date", '<i class="fas fa-hourglass-start"></i>'),
                         css_class="form-group col-md-4 mb-0",
                     ),
                     Column(

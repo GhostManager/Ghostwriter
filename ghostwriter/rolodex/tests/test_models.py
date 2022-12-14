@@ -157,9 +157,7 @@ class ProjectModelTests(TestCase):
         self.assertEqual(project.pk, project.id)
         self.assertQuerysetEqual(
             self.Project.objects.all(),
-            [
-                f"<Project: {project.start_date} {project.client} {project.project_type} (S3kr3t Codename)>"
-            ],
+            [f"<Project: {project.start_date} {project.client} {project.project_type} (S3kr3t Codename)>"],
         )
 
         # Update
@@ -167,9 +165,7 @@ class ProjectModelTests(TestCase):
         project.save()
         self.assertQuerysetEqual(
             self.Project.objects.all(),
-            [
-                f"<Project: {project.start_date} {project.client} {project.project_type} (New Name)>"
-            ],
+            [f"<Project: {project.start_date} {project.client} {project.project_type} (New Name)>"],
         )
 
         # Delete
@@ -191,18 +187,12 @@ class ProjectModelTests(TestCase):
             end_date=date.today() + timedelta(days=14),
         )
 
-        domain_checkout = HistoryFactory(
-            start_date=project.start_date, end_date=project.end_date, project=project
-        )
-        exp_domain_checkout = HistoryFactory(
-            start_date=project.start_date, end_date=yesterday, project=project
-        )
+        domain_checkout = HistoryFactory(start_date=project.start_date, end_date=project.end_date, project=project)
+        exp_domain_checkout = HistoryFactory(start_date=project.start_date, end_date=yesterday, project=project)
         server_checkout = ServerHistoryFactory(
             start_date=project.start_date, end_date=project.end_date, project=project
         )
-        exp_server_checkout = ServerHistoryFactory(
-            start_date=project.start_date, end_date=yesterday, project=project
-        )
+        exp_server_checkout = ServerHistoryFactory(start_date=project.start_date, end_date=yesterday, project=project)
 
         new_start = project.start_date - timedelta(days=7)
         new_end = project.end_date + timedelta(days=7)
@@ -290,9 +280,7 @@ class ProjectAssignmentModelTests(TestCase):
         self.assertEqual(assignment.pk, assignment.id)
         self.assertQuerysetEqual(
             self.ProjectAssignment.objects.all(),
-            [
-                f"<ProjectAssignment: {self.user} - {assignment.project} {assignment.end_date})>"
-            ],
+            [f"<ProjectAssignment: {self.user} - {assignment.project} {assignment.end_date})>"],
         )
 
         # Update
@@ -300,9 +288,7 @@ class ProjectAssignmentModelTests(TestCase):
         assignment.save()
         self.assertQuerysetEqual(
             self.ProjectAssignment.objects.all(),
-            [
-                f"<ProjectAssignment: {self.new_user} - {assignment.project} {assignment.end_date})>"
-            ],
+            [f"<ProjectAssignment: {self.new_user} - {assignment.project} {assignment.end_date})>"],
         )
 
         # Delete
@@ -422,9 +408,7 @@ class ProjectObjectiveModelTests(TestCase):
             status = obj.calculate_status()
             self.assertEqual(100.0, status)
         except Exception:
-            self.fail(
-                "ProjectObjective model `calculate_status` method failed unexpectedly!"
-            )
+            self.fail("ProjectObjective model `calculate_status` method failed unexpectedly!")
 
 
 class ProjectSubTaskModelTests(TestCase):
@@ -452,9 +436,7 @@ class ProjectSubTaskModelTests(TestCase):
         task.save()
         self.assertQuerysetEqual(
             self.ProjectSubtask.objects.all(),
-            [
-                f"<ProjectSubTask: {task.parent.project} : Compromise an account ({task.status})>"
-            ],
+            [f"<ProjectSubTask: {task.parent.project} : Compromise an account ({task.status})>"],
         )
 
         # Delete
@@ -744,7 +726,9 @@ class DeconflictionModelTests(TestCase):
 
         entry_too_old = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(days=1))
         entry_hour_old = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(hours=1))
-        entry_within_hour = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(minutes=30))
+        entry_within_hour = OplogEntryFactory(
+            oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(minutes=30)
+        )
         entry_recent = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) + timedelta(minutes=5))
 
         self.assertEqual(len(deconfliction.log_entries), 2)

@@ -4,25 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0011_projectsubtask'),
+        ("rolodex", "0011_projectsubtask"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='objectivestatus',
-            name='objective_status',
-            field=models.CharField(help_text="Objective's status", max_length=255, unique=True, verbose_name='Objective Status'),
+            model_name="objectivestatus",
+            name="objective_status",
+            field=models.CharField(
+                help_text="Objective's status", max_length=255, unique=True, verbose_name="Objective Status"
+            ),
         ),
         migrations.AlterField(
-            model_name='projectobjective',
-            name='deadline',
-            field=models.DateField(blank=True, help_text="Objective's deadline/due date", max_length=12, null=True, verbose_name='Due Date'),
+            model_name="projectobjective",
+            name="deadline",
+            field=models.DateField(
+                blank=True, help_text="Objective's deadline/due date", max_length=12, null=True, verbose_name="Due Date"
+            ),
         ),
         migrations.AlterField(
-            model_name='projectobjective',
-            name='objective',
-            field=models.TextField(blank=True, help_text='Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles', null=True, verbose_name='Objective'),
+            model_name="projectobjective",
+            name="objective",
+            field=models.TextField(
+                blank=True,
+                help_text="Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles",
+                null=True,
+                verbose_name="Objective",
+            ),
         ),
     ]

@@ -265,9 +265,7 @@ LINTER_CONTEXT = {
                 "role": "Team Server / C2 Server",
                 "start_date": "Mar. 1, 2021",
                 "end_date": "Jun. 25, 2021",
-                "dns": [
-                    {"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}
-                ],
+                "dns": [{"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}],
                 "note": "<p>Long-haul C2 server</p>",
                 "note_rt": "",
             },

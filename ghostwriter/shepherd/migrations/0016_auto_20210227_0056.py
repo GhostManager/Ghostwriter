@@ -4,26 +4,41 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0015_auto_20201120_0620'),
+        ("shepherd", "0015_auto_20201120_0620"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='domainstatus',
-            options={'ordering': ['domain_status'], 'verbose_name': 'Domain status', 'verbose_name_plural': 'Domain status'},
+            name="domainstatus",
+            options={
+                "ordering": ["domain_status"],
+                "verbose_name": "Domain status",
+                "verbose_name_plural": "Domain status",
+            },
         ),
         migrations.AlterModelOptions(
-            name='healthstatus',
-            options={'ordering': ['health_status'], 'verbose_name': 'Health status', 'verbose_name_plural': 'Health status'},
+            name="healthstatus",
+            options={
+                "ordering": ["health_status"],
+                "verbose_name": "Health status",
+                "verbose_name_plural": "Health status",
+            },
         ),
         migrations.AlterModelOptions(
-            name='serverstatus',
-            options={'ordering': ['server_status'], 'verbose_name': 'Server status', 'verbose_name_plural': 'Server status'},
+            name="serverstatus",
+            options={
+                "ordering": ["server_status"],
+                "verbose_name": "Server status",
+                "verbose_name_plural": "Server status",
+            },
         ),
         migrations.AlterModelOptions(
-            name='whoisstatus',
-            options={'ordering': ['whois_status'], 'verbose_name': 'WHOIS status', 'verbose_name_plural': 'WHOIS status'},
+            name="whoisstatus",
+            options={
+                "ordering": ["whois_status"],
+                "verbose_name": "WHOIS status",
+                "verbose_name_plural": "WHOIS status",
+            },
         ),
     ]

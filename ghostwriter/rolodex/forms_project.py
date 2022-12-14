@@ -1,13 +1,5 @@
 """This contains all project-related forms used by the Rolodex application."""
 
-# Django Imports
-from django import forms
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
-
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
@@ -22,6 +14,14 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
+
+# Django Imports
+from django import forms
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import GeneralConfiguration
@@ -110,9 +110,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "deadline",
                                 ValidationError(
-                                    _(
-                                        "Your selected date is before the project start date"
-                                    ),
+                                    _("Your selected date is before the project start date"),
                                     code="invalid_date",
                                 ),
                             )
@@ -188,9 +186,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                                 ),
                             )
                     # Raise an error if details are present without a selected operator
-                    elif operator is None and any(
-                        x is not None for x in [start_date, end_date, role]
-                    ):
+                    elif operator is None and any(x is not None for x in [start_date, end_date, role]):
                         form.add_error(
                             "operator",
                             ValidationError(
@@ -199,9 +195,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if a form only has a value for the note
-                    elif note and any(
-                        x is None for x in [operator, start_date, end_date, role]
-                    ):
+                    elif note and any(x is None for x in [operator, start_date, end_date, role]):
                         form.add_error(
                             "note",
                             ValidationError(
@@ -215,9 +209,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "start_date",
                                 ValidationError(
-                                    _(
-                                        "Your selected date is before the project start date"
-                                    ),
+                                    _("Your selected date is before the project start date"),
                                     code="invalid_date",
                                 ),
                             )
@@ -334,9 +326,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "note",
                             ValidationError(
-                                _(
-                                    "You must provide a hostname or IP address with your note"
-                                ),
+                                _("You must provide a hostname or IP address with your note"),
                                 code="incomplete",
                             ),
                         )
@@ -412,18 +402,14 @@ class ProjectAssignmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["operator"].queryset = self.fields["operator"].queryset.order_by(
-            "-is_active", "username", "name"
-        )
+        self.fields["operator"].queryset = self.fields["operator"].queryset.order_by("-is_active", "username", "name")
         self.fields["operator"].label_from_instance = lambda obj: obj.get_display_name
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
         self.fields["note"].widget.attrs["rows"] = 5
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Additional Information or Notes"
+        self.fields["note"].widget.attrs["placeholder"] = "Additional Information or Notes"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -549,9 +535,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["objective"].widget.attrs["rows"] = 5
         self.fields["objective"].widget.attrs["autocomplete"] = "off"
         self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
-        self.fields["description"].widget.attrs[
-            "placeholder"
-        ] = "Description, Notes, and Context"
+        self.fields["description"].widget.attrs["placeholder"] = "Description, Notes, and Context"
         self.fields["priority"].empty_label = "-- Prioritize Objective --"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
@@ -662,9 +646,7 @@ class ProjectScopeForm(forms.ModelForm):
         self.fields["scope"].widget.attrs["rows"] = 5
         self.fields["scope"].widget.attrs["placeholder"] = "Scope List"
         self.fields["description"].widget.attrs["rows"] = 5
-        self.fields["description"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description or Note"
+        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
@@ -826,9 +808,7 @@ class WhiteCardForm(forms.ModelForm):
         self.fields["description"].widget.attrs[
             "placeholder"
         ] = "Additional information about the white card, the reason for it, limitations, how it affects the assessment, etc..."
-        self.fields["title"].widget.attrs[
-            "placeholder"
-        ] = "Brief and Descriptive Headline"
+        self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Headline"
         self.helper = FormHelper()
         self.helper.form_show_errors = False
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
@@ -918,7 +898,6 @@ ProjectAssignmentFormSet = inlineformset_factory(
     extra=EXTRAS,
     can_delete=True,
 )
-
 
 ProjectObjectiveFormSet = inlineformset_factory(
     Project,
@@ -1191,9 +1170,7 @@ class ProjectForm(forms.ModelForm):
         if slack_channel:
             if not slack_channel.startswith("#") and not slack_channel.startswith("@"):
                 raise ValidationError(
-                    _(
-                        "Slack channels should start with # or @ – check this channel name"
-                    ),
+                    _("Slack channels should start with # or @ – check this channel name"),
                     code="invalid_channel",
                 )
         return slack_channel
@@ -1270,9 +1247,7 @@ class DeconflictionForm(forms.ModelForm):
             "placeholder"
         ] = "Additional information about the alert, source, related activity..."
         self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Title"
-        self.fields["alert_source"].widget.attrs[
-            "placeholder"
-        ] = "Source of the Alert – e.g, EDR"
+        self.fields["alert_source"].widget.attrs["placeholder"] = "Source of the Alert – e.g, EDR"
         self.fields["report_timestamp"].initial = timezone.now()
         self.helper = FormHelper()
         self.helper.form_show_errors = False
@@ -1293,15 +1268,9 @@ class DeconflictionForm(forms.ModelForm):
                 """
             ),
             Row(
-                Column(
-                    Field("alert_timestamp", step=1), css_class="form-group col-4 mb-0"
-                ),
-                Column(
-                    Field("report_timestamp", step=1), css_class="form-group col-4 mb-0"
-                ),
-                Column(
-                    Field("response_timestamp", step=1), css_class="form-group col-4 mb-0"
-                ),
+                Column(Field("alert_timestamp", step=1), css_class="form-group col-4 mb-0"),
+                Column(Field("report_timestamp", step=1), css_class="form-group col-4 mb-0"),
+                Column(Field("response_timestamp", step=1), css_class="form-group col-4 mb-0"),
                 css_class="form-group",
             ),
             Row(

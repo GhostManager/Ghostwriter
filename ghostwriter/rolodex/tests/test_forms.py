@@ -555,9 +555,7 @@ class ProjectAssignmentFormSetTests(TestCase):
         cls.new_assignee = UserFactory()
 
     def form_data(self, data, **kwargs):
-        return instantiate_formset(
-            ProjectAssignmentFormSet, data=data, instance=self.project
-        )
+        return instantiate_formset(ProjectAssignmentFormSet, data=data, instance=self.project)
 
     def test_valid_data(self):
         to_be_deleted = self.to_be_deleted.__dict__
@@ -655,18 +653,12 @@ class ProjectObjectiveFormSetTests(TestCase):
     def setUpTestData(cls):
         cls.project = ProjectFactory()
         cls.project_dict = cls.project.__dict__
-        cls.objective_1 = ProjectObjectiveFactory(
-            project=cls.project, deadline=cls.project.end_date
-        )
-        cls.objective_2 = ProjectObjectiveFactory(
-            project=cls.project, deadline=cls.project.end_date
-        )
+        cls.objective_1 = ProjectObjectiveFactory(project=cls.project, deadline=cls.project.end_date)
+        cls.objective_2 = ProjectObjectiveFactory(project=cls.project, deadline=cls.project.end_date)
         cls.to_be_deleted = ProjectObjectiveFactory(project=cls.project)
 
     def form_data(self, data, **kwargs):
-        return instantiate_formset(
-            ProjectObjectiveFormSet, data=data, instance=self.project
-        )
+        return instantiate_formset(ProjectObjectiveFormSet, data=data, instance=self.project)
 
     def test_valid_data(self):
         to_be_deleted = self.to_be_deleted.__dict__
@@ -972,9 +964,7 @@ class DeconflictionFormTests(TestCase):
         one_hour_ago = now - timedelta(hours=1)
         one_hour_future = now + timedelta(hours=1)
 
-        deconfliction = DeconflictionFactory.build(
-            project=self.project, status=self.status
-        )
+        deconfliction = DeconflictionFactory.build(project=self.project, status=self.status)
 
         deconfliction.alert_timestamp = one_hour_ago
         deconfliction.report_timestamp = now

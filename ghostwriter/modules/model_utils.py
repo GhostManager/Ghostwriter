@@ -8,7 +8,7 @@ import django
 from django.db.models import ForeignKey
 
 
-def to_dict(instance: django.db.models.Model, include_id: bool = False, resolve_fk: bool = False ) -> dict:
+def to_dict(instance: django.db.models.Model, include_id: bool = False, resolve_fk: bool = False) -> dict:
     """
     Converts a model instance to a dictionary with only the desirable field
     data. Extra fields provided by ``.__dict__``, like ``_state``, are removed.

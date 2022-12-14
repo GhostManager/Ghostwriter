@@ -3,13 +3,13 @@
 # Standard Libraries
 from datetime import datetime
 
-# Django Imports
-from django.conf import settings
-from django.utils import dateformat
-
 # 3rd Party Libraries
 import pytz
 from bs4 import BeautifulSoup
+
+# Django Imports
+from django.conf import settings
+from django.utils import dateformat
 from rest_framework import serializers
 from rest_framework.serializers import (
     RelatedField,
@@ -234,9 +234,7 @@ class ReportSerializer(TaggitSerializer, CustomModelSerializer):
     creation = SerializerMethodField("get_last_update")
     total_findings = SerializerMethodField("get_total_findings")
 
-    findings = FindingLinkSerializer(
-        source="reportfindinglink_set", many=True, exclude=["id", "report"]
-    )
+    findings = FindingLinkSerializer(source="reportfindinglink_set", many=True, exclude=["id", "report"])
 
     tags = TagListSerializerField()
 
@@ -587,9 +585,7 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
 
     timezone = TimeZoneSerializerField()
 
-    notes = ProjectNoteSerializer(
-        source="projectnote_set", many=True, exclude=["id", "project"]
-    )
+    notes = ProjectNoteSerializer(source="projectnote_set", many=True, exclude=["id", "project"])
 
     tags = TagListSerializerField()
 
@@ -639,9 +635,7 @@ class ProjectInfrastructureSerializer(CustomModelSerializer):
         many=True,
         exclude=["id", "project", "operator", "client"],
     )
-    cloud = TransientServerSerializer(
-        source="transientserver_set", many=True, exclude=["id", "project", "operator"]
-    )
+    cloud = TransientServerSerializer(source="transientserver_set", many=True, exclude=["id", "project", "operator"])
     servers = ServerHistorySerializer(
         source="serverhistory_set",
         many=True,
@@ -678,6 +672,7 @@ class WhiteCardSerializer(CustomModelSerializer):
 
 class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`oplog.OplogEntry` entries."""
+
     tags = TagListSerializerField()
 
     class Meta:
@@ -696,24 +691,12 @@ class ReportDataSerializer(CustomModelSerializer):
         ]
     )
     client = ClientSerializer(source="project.client")
-    team = ProjectAssignmentSerializer(
-        source="project.projectassignment_set", many=True, exclude=["id", "project"]
-    )
-    objectives = ProjectObjectiveSerializer(
-        source="project.projectobjective_set", many=True, exclude=["id", "project"]
-    )
-    targets = ProjectTargetSerializer(
-        source="project.projecttarget_set", many=True, exclude=["id", "project"]
-    )
-    scope = ProjectScopeSerializer(
-        source="project.projectscope_set", many=True, exclude=["id", "project"]
-    )
-    deconflictions = DeconflictionSerializer(
-        source="project.deconfliction_set", many=True, exclude=["id", "project"]
-    )
-    whitecards = WhiteCardSerializer(
-        source="project.whitecard_set", many=True, exclude=["id", "project"]
-    )
+    team = ProjectAssignmentSerializer(source="project.projectassignment_set", many=True, exclude=["id", "project"])
+    objectives = ProjectObjectiveSerializer(source="project.projectobjective_set", many=True, exclude=["id", "project"])
+    targets = ProjectTargetSerializer(source="project.projecttarget_set", many=True, exclude=["id", "project"])
+    scope = ProjectScopeSerializer(source="project.projectscope_set", many=True, exclude=["id", "project"])
+    deconflictions = DeconflictionSerializer(source="project.deconfliction_set", many=True, exclude=["id", "project"])
+    whitecards = WhiteCardSerializer(source="project.whitecard_set", many=True, exclude=["id", "project"])
     infrastructure = ProjectInfrastructureSerializer(source="project")
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",

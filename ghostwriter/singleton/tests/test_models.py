@@ -100,9 +100,7 @@ class SingletonTest(TestCase):
 
     @override_settings(SOLO_CACHE="default")
     def test_file_upload_if_cache_enabled(self):
-        cfg = SiteConfiguration.objects.create(
-            site_name="Test Config", file=SimpleUploadedFile("file.pdf", None)
-        )
+        cfg = SiteConfiguration.objects.create(site_name="Test Config", file=SimpleUploadedFile("file.pdf", None))
         output = self.template.render(Context())
         self.assertIn(cfg.file.url, output)
 
@@ -121,6 +119,4 @@ class SingletonWithExplicitIdTest(TestCase):
         self,
     ):
         item = SiteConfigurationWithExplicitlyGivenId.get_solo()
-        self.assertEqual(
-            item.pk, SiteConfigurationWithExplicitlyGivenId.singleton_instance_id
-        )
+        self.assertEqual(item.pk, SiteConfigurationWithExplicitlyGivenId.singleton_instance_id)

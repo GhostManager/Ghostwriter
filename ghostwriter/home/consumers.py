@@ -24,9 +24,7 @@ class UserConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if self.user.is_active:
             # Leave user group
-            await self.channel_layer.group_discard(
-                self.user_group_name, self.channel_name
-            )
+            await self.channel_layer.group_discard(self.user_group_name, self.channel_name)
         else:
             pass
 
@@ -36,9 +34,7 @@ class UserConsumer(AsyncWebsocketConsumer):
         message = text_data_json["message"]
 
         # Send message to user group
-        await self.channel_layer.group_send(
-            self.user_group_name, {"type": "message", "message": message}
-        )
+        await self.channel_layer.group_send(self.user_group_name, {"type": "message", "message": message})
 
     # Send a message to the user's channel for notifications
     async def message(self, event):
@@ -85,9 +81,7 @@ class ProjectConsumer(AsyncWebsocketConsumer):
         message = text_data_json["message"]
 
         # Send message to project group
-        await self.channel_layer.group_send(
-            self.project_group_name, {"type": "message", "message": message}
-        )
+        await self.channel_layer.group_send(self.project_group_name, {"type": "message", "message": message})
 
     # Receive message from user group
     async def message(self, event):

@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0013_reporttemplate_lint_result'),
+        ("reporting", "0013_reporttemplate_lint_result"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='reporttemplate',
-            name='lint_result',
-            field=models.TextField(blank=True, help_text='Results returned by the linter for this template', null=True, verbose_name='Template Linter Results'),
+            model_name="reporttemplate",
+            name="lint_result",
+            field=models.TextField(
+                blank=True,
+                help_text="Results returned by the linter for this template",
+                null=True,
+                verbose_name="Template Linter Results",
+            ),
         ),
     ]

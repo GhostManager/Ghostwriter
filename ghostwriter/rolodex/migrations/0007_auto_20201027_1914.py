@@ -4,20 +4,31 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0006_auto_20200825_1947'),
+        ("rolodex", "0006_auto_20200825_1947"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='client',
-            name='codename',
-            field=models.CharField(blank=True, help_text='Give the client a codename (might be a ticket number, CMS reference, or something else)', max_length=255, null=True, verbose_name='Client Codename'),
+            model_name="client",
+            name="codename",
+            field=models.CharField(
+                blank=True,
+                help_text="Give the client a codename (might be a ticket number, CMS reference, or something else)",
+                max_length=255,
+                null=True,
+                verbose_name="Client Codename",
+            ),
         ),
         migrations.AlterField(
-            model_name='project',
-            name='codename',
-            field=models.CharField(blank=True, help_text='Give the project a codename (might be a ticket number, PMO reference, or something else)', max_length=255, null=True, verbose_name='Project Codename'),
+            model_name="project",
+            name="codename",
+            field=models.CharField(
+                blank=True,
+                help_text="Give the project a codename (might be a ticket number, PMO reference, or something else)",
+                max_length=255,
+                null=True,
+                verbose_name="Project Codename",
+            ),
         ),
     ]

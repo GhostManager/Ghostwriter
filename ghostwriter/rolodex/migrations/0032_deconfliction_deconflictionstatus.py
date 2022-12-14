@@ -6,43 +6,106 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0031_auto_20220706_1704'),
+        ("rolodex", "0031_auto_20220706_1704"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DeconflictionStatus',
+            name="DeconflictionStatus",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(help_text='Status for a deconfliction request (e.g., Undetermined, Confirmed, Unrelated)', max_length=255, unique=True, verbose_name='Status')),
-                ('weight', models.IntegerField(default=1, help_text='Weight for sorting status', verbose_name='Status Weight')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "status",
+                    models.CharField(
+                        help_text="Status for a deconfliction request (e.g., Undetermined, Confirmed, Unrelated)",
+                        max_length=255,
+                        unique=True,
+                        verbose_name="Status",
+                    ),
+                ),
+                (
+                    "weight",
+                    models.IntegerField(default=1, help_text="Weight for sorting status", verbose_name="Status Weight"),
+                ),
             ],
             options={
-                'verbose_name': 'Deconfliction status',
-                'verbose_name_plural': 'Deconfliction status',
-                'ordering': ['weight', 'status'],
+                "verbose_name": "Deconfliction status",
+                "verbose_name_plural": "Deconfliction status",
+                "ordering": ["weight", "status"],
             },
         ),
         migrations.CreateModel(
-            name='Deconfliction',
+            name="Deconfliction",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True, help_text='Date and time this deconfliction was created', verbose_name='Timestamp')),
-                ('report_timestamp', models.DateTimeField(help_text='Date and time the client informed you and requested deconfliction', verbose_name='Report Timestamp')),
-                ('alert_timestamp', models.DateTimeField(help_text='Date and time the alert fired', verbose_name='Alert Timestamp')),
-                ('response_timestamp', models.DateTimeField(help_text='Date and time you responded to the report', verbose_name='Response Timestamp')),
-                ('title', models.CharField(help_text='Provide a descriptive title or headline for this deconfliction', max_length=255, verbose_name='Deconfliction Title')),
-                ('description', models.TextField(blank=True, help_text='Provide a brief description of this deconfliction request', null=True, verbose_name='Description')),
-                ('alert_source', models.CharField(blank=True, help_text='Source of the alert (e.g., user reported, EDR, MDR, etc.)', max_length=255, null=True, verbose_name='Alert Source')),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='rolodex.project')),
-                ('status', models.ForeignKey(help_text='Select a status that best reflects the current state of this deconfliction (e.g., undetermined, confirmed assessment activity, or unrelated to assessment activity)', null=True, on_delete=django.db.models.deletion.PROTECT, to='rolodex.deconflictionstatus')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        auto_now_add=True,
+                        help_text="Date and time this deconfliction was created",
+                        verbose_name="Timestamp",
+                    ),
+                ),
+                (
+                    "report_timestamp",
+                    models.DateTimeField(
+                        help_text="Date and time the client informed you and requested deconfliction",
+                        verbose_name="Report Timestamp",
+                    ),
+                ),
+                (
+                    "alert_timestamp",
+                    models.DateTimeField(help_text="Date and time the alert fired", verbose_name="Alert Timestamp"),
+                ),
+                (
+                    "response_timestamp",
+                    models.DateTimeField(
+                        help_text="Date and time you responded to the report", verbose_name="Response Timestamp"
+                    ),
+                ),
+                (
+                    "title",
+                    models.CharField(
+                        help_text="Provide a descriptive title or headline for this deconfliction",
+                        max_length=255,
+                        verbose_name="Deconfliction Title",
+                    ),
+                ),
+                (
+                    "description",
+                    models.TextField(
+                        blank=True,
+                        help_text="Provide a brief description of this deconfliction request",
+                        null=True,
+                        verbose_name="Description",
+                    ),
+                ),
+                (
+                    "alert_source",
+                    models.CharField(
+                        blank=True,
+                        help_text="Source of the alert (e.g., user reported, EDR, MDR, etc.)",
+                        max_length=255,
+                        null=True,
+                        verbose_name="Alert Source",
+                    ),
+                ),
+                ("project", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="rolodex.project")),
+                (
+                    "status",
+                    models.ForeignKey(
+                        help_text="Select a status that best reflects the current state of this deconfliction (e.g., undetermined, confirmed assessment activity, or unrelated to assessment activity)",
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="rolodex.deconflictionstatus",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Project deconfliction',
-                'verbose_name_plural': 'Project deconflictions',
-                'ordering': ['project', 'status__weight', 'title'],
+                "verbose_name": "Project deconfliction",
+                "verbose_name_plural": "Project deconflictions",
+                "ordering": ["project", "status__weight", "title"],
             },
         ),
     ]

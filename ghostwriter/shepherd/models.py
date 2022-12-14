@@ -51,9 +51,7 @@ class DomainStatus(models.Model):
     Stores an individual domain status.
     """
 
-    domain_status = models.CharField(
-        max_length=255, unique=True, help_text="Domain status type (e.g. Available)"
-    )
+    domain_status = models.CharField(max_length=255, unique=True, help_text="Domain status type (e.g. Available)")
 
     def count_status(self):
         """
@@ -134,9 +132,7 @@ class Domain(models.Model):
     and :model:`users.User`.
     """
 
-    name = models.CharField(
-        "Name", max_length=255, unique=True, help_text="Enter the domain name"
-    )
+    name = models.CharField("Name", max_length=255, unique=True, help_text="Enter the domain name")
     registrar = models.CharField(
         "Registrar",
         max_length=255,
@@ -150,12 +146,8 @@ class Domain(models.Model):
         blank=True,
         help_text="Domain's DNS records in JSON format - e.g., `{'mx': 'record', 'a': 'record',}`",
     )
-    creation = models.DateField(
-        "Purchase Date", help_text="Select the date the domain was purchased"
-    )
-    expiration = models.DateField(
-        "Expiration Date", help_text="Select the date the domain will expire"
-    )
+    creation = models.DateField("Purchase Date", help_text="Select the date the domain was purchased")
+    expiration = models.DateField("Expiration Date", help_text="Select the date the domain will expire")
     last_health_check = models.DateField(
         "Last Health Check",
         help_text="The date and time of the latest health check for this domain name",
@@ -292,12 +284,8 @@ class History(models.Model):
     and :model:`shepherd.Domain`.
     """
 
-    start_date = models.DateField(
-        "Start Date", help_text="Select the start date of the project"
-    )
-    end_date = models.DateField(
-        "End Date", help_text="Select the end date of the project"
-    )
+    start_date = models.DateField("Start Date", help_text="Select the start date of the project")
+    end_date = models.DateField("End Date", help_text="Select the end date of the project")
     note = models.TextField(
         "Notes",
         null=True,
@@ -352,11 +340,7 @@ class History(models.Model):
         """
         Test if the instance's end_date DateField value is within the next 24-48 hours.
         """
-        if (
-            date.today() == self.end_date
-            or date.today() == datetime.timedelta(days=1)
-            or date.today() > self.end_date
-        ):
+        if date.today() == self.end_date or date.today() == datetime.timedelta(days=1) or date.today() > self.end_date:
             return True
         return False
 
@@ -366,9 +350,7 @@ class ServerStatus(models.Model):
     Stores an individual server status.
     """
 
-    server_status = models.CharField(
-        max_length=255, unique=True, help_text="Server status (e.g. Available)"
-    )
+    server_status = models.CharField(max_length=255, unique=True, help_text="Server status (e.g. Available)")
 
     def count_status(self):
         """
@@ -380,7 +362,6 @@ class ServerStatus(models.Model):
     count = property(count_status)
 
     class Meta:
-
         ordering = ["server_status"]
         verbose_name = "Server status"
         verbose_name_plural = "Server status"
@@ -457,9 +438,7 @@ class StaticServer(models.Model):
         null=True,
         help_text="Select the service provider for this server",
     )
-    last_used_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    last_used_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["server_status", "server_provider", "ip_address"]
@@ -500,12 +479,8 @@ class ServerHistory(models.Model):
     :model:`rolodex.Client`, :model:`users.User`, and :model:`shepherd.ServerRole`.
     """
 
-    start_date = models.DateField(
-        "Start Date", help_text="Select the start date of the project"
-    )
-    end_date = models.DateField(
-        "End Date", help_text="Select the end date of the project"
-    )
+    start_date = models.DateField("Start Date", help_text="Select the start date of the project")
+    end_date = models.DateField("End Date", help_text="Select the end date of the project")
     note = models.TextField(
         "Notes",
         null=True,
@@ -580,11 +555,7 @@ class ServerHistory(models.Model):
         """
         Test if the instance's ``end_date`` DateField value is within the next 24-48 hours.
         """
-        if (
-            date.today() == self.end_date
-            or date.today() == datetime.timedelta(days=1)
-            or date.today() > self.end_date
-        ):
+        if date.today() == self.end_date or date.today() == datetime.timedelta(days=1) or date.today() > self.end_date:
             return True
         return False
 
@@ -704,15 +675,10 @@ class DomainServerConnection(models.Model):
         on_delete=models.CASCADE,
         help_text="Select the domain to link to one of the servers provisioned for this project",
     )
-    static_server = models.ForeignKey(
-        "ServerHistory", on_delete=models.CASCADE, null=True, blank=True
-    )
-    transient_server = models.ForeignKey(
-        "TransientServer", on_delete=models.CASCADE, null=True, blank=True
-    )
+    static_server = models.ForeignKey("ServerHistory", on_delete=models.CASCADE, null=True, blank=True)
+    transient_server = models.ForeignKey("TransientServer", on_delete=models.CASCADE, null=True, blank=True)
 
     class Meta:
-
         ordering = ["project", "domain"]
         verbose_name = "Domain and server record"
         verbose_name_plural = "Domain and server records"
@@ -727,9 +693,7 @@ class DomainServerConnection(models.Model):
 
     def clean(self):
         if self.static_server and self.transient_server:
-            raise ValidationError(
-                _("Only one server can be selected per entry"), code="invalid_selection"
-            )
+            raise ValidationError(_("Only one server can be selected per entry"), code="invalid_selection")
 
     @property
     def domain_name(self):
@@ -749,9 +713,7 @@ class DomainNote(models.Model):
     Stores an individual domain note, related to :model:`shepherd.Domain` and :model:`users.User`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -760,9 +722,7 @@ class DomainNote(models.Model):
     )
     # Foreign Keys
     domain = models.ForeignKey(Domain, on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["domain", "-timestamp"]
@@ -778,9 +738,7 @@ class ServerNote(models.Model):
     Stores an individual server note, related to :model:`shepherd.StaticServer` and :model:`users.User`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -789,9 +747,7 @@ class ServerNote(models.Model):
     )
     # Foreign Keys
     server = models.ForeignKey("StaticServer", on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["server", "-timestamp"]

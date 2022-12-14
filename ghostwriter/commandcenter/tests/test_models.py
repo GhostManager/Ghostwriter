@@ -1,11 +1,11 @@
 # Standard Libraries
 import logging
 
-# Django Imports
-from django.test import TestCase
-
 # 3rd Party Libraries
 import pytz
+
+# Django Imports
+from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -51,9 +51,7 @@ class NamecheapConfigurationTests(TestCase):
             entry = self.NamecheapConfiguration.get_solo()
             self.assertEqual(entry.pk, 1)
         except Exception:
-            self.fail(
-                "NamecheapConfiguration model `get_solo` method failed unexpectedly!"
-            )
+            self.fail("NamecheapConfiguration model `get_solo` method failed unexpectedly!")
 
     def test_sanitized_api_key_property(self):
         entry = self.NamecheapConfiguration.get_solo()
@@ -201,9 +199,7 @@ class CloudServicesConfigurationTests(TestCase):
             entry = self.CloudServicesConfiguration.get_solo()
             self.assertEqual(entry.pk, 1)
         except Exception:
-            self.fail(
-                "CloudServicesConfiguration model `get_solo` method failed unexpectedly!"
-            )
+            self.fail("CloudServicesConfiguration model `get_solo` method failed unexpectedly!")
 
     def test_sanitized_aws_key_property(self):
         entry = self.CloudServicesConfiguration.get_solo()
@@ -260,9 +256,7 @@ class VirusTotalConfigurationTests(TestCase):
             entry = self.VirusTotalConfiguration.get_solo()
             self.assertEqual(entry.pk, 1)
         except Exception:
-            self.fail(
-                "VirusTotalConfiguration model `get_solo` method failed unexpectedly!"
-            )
+            self.fail("VirusTotalConfiguration model `get_solo` method failed unexpectedly!")
 
     def test_sanitized_api_key_property(self):
         entry = self.VirusTotalConfiguration.get_solo()

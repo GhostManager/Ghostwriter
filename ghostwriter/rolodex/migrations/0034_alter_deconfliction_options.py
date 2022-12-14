@@ -4,14 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0033_auto_20221006_1927'),
+        ("rolodex", "0033_auto_20221006_1927"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='deconfliction',
-            options={'ordering': ['project', '-created_at', 'status__weight', 'title'], 'verbose_name': 'Project deconfliction', 'verbose_name_plural': 'Project deconflictions'},
+            name="deconfliction",
+            options={
+                "ordering": ["project", "-created_at", "status__weight", "title"],
+                "verbose_name": "Project deconfliction",
+                "verbose_name_plural": "Project deconflictions",
+            },
         ),
     ]

@@ -3,13 +3,13 @@
 # Standard Libraries
 from typing import Any
 
-# Django Imports
-from django.conf import settings
-from django.http import HttpRequest
-
 # 3rd Party Libraries
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+
+# Django Imports
+from django.conf import settings
+from django.http import HttpRequest
 
 
 class AccountAdapter(DefaultAccountAdapter):  # pragma: no cover

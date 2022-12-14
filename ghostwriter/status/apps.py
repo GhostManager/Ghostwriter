@@ -16,6 +16,7 @@ class StatusConfig(AppConfig):
     def ready(self):
         try:
             import ghostwriter.status.signals  # noqa F401 isort:skip
+
             plugin_dir.register(HasuraBackend)
         except ImportError:
             pass

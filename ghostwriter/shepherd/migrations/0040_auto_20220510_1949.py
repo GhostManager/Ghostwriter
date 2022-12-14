@@ -5,9 +5,8 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0039_auto_20220510_1909'),
+        ("shepherd", "0039_auto_20220510_1909"),
     ]
 
     operations = [
@@ -15,13 +14,13 @@ class Migration(migrations.Migration):
             'ALTER TABLE shepherd_auxserveraddress ALTER COLUMN "primary" SET DEFAULT FALSE;',
         ),
         migrations.RunSQL(
-            'ALTER TABLE shepherd_domain ALTER COLUMN auto_renew SET DEFAULT FALSE;',
+            "ALTER TABLE shepherd_domain ALTER COLUMN auto_renew SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE shepherd_domain ALTER COLUMN expired SET DEFAULT FALSE;',
+            "ALTER TABLE shepherd_domain ALTER COLUMN expired SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE shepherd_domain ALTER COLUMN reset_dns SET DEFAULT FALSE;',
+            "ALTER TABLE shepherd_domain ALTER COLUMN reset_dns SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
             "ALTER TABLE shepherd_domainserverconnection ALTER COLUMN subdomain SET DEFAULT '*';",

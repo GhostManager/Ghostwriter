@@ -3,11 +3,6 @@
 # Standard Libraries
 from datetime import date
 
-# Django Imports
-from django import forms
-from django.db.models import Q
-from django.forms.widgets import TextInput
-
 # 3rd Party Libraries
 import django_filters
 from crispy_forms.bootstrap import (
@@ -19,9 +14,13 @@ from crispy_forms.bootstrap import (
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
+# Django Imports
+from django import forms
+from django.db.models import Q
+from django.forms.widgets import TextInput
+
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
-
 from .models import Domain, DomainStatus, HealthStatus, ServerStatus
 
 
@@ -103,11 +102,7 @@ class DomainFilter(django_filters.FilterSet):
                 css_class="form-row",
             ),
             Accordion(
-                AccordionGroup(
-                    "Domain Status",
-                    InlineCheckboxes("domain_status"),
-                    SwitchToggle("exclude_expired")
-                ),
+                AccordionGroup("Domain Status", InlineCheckboxes("domain_status"), SwitchToggle("exclude_expired")),
                 AccordionGroup("Health Status", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(

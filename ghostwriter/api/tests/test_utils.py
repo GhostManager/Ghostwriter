@@ -38,9 +38,7 @@ class JwtUtilsTests(TestCase):
 
     def test_generate_jwt_with_expiration(self):
         expiration = datetime(2099, 1, 1).timestamp()
-        payload, encoded_payload = utils.generate_jwt(
-            self.user, exp=expiration
-        )
+        payload, encoded_payload = utils.generate_jwt(self.user, exp=expiration)
         self.assertTrue(payload["exp"], expiration)
 
     def test_get_jwt_payload(self):
