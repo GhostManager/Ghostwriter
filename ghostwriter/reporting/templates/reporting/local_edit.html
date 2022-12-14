@@ -161,37 +161,30 @@
     {% crispy form form.helper %}
 {% endblock %}
 
-{% block tabs %}
-    {{ block.super }}
-{% endblock %}
-
-{% block tabforms %}
-    {{ block.super }}
-{% endblock %}
-
 {% block morescripts %}
-    <!-- Script for the WYSIWYG editor's AutoComplete -->
-    <script>
-        var evidenceFiles = [
-            { text: '\{\{.client\}\}', value: '\{\{.client\}\}' },
-            { text: '\{\{.caption\}\}', value: '\{\{.caption\}\}' },
-            { text: '\{\{.project_start\}\}', value: '\{\{.project_start\}\}' },
-            { text: '\{\{.project_end\}\}', value: '\{\{.project_end\}\}' },
-            { text: '\{\{.project_type\}\}', value: '\{\{.project_type\}\}' },
-            {% if reportfindinglink.evidence_set.all  %}
-                {% for finding in reportfindinglink.evidence_set.all %}
-            { text: '\{\{.{{ finding.friendly_name|escapejs }}\}\}', value: '\{\{.{{ finding.friendly_name|escapejs }}\}\}' },
-                {% endfor %}
-            {% endif %}
-        ];
-    </script>
+  <script>
+    {%  comment %} Prepare CVSS calculator {% endcomment %}
+    $(document).ready(function () {
+      prepareCVSSCalc()
+    });
 
-    <!-- Set the Evidence Upload Modal's URL-->
-    <script>
-        // Get the URL from the form attribute
-        var modal_url = $('#report-finding-form').attr('evidence-upload-modal-url');
-        // Assign it to a window variable where the TinyMCE URLDialog can access it
-        window.upload_url = modal_url;
+    {% comment %} Script for the WYSIWYG editor's AutoComplete {% endcomment %}
+    let evidenceFiles = [
+      { text: '\{\{.client\}\}', value: '\{\{.client\}\}' },
+      { text: '\{\{.caption\}\}', value: '\{\{.caption\}\}' },
+      { text: '\{\{.project_start\}\}', value: '\{\{.project_start\}\}' },
+      { text: '\{\{.project_end\}\}', value: '\{\{.project_end\}\}' },
+      { text: '\{\{.project_type\}\}', value: '\{\{.project_type\}\}' },
+      {% if reportfindinglink.evidence_set.all  %}
+          {% for finding in reportfindinglink.evidence_set.all %}
+      { text: '\{\{.{{ finding.friendly_name|escapejs }}\}\}', value: '\{\{.{{ finding.friendly_name|escapejs }}\}\}' },
+          {% endfor %}
+      {% endif %}
+    ];
+
+    {% comment %} Set the Evidence Upload Modal's URL {% endcomment %}
+    let modal_url = $('#report-finding-form').attr('evidence-upload-modal-url');
+    window.upload_url = modal_url;
     </script>
 
     {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}

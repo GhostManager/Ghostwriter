@@ -73,24 +73,23 @@ function removePlaceholderRow($table) {
 
 // Match checkboxes and column IDs to show or hide columns based on the checkbox state
 function coupleCheckboxColumn(checkboxId, columnClass) {
-    $(checkboxId).change(function (e) {
+    $(checkboxId).change(function () {
         if (!this.checked) {
             $(columnClass).hide()
             // Add column to hiddenLogTblColumns
             hiddenLogTblColumns.push(columnClass)
-        }
-        else {
+        } else {
             $(columnClass).show()
             // Remove column from hiddenLogTblColumns
-            hiddenLogTblColumns = hiddenLogTblColumns.filter(function (value, index, arr) {
+            hiddenLogTblColumns = hiddenLogTblColumns.filter(function (value, _, _) {
                 return value != columnClass;
             });
         }
         // Save hiddenLogTblColumns to localStorage
         localStorage.setItem('hiddenLogTblColumns', JSON.stringify(hiddenLogTblColumns));
         // Update classes to round corners of first and last header columns
-        columnInfo.forEach(function (value, index, array) {
-            $col = $('.' + value[1])
+        columnInfo.forEach(function (value, _, _) {
+            let $col = $('.' + value[1])
             if ($col.hasClass('first-col')) {
                 $col.removeClass('first-col')
             }
@@ -98,8 +97,8 @@ function coupleCheckboxColumn(checkboxId, columnClass) {
                 $col.removeClass('last-col')
             }
         })
-        firstCol = $('th').filter(':visible').first()
-        lastCol = $('th').filter(':visible').last()
+        let firstCol = $('th').filter(':visible').first()
+        let lastCol = $('th').filter(':visible').last()
         if (!firstCol.hasClass('first-col')) {
             firstCol.addClass('first-col')
         }
@@ -111,8 +110,8 @@ function coupleCheckboxColumn(checkboxId, columnClass) {
 
 // Build the column show/hide checkboxes
 function buildColumnsCheckboxes() {
-    columnInfo.forEach(function (value, index, array) {
-        checkboxEntry = `
+    columnInfo.forEach(function (value, _, _) {
+        let checkboxEntry = `
         <div class="form-check-inline">
         <div class="custom-control custom-switch">
         <input type="checkbox" id="${value[0]}" class="form-check-input custom-control-input" checked/>
@@ -121,7 +120,7 @@ function buildColumnsCheckboxes() {
         </div>
         `
         $checkboxList.append(checkboxEntry)
-        headerColumn = `
+        let headerColumn = `
         <th class="${value[1]} align-middle">${value[2]}</th>
         `
         $tableHeader.append(headerColumn)
@@ -135,7 +134,7 @@ function buildColumnsCheckboxes() {
 
 // Hide columns based on the "Select Columns" checkboxes
 function hideColumns() {
-    columnInfo.forEach(function (value, index, array) {
+    columnInfo.forEach(function (value, _, _) {
         $checkbox = $('#' + value[0])
         if (!$checkbox.prop('checked')) {
             $('.' + value[1]).hide()
@@ -146,19 +145,9 @@ function hideColumns() {
 // Update an existing row with new data from the server
 function updateRow($existingRow, newRow) {
     $(newRow).children().each(function () {
-        var className = $(this).attr('class').split(' ')[0]
+        let className = $(this).attr('class').split(' ')[0]
         $existingRow.find('.' + className).html($(this).html())
     });
-}
-
-// Get the class name from the given ``cell``
-function getKeyName($cell) {
-    var className = $cell.attr('class')
-    for (column of columnInfo) {
-        if (className.indexOf(column[1]) >= 0) {
-            return column[3]
-        }
-    }
 }
 
 // Create a new entry when the create button is clicked
@@ -167,33 +156,33 @@ function createEntry(id) {
         'action': 'create',
         'oplog_id': id
     }))
-    displayToastTop({type:'success', string:'Successfully added a log entry', title:'Oplog Update'});
+    displayToastTop({type: 'success', string: 'Successfully added a log entry', title: 'Oplog Update'});
 }
 
 // Delete an entry when the delete button is clicked
 function deleteEntry($ele) {
-    var id = $($ele).attr('entry-id')
+    let id = $($ele).attr('entry-id')
     socket.send(JSON.stringify({
         'action': 'delete',
         'oplogEntryId': id
     }))
-    displayToastTop({type:'success', string:'Successfully deleted a log entry', title:'Oplog Update'});
+    displayToastTop({type: 'success', string: 'Successfully deleted a log entry', title: 'Oplog Update'});
 }
 
 // Create a copy of an entry when the copy button is clicked
 function copyEntry($ele) {
-    var id = $($ele).attr('entry-id')
+    let id = $($ele).attr('entry-id')
     socket.send(JSON.stringify({
         'action': 'copy',
         'oplogEntryId': id
     }))
-    displayToastTop({type:'success', string:'Successfully cloned a log entry', title:'Oplog Update'});
+    displayToastTop({type: 'success', string: 'Successfully cloned a log entry', title: 'Oplog Update'});
 }
 
 // Stylize the tags for display in the table
-function stylizeTags(tags) {
-    var tags = tags.split(',')
-    var tagHtml = ''
+function stylizeTags(tagString) {
+    let tags = tagString.split(',')
+    let tagHtml = ''
     for (tag of tags) {
         if (tag == '') {
             continue
