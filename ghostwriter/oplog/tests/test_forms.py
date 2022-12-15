@@ -6,6 +6,7 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import OplogEntryFactory, OplogFactory, ProjectFactory
+from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 
 logging.disable(logging.CRITICAL)
@@ -67,6 +68,8 @@ class OplogEntryFormTests(TestCase):
         output=None,
         comments=None,
         operator_name=None,
+        oplog_kwarg=None,
+        instance=None,
         **kwargs,
     ):
         return OplogEntryForm(
@@ -84,9 +87,32 @@ class OplogEntryFormTests(TestCase):
                 "comments": comments,
                 "operator_name": operator_name,
             },
+            oplog=oplog_kwarg,
+            instance=instance,
         )
 
     def test_valid_data(self):
         entry = OplogEntryFactory.build()
-        form = self.form_data(**entry.__dict__, oplog_id=self.oplog.id)
+        form = self.form_data(**to_dict(entry), oplog_kwarg=self.oplog)
+        self.assertTrue(form.is_valid())
+
+    def test_valid_update_data(self):
+        entry = OplogEntryFactory.create()
+        form = self.form_data(**to_dict(entry), instance=entry)
+        self.assertTrue(form.is_valid())
+
+    def test_invalid_data(self):
+        entry = OplogEntryFactory.create()
+        start_date = entry.start_date
+        entry.start_date = None
+        entry.end_date = None
+        entry.save()
+        entry.refresh_from_db()
+        form = self.form_data(**to_dict(entry), instance=entry)
+        self.assertTrue(form.is_valid())
+
+        entry.start_date = start_date
+        entry.save()
+        entry.refresh_from_db()
+        form = self.form_data(**to_dict(entry), instance=entry)
         self.assertTrue(form.is_valid())

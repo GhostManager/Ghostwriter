@@ -91,20 +91,7 @@ class OplogListEntriesTests(TestCase):
     def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "oplog/entries_list.html")
-
-    def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
-
-        entries = self.OplogEntry.objects.filter(oplog_id=self.oplog.pk).order_by("-start_date")
-        self.assertIn("entries", response.context)
-        self.assertIn("pk", response.context)
-        self.assertIn("name", response.context)
-        self.assertIn("project", response.context)
-        self.assertEqual(response.context["entries"][0], entries[0])
-        self.assertEqual(response.context["pk"], self.oplog.pk)
-        self.assertEqual(response.context["name"], self.oplog.name)
-        self.assertEqual(response.context["project"], self.oplog.project)
+        self.assertTemplateUsed(response, "oplog/oplog_detail.html")
 
 
 class OplogEntriesImportTests(TestCase):
