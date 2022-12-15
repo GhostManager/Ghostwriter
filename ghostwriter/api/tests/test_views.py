@@ -1070,7 +1070,8 @@ class GraphqlAttachFindingAction(TestCase):
 
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
-        cls.finding = FindingFactory()
+        cls.tags = ["severity:high, att&ck:t1159"]
+        cls.finding = FindingFactory(tags=cls.tags)
         _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
 
     def setUp(self):
@@ -1095,6 +1096,12 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertEqual(response.status_code, 200)
         new_finding = response.json()["id"]
         self.assertTrue(self.ReportFindingLink.objects.filter(id=new_finding).exists())
+        self.assertEqual(len(self.finding.tags.similar_objects()), 1)
+        self.assertEqual(
+            len(self.ReportFindingLink.objects.get(id=new_finding).tags.similar_objects()),
+            len(self.finding.tags.similar_objects()),
+        )
+        self.assertEqual(list(self.finding.tags.names()), self.tags)
 
     def test_attaching_finding_with_invalid_report(self):
         _, token = utils.generate_jwt(self.user)
