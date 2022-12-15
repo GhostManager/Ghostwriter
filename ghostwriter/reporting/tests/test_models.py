@@ -4,6 +4,7 @@ import os
 
 # 3rd Party Libraries
 import factory
+
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
@@ -77,13 +78,13 @@ class SeverityModelTests(TestCase):
 
     def test_crud_severity(self):
         # Create
-        severity = SeverityFactory(severity="High", weight=2, color="FFFFFF")
+        severity = SeverityFactory(severity="High", weight=1, color="FFFFFF")
 
         # Read
         self.assertEqual(severity.severity, "High")
         self.assertEqual(severity.pk, severity.id)
         self.assertEqual(severity.color, "FFFFFF")
-        self.assertEqual(severity.weight, 2)
+        self.assertEqual(severity.weight, 1)
         self.assertEqual(len(self.Severity.objects.all()), 1)
         self.assertEqual(self.Severity.objects.first(), severity)
 
@@ -122,6 +123,29 @@ class SeverityModelTests(TestCase):
             self.assertEqual(1, count)
         except Exception:
             self.fail("Severity model `count` property failed unexpectedly!")
+
+    def test_adjust_severity_weight_signals(self):
+        self.Severity.objects.all().delete()
+        self.assertTrue(self.Severity.objects.all().count() == 0)
+
+        critical = SeverityFactory(severity="Critical", weight=2, color="FFFFFF")
+        high = SeverityFactory(severity="High", weight=2, color="FFF000")
+
+        self.assertEqual(critical.severity, "Critical")
+        self.assertEqual(critical.color, "FFFFFF")
+        self.assertEqual(critical.weight, 1)
+        self.assertEqual(high.severity, "High")
+        self.assertEqual(high.color, "FFF000")
+        self.assertEqual(high.weight, 2)
+
+        critical.weight = 2
+        critical.save()
+
+        critical.refresh_from_db()
+        high.refresh_from_db()
+
+        self.assertEqual(critical.weight, 2)
+        self.assertEqual(high.weight, 1)
 
 
 class FindingTypeModelTests(TestCase):
