@@ -6,6 +6,7 @@ from datetime import datetime
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+
 # Django Imports
 from django import forms
 from django.urls import reverse
@@ -73,6 +74,7 @@ class OplogEntryForm(forms.ModelForm):
     )
     end_date = forms.DateTimeField(
         input_formats=["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M"],
+        required=False,
     )
 
     class Meta:
@@ -112,6 +114,7 @@ class OplogEntryForm(forms.ModelForm):
         self.helper.form_id = "oplog-entry-form"
 
         # Set form action based on whether this is a new or existing entry
+        # For now, this form is only used for updates so there should always be an instance available
         if self.instance.pk:
             post_url = reverse("oplog:oplog_entry_update", kwargs={"pk": self.instance.pk})
         else:
