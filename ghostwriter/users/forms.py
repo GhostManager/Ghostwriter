@@ -1,8 +1,9 @@
-"""This contains all of the forms used by the Users application."""
+"""This contains all the forms used by the Users application."""
 
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+
 # Django Imports
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import forms, get_user_model
@@ -35,10 +36,12 @@ class UserChangeForm(UserChangeForm):
         self.fields["phone"].widget.attrs["placeholder"] = "Your Work Number"
         self.fields["phone"].help_text = "Work phone number for work contacts"
         self.fields["timezone"].help_text = "Timezone in which you work"
+        self.fields["name"].label = "Your Full Name"
+        self.fields["email"].label = "Your Primary Email Address"
+        self.fields["timezone"].label = "Your Timezone"
+        self.fields["phone"].label = "Your Contact Number"
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
-        self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Row(
                 Column("name", css_class="form-group col-md-6 mb-0"),
