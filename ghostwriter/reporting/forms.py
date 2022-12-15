@@ -66,6 +66,7 @@ class FindingForm(forms.ModelForm):
             "placeholder"
         ] = "When using this finding in a report be sure to include ..."
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["finding_type"].label = "Finding Type"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -338,6 +339,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["network_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on a network ..."
         self.fields["references"].widget.attrs["placeholder"] = "Some useful links and references ..."
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["finding_type"].label = "Finding Type"
+        self.fields["assigned_to"].label = "Assigned Editor"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -357,8 +360,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Row(
-                Column("tags", css_class="form-group col-md-6 mb-0"),
                 Column("assigned_to", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
