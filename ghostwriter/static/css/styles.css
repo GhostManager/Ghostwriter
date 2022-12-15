@@ -138,7 +138,6 @@ hr {
 .form-select:focus {
   border-color: #aaa;
   box-shadow: 0 0 1px 3px var(--primary-color);
-  box-shadow: 0 0 0 3px -moz-mac-focusring;
   color: #222;
   outline: none;
 }
@@ -706,8 +705,7 @@ input[type='file'] {
 
 #sidebar form {
   width: 90%;
-  margin: 0;
-  margin-left: 5%;
+  margin: 0 0 0 5%;
   padding-bottom: 10px;
 }
 
@@ -1060,12 +1058,12 @@ table {
 
 table .clickable {
   text-decoration: underline dotted var(--clickable-underline-color);
-  text-decoration-thickness: 2.5px;
+  text-decoration-thickness: 3px;
 }
 
 p .clickable {
   text-decoration: underline dotted var(--clickable-underline-color);
-  text-decoration-thickness: 2.5px;
+  text-decoration-thickness: 3px;
 }
 
 th {
@@ -1074,7 +1072,7 @@ th {
 }
 
 th.severity-header {
-  background-color: var(--secondary-table-header-color);
+  background-color: var(--neutral-rating-color);
   text-align: justify;
   padding-top: 10px;
   padding-bottom: 10px;
@@ -1085,23 +1083,23 @@ th.severity-header {
   color: #fff;
 }
 
-th.severity-header.critical {
+th.severity-header.severity_1 {
   background-color: var(--crit-rating-color);
 }
 
-th.severity-header.high {
+th.severity-header.severity_2 {
   background-color: var(--high-rating-color);
 }
 
-th.severity-header.medium {
+th.severity-header.severity_3 {
   background-color: var(--med-rating-color);
 }
 
-th.severity-header.low {
+th.severity-header.severity_4 {
   background-color: var(--low-rating-color);
 }
 
-th.severity-header.informational {
+th.severity-header.severity_5 {
   background-color: var(--info-rating-color);
 }
 
@@ -1394,7 +1392,6 @@ td p {
   padding-right: 5px;
 }
 
-​
 /* ---------------------------------------------------
     DROPDOWN MENU STYLES
 ----------------------------------------------------- */
@@ -1433,7 +1430,7 @@ td p {
 }
 
 .change .bar1 {
-  -webkit-transform: rotate(-45deg) translate(-9px, 6px);
+  --webkit-transform: rotate(-45deg) translate(-9px, 6px);
   transform: rotate(-45deg) translate(-9px, 6px);
 }
 
@@ -1442,7 +1439,7 @@ td p {
 }
 
 .change .bar3 {
-  -webkit-transform: rotate(45deg) translate(-8px, -8px);
+  --webkit-transform: rotate(45deg) translate(-8px, -8px);
   transform: rotate(45deg) translate(-8px, -8px);
 }
 
@@ -1627,8 +1624,8 @@ td p {
 .nav-tabs .nav-link {
   background-color: var(--neutral-color);
   color: #fff;
-  margin: 0.25px;
-  border: 0.25px solid white;
+  margin: 0.02em;
+  border: 0.02em solid white;
   border-radius: 7px 7px 0 0;
 }
 
@@ -2057,7 +2054,7 @@ th.icon {
 }
 
 .open-icon.open:before {
-  -webkit-transform: rotate(90deg);
+  --webkit-transform: rotate(90deg);
   transform: translateY(4px) translateX(-5px) rotate(90deg);
   transition: all .5s ease-in-out;
 }
@@ -2361,12 +2358,10 @@ th.icon {
 }
 
 .myaccordion .card-header {
-  background: transparent;
   border-radius: 5px;
   background-color: var(--accordion-primary-color);
-  border: none;
+  border: none #f5f5f5;
   border-bottom: 1px solid;
-  border-color: #f5f5f5;
   color: #fff;
   cursor: pointer;
   padding: 10px;
@@ -2446,6 +2441,7 @@ h5 a[aria-expanded=true]:after {
 
 .finding-header {
   text-align: left;
+  font-weight: 500;
 }
 
 .finding-hr {
@@ -3089,8 +3085,8 @@ input:focus+.slider {
 }
 
 input:checked+.slider:before {
-  -webkit-transform: translateX(26px);
-  -ms-transform: translateX(26px);
+  --webkit-transform: translateX(26px);
+  --ms-transform: translateX(26px);
   transform: translateX(26px);
 }
 
@@ -3186,7 +3182,7 @@ input:checked+.slider:before {
   box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 12px;
   -webkit-animation: blinkRed 0.5s infinite;
   -moz-animation: blinkRed 0.5s infinite;
-  -ms-animation: blinkRed 0.5s infinite;
+  --ms-animation: blinkRed 0.5s infinite;
   -o-animation: blinkRed 0.5s infinite;
   animation: blinkRed 0.5s infinite;
 }
