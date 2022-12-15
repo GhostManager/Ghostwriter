@@ -2,6 +2,7 @@
 
 # Django Imports
 from django.urls import include, path
+
 # 3rd Party Libraries
 from rest_framework import routers
 
@@ -19,6 +20,11 @@ urlpatterns = [
     path("create/<int:pk>", views.OplogCreate.as_view(), name="oplog_create"),
     path("create/", views.OplogCreate.as_view(), name="oplog_create_no_project"),
     path("update/<int:pk>", views.OplogUpdate.as_view(), name="oplog_update"),
+    path(
+        "entry/create/<int:pk>",
+        views.OplogEntryCreate.as_view(),
+        name="oplog_entry_create",
+    ),
     path(
         "entry/update/<int:pk>",
         views.OplogEntryUpdate.as_view(),

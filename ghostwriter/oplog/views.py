@@ -307,6 +307,30 @@ class AjaxTemplateMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
+class OplogEntryCreate(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
+    """
+    Create an individual :model:`oplog.OplogEntry`.
+
+    **Template**
+
+    :template:`oplog/oplog_modal.html`
+    """
+
+    model = OplogEntry
+    form_class = OplogEntryForm
+    template_name = "oplog/oplogentry_form.html"
+    ajax_template_name = "oplog/snippets/oplogentry_form_inner.html"
+
+    def get_success_url(self):
+        return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
+
+    def form_valid(self, form, **kwargs):
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
+
+
 class OplogEntryUpdate(LoginRequiredMixin, AjaxTemplateMixin, UpdateView):
     """
     Update an individual :model:`oplog.OplogEntry`.
