@@ -1,5 +1,13 @@
 """This contains all server-related forms used by the Shepherd application."""
 
+# Django Imports
+from django import forms
+from django.contrib.postgres.forms import SplitArrayField
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, TabHolder
 from crispy_forms.helper import FormHelper
@@ -15,17 +23,10 @@ from crispy_forms.layout import (
     Submit,
 )
 
-# Django Imports
-from django import forms
-from django.contrib.postgres.forms import SplitArrayField
-from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
-
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.rolodex.models import Project
+
 from .models import (
     AuxServerAddress,
     ServerHistory,
@@ -114,7 +115,7 @@ class AuxServerAddressForm(forms.ModelForm):
         self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
         self.fields["ip_address"].widget.attrs["autocomplete"] = "off"
         self.helper = FormHelper()
-        # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
+        # Disable the <form> tags because this will be part of an instance of ``ServerForm()``
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
@@ -217,7 +218,6 @@ class ServerForm(forms.ModelForm):
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             TabHolder(
                 CustomTab(
@@ -306,7 +306,6 @@ class TransientServerForm(forms.ModelForm):
         self.fields["aux_address"].required = False
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             HTML(
@@ -365,7 +364,6 @@ class ServerNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),
@@ -430,7 +428,6 @@ class ServerCheckoutForm(forms.ModelForm):
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.attrs = {
             "data-projects-url": data_projects_url,

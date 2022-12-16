@@ -6,7 +6,7 @@ from django.contrib import admin
 # 3rd Party Libraries
 from import_export.admin import ImportExportModelAdmin
 
-from .models import (
+from ghostwriter.shepherd.models import (
     ActivityType,
     AuxServerAddress,
     Domain,
@@ -24,7 +24,7 @@ from .models import (
     TransientServer,
     WhoisStatus,
 )
-from .resources import DomainResource, StaticServerResource
+from ghostwriter.shepherd.resources import DomainResource, StaticServerResource
 
 
 def enable_dns_resets(modeladmin, request, queryset):

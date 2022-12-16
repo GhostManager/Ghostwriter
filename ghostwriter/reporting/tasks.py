@@ -15,6 +15,7 @@ from django.db.models import Q
 
 # Ghostwriter Libraries
 from ghostwriter.modules import reportwriter
+
 from .models import Archive, Report
 
 # Using __name__ resolves to ghostwriter.reporting.tasks

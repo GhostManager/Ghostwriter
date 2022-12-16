@@ -1,9 +1,5 @@
 """This contains all the forms used by the Users application."""
 
-# 3rd Party Libraries
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
-
 # Django Imports
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth import forms, get_user_model
@@ -12,6 +8,10 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm, ModelMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
+
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
 User = get_user_model()
 

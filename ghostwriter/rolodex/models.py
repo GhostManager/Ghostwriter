@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the Rolodex application."""
+"""This contains all the database models used by the Rolodex application."""
 
 # Standard Libraries
 from datetime import time, timedelta
@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
+
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
 from timezone_field import TimeZoneField

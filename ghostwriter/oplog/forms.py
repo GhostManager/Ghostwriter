@@ -1,16 +1,16 @@
-"""This contains all of the forms used by the Oplog application."""
+"""This contains all the forms used by the Oplog application."""
 
 # Standard Libraries
 from datetime import datetime
-
-# 3rd Party Libraries
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
 # Django Imports
 from django import forms
 from django.urls import reverse
 from django.utils.timezone import make_aware
+
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -49,7 +49,6 @@ class OplogForm(forms.ModelForm):
         self.helper.form_show_errors = False
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             "name",
             "project",

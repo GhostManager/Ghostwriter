@@ -1,5 +1,13 @@
 """This contains all project-related forms used by the Rolodex application."""
 
+# Django Imports
+from django import forms
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
@@ -14,14 +22,6 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-
-# Django Imports
-from django import forms
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import GeneralConfiguration
@@ -981,7 +981,6 @@ class ProjectForm(forms.ModelForm):
         self.helper.form_tag = True
         self.helper.form_class = "form-inline justify-content-center"
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             TabHolder(
                 CustomTab(
@@ -1190,7 +1189,6 @@ class ProjectNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),

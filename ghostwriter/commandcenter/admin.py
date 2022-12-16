@@ -4,9 +4,8 @@
 from django.contrib import admin
 
 # Ghostwriter Libraries
-from ghostwriter.singleton.admin import SingletonModelAdmin
-from .forms import ReportConfigurationForm
-from .models import (
+from ghostwriter.commandcenter.forms import ReportConfigurationForm
+from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     CompanyInformation,
     GeneralConfiguration,
@@ -15,6 +14,7 @@ from .models import (
     SlackConfiguration,
     VirusTotalConfiguration,
 )
+from ghostwriter.singleton.admin import SingletonModelAdmin
 
 admin.site.register(CloudServicesConfiguration, SingletonModelAdmin)
 admin.site.register(CompanyInformation, SingletonModelAdmin)

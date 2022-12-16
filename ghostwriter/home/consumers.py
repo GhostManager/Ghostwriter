@@ -1,4 +1,4 @@
-"""This contains all of the WebSocket consumers used by the Home application."""
+"""This contains all the WebSocket consumers used by the Home application."""
 
 # Standard Libraries
 import json

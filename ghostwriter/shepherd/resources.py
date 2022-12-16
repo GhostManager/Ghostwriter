@@ -1,11 +1,12 @@
-"""This contains all of the ``import_export`` model resources used by the Shepherd application."""
+"""This contains all the ``import_export`` model resources used by the Shepherd application."""
 
 # 3rd Party Libraries
 from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
-from .models import (
+# Ghostwriter Libraries
+from ghostwriter.shepherd.models import (
     Domain,
     DomainStatus,
     HealthStatus,

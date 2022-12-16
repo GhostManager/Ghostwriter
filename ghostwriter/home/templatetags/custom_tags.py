@@ -1,13 +1,13 @@
-"""This contains the custom template tags used by he Home application."""
-
-# 3rd Party Libraries
-from bs4 import BeautifulSoup
+"""This contains the custom template tags used by the Home application."""
 
 # Django Imports
 from django import template
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
+
+# 3rd Party Libraries
+from bs4 import BeautifulSoup
 
 # Ghostwriter Libraries
 from ghostwriter.reporting.models import Report, ReportFindingLink

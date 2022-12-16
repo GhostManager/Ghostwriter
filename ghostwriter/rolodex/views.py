@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Rolodex application."""
+"""This contains all the views used by the Rolodex application."""
 
 # Standard Libraries
 import datetime
@@ -160,6 +160,9 @@ def ajax_update_project_objectives(request):
             priority = ObjectivePriority.objects.get(priority__iexact=priority_class)
         except ObjectivePriority.DoesNotExist:
             priority = None
+
+        data = {"result": "success"}
+
         if priority:
             ignore = ["placeholder", "ignore"]
             counter = 1
@@ -180,8 +183,6 @@ def ajax_update_project_objectives(request):
                     logger.info("Ignored data-id value %s", objective_id)
         else:
             data = {"result": "specified priority, {}, is invalid".format(priority_class)}
-        # If all went well, return success
-        data = {"result": "success"}
     else:
         data = {"result": "error"}
     return JsonResponse(data)
@@ -195,12 +196,11 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
     model = ProjectObjective
 
     def post(self, *args, **kwargs):
-        data = {}
-        self.object = self.get_object()
+        objective = self.get_object()
         try:
             success = False
             # Save the old status
-            old_status = self.object.status
+            old_status = objective.status
             # Get all available status
             all_status = ObjectiveStatus.objects.all()
             total_status = all_status.count()
@@ -214,16 +214,16 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                     else:
                         new_status = all_status[0]
 
-                    self.object.status = new_status
+                    objective.status = new_status
                     logger.info("Switching to %s", new_status)
-                    self.object.save()
+                    objective.save()
                     success = True
 
             if not success:
                 logger.warning("Failed to match old status, %s, with any existing status, so set status to ``0``")
                 new_status = all_status[0]
-                self.object.status = new_status
-                self.object.save()
+                objective.status = new_status
+                objective.save()
 
             # Prepare the JSON response data
             data = {
@@ -232,8 +232,8 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             }
             logger.info(
                 "Updated status of %s %s from %s to %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                objective.__class__.__name__,
+                objective.id,
                 old_status,
                 new_status,
                 self.request.user,
@@ -1199,7 +1199,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
     **Context**
 
     ``client``
-        Instance of :model:`rolodex.CLient` associated with this project
+        Instance of :model:`rolodex.Client` associated with this project
     ``objectives``
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``

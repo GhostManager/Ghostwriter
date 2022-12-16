@@ -1,17 +1,12 @@
-"""This contains all of the views used by the API application."""
+"""This contains all the views used by the API application."""
 
 # Standard Libraries
 import json
 import logging
+from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
 from json import JSONDecodeError
-from asgiref.sync import async_to_sync
-
-# 3rd Party Libraries
-from channels.layers import get_channel_layer
-from dateutil.parser import parse as parse_date
-from dateutil.parser._parser import ParserError
 
 # Django Imports
 from django.contrib import messages
@@ -23,6 +18,11 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView, View
+
+# 3rd Party Libraries
+from channels.layers import get_channel_layer
+from dateutil.parser import parse as parse_date
+from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
 from ghostwriter.api import utils
@@ -161,7 +161,7 @@ class HasuraActionView(HasuraView):
         return super().setup(request, *args, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
-        # For actions, only proceed if the requests checks out as a valid request from Hasura and we have a JWT
+        # For actions, only proceed if the requests checks out as a valid request from Hasura, and we have a JWT
         if utils.verify_graphql_request(request.headers):
             # Return 400 if no input was found but some input is required
             if not self.input and self.required_inputs:
@@ -432,7 +432,7 @@ class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
     def post(self, request, *args, **kwargs):
         # Use :model:`api:APIKey` object if the token is an API key
         if APIKey.objects.filter(token=self.encoded_token):
-            # Token has already been verified by webhook so we can trust it exists and is valid
+            # Token has already been verified by webhook, so we can trust it exists and is valid
             entry = APIKey.objects.get(token=self.encoded_token)
             expiration = entry.expiry_date
             if expiration is None:
@@ -709,6 +709,10 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
 
         if utils.verify_project_access(self.user_obj, report.project):
             finding_dict = to_dict(finding, resolve_fk=True)
+            # Remove the tags from the finding dict to add them later with the ``taggit`` API
+            del finding_dict["tags"]
+            del finding_dict["tagged_items"]
+
             report_link = ReportFindingLink(
                 report=report,
                 assigned_to=self.user_obj,
@@ -716,6 +720,7 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
                 **finding_dict,
             )
             report_link.save()
+            report_link.tags.add(*finding.tags.all())
             data = {
                 "id": report_link.pk,
             }
@@ -781,22 +786,21 @@ class ApiKeyRevoke(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, V
     model = APIKey
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.user.id == self.request.user.id
+        return self.get_object().user.id == self.request.user.id
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.revoked = True
-        self.object.save()
+        token = self.get_object()
+        token.revoked = True
+        token.save()
         data = {"result": "success", "message": "Token successfully revoked!"}
         logger.info(
             "Revoked %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            token.__class__.__name__,
+            token.id,
             self.request.user,
         )
         return JsonResponse(data)

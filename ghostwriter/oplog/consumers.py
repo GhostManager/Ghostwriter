@@ -1,4 +1,4 @@
-"""This contains all of the WebSocket consumers used by the Oplog application."""
+"""This contains all the WebSocket consumers used by the Oplog application."""
 
 # Standard Libraries
 import json
@@ -24,17 +24,17 @@ def createOplogEntry(oplog_id, user):
 
 
 @database_sync_to_async
-def deleteOplogEntry(oplogEntryId):
+def deleteOplogEntry(entry_id):
     try:
-        OplogEntry.objects.get(pk=oplogEntryId).delete()
+        OplogEntry.objects.get(pk=entry_id).delete()
     except OplogEntry.DoesNotExist:
         # This is fine, it just means the entry was already deleted
         pass
 
 
 @database_sync_to_async
-def copyOplogEntry(oplogEntryId):
-    entry = OplogEntry.objects.get(pk=oplogEntryId)
+def copyOplogEntry(entry_id):
+    entry = OplogEntry.objects.get(pk=entry_id)
     if entry:
         copy = deepcopy(entry)
         copy.pk = None
@@ -44,8 +44,8 @@ def copyOplogEntry(oplogEntryId):
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
-    def getLogEntries(self, oplogId: int, offset: int) -> ReturnList:
-        entries = OplogEntry.objects.filter(oplog_id=oplogId).order_by("-start_date")
+    def getLogEntries(self, oplog_id: int, offset: int) -> ReturnList:
+        entries = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
         if len(entries) == offset:
             serialized_entries = OplogEntrySerializer([], many=True).data
         else:

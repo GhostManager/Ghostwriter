@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the GraphQL application."""
+"""This contains all the database models used by the GraphQL application."""
 
 # Standard Libraries
 import typing

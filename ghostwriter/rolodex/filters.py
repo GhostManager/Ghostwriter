@@ -1,4 +1,4 @@
-"""This contains all of the model filters used by the Rolodex application."""
+"""This contains all the model filters used by the Rolodex application."""
 
 # 3rd Party Libraries
 import django_filters
@@ -10,7 +10,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 from django import forms
 from django.forms.widgets import TextInput
 
-from .models import Client, Project
+from ghostwriter.rolodex.models import Client, Project
 
 
 class ClientFilter(django_filters.FilterSet):
@@ -52,7 +52,6 @@ class ClientFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
@@ -155,7 +154,6 @@ class ProjectFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(

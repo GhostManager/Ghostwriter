@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Status application."""
+"""This contains all the views used by the Status application."""
 
 # Django Imports
 from django.apps import AppConfig

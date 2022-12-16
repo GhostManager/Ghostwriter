@@ -1,7 +1,12 @@
-"""This contains all of the model filters used by the Shepherd application."""
+"""This contains all the model filters used by the Shepherd application."""
 
 # Standard Libraries
 from datetime import date
+
+# Django Imports
+from django import forms
+from django.db.models import Q
+from django.forms.widgets import TextInput
 
 # 3rd Party Libraries
 import django_filters
@@ -14,14 +19,9 @@ from crispy_forms.bootstrap import (
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
-# Django Imports
-from django import forms
-from django.db.models import Q
-from django.forms.widgets import TextInput
-
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
-from .models import Domain, DomainStatus, HealthStatus, ServerStatus
+from ghostwriter.shepherd..models import Domain, DomainStatus, HealthStatus, ServerStatus
 
 
 class DomainFilter(django_filters.FilterSet):
@@ -86,7 +86,6 @@ class DomainFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = True
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
@@ -159,7 +158,6 @@ class ServerFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(

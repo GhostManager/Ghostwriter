@@ -1,5 +1,12 @@
 """This contains all client-related forms used by the Rolodex application."""
 
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.forms.models import BaseInlineFormSet, inlineformset_factory
+from django.utils.translation import gettext_lazy as _
+
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
@@ -14,13 +21,6 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-
-# Django Imports
-from django import forms
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from django.forms.models import BaseInlineFormSet, inlineformset_factory
-from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import GeneralConfiguration
@@ -121,7 +121,7 @@ class ClientContactForm(forms.ModelForm):
         self.fields["note"].widget.attrs["placeholder"] = "Brief Description of of the POC or a Note"
         self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
-        # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
+        # Disable the <form> tags because this will be part of an instance of `ClientForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
@@ -226,7 +226,6 @@ class ClientForm(forms.ModelForm):
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             TabHolder(
                 CustomTab(
@@ -317,7 +316,6 @@ class ClientNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),

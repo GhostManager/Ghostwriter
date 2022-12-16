@@ -1,17 +1,17 @@
-"""This contains all of the forms used by the API application."""
+"""This contains all the forms used by the API application."""
 
 # Standard Libraries
 from datetime import timedelta
-
-# 3rd Party Libraries
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Django Imports
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 
 class ApiKeyForm(forms.Form):
@@ -30,7 +30,7 @@ class ApiKeyForm(forms.Form):
             "expiry_date",
         ]
 
-    def __init__(self, project=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
@@ -44,7 +44,6 @@ class ApiKeyForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             Row(
                 Column("name", css_class="form-group col-6 mb-0"),

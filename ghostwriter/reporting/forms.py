@@ -1,7 +1,13 @@
-"""This contains all of the forms used by the Reporting application."""
+"""This contains all the forms used by the Reporting application."""
 
 # Standard Libraries
 import re
+
+# Django Imports
+from django import forms
+from django.core.exceptions import ValidationError
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
 from crispy_forms.bootstrap import Accordion, AccordionGroup, FieldWithButtons
@@ -16,12 +22,6 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
-
-# Django Imports
-from django import forms
-from django.core.exceptions import ValidationError
-from django.urls import reverse
-from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
