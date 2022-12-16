@@ -21,7 +21,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
-from ghostwriter.shepherd..models import Domain, DomainStatus, HealthStatus, ServerStatus
+from ghostwriter.shepherd.models import Domain, DomainStatus, HealthStatus, ServerStatus
 
 
 class DomainFilter(django_filters.FilterSet):
