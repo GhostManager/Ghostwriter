@@ -32,6 +32,9 @@ class OplogForm(forms.ModelForm):
         instance = getattr(self, "instance", None)
         if instance and instance.pk:
             self.fields["project"].disabled = True
+        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name for Identification"
+        self.fields["name"].label = "Name for the Log"
+        self.fields["name"].help_text = "Enter a name for this log that will help you identify it"
 
         # Limit the list to just projects not marked as complete
         self.project_instance = project
@@ -47,7 +50,6 @@ class OplogForm(forms.ModelForm):
         # Design form layout with Crispy's ``FormHelper``
         self.helper = FormHelper()
         self.helper.form_show_errors = False
-        self.helper.form_show_labels = True
         self.helper.form_method = "post"
         self.helper.layout = Layout(
             "name",
@@ -98,10 +100,12 @@ class OplogEntryForm(forms.ModelForm):
 
         self.fields["start_date"].widget.input_type = "datetime-local"
         self.fields["start_date"].initial = make_aware(datetime.utcnow())
-        self.fields["start_date"].label = "End Date/Time (UTC)"
+        self.fields["start_date"].label = "Start Date & Time"
+        self.fields["start_date"].help_text = "Date and time the action started"
         self.fields["end_date"].widget.input_type = "datetime-local"
         self.fields["end_date"].initial = make_aware(datetime.utcnow())
-        self.fields["end_date"].label = "End Date/Time (UTC)"
+        self.fields["end_date"].label = "End Date & Time"
+        self.fields["end_date"].help_text = "Date and time the action completed or halted"
 
         self.fields["command"].widget.attrs["rows"] = 2
         self.fields["output"].widget.attrs["rows"] = 2

@@ -171,16 +171,19 @@ class DomainForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["name"].widget.attrs["placeholder"] = "Domain"
-        self.fields["registrar"].widget.attrs["placeholder"] = "Registrar"
+        self.fields["name"].widget.attrs["placeholder"] = "ghostwriter.wiki"
+        self.fields["registrar"].widget.attrs["placeholder"] = "NameCheap"
         self.fields["domain_status"].empty_label = "-- Select Status --"
         self.fields["whois_status"].empty_label = "-- Select Status --"
         self.fields["health_status"].empty_label = "-- Select Status --"
         self.fields["creation"].widget.input_type = "date"
         self.fields["expiration"].widget.input_type = "date"
-        self.fields["note"].widget.attrs["placeholder"] = "Brief Note or Explanation of the Domain"
+        self.fields["note"].widget.attrs["placeholder"] = "This domain was purchased for..."
         self.fields["note"].label = ""
         self.fields["tags"].widget.attrs["placeholder"] = "phishing, categorized, ..."
+        self.fields["name"].label = "Domain Name"
+        self.fields["whois_status"].label = "WHOIS Status"
+        self.fields["health_status"].label = "Health Status"
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
@@ -234,7 +237,8 @@ class DomainForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -311,7 +315,8 @@ class DomainLinkForm(forms.ModelForm):
             "endpoint",
             HTML(
                 """
-                <p>Finally, select either a static server checked-out for this project <em>or</em> a transient server to associate with the selected domain:</p>
+                <p>Finally, select either a static server checked-out for this project
+                <em>or</em> a transient server to associate with the selected domain:</p>
                 """
             ),
             Row(
@@ -324,7 +329,8 @@ class DomainLinkForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -359,7 +365,8 @@ class DomainNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -398,7 +405,8 @@ class BurnForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
