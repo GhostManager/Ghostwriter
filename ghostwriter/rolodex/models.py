@@ -635,10 +635,10 @@ class ProjectTarget(models.Model):
         help_text="Provide the target's hostname or fully qualified domain name",
     )
     note = models.TextField(
-        "Scope",
+        "Notes",
         null=True,
         blank=True,
-        help_text="Provide a list of IP addresses, ranges, hostnames, or a mix with each entry on a new line",
+        help_text="Provide additional information about the target or its environment",
     )
     compromised = models.BooleanField("Compromised", default=False, help_text="Flag this host as compromised")
     # Foreign Keys
