@@ -34,12 +34,14 @@ class ApiKeyForm(forms.Form):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["expiry_date"].label = "Expiry Date & Time"
         self.fields["expiry_date"].widget.input_type = "datetime-local"
         self.fields["expiry_date"].initial = timezone.now() + timedelta(days=1)
         self.fields[
             "expiry_date"
         ].help_text = f"Pick a date / time and then select AM or PM (uses server's time zone–{settings.TIME_ZONE})"
         self.fields["name"].help_text = "Enter a name to help you identify this API key later"
+        self.fields["name"].widget.attrs["placeholder"] = "API Token – Automation Script"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True

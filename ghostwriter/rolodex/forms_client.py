@@ -126,7 +126,7 @@ class ClientContactForm(forms.ModelForm):
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
         # Hide the field labels from the model
-        self.helper.form_show_labels = False
+        # self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -166,20 +166,19 @@ class ClientContactForm(forms.ModelForm):
                     "note",
                     Row(
                         Column(
-                            Field("DELETE", style="display: none;"),
                             Button(
                                 "formset-del-button",
                                 "Delete Contact",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-12 text-center",
+                            css_class="form-group col-6 offset-3",
                         ),
-                        css_class="form-row",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        Column(
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
+                        ),
                     ),
                     css_class="formset",
                 ),
@@ -212,14 +211,16 @@ class ClientForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
-        self.fields["name"].widget.attrs["placeholder"] = "Full Company Name"
+        self.fields["name"].widget.attrs["placeholder"] = "SpecterOps"
         self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["short_name"].widget.attrs["placeholder"] = "Short Company Name"
+        self.fields["short_name"].widget.attrs["placeholder"] = "Specter"
         self.fields["short_name"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs["placeholder"] = "Brief Description of the Organization or a Note"
-        self.fields["address"].widget.attrs["placeholder"] = "Company's Address for Reporting or Shipping"
+        self.fields["note"].widget.attrs["placeholder"] = "This client approached us with concerns in these areas ..."
+        self.fields["address"].widget.attrs["placeholder"] = "14 N Moore St, New York, NY 10013"
         self.fields["timezone"].initial = general_config.default_timezone
-        self.fields["tags"].widget.attrs["placeholder"] = "bank, industry:finance, ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
+        self.fields["note"].label = "Notes"
+        self.fields["tags"].label = "Tags"
         # self.fields["tags"].required = False
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()

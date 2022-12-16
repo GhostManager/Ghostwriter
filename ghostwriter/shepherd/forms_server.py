@@ -111,16 +111,14 @@ class AuxServerAddressForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "chrome-off"
         self.fields["primary"].label = "Make Primary Address"
-        self.fields["ip_address"].label = ""
-        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
+        self.fields["ip_address"].label = "IP Address"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "192.168.13.37"
         self.fields["ip_address"].widget.attrs["autocomplete"] = "off"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be part of an instance of ``ServerForm()``
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -154,26 +152,26 @@ class AuxServerAddressForm(forms.ModelForm):
                                 css_class="primary-checkbox",
                                 onchange="checkboxUpdate(this)",
                             ),
-                            css_class="form-group col-md-6 mb-0",
+                            css_class="form-group col-md-6 mb-0 pt-5",
                         ),
                         css_class="form-row",
                     ),
                     Row(
                         Column(
-                            Field("DELETE", style="display: none;"),
                             Button(
                                 "formset-del-button",
                                 "Delete Address",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-12 text-center",
+                            css_class="form-group col-6 offset-3",
+                        ),
+                        Column(
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
                         ),
                         css_class="form-row",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
                     ),
                     css_class="formset",
                 ),
@@ -205,14 +203,14 @@ class ServerForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
-        self.fields["name"].widget.attrs["placeholder"] = "Hostname"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "192.168.13.37"
+        self.fields["name"].widget.attrs["placeholder"] = "hashcat.ghostwriter.local"
         self.fields["name"].label = "Hostname"
         self.fields["server_status"].empty_label = "-- Select Status --"
         self.fields["server_status"].label = "Server Status"
-        self.fields["server_provider"].empty_label = "-- Select Provider --"
+        self.fields["server_provider"].empty_label = "-- Select a Server Provider --"
         self.fields["server_provider"].label = "Server Provider"
-        self.fields["note"].widget.attrs["placeholder"] = ""
+        self.fields["note"].widget.attrs["placeholder"] = "This server has 8 GPUs, hashcat installed, and ..."
         self.fields["tags"].widget.attrs["placeholder"] = "hashcat, GPU:8, ..."
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -232,12 +230,12 @@ class ServerForm(forms.ModelForm):
                         Column("name", css_class="form-group col-md-6 mb-0"),
                         css_class="form-row",
                     ),
-                    "tags",
                     Row(
                         Column("server_status", css_class="form-group col-md-6 mb-0"),
                         Column("server_provider", css_class="form-group col-md-6 mb-0"),
                         css_class="form-row",
                     ),
+                    "tags",
                     "note",
                     link_css_class="icon server-icon",
                     css_id="server",
@@ -270,7 +268,8 @@ class ServerForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -296,17 +295,24 @@ class TransientServerForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
-        self.fields["name"].widget.attrs["placeholder"] = "Hostname"
-        self.fields["activity_type"].empty_label = "-- Select Activity --"
-        self.fields["server_role"].empty_label = "-- Select Role --"
-        self.fields["server_provider"].empty_label = "-- Select Provider --"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "18.231.194.9"
+        self.fields["name"].widget.attrs["placeholder"] = "mail.legitdomain.com"
+        self.fields["note"].widget.attrs[
+            "placeholder"
+        ] = "This is the SMTP host for the first phishing campaign and ..."
+        self.fields["activity_type"].empty_label = "-- Select an Activity --"
+        self.fields["server_role"].empty_label = "-- Select a Server Role --"
+        self.fields["server_provider"].empty_label = "-- Select a Server Provider --"
+        self.fields["name"].label = "Hostname"
+        self.fields["activity_type"].label = "Activity Type"
+        self.fields["server_role"].label = "Server Role"
+        self.fields["server_provider"].label = "Server Provider"
+        self.fields["aux_address"].label = "Additional IP Addresses"
         # Below is necessary due to a bug that sets `SplitArrayField` fields to `required`
         # even when the field is set as `required=False` above
         self.fields["aux_address"].required = False
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_labels = False
         self.helper.layout = Layout(
             HTML(
                 """
@@ -327,7 +333,7 @@ class TransientServerForm(forms.ModelForm):
             ),
             HTML(
                 """
-                <p>Include up to three additional IP addresses:</p>
+                <p>Include up to three additional IP addresses below:</p>
                 """
             ),
             "aux_address",
@@ -343,7 +349,8 @@ class TransientServerForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -371,7 +378,8 @@ class ServerNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -414,21 +422,17 @@ class ServerCheckoutForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["client"].empty_label = "-- Select a Client --"
-        self.fields["client"].label = ""
         self.fields["activity_type"].empty_label = "-- Select Activity --"
-        self.fields["activity_type"].label = ""
+        self.fields["activity_type"].label = "Activity Type"
         self.fields["server_role"].empty_label = "-- Select Role --"
-        self.fields["server_role"].label = ""
+        self.fields["server_role"].label = "Server Role"
         self.fields["project"].empty_label = "-- Select a Client First --"
-        self.fields["project"].label = ""
         self.fields["project"].queryset = Project.objects.none()
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs["placeholder"] = ""
-        self.fields["note"].label = ""
+        self.fields["note"].widget.attrs["placeholder"] = "This server will host Mythic C2 and ..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_show_labels = False
         self.helper.attrs = {
             "data-projects-url": data_projects_url,
             "data-project-url": data_project_url,
@@ -462,7 +466,8 @@ class ServerCheckoutForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),

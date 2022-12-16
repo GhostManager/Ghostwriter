@@ -24,6 +24,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (
     Evidence,
@@ -270,11 +271,18 @@ class ReportForm(forms.ModelForm):
         self.fields["docx_template"].label = "DOCX Template"
         self.fields["pptx_template"].label = "PPTX Template"
         self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
+        self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
+
+        report_config = ReportConfiguration.get_solo()
+        self.fields["docx_template"].initial = report_config.default_docx_template
+        self.fields["pptx_template"].initial = report_config.default_pptx_template
+        self.fields["docx_template"].empty_label = "-- Picka Word Template --"
+        self.fields["pptx_template"].empty_label = "-- Pick a PowerPoint Template --"
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             Row(
                 Column("title", css_class="form-group col-md-6 mb-0"),
@@ -297,7 +305,8 @@ class ReportForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -345,7 +354,6 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_id = "report-finding-form"
         self.helper.attrs = {"evidence-upload-modal-url": evidence_upload_url}
         self.helper.layout = Layout(
@@ -520,7 +528,9 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -558,6 +568,7 @@ class EvidenceForm(forms.ModelForm):
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
         self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.fields["document"].label = ""
         # Don't set form buttons for a modal pop-up
         if self.is_modal:
             submit = None
@@ -566,15 +577,15 @@ class EvidenceForm(forms.ModelForm):
             submit = Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4")
             cancel_button = HTML(
                 """
-                <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                <button onclick="window.location.href='{{ cancel_link }}'"
+                class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                </button>
                 """
             )
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_errors = False
-        self.helper.form_show_labels = False
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_id = "evidence-upload-form"
         self.helper.layout = Layout(
@@ -582,7 +593,8 @@ class EvidenceForm(forms.ModelForm):
                 """
                 <h4 class="icon signature-icon">Report Information</h4>
                 <hr>
-                <p>The friendly name is used to reference this evidence in the report and the caption appears below the figures in the generated reports.</p>
+                <p>The friendly name is used to reference this evidence in the report and the caption appears below
+                the figures in the generated reports.</p>
                 """
             ),
             Row(
@@ -596,8 +608,10 @@ class EvidenceForm(forms.ModelForm):
                 """
                 <h4 class="icon upload-icon">Upload a File</h4>
                 <hr>
-                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg). Previews for images will appear below.</p>
-                <p><span class="bold">Tip:</span> You copy and paste an image (file or screenshot) into this page!</p>
+                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).
+                Previews for images will appear below.</p>
+                <p><span class="bold">Tip:</span> You copy and paste an image (file or screenshot) into this page!
+                Make sure to <span class="italic">click outside of any form fields first</span>.</p>
                 <div id="findingPreview" class="pb-3"></div>
                 """
             ),
@@ -609,7 +623,8 @@ class EvidenceForm(forms.ModelForm):
                 ),
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">Click here to select or drag and drop your file...</label>
+                    <label id="filename" class="custom-file-label" for="customFile">
+                    Click here to select or drag and drop your file...</label>
                     """
                 ),
                 css_class="custom-file",
@@ -655,7 +670,6 @@ class FindingNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),
@@ -663,7 +677,9 @@ class FindingNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -694,7 +710,6 @@ class LocalFindingNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),
@@ -702,7 +717,9 @@ class LocalFindingNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -737,8 +754,8 @@ class ReportTemplateForm(forms.ModelForm):
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
-        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
-        self.fields["description"].widget.attrs["placeholder"] = "Brief Description on Template Usage"
+        self.fields["name"].widget.attrs["placeholder"] = "Default Red Team Report"
+        self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
         self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
@@ -746,7 +763,6 @@ class ReportTemplateForm(forms.ModelForm):
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.layout = Layout(
             HTML(
@@ -797,7 +813,9 @@ class ReportTemplateForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -902,9 +920,13 @@ class SelectReportTemplateForm(forms.ModelForm):
                 """
                 <p class="mb-2">Other report types do not use templates:</p>
                 <div class="btn-group">
-                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i></a>
-                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"></a>
-                    <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate and package all report types and evidence in a Zip"></a>
+                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}"
+                    data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i></a>
+                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}"
+                    data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"></a>
+                    <a class="btn btn-default archive-btn-icon js-generate-report"
+                    href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top"
+                    title="Generate and package all report types and evidence in a Zip"></a>
                 </div>
                 """
             ),
