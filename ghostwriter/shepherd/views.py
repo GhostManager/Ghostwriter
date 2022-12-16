@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Shepherd application."""
+"""This contains all the views used by the Shepherd application."""
 
 # Standard Libraries
 import json
@@ -20,6 +20,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+
 # 3rd Party Libraries
 from django_q.models import Task
 from django_q.tasks import async_task
@@ -166,7 +167,6 @@ def ajax_project_domains(request, pk):
     Retrieve all :model:`shepherd.History` related to an individual
     :model:`rolodex.Project`.
     """
-    domain_history = {}
     domain_history = History.objects.filter(project=pk)
     data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
 

@@ -1,4 +1,8 @@
-"""This contains all of the model filters used by the Reporting application."""
+"""This contains all the model filters used by the Reporting application."""
+
+# Django Imports
+from django import forms
+from django.forms.widgets import TextInput
 
 # 3rd Party Libraries
 import django_filters
@@ -6,11 +10,8 @@ from crispy_forms.bootstrap import InlineCheckboxes, PrependedText
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
-# Django Imports
-from django import forms
-from django.forms.widgets import TextInput
-
-from .models import Archive, Finding, FindingType, Report, Severity
+# Ghostwriter Libraries
+from ghostwriter.reporting.models import Archive, Finding, FindingType, Report, Severity
 
 
 class FindingFilter(django_filters.FilterSet):

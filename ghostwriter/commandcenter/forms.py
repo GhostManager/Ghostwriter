@@ -1,4 +1,4 @@
-"""This contains all of the forms used by the CommandCenter application."""
+"""This contains all the forms used by the CommandCenter application."""
 
 # Django Imports
 from django import forms
@@ -11,14 +11,14 @@ from ghostwriter.commandcenter.models import ReportConfiguration
 
 class ReportConfigurationForm(forms.ModelForm):
     """
-    Save an individual :model:`commandcenter.ReportConfiguration`.
+    Save settings in :model:`commandcenter.ReportConfiguration`.
     """
 
     class Meta:
         model = ReportConfiguration
         fields = "__all__"
 
-    def clean_default_docx_template(self, *args, **kwargs):
+    def clean_default_docx_template(self):
         docx_template = self.cleaned_data["default_docx_template"]
         if docx_template:
             docx_template_status = docx_template.get_status()
@@ -29,7 +29,7 @@ class ReportConfigurationForm(forms.ModelForm):
                 )
         return docx_template
 
-    def clean_default_pptx_template(self, *args, **kwargs):
+    def clean_default_pptx_template(self):
         pptx_template = self.cleaned_data["default_pptx_template"]
         if pptx_template:
             pptx_template_status = pptx_template.get_status()

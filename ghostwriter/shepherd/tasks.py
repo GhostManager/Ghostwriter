@@ -4,19 +4,19 @@
 import json
 import logging.config
 import traceback
+from asgiref.sync import async_to_sync
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from math import ceil
 
+# Django Imports
+from django.db.models import Q
+
 # 3rd Party Libraries
 import nmap
 import requests
-from asgiref.sync import async_to_sync
 from botocore.exceptions import ClientError
 from channels.layers import get_channel_layer
-
-# Django Imports
-from django.db.models import Q
 from lxml import objectify
 
 # Ghostwriter Libraries
@@ -35,7 +35,7 @@ from ghostwriter.modules.cloud_monitors import (
 from ghostwriter.modules.dns_toolkit import DNSCollector
 from ghostwriter.modules.notifications_slack import SlackNotification
 from ghostwriter.modules.review import DomainReview
-from .models import (
+from ghostwriter.shepherd.models import (
     Domain,
     DomainNote,
     DomainStatus,
@@ -106,7 +106,7 @@ def namecheap_reset_dns(namecheap_config, domain):
         )
         # Check if request returned a 200 OK
         if req.ok:
-            # Convert Namecheap XML into an easy to use object for iteration
+            # Convert Namecheap XML into an easy-to-use object for iteration
             root = objectify.fromstring(req.content)
             # Check the status to make sure it says "OK"
             namecheap_api_result = root.attrib["Status"]
@@ -164,8 +164,7 @@ def release_domains(no_action=False):
         Set to True to take no action and just return a list of domains that should
         be released (Default: False)
     """
-    domain_updates = {}
-    domain_updates["errors"] = {}
+    domain_updates = {"errors": {}}
 
     slack = SlackNotification()
     namecheap_config = NamecheapConfiguration.get_solo()
@@ -264,8 +263,7 @@ def release_servers(no_action=False):
         Set to True to take no action and just return a list of servers that
         should be released now (Default: False)
     """
-    server_updates = {}
-    server_updates["errors"] = {}
+    server_updates = {"errors": {}}
     servers_to_be_released = []
 
     slack = SlackNotification()
@@ -278,7 +276,7 @@ def release_servers(no_action=False):
         release_me = True
         slack_channel = None
 
-        # Get latest project checkout for the server
+        # Get the latest project checkout for the server
         try:
             project_queryset = ServerHistory.objects.filter(server__ip_address=server.ip_address).latest("end_date")
             release_date = project_queryset.end_date
@@ -347,8 +345,7 @@ def check_domains(domain_id=None):
     ``domain_id``
         Individual domain's primary key to update only that domain (Default: None)
     """
-    domain_updates = {}
-    domain_updates["errors"] = {}
+    domain_updates = {"errors": {}}
 
     # Fetch Slack configuration information
     slack = SlackNotification()
@@ -487,8 +484,7 @@ def update_dns(domain=None):
     domain_list = []
     dns_toolkit = DNSCollector()
 
-    domain_updates = {}
-    domain_updates["errors"] = {}
+    domain_updates = {"errors": {}}
 
     # Get the target domain(s) from the database
     if domain:
@@ -553,14 +549,15 @@ def update_dns(domain=None):
                     dmarc_record = dmarc_record.replace('"', "")
 
                 # Assemble the dict to be stored in the database
-                dns_records_dict = {}
-                dns_records_dict["ns"] = ns_record
-                dns_records_dict["a"] = a_record
-                dns_records_dict["mx"] = mx_record
-                dns_records_dict["cname"] = cname_record
-                dns_records_dict["dmarc"] = dmarc_record
-                dns_records_dict["txt"] = txt_record
-                dns_records_dict["soa"] = soa_record
+                dns_records_dict = {
+                    "ns": ns_record,
+                    "a": a_record,
+                    "mx": mx_record,
+                    "cname": cname_record,
+                    "dmarc": dmarc_record,
+                    "txt": txt_record,
+                    "soa": soa_record,
+                }
 
                 # Look-up the individual domain and save the new record string
                 domain_instance = Domain.objects.get(name=d.name)
@@ -618,7 +615,6 @@ def scan_servers(only_active=False):
                         message = "Your server, {}, has an open port - {}".format(host, port)
                         latest = ServerHistory.objects.filter(server=server)[0]
                         if slack.enabled:
-                            err = None
                             if latest.project.slack_channel:
                                 err = slack.send_msg(message, latest.project.slack_channel)
                             else:
@@ -667,9 +663,7 @@ def fetch_namecheap_domains():
     </ApiResponse>
     """
     domains_list = []
-    domain_changes = {}
-    domain_changes["errors"] = {}
-    domain_changes["updates"] = {}
+    domain_changes = {"errors": {}, "updates": {}}
 
     # Always begin assuming one page of results
     pages = 1
@@ -698,7 +692,7 @@ def fetch_namecheap_domains():
             )
             # Check if request returned a 200 OK
             if req.ok:
-                # Convert Namecheap XML into an easy to use object for iteration
+                # Convert Namecheap XML into an easy-to-use object for iteration
                 root = objectify.fromstring(req.content)
                 # Check the status to make sure it says "OK"
                 namecheap_api_result = root.attrib["Status"]
@@ -787,7 +781,8 @@ def fetch_namecheap_domains():
                             domain=domain, traceback=trace
                         )
                         logger.exception("Failed to update the entry for %s", domain.name)
-                    instance = DomainNote.objects.create(
+
+                    _ = DomainNote.objects.create(
                         domain=domain,
                         note="Automatically set to Expired because the domain did not appear in Namecheap during a sync.",
                     )
@@ -796,9 +791,7 @@ def fetch_namecheap_domains():
             logger.info("Domain %s is now being processed", domain["Name"])
 
             # Prepare domain attributes for Domain model
-            entry = {}
-            entry["name"] = domain["Name"]
-            entry["registrar"] = "Namecheap"
+            entry = {"name": domain["Name"], "registrar": "Namecheap"}
 
             # Set the WHOIS status based on WhoisGuard
             if domain["IsExpired"] == "true":
@@ -953,8 +946,6 @@ def review_cloud_infrastructure(aws_only_running=False):
     # AWS Section #
     ###############
 
-    aws_capable = True
-
     # Test connection with STS
     results = test_aws(cloud_config.aws_key, cloud_config.aws_secret)
     aws_capable = results["capable"]
@@ -1043,7 +1034,6 @@ def review_cloud_infrastructure(aws_only_running=False):
                             instance["tags"],
                         )
                         if slack.enabled:
-                            err = None
                             if result.project.slack_channel:
                                 err = slack.send_msg(
                                     message=f"Teardown notification for {result.project}",
@@ -1104,9 +1094,7 @@ def check_expiration():
     """
     Update expiration status for all :model:`shepherd.Domain`.
     """
-    domain_changes = {}
-    domain_changes["errors"] = {}
-    domain_changes["updates"] = {}
+    domain_changes = {"errors": {}, "updates": {}}
     expired_status = DomainStatus.objects.get(domain_status="Expired")
     domain_queryset = Domain.objects.filter(~Q(domain_status=expired_status))
     for domain in domain_queryset:
@@ -1256,7 +1244,7 @@ def test_namecheap(user):
         )
         # Check if request returned a 200 OK
         if req.ok:
-            # Convert Namecheap XML into an easy to use object for iteration
+            # Convert Namecheap XML into an easy-to-use object for iteration
             root = objectify.fromstring(req.content)
             # Check the status to make sure it says "OK"
             namecheap_api_result = root.attrib["Status"]
@@ -1311,6 +1299,7 @@ def test_slack_webhook(user):
     """
     Test the Slack Webhook configuration stored in :model:`commandcenter.SlackConfiguration`.
     """
+    level = "error"
     slack = SlackNotification()
     logger.info("Starting Slack Webhook test at %s", datetime.now())
     try:

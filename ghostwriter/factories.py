@@ -2,13 +2,13 @@
 import random
 from datetime import date, timedelta
 
-# 3rd Party Libraries
-import factory
-import pytz
-
 # Django Imports
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+
+# 3rd Party Libraries
+import factory
+import pytz
 from factory import Faker
 from faker import Faker as PyFaker
 
@@ -819,11 +819,12 @@ def GenerateMockProject(
     assignments = ProjectAssignmentFactory.create_batch(num_of_assignments, project=project)
 
     # Generate severity categories and randomly assign them to findings
-    severities = []
-    severities.append(SeverityFactory(severity="Critical", weight=0))
-    severities.append(SeverityFactory(severity="High", weight=1))
-    severities.append(SeverityFactory(severity="Medium", weight=2))
-    severities.append(SeverityFactory(severity="Low", weight=3))
+    severities = [
+        SeverityFactory(severity="Critical", weight=0),
+        SeverityFactory(severity="High", weight=1),
+        SeverityFactory(severity="Medium", weight=2),
+        SeverityFactory(severity="Low", weight=3),
+    ]
     ReportFindingLinkFactory.create_batch(
         num_of_findings,
         report=report,
@@ -838,15 +839,17 @@ def GenerateMockProject(
     ProjectTargetFactory.create_batch(num_of_targets, project=project)
 
     # Generate objective priorities and status and randomly assign them to objectives
-    obj_priorities = []
-    obj_priorities.append(ObjectivePriorityFactory(priority="Primary", weight=0))
-    obj_priorities.append(ObjectivePriorityFactory(priority="Secondary", weight=1))
-    obj_priorities.append(ObjectivePriorityFactory(priority="Tertiary", weight=2))
+    obj_priorities = [
+        ObjectivePriorityFactory(priority="Primary", weight=0),
+        ObjectivePriorityFactory(priority="Secondary", weight=1),
+        ObjectivePriorityFactory(priority="Tertiary", weight=2),
+    ]
 
-    obj_status = []
-    obj_status.append(ObjectiveStatusFactory(objective_status="Done"))
-    obj_status.append(ObjectiveStatusFactory(objective_status="Missed"))
-    obj_status.append(ObjectiveStatusFactory(objective_status="In Progress"))
+    obj_status = [
+        ObjectiveStatusFactory(objective_status="Done"),
+        ObjectiveStatusFactory(objective_status="Missed"),
+        ObjectiveStatusFactory(objective_status="In Progress"),
+    ]
 
     objectives = ProjectObjectiveFactory.create_batch(
         num_of_objectives,
@@ -865,10 +868,11 @@ def GenerateMockProject(
     cloud = TransientServerFactory.create_batch(num_of_servers, project=project)
 
     # Generate deconflictions
-    deconfliction_status = []
-    deconfliction_status.append(DeconflictionStatusFactory(status="Undetermined", weight=0))
-    deconfliction_status.append(DeconflictionStatusFactory(status="Confirmed", weight=1))
-    deconfliction_status.append(DeconflictionStatusFactory(status="Unrelated", weight=2))
+    deconfliction_status = [
+        DeconflictionStatusFactory(status="Undetermined", weight=0),
+        DeconflictionStatusFactory(status="Confirmed", weight=1),
+        DeconflictionStatusFactory(status="Unrelated", weight=2),
+    ]
     DeconflictionFactory.create_batch(
         num_of_deconflictions,
         project=project,

@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the Reporting application."""
+"""This contains all the database models used by the Reporting application."""
 
 # Standard Libraries
 import json

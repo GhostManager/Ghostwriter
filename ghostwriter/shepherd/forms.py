@@ -1,20 +1,22 @@
-"""This contains all of the forms used by the Shepherd application."""
+"""This contains all the forms used by the Shepherd application."""
 
 # Standard Libraries
 from datetime import date
 
-# 3rd Party Libraries
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 # Django Imports
 from django import forms
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+# 3rd Party Libraries
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
+
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
+
 from .models import (
     Domain,
     DomainNote,
@@ -65,7 +67,6 @@ class CheckoutForm(forms.ModelForm):
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.attrs = {
@@ -182,7 +183,6 @@ class DomainForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "phishing, categorized, ..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_errors = False
         self.helper.form_id = "checkout-form"
         self.helper.layout = Layout(
@@ -293,7 +293,6 @@ class DomainLinkForm(forms.ModelForm):
 
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_errors = False
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
@@ -352,7 +351,6 @@ class DomainNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
@@ -392,7 +390,6 @@ class BurnForm(forms.ModelForm):
         self.fields["burned_explanation"].widget.attrs["placeholder"] = "This domain was flagged for..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(

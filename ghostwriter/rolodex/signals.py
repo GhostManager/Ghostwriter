@@ -1,4 +1,4 @@
-"""This contains all of the model Signals used by the Rolodex application."""
+"""This contains all the model Signals used by the Rolodex application."""
 
 # Standard Libraries
 import logging
@@ -39,7 +39,7 @@ def update_project(sender, instance, **kwargs):
     Send Slack messages to test a :model:`rolodex.Project` entry's ``slack_channel``
     configuration on creation and whenever that value changes.
 
-    Updates dates for :model:`shepherd.History`, :model:`shepherd.ServerHistory`, and
+    Updates the dates for :model:`shepherd.History`, :model:`shepherd.ServerHistory`, and
     :model:`rolodex.ProjectAssignments` whenever the :model:`rolodex.Project` is updated.
     """
     slack = SlackNotification()

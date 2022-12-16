@@ -1,4 +1,4 @@
-"""This contains all of the model Signals used by the Home application."""
+"""This contains all the model Signals used by the Home application."""
 
 # Standard Libraries
 import logging

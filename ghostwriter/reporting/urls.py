@@ -1,9 +1,9 @@
-"""This contains all of the URL mappings used by the Reporting application."""
+"""This contains all the URL mappings used by the Reporting application."""
 
 # Django Imports
 from django.urls import path
 
-from . import views
+from ghostwriter.reporting import views
 
 app_name = "reporting"
 

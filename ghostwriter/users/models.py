@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the Users application."""
+"""This contains all the database models used by the Users application."""
 
 # Django Imports
 from django.contrib.auth.models import AbstractUser

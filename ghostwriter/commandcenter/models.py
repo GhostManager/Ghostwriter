@@ -1,4 +1,4 @@
-"""This contains all of the database models for the CommandCenter application."""
+"""This contains all the database models for the CommandCenter application."""
 
 # Django Imports
 from django.db import models

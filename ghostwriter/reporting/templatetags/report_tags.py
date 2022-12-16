@@ -26,7 +26,7 @@ def get_item(dictionary, key):
     ``dictionary``
         Python dictionary object to parse
     ``key``
-        Key name tor retrieve from the dictionary
+        Key name to retrieve from the dictionary
     """
     # Use `get` to return `None` if not found
     return dictionary.get(key)

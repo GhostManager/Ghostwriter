@@ -1,4 +1,4 @@
-"""This contains all of the database models for the Singleton application."""
+"""This contains all the database models for the Singleton application."""
 
 # Django Imports
 from django.conf import settings
@@ -17,7 +17,7 @@ DEFAULT_SINGLETON_INSTANCE_ID = 1
 
 class SingletonModel(models.Model):
     """
-    Sub-class of ``models.Model`` for models that will only have a single entry.
+    Subclass of ``models.Model`` for models that will only have a single entry.
     """
 
     singleton_instance_id = DEFAULT_SINGLETON_INSTANCE_ID

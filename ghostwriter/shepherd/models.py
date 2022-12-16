@@ -1,4 +1,4 @@
-"""This contains all of the database models for the Shepherd application."""
+"""This contains all the database models for the Shepherd application."""
 
 # Standard Libraries
 import datetime
@@ -651,7 +651,7 @@ class DomainServerConnection(models.Model):
     Stores an individual link between one :model:`shepherd.Domain` and one
     :model:`shepherd.StaticServer` or :model:`shepherd.TransientServer`.
 
-    Each link is associated with an one :model:`rolodex.Project`.
+    Each link is associated with one :model:`rolodex.Project`.
     """
 
     endpoint = models.CharField(

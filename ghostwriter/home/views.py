@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Home application."""
+"""This contains all the views used by the Home application."""
 
 # Standard Libraries
 import logging
@@ -14,6 +14,7 @@ from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
 from django.views.generic.edit import View
 from django.views.static import serve
+
 # 3rd Party Libraries
 from django_q.models import Task
 from django_q.tasks import async_task

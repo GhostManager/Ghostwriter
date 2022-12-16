@@ -1,9 +1,10 @@
-"""This contains all of the URL mappings used by the Rolodex application."""
+"""This contains all the URL mappings used by the Rolodex application."""
 
 # Django Imports
 from django.urls import path
 
-from . import views
+# Ghostwriter Libraries
+from ghostwriter.rolodex import views
 
 app_name = "rolodex"
 

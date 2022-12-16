@@ -1,7 +1,5 @@
-"""This contains all of the views used by the Users application."""
+"""This contains all the views used by the Users application."""
 
-# 3rd Party Libraries
-from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -9,6 +7,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, RedirectView, UpdateView
+
+# 3rd Party Libraries
+from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
 
 # Ghostwriter Libraries
 from ghostwriter.home.forms import UserProfileForm

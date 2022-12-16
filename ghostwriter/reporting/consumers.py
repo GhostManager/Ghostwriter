@@ -1,4 +1,4 @@
-"""This contains all of the WebSocket consumers used by the Reporting application."""
+"""This contains all the WebSocket consumers used by the Reporting application."""
 
 # Standard Libraries
 import json
