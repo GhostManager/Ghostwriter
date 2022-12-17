@@ -110,23 +110,22 @@ class ClientContactForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
-        self.fields["name"].widget.attrs["placeholder"] = "Full Name"
-        self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["email"].widget.attrs["placeholder"] = "Email Address"
-        self.fields["email"].widget.attrs["autocomplete"] = "off"
-        self.fields["job_title"].widget.attrs["placeholder"] = "Job Title"
-        self.fields["job_title"].widget.attrs["autocomplete"] = "off"
-        self.fields["phone"].widget.attrs["placeholder"] = "Phone Number"
-        self.fields["phone"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs["placeholder"] = "Brief Description of of the POC or a Note"
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["name"].widget.attrs["placeholder"] = "Janine Melnitz"
+        self.fields["name"].label = "Full Name"
+        self.fields["email"].widget.attrs["placeholder"] = "info@getghostwriter.io"
+        self.fields["email"].label = "Email Address"
+        self.fields["job_title"].widget.attrs["placeholder"] = "COO"
+        self.fields["phone"].widget.attrs["placeholder"] = "(212) 897-1964"
+        self.fields["phone"].label = "Phone Number"
+        self.fields["note"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
         self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
         # Disable the <form> tags because this will be part of an instance of `ClientForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        # self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -211,10 +210,10 @@ class ClientForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "SpecterOps"
-        self.fields["name"].widget.attrs["autocomplete"] = "off"
         self.fields["short_name"].widget.attrs["placeholder"] = "Specter"
-        self.fields["short_name"].widget.attrs["autocomplete"] = "off"
         self.fields["note"].widget.attrs["placeholder"] = "This client approached us with concerns in these areas ..."
         self.fields["address"].widget.attrs["placeholder"] = "14 N Moore St, New York, NY 10013"
         self.fields["timezone"].initial = general_config.default_timezone
