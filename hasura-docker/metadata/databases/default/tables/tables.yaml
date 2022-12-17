@@ -54,6 +54,8 @@
 - "!include public_shepherd_staticserver.yaml"
 - "!include public_shepherd_transientserver.yaml"
 - "!include public_shepherd_whoisstatus.yaml"
+- "!include public_taggit_tag.yaml"
+- "!include public_taggit_taggeditem.yaml"
 - "!include public_users_user.yaml"
 - "!include public_users_user_groups.yaml"
 - "!include public_users_user_user_permissions.yaml"

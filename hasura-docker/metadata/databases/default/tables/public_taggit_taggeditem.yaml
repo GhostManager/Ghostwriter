@@ -1,0 +1,24 @@
+table:
+  name: taggit_taggeditem
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: taggedItem
+  custom_root_fields: {}
+object_relationships:
+  - name: contentType
+    using:
+      manual_configuration:
+        column_mapping:
+          content_type_id: id
+        insertion_order: null
+        remote_table:
+          name: django_content_type
+          schema: public
+  - name: tag
+    using:
+      foreign_key_constraint_on: tag_id
+  - name: taggedItem
+    using:
+      foreign_key_constraint_on: content_type_id
