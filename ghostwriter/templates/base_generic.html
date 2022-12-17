@@ -131,7 +131,7 @@
               >Jump to Report
             {% else %}
               class="btn btn-primary col-10 active-report-shortcut icon ext-link-icon btn-disabled"
-              href="{% url 'reporting:report_detail' 00 %}"
+              href="#"
               >Select Report Below
             {% endif %}
           </a>
@@ -439,6 +439,7 @@
     let csrftoken = $(this).attr('activate-report-csrftoken');
     let shortcut = $('.active-report-shortcut');
     let shortcut_url = shortcut.attr('href');
+    let url_tpl = '{% url 'reporting:report_detail' 0 %}';
     $.ajaxSetup({
       beforeSend: function (xhr, settings) {
         if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -479,7 +480,7 @@
           if (current_value === reportId) {
             shortcut.attr('href', shortcut_url);
           } else {
-            shortcut.attr('href', shortcut_url.replace(current_value, reportId));
+            shortcut.attr('href', url_tpl.replace('0', reportId));
             shortcut.text('Jump to Report');
             shortcut.removeClass('btn-disabled');
           }
