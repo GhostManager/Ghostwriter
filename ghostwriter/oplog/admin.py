@@ -7,8 +7,8 @@ from django.contrib import admin
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
-from .models import Oplog, OplogEntry
-from .resources import OplogEntryResource
+from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.resources import OplogEntryResource
 
 
 class OplogResource(resources.ModelResource):

@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the Oplog application."""
+"""This contains all the database models used by the Oplog application."""
 
 # Standard Libraries
 import logging
