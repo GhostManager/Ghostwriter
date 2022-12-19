@@ -44,18 +44,10 @@ class FindingModelTests(TestCase):
         # Read
         self.assertEqual(finding.title, "Awful Finding")
         self.assertEqual(finding.pk, finding.id)
-        self.assertQuerysetEqual(
-            self.Finding.objects.all(),
-            [f"<Finding: [{finding.severity}] {finding.title}>"],
-        )
 
         # Update
         finding.title = "Not so Bad Finding"
         finding.save()
-        self.assertQuerysetEqual(
-            self.Finding.objects.all(),
-            [f"<Finding: [{finding.severity}] {finding.title}>"],
-        )
 
         # Delete
         finding.delete()

@@ -4,6 +4,7 @@ from datetime import datetime
 
 # 3rd Party Libraries
 import pytz
+
 # Django Imports
 from django.test import TestCase
 
@@ -27,10 +28,6 @@ class OplogModelTests(TestCase):
         # Read
         self.assertEqual(oplog.name, "Oplog 1")
         self.assertEqual(oplog.pk, oplog.id)
-        self.assertQuerysetEqual(
-            self.Oplog.objects.all(),
-            [f"<Oplog: {oplog.name} : {oplog.project}>"],
-        )
 
         # Update
         oplog.name = "Updated Oplog"

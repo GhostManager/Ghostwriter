@@ -43,10 +43,6 @@ class HealthStatusModelTests(TestCase):
         # Read
         self.assertEqual(status.health_status, "Healthy")
         self.assertEqual(status.pk, status.id)
-        self.assertQuerysetEqual(
-            self.HealthStatus.objects.all(),
-            [f"<HealthStatus: {status}>"],
-        )
 
         # Update
         status.health_status = "Burned"
@@ -82,10 +78,6 @@ class DomainStatusModelTests(TestCase):
         # Read
         self.assertEqual(status.domain_status, "Available")
         self.assertEqual(status.pk, status.id)
-        self.assertQuerysetEqual(
-            self.DomainStatus.objects.all(),
-            [f"<DomainStatus: {status}>"],
-        )
 
         # Update
         status.domain_status = "Unavailable"
@@ -121,10 +113,6 @@ class WhoisStatusModelTests(TestCase):
         # Read
         self.assertEqual(status.whois_status, "Enabled")
         self.assertEqual(status.pk, status.id)
-        self.assertQuerysetEqual(
-            self.WhoisStatus.objects.all(),
-            [f"<WhoisStatus: {status}>"],
-        )
 
         # Update
         status.whois_status = "Unknown"
@@ -160,10 +148,6 @@ class ActivityTypeModelTests(TestCase):
         # Read
         self.assertEqual(activity_type.activity, "Phishing")
         self.assertEqual(activity_type.pk, activity_type.id)
-        self.assertQuerysetEqual(
-            self.ActivityType.objects.all(),
-            [f"<ActivityType: {activity_type}>"],
-        )
 
         # Update
         activity_type.activity = "C2"
@@ -189,10 +173,6 @@ class DomainModelTests(TestCase):
         # Read
         self.assertEqual(domain.name, "ghostwriter.wiki")
         self.assertEqual(domain.pk, domain.id)
-        self.assertQuerysetEqual(
-            self.Domain.objects.all(),
-            [f"<Domain: {domain.name} ({domain.health_status})>"],
-        )
 
         # Update
         domain.name = "SpecterOps. io"
@@ -280,10 +260,6 @@ class HistoryModelTests(TestCase):
         # Read
         self.assertEqual(entry.domain.name, "ghostwriter.wiki")
         self.assertEqual(entry.pk, entry.id)
-        self.assertQuerysetEqual(
-            self.History.objects.all(),
-            [f"<History: {entry.project} : {entry.domain.name}>"],
-        )
 
         # Update
         entry.end_date = date.today()
@@ -351,10 +327,6 @@ class ServerStatusModelTests(TestCase):
         # Read
         self.assertEqual(status.server_status, "Available")
         self.assertEqual(status.pk, status.id)
-        self.assertQuerysetEqual(
-            self.ServerStatus.objects.all(),
-            [f"<ServerStatus: {status}>"],
-        )
 
         # Update
         status.server_status = "Unavailable"
@@ -390,10 +362,6 @@ class ServerProviderModelTests(TestCase):
         # Read
         self.assertEqual(provider.server_provider, "Digital Ocean")
         self.assertEqual(provider.pk, provider.id)
-        self.assertQuerysetEqual(
-            self.ServerProvider.objects.all(),
-            [f"<ServerProvider: {provider.server_provider}>"],
-        )
 
         # Update
         provider.server_provider = "AWS"
@@ -429,10 +397,6 @@ class ServerRoleModelTests(TestCase):
         # Read
         self.assertEqual(role.server_role, "Redirector")
         self.assertEqual(role.pk, role.id)
-        self.assertQuerysetEqual(
-            self.ServerRole.objects.all(),
-            [f"<ServerRole: {role.server_role}>"],
-        )
 
         # Update
         role.server_role = "Payload Delivery"
@@ -458,10 +422,6 @@ class StaticServerModelTests(TestCase):
         # Read
         self.assertEqual(server.ip_address, "192.168.1.100")
         self.assertEqual(server.pk, server.id)
-        self.assertQuerysetEqual(
-            self.StaticServer.objects.all(),
-            [f"<StaticServer: {server.ip_address} ({server.name}) [{server.server_provider}]>"],
-        )
 
         # Update
         server.ip_address = "192.168.2.200"
@@ -494,10 +454,6 @@ class TransientServerModelTests(TestCase):
         # Read
         self.assertEqual(server.ip_address, "192.168.1.100")
         self.assertEqual(server.pk, server.id)
-        self.assertQuerysetEqual(
-            self.TransientServer.objects.all(),
-            [f"<TransientServer: {server.ip_address} ({server.name}) [{server.server_provider}]>"],
-        )
 
         # Update
         server.ip_address = "192.168.2.200"
@@ -523,10 +479,6 @@ class AuxServerAddressModelTests(TestCase):
         # Read
         self.assertEqual(server.ip_address, "192.168.1.100")
         self.assertEqual(server.pk, server.id)
-        self.assertQuerysetEqual(
-            self.AuxServerAddress.objects.all(),
-            [f"<AuxServerAddress: {server.ip_address}>"],
-        )
 
         # Update
         server.ip_address = "192.168.2.200"
@@ -554,10 +506,6 @@ class ServerHistoryModelTests(TestCase):
         # Read
         self.assertEqual(entry.server.name, "teamserver.local")
         self.assertEqual(entry.pk, entry.id)
-        self.assertQuerysetEqual(
-            self.ServerHistory.objects.all(),
-            [f"<ServerHistory: {entry.server.ip_address} ({entry.server.name}) [{entry.activity_type}]>"],
-        )
 
         # Update
         entry.end_date = date.today()
@@ -649,10 +597,6 @@ class DomainServerConnectionModelTests(TestCase):
         self.assertEqual(entry.pk, entry.id)
 
         server = f"{entry.static_server}{entry.transient_server}"
-        self.assertQuerysetEqual(
-            self.DomainServerConnection.objects.all(),
-            [f"<DomainServerConnection: {entry.subdomain}.{entry.domain} used with {server}>"],
-        )
 
         # Update
         entry.ip_address = "192.168.2.200"
