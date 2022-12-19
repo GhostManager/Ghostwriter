@@ -447,7 +447,7 @@ class DomainExportViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Type"), "text/csv")
+        self.assertEqual(response.get("Content-Type"), "text/csv")
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -860,7 +860,7 @@ class ServerExportViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Type"), "text/csv")
+        self.assertEqual(response.get("Content-Type"), "text/csv")
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)

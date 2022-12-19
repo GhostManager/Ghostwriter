@@ -92,7 +92,7 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["operator_name"].widget.attrs["placeholder"] = "Operator name"
         self.fields["tool"].widget.attrs["placeholder"] = "Command or script"
         self.fields["command"].widget.attrs["placeholder"] = "Complete executed command"
-        self.fields["user_context"].widget.attrs["placeholder"] = "GW\BENNY"
+        self.fields["user_context"].widget.attrs["placeholder"] = "GW\\BENNY"
         self.fields["output"].widget.attrs["placeholder"] = "Command output"
         self.fields["description"].widget.attrs["placeholder"] = "Description"
         self.fields["comments"].widget.attrs["placeholder"] = "Comments"
