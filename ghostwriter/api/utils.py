@@ -64,7 +64,7 @@ def jwt_decode(token):
             "verify_aud": settings.GRAPHQL_JWT["JWT_AUDIENCE"],
             "verify_signature": settings.GRAPHQL_JWT["JWT_VERIFY"],
         },
-        leeway=timedelta(seconds=0),
+        leeway=10,
         audience=settings.GRAPHQL_JWT["JWT_AUDIENCE"],
         issuer=None,
         algorithms=[settings.GRAPHQL_JWT["JWT_ALGORITHM"]],
@@ -89,7 +89,7 @@ def jwt_decode_no_verification(token):
             "verify_aud": False,
             "verify_signature": False,
         },
-        leeway=timedelta(seconds=0),
+        leeway=10,
         audience=settings.GRAPHQL_JWT["JWT_AUDIENCE"],
         issuer=None,
         algorithms=[settings.GRAPHQL_JWT["JWT_ALGORITHM"]],
@@ -110,7 +110,7 @@ def get_jwt_payload(token):
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
         try:
             bad_token = jwt_decode_no_verification(token)
-            logger.warning("%s error with this payload: %s", exception, bad_token)
+            logger.warning("%s error (%s) with this payload: %s", type(exception).__name__, exception, bad_token)
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as verify_exception:
             logger.error("%s error with this payload: %s", verify_exception, token)
         payload = None
