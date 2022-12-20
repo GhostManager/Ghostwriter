@@ -205,7 +205,7 @@
            href="{% url 'rolodex:project_update' project.id %}#whitecards">Add & Edit White Cards</a>
         {% if project.whitecard_set.all %}
           {% for card in project.whitecard_set.all %}
-            <div id="whitecard-card-{{ card.id }}" class="card text-center mb-3">
+            <div id="whitecard-card-{{ card.id }}" class="card card-project text-center mb-3">
               <div class="card-header">
                 <h5 class="card-title">{{ card.title }}</h5>
               </div>
@@ -867,7 +867,7 @@
 
         {% if project.deconfliction_set.all %}
           {% for event in project.deconfliction_set.all %}
-            <div id="decon-card-{{ event.id }}" class="card text-center mb-3">
+            <div id="decon-card-{{ event.id }}" class="card card-project text-center mb-3">
               <div class="card-header">
                 <h5 class="card-title"><span
                   id="delete-target-content-deconfliction-{{ event.id }}">{{ event.title|title }}</span>
