@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
+from crispy_forms.bootstrap import Alert, FieldWithButtons, StrictButton, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -464,16 +464,10 @@ class ProjectAssignmentForm(forms.ModelForm):
                         Column(
                             FieldWithButtons(
                                 "start_date",
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary"
-                                        type="button"
-                                        onclick="copyStartDate($(this).closest('div').find('input'))"
-                                    >
-                                    Copy
-                                    </button>
-                                    """
+                                StrictButton(
+                                    "Copy",
+                                    onclick="copyStartDate($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
                             css_class="form-group col-md-6 mb-0",
@@ -481,16 +475,10 @@ class ProjectAssignmentForm(forms.ModelForm):
                         Column(
                             FieldWithButtons(
                                 "end_date",
-                                HTML(
-                                    """
-                                <button
-                                    class="btn btn-secondary"
-                                    type="button"
-                                    onclick="copyEndDate($(this).closest('div').find('input'))"
-                                >
-                                Copy
-                                </button>
-                                """
+                                StrictButton(
+                                    "Copy",
+                                    onclick="copyEndDate($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
                             css_class="form-group col-md-6 mb-0",
@@ -588,16 +576,10 @@ class ProjectObjectiveForm(forms.ModelForm):
                         Column(
                             FieldWithButtons(
                                 "deadline",
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary"
-                                        type="button"
-                                        onclick="copyEndDate($(this).closest('div').find('input'))"
-                                    >
-                                    Copy
-                                    </button>
-                                    """
+                                StrictButton(
+                                    "Copy",
+                                    onclick="copyEndDate($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
                             css_class="col-4",
@@ -865,16 +847,10 @@ class WhiteCardForm(forms.ModelForm):
                                     "issued",
                                     step=1,
                                 ),
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary"
-                                        type="button"
-                                        onclick="setNow($(this).closest('div').find('input'))"
-                                    >
-                                    Now
-                                    </button>
-                                    """
+                                StrictButton(
+                                    "Now",
+                                    onclick="setNow($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
                             css_class="col-md-6",
