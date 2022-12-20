@@ -398,7 +398,7 @@
         <!-- User Profile & Avatar -->
         <a href="{% url 'users:user_detail' request.user.username %}">
           <img class="navbar-avatar"
-               src="{{ user.userprofile.avatar_url }}"
+               src="{{ request.user.userprofile.avatar_url }}"
                alt="Avatar">
         </a>
       </div>
