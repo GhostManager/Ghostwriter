@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added support for applying tags to clients, projects, reports, findings, domains, servers, logs, and log entries
 * Added whitecards and deconflictions nodes to the GraphQL schema for projects
 
+### Fixed
+
+* Fixed the wrong avatar appearing in the corner when viewing another user's profile
+
 ### Changed
 
 * All new log view page with improved editing functionality
