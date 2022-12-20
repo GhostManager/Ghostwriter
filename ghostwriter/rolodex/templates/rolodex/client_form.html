@@ -61,20 +61,18 @@
       let new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
       new_form.find('span.counter').html(parseInt(form_idx) + 1);
       new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-      // Re-initialize WYSIWYG editor for the new form
       let target = 'id_{{ contacts.prefix }}-' + parseInt(form_idx) + '-note'
       tinymce.execCommand('mceAddEditor', false, target);
     });
 
     {% comment %} Roll Codename with AJAX {% endcomment %}
-    $(".js-roll-codename").click(function () {
+    $('.js-roll-codename').click(function () {
       let url = $(this).attr('roll-codename-url');
-      // Send AJAX POST request
       $.ajax({
         url: url,
         type: 'GET',
         success: function (data) {
-          $("#id_codename").val(data['codename']);
+          $('#id_codename').val(data['codename']);
         }
       });
     });

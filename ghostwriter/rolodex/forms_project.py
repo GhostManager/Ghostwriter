@@ -992,7 +992,6 @@ class ProjectForm(forms.ModelForm):
                                         class="btn btn-secondary js-roll-codename"
                                         roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
                                         type="button"
-                                        onclick="copyStartDate($(this).closest('div').find('input'))"
                                     >
                                     <i class="fas fa-dice"></i>
                                     </button>
@@ -1086,7 +1085,8 @@ class ProjectForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -1135,7 +1135,8 @@ class ProjectNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -1218,7 +1219,8 @@ class DeconflictionForm(forms.ModelForm):
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
