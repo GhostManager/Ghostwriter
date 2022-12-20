@@ -425,6 +425,10 @@ form.newitem {
   margin-bottom: 0;
 }
 
+.invalid-feedback {
+    display: block;
+  }
+
 /* ---------------------------------------------------
     FILE UPLOAD STYLES
 ----------------------------------------------------- */
