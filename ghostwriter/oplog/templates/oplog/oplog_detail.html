@@ -7,8 +7,8 @@
     <nav aria-label="breadcrumb">
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' oplog.project.client.id %}">{{ oplog.project.client }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' oplog.project.id %}">{{ oplog.project.start_date|date:"DATE_FORMAT" }} {{ oplog.project.project_type }}</a></li>
+            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ oplog.project.client }}" href="{% url 'rolodex:client_detail' oplog.project.client.id %}">{{ oplog.project.client }}</a></li>
+            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ oplog.project }}" href="{% url 'rolodex:project_detail' oplog.project.id %}">{{ oplog.project.start_date|date:"DATE_FORMAT" }} {{ oplog.project.project_type }}</a></li>
             <li class=" breadcrumb-item active" aria-current="page">{{ oplog.name }}</li>
         </ul>
     </nav>
