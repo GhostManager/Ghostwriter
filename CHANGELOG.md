@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 23 December 2022
+
+### Added
+
+* Added support for applying tags to clients, projects, reports, findings, domains, servers, logs, and log entries
+* Added whitecards and deconflictions nodes to the GraphQL schema for projects
+
+### Changed
+
+* All new log view page with improved editing functionality
+  * Selections for showing/hiding a column are now persistent between page visits and refreshes
+  * Editing table rows now use a modal and allows all fields to be edited and saved at once 
+* The web UI now supports customizing the severity category titles
+* Changed project assignments to allow the same person to be assigned more than once as long as the date ranges do not overlap
+* Various web UI and scripting improvements for better performance, usability, and accessibility
+
+### Security
+
+* Proactively upgraded core dependencies and base OS images to their latest stable versions
+
 ## [3.1.4] - 11 November 2022
 
 ### Fixed
