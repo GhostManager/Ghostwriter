@@ -1286,7 +1286,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                self.object = form.save(commit=False)
 
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
