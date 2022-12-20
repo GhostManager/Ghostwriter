@@ -167,7 +167,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "operator",
                                 ValidationError(
-                                    _("This operator is assigned more than once for the same time period"),
+                                    _("This operator is assigned more than once for an overlapping time period"),
                                     code="duplicate",
                                 ),
                             )
