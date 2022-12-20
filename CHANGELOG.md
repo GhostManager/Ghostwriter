@@ -4,20 +4,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.5] - 28 November 2022
+## [Unreleased] - 23 December 2022
 
 ### Added
 
-* Added form validation to confirm the hex color value provided for a severity category is valid
+* Added support for applying tags to clients, projects, reports, findings, domains, servers, logs, and log entries
+* Added whitecards and deconflictions nodes to the GraphQL schema for projects
 
 ### Changed
 
-* Build commands will no longer load default data if the entry already exists (avoids resetting entries that may have been customized)
+* All new log view page with improved editing functionality
+  * Selections for showing/hiding a column are now persistent between page visits and refreshes
+  * Editing table rows now use a modal and allows all fields to be edited and saved at once 
+* The web UI now supports customizing the severity category titles
+* Changed project assignments to allow the same person to be assigned more than once as long as the date ranges do not overlap
+* Various web UI and scripting improvements for better performance, usability, and accessibility
 
 ### Security
 
-* Updated the Hasura GraphQL Engine to v2.15.2 to address [a security vulnerability reported to Hasura](https://github.com/hasura/graphql-engine/security/advisories/GHSA-g7mj-g7f4-hgrg)
-
+* Proactively upgraded core dependencies and base OS images to their latest stable versions
 
 ## [3.1.4] - 11 November 2022
 
