@@ -8,7 +8,7 @@ from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
+from crispy_forms.bootstrap import Alert, FieldWithButtons, StrictButton, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -220,7 +220,6 @@ class ClientForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
         self.fields["note"].label = "Notes"
         self.fields["tags"].label = "Tags"
-        # self.fields["tags"].required = False
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -251,7 +250,6 @@ class ClientForm(forms.ModelForm):
                                         class="btn btn-secondary js-roll-codename"
                                         roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
                                         type="button"
-                                        onclick="copyStartDate($(this).closest('div').find('input'))"
                                     >
                                     <i class="fas fa-dice"></i>
                                     </button>
@@ -295,7 +293,8 @@ class ClientForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -323,7 +322,8 @@ class ClientNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
