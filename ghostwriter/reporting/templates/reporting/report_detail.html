@@ -11,7 +11,7 @@
                                      href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a>
       </li>
       <li class="breadcrumb-item"><a data-toggle="tooltip"
-                                     title="{{ report.project.start_date }} {{ report.project.project_type }}"
+                                     title="{{ report.project }}"
                                      href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project.start_date }} {{ report.project.project_type }}</a>
       </li>
       <li class="breadcrumb-item active" aria-current="page">{{ report }}</li>
