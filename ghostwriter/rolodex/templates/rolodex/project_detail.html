@@ -1039,56 +1039,55 @@
   <script>
     const $projectDescription = $('#projectDescription')
     const $projectDescDropdown = $('#projectDescriptionDropdown')
-    const $todoList = $('#todoList')
     const $editTodoInout = $('.edit-todo-input')
 
     $(document).ready(function () {
       new ClipboardJS('.js-copy-scope');
 
       {% comment %} jQuery Tablesorter {% endcomment %}
-      $("#assignmentTable").tablesorter(
+      $('#assignmentTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
         }
       );
-      $("#serverTable").tablesorter(
+      $('#serverTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
         }
       );
-      $("#domainTable").tablesorter(
+      $('#domainTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
         }
       );
-      $("#objectiveTable").tablesorter(
+      $('#objectiveTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
         }
       );
-      $("#reportTable").tablesorter(
+      $('#reportTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
         }
       );
-      $("#scopeTable").tablesorter(
+      $('#scopeTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
           cssNone: 'none',
         }
       );
-      $("#targetTable").tablesorter(
+      $('#targetTable').tablesorter(
         {
           cssAsc: 'down',
           cssDesc: 'up',
@@ -1595,9 +1594,9 @@
         },
         success: function (data) {
           if (data['result'] === 'success') {
-            ele.toggleClass('complete');
             updateObjectiveRow(objectiveRow);
             updateTodoList(ele);
+            ele.toggleClass('complete');
           }
           if (data['message']) {
             displayToastTop({type: data['result'], string: data['message'], title: 'Task Update'});
@@ -1733,7 +1732,6 @@
       let taskList = $('#task-list-' + objectiveId);
       let url = ele.attr('refresh-task-url');
       if (url != null) {
-        console.log("Updating task list...");
         taskList.html('').load(url, function () {
           prepareTodoList();
         });
@@ -1742,6 +1740,7 @@
 
     let todo = function () {
       $('.todo-nav .all-task').click(function () {
+        let $todoList = $('.todo-list')
         $todoList.removeClass('only-active');
         $todoList.removeClass('only-complete');
         $('.todo-nav li.active').removeClass('active');
@@ -1749,6 +1748,7 @@
       });
 
       $('.todo-nav .active-task').click(function () {
+        let $todoList = $('.todo-list')
         $todoList.removeClass('only-complete');
         $todoList.addClass('only-active');
         $('.todo-nav li.active').removeClass('active');
@@ -1756,6 +1756,7 @@
       });
 
       $('.todo-nav .completed-task').click(function () {
+        let $todoList = $('.todo-list')
         $todoList.removeClass('only-active');
         $todoList.addClass('only-complete');
         $('.todo-nav li.active').removeClass('active');
@@ -1794,7 +1795,7 @@
 
       // Toggle ``readonly`` attribute on fields and save
       $editTodoInout.click(function () {
-        $(this).removeAttr('readonly');
+        $(this).attr('readonly', false);
       });
 
       $editTodoInout.blur(function () {
