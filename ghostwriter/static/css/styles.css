@@ -393,11 +393,6 @@ h6 {
     FORM STYLES
 ----------------------------------------------------- */
 
-form.newitem {
-  width: 80%;
-  margin: auto;
-}
-
 .form-control::placeholder {
   color: var(--primary-color);
   opacity: 0.75;
@@ -2335,33 +2330,33 @@ th.icon {
   display: block;
 }
 
-.myaccordion .card-header {
+.finding-accordion .card-header {
   cursor: pointer;
 }
 
-.myaccordion {
+.finding-accordion {
   max-width: 100%;
   margin: 10px auto;
   box-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
-.myaccordion .card,
-.myaccordion .card:last-child .card-header {
+.finding-accordion .card,
+.finding-accordion .card:last-child .card-header {
   border: none;
 }
 
-.myaccordion>.card {
+.finding-accordion>.card {
   padding: 0;
   border-radius: 5px;
   overflow: hidden;
   background-color: #f1f1f1;
 }
 
-.myaccordion .card td {
+.finding-accordion .card td {
   text-align: center;
 }
 
-.myaccordion .card-header {
+.finding-accordion .card-header {
   border-radius: 5px;
   background-color: var(--accordion-primary-color);
   border: none #f5f5f5;
@@ -2375,31 +2370,31 @@ th.icon {
   position: relative;
 }
 
-.myaccordion .fa-stack {
+.finding-accordion .fa-stack {
   font-size: 18px;
 }
 
-.myaccordion span {
+.finding-accordion span {
   font-size: var(--main-font-size);
 }
 
-.myaccordion .accordion-toggle.btn {
+.finding-accordion .accordion-toggle.btn {
   font-weight: 600;
   color: #fff;
   padding: 0;
 }
 
-.myaccordion .btn-link:hover,
-.myaccordion .btn-link:focus {
+.finding-accordion .btn-link:hover,
+.finding-accordion .btn-link:focus {
   text-decoration: none;
 }
 
-.myaccordion .card-header:hover,
-.myaccordion .card-header[aria-expanded=true] {
+.finding-accordion .card-header:hover,
+.finding-accordion .card-header[aria-expanded=true] {
   background-color: var(--accordion-expanded-color);
 }
 
-.myaccordion .card-header:after {
+.finding-accordion .card-header:after {
   content: '\002B';
   color: #fff;
   font-weight: 600;
@@ -2418,7 +2413,7 @@ h5 a[aria-expanded=true]:after {
   content: '\2212';
 }
 
-.myaccordion .card-header[aria-expanded=true]:after {
+.finding-accordion .card-header[aria-expanded=true]:after {
   content: '\2212';
 }
 
@@ -2819,16 +2814,8 @@ img {
   display: none !important;
 }
 
-.todo-list.only-active .todo-item:not(.complete) {
-  display: visible !important;
-}
-
 .todo-list.only-complete .todo-item:not(.complete) {
   display: none !important;
-}
-
-.todo-list.only-complete .todo-item.complete {
-  display: visible !important;
 }
 
 .todo-list .todo-item.complete div.task-description {
@@ -2839,6 +2826,10 @@ img {
   font-size: .85em;
   text-align: left;
   padding-left: 27px;
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  flex-direction: column;
 }
 
 .remove-todo-item {
@@ -2979,7 +2970,7 @@ tr.accordion-row.open td:first-child+td+td {
   display: none;
 }
 
-.accoridon-content {
+.accordion-content {
   display: none;
 }
 

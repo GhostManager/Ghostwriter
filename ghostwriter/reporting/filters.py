@@ -52,7 +52,6 @@ class FindingFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
@@ -129,7 +128,6 @@ class ReportFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
@@ -188,7 +186,6 @@ class ArchiveFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(

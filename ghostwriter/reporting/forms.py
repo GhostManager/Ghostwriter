@@ -72,7 +72,6 @@ class FindingForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             HTML(
                 """
