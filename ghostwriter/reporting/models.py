@@ -85,10 +85,12 @@ class Severity(models.Model):
         return f"{self.severity}"
 
     def clean(self):
+        old_entry = None
         if self.pk:
-            old_entry = self.__class__.objects.get(pk=self.pk)
-        else:
-            old_entry = None
+            try:
+                old_entry = self.__class__.objects.get(pk=self.pk)
+            except self.__class__.DoesNotExist:
+                pass
 
         # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
         # whenever ``save()`` is called
