@@ -1,5 +1,8 @@
 """This contains all project-related forms used by the Rolodex application."""
 
+# Standard Libraries
+from collections import namedtuple
+
 # Django Imports
 from django import forms
 from django.conf import settings
@@ -131,6 +134,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
     """
 
     def clean(self):
+        Assignment = namedtuple("Assignment", ["user", "role", "start_date", "end_date"])
         assignments = []
         duplicates = False
         super().clean()
@@ -146,19 +150,28 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                     role = form.cleaned_data["role"]
                     note = form.cleaned_data["note"]
 
-                    # Check that one operator is not assigned twice
-                    if operator:
-                        if operator in assignments:
-                            duplicates = True
-                        assignments.append(operator)
-                    if duplicates:
-                        form.add_error(
-                            "operator",
-                            ValidationError(
-                                _("This operator is assigned more than once"),
-                                code="duplicate",
-                            ),
-                        )
+                    # Check if the person has already been assigned to this project within the same time period
+                    if operator and start_date and end_date:
+                        if any(operator.username in assign.user for assign in assignments):
+                            for assign in assignments:
+                                if assign.user == operator.username:
+                                    latest_start = max(assign.start_date, start_date)
+                                    earliest_end = min(assign.end_date, end_date)
+                                    delta = (earliest_end - latest_start).days + 1
+                                    overlap = max(0, delta)
+                                    if overlap > 0:
+                                        duplicates = True
+
+                        assignments.append(Assignment(operator.username, role, start_date, end_date))
+                        if duplicates:
+                            form.add_error(
+                                "operator",
+                                ValidationError(
+                                    _("This operator is assigned more than once for the same time period"),
+                                    code="duplicate",
+                                ),
+                            )
+
                     # Raise an error if an operator is selected provided without any required details
                     if operator and any(x is None for x in [start_date, end_date, role]):
                         if not start_date:
