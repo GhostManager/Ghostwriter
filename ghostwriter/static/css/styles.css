@@ -2434,6 +2434,11 @@ h5 a[aria-expanded=true]:after {
   margin-bottom: 0;
 }
 
+.card-project .card-header {
+  background-color: var(--neutral-color);
+  color: var(--ghost-white);
+}
+
 /* ---------------------------------------------------
     FINDING PREVIEW STYLES
 ----------------------------------------------------- */
