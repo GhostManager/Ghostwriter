@@ -202,6 +202,22 @@
 
 {% block morescripts %}
   <script>
+    {% comment %} Connect to channel for finding-specific notifications {% endcomment %}
+    const ws_finding = new WebSocket(
+      protocol + window.location.host +
+      '/ws/reports/findings/' + {{ reportfindinglink.id }} +'/');
+
+    {% comment %} Handle receiving finding-specific messages {% endcomment %}
+    ws_finding.onmessage = function (e) {
+      let data = JSON.parse(e.data);
+      displayToastTop({type: data.message.level, string: data.message.message, title: data.message.title, delay: 0});
+    };
+
+    {% comment %} Handle unexpected WebSocket closures {% endcomment %}
+    ws_finding.onclose = function () {
+      console.error('Finding notification WebSocket closed unexpectedly');
+    };
+
     {%  comment %} Prepare CVSS calculator {% endcomment %}
     $(document).ready(function () {
       prepareCVSSCalc()

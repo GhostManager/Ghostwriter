@@ -8,4 +8,5 @@ from ghostwriter.reporting import consumers
 
 websocket_urlpatterns = [
     re_path(r"ws/reports/(?P<report_id>\w+)/$", consumers.ReportConsumer.as_asgi()),
+    re_path(r"ws/reports/findings/(?P<finding_id>\w+)/$", consumers.ReportFindingConsumer.as_asgi()),
 ]
