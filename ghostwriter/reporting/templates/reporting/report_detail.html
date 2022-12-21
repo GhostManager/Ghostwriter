@@ -352,6 +352,8 @@
   </div>
 
   <script>
+    const $spinnerModal = $('#spinner-modal')
+
     {% comment %} Connect to channel for report-specific notifications {% endcomment %}
     let ws_report = new WebSocket(
       protocol + window.location.host +
@@ -361,8 +363,9 @@
     ws_report.onmessage = function (e) {
       let data = JSON.parse(e.data);
       if (data.message['status'] == 'success') {
+        console.log('Completed report generation');
         setTimeout(() => {
-          $('#spinner-modal').modal('hide');
+         $spinnerModal.modal('hide');
         }, 1000);
       }
     };
@@ -374,10 +377,10 @@
 
     {% comment %} Display the loading spinner while report generates {% endcomment %}
     $('.js-generate-report').click(function () {
-      $('#spinner-modal').modal('show');
+      $spinnerModal.modal('show');
       setTimeout(() => {
-        $('#spinner-modal').modal('hide');
-      }, 5000);
+        $spinnerModal.modal('hide');
+      }, 4000);
     });
 
     {% comment %} Configure table sorting by severity groups {% endcomment %}
