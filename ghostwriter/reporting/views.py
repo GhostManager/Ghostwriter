@@ -2135,29 +2135,14 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
             old_assignee = old_entry.assigned_to
             # Notify new assignee over WebSockets
             if "assigned_to" in form.changed_data:
-                new_users_assignments = {}
-                old_users_assignments = {}
                 # Only notify if the assignee is not the user who made the change
                 if self.request.user != self.object.assigned_to:
-                    # Count the current user's total assignments
-                    new_users_assignments = (
-                        ReportFindingLink.objects.select_related("report", "report__project")
-                        .filter(Q(assigned_to=self.object.assigned_to) & Q(report__complete=False) & Q(complete=False))
-                        .count()
-                        + 1
-                    )
-                    old_users_assignments = (
-                        ReportFindingLink.objects.select_related("report", "report__project")
-                        .filter(Q(assigned_to=old_assignee) & Q(report__complete=False) & Q(complete=False))
-                        .count()
-                        - 1
-                    )
                     try:
                         # Send a message to the assigned user
                         async_to_sync(channel_layer.group_send)(
                             "notify_{}".format(self.object.assigned_to),
                             {
-                                "type": "task",
+                                "type": "message",
                                 "message": {
                                     "message": "You have been assigned to this finding for {}:\n{}".format(
                                         self.object.report, self.object.title
@@ -2165,19 +2150,18 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                                     "level": "info",
                                     "title": "New Assignment",
                                 },
-                                "assignments": new_users_assignments,
                             },
                         )
                     except gaierror:
                         # WebSocket are unavailable (unit testing)
                         pass
-                if self.request.user != old_assignee and old_users_assignments:
+                if self.request.user != old_assignee:
                     try:
                         # Send a message to the unassigned user
                         async_to_sync(channel_layer.group_send)(
                             "notify_{}".format(old_assignee),
                             {
-                                "type": "task",
+                                "type": "message",
                                 "message": {
                                     "message": "You have been unassigned from this finding for {}:\n{}".format(
                                         self.object.report, self.object.title
@@ -2185,7 +2169,6 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                                     "level": "info",
                                     "title": "Assignment Change",
                                 },
-                                "assignments": old_users_assignments,
                             },
                         )
                     except gaierror:
