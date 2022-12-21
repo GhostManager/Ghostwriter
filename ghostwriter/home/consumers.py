@@ -40,34 +40,3 @@ class UserConsumer(AsyncWebsocketConsumer):
     async def message(self, event):
         message = event["message"]
         await self.send(text_data=json.dumps({"message": message}))
-
-
-class ProjectConsumer(AsyncWebsocketConsumer):
-    """
-    Handle notifications related to individual :model:`rolodex.Project` over WebSockets.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.project_id = None
-        self.project_group_name = None
-
-    async def connect(self):
-        user = self.scope["user"]
-        if user.is_active:
-            self.project_id = self.scope["url_route"]["kwargs"]["project_id"]
-            self.project_group_name = "notify_%s" % self.project_id
-            await self.channel_layer.group_add(self.project_group_name, self.channel_name)
-            await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.project_group_name, self.channel_name)
-
-    async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json["message"]
-        await self.channel_layer.group_send(self.project_group_name, {"type": "message", "message": message})
-
-    async def message(self, event):
-        message = event["message"]
-        await self.send(text_data=json.dumps({"message": message}))
