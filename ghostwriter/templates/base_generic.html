@@ -572,12 +572,12 @@
     const username = '{{ user }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
-    let ws_user = new WebSocket(
+    const ws_user = new WebSocket(
       protocol + window.location.host +
       '/ws/users/' + username + '/');
 
     {% comment %} Connect to channel for all user notifications {% endcomment %}
-    let ws_all = new WebSocket(
+    const ws_all = new WebSocket(
       protocol + window.location.host +
       '/ws/users/all/');
 
