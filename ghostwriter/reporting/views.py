@@ -2128,7 +2128,21 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
     def form_valid(self, form):
-        # Check if severity, position, or assigned_to has changed
+        if form.changed_data:
+            changed_at = dateformat.format(timezone.now(), "H:i:s e")
+            async_to_sync(channel_layer.group_send)(
+                "finding_{}".format(self.object.id),
+                {
+                    "type": "message",
+                    "message": {
+                        "message": f"User {self.request.user.username} updated this finding at {changed_at}",
+                        "level": "warning",
+                        "title": "Content Has Changed",
+                    },
+                },
+            )
+
+        # Send Websockets messages if assignment changed
         if "assigned_to" in form.changed_data:
             # Get the entries current values (those being changed)
             old_entry = ReportFindingLink.objects.get(pk=self.object.pk)
