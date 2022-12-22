@@ -679,8 +679,17 @@ class ProjectScopeForm(forms.ModelForm):
                     ),
                     "name",
                     Row(
-                        Column(SwitchToggle("requires_caution", css_class="col-6")),
-                        Column(SwitchToggle("disallowed", css_class="col-6")),
+                        Column(SwitchToggle("requires_caution", css_class="col-3")),
+                        Column(SwitchToggle("disallowed", css_class="col-3")),
+                        Column(
+                            StrictButton(
+                                "Split Scope to Newlines",
+                                onclick="formatScope($(this).closest('div').next('div').find('textarea'))",
+                                data_toggle="tooltip",
+                                title="Split a comma-delimited scope list to newlines",
+                                css_class="btn btn-outline-secondary col-6"
+                            ),
+                        ),
                     ),
                     Field("scope", css_class="empty-form"),
                     "description",

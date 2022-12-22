@@ -144,5 +144,16 @@
         }
       });
     });
+
+    {% comment %} Split and trim scope list {% endcomment %}
+    function formatScope($field) {
+      let scope = $field.val();
+      let scope_list = scope.split(',');
+      let scope_list_trimmed = [];
+      for (let i = 0; i < scope_list.length; i++) {
+        scope_list_trimmed.push(scope_list[i].trim() + '\n');
+      }
+      $field.val(scope_list_trimmed.join(''));
+    }
   </script>
 {% endblock %}
