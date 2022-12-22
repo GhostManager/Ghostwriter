@@ -191,7 +191,7 @@ class Domain(models.Model):
     )
     reset_dns = models.BooleanField(
         "Reset DNS",
-        default=False,
+        default=True,
         help_text="Reset DNS records (if possible) after this domain is used",
     )
     tags = TaggableManager(blank=True)
