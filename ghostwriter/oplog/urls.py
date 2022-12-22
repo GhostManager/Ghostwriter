@@ -1,4 +1,4 @@
-"""This contains all of the URL mappings used by the Oplog application."""
+"""This contains all the URL mappings used by the Oplog application."""
 
 # Django Imports
 from django.urls import include, path
@@ -6,7 +6,8 @@ from django.urls import include, path
 # 3rd Party Libraries
 from rest_framework import routers
 
-from . import views
+# Ghostwriter Libraries
+from ghostwriter.oplog import views
 
 app_name = "ghostwriter.oplog"
 
