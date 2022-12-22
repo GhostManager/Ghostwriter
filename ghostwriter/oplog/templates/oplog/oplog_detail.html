@@ -150,7 +150,7 @@
           $connectionStatus.toggleClass('connected');
           errorDisplayed = false;
 
-          $spinnerModal.modal('toggle');
+          $spinnerModal.modal('show');
 
           {% comment %} Clear all rows after the first row in case it's a reconnect {% endcomment %}
           $table.find('tr').remove();
@@ -178,7 +178,7 @@
               }
             }
             hideColumns()
-            $spinnerModal.modal('toggle');
+            $spinnerModal.modal('hide');
           }
 
           {% comment %} Handle the `create` action that is received whenever a new entry is created {% endcomment %}
