@@ -510,23 +510,21 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 docx_template_id = int(docx_template_id)
                 pptx_template_id = int(pptx_template_id)
 
-                if docx_template_id < 0 or pptx_template_id < 0:
-                    data = {
-                        "result": "warning",
-                        "message": "Select both templates before your settings can be saved",
-                    }
-                else:
-                    if docx_template_id >= 0:
-                        docx_template_query = ReportTemplate.objects.get(pk=docx_template_id)
-                        report.docx_template = docx_template_query
-                    if pptx_template_id >= 0:
-                        pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
-                        report.pptx_template = pptx_template_query
-                    data = {
-                        "result": "success",
-                        "message": "Template successfully swapped",
-                    }
-                    report.save()
+                if docx_template_id < 0:
+                    report.docx_template = None
+                if pptx_template_id < 0:
+                    report.pptx_template = None
+                if docx_template_id >= 0:
+                    docx_template_query = ReportTemplate.objects.get(pk=docx_template_id)
+                    report.docx_template = docx_template_query
+                if pptx_template_id >= 0:
+                    pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
+                    report.pptx_template = pptx_template_query
+                data = {
+                    "result": "success",
+                    "message": "Templates successfully updated",
+                }
+                report.save()
 
                 # Check template for linting issues
                 try:
