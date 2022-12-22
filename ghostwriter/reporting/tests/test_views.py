@@ -1641,7 +1641,7 @@ class ReportTemplateSwapViewTests(TestCase):
     def test_valid_templates(self):
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "success",
             "pptx_lint_result": "success",
         }
@@ -1651,15 +1651,17 @@ class ReportTemplateSwapViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
-    def test_invalid_templates(self):
+        # Test a negative value indicating no template is selected
         data = {
-            "result": "warning",
-            "message": "Select both templates before your settings can be saved",
+            "result": "success",
+            "message": "Templates successfully updated",
+            "pptx_lint_result": "success",
         }
         response = self.client_auth.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
+    def test_invalid_templates(self):
         data = {
             "result": "error",
             "message": "Submitted template ID was not an integer",
@@ -1688,7 +1690,7 @@ class ReportTemplateSwapViewTests(TestCase):
     def test_templates_with_linting_errors(self):
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "warning",
             "docx_lint_message": "Selected Word template has warnings from linter. Check the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_warning.pk}",
@@ -1704,7 +1706,7 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "error",
             "docx_lint_message": "Selected Word template has linting errors and cannot be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_error.pk}",
@@ -1720,7 +1722,7 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "failed",
             "docx_lint_message": "Selected Word template failed basic linter checks and can't be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_failed.pk}",
@@ -1736,7 +1738,7 @@ class ReportTemplateSwapViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "unknown",
             "docx_lint_message": "Selected Word template has an unknown linter status. Check and lint the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_unknown.pk}",
