@@ -315,6 +315,11 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Add a line explaining any file changes",
     )
+    landscape = models.BooleanField(
+        "Landscape Orientation",
+        default=False,
+        help_text="Flag this document as landscape orientation",
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
