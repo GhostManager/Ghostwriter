@@ -15,6 +15,7 @@ from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import OplogEntry
+from ghostwriter.rolodex.validators import validate_ip_range
 from ghostwriter.reporting.models import ReportFindingLink
 
 User = get_user_model()
@@ -620,27 +621,28 @@ class ProjectTarget(models.Model):
     Stores an individual target host, related to an individual :model:`rolodex.Project`.
     """
 
-    ip_address = models.GenericIPAddressField(
+    ip_address = models.CharField(
         "IP Address",
-        max_length=255,
+        max_length=45,
         null=True,
         blank=True,
-        help_text="Enter the target's IP address",
+        validators=[validate_ip_range],
+        help_text="Enter the IP address or range of the target host(s)",
     )
     hostname = models.CharField(
         "Hostname / FQDN",
         max_length=255,
         null=True,
         blank=True,
-        help_text="Provide the target's hostname or fully qualified domain name",
+        help_text="Provide the target's hostname, fully qualified domain name, or other identifier",
     )
     note = models.TextField(
         "Notes",
         null=True,
         blank=True,
-        help_text="Provide additional information about the target or its environment",
+        help_text="Provide additional information about the target(s) or the environment",
     )
-    compromised = models.BooleanField("Compromised", default=False, help_text="Flag this host as compromised")
+    compromised = models.BooleanField("Compromised", default=False, help_text="Flag this target as compromised")
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
 

@@ -469,6 +469,13 @@ class ProjectTargetFormTests(TestCase):
         form = self.form_data(**target)
         self.assertTrue(form.is_valid())
 
+    def test_invalid_ip(self):
+        target = self.target_dict.copy()
+        target["ip_address"] = "192.168.1.270"
+
+        form = self.form_data(**target)
+        self.assertFalse(form.is_valid())
+
 
 class ProjectFormTests(TestCase):
     """Collection of tests for :form:`rolodex.ProjectForm`."""

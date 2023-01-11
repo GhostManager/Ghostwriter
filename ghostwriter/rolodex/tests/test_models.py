@@ -3,6 +3,7 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 
 # Django Imports
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 # Ghostwriter Libraries
@@ -481,6 +482,20 @@ class ProjectTargetModelTests(TestCase):
         # Delete
         target.delete()
         assert not self.ProjectTarget.objects.all().exists()
+
+    def test_invalid_ip(self):
+        project = ProjectFactory()
+        with self.assertRaises(ValidationError):
+            obj = self.ProjectTarget.objects.create(ip_address="invalid", project_id=project.id)
+            obj.full_clean()
+
+        with self.assertRaises(ValidationError):
+            obj = self.ProjectTarget.objects.create(ip_address="192.168.1.257", project_id=project.id)
+            obj.full_clean()
+
+        with self.assertRaises(ValidationError):
+            obj = self.ProjectTarget.objects.create(ip_address="192.168.1.10/35", project_id=project.id)
+            obj.full_clean()
 
 
 class ClientInviteModelTests(TestCase):
