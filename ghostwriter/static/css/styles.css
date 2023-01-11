@@ -251,7 +251,6 @@ h2 {
   color: var(--h2-font-color);
   font-family: 'Lato', 'Font Awesome 5 Free', 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
   font-size: 2.5em;
-  margin-right: 20px
 }
 
 h3 {
@@ -1357,16 +1356,19 @@ thead th {
 
 thead th.none {
   padding-right: 10px;
+  padding-left: 30px;
   background-image: url(data:img/gif;base64,R0lGODlhFQAJAIAAAP///////yH5BAEAAAEALAAAAAAVAAkAAAIXjI+AywnaYnhUMoqt3gZXPmVg94yJVQAAOw==);
 }
 
 thead th.up {
   padding-right: 10px;
+  padding-left: 30px;
   background-image: url(data:image/gif;base64,R0lGODlhFQAEAIAAAP///////yH5BAEAAAEALAAAAAAVAAQAAAINjI8Bya2wnINUMopZAQA7);
 }
 
 thead th.down {
   padding-right: 10px;
+  padding-left: 30px;
   background-image: url(data:image/gif;base64,R0lGODlhFQAEAIAAAP///////yH5BAEAAAEALAAAAAAVAAQAAAINjB+gC+jP2ptn0WskLQA7);
 }
 
@@ -2262,10 +2264,16 @@ th.icon {
   font-weight: 600;
 }
 
+.word-icon:before {
+  content: '\f1c2';
+  font-size: 1.2em;
+  color: var(--word-color);
+}
+
 .word-btn-icon:before {
   content: '\f1c2';
   font-size: 2em;
-  color: #01A6F0;
+  color: var(--word-color);
 }
 
 .word-btn {
@@ -2280,10 +2288,16 @@ th.icon {
   font-size: 1.5em;
 }
 
+.pptx-icon:before {
+  content: '\f1c4';
+  font-size: 1.2em;
+  color: var(--pptx-color);
+}
+
 .pptx-btn-icon:before {
   content: '\f1c4';
   font-size: 2em;
-  color: #D04423;
+  color: var(--pptx-color);
 }
 
 .pptx-btn {
@@ -2298,10 +2312,16 @@ th.icon {
   font-size: 1.5em;
 }
 
+.excel-icon:before {
+  content: '\f1c3';
+  font-size: 1.2em;
+  color: var(--excel-color);
+}
+
 .excel-btn-icon:before {
   content: '\f1c3';
   font-size: 2em;
-  color: #7FBC00;
+  color: var(--excel-color);
 }
 
 .archive-btn-icon:before {
@@ -2543,6 +2563,10 @@ ol {
 ----------------------------------------------------- */
 
 .badge {
+  font-weight: 300;
+}
+
+.badge-pill {
   margin-left: 5px;
   font-weight: 300;
 }
@@ -2553,6 +2577,16 @@ ol {
 
 .badge-primary {
   background-color: var(--secondary-color);
+}
+
+.badge-word {
+  color: #fff;
+  background-color: var(--word-color);
+}
+
+.badge-pptx {
+  color: #fff;
+  background-color: var(--pptx-color);
 }
 
 /* ---------------------------------------------------
