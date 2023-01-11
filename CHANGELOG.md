@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 22 December 2022
+## [Unreleased] - 11 January 2023
 
 ### Added
 
@@ -28,11 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * If you clear the template, the default template will be used instead
   * If you do not have a default template configured, the report will not be able to be generated
 * A domain's "reset DNS" flag will now default to true when creating a new domain
+* Moved all CSS and JavaScript files to local hosting for instances where Ghostwriter is running on a system without any internet access 
+* The IP address field for project targets now accepts individual IP addresses and CIDR ranges (Closes [#211](https://github.com/GhostManager/Ghostwriter/issues/211))
+* Report templates can now be flagged as landscape for tracking (Reference [#281](https://github.com/GhostManager/Ghostwriter/issues/281))
 * Various web UI and scripting improvements for better performance, usability, and accessibility
 
 ### Security
 
 * Proactively upgraded core dependencies and base OS images to their latest stable versions
+* Updated TinyMCE to the latest v5 to address CVE-2022-23494 (Reference [CVE-2022-23494](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23494))
 
 ## [3.1.4] - 11 November 2022
 
