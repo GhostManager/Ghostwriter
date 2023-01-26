@@ -613,7 +613,7 @@
   <script>
 
     $(function () {
-      let hash = window.location.hash.replace(/[^\w]/g, '');
+      let hash = window.location.hash.replace(/[^\w-#]/g, '');
       hash && $('ul.nav a[href="' + hash + '"]').tab('show');
       $('.nav-tabs a').click(function () {
         $(this).tab('show');
