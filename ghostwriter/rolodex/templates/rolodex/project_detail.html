@@ -591,8 +591,8 @@
             <th class="align-middle">Domain Name</th>
             <th class="align-middle">Purpose</th>
             <th class="sorter-date-range-dMMMyyyy align-middle">Date Range</th>
-            <th class="sorter-false align-middle">Options</th>
             <th class="sorter-false align-middle">Additional Info</th>
+            <th class="sorter-false align-middle">Options</th>
             </thead>
             {% for domain in project.history_set.all %}
               <tr>
@@ -604,7 +604,13 @@
                                     </span>
                 </td>
                 <td class="align-middle">{{ domain.activity_type }}</td>
-                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}
+                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
+                <td>
+                  <button
+                    class="expandme btn btn-transaprent"
+                    onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
+                    title="Expand to view additional information"
+                  ></button>
                 </td>
                 <td class="align-middle">
                   <div class="dropdown dropleft">
@@ -620,13 +626,6 @@
                         Checkout</a>
                     </div>
                   </div>
-                </td>
-                <td>
-                  <button
-                    class="expandme btn btn-transaprent"
-                    onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
-                    title="Expand to view additional information"
-                  ></button>
                 </td>
               </tr>
               <tr class="hidden-row">
@@ -684,8 +683,8 @@
             <th class="align-middle pr-4">Purpose</th>
             <th class="align-middle pr-4">Role</th>
             <th class="align-middle pr-4">Provider</th>
-            <th class="sorter-false align-middle">Options</th>
             <th class="sorter-false align-middle">Additional Info</th>
+            <th class="sorter-false align-middle">Options</th>
             </thead>
             {% for server in project.serverhistory_set.all %}
               {% get_primary_address server.server as primary_address %}
@@ -713,6 +712,13 @@
                 <td class="align-middle">{{ server.activity_type }}</td>
                 <td class="align-middle">{{ server.server_role }}</td>
                 <td class="align-middle">{{ server.server.server_provider }}</td>
+                <td>
+                  <button
+                    class="expandme btn btn-transaprent"
+                    onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
+                    title="Expand to view additional information"
+                  ></button>
+                </td>
                 <td class="align-middle">
                   <div class="dropdown dropleft">
                     <button id="server-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table"
@@ -727,13 +733,6 @@
                          href="{% url 'shepherd:server_history_delete' server.id %}">Delete Checkout</a>
                     </div>
                   </div>
-                </td>
-                <td>
-                  <button
-                    class="expandme btn btn-transaprent"
-                    onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
-                    title="Expand to view additional information"
-                  ></button>
                 </td>
               </tr>
               <tr class="hidden-row">
@@ -1499,7 +1498,7 @@
 
       {% comment %} Add project assignments {% endcomment %}
       {% for operator in project.projectassignment_set.all %}
-        let assignment_{{ assignment.id }}  = {
+        let operator_{{ operator.id }}  = {
           title: {% if operator.operator.name %}'{{ operator.operator.name|bleach }}'
             {% else %}'{{ operator.operator.username|bleach }}'{% endif %},
           allDay: true,
@@ -1509,7 +1508,7 @@
           color: 'var(--neutral-color)',
           className: 'calendar-user-icon'
         };
-        calendar.addEvent(assignment_{{ assignment.id }});
+        calendar.addEvent(operator_{{ operator.id }});
       {% endfor %}
 
       {% comment %} Add project objectives {% endcomment %}
