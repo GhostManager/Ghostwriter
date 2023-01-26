@@ -611,10 +611,10 @@
 {% comment %} Blocks used by forms that use Bootstrap tabs {% endcomment %}
 {% block tabs %}
   <script>
-    $(function () {
-      let hash = window.location.hash;
-      hash && $('ul.nav a[href="' + hash + '"]').tab('show');
 
+    $(function () {
+      let hash = window.location.hash.replace(/[^\w]/g, '');
+      hash && $('ul.nav a[href="' + hash + '"]').tab('show');
       $('.nav-tabs a').click(function () {
         $(this).tab('show');
         let scrollmem = $('body').scrollTop() || $('html').scrollTop();
