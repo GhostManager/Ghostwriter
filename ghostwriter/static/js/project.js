@@ -187,3 +187,13 @@ function update_badges() {
         });
     }
 }
+
+// Insert a preview for pasted or selected image files
+function renderPreview(fileInput, previewDiv) {
+  if (fileInput.files[0].type.indexOf('image') == 0) {
+    previewDiv.innerHTML = '<img id="loadedImage" alt="image"/ >'
+    let loadedImage = document.getElementById('loadedImage')
+    loadedImage.src = URL.createObjectURL(fileInput.files[0])
+    loadedImage.style.border = 'thin solid #555555';
+  }
+}
