@@ -16,7 +16,7 @@
 
 {% block content %}
   <!-- Instructions Section -->
-  <p>Provide informatin for this report template:</p>
+  <p>Provide information for this report template:</p>
 
   <!-- Form Error Section -->
   {% if form.errors %}
@@ -39,11 +39,27 @@
 {% block morescripts %}
   <!-- Script for File Upload -->
   <script>
+    let fileInput = document.getElementById('id_document')
     let $doc_type = $('#id_doc_type')
     let $orientation = $('#id_landscape')
 
+    // Add frame when dragging file into input
+    fileInput.addEventListener('dragover', function () {
+      filename.classList.add('dragging');
+    });
+    fileInput.addEventListener('dragenter', function () {
+      filename.classList.add('dragging');
+    });
+    // Removes drag class when drag leaves or file is dropped
+    fileInput.addEventListener('dragleave', function () {
+      filename.classList.remove('dragging');
+    });
+    fileInput.addEventListener('drop', function () {
+      filename.classList.remove('dragging');
+    });
+
     $('input[type=file]').on('change', function () {
-      $("#filename").text($(this).val());
+      $('#filename').text($(this).val());
     });
 
     $doc_type.on('change', function () {
