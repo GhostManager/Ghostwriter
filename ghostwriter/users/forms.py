@@ -10,6 +10,7 @@ from django.forms import ModelForm, ModelMultipleChoiceField
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
+from allauth.account.forms import LoginForm
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
@@ -122,3 +123,30 @@ class GroupAdminForm(ModelForm):
         # Save many-to-many data
         self.save_m2m()
         return instance
+
+
+class UserLoginForm(LoginForm):
+    """
+    Authenticate an individual :model:`users.User` with their username and password. This is customized
+    to make adjustments like disabling autocomplete on the password field.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["login"].widget.attrs["placeholder"] = "Username"
+        self.fields["password"].widget.attrs["placeholder"] = "Password"
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column("login", css_class="form-group col-12 mb-0"),
+                css_class="form-row mt-4",
+            ),
+            Row(
+                Column("password", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
+        )
