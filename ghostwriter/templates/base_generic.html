@@ -10,13 +10,13 @@
   <title>{% block title %}Ghostwriter{% endblock %}</title>
 
   <!-- Load Static Files -->
-  <link rel="shortcut icon" href="{% static 'favicon.ico' %}" />
+  <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
 
   <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
 
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="{% static 'css/fontawesome/all.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/fontawesome/all.css' %}"/>
 
   <!-- jQuery JS -->
   <script src="{% static 'js/jquery-3.6.1.min.js' %}"></script>
@@ -40,7 +40,7 @@
 
   <!-- Ghostwriter JS & CSS -->
   <script src="{% static 'js/project.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
 
   <!-- TinyMCE -->
   <script type="application/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
@@ -481,6 +481,7 @@
   });
 
   {% comment %} Open and close the sidebar {% endcomment %}
+
   function sidebarOpen() {
     $('#sidebar').toggleClass('active');
     $('.sidebar-toggle-btn').toggleClass('fa-flip-horizontal');
@@ -611,15 +612,17 @@
 {% comment %} Blocks used by forms that use Bootstrap tabs {% endcomment %}
 {% block tabs %}
   <script>
-
     $(function () {
       let hash = window.location.hash.replace(/[^\w-#]/g, '');
       hash && $('ul.nav a[href="' + hash + '"]').tab('show');
-      $('.nav-tabs a').click(function () {
+
+      $('.nav-tabs a').click(function (e) {
+        {%  comment %} Prevent the scrolling-to-tab animation {% endcomment %}
+        $('html,body').stop().animate({
+          scrollTop: $($(this).attr('href')).offset().top - $('.nav').height()
+        }, 700, 'swing');
         $(this).tab('show');
-        let scrollmem = $('body').scrollTop() || $('html').scrollTop();
-        window.location.hash = this.hash;
-        $('html, body').scrollTop(scrollmem);
+        window.location.hash = $(this).attr('href');
       });
     });
   </script>
@@ -704,7 +707,7 @@
     });
 
     {% comment %} Toggle the hamburger menu back to normal if user clicks away {% endcomment %}
-    $(window).click(function() {
+    $(window).click(function () {
       let $hamburgerMenu = $('.dropdown-menu-btn')
       if ($hamburgerMenu.hasClass('change')) {
         $hamburgerMenu.removeClass('change');
