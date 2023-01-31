@@ -93,6 +93,10 @@ hr {
     CUSTOM BOOTSTRAP INPUT STYLES
 ----------------------------------------------------- */
 
+.custom-file-label::after {
+  min-width:20%;
+}
+
 .form-check-label {
   cursor: pointer;
 }

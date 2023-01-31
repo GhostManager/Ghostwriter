@@ -18,10 +18,10 @@
   <p>Upload a csv file containing log entries to be imported:</p>
   <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
     {% csrf_token %}
-    <div class="input-group mb-3">
-      <div class="custom-file offset-2 col-8">
+    <div class="input-group input-group-lg mb-3 offset-2 col-8">
+      <div class="custom-file">
         <input type="file" class="custom-file-input" id="csv_file" name="csv_file">
-        <label class="custom-file-label" for="csv_file">Choose csv file to upload...</label>
+        <label class="custom-file-label" for="csv_file">Choose csv file...</label>
       </div>
     </div>
 
