@@ -188,10 +188,16 @@ function stylizeTags(tagString) {
             continue
         }
         // Check for escaped version of `att&ck` to style the label
-        if (tag.toUpperCase().includes("ATT&AMP;CK") || tag.toUpperCase().includes("ATTACK") || tag.toUpperCase().includes("MITRE")) {
+        if (tag.toUpperCase().includes("ATT&AMP;CK") || tag.toUpperCase().includes("ATTACK") || tag.toUpperCase().includes("MITRE") || tag.toUpperCase().includes("TTP")) {
             tagHtml += `<span class="badge badge-danger">${tag}</span>`
         } else if (tag.toUpperCase().includes("CREDS") || tag.toUpperCase().includes("CREDENTIALS")) {
             tagHtml += `<span class="badge badge-warning">${tag}</span>`
+        } else if (tag.toUpperCase().includes("VULN")) {
+            tagHtml += `<span class="badge badge-success">${tag}</span>`
+        } else if (tag.toUpperCase().includes("DETECT")) {
+            tagHtml += `<span class="badge badge-info">${tag}</span>`
+        } else if (tag.toUpperCase().includes("OBJECTIVE")) {
+            tagHtml += `<span class="badge badge-primary">${tag}</span>`
         } else {
             tagHtml += `<span class="badge badge-secondary">${tag}</span>`
         }
