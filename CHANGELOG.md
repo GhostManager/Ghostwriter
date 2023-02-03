@@ -4,14 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v3.2.0] - 31 January 2023
+## [v3.2.0] - 2 February 2023
 
 ### Added
 
 * Added support for applying tags to clients, projects, reports, findings, domains, servers, logs, and log entries
 * Added whitecards and deconflictions nodes to the GraphQL schema for projects
 * Added a notification to finding forms that warns you if another user has submitted changes to the same finding
-* Added a button to project scope forms to split comma-delimited scope lists into separate lines automatically
+* Added a button to project scope forms to automatically split comma-delimited scope lists into separate lines
 
 ### Fixed
 
