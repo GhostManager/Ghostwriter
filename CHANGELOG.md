@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Added support for applying tags to clients, projects, reports, findings, domains, servers, logs, and log entries
 * Added whitecards and deconflictions nodes to the GraphQL schema for projects
 * Added a notification to finding forms that warns you if another user has submitted changes to the same finding
-* Added a button to project scope forms to automatically split comma-delimited scope lists into separate lines
+* Added a button to project scope forms to split comma-delimited scope lists into separate lines automatically
 
 ### Fixed
 
@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 * Proactively upgraded core dependencies and base OS images to their latest stable versions
+* Applied additional sanitization to user-editable strings that may appear in HTML to address potential XSS vulnerabilities
 * Updated TinyMCE to the latest v5 to address CVE-2022-23494 (Reference [CVE-2022-23494](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23494))
 
 ## [3.1.4] - 11 November 2022
