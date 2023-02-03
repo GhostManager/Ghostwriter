@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0024_auto_20220205_0026'),
+        ("reporting", "0024_auto_20220205_0026"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='reporttemplate',
-            name='lint_result',
-            field=models.JSONField(blank=True, help_text='Results returned by the linter for this template in JSON format', null=True, verbose_name='Template Linter Results'),
+            model_name="reporttemplate",
+            name="lint_result",
+            field=models.JSONField(
+                blank=True,
+                help_text="Results returned by the linter for this template in JSON format",
+                null=True,
+                verbose_name="Template Linter Results",
+            ),
         ),
     ]

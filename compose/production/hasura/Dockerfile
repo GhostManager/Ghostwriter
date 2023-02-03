@@ -1,4 +1,4 @@
-FROM hasura/graphql-engine:v2.15.2.cli-migrations-v3
+FROM hasura/graphql-engine:v2.16.1.cli-migrations-v3
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \

@@ -4,34 +4,51 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0027_auto_20220510_1923'),
+        ("reporting", "0027_auto_20220510_1923"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='finding',
-            options={'ordering': ['severity', '-cvss_score', 'finding_type', 'title'], 'verbose_name': 'Finding', 'verbose_name_plural': 'Findings'},
+            name="finding",
+            options={
+                "ordering": ["severity", "-cvss_score", "finding_type", "title"],
+                "verbose_name": "Finding",
+                "verbose_name_plural": "Findings",
+            },
         ),
         migrations.AddField(
-            model_name='finding',
-            name='cvss_score',
-            field=models.FloatField(blank=True, help_text='Set the CVSS score for this finding', null=True, verbose_name='CVSS Score v3.0'),
+            model_name="finding",
+            name="cvss_score",
+            field=models.FloatField(
+                blank=True, help_text="Set the CVSS score for this finding", null=True, verbose_name="CVSS Score v3.0"
+            ),
         ),
         migrations.AddField(
-            model_name='finding',
-            name='cvss_vector',
-            field=models.CharField(blank=True, help_text='Set the CVSS vector for this finding', max_length=54, verbose_name='CVSS Vector v3.0'),
+            model_name="finding",
+            name="cvss_vector",
+            field=models.CharField(
+                blank=True,
+                help_text="Set the CVSS vector for this finding",
+                max_length=54,
+                verbose_name="CVSS Vector v3.0",
+            ),
         ),
         migrations.AddField(
-            model_name='reportfindinglink',
-            name='cvss_score',
-            field=models.FloatField(blank=True, help_text='Set the CVSS score for this finding', null=True, verbose_name='CVSS Score v3.0'),
+            model_name="reportfindinglink",
+            name="cvss_score",
+            field=models.FloatField(
+                blank=True, help_text="Set the CVSS score for this finding", null=True, verbose_name="CVSS Score v3.0"
+            ),
         ),
         migrations.AddField(
-            model_name='reportfindinglink',
-            name='cvss_vector',
-            field=models.CharField(blank=True, help_text='Set the CVSS vector for this finding', max_length=54, verbose_name='CVSS Vector v3.0'),
+            model_name="reportfindinglink",
+            name="cvss_vector",
+            field=models.CharField(
+                blank=True,
+                help_text="Set the CVSS vector for this finding",
+                max_length=54,
+                verbose_name="CVSS Vector v3.0",
+            ),
         ),
     ]

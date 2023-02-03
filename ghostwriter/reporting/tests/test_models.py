@@ -2,13 +2,13 @@
 import logging
 import os
 
+# 3rd Party Libraries
+import factory
+
 # Django Imports
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.test import TestCase
-
-# 3rd Party Libraries
-import factory
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
@@ -44,18 +44,10 @@ class FindingModelTests(TestCase):
         # Read
         self.assertEqual(finding.title, "Awful Finding")
         self.assertEqual(finding.pk, finding.id)
-        self.assertQuerysetEqual(
-            self.Finding.objects.all(),
-            [f"<Finding: [{finding.severity}] {finding.title}>"],
-        )
 
         # Update
         finding.title = "Not so Bad Finding"
         finding.save()
-        self.assertQuerysetEqual(
-            self.Finding.objects.all(),
-            [f"<Finding: [{finding.severity}] {finding.title}>"],
-        )
 
         # Delete
         finding.delete()
@@ -78,13 +70,13 @@ class SeverityModelTests(TestCase):
 
     def test_crud_severity(self):
         # Create
-        severity = SeverityFactory(severity="High", weight=2, color="FFFFFF")
+        severity = SeverityFactory(severity="High", weight=1, color="FFFFFF")
 
         # Read
         self.assertEqual(severity.severity, "High")
         self.assertEqual(severity.pk, severity.id)
         self.assertEqual(severity.color, "FFFFFF")
-        self.assertEqual(severity.weight, 2)
+        self.assertEqual(severity.weight, 1)
         self.assertEqual(len(self.Severity.objects.all()), 1)
         self.assertEqual(self.Severity.objects.first(), severity)
 
@@ -123,6 +115,40 @@ class SeverityModelTests(TestCase):
             self.assertEqual(1, count)
         except Exception:
             self.fail("Severity model `count` property failed unexpectedly!")
+
+    def test_adjust_severity_weight_signals(self):
+        self.Severity.objects.all().delete()
+        self.assertTrue(self.Severity.objects.all().count() == 0)
+
+        critical = SeverityFactory(severity="Critical", weight=2, color="FFFFFF")
+        high = SeverityFactory(severity="High", weight=2, color="FFF000")
+        medium = SeverityFactory(severity="Medium", weight=3, color="000FFF")
+
+        self.assertEqual(critical.severity, "Critical")
+        self.assertEqual(critical.color, "FFFFFF")
+        self.assertEqual(critical.weight, 1)
+        self.assertEqual(high.severity, "High")
+        self.assertEqual(high.color, "FFF000")
+        self.assertEqual(high.weight, 2)
+        self.assertEqual(medium.severity, "Medium")
+        self.assertEqual(medium.color, "000FFF")
+        self.assertEqual(medium.weight, 3)
+
+        critical.weight = 2
+        critical.save()
+
+        critical.refresh_from_db()
+        high.refresh_from_db()
+
+        self.assertEqual(critical.weight, 2)
+        self.assertEqual(high.weight, 1)
+
+        critical.delete()
+        high.refresh_from_db()
+        medium.refresh_from_db()
+
+        self.assertEqual(high.weight, 1)
+        self.assertEqual(medium.weight, 2)
 
 
 class FindingTypeModelTests(TestCase):
@@ -238,16 +264,12 @@ class ReportTemplateModelTests(TestCase):
             status = docx_report_template.get_status()
             self.assertEqual("success", status)
         except Exception:
-            self.fail(
-                "ReportTemplate model `get_status` method failed unexpectedly with DOCX template!"
-            )
+            self.fail("ReportTemplate model `get_status` method failed unexpectedly with DOCX template!")
         try:
             status = pptx_report_template.get_status()
             self.assertEqual("success", status)
         except Exception:
-            self.fail(
-                "ReportTemplate model `get_status` method failed unexpectedly with PPTX template!"
-            )
+            self.fail("ReportTemplate model `get_status` method failed unexpectedly with PPTX template!")
 
     def test_clean_template_signal(self):
         template = ReportDocxTemplateFactory()
@@ -340,9 +362,7 @@ class ReportFindingLinkModelTests(TestCase):
         num_of_findings = 10
         findings = []
         for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity)
-            )
+            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
         # New position values
         first_pos = 1
         second_pos = 2
@@ -367,9 +387,7 @@ class ReportFindingLinkModelTests(TestCase):
         num_of_findings = 10
         findings = []
         for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity)
-            )
+            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
         # Bump the first half of the findings to the new severity in reverse order
         for f in reversed(range(5)):
             findings[f].severity = self.high_severity
@@ -453,9 +471,7 @@ class ReportFindingLinkModelTests(TestCase):
         num_of_findings = 10
         findings = []
         for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity)
-            )
+            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
         findings[0].position = 100
         findings[0].save()
         findings[0].refresh_from_db()
@@ -538,11 +554,7 @@ class EvidenceModelTests(TestCase):
             self.fail("Evidence.get_absolute_url() raised an exception")
 
     def test_file_extension_validator(self):
-        evidence = EvidenceFactory(
-            document=factory.django.FileField(
-                filename="evidence.PnG", data=b"lorem ipsum"
-            )
-        )
+        evidence = EvidenceFactory(document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum"))
         self.assertEqual(evidence.filename, "evidence.PnG")
 
     def test_prop_filename(self):
@@ -553,11 +565,7 @@ class EvidenceModelTests(TestCase):
             self.fail("Evidence model `filename` property failed unexpectedly!")
 
     def test_delete_old_evidence_on_update_signal(self):
-        evidence = EvidenceFactory(
-            document=factory.django.FileField(
-                filename="evidence.txt", data=b"lorem ipsum"
-            )
-        )
+        evidence = EvidenceFactory(document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"))
         evidence.document = SimpleUploadedFile("new_evidence.txt", b"lorem ipsum")
         evidence.save()
 

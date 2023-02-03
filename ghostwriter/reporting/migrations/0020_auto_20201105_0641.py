@@ -5,15 +5,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0019_auto_20201105_0609'),
+        ("reporting", "0019_auto_20201105_0609"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='reporttemplate',
-            name='document',
-            field=models.FileField(blank=True, storage=django.core.files.storage.FileSystemStorage(location='/app/ghostwriter/media/templates'), upload_to=''),
+            model_name="reporttemplate",
+            name="document",
+            field=models.FileField(
+                blank=True,
+                storage=django.core.files.storage.FileSystemStorage(location="/app/ghostwriter/media/templates"),
+                upload_to="",
+            ),
         ),
     ]

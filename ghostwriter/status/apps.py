@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Status application."""
+"""This contains all the views used by the Status application."""
 
 # Django Imports
 from django.apps import AppConfig
@@ -16,6 +16,7 @@ class StatusConfig(AppConfig):
     def ready(self):
         try:
             import ghostwriter.status.signals  # noqa F401 isort:skip
+
             plugin_dir.register(HasuraBackend)
         except ImportError:
             pass

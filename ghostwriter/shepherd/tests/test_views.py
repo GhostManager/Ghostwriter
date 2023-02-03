@@ -46,9 +46,7 @@ class IndexViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
@@ -77,9 +75,7 @@ class UpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -154,9 +150,7 @@ class DomainOverwatchViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -211,9 +205,7 @@ class DomainListViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -264,9 +256,7 @@ class DomainDetailViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -294,9 +284,7 @@ class DomainCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -330,9 +318,7 @@ class DomainUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -370,9 +356,7 @@ class DomainDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -397,9 +381,7 @@ class DomainDeleteViewTests(TestCase):
             reverse("shepherd:domain_detail", kwargs={"pk": self.domain.id}),
         )
         self.assertEqual(response.context["object_type"], "domain")
-        self.assertEqual(
-            response.context["object_to_be_deleted"], self.domain.name.upper()
-        )
+        self.assertEqual(response.context["object_to_be_deleted"], self.domain.name.upper())
 
 
 class BurnViewTests(TestCase):
@@ -415,9 +397,7 @@ class BurnViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -462,14 +442,12 @@ class DomainExportViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Type"), "text/csv")
+        self.assertEqual(response.get("Content-Type"), "text/csv")
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -492,9 +470,7 @@ class HistoryCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -535,9 +511,7 @@ class HistoryUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -558,9 +532,7 @@ class HistoryUpdateViewTests(TestCase):
         self.assertIn("domain_name", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#history".format(
-                reverse("shepherd:domain_detail", kwargs={"pk": self.entry.domain.pk})
-            ),
+            "{}#history".format(reverse("shepherd:domain_detail", kwargs={"pk": self.entry.domain.pk})),
         )
         self.assertEqual(response.context["domain_name"], self.entry.domain.name.upper())
 
@@ -579,9 +551,7 @@ class HistoryDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -603,9 +573,7 @@ class HistoryDeleteViewTests(TestCase):
         self.assertIn("object_to_be_deleted", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#history".format(
-                reverse("shepherd:domain_detail", kwargs={"pk": self.domain.id})
-            ),
+            "{}#history".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.id})),
         )
         self.assertEqual(response.context["object_type"], "domain checkout")
         self.assertEqual(response.context["object_to_be_deleted"], self.entry)
@@ -632,22 +600,16 @@ class DomainReleaseViewTests(TestCase):
             start_date=cls.start_date,
             end_date=cls.end_date,
         )
-        cls.other_user_checkout = HistoryFactory(
-            domain=cls.domain, start_date=cls.start_date, end_date=cls.end_date
-        )
+        cls.other_user_checkout = HistoryFactory(domain=cls.domain, start_date=cls.start_date, end_date=cls.end_date)
 
         cls.uri = reverse("shepherd:ajax_domain_release", kwargs={"pk": cls.checkout.id})
-        cls.failure_uri = reverse(
-            "shepherd:ajax_domain_release", kwargs={"pk": cls.other_user_checkout.id}
-        )
+        cls.failure_uri = reverse("shepherd:ajax_domain_release", kwargs={"pk": cls.other_user_checkout.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def tearDown(self):
         self.domain.domain_status = self.unavailable_status
@@ -707,9 +669,7 @@ class ServerListViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -750,9 +710,7 @@ class ServerDetailViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -780,9 +738,7 @@ class ServerCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -817,9 +773,7 @@ class ServerUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -857,9 +811,7 @@ class ServerDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -903,14 +855,12 @@ class ServerExportViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Type"), "text/csv")
+        self.assertEqual(response.get("Content-Type"), "text/csv")
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -933,9 +883,7 @@ class ServerHistoryCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -974,9 +922,7 @@ class ServerHistoryUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -996,9 +942,7 @@ class ServerHistoryUpdateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#infrastructure".format(
-                reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})
-            ),
+            "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})),
         )
 
 
@@ -1015,9 +959,7 @@ class ServerHistoryDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1039,9 +981,7 @@ class ServerHistoryDeleteViewTests(TestCase):
         self.assertIn("object_to_be_deleted", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#infrastructure".format(
-                reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})
-            ),
+            "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})),
         )
         self.assertEqual(response.context["object_type"], "server checkout")
         self.assertEqual(response.context["object_to_be_deleted"], self.entry)
@@ -1073,17 +1013,13 @@ class ServerReleaseViewTests(TestCase):
         )
 
         cls.uri = reverse("shepherd:ajax_server_release", kwargs={"pk": cls.checkout.id})
-        cls.failure_uri = reverse(
-            "shepherd:ajax_server_release", kwargs={"pk": cls.other_user_checkout.id}
-        )
+        cls.failure_uri = reverse("shepherd:ajax_server_release", kwargs={"pk": cls.other_user_checkout.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def tearDown(self):
         self.server.server_status = self.unavailable_status
@@ -1137,9 +1073,7 @@ class TransientServerCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1159,9 +1093,7 @@ class TransientServerCreateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#infrastructure".format(
-                reverse("rolodex:project_detail", kwargs={"pk": self.project.id})
-            ),
+            "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.project.id})),
         )
 
 
@@ -1178,9 +1110,7 @@ class TransientServerUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1200,9 +1130,7 @@ class TransientServerUpdateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#infrastructure".format(
-                reverse("rolodex:project_detail", kwargs={"pk": self.server.project.id})
-            ),
+            "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.server.project.id})),
         )
 
 
@@ -1220,9 +1148,7 @@ class TransientServerDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
@@ -1252,9 +1178,7 @@ class DomainServerConnectionCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1274,9 +1198,7 @@ class DomainServerConnectionCreateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#infrastructure".format(
-                reverse("rolodex:project_detail", kwargs={"pk": self.project.id})
-            ),
+            "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.project.id})),
         )
 
 
@@ -1293,9 +1215,7 @@ class DomainServerConnectionUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1315,9 +1235,7 @@ class DomainServerConnectionUpdateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            "{}#infrastructure".format(
-                reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})
-            ),
+            "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.entry.project.id})),
         )
 
 
@@ -1335,9 +1253,7 @@ class DomainServerConnectionDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
@@ -1367,9 +1283,7 @@ class UserAssetsViewTests(TestCase):
         server_status = ServerStatusFactory(server_status="Unavailable")
 
         for x in range(3):
-            HistoryFactory(
-                operator=cls.user, domain=DomainFactory(domain_status=domain_status)
-            )
+            HistoryFactory(operator=cls.user, domain=DomainFactory(domain_status=domain_status))
             ServerHistoryFactory(
                 operator=cls.user,
                 server=StaticServerFactory(server_status=server_status),
@@ -1384,9 +1298,7 @@ class UserAssetsViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1424,15 +1336,11 @@ class ServerSearchViewTests(TestCase):
         cls.addresses = []
         for x in range(3):
             server = StaticServerFactory(ip_address=f"192.168.1.{x}")
-            addy = AuxServerAddressFactory(
-                ip_address=f"192.168.2.{x}", static_server=server
-            )
+            addy = AuxServerAddressFactory(ip_address=f"192.168.2.{x}", static_server=server)
             cls.servers.append(server)
             cls.addresses.append(addy)
 
-        cls.unavailable_server = StaticServerFactory(
-            ip_address="192.168.3.30", server_status=cls.server_status
-        )
+        cls.unavailable_server = StaticServerFactory(ip_address="192.168.3.30", server_status=cls.server_status)
         cls.unavailable_aux_address = AuxServerAddressFactory(
             ip_address="192.168.3.31", static_server=cls.unavailable_server
         )
@@ -1443,9 +1351,7 @@ class ServerSearchViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         post_data = {
@@ -1453,9 +1359,7 @@ class ServerSearchViewTests(TestCase):
             "project_id": self.project.id,
         }
         response = self.client_auth.post(self.uri, post_data)
-        expected_url = reverse(
-            "shepherd:server_checkout", kwargs={"pk": self.servers[0].id}
-        )
+        expected_url = reverse("shepherd:server_checkout", kwargs={"pk": self.servers[0].id})
         self.assertRedirects(
             response,
             expected_url,
@@ -1471,9 +1375,7 @@ class ServerSearchViewTests(TestCase):
             "project_id": self.project.id,
         }
         response = self.client_auth.post(self.uri, post_data)
-        expected_url = "{}#infrastructure".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.project.id})
-        )
+        expected_url = "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.project.id}))
         self.assertRedirects(
             response,
             expected_url,
@@ -1489,9 +1391,7 @@ class ServerSearchViewTests(TestCase):
             "project_id": self.project.id,
         }
         response = self.client_auth.post(self.uri, post_data)
-        expected_url = reverse(
-            "shepherd:server_checkout", kwargs={"pk": self.addresses[0].static_server.id}
-        )
+        expected_url = reverse("shepherd:server_checkout", kwargs={"pk": self.addresses[0].static_server.id})
         self.assertRedirects(
             response,
             expected_url,
@@ -1507,9 +1407,7 @@ class ServerSearchViewTests(TestCase):
             "project_id": self.project.id,
         }
         response = self.client_auth.post(self.uri, post_data)
-        expected_url = "{}#infrastructure".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.project.id})
-        )
+        expected_url = "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.project.id}))
         self.assertRedirects(
             response,
             expected_url,
@@ -1537,9 +1435,7 @@ class InfrastructureSearchViewTests(TestCase):
         cls.cloud_servers = []
         for x in range(3):
             server = StaticServerFactory(ip_address=f"192.168.1.{x}")
-            addy = AuxServerAddressFactory(
-                ip_address=f"192.168.2.{x}", static_server=server
-            )
+            addy = AuxServerAddressFactory(ip_address=f"192.168.2.{x}", static_server=server)
             vps = TransientServerFactory(ip_address=f"192.168.3.{x}")
             cls.servers.append(server)
             cls.addresses.append(addy)
@@ -1553,9 +1449,7 @@ class InfrastructureSearchViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         post_data = {"query": "192.168.1.1"}
@@ -1624,17 +1518,13 @@ class UpdateDomainBadgesViewTests(TestCase):
     def setUpTestData(cls):
         cls.domain = DomainFactory()
         cls.user = UserFactory(password=PASSWORD)
-        cls.uri = reverse(
-            "shepherd:ajax_update_domain_badges", kwargs={"pk": cls.domain.id}
-        )
+        cls.uri = reverse("shepherd:ajax_update_domain_badges", kwargs={"pk": cls.domain.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1658,9 +1548,7 @@ class LoadProjectsViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1684,9 +1572,7 @@ class LoadProjectViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1721,9 +1607,7 @@ class ProjectDomainsViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1758,9 +1642,7 @@ class DomainNoteUpdateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1787,9 +1669,7 @@ class DomainNoteDeleteTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         self.DomainNote.objects.all().delete()
@@ -1837,9 +1717,7 @@ class ServerNoteUpdateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1866,9 +1744,7 @@ class ServerNoteDeleteTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         self.ServerNote.objects.all().delete()

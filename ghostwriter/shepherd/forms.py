@@ -1,4 +1,4 @@
-"""This contains all of the forms used by the Shepherd application."""
+"""This contains all the forms used by the Shepherd application."""
 
 # Standard Libraries
 from datetime import date
@@ -63,13 +63,10 @@ class CheckoutForm(forms.ModelForm):
         self.fields["project"].queryset = Project.objects.none()
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "This domain will be used for..."
+        self.fields["note"].widget.attrs["placeholder"] = "This domain will be used for..."
         self.fields["note"].label = ""
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.attrs = {
@@ -115,15 +112,11 @@ class CheckoutForm(forms.ModelForm):
         if "client" in self.data:
             try:
                 client_id = int(self.data.get("client"))
-                self.fields["project"].queryset = Project.objects.filter(
-                    client_id=client_id
-                ).order_by("codename")
+                self.fields["project"].queryset = Project.objects.filter(client_id=client_id).order_by("codename")
             except (ValueError, TypeError):  # pragma: no cover
                 pass
         elif self.instance.pk:
-            self.fields["project"].queryset = self.instance.client.project_set.order_by(
-                "codename"
-            )
+            self.fields["project"].queryset = self.instance.client.project_set.order_by("codename")
 
     def clean_end_date(self):
         end_date = self.cleaned_data["end_date"]
@@ -131,9 +124,7 @@ class CheckoutForm(forms.ModelForm):
 
         # Check if end_date comes before the start_date
         if end_date < start_date:
-            raise ValidationError(
-                _("The provided end date comes before the start date"), code="invalid"
-            )
+            raise ValidationError(_("The provided end date comes before the start date"), code="invalid")
         return end_date
 
     def clean_domain(self):
@@ -147,9 +138,7 @@ class CheckoutForm(forms.ModelForm):
                 raise ValidationError(_("This domain has expired!"), code="expired")
             if domain.domain_status == unavailable:
                 raise ValidationError(
-                    _(
-                        "Someone beat you to it – This domain has already been checked out!"
-                    ),
+                    _("Someone beat you to it – This domain has already been checked out!"),
                     code="unavailable",
                 )
         return domain
@@ -182,26 +171,21 @@ class DomainForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["name"].widget.attrs["placeholder"] = "Domain"
-        self.fields["name"].label = ""
-        self.fields["registrar"].widget.attrs["placeholder"] = "Registrar"
-        self.fields["registrar"].label = ""
+        self.fields["name"].widget.attrs["placeholder"] = "ghostwriter.wiki"
+        self.fields["registrar"].widget.attrs["placeholder"] = "NameCheap"
         self.fields["domain_status"].empty_label = "-- Select Status --"
-        self.fields["domain_status"].label = ""
         self.fields["whois_status"].empty_label = "-- Select Status --"
-        self.fields["whois_status"].label = ""
         self.fields["health_status"].empty_label = "-- Select Status --"
-        self.fields["health_status"].label = ""
         self.fields["creation"].widget.input_type = "date"
         self.fields["expiration"].widget.input_type = "date"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Brief Note or Explanation of the Domain"
+        self.fields["note"].widget.attrs["placeholder"] = "This domain was purchased for..."
         self.fields["note"].label = ""
+        self.fields["tags"].widget.attrs["placeholder"] = "phishing, categorized, ..."
+        self.fields["name"].label = "Domain Name"
+        self.fields["whois_status"].label = "WHOIS Status"
+        self.fields["health_status"].label = "Health Status"
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
-        self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.form_id = "checkout-form"
         self.helper.layout = Layout(
@@ -211,10 +195,14 @@ class DomainForm(forms.ModelForm):
                 <hr>
                 """
             ),
-            "name",
+            Row(
+                Column("name", css_class="form-group col-md-6 mb-0"),
+                Column("registrar", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             Row(
                 Column("domain_status", css_class="form-group col-md-6 mb-0"),
-                Column("registrar", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
@@ -249,7 +237,8 @@ class DomainForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -284,39 +273,30 @@ class DomainLinkForm(forms.ModelForm):
     def __init__(self, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if project:
-            self.fields["static_server"].queryset = ServerHistory.objects.filter(
-                project=project
-            ).order_by("activity_type", "server_role")
-            self.fields["transient_server"].queryset = TransientServer.objects.filter(
-                project=project
-            ).order_by("activity_type", "server_role")
-            self.fields["domain"].queryset = History.objects.filter(
-                project=project
-            ).order_by("activity_type")
+            self.fields["static_server"].queryset = ServerHistory.objects.filter(project=project).order_by(
+                "activity_type", "server_role"
+            )
+            self.fields["transient_server"].queryset = TransientServer.objects.filter(project=project).order_by(
+                "activity_type", "server_role"
+            )
+            self.fields["domain"].queryset = History.objects.filter(project=project).order_by("activity_type")
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["domain"].empty_label = "-- Select a Domain [Required] --"
-        self.fields[
-            "domain"
-        ].label_from_instance = lambda obj: f"{obj.domain.name} ({obj.activity_type})"
+        self.fields["domain"].label_from_instance = lambda obj: f"{obj.domain.name} ({obj.activity_type})"
 
         self.fields["static_server"].empty_label = "-- Select Static Server --"
         self.fields[
             "static_server"
-        ].label_from_instance = (
-            lambda obj: f"{obj.server.ip_address} ({obj.server_role} | {obj.activity_type})"
-        )
+        ].label_from_instance = lambda obj: f"{obj.server.ip_address} ({obj.server_role} | {obj.activity_type})"
 
         self.fields["transient_server"].empty_label = "-- Select VPS --"
         self.fields[
             "transient_server"
-        ].label_from_instance = (
-            lambda obj: f"{obj.ip_address} ({obj.server_role} | {obj.activity_type})"
-        )
+        ].label_from_instance = lambda obj: f"{obj.ip_address} ({obj.server_role} | {obj.activity_type})"
 
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_errors = False
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
@@ -335,7 +315,8 @@ class DomainLinkForm(forms.ModelForm):
             "endpoint",
             HTML(
                 """
-                <p>Finally, select either a static server checked-out for this project <em>or</em> a transient server to associate with the selected domain:</p>
+                <p>Finally, select either a static server checked-out for this project
+                <em>or</em> a transient server to associate with the selected domain:</p>
                 """
             ),
             Row(
@@ -348,7 +329,8 @@ class DomainLinkForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -357,13 +339,8 @@ class DomainLinkForm(forms.ModelForm):
     def clean(self):
         if self.cleaned_data["static_server"] and self.cleaned_data["transient_server"]:
             raise ValidationError(_("Select only one server"), code="invalid_selection")
-        if (
-            not self.cleaned_data["static_server"]
-            and not self.cleaned_data["transient_server"]
-        ):
-            raise ValidationError(
-                _("You must select one server"), code="invalid_selection"
-            )
+        if not self.cleaned_data["static_server"] and not self.cleaned_data["transient_server"]:
+            raise ValidationError(_("You must select one server"), code="invalid_selection")
 
 
 class DomainNoteForm(forms.ModelForm):
@@ -373,7 +350,6 @@ class DomainNoteForm(forms.ModelForm):
     """
 
     class Meta:
-
         model = DomainNote
         fields = ("note",)
 
@@ -381,7 +357,6 @@ class DomainNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
@@ -390,7 +365,8 @@ class DomainNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -418,12 +394,9 @@ class BurnForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["burned_explanation"].widget.attrs[
-            "placeholder"
-        ] = "This domain was flagged for..."
+        self.fields["burned_explanation"].widget.attrs["placeholder"] = "This domain was flagged for..."
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
@@ -432,7 +405,8 @@ class BurnForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),

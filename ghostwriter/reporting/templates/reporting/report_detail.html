@@ -1,680 +1,734 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags %}
-{% load report_tags %}
+{% load crispy_forms_tags report_tags bleach_tags %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ report.project.client }}" href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a></li>
-            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ report.project.start_date }} {{ report.project.project_type }}" href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project.start_date }} {{ report.project.project_type }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ report }}</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ report.project.client }}"
+                                     href="{% url 'rolodex:client_detail' report.project.client.id %}">{{ report.project.client }}</a>
+      </li>
+      <li class="breadcrumb-item"><a data-toggle="tooltip"
+                                     title="{{ report.project }}"
+                                     href="{% url 'rolodex:project_detail' report.project.id %}">{{ report.project.start_date }} {{ report.project.project_type }}</a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">{{ report }}</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <div class="dropdown">
-        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-            <div class="bar1"></div>
-            <div class="bar2"></div>
-            <div class="bar3"></div>
-        </div>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
-            <a title="Set this report as your active report" href="javascript:void(0)" class="dropdown-item icon power-icon clickable-link js-activate-report" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Activate</a>
-            <a class="dropdown-item icon edit-icon" href="{% url 'reporting:report_update' report.id %}">Edit</a>
-            <a class="dropdown-item icon clone-icon" href="{% url 'reporting:report_clone' report.id %}">Clone</a>
-            <a class="dropdown-item icon project-icon" href="{% url 'rolodex:project_detail' report.project.id %}">Jump to Project</a>
-            <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' report.project.client.id %}">Jump to Client</a>
-            <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
-        </div>
+  <div class="dropdown">
+    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+         onclick="hamburger(this)">
+      <div class="bar1"></div>
+      <div class="bar2"></div>
+      <div class="bar3"></div>
     </div>
-
-    <div class="container">
-        <h2>{{ report.title }}</h2>
+    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="report-dropdown-btn">
+      <a title="Set this report as your active report" href="javascript:void(0)"
+         class="dropdown-item icon power-icon clickable-link js-activate-report"
+         activate-report-csrftoken="{{ csrf_token }}"
+         activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
+         activate-report-id="{{ report.id }}">Activate</a>
+      <a class="dropdown-item icon edit-icon" href="{% url 'reporting:report_update' report.id %}">Edit</a>
+      <a class="dropdown-item icon clone-icon" href="{% url 'reporting:report_clone' report.id %}">Clone</a>
+      <a class="dropdown-item icon project-icon" href="{% url 'rolodex:project_detail' report.project.id %}">Jump to
+        Project</a>
+      <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' report.project.client.id %}">Jump
+        to Client</a>
+      <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
     </div>
+  </div>
 
-    <!-- Report Status & Toggles -->
-    <h6 class="row justify-content-md-center">
-        <div class="col-3 text-left">
-            Report Status:
-            {% if report.complete %}
-                <span id="js-report-status" class="pl-1">Complete</span>
-            {% else %}
-                <span id="js-report-status" class="pl-1">Draft</span>
-            {% endif %}
+  <div class="container">
+    <h2>{{ report.title }}</h2>
+  </div>
+  {% for tag in report.tags.names %}
+    <span class="badge badge-secondary">{{ tag|bleach }}</span>
+  {% endfor %}
+  <hr>
+
+  {% comment %} Report Status & Toggles {% endcomment %}
+  <h6 class="row justify-content-md-center">
+    <span class="col-3 text-left">
+      Report Status:
+      {% if report.complete %}
+        <span id="js-report-status" class="pl-1">Complete</span>
+      {% else %}
+        <span id="js-report-status" class="pl-1">Draft</span>
+      {% endif %}
+    </span>
+    <span class="col-1">
+      {% if report.complete %}
+        <a title="Mark report as incomplete" data-toggle="tooltip" href="javascript:void(0)"
+           class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
+           toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
+           toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-on"></i></a>
+      {% else %}
+        <a title="Mark report as complete" data-toggle="tooltip" href="javascript:void(0)"
+           class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
+           toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
+           toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
+      {% endif %}
+    </span>
+  </h6>
+
+  <h6 class="row justify-content-md-center">
+    <span class="col-3 text-left">
+      Delivery Status:
+      {% if report.delivered %}
+        <span id="js-delivery-status">Delivered</span>
+      {% else %}
+        <span id="js-delivery-status">Not Delivered</span>
+      {% endif %}
+    </span>
+    <span class="col-1">
+      {% if report.delivered %}
+        <a title="Mark report as not delivered" data-toggle="tooltip" href="javascript:void(0)"
+           class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
+           toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
+           toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-on"></i></a>
+      {% else %}
+        <a title="Mark report as delivered" data-toggle="tooltip" href="javascript:void(0)"
+           class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
+           toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
+           toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon"
+                                                          class="fas fa-toggle-off"></i></a>
+      {% endif %}
+    </span>
+  </h6>
+
+  <!-- Findings Section -->
+  <div>
+    <h4>Current Findings</h4>
+    <hr>
+
+    <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired
+      finding.</p>
+
+    <!-- Search Section -->
+    <form action="{% url 'reporting:findings' %}" method="GET">
+      <div class="search form-row">
+        <div class="input-group offset-md-4 col-md-4">
+          <div class="input-group-prepend">
+            <span class="input-group-text fa fa-search" id="report-findings-search"></span>
+          </div>
+          <input autocomplete="off" type="text" class="form-control" name="finding_search"
+                 placeholder="Search Findings..." aria-label="findings" aria-describedby="report-findings-search">
         </div>
-        <div class="col-1">
-            {% if report.complete %}
-                <a title="Mark report as incomplete" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-on"></i></a>
-            {% else %}
-                <a title="Mark report as complete" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}" toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}" toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
-            {% endif %}
-        </div>
-    </h6>
+        <input type="submit" style="display: none"/>
+      </div>
+    </form>
 
-    <h6 class="row justify-content-md-center">
-        <div class="col-3 text-left">
-            Delivery Status:
-            {% if report.delivered %}
-                <span id="js-delivery-status">Delivered</span>
-            {% else %}
-                <span id="js-delivery-status">Not Delivered</span>
-            {% endif %}
-        </div>
-        <div class="col-1">
-            {% if report.delivered %}
-                <a title="Mark report as not delivered" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-on"></i></a>
-            {% else %}
-                <a title="Mark report as delivered" data-toggle="tooltip" href="javascript:void(0)" class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}" toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}" toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-off"></i></a>
-            {% endif %}
-        </div>
-    </h6>
+    <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
+                       href="{% url 'reporting:assign_blank_finding' report.id %}" data-toggle="tooltip"
+                       data-placement="top" title="Add a blank finding template to the bottom of the report">Add a Blank
+      Finding</a></p>
 
-    <!-- Findings Section -->
-    <div>
-        <h4>Current Findings</h4>
-        <hr>
-
-        <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired finding.</p>
-
-        <!-- Search Section -->
-        <form action="{% url 'reporting:findings' %}" method="GET">
-            <div class="search form-row">
-                <div class="input-group offset-md-4 col-md-4">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text fa fa-search" id="report-findings-search"></span>
-                    </div>
-                    <input autocomplete="off" type="text" class="form-control" name="finding_search" placeholder="Search Findings..." aria-label="findings" aria-describedby="report-findings-search">
-                </div>
-                <input type="submit" style="display: none" />
+    <!-- Finding Table Section -->
+    {% if report.reportfindinglink_set.all %}
+      <table id="findings-table" class="table table-sm table-hover"
+             findings-update-url="{% url 'reporting:update_report_findings' %}">
+        <tr>
+          <th class="icon ol-list-icon text-center"></th>
+          <th class="align-middle">Finding</th>
+          <th>CVSS Score</th>
+          <th class="align-middle">
+            <div class="dropdown dropleft">
+              <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">Evidence</span>
+              <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
+                <p>Attach evidence to findings - such as text files, log files, script snippets, and screenshots - to
+                  have them included with the finding in the generated reports.</p>
+              </div>
             </div>
-        </form>
+          </th>
+          <th class="align-middle">
+            <div class="dropdown dropleft">
+              <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">Owner</span>
+              <div id="owner-info" class="dropdown-menu dropdown-info-content" aria-labelledby="owner-info-btn">
+                <p>The assigned user is the person responsible for writing this finding. The assigned individual will
+                  have a link to the finding on their dashboard.</p>
+              </div>
+            </div>
+          </th>
+          <th class="align-middle">
+            <div class="dropdown dropleft">
+              <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">Status</span>
+              <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
+                <p>Mark a finding as ready or in need of editing. Findings marked as in need of editing will appear on
+                  the assigned user's dashboard.</p>
+              </div>
+            </div>
+          </th>
+          <th class="align-middle">Options</th>
+        </tr>
 
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4" href="{% url 'reporting:assign_blank_finding' report.id %}" data-toggle="tooltip" data-placement="top" title="Add a blank finding template to the bottom of the report">Add a Blank Finding</a></p>
-
-        <!-- Finding Table Section -->
-        {% if report.reportfindinglink_set.all %}
-            <table id="findings-table" class="table table-sm table-hover" findings-update-url="{% url 'reporting:update_report_findings' %}">
-                <tr>
-                    <th class="icon ol-list-icon text-center"></th>
-                    <th class="align-middle">Finding</th>
-                    <th>CVSS Score</th>
-                    <th class="align-middle">
-                        <div class="dropdown dropleft">
-                            <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Evidence</span>
-                            <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
-                                <p>Attach evidence to findings - such as text files, log files, script snippets, and screenshots - to have them included with the finding in the generated reports.</p>
-                            </div>
+        {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
+        {% for group, values in severity_groups.items %}
+          <tbody>
+          <th id="{{ values.tpl_name }}_header" class="severity-header {{ values.tpl_name }}" colspan="7"
+              scope="colgroup">{{ group }}</th>
+          </tbody>
+          <tbody id="{{ values.tpl_name }}_severity" class="sortable_list connected_sortable" severity-weight="{{ values.weight }}">
+          {% if values.findings %}
+            {% for finding in values.findings %}
+              <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
+                <td
+                  class="holdme align-middle"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  title="Click-n-drag to reposition or categorize"
+                ></td>
+                <td class="align-middle">
+                  <a id="delete-target-content-finding-{{ finding.id }}"
+                    {% if finding.added_as_blank %}
+                     class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
+                     title="Finding started as a blank template, not from the finding library"
+                    {% else %}
+                     class="clickable"
+                    {% endif %}
+                     href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
+                  </a>
+                </td>
+                <td class="neutral align-middle
+                    {% if finding.severity.weight == 1 %}
+                        cvss-critical
+                    {% elif finding.severity.weight == 2 %}
+                        cvss-high
+                    {% elif finding.severity.weight == 3 %}
+                        cvss-medium
+                    {% elif finding.severity.weight == 4 %}
+                        cvss-low
+                    {% elif finding.severity.weight == 5 %}
+                        cvss-info
+                    {% endif %}
+                ">
+                  {% if finding.cvss_score %}
+                    <span
+                      style="cursor: help"
+                      data-toggle="tooltip"
+                      data-placement="top"
+                      title="{{ finding.cvss_vector }}"
+                    >{{ finding.cvss_score }}</span>
+                  {% else %}--{% endif %}
+                </td>
+                {% if finding.evidence_set.all %}
+                  <td class="align-middle">
+                    {% for evidence_file in finding.evidence_set.all %}
+                      <div class="dropdown">
+                        <button id="evidence-dropdown-btn-{{ evidence.id }}" class="dropdown-menu-btn-evidence"
+                                data-toggle="dropdown" aria-haspopup="true"
+                                aria-expanded="false">{{ evidence_file.friendly_name }}</button>
+                        <div id="evidence-dropdown-menu-{{ evidence.id }}" class="dropdown-menu"
+                             aria-labelledby="evidence-dropdown-btn-{{ evidence.id }}">
+                          <a class="dropdown-item icon view-icon"
+                             href="{% url 'reporting:evidence_detail' evidence_file.id %}">View</a>
+                          <a class="dropdown-item icon edit-icon"
+                             href="{% url 'reporting:evidence_update' evidence_file.id %}">Edit</a>
+                          <a class="dropdown-item icon trash-icon"
+                             href="{% url 'reporting:evidence_delete' evidence_file.id %}">Delete</a>
                         </div>
-                    </th>
-                    <th class="align-middle">
-                        <div class="dropdown dropleft">
-                            <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Owner</span>
-                            <div id="owner-info" class="dropdown-menu dropdown-info-content" aria-labelledby="owner-info-btn">
-                                <p>The assigned user is the person responsible for writing this finding. The assigned individual will have a link to the finding on their dashboard.</p>
-                            </div>
-                        </div>
-                    </th>
-                    <th class="align-middle">
-                        <div class="dropdown dropleft">
-                            <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Status</span>
-                            <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
-                                <p>Mark a finding as ready or in need of editing. Findings marked as in need of editing will appear on the assigned user's dashboard.</p>
-                            </div>
-                        </div>
-                    </th>
-                    <th class="align-middle">Options</th>
-                </tr>
-
-                {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
-                {% for group in severity_groups %}
-                    <tbody>
-                        <th id="{{ group|lower }}_header" class="severity-header {{ group|lower }}" colspan="7" scope="colgroup">{{ group }}</th>
-                    </tbody>
-                    <tbody id="{{ group|lower }}_severity" class="sortable_list connected_sortable">
-                        {% if severity_groups|get_item:group %}
-                            {% for finding in severity_groups|get_item:group %}
-                                <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
-                                    <td
-                                        class="holdme align-middle"
-                                        data-toggle="tooltip"
-                                        data-placement="top"
-                                        title="Click-n-drag to reposition or categorize"
-                                    ></td>
-                                    <td class="align-middle">
-                                        <a id="delete-target-content-finding-{{ finding.id }}"
-                                        {% if finding.added_as_blank %}
-                                            class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top" title="Finding started as a blank template, not from the finding library"
-                                        {% else %}
-                                            class="clickable"
-                                        {% endif %}
-                                        href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
-                                    </a>
-                                    </td>
-                                    <td class="neutral align-middle
-                                        {% if finding.severity.severity == "Critical" %}
-                                            cvss-critical
-                                        {% elif finding.severity.severity == "High" %}
-                                            cvss-high
-                                        {% elif finding.severity.severity == "Medium" %}
-                                            cvss-medium
-                                        {% elif finding.severity.severity == "Low" %}
-                                            cvss-low
-                                        {% elif finding.severity.severity == "Informational" %}
-                                            cvss-info
-                                        {% endif %}
-                                    ">
-                                        {% if finding.cvss_score %}
-                                        <span
-                                            style="cursor: help"
-                                            data-toggle="tooltip"
-                                            data-placement="top"
-                                            title="{{ finding.cvss_vector }}"
-                                        >{{ finding.cvss_score }}</span>
-                                        {% else %}--{% endif %}
-                                    </td>
-                                    {% if finding.evidence_set.all %}
-                                        <td class="align-middle">
-                                            {% for evidence_file in finding.evidence_set.all %}
-                                                <div class="dropdown">
-                                                    <button id="evidence-dropdown-btn-{{ evidence.id }}" class="dropdown-menu-btn-evidence" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ evidence_file.friendly_name }}</button>
-                                                    <div id="evidence-dropdown-menu-{{ evidence.id }}" class="dropdown-menu" aria-labelledby="evidence-dropdown-btn-{{ evidence.id }}">
-                                                        <a class="dropdown-item icon view-icon" href="{% url 'reporting:evidence_detail' evidence_file.id %}">View</a>
-                                                        <a class="dropdown-item icon edit-icon" href="{% url 'reporting:evidence_update' evidence_file.id %}">Edit</a>
-                                                        <a class="dropdown-item icon trash-icon" href="{% url 'reporting:evidence_delete' evidence_file.id %}">Delete</a>
-                                                    </div>
-                                                </div>
-                                                {% if not forloop.last %}<hr>{% endif %}
-                                            {% endfor %}
-                                        </td>
-                                    {% else %}
-                                        <td class="align-middle">
-                                            <a
-                                                class="icon lg-attach-icon"
-                                                href="{% url 'reporting:upload_evidence' finding.id %}"
-                                                data-toggle="tooltip"
-                                                data-placement="top"
-                                                title="Attach a file as evidence"
-                                            ></a>
-                                        </td>
-                                    {% endif %}
-                                    {% if finding.assigned_to == request.user %}
-                                        {% if finding.complete %}
-                                            <td class="healthy align-middle">You</td>
-                                        {% else %}
-                                            <td class="burned align-middle">You</td>
-                                        {% endif %}
-                                    {% else %}
-                                        {% if finding.assigned_to %}
-                                            <td class="neutral align-middle">{{ finding.assigned_to }}</td>
-                                        {% else %}
-                                            <td class="medium align-middle">TBD</td>
-                                        {% endif %}
-                                    {% endif %}
-                                    <td class="align-middle">
-                                        <span id="finding-status-{{ finding.id }}" class="
-                                            {% if finding.complete %}
-                                                healthy">Ready
-                                            {% else %}
-                                                burned"> Needs Editing
-                                            {% endif %}
-                                        </span>
-                                    <td class="align-middle">
-                                        <div class="dropdown dropleft">
-                                            <button id="finding-dropdown-btn-{{ finding.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                            <div id="finding-dropdown-menu-{{ finding.id }}" class="dropdown-menu" aria-labelledby="dns-dropdown-btn_{{ finding.id }}">
-                                                <a class="dropdown-item icon attach-icon" href="{% url 'reporting:upload_evidence' finding.id %}">Attach Evidence</a>
-                                                <a class="dropdown-item icon edit-icon" href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
-                                                <a class="dropdown-item icon toggle-off-icon js-set-finding-status" href="javascript:void(0);" set-finding-status-csrftoken="{{ csrf_token }}" set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}" set-finding-status="edit" set-finding-status-id="{{ finding.id }}">Flag for Editing</a>
-                                                <a class="dropdown-item icon toggle-on-icon js-set-finding-status" href="javascript:void(0);" set-finding-status-csrftoken="{{ csrf_token }}" set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}" set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
-                                                <a class="dropdown-item icon clone-icon" href="{% url 'reporting:convert_finding' finding.id %}">Clone to Library</a>
-                                                <a id="finding-delete-button-{{ finding.id }}" class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id%}" delete-target-id="{{ finding.id }}" delete-target-type="finding">Delete</a>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder" class="severity-row-placeholder">
-                                <td colspan="7" scope="colgroup">Add {{ group }} findings or drag-and-drop a finding here to update its severity.</td>
-                            </tr>
-                        {% endif %}
+                      </div>
+                      {% if not forloop.last %}
+                        <hr>{% endif %}
                     {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No findings have been added to this report yet.</p>
-        {% endif %}
+                  </td>
+                {% else %}
+                  <td class="align-middle">
+                    <a
+                      class="icon lg-attach-icon"
+                      href="{% url 'reporting:upload_evidence' finding.id %}"
+                      data-toggle="tooltip"
+                      data-placement="top"
+                      title="Attach a file as evidence"
+                    ></a>
+                  </td>
+                {% endif %}
+                {% if finding.assigned_to == request.user %}
+                  {% if finding.complete %}
+                    <td class="healthy align-middle">You</td>
+                  {% else %}
+                    <td class="burned align-middle">You</td>
+                  {% endif %}
+                {% else %}
+                  {% if finding.assigned_to %}
+                    <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+                  {% else %}
+                    <td class="medium align-middle">TBD</td>
+                  {% endif %}
+                {% endif %}
+                <td class="align-middle">
+                  <span id="finding-status-{{ finding.id }}" class="
+                    {% if finding.complete %}
+                      healthy">Ready
+                    {% else %}
+                      burned"> Needs Editing
+                    {% endif %}
+                  </span>
+                </td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="finding-dropdown-btn-{{ finding.id }}" class="dropdown-menu-btn-table"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                    <div id="finding-dropdown-menu-{{ finding.id }}" class="dropdown-menu"
+                         aria-labelledby="dns-dropdown-btn_{{ finding.id }}">
+                      <a class="dropdown-item icon attach-icon" href="{% url 'reporting:upload_evidence' finding.id %}">Attach
+                        Evidence</a>
+                      <a class="dropdown-item icon edit-icon"
+                         href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
+                      <a class="dropdown-item icon toggle-off-icon js-set-finding-status" href="javascript:void(0);"
+                         set-finding-status-csrftoken="{{ csrf_token }}"
+                         set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"
+                         set-finding-status="edit" set-finding-status-id="{{ finding.id }}">Flag for Editing</a>
+                      <a class="dropdown-item icon toggle-on-icon js-set-finding-status" href="javascript:void(0);"
+                         set-finding-status-csrftoken="{{ csrf_token }}"
+                         set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
+                         set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
+                      <a class="dropdown-item icon clone-icon" href="{% url 'reporting:convert_finding' finding.id %}">Clone
+                        to Library</a>
+                      <a id="finding-delete-button-{{ finding.id }}"
+                         class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
+                         data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id %}"
+                         delete-target-id="{{ finding.id }}" delete-target-type="finding">Delete</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder"
+                class="severity-row-placeholder">
+              <td colspan="7" scope="colgroup">Add {{ group }} findings or drag-and-drop a finding here to update its
+                severity.
+              </td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No findings have been added to this report yet.</p>
+    {% endif %}
 
-        <!-- Generate Report Sections -->
-        <h4>Generate Reports</h4>
-        <hr>
+    {% comment %} Generate Report Sections {% endcomment %}
+    <h4>Generate Reports</h4>
+    <hr>
 
-        <p class="mb-2">For Word (docx) and PowerPoint (pptx), select a template to determine the type and style of your document:</p>
-        <p class="mb-3">Click the icon of the type of document you want to generate.</p>
+    <p class="mb-2">For Word (docx) and PowerPoint (pptx), select a template to determine the type and style of your
+      document:</p>
+    <p class="mb-3">Click the icon of the type of document you want to generate.</p>
 
-        <div>
-            {% crispy form form.helper %}
-        </div>
+    <div>
+      {% crispy form form.helper %}
     </div>
+  </div>
 {% endblock %}
 
 {% block collapse_js %}
-{{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Modal for Spinner -->
-    <div id="spinner-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-md" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Stand By!</h5>
-                </div>
-                <div class="modal-body text-center">
-                    <h3><i class="fas fa-cog fa-spin"></i> Generating your report...</h3>
-                </div>
-            </div>
+  {% comment %} Modal for the loading spinner {% endcomment %}
+  <div id="spinner-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-md" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Stand By!</h5>
         </div>
+        <div class="modal-body text-center">
+          <h3><i class="fas fa-cog fa-spin"></i> Generating your report...</h3>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        $('.js-generate-report').click(function () {
-            $('#spinner-modal').modal('show');
-            setTimeout(() => {  $('#spinner-modal').modal('hide'); }, 5000);
-        });
-    </script>
+  <script>
+    const $spinnerModal = $('#spinner-modal')
 
-    <!-- Script for WebSocket Notifications & Updates -->
-    <script>
-        // WS available for dev environments without HTTPS
-        var protocol = "ws://"
-        if (location.protocol == "https:") {
-            protocol = "wss://"
-        }
-        var ws_report = new WebSocket(
-            protocol + window.location.host +
-            '/ws/reports/' + {{ report.id }} + '/');
+    {% comment %} Connect to channel for report-specific notifications {% endcomment %}
+    let ws_report = new WebSocket(
+      protocol + window.location.host +
+      '/ws/reports/' + {{ report.id }} +'/');
 
-        function sendMessage(socket, msg) {
-            waitForSocketConnection(socket, function () {
-                socket.send(msg);
+    {% comment %} Handle receiving report-specific messages {% endcomment %}
+    ws_report.onmessage = function (e) {
+      let data = JSON.parse(e.data);
+      if (data.message['status'] == 'success') {
+        console.log('Completed report generation');
+        setTimeout(() => {
+         $spinnerModal.modal('hide');
+        }, 1000);
+      }
+    };
+
+    {% comment %} Handle unexpected WebSocket closures {% endcomment %}
+    ws_report.onclose = function () {
+      console.error('Report notification WebSocket closed unexpectedly');
+    };
+
+    {% comment %} Display the loading spinner while report generates {% endcomment %}
+    $('.js-generate-report').click(function () {
+      $spinnerModal.modal('show');
+      setTimeout(() => {
+        $spinnerModal.modal('hide');
+      }, 4000);
+    });
+
+    {% comment %} Configure table sorting by severity groups {% endcomment %}
+    {% if report.reportfindinglink_set.all %}
+      let update_url = $('#findings-table').attr('findings-update-url');
+      let report_id = '{{ report.id }}';
+      let csrftoken = '{{ csrf_token }}';
+      {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
+      {% for group, values in severity_groups.items %}
+        let {{ values.tpl_name }}_sortable = Sortable.create({{ values.tpl_name }}_severity, {
+          items: 'tbody > tr',
+          group: 'severity',
+          animation: 150,
+          filter: '.severity-row-placeholder',
+          ghostClass: 'sortable-ghost',
+          handle: '.holdme',
+
+          // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
+          setData: function (dataTransfer, dragEl) {
+            dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+          },
+
+          // Element is chosen
+          onChoose: function (event) {
+            event.oldIndex;
+          },
+
+          // Element is unchosen
+          onUnchoose: function (event) {
+          },
+
+          // Element dragging started
+          onStart: function (event) {
+            event.oldIndex;
+          },
+
+          // Element is dropped into the list from another list
+          onAdd: function (event) {
+            // Get the placeholder `tr` if it exists
+            let weight = event.to.getAttribute('severity-weight')
+            let placeholder = event.to.getElementsByClassName('severity-row-placeholder')[0];
+            let positions = {{ values.tpl_name }}_sortable.toArray();
+            // Prep AJAX request with CSRF token
+            $.ajaxSetup({
+              beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
+              }
             });
-        }
-
-        function waitForSocketConnection(socket, callback) {
-            setTimeout(
-                function () {
-                    if (socket.readyState === 1) {
-                    if (callback != null) {
-                        callback();
-                    }
-                    } else {
-                        console.log('Waiting for connection...')
-                        waitForSocketConnection(socket, callback);
-                    }
-            }, 5); // wait 5 millisecond for the connection...
-        }
-
-        // Handle receiving messages on channels
-        ws_report.onmessage = function (e) {
-            var data = JSON.parse(e.data);
-            if (data.message['status'] == 'success') {
-                setTimeout(() => {  $('#spinner-modal').modal('hide'); }, 1000);
+            // Send AJAX POST request
+            $.ajax(update_url, {
+              type: 'POST',
+              data: {
+                'report': report_id,
+                'severity': event.to.id,
+                'positions': JSON.stringify(positions),
+                'weight': weight
+              },
+              success: function (data) {
+                console.log(data)
+              }
+            });
+            // An "empty" group will have one row, the placeholder row
+            if (event.to.rows.length > 0) {
+              if (placeholder !== undefined) {
+                // Group contains at least one finding, delete the placeholder
+                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+              }
             }
-        };
+          },
 
-        // Handle unexpected WebSocket closures
-        ws_report.onclose = function (e) {
-            console.error('Report notification WebSocket closed unexpectedly');
-        };
-    </script>
-
-    <!-- Script for Sortable Groups of Findings -->
-    <script>
-        {% if report.reportfindinglink_set.all %}
-            {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
-            {% for group in severity_groups %}
-                var update_url = $('#findings-table').attr('findings-update-url');
-                var report_id = '{{ report.id }}';
-                var csrftoken = '{{ csrf_token }}';
-                var {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_severity, {
-                    items: 'tbody > tr',
-                    group: 'severity',
-                    animation: 150,
-                    filter: '.severity-row-placeholder',
-                    ghostClass: 'sortable-ghost',
-                    handle: '.holdme',
-
-                    // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
-                    setData: function (dataTransfer, dragEl) {
-                        dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
-                    },
-
-                    // Element is chosen
-                    onChoose: function (event) {
-                        event.oldIndex;
-                    },
-
-                    // Element is unchosen
-                    onUnchoose: function (event) {},
-
-                    // Element dragging started
-                    onStart: function (event) {
-                        event.oldIndex;
-                    },
-
-                    // Element is dropped into the list from another list
-                    onAdd: function (event) {
-                        // Get the placeholder `tr` if it exists
-                        placeholder = event.to.getElementsByClassName('severity-row-placeholder')[0];
-                        var positions = {{ group | lower }}_sortable.toArray();
-                        // Prep AJAX request with CSRF token
-                        $.ajaxSetup({
-                            beforeSend: function(xhr, settings) {
-                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                                }
-                            }
-                        });
-                        // Send AJAX POST request
-                        $.ajax(update_url, {
-                            type: 'POST',
-                            data: {
-                                'report': report_id,
-                                'severity': event.to.id,
-                                'positions': JSON.stringify(positions)
-                            },
-                            success: function (data) {
-                                console.log(data)
-                            }
-                        });
-                        // An "empty" group will have one row, the placeholder row
-                        if (event.to.rows.length > 0) {
-                            if (placeholder !== undefined) {
-                                // Group contains at least one finding, delete the placeholder
-                                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-                            };
-                        };
-                    },
-
-                    // Called by any change to the list (add / update / remove)
-                    onSort: function (event) {
-                        // Code here triggers twice for the element if dragged to another group (two sorts)
-                        [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, index) {
-                            var cell = el.getElementsByClassName('holdme')[0];
-                        });
-                    },
-
-                    // Changed sorting within list
-                    onUpdate: function (event) {
-                        var positions = {{ group | lower }}_sortable.toArray();
-                        // Prep AJAX request with CSRF token
-                        $.ajaxSetup({
-                            beforeSend: function(xhr, settings) {
-                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                                }
-                            }
-                        });
-                        // Send AJAX POST request
-                        $.ajax(update_url, {
-                            type: 'POST',
-                            data: {
-                                'report': report_id,
-                                'severity': event.item.parentNode.id,
-                                'positions': JSON.stringify(positions)
-                            },
-                            success: function (data) {
-                                console.log(data);
-                            }
-                        });
-                    },
-
-                    // Element is removed from the list into another list
-                    onRemove: function (event) {
-                        // Get the placeholder `tr` if it exists
-                        placeholder = event.from.getElementsByClassName('severity-row-placeholder')[0];
-                        var positions = {{ group | lower }}_sortable.toArray();
-                        // Prep AJAX request with CSRF token
-                        $.ajaxSetup({
-                            beforeSend: function(xhr, settings) {
-                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                                }
-                            }
-                        });
-                        // Send AJAX POST request
-                        $.ajax(update_url, {
-                            type: 'POST',
-                            data: {
-                                'report': report_id,
-                                'severity': event.from.id,
-                                'positions': JSON.stringify(positions)
-                            },
-                            success: function (data) {
-                                console.log(data);
-                            }
-                        });
-                        // An "empty" group will have one row, the placeholder row
-                        if (event.from.rows.length == 0) {
-                            // Just one row, add a placeholder row
-                            var placeholder_row = event.from.insertRow(0)
-                            placeholder_row.id = '{{ group|lower }}_placeholder'
-                            placeholder_row.className = 'severity-row-placeholder'
-                            placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder', 0)
-                            cell = placeholder_row.insertCell(0);
-                            cell.colSpan = 7
-                            cell.innerHTML = 'Add {{ group }} findings or drag-and-drop a finding here to update its severity.'
-                        } else {
-                            if (placeholder !== undefined) {
-                                // Otherwise, delete the placeholder
-                                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-                            };
-                        };
-                    },
-
-                    // Event when you move an item in the list or between lists
-                    onMove: function (event, originalEvent) {
-                        // Code here triggers with every drag to a new position
-                    },
-
-                    // Attempt to drag a filtered element
-                    onFilter: function (event) {},
-
-                    // Called when creating a clone of element
-                    onClone: function (event) {},
-
-                    // Called when dragging element changes position
-                    onChange: function (event) {
-                        // Code here triggers with every move while drag is in progress
-                    },
-
-                    // Element dragging ended
-                    onEnd: function (event) {
-                        // Code here triggers when element is dropped
-                    },
-                });
-            {% endfor %}
-        {% endif %}
-    </script>
-
-    <!-- Set Finding Status with AJAX -->
-    <script>
-        $('.js-set-finding-status').each(function(index) {
-            $(this).click(function () {
-                var url = $(this).attr('set-finding-status-url');
-                var newStatus = $(this).attr('set-finding-status');
-                var findingId = $(this).attr('set-finding-status-id');
-                var csrftoken = $(this).attr('set-finding-status-csrftoken');
-                var statusColId = '#finding-status-' + findingId;
-                var statusCol = $(statusColId);
-                // Prep AJAX request with CSRF token
-                $.ajaxSetup({
-                    beforeSend: function(xhr, settings) {
-                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                        }
-                    }
-                });
-                // Send AJAX POST request
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        'finding': findingId,
-                        'status': newStatus
-                    },
-                    success: function (data) {
-                        if (data['result'] == 'success') {
-                            statusCol.html(data['status']);
-                            statusCol.removeClass();
-                            statusCol.addClass(data['classes']);
-                        }
-                        if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Finding Update'});
-                        }
-                    }
-                });
+          // Called by any change to the list (add / update / remove)
+          onSort: function (event) {
+            // Code here triggers twice for the element if dragged to another group (two sorts)
+            [].forEach.call(event.item.parentNode.getElementsByClassName('severity_row'), function (el, _) {
+              let cell = el.getElementsByClassName('holdme')[0];
             });
-        });
-    </script>
+          },
 
-    <!-- Toggle Report Status with AJAX -->
-    <script>
-        $('.js-toggle-report-status').click(function () {
-            var url = $(this).attr('toggle-report-status-url');
-            var reportId = $(this).attr('toggle-report-status-id');
-            var csrftoken = $(this).attr('toggle-report-status-csrftoken');
-            var statusIcon = $('#js-report-status-icon');
-            var statusText = $('#js-report-status')
+          // Changed sorting within list
+          onUpdate: function (event) {
+            let weight = event.item.parentNode.getAttribute('severity-weight')
+            let positions = {{ values.tpl_name }}_sortable.toArray();
             // Prep AJAX request with CSRF token
             $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
+              beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', csrftoken);
                 }
+              }
             });
             // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'report': reportId
-                },
-                success: function (data) {
-                    console.log(statusText)
-                    statusText.html(data['status']);
-                    if (data['toggle']) {
-                        statusIcon.removeClass('fa-toggle-off')
-                        statusIcon.addClass('fa-toggle-on')
-                    } else {
-                        statusIcon.removeClass('fa-toggle-on')
-                        statusIcon.addClass('fa-toggle-off')
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
-                    }
-                }
+            $.ajax(update_url, {
+              type: 'POST',
+              data: {
+                'report': report_id,
+                'severity': event.item.parentNode.id,
+                'positions': JSON.stringify(positions),
+                'weight': weight
+              },
+              success: function (data) {
+                console.log(data);
+              }
             });
-        });
-    </script>
+          },
 
-    <!-- Toggle Report Delivery Status with AJAX -->
-    <script>
-        $('.js-toggle-delivery-status').click(function () {
-            var url = $(this).attr('toggle-delivery-status-url');
-            var reportId = $(this).attr('toggle-delivery-status-id');
-            var csrftoken = $(this).attr('toggle-delivery-status-csrftoken');
-            var statusIcon = $('#js-delivery-status-icon');
-            var statusText = $('#js-delivery-status')
-            // Prep AJAX request with CSRF token
+          // Element is removed from the list into another list
+          onRemove: function (event) {
+            // Get the placeholder `tr` if it exists
+            let placeholder = event.from.getElementsByClassName('severity-row-placeholder')[0];
+            let positions = {{ values.tpl_name }}_sortable.toArray();
+            let weight = event.from.getAttribute('severity-weight')
             $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
+              beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', csrftoken);
                 }
+              }
             });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'report': reportId
-                },
-                success: function (data) {
-                    statusText.html(data['status']);
-                    if (data['toggle']) {
-                        statusIcon.removeClass('fa-toggle-off')
-                        statusIcon.addClass('fa-toggle-on')
-                    } else {
-                        statusIcon.removeClass('fa-toggle-on')
-                        statusIcon.addClass('fa-toggle-off')
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
-                    }
-                }
+            $.ajax(update_url, {
+              type: 'POST',
+              data: {
+                'report': report_id,
+                'severity': event.from.id,
+                'positions': JSON.stringify(positions),
+                'weight': weight
+              },
+              success: function (data) {
+                console.log(data);
+              }
             });
-        });
-    </script>
+            // An "empty" group will have one row, the placeholder row
+            if (event.from.rows.length == 0) {
+              // Just one row, add a placeholder row
+              let placeholder_row = event.from.insertRow(0)
+              placeholder_row.id = '{{ values.tpl_name }}_placeholder'
+              placeholder_row.className = 'severity-row-placeholder'
+              placeholder_row.setAttribute('data-id', '{{ values.tpl_name }}_placeholder')
+              let cell = placeholder_row.insertCell(0);
+              cell.colSpan = 7
+              cell.innerHTML = 'Add {{ group }} findings or drag-and-drop a finding here to update its severity.'
+            } else {
+              if (placeholder !== undefined) {
+                // Otherwise, delete the placeholder
+                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+              }
+            }
+          },
 
-    <!-- Save Template Selection on Change -->
-    <script>
-        $(document).ready(function() {
-            $('#report-template-swap-form').change( function() {
-                var url = $(this).attr('action');
-                var docxTemplateId = $('#id_docx_template').val();
-                var pptxTemplateId = $('#id_pptx_template').val();
-                var csrftoken = $('input[name=csrfmiddlewaretoken]').val();
-                if ($('#id_pptx_template').val() == '') {
-                    pptxTemplateId = -1
-                }
-                if ($('#id_docx_template').val() == '') {
-                    docxTemplateId = -1
-                }
-                // Prep AJAX request with CSRF token
-                $.ajaxSetup({
-                    beforeSend: function(xhr, settings) {
-                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                        }
-                    }
-                });
-                // Send AJAX POST request
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        'docx_template': docxTemplateId,
-                        'pptx_template': pptxTemplateId,
-                        'csrfmiddlewaretoken': csrftoken,
-                    },
-                    success: function (data) {
-                        if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Template Update'});
-                        }
-                        if (data['docx_lint_message']) {
-                            displayToastTop({type:data['docx_lint_result'], string:data['docx_lint_message'], title:'Template Issue', delay:10});
-                        }
-                        if (data['pptx_lint_message']) {
-                            displayToastTop({type:data['pptx_lint_result'], string:data['pptx_lint_message'], title:'Template Issue', delay:10});
-                        }
-                    }
-                });
-            });
-        });
-    </script>
+          // Event when you move an item in the list or between lists
+          onMove: function (event, originalEvent) {
+            // Code here triggers with every drag to a new position
+          },
 
-    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
-    {% include "confirm_delete_modal.html" %}
+          // Attempt to drag a filtered element
+          onFilter: function (event) {
+          },
+
+          // Called when creating a clone of element
+          onClone: function (event) {
+          },
+
+          // Called when dragging element changes position
+          onChange: function (event) {
+            // Code here triggers with every move while drag is in progress
+          },
+
+          // Element dragging ended
+          onEnd: function (event) {
+            // Code here triggers when element is dropped
+          },
+        });
+      {% endfor %}
+    {% endif %}
+
+    {% comment %} Set finding status with AJAX {% endcomment %}
+    $('.js-set-finding-status').each(function () {
+      $(this).click(function () {
+        let url = $(this).attr('set-finding-status-url');
+        let newStatus = $(this).attr('set-finding-status');
+        let findingId = $(this).attr('set-finding-status-id');
+        let csrftoken = $(this).attr('set-finding-status-csrftoken');
+        let statusColId = '#finding-status-' + findingId;
+        let statusCol = $(statusColId);
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
+        });
+        $.ajax({
+          url: url,
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            'finding': findingId,
+            'status': newStatus
+          },
+          success: function (data) {
+            if (data['result'] == 'success') {
+              statusCol.html(data['status']);
+              statusCol.removeClass();
+              statusCol.addClass(data['classes']);
+            }
+            if (data['message']) {
+              displayToastTop({type: data['result'], string: data['message'], title: 'Finding Update'});
+            }
+          }
+        });
+      });
+    });
+
+    {% comment %} Toggle Report Status with AJAX {% endcomment %}
+    $('.js-toggle-report-status').click(function () {
+      let url = $(this).attr('toggle-report-status-url');
+      let reportId = $(this).attr('toggle-report-status-id');
+      let csrftoken = $(this).attr('toggle-report-status-csrftoken');
+      let statusIcon = $('#js-report-status-icon');
+      let statusText = $('#js-report-status')
+      // Prep AJAX request with CSRF token
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      // Send AJAX POST request
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'report': reportId
+        },
+        success: function (data) {
+          console.log(statusText)
+          statusText.html(data['status']);
+          if (data['toggle']) {
+            statusIcon.removeClass('fa-toggle-off')
+            statusIcon.addClass('fa-toggle-on')
+          } else {
+            statusIcon.removeClass('fa-toggle-on')
+            statusIcon.addClass('fa-toggle-off')
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Report Update'});
+          }
+        }
+      });
+    });
+
+    {% comment %} Toggle Report Delivery Status with AJAX {% endcomment %}
+    $('.js-toggle-delivery-status').click(function () {
+      let url = $(this).attr('toggle-delivery-status-url');
+      let reportId = $(this).attr('toggle-delivery-status-id');
+      let csrftoken = $(this).attr('toggle-delivery-status-csrftoken');
+      let statusIcon = $('#js-delivery-status-icon');
+      let statusText = $('#js-delivery-status')
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'report': reportId
+        },
+        success: function (data) {
+          statusText.html(data['status']);
+          if (data['toggle']) {
+            statusIcon.removeClass('fa-toggle-off')
+            statusIcon.addClass('fa-toggle-on')
+          } else {
+            statusIcon.removeClass('fa-toggle-on')
+            statusIcon.addClass('fa-toggle-off')
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Report Update'});
+          }
+        }
+      });
+    });
+
+    {% comment %} Save template selection on change {% endcomment %}
+    $(document).ready(function () {
+      $('#report-template-swap-form').change(function () {
+        let url = $(this).attr('action');
+        let $docxTemplate = $('#id_docx_template')
+        let $pptxTemplate = $('#id_pptx_template')
+        let docxTemplateId = $docxTemplate.val();
+        let pptxTemplateId = $pptxTemplate.val();
+        let csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+        if ($pptxTemplate.val() == '') {
+          pptxTemplateId = -1
+        }
+        if ($docxTemplate.val() == '') {
+          docxTemplateId = -1
+        }
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
+        });
+        $.ajax({
+          url: url,
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            'docx_template': docxTemplateId,
+            'pptx_template': pptxTemplateId,
+            'csrfmiddlewaretoken': csrftoken,
+          },
+          success: function (data) {
+            if (data['message']) {
+              displayToastTop({type: data['result'], string: data['message'], title: 'Template Update'});
+            }
+            if (data['docx_lint_message']) {
+              displayToastTop({
+                type: data['docx_lint_result'],
+                string: data['docx_lint_message'],
+                title: 'Template Issue',
+                delay: 10
+              });
+            }
+            if (data['pptx_lint_message']) {
+              displayToastTop({
+                type: data['pptx_lint_result'],
+                string: data['pptx_lint_message'],
+                title: 'Template Issue',
+                delay: 10
+              });
+            }
+          }
+        });
+      });
+    });
+  </script>
+
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
 {% endblock %}

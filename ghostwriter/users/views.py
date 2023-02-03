@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Users application."""
+"""This contains all the views used by the Users application."""
 
 # Django Imports
 from django.contrib import messages
@@ -37,7 +37,7 @@ class UserDetailView(LoginRequiredMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         return ctx
 
-    def get_object(self):
+    def get_object(self, queryset=None):
         return get_object_or_404(User, username=self.kwargs.get("username"))
 
     def get_slug_field(self):  # pragma: no cover``
@@ -62,6 +62,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     :template:`users/profile_form.html`
     """
+
     model = User
     form_class = UserChangeForm
     template_name = "users/profile_form.html"
@@ -81,7 +82,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         ctx["cancel_link"] = reverse("users:user_detail", kwargs={"username": self.request.user.username})
         return ctx
 
-    def get_object(self):
+    def get_object(self, queryset=None):
         return get_object_or_404(User, username=self.kwargs.get("username"))
 
     def get_success_url(self):
@@ -126,7 +127,7 @@ class UserProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             return redirect("users:redirect")
         return redirect("home:dashboard")
 
-    def get_object(self):
+    def get_object(self, queryset=None):
         id_ = get_object_or_404(User, username=self.kwargs.get("username")).id
         return get_object_or_404(UserProfile, user_id=id_)
 
@@ -163,7 +164,7 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
 
     permanent = False
 
-    def get_redirect_url(self):
+    def get_redirect_url(self, *args, **kwargs):
         return reverse("users:user_detail", kwargs={"username": self.request.user.username})
 
 

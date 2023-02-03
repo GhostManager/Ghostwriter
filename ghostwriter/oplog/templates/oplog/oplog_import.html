@@ -3,74 +3,60 @@
 {% block pagetitle %}Domain Entry{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Operation Logs</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Log Import</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'oplog:index' %}">Operation Logs</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Log Import</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-<!-- File Upload -->
-<h2>Upload Operation Log Entries CSV</h2>
-<p>Upload a csv file containing log entries to be imported:</p>
-<form action="{% url 'oplog:oplog_import'%}" method="POST" enctype="multipart/form-data" class="form-horizontal">
+  <!-- File Upload -->
+  <h2>Upload Operation Log Entries CSV</h2>
+  <p>Upload a csv file containing log entries to be imported:</p>
+  <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
     {% csrf_token %}
-    <div class="form-group">
-        <label for="csv_file" class="csvlabel">
-            <div class="csvdiv">Click or drop your csv file here</div>
-            <input type="file" id="csv_file" name="csv_file" required="True" accept="text/csv">
-        </label>
-        <p id="filename"></p>
+    <div class="input-group input-group-lg mb-3 offset-2 col-8">
+      <div class="custom-file">
+        <input type="file" class="custom-file-input" id="csv_file" name="csv_file">
+        <label class="custom-file-label" for="csv_file">Choose csv file...</label>
+      </div>
     </div>
-    <div class="form-group">
-        <div style="text-align: center"></div>
-        <button class="button"><i class="fas fa-file-upload"></i> Upload</button>
-    </div>
-    </div>
-</form>
 
-<!-- Spacer -->
-<p style="margin: 40p;"></p>
+    <div class="form-group">
+      <button class="btn btn-primary col-2"><i class="fas fa-file-upload"></i> Upload</button>
+    </div>
+  </form>
 
-<!-- Section for Instructions -->
-<h3>Instructions</h3>
-<div>
+  <!-- Section for Instructions -->
+  <h3>Instructions</h3>
+  <div>
     <div class="row">
-        <div class="alert alert-success offset-md-2 col-md-8 mt-1" role="alert">
-            <h4 class="alert-heading">CSV Headers</h4>
-            <p>Your csv file must have these headers:</p>
-            <em>
-                oplog_id, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
-                comments, operator_name
-            </em>
-        </div>
+      <div class="alert alert-success offset-md-2 col-md-8 mt-1" role="alert">
+        <h4 class="alert-heading">CSV Headers</h4>
+        <p>Your csv file must have these headers:</p>
+        <em>
+          start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
+          comments, operator_name
+        </em>
+      </div>
     </div>
 
     <div class="row">
-        <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
-            <h4 class="alert-heading">Note on Timestamps</h4>
-            <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format.</p>
-        </div>
+      <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
+        <h4 class="alert-heading">Note on Timestamps</h4>
+        <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format.</p>
+      </div>
     </div>
-</div>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
-<!-- Script for Upload Form -->
-<script>
+  <script>
     $('input[type=file]').on('change', function () {
-        $("#filename").text($(this).val());
+      $('.custom-file-label').text($(this).val());
     });
-
-    $('input[type=file]').on('dragenter', function () {
-        $('csvdiv').addClass('dragover');
-    });
-
-    $('input[type=file]').on('dragleave', function () {
-        $('csvdiv').removeClass('dragover');
-    });
-</script>
+  </script>
 {% endblock %}

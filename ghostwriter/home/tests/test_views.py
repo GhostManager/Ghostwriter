@@ -81,18 +81,14 @@ class TemplateTagTests(TestCase):
         cls.objectives = cls.Objective.objects.filter(project=cls.project)
 
         cls.num_of_findings = 3
-        ReportFindingLinkFactory.create_batch(
-            cls.num_of_findings, report=cls.report, assigned_to=cls.user
-        )
+        ReportFindingLinkFactory.create_batch(cls.num_of_findings, report=cls.report, assigned_to=cls.user)
 
         cls.uri = reverse("home:dashboard")
 
     def setUp(self):
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_tags(self):
         result = custom_tags.has_group(self.user, "Group 1")
@@ -135,14 +131,10 @@ class DashboardTests(TestCase):
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
 
         cls.current_project = ProjectFactory(
-            start_date=date.today() - timedelta(days=14),
-            end_date=date.today(),
-            complete=True
+            start_date=date.today() - timedelta(days=14), end_date=date.today(), complete=True
         )
         cls.future_project = ProjectFactory(
-            start_date=date.today() + timedelta(days=14),
-            end_date=date.today() + timedelta(days=28),
-            complete=False
+            start_date=date.today() + timedelta(days=14), end_date=date.today() + timedelta(days=28), complete=False
         )
         ProjectAssignmentFactory(
             project=cls.current_project,
@@ -162,17 +154,15 @@ class DashboardTests(TestCase):
 
         cls.user_tasks = (
             cls.ReportFindingLink.objects.select_related("report", "report__project")
-            .filter(
-                Q(assigned_to=cls.user) & Q(report__complete=False) & Q(complete=False)
-            )
+            .filter(Q(assigned_to=cls.user) & Q(report__complete=False) & Q(complete=False))
             .order_by("report__project__end_date")[:10]
         )
-        cls.user_projects = cls.ProjectAssignment.objects.select_related(
-            "project", "project__client", "role"
-        ).filter(Q(operator=cls.user))
-        cls.active_projects = cls.ProjectAssignment.objects.select_related(
-            "project", "project__client", "role"
-        ).filter(Q(operator=cls.user) & Q(project__complete=False))
+        cls.user_projects = cls.ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
+            Q(operator=cls.user)
+        )
+        cls.active_projects = cls.ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
+            Q(operator=cls.user) & Q(project__complete=False)
+        )
 
         cls.uri = reverse("home:dashboard")
 
@@ -180,9 +170,7 @@ class DashboardTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -206,9 +194,7 @@ class DashboardTests(TestCase):
         self.assertEqual(len(response.context["user_projects"]), 2)
         self.assertEqual(response.context["user_projects"][0], self.user_projects[0])
         self.assertEqual(len(response.context["active_projects"]), 1)
-        self.assertEqual(
-            response.context["active_projects"][0], self.active_projects[0]
-        )
+        self.assertEqual(response.context["active_projects"][0], self.active_projects[0])
         self.assertEqual(len(response.context["user_tasks"]), 3)
 
 
@@ -226,12 +212,8 @@ class ManagementTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_staff = Client()
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_staff.get(self.uri)
@@ -270,9 +252,7 @@ class UpdateSessionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -306,12 +286,8 @@ class TestAWSConnectionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_staff = Client()
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
         response = self.client_staff.post(self.uri)
@@ -340,12 +316,8 @@ class TestDOConnectionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_staff = Client()
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
         response = self.client_staff.post(self.uri)
@@ -374,12 +346,8 @@ class TestNamecheapConnectionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_staff = Client()
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
         response = self.client_staff.post(self.uri)
@@ -408,12 +376,8 @@ class TestSlackConnectionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_staff = Client()
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
         response = self.client_staff.post(self.uri)
@@ -442,12 +406,8 @@ class TestVirusTotalConnectionTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_staff = Client()
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
         response = self.client_staff.post(self.uri)
@@ -475,9 +435,7 @@ class ProtectedServeTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     @override_settings(DEBUG=True)
     def test_view_uri(self):

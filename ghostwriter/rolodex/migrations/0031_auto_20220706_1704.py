@@ -5,16 +5,11 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0030_auto_20220526_1737'),
+        ("rolodex", "0030_auto_20220526_1737"),
     ]
 
     operations = [
-        migrations.RunSQL(
-            'ALTER TABLE rolodex_projectobjective ALTER COLUMN position SET DEFAULT 1;'
-        ),
-        migrations.RunSQL(
-            'ALTER TABLE rolodex_projectobjective ALTER COLUMN priority_id SET DEFAULT 1;'
-        ),
+        migrations.RunSQL("ALTER TABLE rolodex_projectobjective ALTER COLUMN position SET DEFAULT 1;"),
+        migrations.RunSQL("ALTER TABLE rolodex_projectobjective ALTER COLUMN priority_id SET DEFAULT 1;"),
     ]

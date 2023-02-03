@@ -110,25 +110,22 @@ class ClientContactForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
-        self.fields["name"].widget.attrs["placeholder"] = "Full Name"
-        self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["email"].widget.attrs["placeholder"] = "Email Address"
-        self.fields["email"].widget.attrs["autocomplete"] = "off"
-        self.fields["job_title"].widget.attrs["placeholder"] = "Job Title"
-        self.fields["job_title"].widget.attrs["autocomplete"] = "off"
-        self.fields["phone"].widget.attrs["placeholder"] = "Phone Number"
-        self.fields["phone"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description of of the POC or a Note"
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["name"].widget.attrs["placeholder"] = "Janine Melnitz"
+        self.fields["name"].label = "Full Name"
+        self.fields["email"].widget.attrs["placeholder"] = "info@getghostwriter.io"
+        self.fields["email"].label = "Email Address"
+        self.fields["job_title"].widget.attrs["placeholder"] = "COO"
+        self.fields["phone"].widget.attrs["placeholder"] = "(212) 897-1964"
+        self.fields["phone"].label = "Phone Number"
+        self.fields["note"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
         self.fields["timezone"].initial = general_config.default_timezone
         self.helper = FormHelper()
-        # Disable the <form> tags because this will be inside of an instance of `ClientForm()`
+        # Disable the <form> tags because this will be part of an instance of `ClientForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -168,20 +165,19 @@ class ClientContactForm(forms.ModelForm):
                     "note",
                     Row(
                         Column(
-                            Field("DELETE", style="display: none;"),
                             Button(
                                 "formset-del-button",
                                 "Delete Contact",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-12 text-center",
+                            css_class="form-group col-6 offset-3",
                         ),
-                        css_class="form-row",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        Column(
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
+                        ),
                     ),
                     css_class="formset",
                 ),
@@ -214,24 +210,21 @@ class ClientForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         general_config = GeneralConfiguration.get_solo()
-        self.fields["name"].widget.attrs["placeholder"] = "Full Company Name"
-        self.fields["name"].widget.attrs["autocomplete"] = "off"
-        self.fields["short_name"].widget.attrs["placeholder"] = "Short Company Name"
-        self.fields["short_name"].widget.attrs["autocomplete"] = "off"
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description of the Organization or a Note"
-        self.fields["address"].widget.attrs[
-            "placeholder"
-        ] = "Company's Address for Reporting or Shipping"
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["name"].widget.attrs["placeholder"] = "SpecterOps"
+        self.fields["short_name"].widget.attrs["placeholder"] = "Specter"
+        self.fields["note"].widget.attrs["placeholder"] = "This client approached us with concerns in these areas ..."
+        self.fields["address"].widget.attrs["placeholder"] = "14 N Moore St, New York, NY 10013"
         self.fields["timezone"].initial = general_config.default_timezone
+        self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
+        self.fields["note"].label = "Notes"
+        self.fields["tags"].label = "Tags"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
-        self.helper.form_show_labels = False
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             TabHolder(
                 CustomTab(
@@ -241,9 +234,13 @@ class ClientForm(forms.ModelForm):
                         <p class="form-spacer"></p>
                         """
                     ),
-                    "name",
                     Row(
-                        Column("short_name", css_class="form-group col-md-4 mb-0"),
+                        Column("name", css_class="form-group col-md-6 mb-0"),
+                        Column("short_name", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("tags", css_class="form-group col-md-4 mb-0"),
                         Column(
                             FieldWithButtons(
                                 "codename",
@@ -253,7 +250,6 @@ class ClientForm(forms.ModelForm):
                                         class="btn btn-secondary js-roll-codename"
                                         roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
                                         type="button"
-                                        onclick="copyStartDate($(this).closest('div').find('input'))"
                                     >
                                     <i class="fas fa-dice"></i>
                                     </button>
@@ -297,7 +293,8 @@ class ClientForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -318,7 +315,6 @@ class ClientNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),
@@ -326,7 +322,8 @@ class ClientNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),

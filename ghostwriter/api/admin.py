@@ -25,9 +25,7 @@ class APIKeyModelAdmin(admin.ModelAdmin):
     list_filter = ("created",)
     search_fields = ("name",)
 
-    def get_readonly_fields(
-        self, request: HttpRequest, obj: models.Model = None
-    ) -> typing.Tuple[str, ...]:
+    def get_readonly_fields(self, request: HttpRequest, obj: models.Model = None) -> typing.Tuple[str, ...]:
         obj = typing.cast(AbstractAPIKey, obj)
         fields: typing.Tuple[str, ...]
 
@@ -50,10 +48,7 @@ class APIKeyModelAdmin(admin.ModelAdmin):
             _, token = self.model.objects.generate_token(obj)
             obj.token = token
             obj.save()
-            message = (
-                f"The API key for {obj.name} is: "
-                f"{token}"
-            )
+            message = f"The API key for {obj.name} is: " f"{token}"
             messages.add_message(request, messages.WARNING, message)
         else:
             obj.save()

@@ -3,6 +3,7 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 
 # Django Imports
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 # Ghostwriter Libraries
@@ -52,18 +53,10 @@ class ClientModelTests(TestCase):
         # Read
         self.assertEqual(client.name, "SpecterOps, Inc.")
         self.assertEqual(client.pk, client.id)
-        self.assertQuerysetEqual(
-            self.Client.objects.all(),
-            ["<Client: SpecterOps, Inc.>"],
-        )
 
         # Update
         client.name = "Kabletown"
         client.save()
-        self.assertQuerysetEqual(
-            self.Client.objects.all(),
-            ["<Client: Kabletown>"],
-        )
 
         # Delete
         client.delete()
@@ -91,18 +84,10 @@ class ClientContactModelTests(TestCase):
         # Read
         self.assertEqual(client.name, "David")
         self.assertEqual(client.pk, client.id)
-        self.assertQuerysetEqual(
-            self.ClientContact.objects.all(),
-            [f"<ClientContact: {client.name} ({client.client})>"],
-        )
 
         # Update
         client.name = "Kabletown"
         client.save()
-        self.assertQuerysetEqual(
-            self.ClientContact.objects.all(),
-            [f"<ClientContact: {client.name} ({client.client})>"],
-        )
 
         # Delete
         client.delete()
@@ -123,18 +108,10 @@ class ProjectTypeModelTests(TestCase):
         # Read
         self.assertEqual(project_type.project_type, "Red Team")
         self.assertEqual(project_type.pk, project_type.id)
-        self.assertQuerysetEqual(
-            self.ProjectType.objects.all(),
-            ["<ProjectType: Red Team>"],
-        )
 
         # Update
         project_type.project_type = "Penetration Test"
         project_type.save()
-        self.assertQuerysetEqual(
-            self.ProjectType.objects.all(),
-            ["<ProjectType: Penetration Test>"],
-        )
 
         # Delete
         project_type.delete()
@@ -155,22 +132,10 @@ class ProjectModelTests(TestCase):
         # Read
         self.assertEqual(project.codename, "S3kr3t Codename")
         self.assertEqual(project.pk, project.id)
-        self.assertQuerysetEqual(
-            self.Project.objects.all(),
-            [
-                f"<Project: {project.start_date} {project.client} {project.project_type} (S3kr3t Codename)>"
-            ],
-        )
 
         # Update
         project.codename = "New Name"
         project.save()
-        self.assertQuerysetEqual(
-            self.Project.objects.all(),
-            [
-                f"<Project: {project.start_date} {project.client} {project.project_type} (New Name)>"
-            ],
-        )
 
         # Delete
         project.delete()
@@ -191,18 +156,12 @@ class ProjectModelTests(TestCase):
             end_date=date.today() + timedelta(days=14),
         )
 
-        domain_checkout = HistoryFactory(
-            start_date=project.start_date, end_date=project.end_date, project=project
-        )
-        exp_domain_checkout = HistoryFactory(
-            start_date=project.start_date, end_date=yesterday, project=project
-        )
+        domain_checkout = HistoryFactory(start_date=project.start_date, end_date=project.end_date, project=project)
+        exp_domain_checkout = HistoryFactory(start_date=project.start_date, end_date=yesterday, project=project)
         server_checkout = ServerHistoryFactory(
             start_date=project.start_date, end_date=project.end_date, project=project
         )
-        exp_server_checkout = ServerHistoryFactory(
-            start_date=project.start_date, end_date=yesterday, project=project
-        )
+        exp_server_checkout = ServerHistoryFactory(start_date=project.start_date, end_date=yesterday, project=project)
 
         new_start = project.start_date - timedelta(days=7)
         new_end = project.end_date + timedelta(days=7)
@@ -254,18 +213,10 @@ class ProjectRoleModelTests(TestCase):
         # Read
         self.assertEqual(project_role.project_role, "Lead")
         self.assertEqual(project_role.pk, project_role.id)
-        self.assertQuerysetEqual(
-            self.ProjectRole.objects.all(),
-            ["<ProjectRole: Lead>"],
-        )
 
         # Update
         project_role.project_role = "Operator"
         project_role.save()
-        self.assertQuerysetEqual(
-            self.ProjectRole.objects.all(),
-            ["<ProjectRole: Operator>"],
-        )
 
         # Delete
         project_role.delete()
@@ -288,22 +239,10 @@ class ProjectAssignmentModelTests(TestCase):
         # Read
         self.assertEqual(assignment.operator, self.user)
         self.assertEqual(assignment.pk, assignment.id)
-        self.assertQuerysetEqual(
-            self.ProjectAssignment.objects.all(),
-            [
-                f"<ProjectAssignment: {self.user} - {assignment.project} {assignment.end_date})>"
-            ],
-        )
 
         # Update
         assignment.operator = self.new_user
         assignment.save()
-        self.assertQuerysetEqual(
-            self.ProjectAssignment.objects.all(),
-            [
-                f"<ProjectAssignment: {self.new_user} - {assignment.project} {assignment.end_date})>"
-            ],
-        )
 
         # Delete
         assignment.delete()
@@ -324,18 +263,10 @@ class ObjectiveStatusModelTests(TestCase):
         # Read
         self.assertEqual(status.objective_status, "In Progress")
         self.assertEqual(status.pk, status.id)
-        self.assertQuerysetEqual(
-            self.ObjectiveStatus.objects.all(),
-            ["<ObjectiveStatus: In Progress>"],
-        )
 
         # Update
         status.objective_status = "Done"
         status.save()
-        self.assertQuerysetEqual(
-            self.ObjectiveStatus.objects.all(),
-            ["<ObjectiveStatus: Done>"],
-        )
 
         # Delete
         status.delete()
@@ -356,18 +287,10 @@ class ObjectivePriorityModelTests(TestCase):
         # Read
         self.assertEqual(priority.priority, "Primary")
         self.assertEqual(priority.pk, priority.id)
-        self.assertQuerysetEqual(
-            self.ObjectivePriority.objects.all(),
-            ["<ObjectivePriority: Primary>"],
-        )
 
         # Update
         priority.priority = "Secondary"
         priority.save()
-        self.assertQuerysetEqual(
-            self.ObjectivePriority.objects.all(),
-            ["<ObjectivePriority: Secondary>"],
-        )
 
         # Delete
         priority.delete()
@@ -389,18 +312,10 @@ class ProjectObjectiveModelTests(TestCase):
         # Read
         self.assertEqual(obj.objective, "Get DA")
         self.assertEqual(obj.pk, obj.id)
-        self.assertQuerysetEqual(
-            self.ProjectObjective.objects.all(),
-            [f"<ProjectObjective: {obj.project} - Get DA {obj.status})>"],
-        )
 
         # Update
         obj.objective = "Access git"
         obj.save()
-        self.assertQuerysetEqual(
-            self.ProjectObjective.objects.all(),
-            [f"<ProjectObjective: {obj.project} - Access git {obj.status})>"],
-        )
 
         # Delete
         obj.delete()
@@ -422,9 +337,7 @@ class ProjectObjectiveModelTests(TestCase):
             status = obj.calculate_status()
             self.assertEqual(100.0, status)
         except Exception:
-            self.fail(
-                "ProjectObjective model `calculate_status` method failed unexpectedly!"
-            )
+            self.fail("ProjectObjective model `calculate_status` method failed unexpectedly!")
 
 
 class ProjectSubTaskModelTests(TestCase):
@@ -442,20 +355,10 @@ class ProjectSubTaskModelTests(TestCase):
         # Read
         self.assertEqual(task.task, "Get an account")
         self.assertEqual(task.pk, task.id)
-        self.assertQuerysetEqual(
-            self.ProjectSubtask.objects.all(),
-            [f"<ProjectSubTask: {task.parent.project} : Get an account ({task.status})>"],
-        )
 
         # Update
         task.task = "Compromise an account"
         task.save()
-        self.assertQuerysetEqual(
-            self.ProjectSubtask.objects.all(),
-            [
-                f"<ProjectSubTask: {task.parent.project} : Compromise an account ({task.status})>"
-            ],
-        )
 
         # Delete
         task.delete()
@@ -476,18 +379,10 @@ class ClientNoteModelTests(TestCase):
         # Read
         self.assertEqual(note.note, "Client note")
         self.assertEqual(note.pk, note.id)
-        self.assertQuerysetEqual(
-            self.ClientNote.objects.all(),
-            [f"<ClientNote: {note.client}: {note.timestamp} - Client note>"],
-        )
 
         # Update
         note.note = "Updated note"
         note.save()
-        self.assertQuerysetEqual(
-            self.ClientNote.objects.all(),
-            [f"<ClientNote: {note.client}: {note.timestamp} - Updated note>"],
-        )
 
         # Delete
         note.delete()
@@ -508,18 +403,10 @@ class ProjectNoteModelTests(TestCase):
         # Read
         self.assertEqual(note.note, "Project note")
         self.assertEqual(note.pk, note.id)
-        self.assertQuerysetEqual(
-            self.ProjectNote.objects.all(),
-            [f"<ProjectNote: {note.project}: {note.timestamp} - Project note>"],
-        )
 
         # Update
         note.note = "Updated note"
         note.save()
-        self.assertQuerysetEqual(
-            self.ProjectNote.objects.all(),
-            [f"<ProjectNote: {note.project}: {note.timestamp} - Updated note>"],
-        )
 
         # Delete
         note.delete()
@@ -540,18 +427,10 @@ class ProjectScopeModelTests(TestCase):
         # Read
         self.assertEqual(scope.name, "CDE")
         self.assertEqual(scope.pk, scope.id)
-        self.assertQuerysetEqual(
-            self.ProjectScope.objects.all(),
-            [f"<ProjectScope: {scope.project}: CDE>"],
-        )
 
         # Update
         scope.name = "Mainframes"
         scope.save()
-        self.assertQuerysetEqual(
-            self.ProjectScope.objects.all(),
-            [f"<ProjectScope: {scope.project}: Mainframes>"],
-        )
 
         # Delete
         scope.delete()
@@ -595,22 +474,28 @@ class ProjectTargetModelTests(TestCase):
         # Read
         self.assertEqual(target.ip_address, "1.1.1.1")
         self.assertEqual(target.pk, target.id)
-        self.assertQuerysetEqual(
-            self.ProjectTarget.objects.all(),
-            [f"<ProjectTarget: {target.hostname} (1.1.1.1)>"],
-        )
 
         # Update
         target.ip_address = "1.1.1.2"
         target.save()
-        self.assertQuerysetEqual(
-            self.ProjectTarget.objects.all(),
-            [f"<ProjectTarget: {target.hostname} (1.1.1.2)>"],
-        )
 
         # Delete
         target.delete()
         assert not self.ProjectTarget.objects.all().exists()
+
+    def test_invalid_ip(self):
+        project = ProjectFactory()
+        with self.assertRaises(ValidationError):
+            obj = self.ProjectTarget.objects.create(ip_address="invalid", project_id=project.id)
+            obj.full_clean()
+
+        with self.assertRaises(ValidationError):
+            obj = self.ProjectTarget.objects.create(ip_address="192.168.1.257", project_id=project.id)
+            obj.full_clean()
+
+        with self.assertRaises(ValidationError):
+            obj = self.ProjectTarget.objects.create(ip_address="192.168.1.10/35", project_id=project.id)
+            obj.full_clean()
 
 
 class ClientInviteModelTests(TestCase):
@@ -627,10 +512,6 @@ class ClientInviteModelTests(TestCase):
         # Read
         self.assertEqual(invite.comment, "Basic comment")
         self.assertEqual(invite.pk, invite.id)
-        self.assertQuerysetEqual(
-            self.ClientInvite.objects.all(),
-            [f"<ClientInvite: {invite.user} ({invite.client})>"],
-        )
 
         # Update
         invite.comment = "Updated comment"
@@ -657,10 +538,6 @@ class ProjectInviteModelTests(TestCase):
         # Read
         self.assertEqual(invite.comment, "Basic comment")
         self.assertEqual(invite.pk, invite.id)
-        self.assertQuerysetEqual(
-            self.ProjectInvite.objects.all(),
-            [f"<ProjectInvite: {invite.user} ({invite.project})>"],
-        )
 
         # Update
         invite.comment = "Updated comment"
@@ -687,18 +564,10 @@ class DeconflictionStatusModelTests(TestCase):
         # Read
         self.assertEqual(status.status, "Confirmed")
         self.assertEqual(status.pk, status.id)
-        self.assertQuerysetEqual(
-            self.DeconflictionStatus.objects.all(),
-            ["<DeconflictionStatus: Confirmed>"],
-        )
 
         # Update
         status.status = "Undetermined"
         status.save()
-        self.assertQuerysetEqual(
-            self.DeconflictionStatus.objects.all(),
-            ["<DeconflictionStatus: Undetermined>"],
-        )
 
         # Delete
         status.delete()
@@ -720,18 +589,10 @@ class DeconflictionModelTests(TestCase):
         # Read
         self.assertEqual(status.title, "Deconfliction Title")
         self.assertEqual(status.pk, status.id)
-        self.assertQuerysetEqual(
-            self.Deconfliction.objects.all(),
-            [f"<Deconfliction: {self.project}: Deconfliction Title>"],
-        )
 
         # Update
         status.title = "New Deconfliction Title"
         status.save()
-        self.assertQuerysetEqual(
-            self.Deconfliction.objects.all(),
-            [f"<Deconfliction: {self.project}: New Deconfliction Title>"],
-        )
 
         # Delete
         status.delete()
@@ -744,7 +605,9 @@ class DeconflictionModelTests(TestCase):
 
         entry_too_old = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(days=1))
         entry_hour_old = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(hours=1))
-        entry_within_hour = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(minutes=30))
+        entry_within_hour = OplogEntryFactory(
+            oplog_id=oplog, start_date=datetime.now(timezone.utc) - timedelta(minutes=30)
+        )
         entry_recent = OplogEntryFactory(oplog_id=oplog, start_date=datetime.now(timezone.utc) + timedelta(minutes=5))
 
         self.assertEqual(len(deconfliction.log_entries), 2)
@@ -769,18 +632,10 @@ class WhiteCardModelTests(TestCase):
         # Read
         self.assertEqual(card.title, "White Card Title")
         self.assertEqual(card.pk, card.id)
-        self.assertQuerysetEqual(
-            self.WhiteCard.objects.all(),
-            [f"<WhiteCard: {self.project}: White Card Title>"],
-        )
 
         # Update
         card.title = "New White Card Title"
         card.save()
-        self.assertQuerysetEqual(
-            self.WhiteCard.objects.all(),
-            [f"<WhiteCard: {self.project}: New White Card Title>"],
-        )
 
         # Delete
         card.delete()

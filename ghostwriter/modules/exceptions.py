@@ -10,6 +10,7 @@ class MissingTemplate(Exception):
     ``message``
         Error message to be displayed
     """
+
     def __init__(self, message="No report template selected"):
         self.message = message
         super().__init__(self.message)
@@ -24,6 +25,7 @@ class InvalidFilterValue(Exception):
     ``message``
         Error message to be displayed
     """
+
     def __init__(self, message="Invalid value provided to filter"):
         self.message = message
         super().__init__(self.message)

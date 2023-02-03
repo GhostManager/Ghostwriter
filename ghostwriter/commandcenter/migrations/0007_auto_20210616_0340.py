@@ -4,20 +4,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('commandcenter', '0006_auto_20210614_2224'),
+        ("commandcenter", "0006_auto_20210614_2224"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='namecheapconfiguration',
-            name='client_ip',
-            field=models.CharField(default='Whitelisted IP Address', help_text='Your external IP address registered with Namecheap', max_length=255, verbose_name='Whitelisted IP Address'),
+            model_name="namecheapconfiguration",
+            name="client_ip",
+            field=models.CharField(
+                default="Whitelisted IP Address",
+                help_text="Your external IP address registered with Namecheap",
+                max_length=255,
+                verbose_name="Whitelisted IP Address",
+            ),
         ),
         migrations.AlterField(
-            model_name='namecheapconfiguration',
-            name='page_size',
-            field=models.IntegerField(default=100, help_text='Maximum number of domains to return (100 is the max allowed)', verbose_name='Page Size'),
+            model_name="namecheapconfiguration",
+            name="page_size",
+            field=models.IntegerField(
+                default=100,
+                help_text="Maximum number of domains to return (100 is the max allowed)",
+                verbose_name="Page Size",
+            ),
         ),
     ]

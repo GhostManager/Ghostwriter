@@ -1,0 +1,397 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags static %}
+
+{% block pagetitle %}{{ name }} Entries{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ oplog.project.client }}" href="{% url 'rolodex:client_detail' oplog.project.client.id %}">{{ oplog.project.client }}</a></li>
+            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ oplog.project }}" href="{% url 'rolodex:project_detail' oplog.project.id %}">{{ oplog.project.start_date|date:"DATE_FORMAT" }} {{ oplog.project.project_type }}</a></li>
+            <li class=" breadcrumb-item active" aria-current="page">{{ oplog.name }}</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <script src="{% static 'js/oplog.js' %}"></script>
+    <div>
+        <div class="dropdown">
+            <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+                <div class="bar1"></div>
+                <div class="bar2"></div>
+                <div class="bar3"></div>
+            </div>
+            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="oplog-dropdown-btn">
+                <a href="{% url 'oplog:oplog_update' oplog.id %}" class="dropdown-item icon edit-icon" >Edit Log</a>
+                <a href="javascript:void(0)" id="createNewEntry" class="dropdown-item icon add-icon">Create Entry</a>
+                <a href="javascript:void(0)" id="importNewEntries" class="dropdown-item icon upload-icon">Import Entries</a>
+                <a href="javascript:void(0)" id="exportEntries" class="dropdown-item icon export-icon">Export Entries</a>
+                <a href="{% url 'rolodex:project_detail' oplog.project.id %}" class="dropdown-item icon project-icon" >Jump to Project</a>
+                {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
+                    <a
+                        href="javascript:void(0)"
+                        class="dropdown-item js-toggle-mute icon {% if oplog.mute_notifications %}silenced-notification-icon{% else %}notification-bell-icon{% endif %}"
+                        toggle-mute-csrftoken="{{ csrf_token }}"
+                        toggle-mute-url="{% url 'oplog:ajax_oplog_mute_toggle' oplog.id %}"
+                        toggle-mute-id="{{ oplog.id }}"
+                    >
+                        {% if oplog.mute_notifications %}
+                            Notifications: Off
+                        {% else %}
+                            Notifications: On
+                        {% endif %}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>{{ oplog.name }}</h2>
+        <h5>
+            <span
+                class="slanted-highlight"
+                data-toggle="tooltip"
+                data-placement="top"
+                title="Oplog ID for use with the API and tools like `mythic_sync` and `cobalt_sync`"
+                style="cursor:help;"
+            >Oplog ID #{{ oplog.id }}</span>
+        </h5>
+    </div>
+    <hr>
+
+    <div>
+        <p>The table syncs automatically while you are connected to the server (see the status indicator above the table).</p>
+        <p>Double click a row to edit the details of any log entry.</p>
+    </div>
+
+    <a id="createNewEntryButton" class="icon add-icon btn btn-primary mb-3 col-3" href="javascript:void(0);" onClick="javascript:createEntry({{ oplog.pk }});">Create Entry</a>
+    <a id="columnSelectDropdown" class="icon open-icon btn btn-secondary mb-3 col-3" href="javascript:void(0);">Show/Hide Columns</a>
+
+    <div id="columnSelect" style="display:none;">
+        <div class="list-group-row" id="checkboxList">
+        </div>
+    </div>
+
+    <div class="hidden-element" style="height:.25em;"></div>
+
+    <!-- Oplog Table Section -->
+    <div id="utilBar" class="form-row my-auto align-items-center">
+        <div class="offset-3 col-6">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" id="filter-addon"><i class="fas fa-filter"></i></span>
+                </div>
+                <input id="searchInput" type="text" class="form-control" placeholder="Filter Entries" aria-describedby="filter-addon">
+            </div>
+        </div>
+
+        <div class="offset-1 col-2">
+            <div id="connection">
+                <div id="connectionStatus" class="js-connection-status icon network-icon">Disconnected</div>
+            </div>
+        </div>
+    </div>
+
+    <table id="oplogTable" class="table table-striped table-borderless table-sm scroll table-oplog">
+        <thead id="oplogTableHeader">
+        </thead>
+        <tbody id="oplogTableBody" oplog-id="{{ oplog.id }}">
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block morescripts %}
+    <!-- Modal for Spinner -->
+    <div id="spinner-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Stand By!</h5>
+                </div>
+                <div class="modal-body text-center">
+                    <h3><i class="fa fa-sync fa-spin"></i> Loading the log entries...</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-super-sized" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Entry</h5>
+                </div>
+                <div class="modal-body text-center oplog-form-div"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      const $table = $('#oplogTable tbody')
+      const $tableHeader = $('#oplogTableHeader')
+      const $spinnerModal = $('#spinner-modal')
+      const $checkboxList = $('#checkboxList')
+      const $connectionStatus = $('#connectionStatus')
+
+      let socket = null;
+      let emptyTable = true;
+      let tableSynced = false;
+      let pendingResult = false;
+      let errorDisplayed = false;
+
+      function connect() {
+        let endpoint = protocol + window.location.host + '/ws' + window.location.pathname
+        socket = new WebSocket(endpoint)
+        socket.onopen = function () {
+          $connectionStatus.html('Connected');
+          $connectionStatus.toggleClass('connected');
+          errorDisplayed = false;
+
+          $spinnerModal.modal('show');
+
+          {% comment %} Clear all rows after the first row in case it's a reconnect {% endcomment %}
+          $table.find('tr').remove();
+        }
+
+        socket.onmessage = function (e) {
+          let message = JSON.parse(e.data)
+          console.log(message)
+
+          {% comment %} Handle the `sync` action that is received whenever the socket (re)connects {% endcomment %}
+          if (message['action'] === 'sync') {
+            let entries = message['data']
+
+            if (entries.length !== 0) {
+              entries.forEach(element => {
+                let newRow = generateRow(element)
+                $table.append(newRow)
+              })
+              pendingResult = false
+            } else {
+              tableSynced = true
+              if ($('#oplogTableBody tr').length === 0){
+                emptyTable = true
+                addPlaceholderRow($table)
+              }
+            }
+            hideColumns()
+            $spinnerModal.modal('hide');
+          }
+
+          {% comment %} Handle the `create` action that is received whenever a new entry is created {% endcomment %}
+          if (message['action'] === 'create') {
+            let rowFound = false
+            let entry = message['data']
+            let entryId = entry['id']
+            let newRow = generateRow(entry)
+
+            {% comment %} Check if the row already exists {% endcomment %}
+            $('#oplogTable tbody tr').each(function() {
+              if ($(this).attr('id') === entryId.toString()) {
+                updateRow($(this), newRow)
+                rowFound = true
+              }
+            })
+
+            {% comment %} If the row doesn't exist, add it to the table {% endcomment %}
+            if (!rowFound) {
+              $table.prepend(newRow)
+              let $newRow = $(`#${entry['id']}`)
+              $newRow.hide()
+              {% comment %} If the table was previously empty, remove the placeholder row {% endcomment %}
+              if (emptyTable) {
+                removePlaceholderRow($table)
+                emptyTable = false
+              }
+              hideColumns()
+              $newRow.fadeIn(500)
+            }
+            $('#oplogTableNoEntries').hide()
+          }
+
+          {% comment %} Handle the `delete` action that is received whenever an entry is deleted {% endcomment %}
+          if (message['action'] === 'delete') {
+            let id = message['data']
+            $('#oplogTable tbody tr').each(function () {
+              if ($(this).attr('id') === id.toString()) {
+                $(this).fadeOut('slow', function () {
+                  $(this).remove()
+                  if ($('#oplogTableBody tr').length === 0){
+                    addPlaceholderRow($table)
+                    emptyTable = true
+                  }
+                });
+              }
+            })
+          }
+        }
+
+        // Update connection status on error
+        socket.onerror = function (e) {
+          $connectionStatus.html('Disconnected')
+          $connectionStatus.toggleClass('connected')
+          console.log('[!] error: ', e)
+          socket.close()
+          if (!errorDisplayed) {
+            displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
+            errorDisplayed = true;
+          }
+        }
+
+        // Update connection status on close
+        socket.onclose = function () {
+          $connectionStatus.html('Disconnected')
+          $connectionStatus.toggleClass('connected')
+          if (!errorDisplayed) {
+            displayToastTop({type:'error', string:'Websocket has been disconnected', title:'Websocket disconnected'});
+            errorDisplayed = true;
+          }
+          setTimeout(function () {
+            console.log('Retrying connection');
+            connect()
+          }, 5000)
+        }
+      }
+
+      $(document).ready(function () {
+        connect()
+        buildColumnsCheckboxes()
+        $tableHeader.html(generateTableHeaders())
+      })
+
+      {% comment %} Show or hide the table column select options {% endcomment %}
+      $('#columnSelectDropdown').click(function () {
+        $('#columnSelect').slideToggle('slow');
+        $(this).toggleClass('open')
+      });
+
+      {% comment %} Pull additional entries if user scrolls to bottom of ``tbody`` {% endcomment %}
+      $('#oplogTableBody').scroll(function() {
+        if (pendingResult === false) {
+          {% comment %}
+            Check if current scroll position + height of div is >= height of the content
+            True if scroll has reached the bottom
+          {% endcomment %}
+          if($(this).scrollTop() + $(this).innerHeight() + 1 >= $(this)[0].scrollHeight) {
+            let id = $(this).attr('oplog-id')
+            if (tableSynced === false) {
+              pendingResult = true
+              socket.send(JSON.stringify({
+                  'action': 'sync',
+                  'oplog_id': id,
+                  'offset': $('#oplogTable tr').length
+              }))
+            }
+          }
+        }
+      });
+
+      {% comment %} Open the entry modal when user double-clicks a row {% endcomment %}
+      $('#oplogTable').on('dblclick', '.editableRow', function (e) {
+        e.preventDefault();
+        let url = window.location.origin + '/oplog/entry/update/' + $(this).attr('id');
+        $('.oplog-form-div').load(url, function() {
+          $('#edit-modal').modal('toggle');
+          formAjaxSubmit('#oplog-entry-form', '#edit-modal');
+        });
+        return false;
+      });
+
+      {% comment %} Submit the entry modal's form with AJAX {% endcomment %}
+      let formAjaxSubmit = function(form, modal) {
+        $(form).submit(function(e) {
+          e.preventDefault();
+          $.ajax({
+            type: $(this).attr('method'),
+            url: $(this).attr('action'),
+            data: $(this).serialize(),
+            success: function (xhr) {
+              if ( $(xhr).find('.has-error').length > 0 ) {
+                console.log("error detected")
+                $(modal).find('.oplog-form-div').html(xhr);
+                formAjaxSubmit(form, modal);
+              } else {
+                $(modal).modal('toggle');
+              }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+              // Handle response errors here
+            }
+          });
+        });
+      }
+
+      {% comment %} Download the log as a CSV file when the user clicks the "Export Entries" menu item {% endcomment %}
+      $('#exportEntries').click(function () {
+        let filename = generateDownloadName('{{ oplog.name }}-log-export-{{ id }}.csv');
+        download(`/oplog/api/entries?export=csv&&oplog_id={{ oplog.pk }}`, filename);
+      })
+
+      {% comment %} Open import form page when user clicks the "Import Entries" menu item {% endcomment %}
+      $('#importNewEntries').click(function () {
+        window.open('{% url "oplog:oplog_import" %}', '_self');
+      });
+
+    {% comment %} Create event to filter results in real-time as search textbox is updated {% endcomment %}
+    $('#searchInput').on('keyup', function () {
+      let value = $(this).val().toLowerCase();
+      $('#oplogTableBody tr').filter(function () {
+        $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+      });
+    });
+
+    {% comment %} Toggle project status with AJAX {% endcomment %}
+    $('.js-toggle-mute').click(function () {
+      let $toggleLink = $(this);
+      let url = $(this).attr('toggle-mute-url');
+      let oplogId = $(this).attr('toggle-mute-id');
+      let csrftoken = $(this).attr('toggle-mute-csrftoken');
+      $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'oplog': oplogId
+        },
+        success: function (data) {
+          if (data['toggle']) {
+            $toggleLink.removeClass('notification-bell-icon')
+            $toggleLink.addClass('silenced-notification-icon')
+            $toggleLink.text('Notifications: Off')
+          } else {
+            $toggleLink.removeClass('silenced-notification-icon')
+            $toggleLink.addClass('notification-bell-icon')
+            $toggleLink.text('Notifications: On')
+          }
+          if (data['message']) {
+            displayToastTop({type:data['result'], string:data['message'], title:'Oplog Update'});
+          }
+        },
+      });
+    });
+
+    {% comment %} Capture CTRL_S and CTRL+N to export the log and create new entries respectively {% endcomment %}
+    $(window).keydown(function(event) {
+      if(event.ctrlKey && event.keyCode === 78) {
+          event.preventDefault();
+          createEntry({{ oplog.pk }});
+      }
+
+      if(event.ctrlKey && event.keyCode === 83) {
+          event.preventDefault();
+          let filename = generateDownloadName('{{ oplog.name }}-log-export-{{ id }}.csv');
+          download(`/oplog/api/entries?export=csv&&oplog_id={{ oplog.pk }}`, filename);
+      }
+    });
+  </script>
+{% endblock %}

@@ -212,14 +212,12 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
-      backend_only: false
       filter:
         user:
           id:
             _eq: X-Hasura-User-Id
   - role: restricted
     permission:
-      backend_only: false
       filter:
         _or:
           - finding:
@@ -238,7 +236,6 @@ delete_permissions:
                           _eq: X-Hasura-User-Id
   - role: user
     permission:
-      backend_only: false
       filter:
         _or:
           - finding:

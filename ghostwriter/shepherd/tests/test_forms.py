@@ -99,9 +99,7 @@ class CheckoutFormTests(TestCase):
         )
 
     def test_valid_data(self):
-        checkout = HistoryFactory(
-            client=self.project.client, project=self.project, domain=self.domain
-        )
+        checkout = HistoryFactory(client=self.project.client, project=self.project, domain=self.domain)
         form = self.form_data(**checkout.__dict__)
         self.assertTrue(form.is_valid())
 
@@ -134,9 +132,7 @@ class CheckoutFormTests(TestCase):
         self.assertEqual(errors[0].code, "unavailable")
 
     def test_expired_domain(self):
-        checkout = HistoryFactory(
-            client=self.project.client, project=self.project, domain=self.expired_domain
-        )
+        checkout = HistoryFactory(client=self.project.client, project=self.project, domain=self.expired_domain)
         form = self.form_data(**checkout.__dict__)
         errors = form["domain"].errors.as_data()
 
@@ -428,9 +424,7 @@ class ServerAddressFormSetTests(TestCase):
         cls.server_dict = cls.server.__dict__
         cls.aux_addy_1 = AuxServerAddressFactory(static_server=cls.server, primary=False)
         cls.aux_addy_2 = AuxServerAddressFactory(static_server=cls.server, primary=False)
-        cls.to_be_deleted = AuxServerAddressFactory(
-            static_server=cls.server, primary=False
-        )
+        cls.to_be_deleted = AuxServerAddressFactory(static_server=cls.server, primary=False)
 
     def form_data(self, data, **kwargs):
         return instantiate_formset(ServerAddressFormSet, data=data, instance=self.server)
@@ -564,9 +558,7 @@ class ServerCheckoutFormSetTests(TestCase):
         )
 
     def test_valid_data(self):
-        checkout = ServerHistoryFactory(
-            client=self.project.client, project=self.project, server=self.server
-        )
+        checkout = ServerHistoryFactory(client=self.project.client, project=self.project, server=self.server)
 
         form = self.form_data(**checkout.__dict__)
         self.assertTrue(form.is_valid())

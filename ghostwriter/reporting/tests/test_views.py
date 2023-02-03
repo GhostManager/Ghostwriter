@@ -67,9 +67,7 @@ class IndexViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
@@ -103,9 +101,7 @@ class TemplateTagTests(TestCase):
         self.assertEqual(len(severity_dict), 3)
 
         for group in severity_dict:
-            self.assertEqual(
-                report_tags.get_item(severity_dict, group), severity_dict.get(group)
-            )
+            self.assertEqual(report_tags.get_item(severity_dict, group), severity_dict.get(group))
 
 
 # Tests related to report modification actions
@@ -127,17 +123,13 @@ class AssignBlankFindingTests(TestCase):
         cls.finding_type = FindingTypeFactory(finding_type="Network")
 
         cls.uri = reverse("reporting:assign_blank_finding", kwargs={"pk": cls.report.pk})
-        cls.redirect_uri = reverse(
-            "reporting:report_detail", kwargs={"pk": cls.report.pk}
-        )
+        cls.redirect_uri = reverse("reporting:report_detail", kwargs={"pk": cls.report.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -157,17 +149,13 @@ class ConvertFindingTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
 
         cls.uri = reverse("reporting:convert_finding", kwargs={"pk": cls.finding.pk})
-        cls.redirect_uri = reverse(
-            "reporting:finding_detail", kwargs={"pk": cls.finding.pk}
-        )
+        cls.redirect_uri = reverse("reporting:finding_detail", kwargs={"pk": cls.finding.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -198,9 +186,7 @@ class AssignFindingTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
@@ -283,9 +269,7 @@ class ReportCloneTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -362,6 +346,7 @@ class ReportCloneTests(TestCase):
         # Total = 2 from the original report + 1 from the copy
         self.assertEqual(len(self.Evidence.objects.all()), 3)
 
+
 # Tests related to :model:`reporting.Finding`
 
 
@@ -385,9 +370,7 @@ class FindingsListViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -432,9 +415,7 @@ class FindingDetailViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -464,9 +445,7 @@ class FindingCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -500,9 +479,7 @@ class FindingUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -539,9 +516,7 @@ class FindingDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -589,14 +564,12 @@ class FindingExportViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.get("Content-Type"), "text/csv")
+        self.assertEqual(response.get("Content-Type"), "text/csv")
 
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
@@ -625,9 +598,7 @@ class ReportsListViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -661,9 +632,7 @@ class ReportDetailViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -689,21 +658,15 @@ class ReportCreateViewTests(TestCase):
         cls.report = ReportFactory(project=cls.project)
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("reporting:report_create_no_project")
-        cls.project_uri = reverse(
-            "reporting:report_create", kwargs={"pk": cls.project.pk}
-        )
+        cls.project_uri = reverse("reporting:report_create", kwargs={"pk": cls.project.pk})
         cls.success_uri = reverse("reporting:report_detail", kwargs={"pk": cls.report.pk})
-        cls.bad_project_uri = reverse(
-            "reporting:report_create", kwargs={"pk": 999}
-        )
+        cls.bad_project_uri = reverse("reporting:report_create", kwargs={"pk": 999})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -769,7 +732,7 @@ class ReportCreateViewTests(TestCase):
                 "project": self.report.project.pk,
                 "docx_template": self.report.docx_template.pk,
                 "pptx_template": self.report.pptx_template.pk,
-            }
+            },
         )
 
         # Get report created from request and check response
@@ -785,10 +748,7 @@ class ReportCreateViewTests(TestCase):
     def test_form_with_invalid_project(self):
         response = self.client_auth.get(self.bad_project_uri)
         self.assertIn("exception", response.context)
-        self.assertEqual(
-            response.context["exception"],
-            "No Project matches the given query."
-        )
+        self.assertEqual(response.context["exception"], "No Project matches the given query.")
         self.assertEqual(response.status_code, 404)
 
 
@@ -806,9 +766,7 @@ class ReportUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -847,7 +805,7 @@ class ReportUpdateViewTests(TestCase):
                 "project": self.report.project.pk,
                 "docx_template": self.report.docx_template.pk,
                 "pptx_template": self.report.pptx_template.pk,
-            }
+            },
         )
         self.assertRedirects(response, self.success_uri)
         self.session = self.client_auth.session
@@ -874,9 +832,7 @@ class ReportDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -937,9 +893,7 @@ class ReportActivateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_sets_sessions_variables(self):
         response = self.client_auth.post(self.uri)
@@ -968,9 +922,7 @@ class ReportStatusToggleViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_toggles_value(self):
         response = self.client_auth.post(self.uri)
@@ -1001,9 +953,7 @@ class ReportDeliveryToggleViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_toggles_value(self):
         response = self.client_auth.post(self.uri)
@@ -1052,9 +1002,7 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1101,9 +1049,7 @@ class EvidenceDetailViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.img_uri)
@@ -1160,18 +1106,14 @@ class EvidenceCreateViewTests(TestCase):
             "reporting:upload_evidence_modal",
             kwargs={"pk": cls.finding.pk, "modal": "modal"},
         )
-        cls.success_uri = reverse(
-            "reporting:report_detail", args=(cls.finding.report.pk,)
-        )
+        cls.success_uri = reverse("reporting:report_detail", args=(cls.finding.report.pk,))
         cls.modal_success_uri = reverse("reporting:upload_evidence_modal_success")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     # Testing regular form view
     def test_view_uri_exists_at_desired_location(self):
@@ -1246,9 +1188,7 @@ class EvidenceUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1285,9 +1225,7 @@ class EvidenceDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1315,9 +1253,7 @@ class EvidenceDeleteViewTests(TestCase):
             response.context["object_type"],
             "evidence file (and associated file on disk)",
         )
-        self.assertEqual(
-            response.context["object_to_be_deleted"], self.evidence.friendly_name
-        )
+        self.assertEqual(response.context["object_to_be_deleted"], self.evidence.friendly_name)
 
 
 # Tests related to :model:`reporting.ReportTemplate`
@@ -1341,9 +1277,7 @@ class ReportTemplateListViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1372,14 +1306,12 @@ class ReportTemplateDownloadTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_returns_desired_download(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(
+        self.assertEqual(
             response.get("Content-Disposition"),
             f'attachment; filename="{self.template.filename}"',
         )
@@ -1404,13 +1336,9 @@ class ReportTemplateDetailViewTests(TestCase):
         self.client_auth = Client()
         self.client_admin = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1452,9 +1380,7 @@ class ReportTemplateCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1502,21 +1428,13 @@ class ReportTemplateUpdateViewTests(TestCase):
         self.client_admin = Client()
         self.client_staff = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.mgr_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.mgr_user.username, password=PASSWORD))
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
         self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_staff.get(self.uri)
@@ -1564,21 +1482,13 @@ class ReportTemplateDeleteViewTests(TestCase):
         self.client_admin = Client()
         self.client_staff = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.mgr_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.mgr_user.username, password=PASSWORD))
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
         self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_staff.get(self.uri)
@@ -1632,16 +1542,14 @@ class ReportTemplateLintViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {
             "result": "success",
             "warnings": [],
             "errors": [],
-            "message": "Template linter returned results with no errors or warnings"
+            "message": "Template linter returned results with no errors or warnings",
         }
 
         response = self.client_auth.get(self.docx_uri)
@@ -1673,9 +1581,7 @@ class UpdateTemplateLintResultsViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_returns_desired_download(self):
         response = self.client_auth.get(self.uri)
@@ -1730,44 +1636,37 @@ class ReportTemplateSwapViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_valid_templates(self):
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "success",
             "pptx_lint_result": "success",
         }
         response = self.client_auth.post(
-            self.uri,
-            {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
         )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        # Test a negative value indicating no template is selected
+        data = {
+            "result": "success",
+            "message": "Templates successfully updated",
+            "pptx_lint_result": "success",
+        }
+        response = self.client_auth.post(self.uri, {"docx_template": -5, "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_invalid_templates(self):
         data = {
-            "result": "warning",
-            "message": "Select both templates before your settings can be saved",
-        }
-        response = self.client_auth.post(
-            self.uri,
-            {"docx_template": -5, "pptx_template": self.pptx_template.pk}
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), data)
-
-        data = {
             "result": "error",
             "message": "Submitted template ID was not an integer",
         }
-        response = self.client_auth.post(
-            self.uri,
-            {"docx_template": "C", "pptx_template": self.pptx_template.pk}
-        )
+        response = self.client_auth.post(self.uri, {"docx_template": "C", "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
@@ -1775,18 +1674,12 @@ class ReportTemplateSwapViewTests(TestCase):
             "result": "error",
             "message": "Submitted template ID does not exist",
         }
-        response = self.client_auth.post(
-            self.uri,
-            {"docx_template": 1000, "pptx_template": self.pptx_template.pk}
-        )
+        response = self.client_auth.post(self.uri, {"docx_template": 1000, "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
         data = {"result": "error", "message": "Submitted request was incomplete"}
-        response = self.client_auth.post(
-            self.uri,
-            {"docx_template": "", "pptx_template": self.pptx_template.pk}
-        )
+        response = self.client_auth.post(self.uri, {"docx_template": "", "pptx_template": self.pptx_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
@@ -1797,7 +1690,7 @@ class ReportTemplateSwapViewTests(TestCase):
     def test_templates_with_linting_errors(self):
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "warning",
             "docx_lint_message": "Selected Word template has warnings from linter. Check the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_warning.pk}",
@@ -1806,15 +1699,14 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_url": f"/reporting/templates/{self.pptx_template_warning.pk}",
         }
         response = self.client_auth.post(
-            self.uri,
-            {"docx_template": self.docx_template_warning.pk, "pptx_template": self.pptx_template_warning.pk}
+            self.uri, {"docx_template": self.docx_template_warning.pk, "pptx_template": self.pptx_template_warning.pk}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "error",
             "docx_lint_message": "Selected Word template has linting errors and cannot be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_error.pk}",
@@ -1823,15 +1715,14 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_url": f"/reporting/templates/{self.pptx_template_error.pk}",
         }
         response = self.client_auth.post(
-            self.uri,
-            {"docx_template": self.docx_template_error.pk, "pptx_template": self.pptx_template_error.pk}
+            self.uri, {"docx_template": self.docx_template_error.pk, "pptx_template": self.pptx_template_error.pk}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "failed",
             "docx_lint_message": "Selected Word template failed basic linter checks and can't be used to generate a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_failed.pk}",
@@ -1840,15 +1731,14 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_url": f"/reporting/templates/{self.pptx_template_failed.pk}",
         }
         response = self.client_auth.post(
-            self.uri,
-            {"docx_template": self.docx_template_failed.pk, "pptx_template": self.pptx_template_failed.pk}
+            self.uri, {"docx_template": self.docx_template_failed.pk, "pptx_template": self.pptx_template_failed.pk}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
         data = {
             "result": "success",
-            "message": "Template successfully swapped",
+            "message": "Templates successfully updated",
             "docx_lint_result": "unknown",
             "docx_lint_message": "Selected Word template has an unknown linter status. Check and lint the template before generating a report.",
             "docx_url": f"/reporting/templates/{self.docx_template_unknown.pk}",
@@ -1857,8 +1747,7 @@ class ReportTemplateSwapViewTests(TestCase):
             "pptx_url": f"/reporting/templates/{self.pptx_template_unknown.pk}",
         }
         response = self.client_auth.post(
-            self.uri,
-            {"docx_template": self.docx_template_unknown.pk, "pptx_template": self.pptx_template_unknown.pk}
+            self.uri, {"docx_template": self.docx_template_unknown.pk, "pptx_template": self.pptx_template_unknown.pk}
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
@@ -1875,9 +1764,7 @@ class GenerateReportTests(TestCase):
         cls.org, cls.project, cls.report = GenerateMockProject()
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("reporting:report_delete", kwargs={"pk": cls.report.pk})
-        cls.redirect_uri = reverse(
-            "reporting:report_detail", kwargs={"pk": cls.report.pk}
-        )
+        cls.redirect_uri = reverse("reporting:report_detail", kwargs={"pk": cls.report.pk})
         cls.docx_uri = reverse("reporting:generate_docx", kwargs={"pk": cls.report.pk})
         cls.xlsx_uri = reverse("reporting:generate_xlsx", kwargs={"pk": cls.report.pk})
         cls.pptx_uri = reverse("reporting:generate_pptx", kwargs={"pk": cls.report.pk})
@@ -1888,14 +1775,12 @@ class GenerateReportTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_generate_report_name(self):
         company_config = CompanyInformationFactory()
         ReportConfigurationFactory(
-            report_filename="{D d m Y} {date} {company} - {client} {assessment_type} Report <>:\'/|?.,:;[]"
+            report_filename="{D d m Y} {date} {company} - {client} {assessment_type} Report <>:'/|?.,:;[]"
         )
 
         current_date = timezone.now()
@@ -1979,8 +1864,7 @@ class GenerateReportTests(TestCase):
         response = self.client_auth.get(self.docx_uri)
         messages = list(get_messages(response.wsgi_request))
         self.assertEqual(
-            str(messages[0]),
-            "Your selected Word template could not be found on the server – try uploading it again"
+            str(messages[0]), "Your selected Word template could not be found on the server – try uploading it again"
         )
 
         self.report.docx_template = good_template
@@ -2124,9 +2008,7 @@ class LocalFindingNoteUpdateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -2153,9 +2035,7 @@ class LocalFindingNoteDeleteTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         self.LocalFindingNote.objects.all().delete()
@@ -2203,9 +2083,7 @@ class FindingNoteUpdateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -2232,9 +2110,7 @@ class FindingNoteDeleteTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         self.FindingNote.objects.all().delete()

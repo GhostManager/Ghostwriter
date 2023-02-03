@@ -4,18 +4,25 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0011_report_template'),
+        ("reporting", "0011_report_template"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='findingnote',
-            options={'ordering': ['finding', '-timestamp'], 'verbose_name': 'Finding note', 'verbose_name_plural': 'Finding notes'},
+            name="findingnote",
+            options={
+                "ordering": ["finding", "-timestamp"],
+                "verbose_name": "Finding note",
+                "verbose_name_plural": "Finding notes",
+            },
         ),
         migrations.AlterModelOptions(
-            name='reporttemplate',
-            options={'ordering': ['-default', 'client', 'name'], 'verbose_name': 'Report template', 'verbose_name_plural': 'Report templates'},
+            name="reporttemplate",
+            options={
+                "ordering": ["-default", "client", "name"],
+                "verbose_name": "Report template",
+                "verbose_name_plural": "Report templates",
+            },
         ),
     ]

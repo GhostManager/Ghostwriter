@@ -4,14 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0018_auto_20210227_0228'),
+        ("rolodex", "0018_auto_20210227_0228"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='project',
-            options={'ordering': ['start_date', 'end_date', 'client', 'project_type'], 'verbose_name': 'Project', 'verbose_name_plural': 'Projects'},
+            name="project",
+            options={
+                "ordering": ["start_date", "end_date", "client", "project_type"],
+                "verbose_name": "Project",
+                "verbose_name_plural": "Projects",
+            },
         ),
     ]

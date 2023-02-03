@@ -4,15 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('commandcenter', '0008_remove_namecheapconfiguration_reset_dns'),
+        ("commandcenter", "0008_remove_namecheapconfiguration_reset_dns"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='cloudservicesconfiguration',
-            name='notification_delay',
-            field=models.IntegerField(default=7, help_text='Number of days to delay cloud monitoring notifications for teardown', verbose_name='Notification Delay'),
+            model_name="cloudservicesconfiguration",
+            name="notification_delay",
+            field=models.IntegerField(
+                default=7,
+                help_text="Number of days to delay cloud monitoring notifications for teardown",
+                verbose_name="Notification Delay",
+            ),
         ),
     ]

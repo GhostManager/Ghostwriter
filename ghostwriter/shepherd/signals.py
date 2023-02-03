@@ -1,4 +1,4 @@
-"""This contains all of the model Signals used by the Reporting application."""
+"""This contains all the model Signals used by the Reporting application."""
 
 # Standard Libraries
 import logging

@@ -4,43 +4,69 @@
 {% block pagetitle %}Report Creation{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-        {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Report Template Form</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'reporting:templates' %}">Report Templates</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Report Template Form</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <!-- Instructions Section -->
-    <p>Provide informatin for this report template:</p>
+  <!-- Instructions Section -->
+  <p>Provide information for this report template:</p>
 
-    <!-- Form Error Section -->
-    {% if form.errors %}
-        <script>
-            {% for field in form %}
-                {% for error in field.errors %}
-                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-                {% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-            {% endfor %}
-        </script>
-    {% endif %}
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+  <!-- Form Section -->
+  {% crispy form form.helper %}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Script for File Upload -->
-    <script>
-        $('input[type=file]').on('change', function() {
-            $("#filename").text($(this).val());
-        });
-    </script>
+  <!-- Script for File Upload -->
+  <script>
+    let fileInput = document.getElementById('id_document')
+    let $doc_type = $('#id_doc_type')
+    let $orientation = $('#id_landscape')
+
+    // Add frame when dragging file into input
+    fileInput.addEventListener('dragover', function () {
+      filename.classList.add('dragging');
+    });
+    fileInput.addEventListener('dragenter', function () {
+      filename.classList.add('dragging');
+    });
+    // Removes drag class when drag leaves or file is dropped
+    fileInput.addEventListener('dragleave', function () {
+      filename.classList.remove('dragging');
+    });
+    fileInput.addEventListener('drop', function () {
+      filename.classList.remove('dragging');
+    });
+
+    $('input[type=file]').on('change', function () {
+      $('#filename').text($(this).val());
+    });
+
+    $doc_type.on('change', function () {
+       let selection = $('#id_doc_type option:selected').text();
+       if (selection == 'pptx') {
+         $orientation.prop('checked', true);
+       }
+    });
+  </script>
 {% endblock %}

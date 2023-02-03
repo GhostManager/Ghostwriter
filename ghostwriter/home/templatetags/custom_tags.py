@@ -1,4 +1,4 @@
-"""This contains the custom template tags used by he Home application."""
+"""This contains the custom template tags used by the Home application."""
 
 # Django Imports
 from django import template
@@ -49,9 +49,7 @@ def count_assignments(request):
     """
     user_tasks = (
         ReportFindingLink.objects.select_related("report", "report__project")
-        .filter(
-            Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False)
-        )
+        .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
         .order_by("report__project__end_date")
     )
     return user_tasks.count()
@@ -71,9 +69,7 @@ def get_reports(request):
         .order_by("project__end_date")
     )
     for active_project in active_projects:
-        reports = Report.objects.filter(
-            Q(project=active_project.project) & Q(complete=False)
-        )
+        reports = Report.objects.filter(Q(project=active_project.project) & Q(complete=False))
         for report in reports:
             active_reports.append(report)
 
@@ -91,10 +87,11 @@ def count_incomplete_objectives(queryset):
     """Return the number of incomplete objectives"""
     return queryset.filter(complete=False).count()
 
+
 @register.filter(name="strip_empty_tags")
 def strip_empty_tags(content):
     """Strip empty tags from HTML content."""
-    soup = BeautifulSoup(content , "lxml")
+    soup = BeautifulSoup(content, "lxml")
     for x in soup.find_all():
         if len(x.get_text(strip=True)) == 0:
             x.extract()

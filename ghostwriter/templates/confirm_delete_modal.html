@@ -1,5 +1,6 @@
 <!--Delete button will redirect to the href of the element with ``id = caller-id`` property in this modal-->
-<div class="modal fade" id="confirm-delete-modal" tabindex="-1" caller-id="" role="dialog" aria-labelledby="confirm-delete-modal-label" aria-hidden="true">
+<div class="modal fade" id="confirm-delete-modal" tabindex="-1" caller-id="" role="dialog"
+     aria-labelledby="confirm-delete-modal-label" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-body confirm-delete">
@@ -8,7 +9,8 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-delete-button-modal">Delete</button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-delete-button-modal">Delete
+        </button>
       </div>
     </div>
   </div>
@@ -21,52 +23,27 @@
 {% endcomment %}
 
 <script>
-    $('[data-target="#confirm-delete-modal"]').each(function(index) {
-        $(this).click(function () {
-            $('#confirm-delete-modal').attr('caller-id', $(this).attr('id'));
-        });
+  $('[data-target="#confirm-delete-modal"]').each(function () {
+    $(this).click(function () {
+      $('#confirm-delete-modal').attr('caller-id', $(this).attr('id'));
     });
-</script>
+  });
 
-<script>
-    $('#confirm-delete-modal').on('show.bs.modal', function(){
-        var caller = $('#confirm-delete-button-modal').closest('.modal').attr('caller-id');
-        var target = $('#' + caller);
-        var targetId = target.attr('delete-target-id');
-        var targetRow = target.closest('tr');
-        var targetType = target.attr('delete-target-type');
-        var previewContent = $('#delete-target-content-' + targetType + '-' + targetId);
+  $('#confirm-delete-modal').on('show.bs.modal', function () {
+    let caller = $('#confirm-delete-button-modal').closest('.modal').attr('caller-id');
+    let $target = $('#' + caller);
+    let targetId = $target.attr('delete-target-id');
+    let targetType = $target.attr('delete-target-type');
+    let $previewContent = $('#delete-target-content-' + targetType + '-' + targetId);
 
-        if (targetType) {
-            $('#object-type').html(targetType);
-        }
-
-        if (previewContent) {
-            $('#object-preview-content').html(previewContent.text());
-        }
-    });
-</script>
-
-{% comment %} Following a delete, fetch the latest information to update the badges on the tabs {% endcomment %}
-
-<script>
-    function update_badges() {
-        // Get the update URL from the ``nav-tabs`` element
-        var navTabs = $('.nav-tabs');
-        var update_url = navTabs.attr('js-update-tabs-url');
-        if (update_url != null) {
-            console.log("Updating badges...");
-            // Save the ``id`` of the current tab with the ``active`` class
-            var activeTabId = $('ul#tab-bar a.active').attr('id');
-            activeTabId = '#' + activeTabId;
-            // Refresh the HTML from the update URL
-            navTabs.html('').load(update_url, function() {
-                // Set the previously active tab back to ``active``
-                var targetTab = $(activeTabId);
-                targetTab.tab('show');
-            });
-        }
+    if (targetType) {
+      $('#object-type').html(targetType);
     }
+
+    if ($previewContent) {
+      $('#object-preview-content').html(escapeHtml($previewContent.text()));
+    }
+  });
 </script>
 
 {% comment %}
@@ -109,76 +86,76 @@
 {% endcomment %}
 
 <script>
-    $('#confirm-delete-button-modal').click(function () {
-        // Get the ``id`` of the clicked element
-        var caller = $('#confirm-delete-button-modal').closest('.modal').attr('caller-id');
-        var target = $('#' + caller);
-        // Values for the POST
-        var url = target.attr('delete-target-url');
-        var targetId = target.attr('delete-target-id');
-        var targetType = target.attr('delete-target-type');
-        var csrftoken = target.attr('delete-target-csrftoken');
-        // Selectors for each major parent object – tr, tbody, and table
-        var targetRow = target.closest('tr');
-        var targetTbody = target.closest('tbody');
-        var targetTable = target.closest('table');
-        var targetContainer = $('#note-container-' + targetId);
-        var targetCard = $('#decon-card-' + targetId);
-        // Prep AJAX request with CSRF token
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                }
-            }
-        });
-        // Send AJAX POST request
-        $.ajax({
-            url: url,
-            type: 'POST',
-            dataType: 'json',
-            data: {
-                'target': targetId,
-                'target_type': targetType
-            },
-            success: function (data) {
-                // If the delete succeeded, remove the row
-                if (data['result'] == 'success') {
-                    if (targetRow) {
-                        targetRow.remove();
-                    }
-                    if (targetContainer) {
-                        targetContainer.remove();
-                    }
-                    if (targetCard) {
-                        targetCard.remove();
-                    }
-                    // If that was the last row, hide the empty table
-                    if (targetTbody.find('tr').length == 0) {
-                        // Special handling of the findings table for report pages
-                        if (targetTable.attr('id') == 'findings-table') {
-                            var tbody_id = targetTbody.attr('id')
-                            // Get the severity group based on the ``tbody```
-                            var placeholder_group = tbody_id.split('_')[0]
-                            placeholder_group = placeholder_group.charAt(0).toUpperCase() + placeholder_group.slice(1)
-                            // Add a placeholder row to the now empty group
-                            var placeholder_row = document.getElementById(tbody_id).insertRow(0)
-                            placeholder_row.id = placeholder_group + '_placeholder'
-                            placeholder_row.className = 'severity-row-placeholder'
-                            placeholder_row.setAttribute('data-id', placeholder_group + '_placeholder', 0)
-                            cell = placeholder_row.insertCell(0);
-                            cell.colSpan = 7
-                            cell.innerHTML = 'Add ' + placeholder_group + ' findings or drag-and-drop a finding here to update its severity.'
-                        } else {
-                            targetTable.hide();
-                        }
-                    }
-                    update_badges();
-                }
-                if (data['message']) {
-                    displayToastTop({type:data['result'], string:data['message'], title:'Deleted'});
-                }
-            }
-        });
+  $('#confirm-delete-button-modal').click(function () {
+    // Get the ``id`` of the clicked element
+    let caller = $('#confirm-delete-button-modal').closest('.modal').attr('caller-id');
+    let $target = $('#' + caller);
+    // Values for the POST
+    let url = $target.attr('delete-target-url');
+    let targetId = $target.attr('delete-target-id');
+    let targetType = $target.attr('delete-target-type');
+    let csrftoken = $target.attr('delete-target-csrftoken');
+    // Selectors for each major parent object – tr, tbody, and table
+    let $targetRow = $target.closest('tr');
+    let $targetTbody = $target.closest('tbody');
+    let $targetTable = $target.closest('table');
+    let $targetContainer = $('#note-container-' + targetId);
+    let $noteControls = $targetContainer.next('div');
+    let $targetCard = $('#decon-card-' + targetId);
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader('X-CSRFToken', csrftoken);
+        }
+      }
     });
+    $.ajax({
+      url: url,
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        'target': targetId,
+        'target_type': targetType
+      },
+      success: function (data) {
+        // If the deletion succeeded, remove the related element
+        if (data['result'] === 'success') {
+          if ($targetRow) {
+            $targetRow.remove();
+          }
+          if ($targetContainer) {
+            $targetContainer.remove();
+            $noteControls.remove();
+          }
+          if ($targetCard) {
+            $targetCard.remove();
+          }
+          // If that was the last row in the related table, hide the empty table
+          if ($targetTbody.find('tr').length === 0) {
+            // Special handling of the findings table for report pages
+            if ($targetTable.attr('id') === 'findings-table') {
+              let tbody_id = $targetTbody.attr('id')
+              // Get the severity group based on the ``tbody```
+              let placeholder_group = tbody_id.split('_')[0]
+              placeholder_group = placeholder_group.charAt(0).toUpperCase() + placeholder_group.slice(1)
+              // Add a placeholder row to the now empty group
+              let placeholder_row = document.getElementById(tbody_id).insertRow(0)
+              placeholder_row.id = placeholder_group + '_placeholder'
+              placeholder_row.className = 'severity-row-placeholder'
+              placeholder_row.setAttribute('data-id', placeholder_group + '_placeholder')
+              let cell = placeholder_row.insertCell(0);
+              cell.colSpan = 7
+              cell.innerHTML = 'Add ' + placeholder_group + ' findings or drag-and-drop a finding here to update its severity.'
+            } else {
+              $targetTable.hide();
+            }
+          }
+          update_badges();
+        }
+        if (data['message']) {
+          displayToastTop({type: data['result'], string: data['message'], title: 'Deleted'});
+        }
+      }
+    });
+  });
 </script>

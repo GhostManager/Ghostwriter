@@ -47,9 +47,7 @@ class IndexViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
@@ -74,12 +72,8 @@ class TemplateTagTests(TestCase):
             ProjectObjectiveFactory(project=cls.project)
 
         cls.server = StaticServerFactory()
-        cls.aux_address_1 = AuxServerAddressFactory(
-            static_server=cls.server, ip_address="1.1.1.1", primary=True
-        )
-        cls.aux_address_2 = AuxServerAddressFactory(
-            static_server=cls.server, ip_address="1.1.1.2", primary=False
-        )
+        cls.aux_address_1 = AuxServerAddressFactory(static_server=cls.server, ip_address="1.1.1.1", primary=True)
+        cls.aux_address_2 = AuxServerAddressFactory(static_server=cls.server, ip_address="1.1.1.2", primary=False)
 
         cls.scope = ProjectScopeFactory(
             project=cls.project,
@@ -96,9 +90,7 @@ class TemplateTagTests(TestCase):
         self.assertEqual(len(obj_dict), 3)
 
         for group in obj_dict:
-            self.assertEqual(
-                determine_primary.get_item(obj_dict, group), obj_dict.get(group)
-            )
+            self.assertEqual(determine_primary.get_item(obj_dict, group), obj_dict.get(group))
 
         future_date = date.today() + timedelta(days=10)
         self.assertEqual(determine_primary.plus_days(date.today(), 10), future_date)
@@ -110,9 +102,7 @@ class TemplateTagTests(TestCase):
             determine_primary.get_scope_preview(self.scope.scope, 5),
             "1.1.1.1\n1.1.1.2\n1.1.1.3\n1.1.1.4\n1.1.1.5",
         )
-        self.assertEqual(
-            determine_primary.get_scope_preview(self.scope.scope, 2), "1.1.1.1\n1.1.1.2"
-        )
+        self.assertEqual(determine_primary.get_scope_preview(self.scope.scope, 2), "1.1.1.1\n1.1.1.2")
 
 
 # Tests related to misc views
@@ -130,9 +120,7 @@ class RollCodenameViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -162,28 +150,44 @@ class ProjectObjectiveStatusUpdateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.in_progress}", })
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "result": "success",
+                "status": f"{self.in_progress}",
+            },
+        )
 
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.in_progress)
 
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.missed}", })
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "result": "success",
+                "status": f"{self.missed}",
+            },
+        )
 
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.missed)
 
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", "status": f"{self.active}", })
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "result": "success",
+                "status": f"{self.active}",
+            },
+        )
 
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.active)
@@ -206,9 +210,7 @@ class ProjectObjectiveToggleViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {
@@ -258,9 +260,7 @@ class ProjectStatusToggleViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {
@@ -312,9 +312,7 @@ class ProjectScopeExportViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -328,10 +326,7 @@ class ProjectScopeExportViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(
-            response.get("Content-Disposition"),
-            f"attachment; filename={self.scope.name}_scope.txt"
-        )
+        self.assertEqual(response.get("Content-Disposition"), f"attachment; filename={self.scope.name}_scope.txt")
 
 
 class ClientNoteUpdateTests(TestCase):
@@ -350,9 +345,7 @@ class ClientNoteUpdateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -379,9 +372,7 @@ class ClientNoteDeleteTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         self.ClientNote.objects.all().delete()
@@ -429,9 +420,7 @@ class ProjectNoteUpdateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -458,9 +447,7 @@ class ProjectNoteDeleteTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         self.ProjectNote.objects.all().delete()
@@ -509,9 +496,7 @@ class ProjectCreateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)

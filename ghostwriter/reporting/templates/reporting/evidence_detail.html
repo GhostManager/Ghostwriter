@@ -33,23 +33,27 @@
     <div class="container">
         <h2>{{ evidence.friendly_name }}</h2>
     </div>
+    {% for tag in evidence.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    {% endfor %}
+    <hr>
 
     <!-- File Information Section -->
     <table class="table table-borderless table-centered">
         <tr>
-            <td class="text-left">Original Filename</td>
+            <td class="text-left bold">Original Filename</td>
             <td>{{ evidence.filename }}</td>
         </tr>
         <tr>
-            <td class="text-left">Uploaded by</td>
+            <td class="text-left bold">Uploaded by</td>
             <td>{{ evidence.uploaded_by }}</td>
         </tr>
         <tr>
-            <td class="text-left">Upload Date</td>
+            <td class="text-left bold">Upload Date</td>
             <td>{{ evidence.upload_date }}</td>
         </tr>
         <tr>
-            <td class="text-left">Report Caption</td>
+            <td class="text-left bold">Report Caption</td>
             <td>
                 {% if evidence.caption %}
                     {{ evidence.caption }}
@@ -59,7 +63,7 @@
             </td>
         </tr>
         <tr>
-            <td class="text-left">Description</td>
+            <td class="text-left bold">Description</td>
             <td>
             {% if evidence.description %}
                 {{ evidence.description|bleach }}

@@ -4,24 +4,39 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0003_auto_20190824_0401'),
+        ("shepherd", "0003_auto_20190824_0401"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='transientserver',
-            options={'ordering': ['project', 'server_provider', 'ip_address', 'server_role', 'name'], 'verbose_name': 'Virtual private server', 'verbose_name_plural': 'Virtual private servers'},
+            name="transientserver",
+            options={
+                "ordering": ["project", "server_provider", "ip_address", "server_role", "name"],
+                "verbose_name": "Virtual private server",
+                "verbose_name_plural": "Virtual private servers",
+            },
         ),
         migrations.AddField(
-            model_name='staticserver',
-            name='name',
-            field=models.CharField(blank=True, help_text="Enter the server's name (typically hostname)", max_length=100, null=True, verbose_name='Name'),
+            model_name="staticserver",
+            name="name",
+            field=models.CharField(
+                blank=True,
+                help_text="Enter the server's name (typically hostname)",
+                max_length=100,
+                null=True,
+                verbose_name="Name",
+            ),
         ),
         migrations.AddField(
-            model_name='transientserver',
-            name='name',
-            field=models.CharField(blank=True, help_text="Enter the server's name (typically hostname)", max_length=100, null=True, verbose_name='Name'),
+            model_name="transientserver",
+            name="name",
+            field=models.CharField(
+                blank=True,
+                help_text="Enter the server's name (typically hostname)",
+                max_length=100,
+                null=True,
+                verbose_name="Name",
+            ),
         ),
     ]

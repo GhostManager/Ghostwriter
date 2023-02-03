@@ -4,81 +4,77 @@
 {% block pagetitle %}Client Form{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            {% comment %} Check if `object` is in context to determine if this is a `ClientUpdate` request {% endcomment %}
-            {% if object %}
-                <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' object.id %}">{{ client.name }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Update</li>
-            {% else %}
-                <li class="breadcrumb-item active" aria-current="page">New Client Form</li>
-            {% endif %}
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      {% comment %} Check if `object` is in context to determine if this is a `ClientUpdate` request {% endcomment %}
+      {% if object %}
+        <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' object.id %}">{{ client.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Update</li>
+      {% else %}
+        <li class="breadcrumb-item active" aria-current="page">New Client Form</li>
+      {% endif %}
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <strong class="icon client-icon">Setup a Client</strong>
-    <hr>
-    <p>Use the tabs to provide basic client information and add points of contact:</p>
+  <strong class="icon client-icon">Setup a Client</strong>
+  <hr>
+  <p>Use the tabs to provide basic client information and add points of contact:</p>
 
-    <!-- Form Error Section -->
-    {% if form.errors %}
-        <script>
-            {% for field in form %}
-                {% for error in field.errors %}
-                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-                {% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-            {% endfor %}
-        </script>
-    {% endif %}
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+  <!-- Form Section -->
+  {% crispy form form.helper %}
 {% endblock %}
 
 {% block tabs %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block tabforms %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Formset Manipulation Buttons -->
-    <script>
-        $('.formset-add-{{ contacts.prefix }}').click(function() {
-            var form_idx = $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val();
-            $('#formset-{{ contacts.prefix }}').append($('#empty-form-{{ contacts.prefix }}').html().replace(/__prefix__/g, form_idx));
-            $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            var new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
-            new_form.find('span.counter').html(parseInt(form_idx) + 1);
-            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-            // Re-initialize WYSIWYG editor for the new form
-            target = 'id_{{ contacts.prefix }}-' + parseInt(form_idx) + '-note'
-            tinymce.execCommand('mceAddEditor', false, target);
-        });
-    </script>
+  <script>
+    {% comment %} Formset manipulation buttons {% endcomment %}
+    $('.formset-add-{{ contacts.prefix }}').click(function () {
+      let form_idx = $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ contacts.prefix }}').append($('#empty-form-{{ contacts.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ contacts.prefix }}-' + parseInt(form_idx) + '-note'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
 
-    <!-- Roll Codename with AJAX -->
-    <script>
-        $(".js-roll-codename").click(function () {
-            var url = $(this).attr('roll-codename-url');
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'GET',
-                success: function (data) {
-                    $("#id_codename").val(data['codename']);
-                }
-            });
-        });
-    </script>
+    {% comment %} Roll Codename with AJAX {% endcomment %}
+    $('.js-roll-codename').click(function () {
+      let url = $(this).attr('roll-codename-url');
+      $.ajax({
+        url: url,
+        type: 'GET',
+        success: function (data) {
+          $('#id_codename').val(data['codename']);
+        }
+      });
+    });
+  </script>
 {% endblock %}

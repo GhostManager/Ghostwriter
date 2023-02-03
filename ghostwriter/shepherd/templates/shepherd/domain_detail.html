@@ -42,6 +42,9 @@
     <div class="container">
         <h2>{{ domain.name }}</h2>
     </div>
+    {% for tag in domain.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    {% endfor %}
     <hr />
 
     <div>

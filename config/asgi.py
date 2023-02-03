@@ -10,7 +10,11 @@ import os
 import sys
 from pathlib import Path
 
+# Django Imports
 from django.core.asgi import get_asgi_application
+
+# 3rd Party Libraries
+from channels.security.websocket import AllowedHostsOriginValidator
 
 # This allows easy placement of apps within the interior ghostwriter directory
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -34,11 +38,13 @@ from channels.routing import ProtocolTypeRouter, URLRouter  # noqa isort:skip
 application = ProtocolTypeRouter(
     {
         "http": django_application,
-        "websocket": AuthMiddlewareStack(
-            URLRouter(
-                ghostwriter.home.routing.websocket_urlpatterns
-                + ghostwriter.oplog.routing.websocket_urlpatterns
-                + ghostwriter.reporting.routing.websocket_urlpatterns
+        "websocket": AllowedHostsOriginValidator(
+            AuthMiddlewareStack(
+                URLRouter(
+                    ghostwriter.home.routing.websocket_urlpatterns
+                    + ghostwriter.oplog.routing.websocket_urlpatterns
+                    + ghostwriter.reporting.routing.websocket_urlpatterns
+                )
             )
         ),
     }

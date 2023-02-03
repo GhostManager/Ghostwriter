@@ -1,9 +1,8 @@
-"""This contains all of the views used by the Reporting application."""
+"""This contains all the views used by the Reporting application."""
 
 # Standard Libraries
 import io
 import json
-import logging
 import logging.config
 import os
 import re
@@ -54,8 +53,8 @@ from ghostwriter.modules import reportwriter
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.rolodex.models import Project, ProjectAssignment
 
-from .filters import ArchiveFilter, FindingFilter, ReportFilter
-from .forms import (
+from ghostwriter.reporting.filters import ArchiveFilter, FindingFilter, ReportFilter
+from ghostwriter.reporting.forms import (
     EvidenceForm,
     FindingForm,
     FindingNoteForm,
@@ -65,7 +64,7 @@ from .forms import (
     ReportTemplateForm,
     SelectReportTemplateForm,
 )
-from .models import (
+from ghostwriter.reporting.models import (
     Archive,
     Evidence,
     Finding,
@@ -77,7 +76,7 @@ from .models import (
     ReportTemplate,
     Severity,
 )
-from .resources import FindingResource
+from ghostwriter.reporting.resources import FindingResource
 
 channel_layer = get_channel_layer()
 
@@ -88,9 +87,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_position(report_pk, severity):
-    findings = ReportFindingLink.objects.filter(
-        Q(report__pk=report_pk) & Q(severity=severity)
-    ).order_by("-position")
+    findings = ReportFindingLink.objects.filter(Q(report__pk=report_pk) & Q(severity=severity)).order_by("-position")
     if findings:
         # Set new position to be one above the last/largest position
         last_position = findings[0].position
@@ -109,29 +106,35 @@ def ajax_update_report_findings(request):
     Update the ``position`` and ``severity`` fields of all :model:`reporting.ReportFindingLink`
     attached to an individual :model:`reporting.Report`.
     """
-    data = {"result": "error"}
     if request.method == "POST" and request.is_ajax():
         pos = request.POST.get("positions")
         report_id = request.POST.get("report")
-        severity_class = request.POST.get("severity").replace("_severity", "")
+        weight = request.POST.get("weight")
         order = json.loads(pos)
 
         logger.info(
             "Received AJAX POST to update report %s's %s severity group findings in this order: %s",
             report_id,
-            severity_class,
+            weight,
             ", ".join(order),
         )
 
+        # If all went well, return success
+        data = {"result": "success"}
+
         try:
-            severity = Severity.objects.get(severity__iexact=severity_class)
+            severity = Severity.objects.get(weight=weight)
         except Severity.DoesNotExist:
             severity = None
+            logger.exception("Failed to get sev")
+
         if severity:
             counter = 1
             for finding_id in order:
+                logger.info(finding_id)
                 if "placeholder" not in finding_id:
                     finding_instance = ReportFindingLink.objects.get(id=finding_id)
+                    logger.info("%s, %s", finding_id, finding_instance)
                     if finding_instance:
                         finding_instance.severity = severity
                         finding_instance.position = counter
@@ -143,9 +146,7 @@ def ajax_update_report_findings(request):
                             finding_id,
                         )
         else:
-            data = {"result": "specified severity, {}, is invalid".format(severity_class)}
-        # If all went well, return success
-        data = {"result": "success"}
+            data = {"result": "specified severity weight, {}, is invalid".format(weight)}
     else:
         data = {"result": "error"}
     return JsonResponse(data)
@@ -164,10 +165,10 @@ class UpdateTemplateLintResults(LoginRequiredMixin, SingleObjectMixin, View):
     model = ReportTemplate
 
     def get(self, *args, **kwargs):
-        self.object = self.get_object()
+        template = self.get_object()
         html = render_to_string(
             "snippets/template_lint_results.html",
-            {"reporttemplate": self.object},
+            {"reporttemplate": template},
         )
         return HttpResponse(html)
 
@@ -182,7 +183,7 @@ class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
     model = Finding
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        finding_instance = self.get_object()
 
         # The user must have the ``active_report`` session variable
         active_report = self.request.session.get("active_report", None)
@@ -190,39 +191,38 @@ class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
             try:
                 report = Report.objects.get(pk=active_report["id"])
             except Exception:
-                message = (
-                    "Please select a report to edit before trying to assign a finding"
-                )
+                message = "Please select a report to edit before trying to assign a finding"
                 data = {"result": "error", "message": message}
                 return JsonResponse(data)
 
             # Clone the selected object to make a new :model:`reporting.ReportFindingLink`
             report_link = ReportFindingLink(
-                title=self.object.title,
-                description=self.object.description,
-                impact=self.object.impact,
-                mitigation=self.object.mitigation,
-                replication_steps=self.object.replication_steps,
-                host_detection_techniques=self.object.host_detection_techniques,
-                network_detection_techniques=self.object.network_detection_techniques,
-                references=self.object.references,
-                severity=self.object.severity,
-                finding_type=self.object.finding_type,
-                finding_guidance=self.object.finding_guidance,
+                title=finding_instance.title,
+                description=finding_instance.description,
+                impact=finding_instance.impact,
+                mitigation=finding_instance.mitigation,
+                replication_steps=finding_instance.replication_steps,
+                host_detection_techniques=finding_instance.host_detection_techniques,
+                network_detection_techniques=finding_instance.network_detection_techniques,
+                references=finding_instance.references,
+                severity=finding_instance.severity,
+                finding_type=finding_instance.finding_type,
+                finding_guidance=finding_instance.finding_guidance,
                 report=report,
                 assigned_to=self.request.user,
-                position=get_position(report.id, self.object.severity),
-                cvss_score=self.object.cvss_score,
-                cvss_vector=self.object.cvss_vector,
+                position=get_position(report.id, finding_instance.severity),
+                cvss_score=finding_instance.cvss_score,
+                cvss_vector=finding_instance.cvss_vector,
             )
             report_link.save()
+            report_link.tags.add(*finding_instance.tags.all())
 
-            message = "{} successfully added to your active report".format(self.object)
+            message = "{} successfully added to your active report".format(finding_instance)
             data = {"result": "success", "message": message}
             logger.info(
                 "Copied %s %s to %s %s (%s %s) by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                finding_instance.__class__.__name__,
+                finding_instance.id,
                 report.__class__.__name__,
                 report.id,
                 report_link.__class__.__name__,
@@ -243,21 +243,21 @@ class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
     model = LocalFindingNote
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        note = self.get_object()
+        return note.operator.id == self.request.user.id
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
+        note = self.get_object()
+        note.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            note.__class__.__name__,
+            note.id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -271,21 +271,21 @@ class FindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
     model = FindingNote
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        note = self.get_object()
+        return note.operator.id == self.request.user.id
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
+        note = self.get_object()
+        note.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            note.__class__.__name__,
+            note.id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -299,19 +299,16 @@ class ReportFindingLinkDelete(LoginRequiredMixin, SingleObjectMixin, View):
     model = ReportFindingLink
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.report_pk = self.get_object().report.pk
-        self.object.delete()
+        finding = self.get_object()
+        finding.delete()
         data = {
             "result": "success",
-            "message": "Successfully deleted {finding} and cleaned up evidence".format(
-                finding=self.object
-            ),
+            "message": "Successfully deleted {finding} and cleaned up evidence".format(finding=finding),
         }
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            finding.__class__.__name__,
+            finding.id,
             self.request.user,
         )
 
@@ -327,19 +324,18 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, View):
 
     # Set the user's session variable
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-
+        report = self.get_object()
         try:
             self.request.session["active_report"] = {}
-            self.request.session["active_report"]["id"] = self.object.id
-            self.request.session["active_report"]["title"] = self.object.title
+            self.request.session["active_report"]["id"] = report.id
+            self.request.session["active_report"]["title"] = report.title
             message = "{report} is now your active report and you will be redirected there in 5 seconds".format(
-                report=self.object.title
+                report=report.title
             )
             data = {
                 "result": "success",
-                "report": self.object.title,
-                "report_url": self.object.get_absolute_url(),
+                "report": report.title,
+                "report_url": report.get_absolute_url(),
                 "message": message,
             }
         except Exception as exception:  # pragma: no cover
@@ -362,10 +358,10 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
     model = Report
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        report = self.get_object()
         try:
-            if self.object.complete:
-                self.object.complete = False
+            if report.complete:
+                report.complete = False
                 data = {
                     "result": "success",
                     "message": "Report successfully marked as incomplete",
@@ -373,18 +369,18 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                     "toggle": 0,
                 }
             else:
-                self.object.complete = True
+                report.complete = True
                 data = {
                     "result": "success",
                     "message": "Report successfully marked as complete",
                     "status": "Complete",
                     "toggle": 1,
                 }
-            self.object.save()
+            report.save()
             logger.info(
                 "Toggled status of %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                report.__class__.__name__,
+                report.id,
                 self.request.user,
             )
         except Exception as exception:  # pragma: no cover
@@ -404,10 +400,10 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
     model = Report
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        report = self.get_object()
         try:
-            if self.object.delivered:
-                self.object.delivered = False
+            if report.delivered:
+                report.delivered = False
                 data = {
                     "result": "success",
                     "message": "Report successfully marked as not delivered",
@@ -415,18 +411,18 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, View):
                     "toggle": 0,
                 }
             else:
-                self.object.delivered = True
+                report.delivered = True
                 data = {
                     "result": "success",
                     "message": "Report successfully marked as delivered",
                     "status": "Delivered",
                     "toggle": 1,
                 }
-            self.object.save()
+            report.save()
             logger.info(
                 "Toggled delivery status of %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                report.__class__.__name__,
+                report.id,
                 self.request.user,
             )
         except Exception as exception:  # pragma: no cover
@@ -452,17 +448,17 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
         data = {}
         # Get ``status`` kwargs from the URL
         status = self.kwargs["status"]
-        self.object = self.get_object()
+        finding = self.get_object()
 
         try:
             result = "success"
             if status.lower() == "edit":
-                self.object.complete = False
+                finding.complete = False
                 message = "Successfully flagged finding for editing"
                 display_status = "Needs Editing"
                 classes = "burned"
             elif status.lower() == "complete":
-                self.object.complete = True
+                finding.complete = True
                 message = "Successfully marking finding as complete"
                 display_status = "Ready"
                 classes = "healthy"
@@ -471,7 +467,7 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                 message = "Could not update the finding's status to: {}".format(status)
                 display_status = "Error"
                 classes = "burned"
-            self.object.save()
+            finding.save()
             # Prepare the JSON response data
             data = {
                 "result": result,
@@ -481,8 +477,8 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             }
             logger.info(
                 "Set status of %s %s to %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                finding.__class__.__name__,
+                finding.id,
                 status,
                 self.request.user,
             )
@@ -504,7 +500,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
     model = Report
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        report = self.get_object()
         docx_template_id = self.request.POST.get("docx_template", None)
         pptx_template_id = self.request.POST.get("pptx_template", None)
         if docx_template_id and pptx_template_id:
@@ -514,27 +510,21 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 docx_template_id = int(docx_template_id)
                 pptx_template_id = int(pptx_template_id)
 
-                if docx_template_id < 0 or pptx_template_id < 0:
-                    data = {
-                        "result": "warning",
-                        "message": "Select both templates before your settings can be saved",
-                    }
-                else:
-                    if docx_template_id >= 0:
-                        docx_template_query = ReportTemplate.objects.get(
-                            pk=docx_template_id
-                        )
-                        self.object.docx_template = docx_template_query
-                    if pptx_template_id >= 0:
-                        pptx_template_query = ReportTemplate.objects.get(
-                            pk=pptx_template_id
-                        )
-                        self.object.pptx_template = pptx_template_query
-                    data = {
-                        "result": "success",
-                        "message": "Template successfully swapped",
-                    }
-                    self.object.save()
+                if docx_template_id < 0:
+                    report.docx_template = None
+                if pptx_template_id < 0:
+                    report.pptx_template = None
+                if docx_template_id >= 0:
+                    docx_template_query = ReportTemplate.objects.get(pk=docx_template_id)
+                    report.docx_template = docx_template_query
+                if pptx_template_id >= 0:
+                    pptx_template_query = ReportTemplate.objects.get(pk=pptx_template_id)
+                    report.pptx_template = pptx_template_query
+                data = {
+                    "result": "success",
+                    "message": "Templates successfully updated",
+                }
+                report.save()
 
                 # Check template for linting issues
                 try:
@@ -595,8 +585,8 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                     ] = "Could not retrieve the PowerPoint template's linter status. Check and lint the template before generating a report."
                 logger.info(
                     "Swapped template for %s %s by request of %s",
-                    self.object.__class__.__name__,
-                    self.object.id,
+                    report.__class__.__name__,
+                    report.id,
                     self.request.user,
                 )
             except ValueError:
@@ -628,8 +618,8 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, View):
                 }
                 logger.exception(
                     "Encountered an error trying to update %s %s with template IDs %s & %s from a request submitted by %s",
-                    self.object.__class__.__name__,
-                    self.object.id,
+                    report.__class__.__name__,
+                    report.id,
                     docx_template_id,
                     pptx_template_id,
                     self.request.user,
@@ -654,35 +644,29 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
     model = ReportTemplate
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        template_loc = self.object.document.path
+        template = self.get_object()
+        template_loc = template.document.path
         linter = reportwriter.TemplateLinter(template_loc=template_loc)
-        if self.object.doc_type.doc_type == "docx":
+        if template.doc_type.doc_type == "docx":
             results = linter.lint_docx()
-        elif self.object.doc_type.doc_type == "pptx":
+        elif template.doc_type.doc_type == "pptx":
             results = linter.lint_pptx()
         else:
             logger.warning(
                 "Template had an unknown filetype not supported by the linter: %s",
-                self.object.doc_type,
+                template.doc_type,
             )
             results = {}
-        self.object.lint_result = results
-        self.object.save()
+        template.lint_result = results
+        template.save()
 
         data = results
         if data["result"] == "success":
-            data[
-                "message"
-            ] = "Template linter returned results with no errors or warnings"
+            data["message"] = "Template linter returned results with no errors or warnings"
         elif not data["result"]:
-            data[
-                "message"
-            ] = f"Template had an unknown filetype not supported by the linter: {self.object.doc_type}"
+            data["message"] = f"Template had an unknown filetype not supported by the linter: {template.doc_type}"
         else:
-            data[
-                "message"
-            ] = "Template linter returned results with issues that require attention"
+            data["message"] = "Template linter returned results with issues that require attention"
 
         return JsonResponse(data)
 
@@ -695,12 +679,9 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
     model = Report
 
     def get(self, *args, **kwargs):
-        self.object = self.get_object()
+        report_to_clone = self.get_object()
         try:
-            findings = ReportFindingLink.objects.select_related("report").filter(
-                report=self.object.pk
-            )
-            report_to_clone = self.object
+            findings = ReportFindingLink.objects.select_related("report").filter(report=report_to_clone.pk)
             report_to_clone.title = report_to_clone.title + " Copy"
             report_to_clone.complete = False
             report_to_clone.pk = None
@@ -730,19 +711,19 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
                         messages.warning(
                             self.request,
                             f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
-                            extra_tags="alert-warning"
+                            extra_tags="alert-warning",
                         )
 
             logger.info(
                 "Cloned %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                report_to_clone.__class__.__name__,
+                report_to_clone.id,
                 self.request.user,
             )
 
             messages.success(
                 self.request,
-                "Successfully cloned your report: {}".format(self.object.title),
+                "Successfully cloned your report: {}".format(report_to_clone.title),
                 extra_tags="alert-error",
             )
         except Exception as exception:  # pragma: no cover
@@ -752,15 +733,11 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
 
             messages.error(
                 self.request,
-                "Encountered an error while trying to clone your report: {}".format(
-                    exception.args
-                ),
+                "Encountered an error while trying to clone your report: {}".format(exception.args),
                 extra_tags="alert-error",
             )
 
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": new_report_pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": new_report_pk}))
 
 
 class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
@@ -809,15 +786,11 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
 
             messages.error(
                 self.request,
-                "Encountered an error while trying to add a blank finding to your report: {}".format(
-                    exception.args
-                ),
+                "Encountered an error while trying to add a blank finding to your report: {}".format(exception.args),
                 extra_tags="alert-error",
             )
 
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", args=(self.object.id,))
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", args=(self.object.id,)))
 
 
 class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
@@ -833,9 +806,8 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
     model = ReportFindingLink
 
     def get(self, *args, **kwargs):
-        self.object = self.get_object()
+        finding_instance = self.get_object()
         try:
-            finding_instance = self.object
             form = FindingForm(
                 initial={
                     "title": finding_instance.title,
@@ -848,6 +820,9 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
                     "references": finding_instance.references,
                     "severity": finding_instance.severity,
                     "finding_type": finding_instance.finding_type,
+                    "cvss_score": finding_instance.cvss_score,
+                    "cvss_vector": finding_instance.cvss_vector,
+                    "tags": finding_instance.tags.all(),
                 }
             )
         except Exception as exception:  # pragma: no cover
@@ -857,22 +832,20 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
 
             messages.error(
                 self.request,
-                "Encountered an error while trying to convert your finding: {}".format(
-                    exception.args
-                ),
+                "Encountered an error while trying to convert your finding: {}".format(exception.args),
                 extra_tags="alert-error",
             )
+            return HttpResponse(status=500)
 
         return render(self.request, "reporting/finding_form.html", {"form": form})
 
     def post(self, *args, **kwargs):
         form = FindingForm(self.request.POST)
         if form.is_valid():
-            new_finding = form.save()
-            new_finding_pk = new_finding.pk
-            return HttpResponseRedirect(
-                reverse("reporting:finding_detail", kwargs={"pk": new_finding_pk})
-            )
+            new_finding = form.save(commit=False)
+            new_finding.save()
+            form.save_m2m()
+            return HttpResponseRedirect(reverse("reporting:finding_detail", kwargs={"pk": new_finding.pk}))
         logger.warning(form.errors.as_data())
         return render(self.request, "reporting/finding_form.html", {"form": form})
 
@@ -917,9 +890,7 @@ def findings_list(request):
         )
         findings = (
             Finding.objects.select_related("severity", "finding_type")
-            .filter(
-                Q(title__icontains=search_term) | Q(description__icontains=search_term)
-            )
+            .filter(Q(title__icontains=search_term) | Q(description__icontains=search_term))
             .order_by("severity__weight", "-cvss_score", "finding_type", "title")
         )
     else:
@@ -941,9 +912,7 @@ def reports_list(request):
 
     :template:`reporting/report_list.html`
     """
-    reports = (
-        Report.objects.select_related("created_by").all().order_by("complete", "title")
-    )
+    reports = Report.objects.select_related("created_by").all().order_by("complete", "title")
     reports_filter = ReportFilter(request.GET, queryset=reports)
     return render(request, "reporting/report_list.html", {"filter": reports_filter})
 
@@ -962,11 +931,7 @@ def archive_list(request):
 
     :template:`reporting/archives.html`
     """
-    archives = (
-        Archive.objects.select_related("project__client")
-        .all()
-        .order_by("project__client")
-    )
+    archives = Archive.objects.select_related("project__client").all().order_by("project__client")
     archive_filter = ArchiveFilter(request.GET, queryset=archives)
     return render(request, "reporting/archives.html", {"filter": archive_filter})
 
@@ -1011,7 +976,7 @@ def generate_report_name(report_instance):
 
     def replace_chars(report_name):
         """Remove illegal characters from the report name."""
-        report_name =  report_name.replace("–", "-")
+        report_name = report_name.replace("–", "-")
         return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", report_name)
 
     report_config = ReportConfiguration.get_solo()
@@ -1028,7 +993,7 @@ def zip_directory(path, zip_handler):
     """
     # Walk the target directory
     abs_src = os.path.abspath(path)
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         # Add each file to the zip file handler
         for file in files:
             absname = os.path.abspath(os.path.join(root, file))
@@ -1044,9 +1009,7 @@ def archive(request, pk):
     single Zip file for archiving.
     """
     try:
-        report_instance = Report.objects.select_related("project", "project__client").get(
-            pk=pk
-        )
+        report_instance = Report.objects.select_related("project", "project__client").get(pk=pk)
         # output_path = os.path.join(settings.MEDIA_ROOT, report_instance.title)
         # evidence_path = os.path.join(settings.MEDIA_ROOT)
         archive_loc = os.path.join(settings.MEDIA_ROOT, "archives/")
@@ -1057,20 +1020,14 @@ def archive(request, pk):
         if report_instance.docx_template:
             docx_template = report_instance.docx_template.document.path
         else:
-            docx_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="docx"
-            ).document.path
+            docx_template = ReportTemplate.objects.get(default=True, doc_type__doc_type="docx").document.path
         if report_instance.pptx_template:
             pptx_template = report_instance.pptx_template.document.path
         else:
-            pptx_template = ReportTemplate.objects.get(
-                default=True, doc_type__doc_type="pptx"
-            ).document.path
+            pptx_template = ReportTemplate.objects.get(default=True, doc_type__doc_type="pptx").document.path
 
         engine = reportwriter.Reportwriter(report_instance, template_loc=None)
-        json_doc, word_doc, excel_doc, ppt_doc = engine.generate_all_reports(
-            docx_template, pptx_template
-        )
+        json_doc, word_doc, excel_doc, ppt_doc = engine.generate_all_reports(docx_template, pptx_template)
 
         # Convert the dict to pretty JSON output for the file
         pretty_json = json.dumps(json_doc, indent=4)
@@ -1128,12 +1085,8 @@ def download_archive(request, pk):
     file_path = os.path.join(settings.MEDIA_ROOT, archive_instance.report_archive.path)
     if os.path.exists(file_path):
         with open(file_path, "rb") as archive_file:
-            response = HttpResponse(
-                archive_file.read(), content_type="application/x-zip-compressed"
-            )
-            response["Content-Disposition"] = "attachment; filename=" + os.path.basename(
-                file_path
-            )
+            response = HttpResponse(archive_file.read(), content_type="application/x-zip-compressed")
+            response["Content-Disposition"] = "attachment; filename=" + os.path.basename(file_path)
             return response
     raise Http404
 
@@ -1201,6 +1154,12 @@ class FindingCreate(LoginRequiredMixin, CreateView):
         )
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
 
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
+
 
 class FindingUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -1221,20 +1180,22 @@ class FindingUpdate(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "reporting:finding_detail", kwargs={"pk": self.object.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
         return ctx
 
     def get_success_url(self):
         messages.success(
             self.request,
-            "Master record for {} was successfully updated".format(
-                self.get_object().title
-            ),
+            "Master record for {} was successfully updated".format(self.get_object().title),
             extra_tags="alert-success",
         )
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class FindingDelete(LoginRequiredMixin, DeleteView):
@@ -1261,9 +1222,7 @@ class FindingDelete(LoginRequiredMixin, DeleteView):
     def get_success_url(self):
         messages.warning(
             self.request,
-            "Master record for {} was successfully deleted".format(
-                self.get_object().title
-            ),
+            "Master record for {} was successfully deleted".format(self.get_object().title),
             extra_tags="alert-warning",
         )
         return reverse_lazy("reporting:findings")
@@ -1357,9 +1316,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.project
         if self.project:
-            ctx["cancel_link"] = reverse(
-                "rolodex:project_detail", kwargs={"pk": self.project.pk}
-            )
+            ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.project.pk})
         else:
             ctx["cancel_link"] = reverse("reporting:reports")
         return ctx
@@ -1378,13 +1335,14 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         form.instance.created_by = self.request.user
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["title"] = form.instance.title
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
         return super().form_valid(form)
 
     def get_initial(self):
         if self.project:
-            title = "{} {} ({}) Report".format(
-                self.project.client, self.project.project_type, self.project.start_date
-            )
+            title = "{} {} ({}) Report".format(self.project.client, self.project.project_type, self.project.start_date)
             return {"title": title, "project": self.project.id}
         return super().get_initial()
 
@@ -1429,9 +1387,7 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["project"] = self.object.project
-        ctx["cancel_link"] = reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
         return ctx
 
     def form_valid(self, form):
@@ -1439,12 +1395,13 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
         self.request.session["active_report"]["id"] = form.instance.id
         self.request.session["active_report"]["title"] = form.instance.title
         self.request.session.modified = True
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
         return super().form_valid(form)
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Successfully updated the report", extra_tags="alert-success"
-        )
+        messages.success(self.request, "Successfully updated the report", extra_tags="alert-success")
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
 
 
@@ -1481,16 +1438,12 @@ class ReportDelete(LoginRequiredMixin, DeleteView):
             "Successfully deleted the report and associated evidence files",
             extra_tags="alert-warning",
         )
-        return "{}#reports".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
-        )
+        return "{}#reports".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse(
-            "rolodex:project_detail", kwargs={"pk": self.object.project.pk}
-        )
+        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         ctx["object_type"] = "entire report, evidence and all"
         ctx["object_to_be_deleted"] = queryset.title
         return ctx
@@ -1562,6 +1515,7 @@ class ReportTemplateCreate(LoginRequiredMixin, CreateView):
         self.object = form.save(commit=False)
         self.object.uploaded_by = self.request.user
         self.object.save()
+        form.save_m2m()
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -1587,16 +1541,17 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
     def has_permission(self):
         self.object = self.get_object()
         if self.object.protected:
-            if self.request.user.role in ("manager", "admin",):
+            if self.request.user.role in (
+                "manager",
+                "admin",
+            ):
                 return True
             return self.request.user.is_staff
         return self.request.user.is_active
 
     def handle_no_permission(self):
         self.object = self.get_object()
-        messages.error(
-            self.request, "That template is protected – only an admin can edit it"
-        )
+        messages.error(self.request, "That template is protected – only an admin can edit it")
         return HttpResponseRedirect(
             reverse(
                 "reporting:template_detail",
@@ -1621,6 +1576,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         self.object = form.save(commit=False)
         self.object.uploaded_by = self.request.user
         self.object.save()
+        form.save_m2m()
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -1649,16 +1605,14 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
     def has_permission(self):
         self.object = self.get_object()
         if self.object.protected:
-            if self.request.user.role == "manager" or self.request.user.role == "admin":
+            if self.request.user.role in ("manager", "admin"):
                 return True
             return self.request.user.is_staff
         return self.request.user.is_active
 
     def handle_no_permission(self):
         self.object = self.get_object()
-        messages.error(
-            self.request, "That template is protected – only an admin can edit it"
-        )
+        messages.error(self.request, "That template is protected – only an admin can edit it")
         return HttpResponseRedirect(
             reverse(
                 "reporting:template_detail",
@@ -1680,9 +1634,7 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse(
-            "reporting:template_detail", kwargs={"pk": queryset.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:template_detail", kwargs={"pk": queryset.pk})
         ctx["object_type"] = "report template file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.filename
         return ctx
@@ -1769,9 +1721,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
                     "The selected report template has linting errors and cannot be used to render a DOCX document",
                     extra_tags="alert-danger",
                 )
-                return HttpResponseRedirect(
-                    reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
-                )
+                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": self.object.pk}))
 
             # Template available and passes linting checks, so proceed with generation
             engine = reportwriter.Reportwriter(self.object, template_loc)
@@ -1847,9 +1797,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                "Halted document generation because an evidence file is missing: {}".format(
-                    error
-                ),
+                "Halted document generation because an evidence file is missing: {}".format(error),
                 extra_tags="alert-danger",
             )
         except UnrecognizedImageError as error:
@@ -1861,9 +1809,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                "Encountered an error generating the document: {}".format(error)
-                .replace('"', "")
-                .replace("'", "`"),
+                "Encountered an error generating the document: {}".format(error).replace('"', "").replace("'", "`"),
                 extra_tags="alert-danger",
             )
         except Exception as error:
@@ -1875,15 +1821,11 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                "Encountered an error generating the document: {}".format(error)
-                .replace('"', "")
-                .replace("'", "`"),
+                "Encountered an error generating the document: {}".format(error).replace('"', "").replace("'", "`"),
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": self.object.pk}))
 
 
 class GenerateReportXLSX(LoginRequiredMixin, SingleObjectMixin, View):
@@ -1931,9 +1873,7 @@ class GenerateReportXLSX(LoginRequiredMixin, SingleObjectMixin, View):
                 "Encountered an error generating the spreadsheet: {}".format(error),
                 extra_tags="alert-danger",
             )
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": self.object.pk}))
 
 
 class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
@@ -1975,9 +1915,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
                     "The selected report template has linting errors and cannot be used to render a PPTX document",
                     extra_tags="alert-danger",
                 )
-                return HttpResponseRedirect(
-                    reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
-                )
+                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": self.object.pk}))
 
             # Template available and passes linting checks, so proceed with generation
             engine = reportwriter.Reportwriter(self.object, template_loc)
@@ -2034,9 +1972,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                "Halted document generation because an evidence file is missing: {}".format(
-                    error
-                ),
+                "Halted document generation because an evidence file is missing: {}".format(error),
                 extra_tags="alert-danger",
             )
         except UnrecognizedImageError as error:
@@ -2048,9 +1984,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                "Encountered an error generating the document: {}".format(error)
-                .replace('"', "")
-                .replace("'", "`"),
+                "Encountered an error generating the document: {}".format(error).replace('"', "").replace("'", "`"),
                 extra_tags="alert-danger",
             )
         except Exception as error:
@@ -2062,15 +1996,11 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, View):
             )
             messages.error(
                 self.request,
-                "Encountered an error generating the document: {}".format(error)
-                .replace('"', "")
-                .replace("'", "`"),
+                "Encountered an error generating the document: {}".format(error).replace('"', "").replace("'", "`"),
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": self.object.pk}))
 
 
 class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, View):
@@ -2114,9 +2044,7 @@ class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, View):
             pptx_template = pptx_template.document.path
 
             # Generate all types of reports
-            json_doc, docx_doc, xlsx_doc, pptx_doc = engine.generate_all_reports(
-                docx_template, pptx_template
-            )
+            json_doc, docx_doc, xlsx_doc, pptx_doc = engine.generate_all_reports(docx_template, pptx_template)
 
             # Convert the dict to pretty JSON output for the file
             pretty_json = json.dumps(json_doc, indent=4)
@@ -2167,9 +2095,7 @@ class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(
-            reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
-        )
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": self.object.pk}))
 
 
 # CBVs related to :model:`reporting.ReportFindingLink`
@@ -2196,54 +2122,39 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.report.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk})
         return ctx
 
     def form_valid(self, form):
-        # Check if severity, position, or assigned_to has changed
+        if form.changed_data:
+            changed_at = dateformat.format(timezone.now(), "H:i:s e")
+            async_to_sync(channel_layer.group_send)(
+                "finding_{}".format(self.object.id),
+                {
+                    "type": "message",
+                    "message": {
+                        "message": f"User {self.request.user.username} updated this finding at {changed_at}",
+                        "level": "warning",
+                        "title": "Content Has Changed",
+                    },
+                },
+            )
+
+        # Send Websockets messages if assignment changed
         if "assigned_to" in form.changed_data:
             # Get the entries current values (those being changed)
             old_entry = ReportFindingLink.objects.get(pk=self.object.pk)
             old_assignee = old_entry.assigned_to
             # Notify new assignee over WebSockets
             if "assigned_to" in form.changed_data:
-                new_users_assignments = {}
-                old_users_assignments = {}
                 # Only notify if the assignee is not the user who made the change
                 if self.request.user != self.object.assigned_to:
-                    # Count the current user's total assignments
-                    new_users_assignments = (
-                        ReportFindingLink.objects.select_related(
-                            "report", "report__project"
-                        )
-                        .filter(
-                            Q(assigned_to=self.object.assigned_to)
-                            & Q(report__complete=False)
-                            & Q(complete=False)
-                        )
-                        .count()
-                        + 1
-                    )
-                    old_users_assignments = (
-                        ReportFindingLink.objects.select_related(
-                            "report", "report__project"
-                        )
-                        .filter(
-                            Q(assigned_to=old_assignee)
-                            & Q(report__complete=False)
-                            & Q(complete=False)
-                        )
-                        .count()
-                        - 1
-                    )
                     try:
                         # Send a message to the assigned user
                         async_to_sync(channel_layer.group_send)(
                             "notify_{}".format(self.object.assigned_to),
                             {
-                                "type": "task",
+                                "type": "message",
                                 "message": {
                                     "message": "You have been assigned to this finding for {}:\n{}".format(
                                         self.object.report, self.object.title
@@ -2251,19 +2162,18 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                                     "level": "info",
                                     "title": "New Assignment",
                                 },
-                                "assignments": new_users_assignments,
                             },
                         )
                     except gaierror:
                         # WebSocket are unavailable (unit testing)
                         pass
-                if self.request.user != old_assignee and old_users_assignments:
+                if self.request.user != old_assignee:
                     try:
                         # Send a message to the unassigned user
                         async_to_sync(channel_layer.group_send)(
                             "notify_{}".format(old_assignee),
                             {
-                                "type": "task",
+                                "type": "message",
                                 "message": {
                                     "message": "You have been unassigned from this finding for {}:\n{}".format(
                                         self.object.report, self.object.title
@@ -2271,22 +2181,22 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                                     "level": "info",
                                     "title": "Assignment Change",
                                 },
-                                "assignments": old_users_assignments,
                             },
                         )
                     except gaierror:
                         # WebSocket are unavailable (unit testing)
                         pass
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        user_primary_keys = ProjectAssignment.objects.filter(
-            project=self.object.report.project
-        ).values_list("operator", flat=True)
-        form.fields["assigned_to"].queryset = User.objects.filter(
-            id__in=user_primary_keys
+        user_primary_keys = ProjectAssignment.objects.filter(project=self.object.report.project).values_list(
+            "operator", flat=True
         )
+        form.fields["assigned_to"].queryset = User.objects.filter(id__in=user_primary_keys)
         return form
 
     def get_success_url(self):
@@ -2382,13 +2292,9 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "reporting:report_detail", kwargs={"pk": self.finding_instance.report.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.finding_instance.report.pk})
         if "modal" in self.kwargs:
-            friendly_names = self.evidence_queryset.values_list(
-                "friendly_name", flat=True
-            )
+            friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
             used_friendly_names = []
             # Convert the queryset into a list to pass to JavaScript later
             for name in friendly_names:
@@ -2402,6 +2308,7 @@ class EvidenceCreate(LoginRequiredMixin, CreateView):
         self.object.uploaded_by = self.request.user
         self.object.finding = self.finding_instance
         self.object.save()
+        form.save_m2m()
         if os.path.isfile(self.object.document.path):
             messages.success(
                 self.request,
@@ -2459,9 +2366,13 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
             "Successfully updated {}".format(self.get_object().friendly_name),
             extra_tags="alert-success",
         )
-        return reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
-        )
+        return reverse("reporting:evidence_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.save()
+        form.save_m2m()
+        return super().form_valid(form)
 
 
 class EvidenceDelete(LoginRequiredMixin, DeleteView):
@@ -2494,16 +2405,12 @@ class EvidenceDelete(LoginRequiredMixin, DeleteView):
             message,
             extra_tags="alert-success",
         )
-        return reverse(
-            "reporting:report_detail", kwargs={"pk": self.object.finding.report.pk}
-        )
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.finding.report.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse(
-            "reporting:evidence_detail", kwargs={"pk": queryset.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:evidence_detail", kwargs={"pk": queryset.pk})
         ctx["object_type"] = "evidence file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.friendly_name
         return ctx
@@ -2533,9 +2440,7 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         finding_instance = get_object_or_404(Finding, pk=self.kwargs.get("pk"))
-        ctx["cancel_link"] = reverse(
-            "reporting:finding_detail", kwargs={"pk": finding_instance.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:finding_detail", kwargs={"pk": finding_instance.pk})
         return ctx
 
     def get_success_url(self):
@@ -2544,9 +2449,7 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
             "Successfully added your note to this finding",
             extra_tags="alert-success",
         )
-        return "{}#notes".format(
-            reverse("reporting:finding_detail", kwargs={"pk": self.object.finding.id})
-        )
+        return "{}#notes".format(reverse("reporting:finding_detail", kwargs={"pk": self.object.finding.id}))
 
     def form_valid(self, form, **kwargs):
         self.object = form.save(commit=False)
@@ -2575,8 +2478,7 @@ class FindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        return self.get_object().operator.id == self.request.user.id
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
@@ -2584,16 +2486,12 @@ class FindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "reporting:finding_detail", kwargs={"pk": self.object.finding.pk}
-        )
+        ctx["cancel_link"] = reverse("reporting:finding_detail", kwargs={"pk": self.get_object().finding.pk})
         return ctx
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Successfully updated the note", extra_tags="alert-success"
-        )
-        return reverse("reporting:finding_detail", kwargs={"pk": self.object.finding.pk})
+        messages.success(self.request, "Successfully updated the note", extra_tags="alert-success")
+        return reverse("reporting:finding_detail", kwargs={"pk": self.get_object().finding.pk})
 
 
 # CBVs related to :model:`reporting.LocalFindingNote`
@@ -2619,12 +2517,8 @@ class LocalFindingNoteCreate(LoginRequiredMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        self.finding_instance = get_object_or_404(
-            ReportFindingLink, pk=self.kwargs.get("pk")
-        )
-        ctx["cancel_link"] = reverse(
-            "reporting:local_edit", kwargs={"pk": self.finding_instance.pk}
-        )
+        finding_instance = get_object_or_404(ReportFindingLink, pk=self.kwargs.get("pk"))
+        ctx["cancel_link"] = reverse("reporting:local_edit", kwargs={"pk": finding_instance.pk})
         return ctx
 
     def get_success_url(self):
@@ -2662,8 +2556,7 @@ class LocalFindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView
     template_name = "note_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        return self.get_object().operator.id == self.request.user.id
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
@@ -2672,13 +2565,9 @@ class LocalFindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         note_instance = get_object_or_404(LocalFindingNote, pk=self.kwargs.get("pk"))
-        ctx["cancel_link"] = reverse(
-            "reporting:local_edit", kwargs={"pk": note_instance.finding.id}
-        )
+        ctx["cancel_link"] = reverse("reporting:local_edit", kwargs={"pk": note_instance.finding.id})
         return ctx
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Successfully updated the note", extra_tags="alert-success"
-        )
-        return reverse("reporting:local_edit", kwargs={"pk": self.object.finding.pk})
+        messages.success(self.request, "Successfully updated the note", extra_tags="alert-success")
+        return reverse("reporting:local_edit", kwargs={"pk": self.get_object().finding.pk})

@@ -14,7 +14,9 @@ from ghostwriter.factories import (
     ReportFactory,
     ReportFindingLinkFactory,
     ReportTemplateFactory,
+    SeverityFactory,
 )
+from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.reporting.forms import (
     EvidenceForm,
     FindingForm,
@@ -24,6 +26,7 @@ from ghostwriter.reporting.forms import (
     ReportForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
+    SeverityForm,
 )
 
 logging.disable(logging.CRITICAL)
@@ -471,17 +474,13 @@ class SelectReportTemplateFormTests(TestCase):
         self.assertTrue(form.is_valid())
 
     def test_blank_docx_template(self):
-        form = self.form_data(
-            instance=self.report, docx_template=None, pptx_template=self.pptx_template
-        )
+        form = self.form_data(instance=self.report, docx_template=None, pptx_template=self.pptx_template)
         errors = form["docx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
 
     def test_blank_pptx_template(self):
-        form = self.form_data(
-            instance=self.report, docx_template=self.docx_template, pptx_template=None
-        )
+        form = self.form_data(instance=self.report, docx_template=self.docx_template, pptx_template=None)
         errors = form["pptx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "required")
@@ -505,3 +504,56 @@ class SelectReportTemplateFormTests(TestCase):
         errors = form["pptx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid_choice")
+
+
+class SeverityFormTests(TestCase):
+    """Collection of tests for :form:`reporting.SeverityForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.severity = SeverityFactory(severity="Critical", weight=1, color="966FD6")
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        severity=None,
+        weight=None,
+        color=None,
+        **kwargs,
+    ):
+        return SeverityForm(
+            data={
+                "severity": severity,
+                "weight": weight,
+                "color": color,
+            },
+        )
+
+    def test_valid_data(self):
+        severity = to_dict(self.severity).copy()
+        severity["severity"] = "High"
+        form = self.form_data(**severity)
+        self.assertTrue(form.is_valid())
+
+    def test_invalid_color(self):
+        severity = to_dict(self.severity).copy()
+        severity["severity"] = "Medium"
+        severity["color"] = "#F4B083"
+        form = self.form_data(**severity)
+        errors = form["color"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "max_length")
+
+        severity["color"] = "#F4B08"
+        form = self.form_data(**severity)
+        errors = form["color"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid")
+
+        severity["color"] = "F4B08G"
+        form = self.form_data(**severity)
+        errors = form["color"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid")

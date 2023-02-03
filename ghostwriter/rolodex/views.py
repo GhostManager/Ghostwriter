@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Rolodex application."""
+"""This contains all the views used by the Rolodex application."""
 
 # Standard Libraries
 import datetime
@@ -160,6 +160,9 @@ def ajax_update_project_objectives(request):
             priority = ObjectivePriority.objects.get(priority__iexact=priority_class)
         except ObjectivePriority.DoesNotExist:
             priority = None
+
+        data = {"result": "success"}
+
         if priority:
             ignore = ["placeholder", "ignore"]
             counter = 1
@@ -180,8 +183,6 @@ def ajax_update_project_objectives(request):
                     logger.info("Ignored data-id value %s", objective_id)
         else:
             data = {"result": "specified priority, {}, is invalid".format(priority_class)}
-        # If all went well, return success
-        data = {"result": "success"}
     else:
         data = {"result": "error"}
     return JsonResponse(data)
@@ -195,12 +196,11 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
     model = ProjectObjective
 
     def post(self, *args, **kwargs):
-        data = {}
-        self.object = self.get_object()
+        objective = self.get_object()
         try:
             success = False
             # Save the old status
-            old_status = self.object.status
+            old_status = objective.status
             # Get all available status
             all_status = ObjectiveStatus.objects.all()
             total_status = all_status.count()
@@ -214,18 +214,16 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
                     else:
                         new_status = all_status[0]
 
-                    self.object.status = new_status
+                    objective.status = new_status
                     logger.info("Switching to %s", new_status)
-                    self.object.save()
+                    objective.save()
                     success = True
 
             if not success:
-                logger.warning(
-                    "Failed to match old status, %s, with any existing status, so set status to ``0``"
-                )
+                logger.warning("Failed to match old status, %s, with any existing status, so set status to ``0``")
                 new_status = all_status[0]
-                self.object.status = new_status
-                self.object.save()
+                objective.status = new_status
+                objective.save()
 
             # Prepare the JSON response data
             data = {
@@ -234,8 +232,8 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             }
             logger.info(
                 "Updated status of %s %s from %s to %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                objective.__class__.__name__,
+                objective.id,
                 old_status,
                 new_status,
                 self.request.user,
@@ -846,9 +844,7 @@ def project_list(request):
 
     :template:`rolodex/project_list.html`
     """
-    projects = (
-        Project.objects.select_related("client").all().order_by("complete", "client")
-    )
+    projects = Project.objects.select_related("client").all().order_by("complete", "client")
     # Copy the GET request data
     data = request.GET.copy()
     # If user has not submitted their own filter, default to showing only active projects
@@ -888,12 +884,8 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        domain_history = History.objects.select_related("domain").filter(
-            client=client_instance
-        )
-        server_history = ServerHistory.objects.select_related("server").filter(
-            client=client_instance
-        )
+        domain_history = History.objects.select_related("domain").filter(client=client_instance)
+        server_history = ServerHistory.objects.select_related("server").filter(client=client_instance)
         projects = Project.objects.filter(client=client_instance)
         client_domains = []
         for domain in domain_history:
@@ -963,7 +955,7 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                self.object = form.save(commit=False)
 
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
@@ -971,6 +963,8 @@ class ClientCreate(LoginRequiredMixin, CreateView):
                     contacts.save()
 
                 if form.is_valid() and contacts_valid:
+                    self.object.save()
+                    form.save_m2m()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1026,13 +1020,9 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse(
-            "rolodex:client_detail", kwargs={"pk": self.object.id}
-        )
+        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
         if self.request.POST:
-            ctx["contacts"] = ClientContactFormSet(
-                self.request.POST, prefix="poc", instance=self.object
-            )
+            ctx["contacts"] = ClientContactFormSet(self.request.POST, prefix="poc", instance=self.object)
         else:
             ctx["contacts"] = ClientContactFormSet(prefix="poc", instance=self.object)
         return ctx
@@ -1047,7 +1037,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                self.object = form.save(commit=False)
 
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
@@ -1055,6 +1045,8 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
                     contacts.save()
 
                 if form.is_valid() and contacts_valid:
+                    self.object.save()
+                    form.save_m2m()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1093,9 +1085,7 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "client and all associated data"
         ctx["object_to_be_deleted"] = queryset.name
-        ctx["cancel_link"] = reverse(
-            "rolodex:client_detail", kwargs={"pk": self.object.id}
-        )
+        ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.object.id})
         return ctx
 
 
@@ -1125,9 +1115,7 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
             "Note successfully added to this client.",
             extra_tags="alert-success",
         )
-        return "{}#notes".format(
-            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
-        )
+        return "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
 
     def get_initial(self):
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
@@ -1138,9 +1126,7 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
         ctx["note_object"] = client_instance
-        ctx["cancel_link"] = "{}#notes".format(
-            reverse("rolodex:client_detail", kwargs={"pk": client_instance.id})
-        )
+        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": client_instance.id}))
         return ctx
 
     def form_valid(self, form, **kwargs):
@@ -1180,19 +1166,13 @@ class ClientNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return redirect("home:dashboard")
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Note successfully updated.", extra_tags="alert-success"
-        )
-        return "{}#notes".format(
-            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
-        )
+        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
+        return "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.client
-        ctx["cancel_link"] = "{}#notes".format(
-            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
-        )
+        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
         return ctx
 
 
@@ -1219,7 +1199,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
     **Context**
 
     ``client``
-        Instance of :model:`rolodex.CLient` associated with this project
+        Instance of :model:`rolodex.Client` associated with this project
     ``objectives``
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``
@@ -1263,16 +1243,12 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["client"] = self.client
         if self.client:
-            ctx["cancel_link"] = reverse(
-                "rolodex:client_detail", kwargs={"pk": self.client.pk}
-            )
+            ctx["cancel_link"] = reverse("rolodex:client_detail", kwargs={"pk": self.client.pk})
         else:
             ctx["cancel_link"] = reverse("rolodex:projects")
         if self.request.POST:
             ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj")
-            ctx["assignments"] = ProjectAssignmentFormSet(
-                self.request.POST, prefix="assign"
-            )
+            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign")
             ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope")
             ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target")
             ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card")
@@ -1310,7 +1286,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                self.object = form.save(commit=False)
 
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
@@ -1345,7 +1321,9 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     and targets_valid
                     and whitecards_valid
                 ):
-                    return super().form_valid(form)
+                    self.object.save()
+                    form.save_m2m()
+                    return HttpResponseRedirect(self.get_success_url())
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
@@ -1402,41 +1380,23 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["object"] = self.get_object()
-        ctx["cancel_link"] = reverse(
-            "rolodex:project_detail", kwargs={"pk": self.object.pk}
-        )
+        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
         if self.request.POST:
-            ctx["objectives"] = ProjectObjectiveFormSet(
-                self.request.POST, prefix="obj", instance=self.object
-            )
-            ctx["assignments"] = ProjectAssignmentFormSet(
-                self.request.POST, prefix="assign", instance=self.object
-            )
-            ctx["scopes"] = ProjectScopeFormSet(
-                self.request.POST, prefix="scope", instance=self.object
-            )
-            ctx["targets"] = ProjectTargetFormSet(
-                self.request.POST, prefix="target", instance=self.object
-            )
-            ctx["whitecards"] = WhiteCardFormSet(
-                self.request.POST, prefix="card", instance=self.object
-            )
+            ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj", instance=self.object)
+            ctx["assignments"] = ProjectAssignmentFormSet(self.request.POST, prefix="assign", instance=self.object)
+            ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope", instance=self.object)
+            ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target", instance=self.object)
+            ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card", instance=self.object)
         else:
-            ctx["objectives"] = ProjectObjectiveFormSet(
-                prefix="obj", instance=self.object
-            )
-            ctx["assignments"] = ProjectAssignmentFormSet(
-                prefix="assign", instance=self.object
-            )
+            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
+            ctx["assignments"] = ProjectAssignmentFormSet(prefix="assign", instance=self.object)
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
             ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
             ctx["whitecards"] = WhiteCardFormSet(prefix="card", instance=self.object)
         return ctx
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Project successfully saved.", extra_tags="alert-success"
-        )
+        messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
         return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
@@ -1453,7 +1413,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                self.object = form.save(commit=False)
 
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
@@ -1489,6 +1449,8 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     and targets_valid
                     and whitecards_valid
                 ):
+                    self.object.save()
+                    form.save_m2m()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1524,15 +1486,11 @@ class ProjectDelete(LoginRequiredMixin, DeleteView):
         queryset = kwargs["object"]
         ctx["object_type"] = "project and all associated data (reports, evidence, etc.)"
         ctx["object_to_be_deleted"] = queryset
-        ctx["cancel_link"] = "{}".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.id})
-        )
+        ctx["cancel_link"] = "{}".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.id}))
         return ctx
 
     def get_success_url(self):
-        return "{}#history".format(
-            reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id})
-        )
+        return "{}#history".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
 
 
 class ProjectNoteCreate(LoginRequiredMixin, CreateView):
@@ -1561,9 +1519,7 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
             "Note successfully added to this project.",
             extra_tags="alert-success",
         )
-        return "{}#notes".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
-        )
+        return "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
 
     def get_initial(self):
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
@@ -1574,9 +1530,7 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
         ctx["note_object"] = project_instance
-        ctx["cancel_link"] = "{}#notes".format(
-            reverse("rolodex:project_detail", kwargs={"pk": project_instance.id})
-        )
+        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": project_instance.id}))
         return ctx
 
     def form_valid(self, form, **kwargs):
@@ -1616,19 +1570,13 @@ class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return redirect("home:dashboard")
 
     def get_success_url(self):
-        messages.success(
-            self.request, "Note successfully updated.", extra_tags="alert-success"
-        )
-        return "{}#notes".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
-        )
+        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
+        return "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.object.project
-        ctx["cancel_link"] = "{}#notes".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
-        )
+        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
         return ctx
 
 
@@ -1656,12 +1604,12 @@ class DeconflictionCreate(LoginRequiredMixin, CreateView):
             "Deconfliction successfully saved.",
             extra_tags="alert-success",
         )
-        return "{}#deconflictions".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
-        )
+        return "{}#deconflictions".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_initial(self):
-        return {"status": 1,}
+        return {
+            "status": 1,
+        }
 
     def form_valid(self, form, **kwargs):
         self.object = form.save(commit=False)
@@ -1703,9 +1651,7 @@ class DeconflictionUpdate(LoginRequiredMixin, UpdateView):
             "Deconfliction successfully saved.",
             extra_tags="alert-success",
         )
-        return "{}#deconflictions".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
-        )
+        return "{}#deconflictions".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

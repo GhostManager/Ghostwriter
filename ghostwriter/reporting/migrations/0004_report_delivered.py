@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0003_findingnote'),
+        ("reporting", "0003_findingnote"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='report',
-            name='delivered',
-            field=models.BooleanField(default=False, help_text='Delivery status of the report', verbose_name='Delivered'),
+            model_name="report",
+            name="delivered",
+            field=models.BooleanField(
+                default=False, help_text="Delivery status of the report", verbose_name="Delivered"
+            ),
         ),
     ]

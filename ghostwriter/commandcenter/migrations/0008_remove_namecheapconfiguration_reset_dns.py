@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('commandcenter', '0007_auto_20210616_0340'),
+        ("commandcenter", "0007_auto_20210616_0340"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='namecheapconfiguration',
-            name='reset_dns',
+            model_name="namecheapconfiguration",
+            name="reset_dns",
         ),
     ]

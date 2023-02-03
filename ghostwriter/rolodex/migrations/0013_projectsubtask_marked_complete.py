@@ -4,15 +4,16 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0012_auto_20210211_1853'),
+        ("rolodex", "0012_auto_20210211_1853"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='projectsubtask',
-            name='marked_complete',
-            field=models.DateField(blank=True, help_text='Date the task was marked complete', null=True, verbose_name='Marked Complete'),
+            model_name="projectsubtask",
+            name="marked_complete",
+            field=models.DateField(
+                blank=True, help_text="Date the task was marked complete", null=True, verbose_name="Marked Complete"
+            ),
         ),
     ]

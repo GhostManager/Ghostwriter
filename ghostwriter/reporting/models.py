@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the Reporting application."""
+"""This contains all the database models used by the Reporting application."""
 
 # Standard Libraries
 import json
@@ -8,11 +8,16 @@ import os
 # Django Imports
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 
-from .validators import validate_evidence_extension
+# 3rd Party Libraries
+from taggit.managers import TaggableManager
+
+# Ghostwriter Libraries
+from ghostwriter.reporting.validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
 logger = logging.getLogger(__name__)
@@ -23,6 +28,12 @@ class Severity(models.Model):
     Stores an individual severity rating.
     """
 
+    def get_default_weight():
+        """
+        Return the default weight for a new :model:`reporting.Severity` instance.
+        """
+        return Severity.objects.count() + 1
+
     severity = models.CharField(
         "Severity",
         max_length=255,
@@ -31,7 +42,8 @@ class Severity(models.Model):
     )
     weight = models.IntegerField(
         "Severity Weight",
-        default=1,
+        default=get_default_weight,
+        validators=[MinValueValidator(1)],
         help_text="Weight for sorting severity categories in reports (lower numbers are more severe)",
     )
     color = models.CharField(
@@ -60,9 +72,7 @@ class Severity(models.Model):
         Return the severity color code as a list of hexadecimal.
         """
         n = 2
-        return tuple(
-            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
-        )
+        return tuple(hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n))
 
     count = property(count_findings)
 
@@ -74,15 +84,51 @@ class Severity(models.Model):
     def __str__(self):
         return f"{self.severity}"
 
+    def clean(self):
+        old_entry = None
+        if self.pk:
+            try:
+                old_entry = self.__class__.objects.get(pk=self.pk)
+            except self.__class__.DoesNotExist:
+                pass
+
+        # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
+        # whenever ``save()`` is called
+
+        # The following adjustments use the queryset ``update()`` method (direct SQL statement)
+        # instead of calling ``save()`` on the individual model instance
+        # This avoids forever looping through position changes
+
+        severity_queryset = self.__class__.objects.all()
+        if old_entry:
+            old_weight = old_entry.weight
+            if old_weight != self.weight:
+                self.weight = max(self.weight, 1)
+                if self.weight > severity_queryset.count():
+                    self.weight = severity_queryset.count()
+
+                counter = 1
+                if severity_queryset:
+                    for category in severity_queryset:
+                        if not self.pk == category.pk:
+                            if self.weight == counter:
+                                counter += 1
+                            severity_queryset.filter(id=category.id).update(weight=counter)
+                            counter += 1
+                        else:
+                            pass
+                else:
+                    self.weight = 1
+        else:
+            self.weight = severity_queryset.count() + 1
+
 
 class FindingType(models.Model):
     """
     Stores an individual finding type.
     """
 
-    finding_type = models.CharField(
-        "Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)"
-    )
+    finding_type = models.CharField("Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)")
 
     def count_findings(self):
         """
@@ -160,6 +206,19 @@ class Finding(models.Model):
         blank=True,
         help_text="Provide notes for your team that describes how the finding is intended to be used or edited during editing",
     )
+    cvss_score = models.FloatField(
+        "CVSS Score v3.0",
+        blank=True,
+        null=True,
+        help_text="Set the CVSS score for this finding",
+    )
+    cvss_vector = models.CharField(
+        "CVSS Vector v3.0",
+        blank=True,
+        max_length=54,
+        help_text="Set the CVSS vector for this finding",
+    )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
@@ -172,18 +231,6 @@ class Finding(models.Model):
         on_delete=models.PROTECT,
         null=True,
         help_text="Select a finding category that fits",
-    )
-    cvss_score = models.FloatField(
-        "CVSS Score v3.0",
-        blank=True,
-        null=True,
-        help_text="Set the CVSS score for this finding"
-    )
-    cvss_vector = models.CharField(
-        "CVSS Vector v3.0",
-        blank=True,
-        max_length=54,
-        help_text="Set the CVSS vector for this finding"
     )
 
     class Meta:
@@ -268,10 +315,14 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Add a line explaining any file changes",
     )
-    # Foreign Keys
-    uploaded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    landscape = models.BooleanField(
+        "Landscape Orientation",
+        default=False,
+        help_text="Flag this document as landscape orientation",
     )
+    tags = TaggableManager(blank=True)
+    # Foreign Keys
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     client = models.ForeignKey(
         "rolodex.Client",
         on_delete=models.CASCADE,
@@ -308,9 +359,7 @@ class ReportTemplate(models.Model):
             try:
                 result_code = self.lint_result["result"]
             except json.decoder.JSONDecodeError:  # pragma: no cover
-                logger.exception(
-                    "Could not decode data in model as JSON: %s", self.lint_result
-                )
+                logger.exception("Could not decode data in model as JSON: %s", self.lint_result)
             except Exception:  # pragma: no cover
                 logger.exception(
                     "Encountered an exception while trying to decode this as JSON: %s",
@@ -330,18 +379,11 @@ class Report(models.Model):
         default="New Report",
         help_text="Provide a meaningful title for this report - this is only seen in Ghostwriter",
     )
-    creation = models.DateField(
-        "Creation Date", auto_now_add=True, help_text="Date the report was created"
-    )
-    last_update = models.DateField(
-        "Last Update", auto_now=True, help_text="Date the report was last touched"
-    )
-    complete = models.BooleanField(
-        "Completed", default=False, help_text="Mark the report as complete"
-    )
-    archived = models.BooleanField(
-        "Archived", default=False, help_text="Mark the report as archived"
-    )
+    creation = models.DateField("Creation Date", auto_now_add=True, help_text="Date the report was created")
+    last_update = models.DateField("Last Update", auto_now=True, help_text="Date the report was last touched")
+    complete = models.BooleanField("Completed", default=False, help_text="Mark the report as complete")
+    archived = models.BooleanField("Archived", default=False, help_text="Mark the report as archived")
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     project = models.ForeignKey(
         "rolodex.Project",
@@ -367,12 +409,8 @@ class Report(models.Model):
         null=True,
         help_text="Select the PowerPoint template to use for this report",
     )
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
-    delivered = models.BooleanField(
-        "Delivered", default=False, help_text="Delivery status of the report"
-    )
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    delivered = models.BooleanField("Delivered", default=False, help_text="Delivery status of the report")
 
     class Meta:
         ordering = ["-creation", "-last_update", "project"]
@@ -400,6 +438,7 @@ class ReportFindingLink(models.Model):
     position = models.IntegerField(
         "Report Position",
         default=1,
+        validators=[MinValueValidator(1)],
     )
     affected_entities = models.TextField(
         "Affected Entities",
@@ -465,6 +504,7 @@ class ReportFindingLink(models.Model):
         default=False,
         help_text="Identify a finding that was created for this report instead of copied from the library",
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
@@ -490,13 +530,13 @@ class ReportFindingLink(models.Model):
         "CVSS Score v3.0",
         blank=True,
         null=True,
-        help_text="Set the CVSS score for this finding"
+        help_text="Set the CVSS score for this finding",
     )
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
         max_length=54,
-        help_text="Set the CVSS vector for this finding"
+        help_text="Set the CVSS vector for this finding",
     )
 
     class Meta:
@@ -544,9 +584,9 @@ class ReportFindingLink(models.Model):
                             # Adjust position to close gap created by moved finding
                             if finding.position > old_position:
                                 new_pos = finding.position - 1
-                                old_severity_queryset.filter(id=finding.id).order_by(
-                                    "position"
-                                ).update(position=new_pos)
+                                old_severity_queryset.filter(id=finding.id).order_by("position").update(
+                                    position=new_pos
+                                )
 
                 # The ``ReportFindingLinkUpdateForm`` sets minimum number to 0, but check again for funny business
                 self.position = max(self.position, 1)
@@ -564,9 +604,7 @@ class ReportFindingLink(models.Model):
                             # Increment position counter when counter equals new value
                             if self.position == counter:
                                 counter += 1
-                            finding_queryset.filter(id=finding.id).update(
-                                position=counter
-                            )
+                            finding_queryset.filter(id=finding.id).update(position=counter)
                             counter += 1
                         else:
                             pass
@@ -620,11 +658,10 @@ class Evidence(models.Model):
         blank=True,
         help_text="Describe this evidence to your team",
     )
+    tags = TaggableManager(blank=True)
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE)
-    uploaded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["finding", "document"]
@@ -668,9 +705,7 @@ class FindingNote(models.Model):
     Stores an individual finding note, related to :model:`reporting.Finding`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -679,9 +714,7 @@ class FindingNote(models.Model):
     )
     # Foreign Keys
     finding = models.ForeignKey("Finding", on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["finding", "-timestamp"]
@@ -697,9 +730,7 @@ class LocalFindingNote(models.Model):
     Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`.
     """
 
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -708,9 +739,7 @@ class LocalFindingNote(models.Model):
     )
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["finding", "-timestamp"]

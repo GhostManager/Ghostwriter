@@ -1,103 +1,105 @@
 <!-- Revoke button will redirect to the href of the element with ``id = caller-id`` property in this modal -->
-<div class="modal fade" id="confirm-revoke-modal" tabindex="-1" caller-id="" role="dialog" aria-labelledby="confirm-revoke-modal-label" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-body confirm-revoke">
-          Are you sure you want to revoke this token? This action is permanent!
-          <div id="object-preview-content"></div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-revoke-button-modal">Revoke</button>
-        </div>
+<div class="modal fade" id="confirm-revoke-modal" tabindex="-1" caller-id="" role="dialog"
+     aria-labelledby="confirm-revoke-modal-label" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-body confirm-revoke">
+        Are you sure you want to revoke this token? This action is permanent!
+        <div id="object-preview-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-revoke-button-modal">Revoke
+        </button>
       </div>
     </div>
+  </div>
 </div>
 
-  {% comment %}
+{% comment %}
       Script to make modal appear whenever a user clicks any revoke button/link
 
-      The modal's Revoke button fires the second script to actually revoke the target entry
+      The modal's Revoke button fires the second script to actually revoke the $target entry
   {% endcomment %}
 
-  <script>
-      $('[data-target="#confirm-revoke-modal"]').each(function(index) {
-          $(this).click(function () {
-              $('#confirm-revoke-modal').attr('caller-id', $(this).attr('id'));
-          });
-      });
-  </script>
+<script>
+  $('[data-target="#confirm-revoke-modal"]').each(function (index) {
+    $(this).click(function () {
+      $('#confirm-revoke-modal').attr('caller-id', $(this).attr('id'));
+    });
+  });
 
-  <script>
-      $('#confirm-revoke-modal').on('show.bs.modal', function(){});
-  </script>
+  $('#confirm-revoke-modal').on('show.bs.modal', function () {
+    let caller = $('#confirm-revoke-button-modal').closest('.modal').attr('caller-id');
+    let $target = $('#' + caller);
+    let targetId = $target.attr('revoke-target-id');
+    let $previewContent = $('#key_name_' + targetId);
 
-  <script>
-      $('#confirm-revoke-button-modal').click(function () {
-          // Get the ``id`` of the clicked element
-          var caller = $('#confirm-revoke-button-modal').closest('.modal').attr('caller-id');
-          var target = $('#' + caller);
-          // Values for the POST
-          var url = target.attr('revoke-target-url');
-          var targetId = target.attr('revoke-target-id');
-          var csrftoken = target.attr('revoke-target-csrftoken');
-          // Selectors for each major parent object – tr, tbody, and table
-          var targetRow = target.closest('tr');
-          var targetTbody = target.closest('tbody');
-          var targetTable = target.closest('table');
-          var targetContainer = $('#note-container-' + targetId);
-          // Prep AJAX request with CSRF token
-          $.ajaxSetup({
-              beforeSend: function(xhr, settings) {
-                  if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                      xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                  }
-              }
-          });
-          // Send AJAX POST request
-          $.ajax({
-              url: url,
-              type: 'POST',
-              dataType: 'json',
-              data: {
-                  'target': targetId,
-                  'target_type': "token"
-              },
-              success: function (data) {
-                  // If the revoke succeeded, remove the row
-                  if (data['result'] == 'success') {
-                      if (targetRow) {
-                          targetRow.remove();
-                      }
-                      if (targetContainer) {
-                          targetContainer.remove();
-                      }
-                      // If that was the last row, hide the empty table
-                      if (targetTbody.find('tr').length == 0) {
-                          // Special handling of the findings table for report pages
-                          if (targetTable.attr('id') == 'findings-table') {
-                              var tbody_id = targetTbody.attr('id')
-                              // Get the severity group based on the ``tbody```
-                              var placeholder_group = tbody_id.split('_')[0]
-                              placeholder_group = placeholder_group.charAt(0).toUpperCase() + placeholder_group.slice(1)
-                              // Add a placeholder row to the now empty group
-                              var placeholder_row = document.getElementById(tbody_id).insertRow(0)
-                              placeholder_row.id = placeholder_group + '_placeholder'
-                              placeholder_row.className = 'severity-row-placeholder'
-                              placeholder_row.setAttribute('data-id', placeholder_group + '_placeholder', 0)
-                              cell = placeholder_row.insertCell(0);
-                              cell.colSpan = 7
-                              cell.innerHTML = 'Add ' + placeholder_group + ' findings or drag-and-drop a finding here to update its severity.'
-                          } else {
-                              targetTable.hide();
-                          }
-                      }
-                      update_badges();
-                  }
-                  if (data['message']) {
-                      displayToastTop({type:data['result'], string:data['message'], title:'Revoked'});
-                  }
-              }
-          });
-      });
-  </script>
+    if ($previewContent) {
+      $('#object-preview-content').html(escapeHtml($previewContent.text()));
+    }
+  });
+
+  $('#confirm-revoke-button-modal').click(function () {
+    // Get the ``id`` of the clicked element
+    let caller = $('#confirm-revoke-button-modal').closest('.modal').attr('caller-id');
+    let $target = $('#' + caller);
+    // Values for the POST
+    let url = $target.attr('revoke-target-url');
+    let targetId = $target.attr('revoke-target-id');
+    let csrftoken = $target.attr('revoke-target-csrftoken');
+    // Selectors for each major parent object – tr, tbody, and table
+    let $targetRow = $target.closest('tr');
+    let $targetTbody = $target.closest('tbody');
+    let $targetTable = $target.closest('table');
+
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader('X-CSRFToken', csrftoken);
+        }
+      }
+    });
+    $.ajax({
+      url: url,
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        '$target': targetId,
+        '$target_type': "token"
+      },
+      success: function (data) {
+        // If the revoke succeeded, remove the row
+        if (data['result'] == 'success') {
+          if ($targetRow) {
+            $targetRow.remove();
+          }
+          // If that was the last row, hide the empty table
+          if ($targetTbody.find('tr').length == 0) {
+            // Special handling of the findings table for report pages
+            if ($targetTable.attr('id') == 'findings-table') {
+              let tbody_id = $targetTbody.attr('id')
+              // Get the severity group based on the ``tbody```
+              let placeholder_group = tbody_id.split('_')[0]
+              placeholder_group = placeholder_group.charAt(0).toUpperCase() + placeholder_group.slice(1)
+              // Add a placeholder row to the now empty group
+              let placeholder_row = document.getElementById(tbody_id).insertRow(0)
+              placeholder_row.id = placeholder_group + '_placeholder'
+              placeholder_row.className = 'severity-row-placeholder'
+              placeholder_row.setAttribute('data-id', placeholder_group + '_placeholder')
+              let cell = placeholder_row.insertCell(0);
+              cell.colSpan = 7
+              cell.innerHTML = 'Add ' + placeholder_group + ' findings or drag-and-drop a finding here to update its severity.'
+            } else {
+              $targetTable.hide();
+            }
+          }
+          update_badges();
+        }
+        if (data['message']) {
+          displayToastTop({type: data['result'], string: data['message'], title: 'Revoked'});
+        }
+      }
+    });
+  });
+</script>

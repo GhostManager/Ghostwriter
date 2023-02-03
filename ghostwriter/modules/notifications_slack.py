@@ -3,11 +3,11 @@ import json
 import logging
 from typing import Union
 
-# Django Imports
-from django.urls import reverse
-
 # 3rd Party Libraries
 import requests
+
+# Django Imports
+from django.urls import reverse
 from django_q.models import Task
 
 # Ghostwriter Libraries
@@ -87,9 +87,7 @@ class SlackNotification:
                 elif response.status_code == 403:
                     if "invalid_token" in response.text:
                         error["code"] = "invalid_token"
-                        error[
-                            "message"
-                        ] = "Slack accepted the request, but said your Webhook token is invalid"
+                        error["message"] = "Slack accepted the request, but said your Webhook token is invalid"
                     elif "action_prohibited" in response.text:
                         error["code"] = "action_prohibited"
                         error[
@@ -103,14 +101,10 @@ class SlackNotification:
                 elif response.status_code == 410:
                     if "channel_is_archived" in response.text:
                         error["code"] = "channel_is_archived"
-                        error[
-                            "message"
-                        ] = f"Slack accepted the request, but said the {channel} channel is archived"
+                        error["message"] = f"Slack accepted the request, but said the {channel} channel is archived"
                 elif response.status_code == 500:
                     error["code"] = "server_error"
-                    error[
-                        "message"
-                    ] = "Slack's server encountered an internal server error"
+                    error["message"] = "Slack's server encountered an internal server error"
                 # Handle and log any unexpected response codes
                 else:
                     logger.warning(
@@ -127,9 +121,7 @@ class SlackNotification:
                 error["code"] = "request_failed"
                 error["message"] = f"Request to Slack failed with this message: {str(e)}"
         else:
-            logger.warning(
-                "Received request to send Slack message, but Slack notifications are disabled in settings"
-            )
+            logger.warning("Received request to send Slack message, but Slack notifications are disabled in settings")
             error["code"] = "slack_disabled"
             error[
                 "message"
@@ -502,9 +494,7 @@ def send_slack_complete_msg(task: Task) -> None:
                 blocks=base_blocks + success_blocks + result_blocks,
             )
         else:
-            err = slack.send_msg(
-                "Task failed", blocks=base_blocks + failure_blocks + result_blocks
-            )
+            err = slack.send_msg("Task failed", blocks=base_blocks + failure_blocks + result_blocks)
 
         if err:
             logger.warning("Attempt to send a Slack notification returned an error: %s", err)

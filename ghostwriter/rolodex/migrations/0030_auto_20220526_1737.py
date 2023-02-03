@@ -7,21 +7,32 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('rolodex', '0029_auto_20220510_1922'),
+        ("rolodex", "0029_auto_20220510_1922"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='projectassignment',
-            name='operator',
-            field=models.ForeignKey(blank=True, help_text='Select a user to assign to this project', null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="projectassignment",
+            name="operator",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Select a user to assign to this project",
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='projectassignment',
-            name='role',
-            field=models.ForeignKey(blank=True, help_text="Select a role that best describes the selected user's role in this project", null=True, on_delete=django.db.models.deletion.PROTECT, to='rolodex.projectrole'),
+            model_name="projectassignment",
+            name="role",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Select a role that best describes the selected user's role in this project",
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                to="rolodex.projectrole",
+            ),
         ),
     ]

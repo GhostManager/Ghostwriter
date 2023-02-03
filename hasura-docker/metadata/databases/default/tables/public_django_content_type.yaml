@@ -17,3 +17,10 @@ array_relationships:
         table:
           name: auth_permission
           schema: public
+  - name: tags
+    using:
+      foreign_key_constraint_on:
+        column: content_type_id
+        table:
+          name: taggit_taggeditem
+          schema: public

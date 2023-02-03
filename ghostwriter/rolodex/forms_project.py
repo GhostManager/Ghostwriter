@@ -1,5 +1,8 @@
 """This contains all project-related forms used by the Rolodex application."""
 
+# Standard Libraries
+from collections import namedtuple
+
 # Django Imports
 from django import forms
 from django.conf import settings
@@ -9,7 +12,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
+from crispy_forms.bootstrap import Alert, FieldWithButtons, StrictButton, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,
@@ -43,6 +46,7 @@ EXTRAS = 0
 
 
 # Custom inline formsets for nested forms
+
 
 class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
     """
@@ -109,9 +113,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "deadline",
                                 ValidationError(
-                                    _(
-                                        "Your selected date is before the project start date"
-                                    ),
+                                    _("Your selected date is before the project start date"),
                                     code="invalid_date",
                                 ),
                             )
@@ -132,6 +134,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
     """
 
     def clean(self):
+        Assignment = namedtuple("Assignment", ["user", "role", "start_date", "end_date"])
         assignments = []
         duplicates = False
         super().clean()
@@ -147,19 +150,28 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                     role = form.cleaned_data["role"]
                     note = form.cleaned_data["note"]
 
-                    # Check that one operator is not assigned twice
-                    if operator:
-                        if operator in assignments:
-                            duplicates = True
-                        assignments.append(operator)
-                    if duplicates:
-                        form.add_error(
-                            "operator",
-                            ValidationError(
-                                _("This operator is assigned more than once"),
-                                code="duplicate",
-                            ),
-                        )
+                    # Check if the person has already been assigned to this project within the same time period
+                    if operator and start_date and end_date:
+                        if any(operator.username in assign.user for assign in assignments):
+                            for assign in assignments:
+                                if assign.user == operator.username:
+                                    latest_start = max(assign.start_date, start_date)
+                                    earliest_end = min(assign.end_date, end_date)
+                                    delta = (earliest_end - latest_start).days + 1
+                                    overlap = max(0, delta)
+                                    if overlap > 0:
+                                        duplicates = True
+
+                        assignments.append(Assignment(operator.username, role, start_date, end_date))
+                        if duplicates:
+                            form.add_error(
+                                "operator",
+                                ValidationError(
+                                    _("This operator is assigned more than once for an overlapping time period"),
+                                    code="duplicate",
+                                ),
+                            )
+
                     # Raise an error if an operator is selected provided without any required details
                     if operator and any(x is None for x in [start_date, end_date, role]):
                         if not start_date:
@@ -187,9 +199,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                                 ),
                             )
                     # Raise an error if details are present without a selected operator
-                    elif operator is None and any(
-                        x is not None for x in [start_date, end_date, role]
-                    ):
+                    elif operator is None and any(x is not None for x in [start_date, end_date, role]):
                         form.add_error(
                             "operator",
                             ValidationError(
@@ -198,9 +208,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             ),
                         )
                     # Raise an error if a form only has a value for the note
-                    elif note and any(
-                        x is None for x in [operator, start_date, end_date, role]
-                    ):
+                    elif note and any(x is None for x in [operator, start_date, end_date, role]):
                         form.add_error(
                             "note",
                             ValidationError(
@@ -214,9 +222,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "start_date",
                                 ValidationError(
-                                    _(
-                                        "Your selected date is before the project start date"
-                                    ),
+                                    _("Your selected date is before the project start date"),
                                     code="invalid_date",
                                 ),
                             )
@@ -333,9 +339,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "note",
                             ValidationError(
-                                _(
-                                    "You must provide a hostname or IP address with your note"
-                                ),
+                                _("You must provide a hostname or IP address with your note"),
                                 code="incomplete",
                             ),
                         )
@@ -387,7 +391,9 @@ class BaseWhiteCardInlineFormSet(BaseInlineFormSet):
                                 ),
                             )
 
+
 # Forms used with the inline formsets
+
 
 class ProjectAssignmentForm(forms.ModelForm):
     """
@@ -409,25 +415,21 @@ class ProjectAssignmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["operator"].queryset = self.fields["operator"].queryset.order_by(
-            "-is_active", "username", "name"
-        )
+        self.fields["operator"].queryset = self.fields["operator"].queryset.order_by("-is_active", "username", "name")
         self.fields["operator"].label_from_instance = lambda obj: obj.get_display_name
         self.fields["start_date"].widget.attrs["autocomplete"] = "off"
         self.fields["start_date"].widget.input_type = "date"
         self.fields["end_date"].widget.attrs["autocomplete"] = "off"
         self.fields["end_date"].widget.input_type = "date"
         self.fields["note"].widget.attrs["rows"] = 5
-        self.fields["note"].widget.attrs[
-            "placeholder"
-        ] = "Additional Information or Notes"
+        self.fields["note"].widget.attrs["placeholder"] = "This team member will be responsible for..."
+        self.fields["operator"].empty_label = "-- Select a Team Member --"
+        self.fields["role"].empty_label = "-- Select a Role --"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -462,16 +464,10 @@ class ProjectAssignmentForm(forms.ModelForm):
                         Column(
                             FieldWithButtons(
                                 "start_date",
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary"
-                                        type="button"
-                                        onclick="copyStartDate($(this).closest('div').find('input'))"
-                                    >
-                                    Copy
-                                    </button>
-                                    """
+                                StrictButton(
+                                    "Copy",
+                                    onclick="copyStartDate($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
                             css_class="form-group col-md-6 mb-0",
@@ -479,16 +475,10 @@ class ProjectAssignmentForm(forms.ModelForm):
                         Column(
                             FieldWithButtons(
                                 "end_date",
-                                HTML(
-                                    """
-                                <button
-                                    class="btn btn-secondary"
-                                    type="button"
-                                    onclick="copyEndDate($(this).closest('div').find('input'))"
-                                >
-                                Copy
-                                </button>
-                                """
+                                StrictButton(
+                                    "Copy",
+                                    onclick="copyEndDate($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
                             css_class="form-group col-md-6 mb-0",
@@ -500,15 +490,16 @@ class ProjectAssignmentForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Assignment",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-4 offset-md-4",
+                            css_class="form-group col-6 offset-md-3",
                         ),
                         Column(
-                            Field("DELETE", style="display: none;"),
-                            css_class="form-group col-md-4 text-center",
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
                         ),
-                        css_class="form-row",
                     ),
                     css_class="formset",
                 ),
@@ -545,18 +536,16 @@ class ProjectObjectiveForm(forms.ModelForm):
         self.fields["deadline"].widget.input_type = "date"
         self.fields["objective"].widget.attrs["rows"] = 5
         self.fields["objective"].widget.attrs["autocomplete"] = "off"
-        self.fields["objective"].widget.attrs["placeholder"] = "High-Level Objective"
+        self.fields["objective"].widget.attrs["placeholder"] = "Escalate Privileges to Domain Admin"
         self.fields["description"].widget.attrs[
             "placeholder"
-        ] = "Description, Notes, and Context"
+        ] = "The task is to escalate privileges to a domain admin and..."
         self.fields["priority"].empty_label = "-- Prioritize Objective --"
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -583,23 +572,23 @@ class ProjectObjectiveForm(forms.ModelForm):
                         """
                     ),
                     Row(
-                        Column("objective", css_class="col-md-6"),
+                        Column("objective", css_class="col-4"),
                         Column(
                             FieldWithButtons(
                                 "deadline",
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary"
-                                        type="button"
-                                        onclick="copyEndDate($(this).closest('div').find('input'))"
-                                    >
-                                    Copy
-                                    </button>
-                                    """
+                                StrictButton(
+                                    "Copy",
+                                    onclick="copyEndDate($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
-                            css_class="col-md-6",
+                            css_class="col-4",
+                        ),
+                        Column(
+                            SwitchToggle(
+                                "complete",
+                            ),
+                            css_class="col-4 mt-5",
                         ),
                     ),
                     Row(
@@ -615,24 +604,19 @@ class ProjectObjectiveForm(forms.ModelForm):
                     "description",
                     Row(
                         Column(
-                            SwitchToggle(
-                                "complete",
-                            ),
-                            css_class="col-md-4",
-                        ),
-                        Column(
                             Button(
                                 "formset-del-button",
                                 "Delete Objective",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-4",
+                            css_class="form-group col-6 offset-3",
                         ),
                         Column(
-                            Field("DELETE", style="display: none;"),
-                            css_class="form-group col-md-4 text-center",
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
                         ),
-                        css_class="form-row",
                     ),
                     css_class="formset",
                 ),
@@ -655,20 +639,19 @@ class ProjectScopeForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["name"].widget.attrs["placeholder"] = "Scope Name"
+        self.fields["name"].widget.attrs["placeholder"] = "Internal Scope"
         self.fields["scope"].widget.attrs["rows"] = 5
-        self.fields["scope"].widget.attrs["placeholder"] = "Scope List"
+        self.fields["scope"].widget.attrs["placeholder"] = "ghostwriter.local\nwww.ghostwriter.local\n192.168.100.15"
+        self.fields["scope"].label = "Scope List"
         self.fields["description"].widget.attrs["rows"] = 5
         self.fields["description"].widget.attrs[
             "placeholder"
-        ] = "Brief Description or Note"
+        ] = "This list contains all internal hosts and services that..."
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -695,26 +678,36 @@ class ProjectScopeForm(forms.ModelForm):
                         """
                     ),
                     "name",
+                    Row(
+                        Column(SwitchToggle("requires_caution", css_class="col-3")),
+                        Column(SwitchToggle("disallowed", css_class="col-3")),
+                        Column(
+                            StrictButton(
+                                "Split Scope to Newlines",
+                                onclick="formatScope($(this).closest('div').next('div').find('textarea'))",
+                                data_toggle="tooltip",
+                                title="Split a comma-delimited scope list to newlines",
+                                css_class="btn btn-outline-secondary col-6"
+                            ),
+                        ),
+                    ),
                     Field("scope", css_class="empty-form"),
                     "description",
-                    Row(
-                        Column("requires_caution", css_class="col-md-6"),
-                        Column("disallowed", css_class="col-md-6"),
-                    ),
                     Row(
                         Column(
                             Button(
                                 "formset-del-button",
                                 "Delete List",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-4 offset-md-4",
+                            css_class="form-group col-6 offset-3",
                         ),
                         Column(
-                            Field("DELETE", style="display: none;"),
-                            css_class="form-group col-md-4 text-center",
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
                         ),
-                        css_class="form-row",
                     ),
                     css_class="formset",
                 ),
@@ -741,17 +734,15 @@ class ProjectTargetForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["ip_address"].widget.attrs["placeholder"] = "IP Address"
-        self.fields["hostname"].widget.attrs["placeholder"] = "FQDN"
+        self.fields["ip_address"].widget.attrs["placeholder"] = "172.67.179.71"
+        self.fields["hostname"].widget.attrs["placeholder"] = "ghostwriter.wiki"
         self.fields["note"].widget.attrs["rows"] = 5
-        self.fields["note"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.fields["note"].widget.attrs["placeholder"] = "This host is a web server related to objective ..."
         self.helper = FormHelper()
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -787,15 +778,16 @@ class ProjectTargetForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete Target",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-4 offset-md-4",
+                            css_class="form-group col-6 offset-3",
                         ),
                         Column(
-                            Field("DELETE", style="display: none;"),
-                            css_class="form-group col-md-4 text-center",
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
                         ),
-                        css_class="form-row",
                     ),
                     css_class="formset",
                 ),
@@ -819,19 +811,18 @@ class WhiteCardForm(forms.ModelForm):
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["issued"].widget.input_type = "datetime-local"
+        self.fields["issued"].label = "Issued Date & Time"
         self.fields["description"].widget.attrs["rows"] = 5
         self.fields["description"].widget.attrs[
             "placeholder"
         ] = "Additional information about the white card, the reason for it, limitations, how it affects the assessment, etc..."
-        self.fields["title"].widget.attrs["placeholder"] = "Brief and Descriptive Headline"
+        self.fields["title"].widget.attrs["placeholder"] = "Provided Initial Access to PCI Network"
         self.helper = FormHelper()
         self.helper.form_show_errors = False
         # Disable the <form> tags because this will be inside an instance of `ProjectForm()`
         self.helper.form_tag = False
         # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
         self.helper.disable_csrf = True
-        # Hide the field labels from the model
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             # Wrap form in a div so Django renders form instances in their own element
@@ -861,20 +852,17 @@ class WhiteCardForm(forms.ModelForm):
                         Column("title", css_class="col-md-6"),
                         Column(
                             FieldWithButtons(
-                                Field("issued", step=1,),
-                                HTML(
-                                    """
-                                    <button
-                                        class="btn btn-secondary"
-                                        type="button"
-                                        onclick="setNow($(this).closest('div').find('input'))"
-                                    >
-                                    Now
-                                    </button>
-                                    """
+                                Field(
+                                    "issued",
+                                    step=1,
+                                ),
+                                StrictButton(
+                                    "Now",
+                                    onclick="setNow($(this).closest('div').find('input'))",
+                                    css_class="btn btn-secondary"
                                 ),
                             ),
-                            css_class="col-md-6"
+                            css_class="col-md-6",
                         ),
                     ),
                     "description",
@@ -883,21 +871,23 @@ class WhiteCardForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete White Card",
-                                css_class="btn-sm btn-danger formset-del-button",
+                                css_class="btn-outline-danger formset-del-button col-4",
                             ),
-                            css_class="form-group col-md-4 offset-md-4",
+                            css_class="form-group col-6 offset-3",
                         ),
                         Column(
-                            Field("DELETE", style="display: none;"),
-                            css_class="form-group col-md-4 text-center",
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
                         ),
-                        css_class="form-row",
                     ),
                     css_class="formset",
                 ),
                 css_class="formset-container",
             )
         )
+
 
 # Create the `inlineformset_factory()` objects for `ProjectForm()`
 
@@ -909,7 +899,6 @@ ProjectAssignmentFormSet = inlineformset_factory(
     extra=EXTRAS,
     can_delete=True,
 )
-
 
 ProjectObjectiveFormSet = inlineformset_factory(
     Project,
@@ -984,32 +973,21 @@ class ProjectForm(forms.ModelForm):
         self.fields["start_time"].widget.input_type = "time"
         self.fields["end_time"].widget.input_type = "time"
         self.fields["slack_channel"].widget.attrs["placeholder"] = "#slack-channel"
-        self.fields["note"].widget.attrs["placeholder"] = "Description of the Project"
+        self.fields["note"].widget.attrs["placeholder"] = "This project is..."
         self.fields["timezone"].initial = general_config.default_timezone
-        # Hide labels for specific fields because ``form_show_labels`` takes priority
-        self.fields["start_date"].label = False
-        self.fields["end_date"].label = False
-        self.fields["note"].label = False
-        self.fields["slack_channel"].label = False
-        self.fields["project_type"].label = False
-        self.fields["client"].label = False
-        self.fields["codename"].label = False
+        self.fields["tags"].widget.attrs["placeholder"] = "evasive, on-site, travel, ..."
+        self.fields["project_type"].label = "Project Type"
+        self.fields["client"].empty_label = "-- Select a Client --"
+        self.fields["project_type"].empty_label = "-- Select a Project Type --"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
-        self.helper.form_class = "form-inline justify-content-center"
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             TabHolder(
                 CustomTab(
                     "Project Information",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Row(
                         Column(
                             "client",
@@ -1023,7 +1001,6 @@ class ProjectForm(forms.ModelForm):
                                         class="btn btn-secondary js-roll-codename"
                                         roll-codename-url="{% url 'rolodex:ajax_roll_codename' %}"
                                         type="button"
-                                        onclick="copyStartDate($(this).closest('div').find('input'))"
                                     >
                                     <i class="fas fa-dice"></i>
                                     </button>
@@ -1045,116 +1022,67 @@ class ProjectForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     Row(
-                        Column("project_type", css_class="form-group col-md-6 mb-0"),
-                        Column("slack_channel", css_class="form-group col-md-6 mb-0"),
+                        Column("project_type", css_class="form-group col-md-4 mb-0"),
+                        Column("slack_channel", css_class="form-group col-md-4 mb-0"),
+                        Column("tags", css_class="form-group col-md-4 mb-0"),
                         css_class="form-row",
                     ),
-                    "update_checkouts",
+                    SwitchToggle("update_checkouts"),
                     "note",
                     link_css_class="project-icon",
                     css_id="project",
                 ),
                 CustomTab(
                     "Assignments",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Formset("assignments", object_context_name="Assignment"),
                     Button(
                         "add-assignment",
                         "Add Assignment",
-                        css_class="btn-block btn-secondary formset-add-assign",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        css_class="btn-block btn-secondary formset-add-assign mb-2 offset-4 col-4",
                     ),
                     link_css_class="assignment-icon",
                     css_id="assignments",
                 ),
                 CustomTab(
                     "Objectives",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Formset("objectives", object_context_name="Objective"),
                     Button(
                         "add-objective",
                         "Add Objective",
-                        css_class="btn-block btn-secondary formset-add-obj",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
                     ),
                     link_css_class="objective-icon",
                     css_id="objectives",
                 ),
                 CustomTab(
                     "Scope Lists",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Formset("scopes", object_context_name="Scope"),
                     Button(
                         "add-scope",
                         "Add Scope List",
-                        css_class="btn-block btn-secondary formset-add-scope",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        css_class="btn-block btn-secondary formset-add-scope mb-2 offset-4 col-4",
                     ),
                     link_css_class="tab-icon list-icon",
                     css_id="scopes",
                 ),
                 CustomTab(
                     "Targets",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Formset("targets", object_context_name="Target"),
                     Button(
                         "add-target",
                         "Add Target",
-                        css_class="btn-block btn-secondary formset-add-target",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        css_class="btn-block btn-secondary formset-add-target mb-2 offset-4 col-4",
                     ),
                     link_css_class="tab-icon list-icon",
                     css_id="targets",
                 ),
                 CustomTab(
                     "White Cards",
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
-                    ),
                     Formset("whitecards", object_context_name="White Card"),
                     Button(
                         "add-whitecard",
                         "Add White Card",
-                        css_class="btn-block btn-secondary formset-add-card",
-                    ),
-                    HTML(
-                        """
-                        <p class="form-spacer"></p>
-                        """
+                        css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
                     ),
                     link_css_class="tab-icon whitecard-icon",
                     css_id="whitecards",
@@ -1166,7 +1094,8 @@ class ProjectForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -1188,9 +1117,7 @@ class ProjectForm(forms.ModelForm):
         if slack_channel:
             if not slack_channel.startswith("#") and not slack_channel.startswith("@"):
                 raise ValidationError(
-                    _(
-                        "Slack channels should start with # or @ – check this channel name"
-                    ),
+                    _("Slack channels should start with # or @ – check this channel name"),
                     code="invalid_channel",
                 )
         return slack_channel
@@ -1210,7 +1137,6 @@ class ProjectNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),
@@ -1218,7 +1144,8 @@ class ProjectNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -1243,7 +1170,10 @@ class DeconflictionForm(forms.ModelForm):
 
     class Meta:
         model = Deconfliction
-        exclude = ("created_at", "project",)
+        exclude = (
+            "created_at",
+            "project",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1298,7 +1228,8 @@ class DeconflictionForm(forms.ModelForm):
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),

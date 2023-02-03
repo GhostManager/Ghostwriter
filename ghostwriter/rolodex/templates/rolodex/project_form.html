@@ -4,151 +4,156 @@
 {% block pagetitle %}Project Form{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            {% comment %} Check if `object` is in context to determine if this is a ProjectUpdate` request {% endcomment %}
-            {% if object %}
-                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object.client }}" href="{% url 'rolodex:client_detail' object.client.id %}">{{ object.client }}</a></li>
-                <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object }}" href="{% url 'rolodex:project_detail' object.id %}">{{ object.start_date|date:"DATE_FORMAT" }} {{ object.project_type }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Edit</li>
-            {% else %}
-            {% comment %} Check if `client` is in context for `ProjectCreate` for a specific client {% endcomment %}
-                {% if client %}
-                    <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ client }}" href="{% url 'rolodex:client_detail' client.id %}">{{ client }}</a></li>
-                {% endif %}
-                <li class="breadcrumb-item active" aria-current="page">New Project Form</li>
-            {% endif %}
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      {% comment %} Check if `object` is in context to determine if this is a ProjectUpdate` request {% endcomment %}
+      {% if object %}
+        <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object.client }}"
+                                       href="{% url 'rolodex:client_detail' object.client.id %}">{{ object.client }}</a>
+        </li>
+        <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ object }}"
+                                       href="{% url 'rolodex:project_detail' object.id %}">{{ object.start_date|date:"DATE_FORMAT" }} {{ object.project_type }}</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+      {% else %}
+        {% comment %} Check if `client` is in context for `ProjectCreate` for a specific client {% endcomment %}
+        {% if client %}
+          <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ client }}"
+                                         href="{% url 'rolodex:client_detail' client.id %}">{{ client }}</a></li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">New Project Form</li>
+      {% endif %}
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <strong class="icon project-icon">Setup a Project</strong>
-    <hr>
-    <p>Use the tabs to provide basic project parameters, notes, assignments, and objectives:</p>
+  <strong class="icon project-icon">Setup a Project</strong>
+  <hr>
+  <p>Use the tabs to provide basic project parameters, notes, assignments, and objectives:</p>
 
-    <!-- Form Error Section -->
-    {% if form.errors %}
-        <script>
-            {% for field in form %}
-                {% for error in field.errors %}
-                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-                {% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-            {% endfor %}
-        </script>
-    {% endif %}
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+  <!-- Form Section -->
+  {% crispy form form.helper %}
 {% endblock %}
 
 {% block tabs %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block tabforms %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Copy a Project Date to the Provided Field -->
-    <script>
-        function copyStartDate(deadline_field) {
-            var project_date = document.getElementById('id_start_date').value;
-            deadline_field.val(project_date);
+  <script>
+    function copyStartDate(deadline_field) {
+      let project_date = document.getElementById('id_start_date').value;
+      deadline_field.val(project_date);
+    }
+
+    function copyEndDate(deadline_field) {
+      let project_date = document.getElementById('id_end_date').value;
+      deadline_field.val(project_date);
+    }
+
+    function setNow(field) {
+      field.val(new Date().toJSON().slice(0, 19));
+    }
+
+    {% comment %} Formset Manipulation Buttons {% endcomment %}
+    $('.formset-add-{{ objectives.prefix }}').click(function () {
+      let form_idx = $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ objectives.prefix }}').append($('#empty-form-{{ objectives.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ objectives.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ objectives.prefix }}-' + parseInt(form_idx) + '-description'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
+
+    $('.formset-add-{{ assignments.prefix }}').click(function () {
+      let form_idx = $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ assignments.prefix }}').append($('#empty-form-{{ assignments.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ assignments.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ assignments.prefix }}-' + parseInt(form_idx) + '-note'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
+
+    $('.formset-add-{{ scopes.prefix }}').click(function () {
+      let form_idx = $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ scopes.prefix }}').append($('#empty-form-{{ scopes.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ scopes.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ scopes.prefix }}-' + parseInt(form_idx) + '-description'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
+
+    $('.formset-add-{{ targets.prefix }}').click(function () {
+      let form_idx = $('#id_{{ targets.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ targets.prefix }}').append($('#empty-form-{{ targets.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ targets.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ targets.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ targets.prefix }}-' + parseInt(form_idx) + '-note'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
+
+    $('.formset-add-{{ whitecards.prefix }}').click(function () {
+      let form_idx = $('#id_{{ whitecards.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ whitecards.prefix }}').append($('#empty-form-{{ whitecards.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ whitecards.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ whitecards.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ whitecards.prefix }}-' + parseInt(form_idx) + '-description'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
+
+    {% comment %} Roll Codename with AJAX {% endcomment %}
+    $('.js-roll-codename').click(function () {
+      let url = $(this).attr('roll-codename-url');
+      // Send AJAX POST request
+      $.ajax({
+        url: url,
+        type: 'GET',
+        success: function (data) {
+          $("#id_codename").val(data['codename']);
         }
+      });
+    });
 
-        function copyEndDate(deadline_field) {
-            var project_date = document.getElementById('id_end_date').value;
-            deadline_field.val(project_date);
-        }
-
-        function setNow(field) {
-            console.log(new Date().toJSON().slice(0,19))
-            field.val(new Date().toJSON().slice(0,19));
-        }
-    </script>
-
-    <!-- Formset Manipulation Buttons -->
-    <script>
-        $('.formset-add-{{ objectives.prefix }}').click(function() {
-            var form_idx = $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val();
-            $('#formset-{{ objectives.prefix }}').append($('#empty-form-{{ objectives.prefix }}').html().replace(/__prefix__/g, form_idx));
-            $('#id_{{ objectives.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            var new_form = $('#formset-{{ objectives.prefix }}').find('div.formset-container').last()
-            new_form.find('span.counter').html(parseInt(form_idx) + 1);
-            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-            // Re-initialize WYSIWYG editor for the new form
-            target = 'id_{{ objectives.prefix }}-' + parseInt(form_idx) + '-description'
-            tinymce.execCommand('mceAddEditor', false, target);
-        });
-
-        $('.formset-add-{{ assignments.prefix }}').click(function() {
-            var form_idx = $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val();
-            $('#formset-{{ assignments.prefix }}').append($('#empty-form-{{ assignments.prefix }}').html().replace(/__prefix__/g, form_idx));
-            $('#id_{{ assignments.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            var new_form = $('#formset-{{ assignments.prefix }}').find('div.formset-container').last()
-            new_form.find('span.counter').html(parseInt(form_idx) + 1);
-            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-            // Re-initialize WYSIWYG editor for the new form
-            target = 'id_{{ assignments.prefix }}-' + parseInt(form_idx) + '-note'
-            tinymce.execCommand('mceAddEditor', false, target);
-        });
-
-        $('.formset-add-{{ scopes.prefix }}').click(function() {
-            var form_idx = $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val();
-            $('#formset-{{ scopes.prefix }}').append($('#empty-form-{{ scopes.prefix }}').html().replace(/__prefix__/g, form_idx));
-            $('#id_{{ scopes.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            var new_form = $('#formset-{{ scopes.prefix }}').find('div.formset-container').last()
-            new_form.find('span.counter').html(parseInt(form_idx) + 1);
-            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-            // Re-initialize WYSIWYG editor for the new form
-            target = 'id_{{ scopes.prefix }}-' + parseInt(form_idx) + '-description'
-            tinymce.execCommand('mceAddEditor', false, target);
-        });
-
-        $('.formset-add-{{ targets.prefix }}').click(function() {
-            var form_idx = $('#id_{{ targets.prefix }}-TOTAL_FORMS').val();
-            $('#formset-{{ targets.prefix }}').append($('#empty-form-{{ targets.prefix }}').html().replace(/__prefix__/g, form_idx));
-            $('#id_{{ targets.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            var new_form = $('#formset-{{ targets.prefix }}').find('div.formset-container').last()
-            new_form.find('span.counter').html(parseInt(form_idx) + 1);
-            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-            // Re-initialize WYSIWYG editor for the new form
-            target = 'id_{{ targets.prefix }}-' + parseInt(form_idx) + '-note'
-            tinymce.execCommand('mceAddEditor', false, target);
-        });
-
-        $('.formset-add-{{ whitecards.prefix }}').click(function() {
-            var form_idx = $('#id_{{ whitecards.prefix }}-TOTAL_FORMS').val();
-            $('#formset-{{ whitecards.prefix }}').append($('#empty-form-{{ whitecards.prefix }}').html().replace(/__prefix__/g, form_idx));
-            $('#id_{{ whitecards.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
-            var new_form = $('#formset-{{ whitecards.prefix }}').find('div.formset-container').last()
-            new_form.find('span.counter').html(parseInt(form_idx) + 1);
-            new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
-            // Re-initialize WYSIWYG editor for the new form
-            target = 'id_{{ whitecards.prefix }}-' + parseInt(form_idx) + '-description'
-            tinymce.execCommand('mceAddEditor', false, target);
-        });
-    </script>
-
-    <!-- Roll Codename with AJAX -->
-    <script>
-        $(".js-roll-codename").click(function () {
-            var url = $(this).attr('roll-codename-url');
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'GET',
-                success: function (data) {
-                    $("#id_codename").val(data['codename']);
-                }
-            });
-        });
-    </script>
+    {% comment %} Split and trim scope list {% endcomment %}
+    function formatScope($field) {
+      let scope = $field.val();
+      let scope_list = scope.split(',');
+      let scope_list_trimmed = [];
+      for (let i = 0; i < scope_list.length; i++) {
+        scope_list_trimmed.push(scope_list[i].trim() + '\n');
+      }
+      $field.val(scope_list_trimmed.join(''));
+    }
+  </script>
 {% endblock %}

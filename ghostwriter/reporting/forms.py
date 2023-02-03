@@ -1,4 +1,4 @@
-"""This contains all of the forms used by the Reporting application."""
+"""This contains all the forms used by the Reporting application."""
 
 # Standard Libraries
 import re
@@ -24,6 +24,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (
     Evidence,
@@ -54,36 +55,23 @@ class FindingForm(forms.ModelForm):
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS vector ..."
+        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
+        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
 
-        self.fields["mitigation"].widget.attrs[
-            "placeholder"
-        ] = "What needs to be done ..."
-        self.fields["replication_steps"].widget.attrs[
-            "placeholder"
-        ] = "How to reproduce/find this issue ..."
-        self.fields["host_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on an endpoint ..."
-        self.fields["network_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on a network ..."
-        self.fields["references"].widget.attrs[
-            "placeholder"
-        ] = "Some useful links and references ..."
+        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
+        self.fields["replication_steps"].widget.attrs["placeholder"] = "How to reproduce/find this issue ..."
+        self.fields["host_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on an endpoint ..."
+        self.fields["network_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on a network ..."
+        self.fields["references"].widget.attrs["placeholder"] = "Some useful links and references ..."
         self.fields["finding_guidance"].widget.attrs[
             "placeholder"
         ] = "When using this finding in a report be sure to include ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["finding_type"].label = "Finding Type"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
             HTML(
                 """
@@ -91,7 +79,14 @@ class FindingForm(forms.ModelForm):
                 <hr />
                 """
             ),
-            "title",
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column(
+                    "tags",
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row",
+            ),
             Row(
                 Column("finding_type", css_class="form-group col-md-6 mb-0"),
                 Column("severity", css_class="form-group col-md-6 mb-0"),
@@ -263,9 +258,7 @@ class ReportForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.project_instance = project
         # Limit the list to just projects not marked as complete
-        active_projects = Project.objects.filter(complete=False).order_by(
-            "-start_date", "client", "project_type"
-        )
+        active_projects = Project.objects.filter(complete=False).order_by("-start_date", "client", "project_type")
         if active_projects:
             self.fields["project"].empty_label = "-- Select an Active Project --"
         else:
@@ -273,18 +266,28 @@ class ReportForm(forms.ModelForm):
         self.fields["project"].queryset = active_projects
         self.fields[
             "project"
-        ].label_from_instance = (
-            lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
-        )
+        ].label_from_instance = lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
         self.fields["docx_template"].label = "DOCX Template"
         self.fields["pptx_template"].label = "PPTX Template"
+        self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
+        self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
+
+        report_config = ReportConfiguration.get_solo()
+        self.fields["docx_template"].initial = report_config.default_docx_template
+        self.fields["pptx_template"].initial = report_config.default_pptx_template
+        self.fields["docx_template"].empty_label = "-- Picka Word Template --"
+        self.fields["pptx_template"].empty_label = "-- Pick a PowerPoint Template --"
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.layout = Layout(
-            "title",
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
             "project",
             HTML(
                 """
@@ -301,7 +304,8 @@ class ReportForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
                     """
                 ),
             ),
@@ -316,7 +320,12 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
 
     class Meta:
         model = ReportFindingLink
-        exclude = ("report", "position", "finding_guidance", "added_as_blank", )
+        exclude = (
+            "report",
+            "position",
+            "finding_guidance",
+            "added_as_blank",
+        )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -326,38 +335,24 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         )
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["affected_entities"].widget.attrs[
-            "placeholder"
-        ] = "List of Hostnames or IP Addresses"
+        self.fields["affected_entities"].widget.attrs["placeholder"] = "List of Hostnames or IP Addresses"
         self.fields["title"].widget.attrs["placeholder"] = "Finding Title"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["impact"].widget.attrs["placeholder"] = "What is the impact ..."
-        self.fields["cvss_score"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS score ..."
-        self.fields["cvss_vector"].widget.attrs[
-            "placeholder"
-        ] = "What is the CVSS vector ..."
-        self.fields["mitigation"].widget.attrs[
-            "placeholder"
-        ] = "What needs to be done ..."
-        self.fields["replication_steps"].widget.attrs[
-            "placeholder"
-        ] = "How to reproduce/find this issue ..."
-        self.fields["host_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on an endpoint ..."
-        self.fields["network_detection_techniques"].widget.attrs[
-            "placeholder"
-        ] = "How to detect it on a network ..."
-        self.fields["references"].widget.attrs[
-            "placeholder"
-        ] = "Some useful links and references ..."
+        self.fields["cvss_score"].widget.attrs["placeholder"] = "What is the CVSS score ..."
+        self.fields["cvss_vector"].widget.attrs["placeholder"] = "What is the CVSS vector ..."
+        self.fields["mitigation"].widget.attrs["placeholder"] = "What needs to be done ..."
+        self.fields["replication_steps"].widget.attrs["placeholder"] = "How to reproduce/find this issue ..."
+        self.fields["host_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on an endpoint ..."
+        self.fields["network_detection_techniques"].widget.attrs["placeholder"] = "How to detect it on a network ..."
+        self.fields["references"].widget.attrs["placeholder"] = "Some useful links and references ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["finding_type"].label = "Finding Type"
+        self.fields["assigned_to"].label = "Assigned Editor"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_id = "report-finding-form"
         self.helper.attrs = {"evidence-upload-modal-url": evidence_upload_url}
         self.helper.layout = Layout(
@@ -368,8 +363,12 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 """
             ),
             Row(
-                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("title", css_class="form-group col-md-12 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
                 Column("assigned_to", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
@@ -528,7 +527,9 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -548,6 +549,7 @@ class EvidenceForm(forms.ModelForm):
             "document",
             "description",
             "caption",
+            "tags",
         )
         widgets = {
             "document": forms.FileInput(attrs={"class": "form-control"}),
@@ -560,31 +562,29 @@ class EvidenceForm(forms.ModelForm):
         self.fields["caption"].required = True
         self.fields["caption"].widget.attrs["autocomplete"] = "off"
         self.fields["caption"].widget.attrs["placeholder"] = "Report Caption"
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["friendly_name"].required = True
         self.fields["friendly_name"].widget.attrs["autocomplete"] = "off"
         self.fields["friendly_name"].widget.attrs["placeholder"] = "Friendly Name"
-        self.fields["description"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description or Note"
+        self.fields["description"].widget.attrs["placeholder"] = "Brief Description or Note"
+        self.fields["document"].label = ""
         # Don't set form buttons for a modal pop-up
         if self.is_modal:
             submit = None
             cancel_button = None
         else:
-            submit = Submit(
-                "submit-button", "Submit", css_class="btn btn-primary col-md-4"
-            )
+            submit = Submit("submit-button", "Submit", css_class="btn btn-primary col-md-4")
             cancel_button = HTML(
                 """
-                <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                <button onclick="window.location.href='{{ cancel_link }}'"
+                class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                </button>
                 """
             )
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_errors = False
-        self.helper.form_show_labels = False
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.form_id = "evidence-upload-form"
         self.helper.layout = Layout(
@@ -592,21 +592,25 @@ class EvidenceForm(forms.ModelForm):
                 """
                 <h4 class="icon signature-icon">Report Information</h4>
                 <hr>
-                <p>The friendly name is used to reference this evidence in the report and the caption appears below the figures in the generated reports.</p>
+                <p>The friendly name is used to reference this evidence in the report and the caption appears below
+                the figures in the generated reports.</p>
                 """
             ),
             Row(
                 Column("friendly_name", css_class="form-group col-md-6 mb-0"),
-                Column("caption", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
+            "caption",
             "description",
             HTML(
                 """
                 <h4 class="icon upload-icon">Upload a File</h4>
                 <hr>
-                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg). Previews for images will appear below.</p>
-                <p><span class="bold">Tip:</span> You copy and paste an image (file or screenshot) into this page!</p>
+                <p>Attach text evidence (*.txt, *.log, or *.md) or image evidence (*.png, *.jpg, or *.jpeg).
+                Previews for images will appear below.</p>
+                <p><span class="bold">Tip:</span> You copy and paste an image (file or screenshot) into this page!
+                Make sure to <span class="italic">click outside of any form fields first</span>.</p>
                 <div id="findingPreview" class="pb-3"></div>
                 """
             ),
@@ -618,7 +622,8 @@ class EvidenceForm(forms.ModelForm):
                 ),
                 HTML(
                     """
-                    <label id="filename" class="custom-file-label" for="customFile">Click here to select or drag and drop your file...</label>
+                    <label id="filename" class="custom-file-label" for="customFile">
+                    Click here to select or drag and drop your file...</label>
                     """
                 ),
                 css_class="custom-file",
@@ -644,9 +649,7 @@ class EvidenceForm(forms.ModelForm):
             for evidence in report_queryset:
                 if friendly_name == evidence[1] and not self.instance.id == evidence[0]:
                     raise ValidationError(
-                        _(
-                            "This friendly name has already been used for a file attached to this finding."
-                        ),
+                        _("This friendly name has already been used for a file attached to this finding."),
                         "duplicate",
                     )
         return friendly_name
@@ -666,7 +669,6 @@ class FindingNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),
@@ -674,7 +676,9 @@ class FindingNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -705,7 +709,6 @@ class LocalFindingNoteForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         self.helper.layout = Layout(
             Div("note"),
@@ -713,7 +716,9 @@ class LocalFindingNoteForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -744,22 +749,19 @@ class ReportTemplateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["document"].label = ""
         self.fields["document"].widget.attrs["class"] = "custom-file-input"
-        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name"
-        self.fields["description"].widget.attrs[
-            "placeholder"
-        ] = "Brief Description on Template Usage"
-        self.fields["changelog"].widget.attrs[
-            "placeholder"
-        ] = "Track Template Modifications"
+        self.fields["name"].widget.attrs["placeholder"] = "Default Red Team Report"
+        self.fields["description"].widget.attrs["placeholder"] = "Use this template for any red team work unless ..."
+        self.fields["changelog"].widget.attrs["placeholder"] = "Track Template Modifications"
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
+        self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
-        self.helper.form_show_labels = False
         self.helper.form_method = "post"
-        self.helper.form_class = "newitem"
         self.helper.attrs = {"enctype": "multipart/form-data"}
         self.helper.layout = Layout(
             HTML(
@@ -770,18 +772,29 @@ class ReportTemplateForm(forms.ModelForm):
                 """
             ),
             Row(
-                Column("name", css_class="form-group col-md-7 mb-0"),
-                Column("doc_type", css_class="form-group col-md-5 mb-0"),
+                Column("name", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
-                Column("client", css_class="form-group col-md-7 mb-0"),
+                Column("doc_type", css_class="form-group col-md-6 mb-0"),
+                Column("client", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
                 Column(
                     SwitchToggle(
                         "protected",
                     ),
-                    css_class="form-group col-md-5 mb-0",
+                    css_class="form-group col-md-6 mb-0",
                 ),
+                Column(
+                    SwitchToggle(
+                        "landscape",
+                    ),
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row pb-2",
             ),
             "description",
             HTML(
@@ -805,7 +818,9 @@ class ReportTemplateForm(forms.ModelForm):
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
                     """
-                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
                     """
                 ),
             ),
@@ -844,9 +859,7 @@ class SelectReportTemplateForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.form_id = "report-template-swap-form"
         self.helper.form_tag = True
-        self.helper.form_action = reverse(
-            "reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id}
-        )
+        self.helper.form_action = reverse("reporting:ajax_swap_report_template", kwargs={"pk": self.instance.id})
         self.helper.layout = Layout(
             Row(
                 Column(
@@ -912,9 +925,13 @@ class SelectReportTemplateForm(forms.ModelForm):
                 """
                 <p class="mb-2">Other report types do not use templates:</p>
                 <div class="btn-group">
-                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i></a>
-                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"></a>
-                    <a class="btn btn-default archive-btn-icon js-generate-report" href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top" title="Generate and package all report types and evidence in a Zip"></a>
+                    <a class="btn btn-default excel-btn-icon" href="{% url 'reporting:generate_xlsx' report.id %}"
+                    data-toggle="tooltip" data-placement="top" title="Generate an XLSX report"></i></a>
+                    <a class="btn btn-default json-btn-icon" href="{% url 'reporting:generate_json' report.id %}"
+                    data-toggle="tooltip" data-placement="top" title="Generate exportable JSON"></a>
+                    <a class="btn btn-default archive-btn-icon js-generate-report"
+                    href="{% url 'reporting:generate_all' report.id %}" data-toggle="tooltip" data-placement="top"
+                    title="Generate and package all report types and evidence in a Zip"></a>
                 </div>
                 """
             ),
@@ -937,23 +954,17 @@ class SeverityForm(forms.ModelForm):
         if color:
             if "#" in color:
                 raise ValidationError(
-                    _(
-                        "Do not include the # symbol in the color field."
-                    ),
+                    _("Do not include the # symbol in the color field."),
                     "invalid",
                 )
             if len(color) < 6:
                 raise ValidationError(
-                    _(
-                        "Your hex color code should be six characters in length."
-                    ),
+                    _("Your hex color code should be six characters in length."),
                     "invalid",
                 )
             if not re.search(valid_hex_regex, color):
                 raise ValidationError(
-                    _(
-                        "Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A)."
-                    ),
+                    _("Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A)."),
                     "invalid",
                 )
 

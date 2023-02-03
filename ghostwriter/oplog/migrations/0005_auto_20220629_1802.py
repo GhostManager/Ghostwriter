@@ -4,50 +4,84 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('oplog', '0004_auto_20220205_0026'),
+        ("oplog", "0004_auto_20220205_0026"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='oplogentry',
-            name='command',
-            field=models.TextField(blank=True, help_text='The command that was executed', null=True, verbose_name='Command'),
+            model_name="oplogentry",
+            name="command",
+            field=models.TextField(
+                blank=True, help_text="The command that was executed", null=True, verbose_name="Command"
+            ),
         ),
         migrations.AlterField(
-            model_name='oplogentry',
-            name='comments',
-            field=models.TextField(blank=True, help_text='Any additional comments or useful information.', null=True, verbose_name='Comments'),
+            model_name="oplogentry",
+            name="comments",
+            field=models.TextField(
+                blank=True,
+                help_text="Any additional comments or useful information.",
+                null=True,
+                verbose_name="Comments",
+            ),
         ),
         migrations.AlterField(
-            model_name='oplogentry',
-            name='description',
-            field=models.TextField(blank=True, help_text='A description of why the command was executed and expected results.', null=True, verbose_name='Description'),
+            model_name="oplogentry",
+            name="description",
+            field=models.TextField(
+                blank=True,
+                help_text="A description of why the command was executed and expected results.",
+                null=True,
+                verbose_name="Description",
+            ),
         ),
         migrations.AlterField(
-            model_name='oplogentry',
-            name='dest_ip',
-            field=models.TextField(blank=True, help_text='Provide the destination hostname / ip on which the command was ran.', null=True, verbose_name='Destination IP/Hostname'),
+            model_name="oplogentry",
+            name="dest_ip",
+            field=models.TextField(
+                blank=True,
+                help_text="Provide the destination hostname / ip on which the command was ran.",
+                null=True,
+                verbose_name="Destination IP/Hostname",
+            ),
         ),
         migrations.AlterField(
-            model_name='oplogentry',
-            name='operator_name',
-            field=models.CharField(blank=True, help_text='The operator that performed the action.', max_length=255, null=True, verbose_name='Operator'),
+            model_name="oplogentry",
+            name="operator_name",
+            field=models.CharField(
+                blank=True,
+                help_text="The operator that performed the action.",
+                max_length=255,
+                null=True,
+                verbose_name="Operator",
+            ),
         ),
         migrations.AlterField(
-            model_name='oplogentry',
-            name='source_ip',
-            field=models.TextField(blank=True, help_text='Provide the source hostname / IP from which the command originated.', null=True, verbose_name='Source IP / Hostname'),
+            model_name="oplogentry",
+            name="source_ip",
+            field=models.TextField(
+                blank=True,
+                help_text="Provide the source hostname / IP from which the command originated.",
+                null=True,
+                verbose_name="Source IP / Hostname",
+            ),
         ),
         migrations.AlterField(
-            model_name='oplogentry',
-            name='tool',
-            field=models.TextField(blank=True, help_text='The tool used to execute the action', null=True, verbose_name='Tool name'),
+            model_name="oplogentry",
+            name="tool",
+            field=models.TextField(
+                blank=True, help_text="The tool used to execute the action", null=True, verbose_name="Tool name"
+            ),
         ),
         migrations.AlterField(
-            model_name='oplogentry',
-            name='user_context',
-            field=models.TextField(blank=True, help_text='The user context that executed the command', null=True, verbose_name='User Context'),
+            model_name="oplogentry",
+            name="user_context",
+            field=models.TextField(
+                blank=True,
+                help_text="The user context that executed the command",
+                null=True,
+                verbose_name="User Context",
+            ),
         ),
     ]

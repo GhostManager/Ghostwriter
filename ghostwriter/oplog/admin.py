@@ -1,13 +1,14 @@
 """This contains customizations for displaying the Oplog application models in the admin panel."""
 
+# Django Imports
 from django.contrib import admin
 
-
+# 3rd Party Libraries
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 
-from .models import Oplog, OplogEntry
-from .resources import OplogEntryResource
+from ghostwriter.oplog.models import Oplog, OplogEntry
+from ghostwriter.oplog.resources import OplogEntryResource
 
 
 class OplogResource(resources.ModelResource):
@@ -29,6 +30,12 @@ class OplogEntryAdmin(ImportExportModelAdmin):
         "operator_name",
         "start_date",
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
 
 
 @admin.register(Oplog)

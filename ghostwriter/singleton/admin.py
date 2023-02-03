@@ -7,7 +7,8 @@ from django.urls import re_path
 from django.utils.encoding import force_str
 from django.utils.translation import gettext as _
 
-from .models import DEFAULT_SINGLETON_INSTANCE_ID
+# Ghostwriter Libraries
+from ghostwriter.singleton.models import DEFAULT_SINGLETON_INSTANCE_ID
 
 
 class SingletonModelAdmin(admin.ModelAdmin):

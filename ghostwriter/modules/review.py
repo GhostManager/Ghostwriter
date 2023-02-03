@@ -63,7 +63,7 @@ class DomainReview:
         "suspicious",
         "violence/hate/racism",
         "weapons",
-        "web ads/analytics"
+        "web ads/analytics",
     ]
 
     # Variables for web browsing
@@ -73,9 +73,7 @@ class DomainReview:
         # Get API configuration
         self.virustotal_config = VirusTotalConfiguration.get_solo()
         if self.virustotal_config.enable is False:
-            logger.error(
-                "Tried to start a domain review without VirusTotal configured and enabled"
-            )
+            logger.error("Tried to start a domain review without VirusTotal configured and enabled")
             sys.exit()
 
         self.domain_queryset = domain_queryset
@@ -109,9 +107,7 @@ class DomainReview:
             Return a list of subdomains (Default: False)
         """
         if subdomains:
-            virustotal_endpoint_uri = "/domains/{domain}/relationships/subdomains".format(
-                domain=domain
-            )
+            virustotal_endpoint_uri = "/domains/{domain}/relationships/subdomains".format(domain=domain)
         else:
             virustotal_endpoint_uri = "/domains/{domain}".format(domain=domain)
 
@@ -179,9 +175,7 @@ class DomainReview:
                 # If the date is empty (no past checks), limit notifications with the purchase date
                 else:
                     last_health_check = domain.creation
-                    logger.info(
-                        "No prior health check so set date to %s", last_health_check
-                    )
+                    logger.info("No prior health check so set date to %s", last_health_check)
                 logger.info("Domain is currently considered to be %s", health)
 
                 # Check domain name with VT's Domain Report
@@ -223,9 +217,7 @@ class DomainReview:
                         analysis_stats = vt_results["data"]["last_analysis_stats"]
                         if analysis_stats["malicious"] > 0:
                             burned = True
-                            burned_explanations.append(
-                                "A VirusTotal scanner has flagged the domain as malicious."
-                            )
+                            burned_explanations.append("A VirusTotal scanner has flagged the domain as malicious.")
                             logger.warning(
                                 "A VirusTotal scanner has flagged the %s as malicious",
                                 domain_name,
@@ -248,9 +240,7 @@ class DomainReview:
 
                 else:
                     lab_results[domain.id]["vt_results"] = "none"
-                    logger.warning(
-                        "Did not receive results for %s from VirusTotal", domain_name
-                    )
+                    logger.warning("Did not receive results for %s from VirusTotal", domain_name)
 
                 # Assemble the dictionary to return for this domain
                 lab_results[domain.id]["burned"] = burned

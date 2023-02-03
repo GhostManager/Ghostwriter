@@ -1,4 +1,4 @@
-"""This contains all of the model Signals used by the Reporting application."""
+"""This contains all the model Signals used by the Reporting application."""
 
 # Standard Libraries
 import logging
@@ -16,6 +16,7 @@ from ghostwriter.reporting.models import (
     Report,
     ReportFindingLink,
     ReportTemplate,
+    Severity,
 )
 
 # Using __name__ resolves to ghostwriter.reporting.signals
@@ -42,9 +43,7 @@ def delete_old_evidence_on_update(sender, instance, **kwargs):
             if instance._current_evidence.path not in instance.document.path:
                 try:
                     os.remove(instance._current_evidence.path)
-                    logger.info(
-                        "Deleted old evidence file %s", instance._current_evidence.path
-                    )
+                    logger.info("Deleted old evidence file %s", instance._current_evidence.path)
                 except Exception:  # pragma: no cover
                     logger.exception(
                         "Failed deleting old evidence file: %s",
@@ -114,9 +113,7 @@ def clean_template(sender, instance, created, **kwargs):
                         instance._current_template.path,
                     )
         else:  # pragma: no cover
-            logger.info(
-                "Template file paths match, so will not re-run the linter or delete any files"
-            )
+            logger.info("Template file paths match, so will not re-run the linter or delete any files")
 
     if hasattr(instance, "_current_type"):
         if instance._current_type != instance.doc_type:
@@ -183,16 +180,39 @@ def adjust_finding_positions_after_delete(sender, instance, **kwargs):
     of entries tied to the same :model:`reporting.Report`.
     """
     try:
-        # Get all other findings with the same severity for this report ID
         findings_queryset = ReportFindingLink.objects.filter(
             Q(report=instance.report.pk) & Q(severity=instance.severity)
         )
         if findings_queryset:
             counter = 1
             for finding in findings_queryset:
-                # Adjust position to close gap created by removed finding
+                # Adjust position to close gap created by the removed finding
                 findings_queryset.filter(id=finding.id).update(position=counter)
                 counter += 1
     except Report.DoesNotExist:
         # Report was deleted, so no need to adjust positions
         pass
+
+
+@receiver(pre_save, sender=Severity)
+def adjust_severity_weight_with_changes(sender, instance, **kwargs):
+    """
+    Execute the :model:`reporting.Severity` ``clean()`` function prior to ``save()``
+    to adjust the ``weight`` values of entries.
+    """
+    instance.clean()
+
+
+@receiver(post_delete, sender=Severity)
+def adjust_severity_weight_after_delete(sender, instance, **kwargs):
+    """
+    After deleting a :model:`reporting.Severity` entry, adjust the ``weight`` values
+    of entries.
+    """
+    severity_queryset = Severity.objects.all()
+    if severity_queryset:
+        counter = 1
+        for category in severity_queryset:
+            # Adjust weight to close gap created by the removed severity category
+            severity_queryset.filter(id=category.id).update(weight=counter)
+            counter += 1

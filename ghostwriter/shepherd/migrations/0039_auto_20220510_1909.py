@@ -5,16 +5,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0038_alter_domain_dns_record'),
+        ("shepherd", "0038_alter_domain_dns_record"),
     ]
 
     operations = [
+        migrations.RunSQL("ALTER TABLE shepherd_domainnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;"),
         migrations.RunSQL(
-            'ALTER TABLE shepherd_domainnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;'
+            "ALTER TABLE shepherd_servernote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;",
         ),
-        migrations.RunSQL(
-            'ALTER TABLE shepherd_servernote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;',
-        )
     ]
