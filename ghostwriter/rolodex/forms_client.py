@@ -8,7 +8,7 @@ from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils.translation import gettext_lazy as _
 
 # 3rd Party Libraries
-from crispy_forms.bootstrap import Alert, FieldWithButtons, StrictButton, TabHolder
+from crispy_forms.bootstrap import Alert, FieldWithButtons, TabHolder
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import (
     HTML,

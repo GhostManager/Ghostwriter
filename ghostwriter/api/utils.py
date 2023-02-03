@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Django Imports
 from django.conf import settings
