@@ -39,6 +39,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Proactively upgraded core dependencies and base OS images to their latest stable versions
 * Updated TinyMCE to the latest v5 to address CVE-2022-23494 (Reference [CVE-2022-23494](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23494))
 
+## [3.1.5] - 28 November 2022
+
+### Added
+
+* Added form validation to confirm the hex color value provided for a severity category is valid
+
+### Changed
+
+* Build commands will no longer load default data if the entry already exists (avoids resetting entries that may have been customized)
+
+### Security
+
+* Updated the Hasura GraphQL Engine to v2.15.2 to address [a security vulnerability reported to Hasura](https://github.com/hasura/graphql-engine/security/advisories/GHSA-g7mj-g7f4-hgrg)
+
 ## [3.1.4] - 11 November 2022
 
 ### Fixed
