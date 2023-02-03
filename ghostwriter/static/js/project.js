@@ -197,3 +197,9 @@ function renderPreview(fileInput, previewDiv) {
     loadedImage.style.border = 'thin solid #555555';
   }
 }
+
+// Escape HTML characters in a string to make it safe for display
+const escapeHtml = (unsafe) => {
+    return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+

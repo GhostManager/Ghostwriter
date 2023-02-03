@@ -36,7 +36,7 @@
     let $previewContent = $('#key_name_' + targetId);
 
     if ($previewContent) {
-      $('#object-preview-content').html($previewContent.text());
+      $('#object-preview-content').html(escapeHtml($previewContent.text()));
     }
   });
 
