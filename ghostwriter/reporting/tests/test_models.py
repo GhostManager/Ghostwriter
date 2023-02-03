@@ -122,6 +122,7 @@ class SeverityModelTests(TestCase):
 
         critical = SeverityFactory(severity="Critical", weight=2, color="FFFFFF")
         high = SeverityFactory(severity="High", weight=2, color="FFF000")
+        medium = SeverityFactory(severity="Medium", weight=3, color="000FFF")
 
         self.assertEqual(critical.severity, "Critical")
         self.assertEqual(critical.color, "FFFFFF")
@@ -129,6 +130,9 @@ class SeverityModelTests(TestCase):
         self.assertEqual(high.severity, "High")
         self.assertEqual(high.color, "FFF000")
         self.assertEqual(high.weight, 2)
+        self.assertEqual(medium.severity, "Medium")
+        self.assertEqual(medium.color, "000FFF")
+        self.assertEqual(medium.weight, 3)
 
         critical.weight = 2
         critical.save()
@@ -138,6 +142,13 @@ class SeverityModelTests(TestCase):
 
         self.assertEqual(critical.weight, 2)
         self.assertEqual(high.weight, 1)
+
+        critical.delete()
+        high.refresh_from_db()
+        medium.refresh_from_db()
+
+        self.assertEqual(high.weight, 1)
+        self.assertEqual(medium.weight, 2)
 
 
 class FindingTypeModelTests(TestCase):

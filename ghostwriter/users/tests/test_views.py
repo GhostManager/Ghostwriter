@@ -196,3 +196,41 @@ class GhostwriterPasswordChangeViewTests(TestCase):
         self.assertRedirects(response, self.success_uri)
         self.user.password = PASSWORD
         self.user.save()
+
+
+class UserLoginViewTests(TestCase):
+    """Collection of tests for :view:`allauth.Login`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("account_login")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_redirects_if_authenticated(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/login.html")
+
+    def test_valid_credentials(self):
+        response = self.client.post(self.uri, {"login": self.user.username, "password": PASSWORD})
+        self.assertEqual(response.status_code, 302)
+        self.assertTemplateUsed(response, "account/messages/logged_in.txt")
+
+    def test_invalid_credentials(self):
+        response = self.client.post(self.uri, {"login": self.user.username, "password": "invalid"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "account/login.html")
