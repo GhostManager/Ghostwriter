@@ -90,3 +90,15 @@ class OplogEntryModelTests(TestCase):
         entry.save()
         entry.refresh_from_db()
         self.assertEqual(entry.end_date, valid_end_date)
+
+    def test_tagging(self):
+        tags = ["tag1", "tag2", "tag3"]
+        entry = OplogEntryFactory(tags=tags)
+
+        self.assertEqual(list(entry.tags.names()), tags)
+
+        tags.append("tag4")
+        entry.tags.add("tag4")
+        entry.refresh_from_db()
+
+        self.assertEqual(list(entry.tags.names()), tags)
