@@ -683,6 +683,7 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
 class ReportDataSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Project` and all related entries."""
 
+    tags = TagListSerializerField()
     report_date = SerializerMethodField("get_report_date")
     project = ProjectSerializer(
         exclude=[
