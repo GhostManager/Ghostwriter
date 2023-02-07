@@ -269,13 +269,15 @@ class ReportForm(forms.ModelForm):
         ].label_from_instance = lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
         self.fields["docx_template"].label = "DOCX Template"
         self.fields["pptx_template"].label = "PPTX Template"
+        self.fields["docx_template"].required = False
+        self.fields["pptx_template"].required = False
         self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
         self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
 
         report_config = ReportConfiguration.get_solo()
         self.fields["docx_template"].initial = report_config.default_docx_template
         self.fields["pptx_template"].initial = report_config.default_pptx_template
-        self.fields["docx_template"].empty_label = "-- Picka Word Template --"
+        self.fields["docx_template"].empty_label = "-- Pick a Word Template --"
         self.fields["pptx_template"].empty_label = "-- Pick a PowerPoint Template --"
 
         # Design form layout with Crispy FormHelper
@@ -293,6 +295,9 @@ class ReportForm(forms.ModelForm):
                 """
                 <h4 class="icon file-icon">Assign Templates</h4>
                 <hr />
+                <p>Select a template to use for the Word and PowerPoint versions of the report.
+                If you do not select a template, the global default template will be used.
+                If a default is not configured, you will need to select one here or on the report page.</p>
                 """
             ),
             Row(
