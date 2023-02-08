@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.2.1] - 7 February 2023
+
+### Added
+
+* Added a warning to the report form about still needing to select a template if a global default is not configured
+* Added report tags to the report data as a new `tags` variable accessible in report templates
+
+### Fixed
+
+* Fixed a server error that could occur when attempting to add a domain that already existed in the library
+* Fixed the report update form still requiring a template selection after the v3.2 changes
+* Fixed the report template linter not recognizing `tags` as a valid key for objects with tags
+
 ## [v3.2.0] - 2 February 2023
 
 ### Added

@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "3.2.0"
+__version__ = "3.2.1"
 VERSION = __version__
-RELEASE_DATE = "2 February 2023"
+RELEASE_DATE = "8 February 2023"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
