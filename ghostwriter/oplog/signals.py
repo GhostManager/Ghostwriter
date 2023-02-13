@@ -61,16 +61,17 @@ def signal_oplog_entry_tags(sender, instance, **kwargs):
     Send a WebSockets message to update a user's log entry list with the
     new or updated tags applied to an instance of :model:`oplog.OplogEntry`.
     """
-    try:
-        channel_layer = get_channel_layer()
-        oplog_id = instance.oplog_id.id
-        serialized_entry = OplogEntrySerializer(instance).data
-        json_message = json.dumps({"action": "create", "data": serialized_entry})
+    if isinstance(instance, OplogEntry):
+        try:
+            channel_layer = get_channel_layer()
+            oplog_id = instance.oplog_id.id
+            serialized_entry = OplogEntrySerializer(instance).data
+            json_message = json.dumps({"action": "create", "data": serialized_entry})
 
-        async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
-    except gaierror:  # pragma: no cover
-        # WebSocket are unavailable (unit testing)
-        pass
+            async_to_sync(channel_layer.group_send)(str(oplog_id), {"type": "send_oplog_entry", "text": json_message})
+        except gaierror:  # pragma: no cover
+            # WebSocket are unavailable (unit testing)
+            pass
 
 
 @receiver(post_delete, sender=OplogEntry)
