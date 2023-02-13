@@ -9,7 +9,7 @@
       {% comment %} Create breadcrumbs based on the context of the request {% endcomment %}
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       {% comment %} Check if `object` is in context to determine if this is a `ClientUpdate` request {% endcomment %}
-      {% if object %}
+      {% if object.id %}
         <li class="breadcrumb-item"><a href="{% url 'rolodex:clients' %}">Clients</a></li>
         <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' object.id %}">{{ client.name }}</a></li>
         <li class="breadcrumb-item active" aria-current="page">Update</li>
