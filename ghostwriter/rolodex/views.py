@@ -955,7 +955,7 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save(commit=False)
+                self.object = form.save()
 
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
@@ -964,7 +964,6 @@ class ClientCreate(LoginRequiredMixin, CreateView):
 
                 if form.is_valid() and contacts_valid:
                     self.object.save()
-                    form.save_m2m()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1037,7 +1036,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save(commit=False)
+                self.object = form.save()
 
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
@@ -1046,7 +1045,6 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
 
                 if form.is_valid() and contacts_valid:
                     self.object.save()
-                    form.save_m2m()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1286,7 +1284,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save(commit=False)
+                self.object = form.save()
 
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
@@ -1322,7 +1320,6 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     and whitecards_valid
                 ):
                     self.object.save()
-                    form.save_m2m()
                     return HttpResponseRedirect(self.get_success_url())
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1413,7 +1410,7 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save(commit=False)
+                self.object = form.save()
 
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
@@ -1450,7 +1447,6 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     and whitecards_valid
                 ):
                     self.object.save()
-                    form.save_m2m()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))

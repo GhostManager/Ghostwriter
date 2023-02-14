@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.2.2] - 13 February 2023
+
+## Changed
+
+* Upgraded Ghostwriter CLI binaries to v0.2.9
+
+## Fixed
+
+* Fixed situations where the webpage could fail to load after submitting a client and project form with a validation error (Fixes #290)
+* Fixed tags on log entries not appearing immediately in the table after adding them
+* Fixed issue that prevented updating a domain
+
 ## [v3.2.1] - 7 February 2023
 
 ### Added

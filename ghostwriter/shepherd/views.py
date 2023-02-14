@@ -1168,12 +1168,6 @@ class DomainCreate(LoginRequiredMixin, CreateView):
         ctx["cancel_link"] = reverse("shepherd:domains")
         return ctx
 
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
-        return super().form_valid(form)
-
 
 class DomainUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -1200,12 +1194,6 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = reverse("shepherd:domain_detail", kwargs={"pk": self.object.id})
         return ctx
-
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
-        return super().form_valid(form)
 
 
 class DomainDelete(LoginRequiredMixin, DeleteView):
@@ -1313,14 +1301,14 @@ class ServerCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save(commit=False)
-                self.object.save()
-                form.save_m2m()
+                self.object = form.save()
+
                 addresses_valid = addresses.is_valid()
                 if addresses_valid:
                     addresses.instance = self.object
                     addresses.save()
                 if form.is_valid() and addresses_valid:
+                    self.object.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1380,14 +1368,14 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save(commit=False)
-                self.object.save()
-                form.save_m2m()
+                self.object = form.save()
+
                 addresses_valid = addresses.is_valid()
                 if addresses_valid:
                     addresses.instance = self.object
                     addresses.save()
                 if form.is_valid() and addresses_valid:
+                    self.object.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
