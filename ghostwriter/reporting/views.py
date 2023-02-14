@@ -842,9 +842,7 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, View):
     def post(self, *args, **kwargs):
         form = FindingForm(self.request.POST)
         if form.is_valid():
-            new_finding = form.save(commit=False)
-            new_finding.save()
-            form.save_m2m()
+            new_finding = form.save()
             return HttpResponseRedirect(reverse("reporting:finding_detail", kwargs={"pk": new_finding.pk}))
         logger.warning(form.errors.as_data())
         return render(self.request, "reporting/finding_form.html", {"form": form})
@@ -1154,12 +1152,6 @@ class FindingCreate(LoginRequiredMixin, CreateView):
         )
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
 
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
-        return super().form_valid(form)
-
 
 class FindingUpdate(LoginRequiredMixin, UpdateView):
     """
@@ -1190,12 +1182,6 @@ class FindingUpdate(LoginRequiredMixin, UpdateView):
             extra_tags="alert-success",
         )
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
-
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
-        return super().form_valid(form)
 
 
 class FindingDelete(LoginRequiredMixin, DeleteView):
@@ -1335,9 +1321,6 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         form.instance.created_by = self.request.user
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["title"] = form.instance.title
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
         return super().form_valid(form)
 
     def get_initial(self):
@@ -1395,9 +1378,6 @@ class ReportUpdate(LoginRequiredMixin, UpdateView):
         self.request.session["active_report"]["id"] = form.instance.id
         self.request.session["active_report"]["title"] = form.instance.title
         self.request.session.modified = True
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -2186,9 +2166,6 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UpdateView):
                     except gaierror:
                         # WebSocket are unavailable (unit testing)
                         pass
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
         return super().form_valid(form)
 
     def get_form(self, form_class=None):
@@ -2367,12 +2344,6 @@ class EvidenceUpdate(LoginRequiredMixin, UpdateView):
             extra_tags="alert-success",
         )
         return reverse("reporting:evidence_detail", kwargs={"pk": self.object.pk})
-
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
-        return super().form_valid(form)
 
 
 class EvidenceDelete(LoginRequiredMixin, DeleteView):

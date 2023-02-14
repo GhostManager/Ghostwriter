@@ -245,8 +245,13 @@ class DomainForm(forms.ModelForm):
         )
 
     def clean_name(self):
+        domain = None
         name = self.cleaned_data["name"]
-        if Domain.objects.filter(name=name.lower()).count() > 0:
+        try:
+            domain = Domain.objects.get(name=name.lower())
+        except Domain.DoesNotExist:
+            pass
+        if domain and domain.pk != self.instance.pk:
             raise ValidationError(
                 _("Domain names must be unique and this one already exists in the library"),
                 code="unique",

@@ -324,12 +324,6 @@ class OplogEntryCreate(LoginRequiredMixin, AjaxTemplateMixin, CreateView):
     def get_success_url(self):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
 
-    def form_valid(self, form, **kwargs):
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
-        return super().form_valid(form)
-
 
 class OplogEntryUpdate(LoginRequiredMixin, AjaxTemplateMixin, UpdateView):
     """
@@ -347,12 +341,6 @@ class OplogEntryUpdate(LoginRequiredMixin, AjaxTemplateMixin, UpdateView):
 
     def get_success_url(self):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
-
-    def form_valid(self, form, **kwargs):
-        obj = form.save(commit=False)
-        obj.save()
-        form.save_m2m()
-        return super().form_valid(form)
 
 
 class OplogEntryDelete(LoginRequiredMixin, DeleteView):
