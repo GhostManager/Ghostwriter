@@ -1,0 +1,164 @@
+<!-- Page to allow searching report findings by different criteria -->
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Search Report Findings{% endblock %}
+
+{% block breadcrumbs %}
+    <nav aria-label="breadcrumb">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Findings</li>
+        </ul>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <!-- Filter Section -->
+    <div class="filter-form">
+        {% crispy filter.form filter.helper %}
+    </div>
+
+    {% if filter.qs|length == 0 %}
+        <p class="mt-3">There are no findings to see here yet, or your search returned no results.</p>
+    {% else %}
+        <!-- Findings Table Section -->
+        <div id="findings_table">
+            <table id="findingsTable" class="tablesorter table table-striped table-sm">
+                <thead>
+                    <tr>
+                        <th class="align-middle pr-4">Severity</th>
+                        <th class="align-middle pr-4">Category</th>
+                        <th class="align-middle pr-4">Title</th>
+                        <th class="align-middle pr-4">Creation Date</th>
+                        <th class="align-middle pr-4">Tester</th>
+                        <th class="align-middle pr-4">Finding Type</th>
+                    </tr>
+                </thead>
+                {% for reportFinding in page_obj %}
+                    <tr>
+                        <td class="align-middle" style="color:#{{reportFinding.severity.color}};font-weight:bold">{{ reportFinding.severity.severity }}</td>
+                        <td class="align-middle">{{ reportFinding.replication_steps | striptags }}</td>
+                        <td class="align-middle"><a class="clickable" href="{{ reportFinding.report.get_absolute_url }}">{{ reportFinding.title }}</a></td>
+                        <td class="align-middle">{{ reportFinding.report.creation }}</td>
+                        <td class="align-middle">{{ reportFinding.report.created_by }}</td>
+                        <td class="align-middle">{{ reportFinding.finding_type.finding_type }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1&{{ parameters }}">&laquo; first</a>
+                    <a href="?page={{ page_obj.previous_page_number }}&{{ parameters }}">previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}&{{ parameters }}">next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}&{{ parameters }}">last &raquo;</a>
+                {% endif %}
+            </span>
+            <select id="page_size" class="form-control custom_select col-md-1" onchange="updateTableWithPageSize()">
+                {% for ps in page_size_values %}
+                   <option value="{{ ps }}">{{ ps }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block morescripts %}
+    <!-- jQuery Tablesorter Script -->
+    <script>
+        $(document).ready(function()  {
+            $("#findingsTable").tablesorter(
+                            {
+                                cssAsc: 'down',
+                                cssDesc: 'up',
+                                cssNone: 'none',
+                            }
+                        );
+            $('.tablesorter').trigger('update');
+
+            // Updates the page size drop down when the page_size param is set in the URL
+            loadPageSizeValue();
+        });
+
+        // Export to CSV
+        function tableToCSV() {
+            let csv_data = [];
+
+            // Get each row data
+            const rows = document.getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                    // Get each column data
+                    const cols = rows[i].querySelectorAll('td,th');
+
+                    // Stores each csv row data
+                    const csvrow = [];
+                    for (let j = 0; j < cols.length; j++) {
+                        // Get the text data of each cell of
+                        // a row and push it to csvrow
+                        csvrow.push(cols[j].innerText);
+                    }
+
+                    // Combine each column value with comma
+                    csv_data.push(csvrow.join(","));
+            }
+
+            // combine each row data with new line character
+            csv_data = csv_data.join('\n');
+            downloadCSVFile(csv_data);
+        }
+
+        function downloadCSVFile(csv_data) {
+            const csv = new Blob([csv_data], { type: "text/csv" });
+
+            // Create to temporary link to initiate
+            // download process
+            const temp_link = document.createElement('a');
+
+            // Download csv file
+            temp_link.download = "findings.csv";
+            const url = window.URL.createObjectURL(csv);
+            temp_link.href = url;
+
+            // This link should not be displayed
+            temp_link.style.display = "none";
+            document.body.appendChild(temp_link);
+
+            // Automatically click the link to trigger download
+            temp_link.click();
+            document.body.removeChild(temp_link);
+        }
+
+        const page_size_label = "page_size";
+        function updateTableWithPageSize() {
+            const urlParams = new URLSearchParams(location.search);
+            const pageSize = document.getElementById(page_size_label).value;
+            // Update the page size if it's in the URL, otherwise, add it
+            urlParams.set(page_size_label, pageSize);
+            location = location.href.split("?")[0] + "?" + urlParams.toString()
+        }
+
+        function loadPageSizeValue(){
+            const urlParams = new URLSearchParams(location.search);
+            const pageSizeElement = document.getElementById(page_size_label);
+            pageSizeElement.value = urlParams.get(page_size_label) ? urlParams.get(page_size_label) : 15;
+        }
+    </script>
+
+    <!-- Submit Filter when Clicking Bootstrap Icon -->
+    <script>
+        $('.input-group-text').on('click', function (event) {
+            $('.input-group-text').closest('form').submit();
+        });
+    </script>
+{% endblock %}

@@ -51,6 +51,7 @@ from ghostwriter.shepherd.models import (
     StaticServer,
     TransientServer,
 )
+from ghostwriter.stratum.enums import FindingStatusColor, Severity
 from ghostwriter.users.models import User
 
 
@@ -769,18 +770,53 @@ class ReportDataSerializer(CustomModelSerializer):
         medium_findings = 0
         low_findings = 0
         info_findings = 0
-        for finding in rep["findings"]:
+
+        open_critical_findings = 0
+        open_high_findings = 0
+        open_medium_findings = 0
+        open_low_findings = 0
+        open_info_findings = 0
+        findings = rep["findings"]
+
+        for finding in findings:
             finding["ordering"] = finding_order
-            if finding["severity"].lower() == "critical":
+            severity = finding["severity"].lower()
+            finding_status = strip_html(finding["network_detection_techniques"]).lower()
+            open_status = FindingStatusColor.OPEN.value[0].lower()
+            accepted_status = FindingStatusColor.ACCEPTED.value[0].lower()
+
+            def _increment_open_finding(
+                count, finding_status, open_status, accepted_status
+            ):
+                if finding_status == open_status or finding_status == accepted_status:
+                    count += 1
+                return count
+
+            if severity == Severity.CRIT.value.lower():
                 critical_findings += 1
-            elif finding["severity"].lower() == "high":
+                open_critical_findings = _increment_open_finding(
+                    open_critical_findings, finding_status, open_status, accepted_status
+                )
+            elif severity == Severity.HIGH.value.lower():
                 high_findings += 1
-            elif finding["severity"].lower() == "medium":
+                open_high_findings = _increment_open_finding(
+                    open_high_findings, finding_status, open_status, accepted_status
+                )
+            elif severity == Severity.MED.value.lower():
                 medium_findings += 1
-            elif finding["severity"].lower() == "low":
+                open_medium_findings = _increment_open_finding(
+                    open_medium_findings, finding_status, open_status, accepted_status
+                )
+            elif severity == Severity.LOW.value.lower():
                 low_findings += 1
-            elif finding["severity"].lower() == "informational":
+                open_low_findings = _increment_open_finding(
+                    open_low_findings, finding_status, open_status, accepted_status
+                )
+            elif severity == Severity.BP.value.lower():
                 info_findings += 1
+                open_info_findings = _increment_open_finding(
+                    open_info_findings, finding_status, open_status, accepted_status
+                )
             finding_order += 1
 
         # Add a ``totals`` key to track the values
@@ -793,8 +829,60 @@ class ReportDataSerializer(CustomModelSerializer):
         rep["totals"]["findings_medium"] = medium_findings
         rep["totals"]["findings_low"] = low_findings
         rep["totals"]["findings_info"] = info_findings
+        rep["totals"]["open_findings_critical"] = open_critical_findings
+        rep["totals"]["open_findings_high"] = open_high_findings
+        rep["totals"]["open_findings_medium"] = open_medium_findings
+        rep["totals"]["open_findings_low"] = open_low_findings
+        rep["totals"]["open_findings_info"] = open_info_findings
+        rep["totals"]["open_findings"] = (
+            open_critical_findings
+            + open_high_findings
+            + open_medium_findings
+            + open_low_findings
+            + open_info_findings
+        )
         rep["totals"]["scope"] = total_scope_lines
         rep["totals"]["team"] = total_team
         rep["totals"]["targets"] = total_targets
+
+        # Calculate SD Score - in statistics this is called Z-Score
+        findings_score_total = (
+            open_critical_findings * 25
+            + open_high_findings * 10
+            + open_medium_findings * 5
+            + open_low_findings * 3
+            + open_info_findings * 1
+        )
+        # The hardcoded literals need to be updated once in a while to update the rolling average
+        rep["totals"]["sd_score"] = (
+            98.9650872817955 - findings_score_total
+        ) / 76.0927314403607
+
+        # Calculate the findings chart data variable
+        chart_data = []
+        severity_indexes = list(reversed([e.value.lower() for e in Severity]))
+        for finding in findings:
+            # Have to strip HTML because it's in a field that takes HTML
+            category = strip_html(finding["replication_steps"])
+            # Replace spaces with newlines to wrap x-axis labels
+            category = category.replace(" ", "\n")
+
+            severity = finding["severity"].lower()
+            category_found = False
+
+            for data in chart_data:
+                if data[0] == category:
+                    # Update the finding count for the severity
+                    # +1 in the index is to adjust as the label is in the first index
+                    data[severity_indexes.index(severity) + 1] += 1
+                    category_found = True
+                    break
+
+            if not category_found:
+                # Add new entry with category label and all zeros
+                data = [category] + [0] * 5
+                data[severity_indexes.index(severity) + 1] += 1
+                chart_data.append(data)
+        rep["totals"]["chart_data"] = chart_data
 
         return rep

@@ -48,6 +48,7 @@ urlpatterns = [
     path("status/", include("ghostwriter.status.urls", namespace="status")),
     # Add additional custom paths below this line...
     # Your stuff: custom urls includes go here
+    path("report/findings/", include("ghostwriter.stratum.urls", namespace="stratum")),
 ]
 
 if settings.DEBUG:

@@ -12,6 +12,7 @@ import os
 import random
 import re
 from datetime import timedelta
+from string import ascii_letters
 
 # 3rd Party Libraries
 import docx
@@ -47,6 +48,16 @@ from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.reporting.models import Evidence
+
+# Custom code
+from ghostwriter.stratum.enums import (
+    DifficultyExploitColor,
+    FindingStatusColor,
+    Severity,
+    get_value_from_key,
+)
+from ghostwriter.stratum.findings_chart import build_chart, build_pie_chart
+from ghostwriter.stratum.sd_graph import build_sd_graph
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -224,6 +235,28 @@ def format_datetime(date, new_format):
     return formatted_date
 
 
+def sort_findings(findings):
+    # Using math to with appropriate weights to make sure mediums severities with low exploit don't pass highs or crits.
+    severities = {
+        Severity.CRIT.value.lower(): 200,
+        Severity.HIGH.value.lower(): 65,
+        Severity.MED.value.lower(): 20,
+        Severity.LOW.value.lower(): 5,
+        Severity.BP.value.lower(): 1
+    }
+    diff_of_exploit = {
+        Severity.LOW.value.lower(): 3,
+        Severity.MED.value.lower(): 2,
+        Severity.HIGH.value.lower(): 1
+    }
+
+    for finding in findings:
+        weight = severities[finding["severity"].lower()] * diff_of_exploit.get(strip_html(finding["host_detection_techniques"]).lower(), 1)
+        finding["weight"] = weight
+
+    return sorted(findings, key=lambda f: f["weight"], reverse=True)
+
+
 def prepare_jinja2_env(debug=False):
     """Prepare a Jinja2 environment with all custom filters."""
     if debug:
@@ -238,6 +271,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["compromised"] = compromised
     env.filters["add_days"] = add_days
     env.filters["format_datetime"] = format_datetime
+    env.filters["sort_findings"] = sort_findings
 
     return env
 
@@ -848,6 +882,26 @@ class Reportwriter:
             else:
                 font.superscript = styles["superscript"]
 
+    def _add_image(self, par, fig, filename, pad=0.1):
+        # Build the filepath to save the figure and add to report
+        # Strip special chars except for - and _
+        allowed = ascii_letters + "-"+"_"
+        new_file_name = ''.join(list(filter(allowed.__contains__, filename)))
+        directory = f'{settings.MEDIA_ROOT}/evidence/{self.report_json["project"]["id"]}'
+
+        if not os.path.exists(directory):
+            # Create a new directory because it does not exist
+            os.makedirs(directory)
+
+        filepath = f'{directory}/{new_file_name}.png'
+        # Save the figure as a png to the file system under the report directory to be saved into the report
+        fig.savefig(filepath,pad_inches=pad, bbox_inches='tight', dpi=fig.get_dpi())
+
+        # Replace figure in report with saved image
+        # Use the filename as a label for replacing the text with the image
+        run = par.add_run()
+        run.add_picture(filepath, width=Inches(fig.get_figwidth()), height=Inches(fig.get_figheight()))
+
     def _replace_and_write(self, text, par, finding, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
         """
         Find and replace template keywords in the provided text.
@@ -917,6 +971,22 @@ class Reportwriter:
                                 self._make_figure(par)
                             par.add_run(self.prefix_figure + text)
                         # Captions are on their own line so return
+                        return par
+
+                    if keyword == "chart_bar":
+                        chart_data = self.report_json["totals"]["chart_data"]
+                        par.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        self._add_image(par, build_chart(chart_data), keyword)
+                        return par
+                    elif keyword == "chart_sdscore":
+                        sd_score = self.report_json["totals"]["sd_score"]
+                        par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        self._add_image(par, build_sd_graph(sd_score), keyword)
+                        return par
+                    elif keyword == "chart_pie":
+                        chart_data = self.report_json["totals"]["chart_data"]
+                        total_findings = self.report_json["totals"]["findings"]
+                        self._add_image(par, build_pie_chart(chart_data, total_findings), keyword)
                         return par
 
                     # Handle evidence files
@@ -1573,9 +1643,13 @@ class Reportwriter:
             finding["recommendation_rt"] = mitigation_section
 
             finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding)
-            finding["host_detection_techniques_rt"] = render_subdocument(finding["host_detection_techniques"], finding)
-            finding["network_detection_techniques_rt"] = render_subdocument(
-                finding["network_detection_techniques"], finding
+            finding["host_detection_techniques_rt"] = RichText(
+                strip_html(finding["host_detection_techniques"]),
+                color=get_value_from_key(DifficultyExploitColor, strip_html(finding["host_detection_techniques"]))
+            )
+            finding["network_detection_techniques_rt"] = RichText(
+                strip_html(finding["network_detection_techniques"]),
+                color=get_value_from_key(FindingStatusColor, strip_html(finding["network_detection_techniques"]))
             )
             finding["references_rt"] = render_subdocument(finding["references"], finding)
 
@@ -1585,6 +1659,22 @@ class Reportwriter:
 
         # Project Notes
         context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None)
+
+        # Project Findings Charts
+        context["project"]["chart_bar"] = "<p>{{.chart_bar}}</p>"
+        context["project"]["chart_bar_rt"] = render_subdocument(
+            context["project"]["chart_bar"], finding=None
+        )
+
+        context["project"]["chart_sdscore"] = "<p>{{.chart_sdscore}}</p>"
+        context["project"]["chart_sdscore_rt"] = render_subdocument(
+            context["project"]["chart_sdscore"], finding=None
+        )
+
+        context["project"]["chart_pie"] = "<p>{{.chart_pie}}</p>"
+        context["project"]["chart_pie_rt"] = render_subdocument(
+            context["project"]["chart_pie"], finding=None
+        )
 
         # Assignments
         for assignment in context["team"]:

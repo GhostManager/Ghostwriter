@@ -135,7 +135,6 @@
         <tr>
           <th class="icon ol-list-icon text-center"></th>
           <th class="align-middle">Finding</th>
-          <th>CVSS Score</th>
           <th class="align-middle">
             <div class="dropdown dropleft">
               <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
@@ -146,6 +145,9 @@
               </div>
             </div>
           </th>
+          <th class="align-middle">Category</th>
+          <th class="align-middle">DoE</th>
+          <th class="align-middle">Status</th>
           <th class="align-middle">
             <div class="dropdown dropleft">
               <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
@@ -172,7 +174,7 @@
         {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
         {% for group, values in severity_groups.items %}
           <tbody>
-          <th id="{{ values.tpl_name }}_header" class="severity-header {{ values.tpl_name }}" colspan="7"
+          <th id="{{ values.tpl_name }}_header" class="severity-header {{ values.tpl_name }}" colspan="9"
               scope="colgroup">{{ group }}</th>
           </tbody>
           <tbody id="{{ values.tpl_name }}_severity" class="sortable_list connected_sortable" severity-weight="{{ values.weight }}">
@@ -185,7 +187,24 @@
                   data-placement="top"
                   title="Click-n-drag to reposition or categorize"
                 ></td>
-                <td class="align-middle">
+                <td class="align-middle icon {% if finding.finding_type.finding_type == "Network" %}
+                                                   network-icon" title="Network Finding"
+                                             {% elif finding.finding_type.finding_type == "Wireless" %}
+                                                   wireless-icon" title="Wireless Finding"
+                                             {% elif finding.finding_type.finding_type == "Physical" %}
+                                                   physical-icon" title="Physical Security Finding"
+                                             {% elif finding.finding_type.finding_type == "Web" %}
+                                                   code-icon" title="Web App Finding"
+                                             {% elif finding.finding_type.finding_type == "Mobile Application" %}
+                                                   mobile-icon" title="Mobile Finding"
+                                             {% elif finding.finding_type.finding_type == "Cloud" %}
+                                                   cloud-icon" title="Cloud Finding"
+                                             {% elif finding.finding_type.finding_type == "Host" %}
+                                                   host-icon" title="Local Host Finding"
+                                             {% else %}
+                                                   host-icon" title="other Finding"
+                                             {% endif %}>
+                  <span style="display: none;">{{ finding.finding_type.finding_type }}</span>
                   <a id="delete-target-content-finding-{{ finding.id }}"
                     {% if finding.added_as_blank %}
                      class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
@@ -195,28 +214,6 @@
                     {% endif %}
                      href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
                   </a>
-                </td>
-                <td class="neutral align-middle
-                    {% if finding.severity.weight == 1 %}
-                        cvss-critical
-                    {% elif finding.severity.weight == 2 %}
-                        cvss-high
-                    {% elif finding.severity.weight == 3 %}
-                        cvss-medium
-                    {% elif finding.severity.weight == 4 %}
-                        cvss-low
-                    {% elif finding.severity.weight == 5 %}
-                        cvss-info
-                    {% endif %}
-                ">
-                  {% if finding.cvss_score %}
-                    <span
-                      style="cursor: help"
-                      data-toggle="tooltip"
-                      data-placement="top"
-                      title="{{ finding.cvss_vector }}"
-                    >{{ finding.cvss_score }}</span>
-                  {% else %}--{% endif %}
                 </td>
                 {% if finding.evidence_set.all %}
                   <td class="align-middle">
@@ -250,6 +247,9 @@
                     ></a>
                   </td>
                 {% endif %}
+                <td class="align-middle">{{ finding.replication_steps | striptags }}</td>
+                <td class="align-middle">{{ finding.host_detection_techniques | striptags }}</td>
+                <td class="align-middle">{{ finding.network_detection_techniques | striptags }}</td>
                 {% if finding.assigned_to == request.user %}
                   {% if finding.complete %}
                     <td class="healthy align-middle">You</td>

@@ -121,6 +121,7 @@ LOCAL_APPS = [
     "ghostwriter.singleton.apps.SingletonConfig",
     "ghostwriter.api.apps.ApiConfig",
     "ghostwriter.status.apps.StatusConfig",
+    "ghostwriter.stratum.apps.StratumConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
