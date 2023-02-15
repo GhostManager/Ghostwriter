@@ -24,19 +24,21 @@ logger = logging.getLogger(__name__)
 
 
 @receiver(post_init, sender=Evidence)
-def backup_evidence_path(sender, instance, **kwargs):
+def backup_evidence_values(sender, instance, **kwargs):
     """
     Backup the file path of the old evidence file in the :model:`reporting.Evidence`
-    instance when a new file is uploaded.
+    instance when a new file is uploaded and backup the `friendly_name` value.
     """
     instance._current_evidence = instance.document
+    instance._current_friendly_name = instance.friendly_name
 
 
 @receiver(post_save, sender=Evidence)
-def delete_old_evidence_on_update(sender, instance, **kwargs):
+def evidence_update(sender, instance, **kwargs):
     """
-    Delete the old evidence file in the :model:`reporting.Evidence` instance when a
-    new file is uploaded.
+    On change, delete the old evidence file in the :model:`reporting.Evidence` instance when a
+    new file is uploaded and update teh related :model:`reporting.ReportFindingLink` instance if
+    the `friendly_name` value changed.
     """
     if hasattr(instance, "_current_evidence"):
         if instance._current_evidence:
@@ -49,6 +51,43 @@ def delete_old_evidence_on_update(sender, instance, **kwargs):
                         "Failed deleting old evidence file: %s",
                         instance._current_evidence.path,
                     )
+
+    if hasattr(instance, "_current_friendly_name"):
+        if instance._current_friendly_name != instance.friendly_name:
+            ignore = [
+                "id",
+                "evidence",
+                "localfindingnote",
+                "complete",
+                "report",
+                "assigned_to",
+                "finding_type",
+                "tags",
+                "tagged_items",
+                "cvss_score",
+                "cvss_vector",
+                "severity",
+                "added_as_blank",
+                "position",
+                "finding_guidance",
+                "title",
+            ]
+            friendly = f"{{{{.{instance.friendly_name}}}}}"
+            friendly_ref = f"{{{{.ref {instance.friendly_name}}}}}"
+            prev_friendly = f"{{{{.{instance._current_friendly_name}}}}}"
+            prev_friendly_ref = f"{{{{.ref {instance._current_friendly_name}}}}}"
+            try:
+                link = ReportFindingLink.objects.get(id=instance.finding.id)
+                for field in link._meta.get_fields():
+                    if field.name not in ignore:
+                        current = getattr(link, field.name)
+                        new = current.replace(prev_friendly, friendly)
+                        new = new.replace(prev_friendly_ref, friendly_ref)
+                        setattr(link, field.name, new)
+                link.save()
+            except ReportFindingLink.DoesNotExist:
+                logger.exception("Could not find ReportFindingLink for Evidence %s", instance.id)
+                pass
 
 
 @receiver(post_delete, sender=Evidence)
