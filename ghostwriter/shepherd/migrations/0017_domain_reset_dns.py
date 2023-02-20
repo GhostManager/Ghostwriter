@@ -4,15 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0016_auto_20210227_0056'),
+        ("shepherd", "0016_auto_20210227_0056"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='domain',
-            name='reset_dns',
-            field=models.BooleanField(default=False, help_text='Reset DNS records (if possible) after this domain is used', verbose_name='Reset DNS'),
+            model_name="domain",
+            name="reset_dns",
+            field=models.BooleanField(
+                default=False,
+                help_text="Reset DNS records (if possible) after this domain is used",
+                verbose_name="Reset DNS",
+            ),
         ),
     ]

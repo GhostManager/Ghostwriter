@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the GraphQL application."""
+"""This contains all the database models used by the GraphQL application."""
 
 # Standard Libraries
 import typing
@@ -21,6 +21,7 @@ class BaseAPIKeyManager(models.Manager):
 
     Code is adapted from the ``djangorestframework-api-key`` package by florimondmanca.
     """
+
     def generate_token(self, obj: "AbstractAPIKey") -> str:
         # Generate JWT with requested expiration date instead of default of +15m
         payload, token = generate_jwt(obj.user, exp=obj.expiry_date)
@@ -74,6 +75,7 @@ class AbstractAPIKey(models.Model):
     """
     Stores a specialized JSON Web Token associated with an individual :model:`users.User`.
     """
+
     objects = APIKeyManager()
 
     name = models.CharField(
@@ -93,9 +95,7 @@ class AbstractAPIKey(models.Model):
     revoked = models.BooleanField(
         blank=True,
         default=False,
-        help_text=(
-            "If the API key is revoked, clients cannot use it anymore (this is irreversible)"
-        ),
+        help_text=("If the API key is revoked, clients cannot use it anymore (this is irreversible)"),
     )
     # Foreign Keys
     user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -55,9 +55,7 @@ class HasuraViewTests(TestCase):
         cls.uri = reverse("api:graphql_test")
         # Create valid and invalid JWTs for testing
         yesterday = timezone.now() - timedelta(days=1)
-        cls.user_token_obj, cls.user_token = APIKey.objects.create_token(
-            user=cls.user, name="Valid Token"
-        )
+        cls.user_token_obj, cls.user_token = APIKey.objects.create_token(user=cls.user, name="Valid Token")
         cls.inactive_token_obj, cls.inactive_token = APIKey.objects.create_token(
             user=cls.inactive_user, name="Inactive User Token"
         )
@@ -99,12 +97,16 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {token}", },
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 403)
         result = {
             "message": "Unauthorized access method",
-            "extensions": {"code": "Unauthorized", },
+            "extensions": {
+                "code": "Unauthorized",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -119,20 +121,28 @@ class HasuraViewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         result = {
             "message": "Missing all required inputs",
-            "extensions": {"code": "InvalidRequestBody", },
+            "extensions": {
+                "code": "InvalidRequestBody",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
         # Test with incomplete data
         response = self.client.post(
             self.uri,
-            data={"input": {"id": 1, }},
+            data={
+                "input": {
+                    "id": 1,
+                }
+            },
             content_type="application/json",
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 400)
         result = {
             "message": "Missing one or more required inputs",
-            "extensions": {"code": "InvalidRequestBody", },
+            "extensions": {
+                "code": "InvalidRequestBody",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -151,12 +161,16 @@ class HasuraViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
             "message": "No ``Authorization`` header found",
-            "extensions": {"code": "JWTMissing", },
+            "extensions": {
+                "code": "JWTMissing",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -245,7 +259,9 @@ class HasuraEventViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -258,7 +274,9 @@ class HasuraEventViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
         result = {
             "message": "Unauthorized access method",
-            "extensions": {"code": "Unauthorized", },
+            "extensions": {
+                "code": "Unauthorized",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -267,7 +285,9 @@ class HasuraEventViewTests(TestCase):
             self.uri,
             data=self.data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": "wrong", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": "wrong",
+            },
         )
         self.assertEqual(response.status_code, 403)
 
@@ -276,12 +296,16 @@ class HasuraEventViewTests(TestCase):
             self.uri,
             data="Not JSON",
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 400)
         result = {
             "message": "Missing event data",
-            "extensions": {"code": "InvalidRequestBody", },
+            "extensions": {
+                "code": "InvalidRequestBody",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -315,7 +339,9 @@ class HasuraWebhookTests(TestCase):
         response = self.client.get(
             self.uri,
             content_type="application/json",
-            **{"HTTP_AUTHORIZATION": f"Bearer {token}", },
+            **{
+                "HTTP_AUTHORIZATION": f"Bearer {token}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
@@ -344,32 +370,34 @@ class HasuraLoginTests(TestCase):
         self.client = Client()
 
     def test_graphql_login(self):
-        data = {
-            "input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}
-        }
+        data = {"input": {"username": f"{self.user.username}", "password": f"{PASSWORD}"}}
         response = self.client.post(
             self.uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         # Test bypasses Hasura so the ``["data"]["login"]`` keys are not present
         self.assertTrue(response.json()["token"])
 
     def test_graphql_login_with_invalid_credentials(self):
-        data = {
-            "input": {"username": f"{self.user.username}", "password": "Not the Password"}
-        }
+        data = {"input": {"username": f"{self.user.username}", "password": "Not the Password"}}
         result = {
             "message": "Invalid credentials",
-            "extensions": {"code": "InvalidCredentials", },
+            "extensions": {
+                "code": "InvalidCredentials",
+            },
         }
         response = self.client.post(
             self.uri,
             data=data,
             content_type="application/json",
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 401)
         self.assertJSONEqual(force_str(response.content), result)
@@ -387,9 +415,7 @@ class HasuraWhoamiTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_graphql_whoami(self):
         _, token = utils.generate_jwt(self.user)
@@ -403,9 +429,7 @@ class HasuraWhoamiTests(TestCase):
         self.assertEqual(response.json()["username"], self.user.username)
 
     def test_graphql_whoami_with_tracked_token(self):
-        user_token_obj, user_token = APIKey.objects.create_token(
-            user=self.user, name="Valid Token"
-        )
+        user_token_obj, user_token = APIKey.objects.create_token(user=self.user, name="Valid Token")
         response = self.client.post(
             self.uri,
             content_type="application/json",
@@ -431,9 +455,7 @@ class HasuraGenerateReportTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_graphql_generate_report(self):
         _, token = utils.generate_jwt(self.user)
@@ -459,7 +481,9 @@ class HasuraGenerateReportTests(TestCase):
 
         result = {
             "message": "Unauthorized access",
-            "extensions": {"code": "Unauthorized", },
+            "extensions": {
+                "code": "Unauthorized",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -476,7 +500,9 @@ class HasuraGenerateReportTests(TestCase):
 
         result = {
             "message": "Unauthorized access",
-            "extensions": {"code": "Unauthorized", },
+            "extensions": {
+                "code": "Unauthorized",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -512,15 +538,16 @@ class HasuraCheckoutTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def generate_domain_data(
-        self, project, domain, activity,
+        self,
+        project,
+        domain,
+        activity,
         start_date=date.today() - timedelta(days=1),
         end_date=date.today() + timedelta(days=1),
-        note=None
+        note=None,
     ):
         return {
             "input": {
@@ -534,10 +561,14 @@ class HasuraCheckoutTests(TestCase):
         }
 
     def generate_server_data(
-        self, project, server, activity, server_role,
+        self,
+        project,
+        server,
+        activity,
+        server_role,
         start_date=date.today() - timedelta(days=1),
         end_date=date.today() + timedelta(days=1),
-        note=None
+        note=None,
     ):
         return {
             "input": {
@@ -561,13 +592,20 @@ class HasuraCheckoutTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", })
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "result": "success",
+            },
+        )
         self.domain.refresh_from_db()
         self.assertEqual(self.domain.domain_status, self.domain_unavailable)
 
     def test_graphql_checkout_server(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk, note="Test note")
+        data = self.generate_server_data(
+            self.project.pk, self.server.pk, self.activity.pk, self.server_role.pk, note="Test note"
+        )
         response = self.client.post(
             self.server_uri,
             data=data,
@@ -575,7 +613,12 @@ class HasuraCheckoutTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertJSONEqual(force_str(response.content), {"result": "success", })
+        self.assertJSONEqual(
+            force_str(response.content),
+            {
+                "result": "success",
+            },
+        )
         self.server.refresh_from_db()
         self.assertEqual(self.server.server_status, self.server_unavailable)
 
@@ -591,7 +634,9 @@ class HasuraCheckoutTests(TestCase):
         self.assertEqual(response.status_code, 400)
         result = {
             "message": "Server Role Type does not exist",
-            "extensions": {"code": "ServerRoleDoesNotExist", },
+            "extensions": {
+                "code": "ServerRoleDoesNotExist",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -614,7 +659,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "End date is before start date",
-            "extensions": {"code": "InvalidDates", },
+            "extensions": {
+                "code": "InvalidDates",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -635,7 +682,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Invalid date values (must be YYYY-MM-DD)",
-            "extensions": {"code": "InvalidDates", },
+            "extensions": {
+                "code": "InvalidDates",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -652,7 +701,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Domain does not exist",
-            "extensions": {"code": "DomainDoesNotExist", },
+            "extensions": {
+                "code": "DomainDoesNotExist",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -669,7 +720,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Activity Type does not exist",
-            "extensions": {"code": "ActivityTypeDoesNotExist", },
+            "extensions": {
+                "code": "ActivityTypeDoesNotExist",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -686,7 +739,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Unauthorized access",
-            "extensions": {"code": "Unauthorized", },
+            "extensions": {
+                "code": "Unauthorized",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -703,13 +758,17 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Domain is unavailable",
-            "extensions": {"code": "DomainUnavailable", },
+            "extensions": {
+                "code": "DomainUnavailable",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
     def test_graphql_checkout_unavailable_server(self):
         _, token = utils.generate_jwt(self.user)
-        data = self.generate_server_data(self.project.pk, self.unavailable_server.pk, self.activity.pk, self.server_role.pk)
+        data = self.generate_server_data(
+            self.project.pk, self.unavailable_server.pk, self.activity.pk, self.server_role.pk
+        )
         response = self.client.post(
             self.server_uri,
             data=data,
@@ -720,7 +779,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Server is unavailable",
-            "extensions": {"code": "ServerUnavailable", },
+            "extensions": {
+                "code": "ServerUnavailable",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -737,7 +798,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Domain is expired",
-            "extensions": {"code": "DomainExpired", },
+            "extensions": {
+                "code": "DomainExpired",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -754,7 +817,9 @@ class HasuraCheckoutTests(TestCase):
 
         result = {
             "message": "Unauthorized access",
-            "extensions": {"code": "Unauthorized", },
+            "extensions": {
+                "code": "Unauthorized",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -792,12 +857,14 @@ class CheckoutDeleteViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def generate_data(self, checkout_id):
-        return {"input": {"checkoutId": checkout_id, }}
+        return {
+            "input": {
+                "checkoutId": checkout_id,
+            }
+        }
 
     def test_deleting_domain_checkout(self):
         _, token = utils.generate_jwt(self.user)
@@ -834,7 +901,9 @@ class CheckoutDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 401)
         result = {
             "message": "Unauthorized access",
-            "extensions": {"code": "Unauthorized", },
+            "extensions": {
+                "code": "Unauthorized",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -849,7 +918,9 @@ class CheckoutDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         result = {
             "message": "Checkout does not exist",
-            "extensions": {"code": "HistoryDoesNotExist", },
+            "extensions": {
+                "code": "HistoryDoesNotExist",
+            },
         }
         self.assertJSONEqual(force_str(response.content), result)
 
@@ -881,7 +952,11 @@ class GraphqlDeleteEvidenceActionTests(TestCase):
         self.client = Client()
 
     def generate_data(self, evidence_id):
-        return {"input": {"evidenceId": evidence_id, }}
+        return {
+            "input": {
+                "evidenceId": evidence_id,
+            }
+        }
 
     def test_deleting_evidence(self):
         _, token = utils.generate_jwt(self.user)
@@ -933,7 +1008,11 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         self.client = Client()
 
     def generate_data(self, template_id):
-        return {"input": {"templateId": template_id, }}
+        return {
+            "input": {
+                "templateId": template_id,
+            }
+        }
 
     def test_deleting_template(self):
         _, token = utils.generate_jwt(self.user)
@@ -991,14 +1070,20 @@ class GraphqlAttachFindingAction(TestCase):
 
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
-        cls.finding = FindingFactory()
+        cls.tags = ["severity:high, att&ck:t1159"]
+        cls.finding = FindingFactory(tags=cls.tags)
         _ = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
 
     def setUp(self):
         self.client = Client()
 
     def generate_data(self, finding_id, report_id):
-        return {"input": {"findingId": finding_id, "reportId": report_id, }}
+        return {
+            "input": {
+                "findingId": finding_id,
+                "reportId": report_id,
+            }
+        }
 
     def test_attaching_finding(self):
         _, token = utils.generate_jwt(self.user)
@@ -1011,6 +1096,12 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertEqual(response.status_code, 200)
         new_finding = response.json()["id"]
         self.assertTrue(self.ReportFindingLink.objects.filter(id=new_finding).exists())
+        self.assertEqual(len(self.finding.tags.similar_objects()), 1)
+        self.assertEqual(
+            len(self.ReportFindingLink.objects.get(id=new_finding).tags.similar_objects()),
+            len(self.finding.tags.similar_objects()),
+        )
+        self.assertEqual(list(self.finding.tags.names()), self.tags)
 
     def test_attaching_finding_with_invalid_report(self):
         _, token = utils.generate_jwt(self.user)
@@ -1089,7 +1180,7 @@ class GraphqlDomainUpdateEventTests(TestCase):
                         "health_status_id": cls.domain.health_status.id,
                         "id": cls.domain.id,
                         "whois_status_id": 1,
-                        "dns": {}
+                        "dns": {},
                     },
                     "old": {},
                 },
@@ -1104,7 +1195,9 @@ class GraphqlDomainUpdateEventTests(TestCase):
             self.uri,
             content_type="application/json",
             data=self.sample_data,
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 200)
         self.domain.refresh_from_db()
@@ -1143,19 +1236,16 @@ class GraphqlOplogEntryEventTests(TestCase):
                         "comments": None,
                         "oplog_id_id": cls.oplog_entry.oplog_id.id,
                         "source_ip": None,
-                        "description": None
-                    }
+                        "description": None,
+                    },
                 },
-                "trace_context": None
+                "trace_context": None,
             },
             "created_at": "2022-08-02T16:37:49.773219Z",
             "id": "162a8485-97f4-49a3-9914-82e0f18549e8",
-            "delivery_info": {
-                "max_retries": 0,
-                "current_retry": 0
-            },
+            "delivery_info": {"max_retries": 0, "current_retry": 0},
             "trigger": {"name": "CreateOplogEntry"},
-            "table": {"schema": "public", "name": "oplog_oplogentry"}
+            "table": {"schema": "public", "name": "oplog_oplogentry"},
         }
         cls.sample_delete_data = {
             "event": {
@@ -1175,20 +1265,17 @@ class GraphqlOplogEntryEventTests(TestCase):
                         "comments": None,
                         "oplog_id_id": cls.oplog_entry.oplog_id.id,
                         "source_ip": None,
-                        "description": None
+                        "description": None,
                     },
-                    "new": None
+                    "new": None,
                 },
-                "trace_context": None
+                "trace_context": None,
             },
             "created_at": "2022-08-02T16:49:10.912756Z",
             "id": "359ddc5c-1f53-44f5-889a-ef1e438632d0",
-            "delivery_info": {
-                "max_retries": 0,
-                "current_retry": 0
-            },
+            "delivery_info": {"max_retries": 0, "current_retry": 0},
             "trigger": {"name": "DeleteOplogEntry"},
-            "table": {"schema": "public", "name": "oplog_oplogentry"}
+            "table": {"schema": "public", "name": "oplog_oplogentry"},
         }
 
     def setUp(self):
@@ -1199,7 +1286,9 @@ class GraphqlOplogEntryEventTests(TestCase):
             self.create_uri,
             content_type="application/json",
             data=self.sample_data,
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1208,7 +1297,9 @@ class GraphqlOplogEntryEventTests(TestCase):
             self.update_uri,
             content_type="application/json",
             data=self.sample_data,
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1217,7 +1308,9 @@ class GraphqlOplogEntryEventTests(TestCase):
             self.delete_uri,
             content_type="application/json",
             data=self.sample_delete_data,
-            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", },
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
         )
         self.assertEqual(response.status_code, 200)
 
@@ -1232,9 +1325,7 @@ class ApiKeyRevokeTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.other_user = UserFactory(password=PASSWORD)
-        cls.token_obj, cls.token = APIKey.objects.create_token(
-            user=cls.user, name="User's Token"
-        )
+        cls.token_obj, cls.token = APIKey.objects.create_token(user=cls.user, name="User's Token")
         cls.other_token_obj, cls.other_token = APIKey.objects.create_token(
             user=cls.other_user, name="Other User's Token"
         )
@@ -1245,9 +1336,7 @@ class ApiKeyRevokeTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {"result": "success", "message": "Token successfully revoked!"}
@@ -1280,9 +1369,7 @@ class ApiKeyCreateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -1303,7 +1390,9 @@ class ApiKeyCreateTests(TestCase):
         self.assertEqual(response.context["cancel_link"], self.redirect_uri)
 
     def test_post_data(self):
-        response = self.client_auth.post(self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now() + timedelta(days=1)})
+        response = self.client_auth.post(
+            self.uri, data={"name": "CreateView Test", "expiry_date": datetime.now() + timedelta(days=1)}
+        )
         self.assertRedirects(response, self.redirect_uri)
         obj = APIKey.objects.get(name="CreateView Test")
         self.assertEqual(obj.user, self.user)

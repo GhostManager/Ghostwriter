@@ -1,4 +1,4 @@
-"""This contains all of the model Signals used by the Rolodex application."""
+"""This contains all the model Signals used by the Rolodex application."""
 
 # Standard Libraries
 import logging
@@ -39,15 +39,13 @@ def update_project(sender, instance, **kwargs):
     Send Slack messages to test a :model:`rolodex.Project` entry's ``slack_channel``
     configuration on creation and whenever that value changes.
 
-    Updates dates for :model:`shepherd.History`, :model:`shepherd.ServerHistory`, and
+    Updates the dates for :model:`shepherd.History`, :model:`shepherd.ServerHistory`, and
     :model:`rolodex.ProjectAssignments` whenever the :model:`rolodex.Project` is updated.
     """
     slack = SlackNotification()
 
     if kwargs["created"]:
-        logger.info(
-            "Newly saved project was just created so skipping `post_save` Signal used for updates"
-        )
+        logger.info("Newly saved project was just created so skipping `post_save` Signal used for updates")
         # If Slack is configured for this project, send a confirmation message
         if instance.slack_channel and slack.enabled:
             blocks = [
@@ -78,11 +76,7 @@ def update_project(sender, instance, **kwargs):
                 )
     else:
         # If the ``slack_channel`` changed and a channel is still set, send a notification
-        if (
-            instance.initial_slack_channel != instance.slack_channel
-            and instance.slack_channel
-            and slack.enabled
-        ):
+        if instance.initial_slack_channel != instance.slack_channel and instance.slack_channel and slack.enabled:
             blocks = [
                 {
                     "type": "header",
@@ -110,13 +104,8 @@ def update_project(sender, instance, **kwargs):
                     err,
                 )
         # If project dates changed, update all checkouts
-        if (
-            instance.initial_start_date != instance.start_date
-            or instance.initial_end_date != instance.end_date
-        ):
-            logger.info(
-                "Project dates have changed so adjusting domain and server checkouts"
-            )
+        if instance.initial_start_date != instance.start_date or instance.initial_end_date != instance.end_date:
+            logger.info("Project dates have changed so adjusting domain and server checkouts")
 
             domain_checkouts = History.objects.filter(project=instance)
             server_checkouts = ServerHistory.objects.filter(project=instance)
@@ -168,9 +157,7 @@ the start date and {abs(end_date_delta)} days for the end date.",
                 # Don't adjust checkouts that are in the past
                 if entry.end_date > today:
                     if start_date_delta != 0:
-                        entry.start_date = entry.start_date - timedelta(
-                            days=start_date_delta
-                        )
+                        entry.start_date = entry.start_date - timedelta(days=start_date_delta)
 
                     if end_date_delta != 0:
                         entry.end_date = entry.end_date - timedelta(days=end_date_delta)
@@ -179,9 +166,7 @@ the start date and {abs(end_date_delta)} days for the end date.",
             for entry in server_checkouts:
                 if entry.end_date > today:
                     if start_date_delta != 0:
-                        entry.start_date = entry.start_date - timedelta(
-                            days=start_date_delta
-                        )
+                        entry.start_date = entry.start_date - timedelta(days=start_date_delta)
 
                     if end_date_delta != 0:
                         entry.end_date = entry.end_date - timedelta(days=end_date_delta)
@@ -208,9 +193,6 @@ def update_project_objective(sender, instance, **kwargs):
 
     subtasks = ProjectSubTask.objects.filter(parent=instance)
     for task in subtasks:
-        if (
-            task.deadline > instance.deadline
-            or task.deadline == instance.initial_deadline
-        ):
+        if task.deadline > instance.deadline or task.deadline == instance.initial_deadline:
             task.deadline = instance.deadline
             task.save()

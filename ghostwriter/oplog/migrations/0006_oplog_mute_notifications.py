@@ -5,18 +5,17 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('oplog', '0005_auto_20220629_1802'),
+        ("oplog", "0005_auto_20220629_1802"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='oplog',
-            name='mute_notifications',
-            field=models.BooleanField(default=False, help_text='Mute activity monitoring notifications for this log'),
+            model_name="oplog",
+            name="mute_notifications",
+            field=models.BooleanField(default=False, help_text="Mute activity monitoring notifications for this log"),
         ),
         migrations.RunSQL(
-            'ALTER TABLE oplog_oplog ALTER COLUMN mute_notifications SET DEFAULT FALSE;',
-        )
+            "ALTER TABLE oplog_oplog ALTER COLUMN mute_notifications SET DEFAULT FALSE;",
+        ),
     ]

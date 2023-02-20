@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0011_auto_20200123_0726'),
+        ("shepherd", "0011_auto_20200123_0726"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='domain',
-            name='dns_record',
-            field=models.TextField(blank=True, help_text="Enter the domain's DNS records - leave blank if you would prefer to let Ghostwriter fill this in later", null=True, verbose_name='DNS Records'),
+            model_name="domain",
+            name="dns_record",
+            field=models.TextField(
+                blank=True,
+                help_text="Enter the domain's DNS records - leave blank if you would prefer to let Ghostwriter fill this in later",
+                null=True,
+                verbose_name="DNS Records",
+            ),
         ),
     ]

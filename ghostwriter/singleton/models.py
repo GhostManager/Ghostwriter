@@ -1,4 +1,4 @@
-"""This contains all of the database models for the Singleton application."""
+"""This contains all the database models for the Singleton application."""
 
 # Django Imports
 from django.conf import settings
@@ -11,14 +11,13 @@ try:
 except ImportError:  # pragma: no cover
     from django.core.cache import get_cache  # noqa isort:skip
 
-
 # Default ID for each singleton model
 DEFAULT_SINGLETON_INSTANCE_ID = 1
 
 
 class SingletonModel(models.Model):
     """
-    Sub-class of ``models.Model`` for models that will only have a single entry.
+    Subclass of ``models.Model`` for models that will only have a single entry.
     """
 
     singleton_instance_id = DEFAULT_SINGLETON_INSTANCE_ID
@@ -60,12 +59,12 @@ class SingletonModel(models.Model):
     def get_solo(cls):
         cache_name = getattr(settings, "SOLO_CACHE", settings.SOLO_CACHE)
         if not cache_name:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
+            obj, _ = cls.objects.get_or_create(pk=cls.singleton_instance_id)
             return obj
         cache = get_cache(cache_name)
         cache_key = cls.get_cache_key()
         obj = cache.get(cache_key)
         if not obj:
-            obj, created = cls.objects.get_or_create(pk=cls.singleton_instance_id)
+            obj, _ = cls.objects.get_or_create(pk=cls.singleton_instance_id)
             obj.set_to_cache()
         return obj

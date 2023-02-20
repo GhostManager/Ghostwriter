@@ -5,19 +5,12 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0040_auto_20220510_1949'),
+        ("shepherd", "0040_auto_20220510_1949"),
     ]
 
     operations = [
-        migrations.RunSQL(
-            'ALTER TABLE shepherd_domain ALTER COLUMN whois_status_id SET DEFAULT 1;'
-        ),
-        migrations.RunSQL(
-            'ALTER TABLE shepherd_domain ALTER COLUMN health_status_id SET DEFAULT 1;'
-        ),
-        migrations.RunSQL(
-            'ALTER TABLE shepherd_domain ALTER COLUMN domain_status_id SET DEFAULT 1;'
-        ),
+        migrations.RunSQL("ALTER TABLE shepherd_domain ALTER COLUMN whois_status_id SET DEFAULT 1;"),
+        migrations.RunSQL("ALTER TABLE shepherd_domain ALTER COLUMN health_status_id SET DEFAULT 1;"),
+        migrations.RunSQL("ALTER TABLE shepherd_domain ALTER COLUMN domain_status_id SET DEFAULT 1;"),
     ]

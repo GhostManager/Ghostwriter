@@ -5,31 +5,28 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0026_convert_linting_status_to_json'),
+        ("reporting", "0026_convert_linting_status_to_json"),
     ]
 
     operations = [
+        migrations.RunSQL("ALTER TABLE reporting_report ALTER COLUMN creation SET DEFAULT CURRENT_TIMESTAMP;"),
         migrations.RunSQL(
-            'ALTER TABLE reporting_report ALTER COLUMN creation SET DEFAULT CURRENT_TIMESTAMP;'
+            "ALTER TABLE reporting_findingnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE reporting_findingnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;',
+            "ALTER TABLE reporting_localfindingnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE reporting_localfindingnote ALTER COLUMN timestamp SET DEFAULT CURRENT_TIMESTAMP;',
+            "ALTER TABLE reporting_report ALTER COLUMN complete SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE reporting_report ALTER COLUMN complete SET DEFAULT FALSE;',
+            "ALTER TABLE reporting_report ALTER COLUMN archived SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE reporting_report ALTER COLUMN archived SET DEFAULT FALSE;',
+            "ALTER TABLE reporting_report ALTER COLUMN delivered SET DEFAULT FALSE;",
         ),
         migrations.RunSQL(
-            'ALTER TABLE reporting_report ALTER COLUMN delivered SET DEFAULT FALSE;',
-        ),
-        migrations.RunSQL(
-            'ALTER TABLE reporting_reporttemplate ALTER COLUMN protected SET DEFAULT FALSE;',
+            "ALTER TABLE reporting_reporttemplate ALTER COLUMN protected SET DEFAULT FALSE;",
         ),
     ]

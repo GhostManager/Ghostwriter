@@ -3,6 +3,7 @@
 # Example JSON reporting data for loading into templates for rendering tests
 LINTER_CONTEXT = {
     "report_date": "Mar. 25, 2021",
+    "tags": ["tag1", "tag2", "tag3"],
     "project": {
         "id": 1,
         "name": "2021-03-01 Kabletown, Inc. Red Team (KABLE-01)",
@@ -23,6 +24,7 @@ LINTER_CONTEXT = {
         "complete": False,
         "start_time": "09:00:00",
         "end_time": "17:00:00",
+        "tags": ["tag1", "tag2", "tag3"],
     },
     "client": {
         "id": 1,
@@ -53,6 +55,7 @@ LINTER_CONTEXT = {
         "note_rt": "",
         "address": "30 Rockefeller Plaza New York City, New York 10112",
         "address_rt": "",
+        "tags": ["tag1", "tag2", "tag3"],
     },
     "team": [
         {
@@ -265,9 +268,7 @@ LINTER_CONTEXT = {
                 "role": "Team Server / C2 Server",
                 "start_date": "Mar. 1, 2021",
                 "end_date": "Jun. 25, 2021",
-                "dns": [
-                    {"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}
-                ],
+                "dns": [{"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}],
                 "note": "<p>Long-haul C2 server</p>",
                 "note_rt": "",
             },
@@ -328,6 +329,7 @@ LINTER_CONTEXT = {
                     "upload_date": "2021-03-22",
                     "caption": "Brief Caption for This Evidence",
                     "description": "",
+                    "tags": ["tag1", "tag2", "tag3"],
                 }
             ],
             "title": "Critical Network Finding",
@@ -348,6 +350,7 @@ LINTER_CONTEXT = {
             "references_rt": "",
             "finding_guidance": "",
             "complete": False,
+            "tags": ["tag1", "tag2", "tag3"],
         },
     ],
     "docx_template": {
@@ -355,12 +358,14 @@ LINTER_CONTEXT = {
         "document": "/media/template_oxnfkmX.docx",
         "name": "Default Word Template",
         "doc_type": 1,
+        "tags": ["tag1", "tag2", "tag3"],
     },
     "pptx_template": {
         "id": 2,
         "document": "/media/app/ghostwriter/media/templates/template.pptx",
         "name": "Default PowerPoint Template",
         "doc_type": 2,
+        "tags": ["tag1", "tag2", "tag3"],
     },
     "company": {
         "name": "SpecterOps",

@@ -4,20 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0006_auto_20191001_1353'),
+        ("shepherd", "0006_auto_20191001_1353"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='domain',
-            name='auto_renew',
-            field=models.BooleanField(default=True, help_text='Whether or not the domain is set to renew automatically with the registrar', verbose_name='Auto Renew Status'),
+            model_name="domain",
+            name="auto_renew",
+            field=models.BooleanField(
+                default=True,
+                help_text="Whether or not the domain is set to renew automatically with the registrar",
+                verbose_name="Auto Renew Status",
+            ),
         ),
         migrations.AddField(
-            model_name='domain',
-            name='expired',
-            field=models.BooleanField(default=False, help_text='Whether or not the domain registration has expired', verbose_name='Expiration Status'),
+            model_name="domain",
+            name="expired",
+            field=models.BooleanField(
+                default=False,
+                help_text="Whether or not the domain registration has expired",
+                verbose_name="Expiration Status",
+            ),
         ),
     ]

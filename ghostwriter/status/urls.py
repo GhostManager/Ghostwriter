@@ -1,4 +1,4 @@
-"""This contains all of the URL mappings used by the Status application."""
+"""This contains all the URL mappings used by the Status application."""
 
 # Django Imports
 from django.urls import path

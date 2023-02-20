@@ -5,20 +5,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0035_auto_20220205_0026'),
+        ("shepherd", "0035_auto_20220205_0026"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='domain',
-            name='categorization',
-            field=models.JSONField(blank=True, help_text="Categories applied to this domain in JSON format - e.g., `{'source': 'category',}`", null=True, verbose_name='Categorization'),
+            model_name="domain",
+            name="categorization",
+            field=models.JSONField(
+                blank=True,
+                help_text="Categories applied to this domain in JSON format - e.g., `{'source': 'category',}`",
+                null=True,
+                verbose_name="Categorization",
+            ),
         ),
         migrations.AddField(
-            model_name='domain',
-            name='dns',
-            field=models.JSONField(blank=True, help_text="Domain's DNS records in JSON format - e.g., `{'mx': 'record', 'a': 'record',}`", null=True, verbose_name='DNS Records'),
+            model_name="domain",
+            name="dns",
+            field=models.JSONField(
+                blank=True,
+                help_text="Domain's DNS records in JSON format - e.g., `{'mx': 'record', 'a': 'record',}`",
+                null=True,
+                verbose_name="DNS Records",
+            ),
         ),
     ]

@@ -34,6 +34,9 @@
     <div class="container">
         <h2>{{ client.name }}</h2>
     </div>
+    {% if client.tags.names %}
+        {% for tag in client.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+    {% endif %}
     <hr />
 
     <div>
@@ -52,6 +55,12 @@
                 <hr />
 
                 <table class="table table-borderless table-centered project-details-table">
+                    <tr>
+                        <td class="text-left bold">Short Name</td>
+                        <td class="text-left">
+                            {% if client.short_name %} {{ client.short_name }} {% else %} No Short Name {% endif %}
+                        </td>
+                    </tr>
                     <tr>
                         <td class="text-left bold">Codename</td>
                         <td class="text-left">

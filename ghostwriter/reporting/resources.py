@@ -1,11 +1,12 @@
-"""This contains all of the ``import_export`` model resources used by the Reporting application."""
+"""This contains all the ``import_export`` model resources used by the Reporting application."""
 
 # 3rd Party Libraries
 from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
 
-from .models import Finding, FindingType, Severity
+# Ghostwriter Libraries
+from ghostwriter.reporting.models import Finding, FindingType, Severity
 
 
 class FindingResource(resources.ModelResource):

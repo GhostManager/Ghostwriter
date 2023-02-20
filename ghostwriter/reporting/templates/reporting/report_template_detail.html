@@ -34,6 +34,11 @@
     <div class="container">
         <h2>{{ reporttemplate.name }}</h2>
     </div>
+    <span class="badge {% if reporttemplate.doc_type.doc_type == "docx" %}badge-word">Word{% else %}badge-pptx">PowerPoint{% endif %}</span>
+    {% for tag in reporttemplate.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    {% endfor %}
+    <hr>
 
     {% if reporttemplate.protected %}
         <div
@@ -49,11 +54,7 @@
     <div class="table-responsive" >
         <table class="table-sm table-borderless table-centered">
             <tr>
-                <td class="text-left text-nowrap bold">Template Type</td>
-                <td class="text-center">{{ reporttemplate.doc_type }}</td>
-            </tr>
-            <tr>
-                <td class="text-left bold">Uploaded by</td>
+                <td class="text-left bold">Uploaded By</td>
                 <td class="text-center">
                     {% if reporttemplate.uploaded_by %}
                         {{ reporttemplate.uploaded_by }}
@@ -79,6 +80,10 @@
                         N/A
                     {% endif %}
                 </td>
+            </tr>
+            <tr>
+                <td class="text-left bold">Orientation</td>
+                <td class="text-center">{% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}</td>
             </tr>
         </table>
     </div>

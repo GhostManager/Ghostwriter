@@ -6,7 +6,9 @@ from django.contrib import admin
 # 3rd Party Libraries
 from import_export.admin import ImportExportModelAdmin
 
-from .models import (
+# Ghostwriter Libraries
+from ghostwriter.reporting.forms import SeverityForm
+from ghostwriter.reporting.models import (
     Archive,
     DocType,
     Evidence,
@@ -19,7 +21,7 @@ from .models import (
     ReportTemplate,
     Severity,
 )
-from .resources import FindingResource
+from ghostwriter.reporting.resources import FindingResource
 
 
 @admin.register(Archive)
@@ -34,13 +36,13 @@ class DocTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Evidence)
 class EvidenceAdmin(admin.ModelAdmin):
-    list_display = ("document", "upload_date", "uploaded_by")
-    list_filter = ("uploaded_by",)
+    list_display = ("document", "upload_date", "uploaded_by", "tag_list")
+    list_filter = ("uploaded_by", "tags")
     list_display_links = ("document", "upload_date", "uploaded_by")
     fieldsets = (
         (
             "Evidence Document",
-            {"fields": ("friendly_name", "caption", "description", "document")},
+            {"fields": ("friendly_name", "caption", "description", "document", "tags")},
         ),
         (
             "Report Information",
@@ -53,6 +55,12 @@ class EvidenceAdmin(admin.ModelAdmin):
         ),
     )
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
+
 
 @admin.register(FindingType)
 class FindingTypeAdmin(admin.ModelAdmin):
@@ -62,12 +70,28 @@ class FindingTypeAdmin(admin.ModelAdmin):
 @admin.register(Finding)
 class FindingAdmin(ImportExportModelAdmin):
     resource_class = FindingResource
-    list_display = ("title", "severity", "finding_type")
-    list_filter = ("severity", "finding_type")
+    list_display = ("title", "severity", "finding_type", "tag_list")
+    list_filter = (
+        "severity",
+        "finding_type",
+        "tags",
+    )
     list_editable = ("severity", "finding_type")
     list_display_links = ("title",)
     fieldsets = (
-        ("General Information", {"fields": ("title", "finding_type", "severity", "cvss_score", "cvss_vector")}),
+        (
+            "General Information",
+            {
+                "fields": (
+                    "title",
+                    "finding_type",
+                    "severity",
+                    "cvss_score",
+                    "cvss_vector",
+                    "tags",
+                )
+            },
+        ),
         ("Finding Guidance", {"fields": ("finding_guidance",)}),
         (
             "Finding Details",
@@ -84,6 +108,12 @@ class FindingAdmin(ImportExportModelAdmin):
             },
         ),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
 
 
 @admin.register(FindingNote)
@@ -100,21 +130,31 @@ class LocalFindingNoteAdmin(admin.ModelAdmin):
 
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
-    list_display = ("title", "project", "complete", "archived", "created_by")
-    list_filter = ("complete", "archived")
+    list_display = ("title", "project", "complete", "archived", "tag_list")
+    list_filter = (
+        "complete",
+        "archived",
+        "tags",
+    )
     list_editable = ("complete",)
     list_display_links = ("title", "project")
     fieldsets = (
-        ("Report Details", {"fields": ("project", "title", "created_by")}),
+        ("Report Details", {"fields": ("project", "title", "created_by", "tags")}),
         ("Current Status", {"fields": ("complete", "delivered", "archived")}),
         ("Templates", {"fields": ("docx_template", "pptx_template")}),
     )
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
+
 
 @admin.register(ReportFindingLink)
 class ReportFindingLinkAdmin(admin.ModelAdmin):
-    list_display = ("report", "severity", "finding_type", "title", "complete")
-    list_filter = ("severity", "finding_type", "complete")
+    list_display = ("report", "severity", "finding_type", "title", "complete", "tag_list")
+    list_filter = ("severity", "finding_type", "complete", "tags")
     list_editable = (
         "severity",
         "finding_type",
@@ -124,9 +164,21 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "General Information",
-            {"fields": ( "position", "title", "finding_type", "severity", "cvss_score", "cvss_vector")},
+            {
+                "fields": (
+                    "position",
+                    "title",
+                    "finding_type",
+                    "severity",
+                    "cvss_score",
+                    "tags",
+                )
+            },
         ),
-        ("Finding Status", {"fields": ("complete", "added_as_blank", "assigned_to", "report")}),
+        (
+            "Finding Status",
+            {"fields": ("complete", "added_as_blank", "assigned_to", "report")},
+        ),
         ("Finding Guidance", {"fields": ("finding_guidance",)}),
         (
             "Finding Details",
@@ -144,10 +196,17 @@ class ReportFindingLinkAdmin(admin.ModelAdmin):
         ),
     )
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())
+
 
 @admin.register(Severity)
 class SeverityAdmin(admin.ModelAdmin):
-    pass
+    list_display = ("severity", "color", "weight")
+    form = SeverityForm
 
 
 @admin.register(ReportTemplate)
@@ -157,9 +216,13 @@ class ReportTemplateAdmin(admin.ModelAdmin):
         "name",
         "client",
         "last_update",
+        "tag_list",
     )
     readonly_fields = ("get_status",)
-    list_filter = ("client",)
+    list_filter = (
+        "client",
+        "tags",
+    )
     list_display_links = ("name",)
     fieldsets = (
         (
@@ -188,3 +251,9 @@ class ReportTemplateAdmin(admin.ModelAdmin):
             {"fields": ("protected",)},
         ),
     )
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tags")
+
+    def tag_list(self, obj):
+        return ", ".join(o.name for o in obj.tags.all())

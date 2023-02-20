@@ -6,13 +6,13 @@ by `django-health-check.
 # Standard Libraries
 from datetime import datetime
 
+# 3rd Party Libraries
+import requests
+
 # Django Imports
 from django.conf import settings
 from django.core.cache import caches as django_caches
 from django.db import OperationalError, connections
-
-# 3rd Party Libraries
-import requests
 from health_check.backends import BaseHealthCheckBackend
 from health_check.exceptions import (
     HealthCheckException,
@@ -30,6 +30,7 @@ class HasuraBackend(BaseHealthCheckBackend):
 
     Ref: https://hasura.io/docs/latest/api-reference/health/
     """
+
     critical_service = True
 
     def check_status(self):
@@ -58,6 +59,7 @@ class HasuraBackend(BaseHealthCheckBackend):
 
 class DjangoHealthChecks:
     """Check the health of the Django application's cache and database connections."""
+
     def __init__(self, *args, **kwargs):
         self.caches = getattr(settings, "CACHES", {})
 

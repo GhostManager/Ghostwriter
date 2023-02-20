@@ -4,15 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0030_reportfindinglink_added_as_blank'),
+        ("reporting", "0030_reportfindinglink_added_as_blank"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='severity',
-            name='severity',
-            field=models.CharField(help_text='Name for this severity rating (e.g., High, Low)', max_length=255, unique=True, verbose_name='Severity'),
+            model_name="severity",
+            name="severity",
+            field=models.CharField(
+                help_text="Name for this severity rating (e.g., High, Low)",
+                max_length=255,
+                unique=True,
+                verbose_name="Severity",
+            ),
         ),
     ]

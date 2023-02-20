@@ -13,10 +13,6 @@ import random
 import re
 from datetime import timedelta
 
-# Django Imports
-from django.conf import settings
-from django.utils.dateformat import format as dateformat
-
 # 3rd Party Libraries
 import docx
 import jinja2
@@ -25,6 +21,10 @@ import pptx
 from bs4 import BeautifulSoup, NavigableString
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
+
+# Django Imports
+from django.conf import settings
+from django.utils.dateformat import format as dateformat
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
@@ -76,9 +76,7 @@ def filter_severity(findings, allowlist):
             if finding["severity"].lower() in allowlist:
                 filtered_values.append(finding)
     except (KeyError, TypeError):
-        logger.exception(
-            "Error parsing ``findings`` as a list of dictionaries: %s", findings
-        )
+        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
         raise InvalidFilterValue(
             "Invalid list of findings passed into `filter_severity()` filter; must be the `{{ findings }}` object"
         )
@@ -108,9 +106,7 @@ def filter_type(findings, allowlist):
             if finding["finding_type"].lower() in allowlist:
                 filtered_values.append(finding)
     except (KeyError, TypeError):
-        logger.exception(
-            "Error parsing ``findings`` as a list of dictionaries: %s", findings
-        )
+        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
         raise InvalidFilterValue(
             "Invalid list of findings passed into `filter_type()` filter; must be the `{{ findings }}` object"
         )
@@ -152,9 +148,7 @@ def compromised(targets):
             if target["compromised"]:
                 filtered_targets.append(target)
     except (KeyError, TypeError):
-        logger.exception(
-            "Error parsing ``targets`` as a list of dictionaries: %s", targets
-        )
+        logger.exception("Error parsing ``targets`` as a list of dictionaries: %s", targets)
         raise InvalidFilterValue(
             "Invalid list of targets passed into `compromised()` filter; must be the `{{ targets }}` object"
         )
@@ -177,9 +171,7 @@ def add_days(date, days):
         days = int(days)
     except ValueError:
         logger.exception("Error parsing ``days`` as an integer: %s", days)
-        raise InvalidFilterValue(
-            f'Invalid integer ("{days}") passed into `add_days()` filter'
-        )
+        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into `add_days()` filter')
 
     try:
         date_obj = parse_datetime(date)
@@ -206,9 +198,7 @@ def add_days(date, days):
         new_date = dateformat(date_obj, settings.DATE_FORMAT)
     except ParserError:
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(
-            f'Invalid date string ("{date}") passed into `add_days()` filter'
-        )
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `add_days()` filter')
     return new_date
 
 
@@ -230,9 +220,7 @@ def format_datetime(date, new_format):
     except ParserError:
         formatted_date = date
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(
-            f'Invalid date string ("{date}") passed into `format_datetime()` filter'
-        )
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `format_datetime()` filter')
     return formatted_date
 
 
@@ -243,9 +231,7 @@ def prepare_jinja2_env(debug=False):
     else:
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
 
-    env = jinja2.sandbox.SandboxedEnvironment(
-        undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True
-    )
+    env = jinja2.sandbox.SandboxedEnvironment(undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True)
     env.filters["filter_severity"] = filter_severity
     env.filters["filter_type"] = filter_type
     env.filters["strip_html"] = strip_html
@@ -533,9 +519,7 @@ class Reportwriter:
             """
             style = par.style.style_id
             return (
-                "w:abstractNum["
-                '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]'
-                "]/@w:abstractNumId"
+                "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]' "]/@w:abstractNumId"
             ).format(style=style, **xpath_options[prefer_single])
 
         def type_xpath(prefer_single=True):
@@ -544,9 +528,7 @@ class Reportwriter:
             """
             t = "decimal" if num else "bullet"
             return (
-                "w:abstractNum["
-                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
-                "]/@w:abstractNumId"
+                "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]' "]/@w:abstractNumId"
             ).format(type=t, **xpath_options[prefer_single])
 
         def get_abstract_id():
@@ -566,17 +548,10 @@ class Reportwriter:
                         return min(int(x) for x in ids)
             return 0
 
-        if (
-            prev is None
-            or prev._p.pPr is None
-            or prev._p.pPr.numPr is None
-            or prev._p.pPr.numPr.numId is None
-        ):
+        if prev is None or prev._p.pPr is None or prev._p.pPr.numPr is None or prev._p.pPr.numPr.numId is None:
             if level is None:
                 level = 0
-            numbering = (
-                self.sacrificial_doc.part.numbering_part.numbering_definitions._numbering
-            )
+            numbering = self.sacrificial_doc.part.numbering_part.numbering_definitions._numbering
             # Compute the abstract ID first by style, then by ``num``
             abstract = get_abstract_id()
             # Set the concrete numbering based on the abstract numbering ID
@@ -628,18 +603,14 @@ class Reportwriter:
                     # Convert the color hex value to an ``RGBColor`` object
                     value = value.replace("#", "")
                     n = 2
-                    hex_color = [
-                        hex(int(value[i : i + n], 16)) for i in range(0, len(value), n)
-                    ]
+                    hex_color = [hex(int(value[i : i + n], 16)) for i in range(0, len(value), n)]
                     if self.report_type == "pptx":
                         value = PptxRGBColor(*map(lambda v: int(v, 16), hex_color))
                     else:
                         value = RGBColor(*map(lambda v: int(v, 16), hex_color))
                 tag_styles[key] = value
             except Exception:
-                logger.exception(
-                    "Failed to convert one of the inline styles for a text run"
-                )
+                logger.exception("Failed to convert one of the inline styles for a text run")
         return tag_styles
 
     def _process_evidence(self, evidence, par):
@@ -671,9 +642,7 @@ class Reportwriter:
                         width = Inches(4.5)
                         height = Inches(3)
                         # Create new textbox, textframe, paragraph, and run
-                        textbox = self.finding_slide.shapes.add_textbox(
-                            left, top, width, height
-                        )
+                        textbox = self.finding_slide.shapes.add_textbox(left, top, width, height)
                         text_frame = textbox.text_frame
                         p = text_frame.paragraphs[0]
                         run = p.add_run()
@@ -705,9 +674,7 @@ class Reportwriter:
                     top = Inches(1.65)
                     left = Inches(8)
                     width = Inches(4.5)
-                    self.finding_slide.shapes.add_picture(
-                        file_path, left, top, width=width
-                    )
+                    self.finding_slide.shapes.add_picture(file_path, left, top, width=width)
                 else:
                     par.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     run = par.add_run()
@@ -725,9 +692,7 @@ class Reportwriter:
                             f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
                             "Try opening it, exporting as desired type, and re-uploading it."
                         )
-                        raise UnrecognizedImageError(
-                            error_msg
-                        ) from docx.image.exceptions.UnrecognizedImageError
+                        raise UnrecognizedImageError(error_msg) from docx.image.exceptions.UnrecognizedImageError
 
                     if self.enable_borders:
                         # Add the border – see Ghostwriter Wiki for documentation
@@ -883,9 +848,7 @@ class Reportwriter:
             else:
                 font.superscript = styles["superscript"]
 
-    def _replace_and_write(
-        self, text, par, finding, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()
-    ):
+    def _replace_and_write(self, text, par, finding, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
         """
         Find and replace template keywords in the provided text.
 
@@ -905,19 +868,13 @@ class Reportwriter:
         # Do this first so strings are not detected as potential expressions–e.g., ``{{.ref ...}}``
         if "{{.client}}" in text:
             if self.report_json["client"]["short_name"]:
-                text = text.replace(
-                    "{{.client}}", self.report_json["client"]["short_name"]
-                )
+                text = text.replace("{{.client}}", self.report_json["client"]["short_name"])
             else:
                 text = text.replace("{{.client}}", self.report_json["client"]["name"])
         if "{{.project_start}}" in text:
-            text = text.replace(
-                "{{.project_start}}", self.report_json["project"]["start_date"]
-            )
+            text = text.replace("{{.project_start}}", self.report_json["project"]["start_date"])
         if "{{.project_end}}" in text:
-            text = text.replace(
-                "{{.project_end}}", self.report_json["project"]["end_date"]
-            )
+            text = text.replace("{{.project_end}}", self.report_json["project"]["end_date"])
         if "{{.project_type}}" in text:
             text = text.replace(
                 "{{.project_type}}",
@@ -967,10 +924,7 @@ class Reportwriter:
                         if (
                             keyword
                             # and keyword in finding["evidence"]
-                            and any(
-                                ev["friendly_name"] == keyword
-                                for ev in finding["evidence"]
-                            )
+                            and any(ev["friendly_name"] == keyword for ev in finding["evidence"])
                             and not keyword.startswith("ref ")
                         ):
                             logger.debug(
@@ -1104,9 +1058,7 @@ class Reportwriter:
             # Any other tags are unexpected and ignored
             else:
                 if tag_name not in self.tag_allowlist:
-                    logger.warning(
-                        "Encountered an unexpected nested HTML tag: %s", tag_name
-                    )
+                    logger.warning("Encountered an unexpected nested HTML tag: %s", tag_name)
 
             return styles_dict
 
@@ -1158,9 +1110,7 @@ class Reportwriter:
                             merged_styles = merge_styles(run_styles, parent_styles)
 
                             # Recursively process the nested tags
-                            self._process_nested_html_tags(
-                                tag_contents, par, finding, styles=merged_styles
-                            )
+                            self._process_nested_html_tags(tag_contents, par, finding, styles=merged_styles)
                     elif tag_name:
                         logger.warning(
                             "Ignoring a nested HTML tag not in the allowlist: %s",
@@ -1174,9 +1124,7 @@ class Reportwriter:
                     merged_styles = merge_styles(run_styles, parent_styles)
 
                     # Write the text for this run
-                    par = self._replace_and_write(
-                        content_text, par, finding, merged_styles
-                    )
+                    par = self._replace_and_write(content_text, par, finding, merged_styles)
 
                     # Reset temporary run styles
                     run_styles = ReportConstants.DEFAULT_STYLE_VALUES.copy()
@@ -1189,9 +1137,7 @@ class Reportwriter:
                     par = self._replace_and_write(part.text, par, finding)
         return par
 
-    def _create_list_paragraph(
-        self, prev_p, level, num=False, alignment=WD_ALIGN_PARAGRAPH.LEFT
-    ):
+    def _create_list_paragraph(self, prev_p, level, num=False, alignment=WD_ALIGN_PARAGRAPH.LEFT):
         """
         Create a new paragraph in the document for a list.
 
@@ -1445,9 +1391,7 @@ class Reportwriter:
                             width = Inches(4.5)
                             height = Inches(3)
                             # Create new textbox, textframe, paragraph, and run
-                            textbox = self.finding_slide.shapes.add_textbox(
-                                left, top, width, height
-                            )
+                            textbox = self.finding_slide.shapes.add_textbox(left, top, width, height)
                             text_frame = textbox.text_frame
                             for content in contents:
                                 for code in content:
@@ -1523,9 +1467,7 @@ class Reportwriter:
             )
             raise DocxPackageNotFoundError from docx.opc.exceptions.PackageNotFoundError
         except Exception:
-            logger.exception(
-                "Failed to load the provided template document: %s", self.template_loc
-            )
+            logger.exception("Failed to load the provided template document: %s", self.template_loc)
 
         # Check for styles
         styles = self.word_doc.styles
@@ -1617,22 +1559,12 @@ class Reportwriter:
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
             # Create ``RichText()`` object for a colored severity category
-            finding["severity_rt"] = RichText(
-                finding["severity"], color=finding["severity_color"]
-            )
-            finding["cvss_score_rt"] = RichText(
-                finding["cvss_score"], color=finding["severity_color"]
-            )
-            finding["cvss_vector_rt"] = RichText(
-                finding["cvss_vector"], color=finding["severity_color"]
-            )
+            finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
+            finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
+            finding["cvss_vector_rt"] = RichText(finding["cvss_vector"], color=finding["severity_color"])
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = render_subdocument(
-                finding["affected_entities"], finding
-            )
-            finding["description_rt"] = render_subdocument(
-                finding["description"], finding
-            )
+            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding)
+            finding["description_rt"] = render_subdocument(finding["description"], finding)
             finding["impact_rt"] = render_subdocument(finding["impact"], finding)
 
             # Include a copy of ``mitigation`` as ``recommendation`` to match legacy context
@@ -1640,12 +1572,8 @@ class Reportwriter:
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = render_subdocument(
-                finding["replication_steps"], finding
-            )
-            finding["host_detection_techniques_rt"] = render_subdocument(
-                finding["host_detection_techniques"], finding
-            )
+            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding)
+            finding["host_detection_techniques_rt"] = render_subdocument(finding["host_detection_techniques"], finding)
             finding["network_detection_techniques_rt"] = render_subdocument(
                 finding["network_detection_techniques"], finding
             )
@@ -1662,33 +1590,25 @@ class Reportwriter:
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = render_subdocument(
-                        assignment["note"], finding=None
-                    )
+                    assignment["note_rt"] = render_subdocument(assignment["note"], finding=None)
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = render_subdocument(
-                        contact["note"], finding=None
-                    )
+                    contact["note_rt"] = render_subdocument(contact["note"], finding=None)
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = render_subdocument(
-                        objective["description"], finding=None
-                    )
+                    objective["description_rt"] = render_subdocument(objective["description"], finding=None)
 
         # Scope Lists
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = render_subdocument(
-                        scope_list["description"], finding=None
-                    )
+                    scope_list["description_rt"] = render_subdocument(scope_list["description"], finding=None)
 
         # Targets
         for target in context["targets"]:
@@ -1743,23 +1663,15 @@ class Reportwriter:
         # Perform the necessary replacements
         if "{{.client}}" in text:
             if self.report_json["client"]["short_name"]:
-                text = text.replace(
-                    "{{.client}}", self.report_json["client"]["short_name"]
-                )
+                text = text.replace("{{.client}}", self.report_json["client"]["short_name"])
             else:
                 text = text.replace("{{.client}}", self.report_json["client"]["name"])
         if "{{.project_start}}" in text:
-            text = text.replace(
-                "{{.project_start}}", self.report_json["project"]["start_date"]
-            )
+            text = text.replace("{{.project_start}}", self.report_json["project"]["start_date"])
         if "{{.project_end}}" in text:
-            text = text.replace(
-                "{{.project_end}}", self.report_json["project"]["end_date"]
-            )
+            text = text.replace("{{.project_end}}", self.report_json["project"]["end_date"])
         if "{{.project_type}}" in text:
-            text = text.replace(
-                "{{.project_type}}", self.report_json["project"]["project_type"].lower()
-            )
+            text = text.replace("{{.project_type}}", self.report_json["project"]["project_type"].lower())
 
         # No evidence or captions in workbook cells
         text = text.replace("{{.caption}}", "Caption \u2013 ")
@@ -1772,9 +1684,7 @@ class Reportwriter:
                     if (
                         keyword
                         # and keyword in finding["evidence"]
-                        and any(
-                            ev["friendly_name"] == keyword for ev in finding["evidence"]
-                        )
+                        and any(ev["friendly_name"] == keyword for ev in finding["evidence"])
                         and not keyword.startswith("ref ")
                     ):
                         for ev in finding["evidence"]:
@@ -1864,9 +1774,7 @@ class Reportwriter:
 
             # Affected Entities
             if finding["affected_entities"]:
-                self._process_text_xlsx(
-                    finding["affected_entities"], asset_format, finding
-                )
+                self._process_text_xlsx(finding["affected_entities"], asset_format, finding)
             else:
                 self.worksheet.write(self.row, self.col, "N/A", asset_format)
             self.col += 1
@@ -1888,13 +1796,9 @@ class Reportwriter:
             self.col += 1
 
             # Detection
-            self._process_text_xlsx(
-                finding["host_detection_techniques"], wrap_format, finding
-            )
+            self._process_text_xlsx(finding["host_detection_techniques"], wrap_format, finding)
             self.col += 1
-            self._process_text_xlsx(
-                finding["network_detection_techniques"], wrap_format, finding
-            )
+            self._process_text_xlsx(finding["network_detection_techniques"], wrap_format, finding)
             self.col += 1
 
             # References
@@ -1907,14 +1811,10 @@ class Reportwriter:
             except Evidence.DoesNotExist:
                 evidence_queryset = []
             except Exception:
-                logger.exception(
-                    "Query for evidence failed for finding %s", finding["id"]
-                )
+                logger.exception("Query for evidence failed for finding %s", finding["id"])
                 evidence_queryset = []
             evidence = [
-                f.document.name
-                for f in evidence_queryset
-                if f in self.image_extensions or self.text_extensions
+                f.document.name for f in evidence_queryset if f in self.image_extensions or self.text_extensions
             ]
             finding_evidence_names = "\r\n".join(map(str, evidence))
             self.worksheet.write(self.row, self.col, finding_evidence_names, wrap_format)
@@ -2084,9 +1984,7 @@ class Reportwriter:
                 # Set cell color fill type to solid
                 risk_cell.fill.solid()
                 # Color the risk cell based on corresponding severity color
-                cell_color = pptx.dml.color.RGBColor(
-                    *map(lambda v: int(v, 16), finding["severity_color_hex"])
-                )
+                cell_color = pptx.dml.color.RGBColor(*map(lambda v: int(v, 16), finding["severity_color_hex"]))
                 risk_cell.fill.fore_color.rgb = cell_color
                 row_iter += 1
             # Set all cells alignment to center and vertical center
@@ -2100,9 +1998,7 @@ class Reportwriter:
 
         # Create slide for each finding
         for finding in self.report_json["findings"]:
-            slide_layout = self.ppt_presentation.slide_layouts[
-                SLD_LAYOUT_TITLE_AND_CONTENT
-            ]
+            slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
             self.finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
             shapes = self.finding_slide.shapes
             title_shape = shapes.title
@@ -2301,15 +2197,11 @@ class TemplateLinter:
 
                     # Step 3: Test rendering the document
                     try:
-                        template_document.render(
-                            LINTER_CONTEXT, self.jinja_template_env, autoescape=True
-                        )
+                        template_document.render(LINTER_CONTEXT, self.jinja_template_env, autoescape=True)
                         undefined_vars = template_document.undeclared_template_variables
                         if undefined_vars:
                             for variable in undefined_vars:
-                                results["warnings"].append(
-                                    f"Undefined variable: {variable}"
-                                )
+                                results["warnings"].append(f"Undefined variable: {variable}")
                         if results["warnings"]:
                             results["result"] = "warning"
                         logger.info("Completed document rendering test")

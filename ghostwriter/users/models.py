@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the Users application."""
+"""This contains all the database models used by the Users application."""
 
 # Django Imports
 from django.contrib.auth.models import AbstractUser
@@ -58,9 +58,7 @@ class User(AbstractUser):
         Return a display name appropriate for dropdown menus.
         """
         if self.name:
-            display_name = "{full_name} ({username})".format(
-                full_name=self.name, username=self.username
-            )
+            display_name = "{full_name} ({username})".format(full_name=self.name, username=self.username)
         else:
             display_name = self.username.capitalize()
 

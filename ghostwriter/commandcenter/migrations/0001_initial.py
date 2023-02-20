@@ -4,92 +4,185 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='CloudServicesConfiguration',
+            name="CloudServicesConfiguration",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('enable', models.BooleanField(default=False, help_text='Enable to allow the cloud monitoring task to run')),
-                ('aws_key', models.CharField(default='Your AWS Access Key', max_length=255, verbose_name='AWS Access Key')),
-                ('aws_secret', models.CharField(default='Your AWS Secret Key', max_length=255, verbose_name='AWS Secret Key')),
-                ('do_api_key', models.CharField(default='Digital Ocean API Key', max_length=255, verbose_name='Digital Ocean API Key')),
-                ('ignore_tag', models.CharField(default='gw_ignore', help_text='Ghostwriter will ignore cloud assets with one of these tags (comma-seperated list)', max_length=255, verbose_name='Ignore Tags')),
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "enable",
+                    models.BooleanField(default=False, help_text="Enable to allow the cloud monitoring task to run"),
+                ),
+                (
+                    "aws_key",
+                    models.CharField(default="Your AWS Access Key", max_length=255, verbose_name="AWS Access Key"),
+                ),
+                (
+                    "aws_secret",
+                    models.CharField(default="Your AWS Secret Key", max_length=255, verbose_name="AWS Secret Key"),
+                ),
+                (
+                    "do_api_key",
+                    models.CharField(
+                        default="Digital Ocean API Key", max_length=255, verbose_name="Digital Ocean API Key"
+                    ),
+                ),
+                (
+                    "ignore_tag",
+                    models.CharField(
+                        default="gw_ignore",
+                        help_text="Ghostwriter will ignore cloud assets with one of these tags (comma-seperated list)",
+                        max_length=255,
+                        verbose_name="Ignore Tags",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Cloud Services Configuration',
+                "verbose_name": "Cloud Services Configuration",
             },
         ),
         migrations.CreateModel(
-            name='CompanyInformation',
+            name="CompanyInformation",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('company_name', models.CharField(default='SpecterOps', help_text='Company name handle to reference in reports', max_length=255)),
-                ('company_twitter', models.CharField(default='@specterops', help_text='Twitter handle to reference in reports', max_length=255, verbose_name='Twitter Handle')),
-                ('company_email', models.CharField(default='info@specterops.io', help_text='Email address to reference in reports', max_length=255)),
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "company_name",
+                    models.CharField(
+                        default="SpecterOps", help_text="Company name handle to reference in reports", max_length=255
+                    ),
+                ),
+                (
+                    "company_twitter",
+                    models.CharField(
+                        default="@specterops",
+                        help_text="Twitter handle to reference in reports",
+                        max_length=255,
+                        verbose_name="Twitter Handle",
+                    ),
+                ),
+                (
+                    "company_email",
+                    models.CharField(
+                        default="info@specterops.io", help_text="Email address to reference in reports", max_length=255
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Company Information',
+                "verbose_name": "Company Information",
             },
         ),
         migrations.CreateModel(
-            name='NamecheapConfiguration',
+            name="NamecheapConfiguration",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('enable', models.BooleanField(default=False)),
-                ('api_key', models.CharField(default='Namecheap API Key', max_length=255)),
-                ('username', models.CharField(default='Account Username', max_length=255)),
-                ('api_username', models.CharField(default='API Username', max_length=255)),
-                ('client_ip', models.CharField(default='Whitelisted IP Address', max_length=255)),
-                ('page_size', models.IntegerField(default=100)),
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("enable", models.BooleanField(default=False)),
+                ("api_key", models.CharField(default="Namecheap API Key", max_length=255)),
+                ("username", models.CharField(default="Account Username", max_length=255)),
+                ("api_username", models.CharField(default="API Username", max_length=255)),
+                ("client_ip", models.CharField(default="Whitelisted IP Address", max_length=255)),
+                ("page_size", models.IntegerField(default=100)),
             ],
             options={
-                'verbose_name': 'Namecheap Configuration',
+                "verbose_name": "Namecheap Configuration",
             },
         ),
         migrations.CreateModel(
-            name='ReportConfiguration',
+            name="ReportConfiguration",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('border_weight', models.IntegerField(default=12700, help_text='Weight in EMUs – 12700 is equal to the 1pt weight in Word')),
-                ('border_color', models.CharField(default='2D2B6B', max_length=6, verbose_name='Picture Border Color')),
-                ('prefix_figure', models.CharField(default='–', help_text='Unicode character to place between `Figure` and your caption in Word reports', max_length=255, verbose_name='Character Before Figure Captions')),
-                ('prefix_table', models.CharField(default='–', help_text='Unicode character to place between `Table` and your table name in Word reports', max_length=255, verbose_name='Character Before Table Titles')),
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "border_weight",
+                    models.IntegerField(
+                        default=12700, help_text="Weight in EMUs – 12700 is equal to the 1pt weight in Word"
+                    ),
+                ),
+                ("border_color", models.CharField(default="2D2B6B", max_length=6, verbose_name="Picture Border Color")),
+                (
+                    "prefix_figure",
+                    models.CharField(
+                        default="–",
+                        help_text="Unicode character to place between `Figure` and your caption in Word reports",
+                        max_length=255,
+                        verbose_name="Character Before Figure Captions",
+                    ),
+                ),
+                (
+                    "prefix_table",
+                    models.CharField(
+                        default="–",
+                        help_text="Unicode character to place between `Table` and your table name in Word reports",
+                        max_length=255,
+                        verbose_name="Character Before Table Titles",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Global Report Configuration',
+                "verbose_name": "Global Report Configuration",
             },
         ),
         migrations.CreateModel(
-            name='SlackConfiguration',
+            name="SlackConfiguration",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('enable', models.BooleanField(default=False)),
-                ('webhook_url', models.CharField(default='https://hooks.slack.com/services/<your_webhook_url>', max_length=255)),
-                ('slack_emoji', models.CharField(default=':ghost:', help_text='Emoji used for the avatar wrapped in colons', max_length=255)),
-                ('slack_channel', models.CharField(default='#ghostwriter', help_text='Default channel for Slack notifications', max_length=255)),
-                ('slack_username', models.CharField(default='Ghostwriter', help_text='Display name for the Slack bot', max_length=255)),
-                ('slack_alert_target', models.CharField(default='<!here>', help_text='Alert target for the notifications – blank for no target', max_length=255)),
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("enable", models.BooleanField(default=False)),
+                (
+                    "webhook_url",
+                    models.CharField(default="https://hooks.slack.com/services/<your_webhook_url>", max_length=255),
+                ),
+                (
+                    "slack_emoji",
+                    models.CharField(
+                        default=":ghost:", help_text="Emoji used for the avatar wrapped in colons", max_length=255
+                    ),
+                ),
+                (
+                    "slack_channel",
+                    models.CharField(
+                        default="#ghostwriter", help_text="Default channel for Slack notifications", max_length=255
+                    ),
+                ),
+                (
+                    "slack_username",
+                    models.CharField(default="Ghostwriter", help_text="Display name for the Slack bot", max_length=255),
+                ),
+                (
+                    "slack_alert_target",
+                    models.CharField(
+                        default="<!here>",
+                        help_text="Alert target for the notifications – blank for no target",
+                        max_length=255,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Slack Configuration',
+                "verbose_name": "Slack Configuration",
             },
         ),
         migrations.CreateModel(
-            name='VirusTotalConfiguration',
+            name="VirusTotalConfiguration",
             fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('enable', models.BooleanField(default=False, help_text='Enable to allow domain health checks with VirusTotal')),
-                ('api_key', models.CharField(default='VirusTotal API Key', max_length=255)),
-                ('sleep_time', models.IntegerField(default=20, help_text='Sleep time in seconds – free API keys can only make 4 requests per minute')),
+                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "enable",
+                    models.BooleanField(
+                        default=False, help_text="Enable to allow domain health checks with VirusTotal"
+                    ),
+                ),
+                ("api_key", models.CharField(default="VirusTotal API Key", max_length=255)),
+                (
+                    "sleep_time",
+                    models.IntegerField(
+                        default=20,
+                        help_text="Sleep time in seconds – free API keys can only make 4 requests per minute",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'VirusTotal Configuration',
+                "verbose_name": "VirusTotal Configuration",
             },
         ),
     ]

@@ -37,9 +37,7 @@ class UserProfileFormTests(TestCase):
         )
         cls.in_memory_image = image
 
-        cls.uploaded_image_file = SimpleUploadedFile(
-            image_file.name, image_file.read(), content_type="image/png"
-        )
+        cls.uploaded_image_file = SimpleUploadedFile(image_file.name, image_file.read(), content_type="image/png")
 
         text_data = b64decode("R2hvc3R3cml0ZXIK")
         text_file = ContentFile(text_data, "fake.txt")
@@ -54,13 +52,9 @@ class UserProfileFormTests(TestCase):
         )
         cls.in_memory_text = text
 
-        cls.uploaded_text_file = SimpleUploadedFile(
-            text_file.name, text_file.read(), content_type="text/html"
-        )
+        cls.uploaded_text_file = SimpleUploadedFile(text_file.name, text_file.read(), content_type="text/html")
 
-        cls.uploaded_mismatched_file = SimpleUploadedFile(
-            image_file.name, image_file.read(), content_type="text/html"
-        )
+        cls.uploaded_mismatched_file = SimpleUploadedFile(image_file.name, image_file.read(), content_type="text/html")
 
     def setUp(self):
         pass

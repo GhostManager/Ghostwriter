@@ -1,6 +1,6 @@
 # Standard Libraries
 import random
-from datetime import date, timedelta, timezone
+from datetime import date, timedelta
 
 # Django Imports
 from django.contrib.auth import get_user_model
@@ -67,6 +67,15 @@ class ClientFactory(factory.django.DjangoModelFactory):
     timezone = random.choice(TIMEZONES)
     address = Faker("address")
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
 
 class ClientContactFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -112,6 +121,15 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     timezone = random.choice(TIMEZONES)
     start_time = Faker("time_object")
     end_time = Faker("time_object")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class ProjectAssignmentFactory(factory.django.DjangoModelFactory):
@@ -218,7 +236,7 @@ class FindingFactory(factory.django.DjangoModelFactory):
     title = factory.Sequence(lambda n: "Finding %s" % n)
     severity = factory.SubFactory(SeverityFactory)
     finding_type = factory.SubFactory(FindingTypeFactory)
-    cvss_score = factory.LazyFunction(lambda: round(random.uniform(0,10), 1))
+    cvss_score = factory.LazyFunction(lambda: round(random.uniform(0, 10), 1))
     cvss_vector = factory.Sequence(lambda n: "Vector %s" % n)
     description = Faker("paragraph")
     impact = Faker("paragraph")
@@ -228,6 +246,15 @@ class FindingFactory(factory.django.DjangoModelFactory):
     network_detection_techniques = Faker("paragraph")
     references = Faker("paragraph")
     finding_guidance = Faker("paragraph")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class DocTypeFactory(factory.django.DjangoModelFactory):
@@ -249,6 +276,15 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     client = None
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx")
     uploaded_by = factory.SubFactory(UserFactory)
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class ReportDocxTemplateFactory(factory.django.DjangoModelFactory):
@@ -294,6 +330,15 @@ class ReportFactory(factory.django.DjangoModelFactory):
     delivered = False
     created_by = factory.SubFactory(UserFactory)
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
 
 class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     class Meta:
@@ -304,7 +349,7 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     affected_entities = Faker("hostname")
     severity = factory.SubFactory(SeverityFactory)
     finding_type = factory.SubFactory(FindingTypeFactory)
-    cvss_score = factory.LazyFunction(lambda: round(random.uniform(0,10), 1))
+    cvss_score = factory.LazyFunction(lambda: round(random.uniform(0, 10), 1))
     cvss_vector = factory.Sequence(lambda n: "Vector %s" % n)
     report = factory.SubFactory(ReportFactory)
     assigned_to = factory.SubFactory(UserFactory)
@@ -317,6 +362,15 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
     references = Faker("paragraph")
     finding_guidance = Faker("paragraph")
     added_as_blank = Faker("boolean")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class EvidenceFactory(factory.django.DjangoModelFactory):
@@ -331,24 +385,18 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
     uploaded_by = factory.SubFactory(UserFactory)
 
     class Params:
-        img = factory.Trait(
-            document=factory.django.FileField(
-                filename="evidence.png",
-                data=b"lorem ipsum"
-            )
-        )
-        txt = factory.Trait(
-            document=factory.django.FileField(
-                filename="evidence.txt",
-                data=b"lorem ipsum"
-            )
-        )
-        unknown = factory.Trait(
-            document=factory.django.FileField(
-                filename="evidence.tar",
-                data=b"lorem ipsum"
-            )
-        )
+        img = factory.Trait(document=factory.django.FileField(filename="evidence.png", data=b"lorem ipsum"))
+        txt = factory.Trait(document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"))
+        unknown = factory.Trait(document=factory.django.FileField(filename="evidence.tar", data=b"lorem ipsum"))
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class ArchiveFactory(factory.django.DjangoModelFactory):
@@ -441,6 +489,15 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
     operator_name = Faker("name")
     oplog_id = factory.SubFactory(OplogFactory)
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
 
 # Shepherd Factories
 
@@ -494,6 +551,15 @@ class DomainFactory(factory.django.DjangoModelFactory):
     health_status = factory.SubFactory(HealthStatusFactory)
     domain_status = factory.SubFactory(DomainStatusFactory)
     last_used_by = factory.SubFactory(UserFactory)
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
 
 
 class HistoryFactory(factory.django.DjangoModelFactory):
@@ -750,16 +816,15 @@ def GenerateMockProject(
 
     # Generate a batch of client contacts and project assignments
     ClientContactFactory.create_batch(num_of_contacts, client=client)
-    assignments = ProjectAssignmentFactory.create_batch(
-        num_of_assignments, project=project
-    )
+    assignments = ProjectAssignmentFactory.create_batch(num_of_assignments, project=project)
 
     # Generate severity categories and randomly assign them to findings
-    severities = []
-    severities.append(SeverityFactory(severity="Critical", weight=0))
-    severities.append(SeverityFactory(severity="High", weight=1))
-    severities.append(SeverityFactory(severity="Medium", weight=2))
-    severities.append(SeverityFactory(severity="Low", weight=3))
+    severities = [
+        SeverityFactory(severity="Critical", weight=0),
+        SeverityFactory(severity="High", weight=1),
+        SeverityFactory(severity="Medium", weight=2),
+        SeverityFactory(severity="Low", weight=3),
+    ]
     ReportFindingLinkFactory.create_batch(
         num_of_findings,
         report=report,
@@ -774,15 +839,17 @@ def GenerateMockProject(
     ProjectTargetFactory.create_batch(num_of_targets, project=project)
 
     # Generate objective priorities and status and randomly assign them to objectives
-    obj_priorities = []
-    obj_priorities.append(ObjectivePriorityFactory(priority="Primary", weight=0))
-    obj_priorities.append(ObjectivePriorityFactory(priority="Secondary", weight=1))
-    obj_priorities.append(ObjectivePriorityFactory(priority="Tertiary", weight=2))
+    obj_priorities = [
+        ObjectivePriorityFactory(priority="Primary", weight=0),
+        ObjectivePriorityFactory(priority="Secondary", weight=1),
+        ObjectivePriorityFactory(priority="Tertiary", weight=2),
+    ]
 
-    obj_status = []
-    obj_status.append(ObjectiveStatusFactory(objective_status="Done"))
-    obj_status.append(ObjectiveStatusFactory(objective_status="Missed"))
-    obj_status.append(ObjectiveStatusFactory(objective_status="In Progress"))
+    obj_status = [
+        ObjectiveStatusFactory(objective_status="Done"),
+        ObjectiveStatusFactory(objective_status="Missed"),
+        ObjectiveStatusFactory(objective_status="In Progress"),
+    ]
 
     objectives = ProjectObjectiveFactory.create_batch(
         num_of_objectives,
@@ -793,9 +860,7 @@ def GenerateMockProject(
 
     # Generate subtasks for each objective
     for obj in objectives:
-        ProjectSubtaskFactory.create_batch(
-            num_of_subtasks, parent=obj, status=random.choice(obj_status)
-        )
+        ProjectSubtaskFactory.create_batch(num_of_subtasks, parent=obj, status=random.choice(obj_status))
 
     # Generate random domain names and servers used for this project
     domains = HistoryFactory.create_batch(num_of_domains, project=project)
@@ -803,10 +868,11 @@ def GenerateMockProject(
     cloud = TransientServerFactory.create_batch(num_of_servers, project=project)
 
     # Generate deconflictions
-    deconfliction_status = []
-    deconfliction_status.append(DeconflictionStatusFactory(status="Undetermined", weight=0))
-    deconfliction_status.append(DeconflictionStatusFactory(status="Confirmed", weight=1))
-    deconfliction_status.append(DeconflictionStatusFactory(status="Unrelated", weight=2))
+    deconfliction_status = [
+        DeconflictionStatusFactory(status="Undetermined", weight=0),
+        DeconflictionStatusFactory(status="Confirmed", weight=1),
+        DeconflictionStatusFactory(status="Unrelated", weight=2),
+    ]
     DeconflictionFactory.create_batch(
         num_of_deconflictions,
         project=project,
@@ -821,13 +887,9 @@ def GenerateMockProject(
 
     for index, domain in enumerate(domains):
         if index % 2 == 0:
-            DomainServerConnectionFactory(
-                domain=domain, static_server=random.choice(servers), transient_server=None
-            )
+            DomainServerConnectionFactory(domain=domain, static_server=random.choice(servers), transient_server=None)
         else:
-            DomainServerConnectionFactory(
-                domain=domain, transient_server=random.choice(cloud), static_server=None
-            )
+            DomainServerConnectionFactory(domain=domain, transient_server=random.choice(cloud), static_server=None)
 
     # Return the higher level objects to be used in the tests
     return client, project, report

@@ -38,9 +38,7 @@ class OplogListTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -80,9 +78,7 @@ class OplogListEntriesTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -95,22 +91,7 @@ class OplogListEntriesTests(TestCase):
     def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "oplog/entries_list.html")
-
-    def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
-
-        entries = self.OplogEntry.objects.filter(oplog_id=self.oplog.pk).order_by(
-            "-start_date"
-        )
-        self.assertIn("entries", response.context)
-        self.assertIn("pk", response.context)
-        self.assertIn("name", response.context)
-        self.assertIn("project", response.context)
-        self.assertEqual(response.context["entries"][0], entries[0])
-        self.assertEqual(response.context["pk"], self.oplog.pk)
-        self.assertEqual(response.context["name"], self.oplog.name)
-        self.assertEqual(response.context["project"], self.oplog.project)
+        self.assertTemplateUsed(response, "oplog/oplog_detail.html")
 
 
 class OplogEntriesImportTests(TestCase):
@@ -135,9 +116,7 @@ class OplogEntriesImportTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -169,9 +148,7 @@ class OplogEntriesImportTests(TestCase):
             "operator_name",
         ]
         with open(filename, "w") as csvfile:
-            writer = csv.DictWriter(
-                csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_NONE
-            )
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_NONE)
             writer.writeheader()
             for entry in self.OplogEntry.objects.all():
                 row = {}
@@ -208,9 +185,7 @@ class OplogCreateViewTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -286,21 +261,13 @@ class OplogMuteToggleViewTests(TestCase):
         self.client_admin = Client()
         self.client_staff = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_auth.login(username=self.user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.mgr_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.mgr_user.username, password=PASSWORD))
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
         self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        self.assertTrue(
-            self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        )
+        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {
@@ -358,3 +325,25 @@ class OplogMuteToggleViewTests(TestCase):
         response = self.client_staff.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertIn("success", force_str(response.content))
+
+
+class OplogEntryUpdateViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogEntryUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.log = OplogFactory()
+        cls.entry = OplogEntryFactory(oplog_id=cls.log)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("oplog:oplog_entry_update", kwargs={"pk": cls.entry.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uses_correct_ajax_template(self):
+        response = self.client_auth.get(self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "oplog/snippets/oplogentry_form_inner.html")

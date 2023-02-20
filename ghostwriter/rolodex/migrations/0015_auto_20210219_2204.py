@@ -4,20 +4,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0014_projectobjective_marked_complete'),
+        ("rolodex", "0014_projectobjective_marked_complete"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='projectobjective',
-            name='description',
-            field=models.TextField(blank=True, help_text='Provide a more detailed description, purpose, or context', null=True, verbose_name='Description'),
+            model_name="projectobjective",
+            name="description",
+            field=models.TextField(
+                blank=True,
+                help_text="Provide a more detailed description, purpose, or context",
+                null=True,
+                verbose_name="Description",
+            ),
         ),
         migrations.AlterField(
-            model_name='projectobjective',
-            name='objective',
-            field=models.CharField(blank=True, help_text='Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles', max_length=255, null=True, verbose_name='Objective'),
+            model_name="projectobjective",
+            name="objective",
+            field=models.CharField(
+                blank=True,
+                help_text="Provide a high-level objective – add sub-tasks later for planning or as you discover obstacles",
+                max_length=255,
+                null=True,
+                verbose_name="Objective",
+            ),
         ),
     ]

@@ -1,4 +1,4 @@
-"""This contains all of the database models used by the Rolodex application."""
+"""This contains all the database models used by the Rolodex application."""
 
 # Standard Libraries
 from datetime import time, timedelta
@@ -10,10 +10,12 @@ from django.db import models
 from django.urls import reverse
 
 # 3rd Party Libraries
+from taggit.managers import TaggableManager
 from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import OplogEntry
+from ghostwriter.rolodex.validators import validate_ip_range
 from ghostwriter.reporting.models import ReportFindingLink
 
 User = get_user_model()
@@ -61,6 +63,7 @@ class Client(models.Model):
         blank=True,
         help_text="An address to be used for reports or shipping",
     )
+    tags = TaggableManager(blank=True)
 
     class Meta:
         ordering = ["name"]
@@ -79,9 +82,7 @@ class ClientContact(models.Model):
     Stores an individual point of contact, related to :model:`rolodex.Client`.
     """
 
-    name = models.CharField(
-        "Name", help_text="Enter the contact's full name", max_length=255, null=True
-    )
+    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
     job_title = models.CharField(
         "Title or Role",
         max_length=255,
@@ -164,12 +165,8 @@ class Project(models.Model):
         blank=True,
         help_text="Give the project a codename (might be a ticket number, PMO reference, or something else)",
     )
-    start_date = models.DateField(
-        "Start Date", max_length=12, help_text="Enter the start date of this project"
-    )
-    end_date = models.DateField(
-        "End Date", max_length=12, help_text="Enter the end date of this project"
-    )
+    start_date = models.DateField("Start Date", max_length=12, help_text="Enter the start date of this project")
+    end_date = models.DateField("End Date", max_length=12, help_text="Enter the end date of this project")
     note = models.TextField(
         "Notes",
         null=True,
@@ -183,9 +180,7 @@ class Project(models.Model):
         blank=True,
         help_text="Provide an Slack channel to be used for project notifications",
     )
-    complete = models.BooleanField(
-        "Completed", default=False, help_text="Mark this project as complete"
-    )
+    complete = models.BooleanField("Completed", default=False, help_text="Mark this project as complete")
     timezone = TimeZoneField(
         "Project Timezone",
         default="America/Los_Angeles",
@@ -205,6 +200,7 @@ class Project(models.Model):
         blank=True,
         help_text="Select the end time for each day",
     )
+    tags = TaggableManager(blank=True)
     # Foreign keys
     client = models.ForeignKey(
         "Client",
@@ -212,9 +208,7 @@ class Project(models.Model):
         null=False,
         help_text="Select the client to which this project should be attached",
     )
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     project_type = models.ForeignKey(
         "ProjectType",
         on_delete=models.PROTECT,
@@ -227,9 +221,9 @@ class Project(models.Model):
         Count and return the number of findings across all reports associated with
         an individual :model:`rolodex.Project`.
         """
-        finding_queryset = ReportFindingLink.objects.select_related(
-            "report", "report__project"
-        ).filter(report__project=self.pk)
+        finding_queryset = ReportFindingLink.objects.select_related("report", "report__project").filter(
+            report__project=self.pk
+        )
         return finding_queryset.count()
 
     count = property(count_findings)
@@ -394,9 +388,7 @@ class ProjectObjective(models.Model):
         blank=True,
         help_text="Provide a more detailed description, purpose, or context",
     )
-    complete = models.BooleanField(
-        "Completed", default=False, help_text="Mark the objective as complete"
-    )
+    complete = models.BooleanField("Completed", default=False, help_text="Mark the objective as complete")
     deadline = models.DateField(
         "Due Date",
         max_length=12,
@@ -482,12 +474,8 @@ class ProjectSubTask(models.Model):
         except ObjectiveStatus.DoesNotExist:
             return 1
 
-    task = models.TextField(
-        "Task", null=True, blank=True, help_text="Provide a concise objective"
-    )
-    complete = models.BooleanField(
-        "Completed", default=False, help_text="Mark the objective as complete"
-    )
+    task = models.TextField("Task", null=True, blank=True, help_text="Provide a concise objective")
+    complete = models.BooleanField("Completed", default=False, help_text="Mark the objective as complete")
     deadline = models.DateField(
         "Due Date",
         max_length=12,
@@ -525,9 +513,7 @@ class ClientNote(models.Model):
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -536,9 +522,7 @@ class ClientNote(models.Model):
     )
     # Foreign Keys
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["client", "timestamp"]
@@ -555,9 +539,7 @@ class ProjectNote(models.Model):
     """
 
     # This field is automatically filled with the current date
-    timestamp = models.DateField(
-        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
-    )
+    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
         "Notes",
         null=True,
@@ -566,9 +548,7 @@ class ProjectNote(models.Model):
     )
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ["project", "timestamp"]
@@ -641,29 +621,28 @@ class ProjectTarget(models.Model):
     Stores an individual target host, related to an individual :model:`rolodex.Project`.
     """
 
-    ip_address = models.GenericIPAddressField(
+    ip_address = models.CharField(
         "IP Address",
-        max_length=255,
+        max_length=45,
         null=True,
         blank=True,
-        help_text="Enter the target's IP address",
+        validators=[validate_ip_range],
+        help_text="Enter the IP address or range of the target host(s)",
     )
     hostname = models.CharField(
         "Hostname / FQDN",
         max_length=255,
         null=True,
         blank=True,
-        help_text="Provide the target's hostname or fully qualified domain name",
+        help_text="Provide the target's hostname, fully qualified domain name, or other identifier",
     )
     note = models.TextField(
-        "Scope",
+        "Notes",
         null=True,
         blank=True,
-        help_text="Provide a list of IP addresses, ranges, hostnames, or a mix with each entry on a new line",
+        help_text="Provide additional information about the target(s) or the environment",
     )
-    compromised = models.BooleanField(
-        "Compromised", default=False, help_text="Flag this host as compromised"
-    )
+    compromised = models.BooleanField("Compromised", default=False, help_text="Flag this target as compromised")
     # Foreign Keys
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False)
 
@@ -758,23 +737,25 @@ class Deconfliction(models.Model):
     """
 
     created_at = models.DateTimeField(
-        "Timestamp", auto_now_add=True, help_text="Date and time this deconfliction was created"
+        "Timestamp",
+        auto_now_add=True,
+        help_text="Date and time this deconfliction was created",
     )
     report_timestamp = models.DateTimeField(
         "Report Timestamp",
-        help_text="Date and time the client informed you and requested deconfliction"
+        help_text="Date and time the client informed you and requested deconfliction",
     )
     alert_timestamp = models.DateTimeField(
         "Alert Timestamp",
         null=True,
         blank=True,
-        help_text="Date and time the alert fired"
+        help_text="Date and time the alert fired",
     )
     response_timestamp = models.DateTimeField(
         "Response Timestamp",
         null=True,
         blank=True,
-        help_text="Date and time you responded to the report"
+        help_text="Date and time you responded to the report",
     )
     title = models.CharField(
         "Deconfliction Title",
@@ -833,7 +814,7 @@ class WhiteCard(models.Model):
         "Issued",
         blank=True,
         null=True,
-        help_text="Date and time the client issued this white card"
+        help_text="Date and time the client issued this white card",
     )
     title = models.CharField(
         "Title",

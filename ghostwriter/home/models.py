@@ -1,4 +1,4 @@
-"""This contains all of the database models for the Home application."""
+"""This contains all the database models for the Home application."""
 
 # Standard Libraries
 import os

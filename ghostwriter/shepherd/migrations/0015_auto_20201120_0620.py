@@ -4,20 +4,30 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0014_auto_20200909_1804'),
+        ("shepherd", "0014_auto_20200909_1804"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='domain',
-            name='last_health_check',
-            field=models.DateField(blank=True, help_text='The date and time of the latest health check for this domain name', null=True, verbose_name='Last Health Check'),
+            model_name="domain",
+            name="last_health_check",
+            field=models.DateField(
+                blank=True,
+                help_text="The date and time of the latest health check for this domain name",
+                null=True,
+                verbose_name="Last Health Check",
+            ),
         ),
         migrations.AddField(
-            model_name='domain',
-            name='vt_permalink',
-            field=models.CharField(blank=True, help_text="VirusTotal's permalink for scan results of this domain", max_length=255, null=True, verbose_name='VirusTotal Permalink'),
+            model_name="domain",
+            name="vt_permalink",
+            field=models.CharField(
+                blank=True,
+                help_text="VirusTotal's permalink for scan results of this domain",
+                max_length=255,
+                null=True,
+                verbose_name="VirusTotal Permalink",
+            ),
         ),
     ]

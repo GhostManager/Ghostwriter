@@ -35,9 +35,7 @@ class DNSCollector:
         # Limit used for Semaphore to avoid hitting system limits on open requests
         self.semaphore = Semaphore(value=concurrent_limit)
 
-    async def _query(
-        self, domain: str, record_type: str
-    ) -> Union[Answer, NXDOMAIN, NoAnswer]:
+    async def _query(self, domain: str, record_type: str) -> Union[Answer, NXDOMAIN, NoAnswer]:
         """
         Execute a DNS query for the target domain and record type.
 
@@ -126,9 +124,7 @@ class DNSCollector:
         # For each domain, create a task for each DNS record of interest
         for domain in domains:
             for record_type in record_types:
-                tasks.append(
-                    self._fetch_record(domain=domain.name, record_type=record_type)
-                )
+                tasks.append(self._fetch_record(domain=domain.name, record_type=record_type))
         # Gather all tasks for execution
         all_tasks = await asyncio.gather(*tasks)
         return all_tasks
@@ -147,9 +143,7 @@ class DNSCollector:
         # Setup an event loop
         event_loop = asyncio.get_event_loop()
         # Use an event loop (instead of ``asyncio.run()``) to easily get list of results
-        results = event_loop.run_until_complete(
-            self._prepare_async_dns(domains=domains, record_types=record_types)
-        )
+        results = event_loop.run_until_complete(self._prepare_async_dns(domains=domains, record_types=record_types))
         # Result is a list of dicts – seven for each domain name
         combined = {}
         # Combine all dicts with the same domain name

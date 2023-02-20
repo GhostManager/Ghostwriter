@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Django Imports
 from django.conf import settings
@@ -14,7 +14,6 @@ from ghostwriter.rolodex.models import ClientInvite, ProjectAssignment, ProjectI
 
 # Using __name__ resolves to ghostwriter.utils
 logger = logging.getLogger(__name__)
-
 
 User = get_user_model()
 
@@ -65,7 +64,7 @@ def jwt_decode(token):
             "verify_aud": settings.GRAPHQL_JWT["JWT_AUDIENCE"],
             "verify_signature": settings.GRAPHQL_JWT["JWT_VERIFY"],
         },
-        leeway=timedelta(seconds=0),
+        leeway=10,
         audience=settings.GRAPHQL_JWT["JWT_AUDIENCE"],
         issuer=None,
         algorithms=[settings.GRAPHQL_JWT["JWT_ALGORITHM"]],
@@ -90,7 +89,7 @@ def jwt_decode_no_verification(token):
             "verify_aud": False,
             "verify_signature": False,
         },
-        leeway=timedelta(seconds=0),
+        leeway=10,
         audience=settings.GRAPHQL_JWT["JWT_AUDIENCE"],
         issuer=None,
         algorithms=[settings.GRAPHQL_JWT["JWT_ALGORITHM"]],
@@ -111,7 +110,7 @@ def get_jwt_payload(token):
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as exception:
         try:
             bad_token = jwt_decode_no_verification(token)
-            logger.warning("%s error with this payload: %s", exception, bad_token)
+            logger.warning("%s error (%s) with this payload: %s", type(exception).__name__, exception, bad_token)
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError) as verify_exception:
             logger.error("%s error with this payload: %s", verify_exception, token)
         payload = None
@@ -138,16 +137,15 @@ def generate_jwt(user, exp=None):
     else:
         jwt_datetime = jwt_iat + settings.GRAPHQL_JWT["JWT_EXPIRATION_DELTA"]
         jwt_expires = int(jwt_datetime.timestamp())
-    payload = {}
-    # Add user data to the payload
-    # payload["username"] = str(user.username)
-    payload["sub"] = str(user.id)
-    payload["sub_name"] = user.username
-    payload["sub_email"] = user.email
-    # Add the JWT date and audience to the payload
-    payload["aud"] = settings.GRAPHQL_JWT["JWT_AUDIENCE"]
-    payload["iat"] = jwt_iat.timestamp()
-    payload["exp"] = jwt_expires
+
+    payload = {
+        "sub": str(user.id),
+        "sub_name": user.username,
+        "sub_email": user.email,
+        "aud": settings.GRAPHQL_JWT["JWT_AUDIENCE"],
+        "iat": jwt_iat.timestamp(),
+        "exp": jwt_expires,
+    }
 
     return payload, jwt_encode(payload)
 
@@ -167,7 +165,9 @@ def generate_hasura_error_payload(error_message, error_code):
     """
     return {
         "message": error_message,
-        "extensions": {"code": error_code, },
+        "extensions": {
+            "code": error_code,
+        },
     }
 
 

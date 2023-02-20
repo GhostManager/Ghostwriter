@@ -2,11 +2,11 @@
 import logging
 from datetime import datetime
 
-# Django Imports
-from django.test import TestCase
-
 # 3rd Party Libraries
 import pytz
+
+# Django Imports
+from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import OplogEntryFactory, OplogFactory
@@ -28,10 +28,6 @@ class OplogModelTests(TestCase):
         # Read
         self.assertEqual(oplog.name, "Oplog 1")
         self.assertEqual(oplog.pk, oplog.id)
-        self.assertQuerysetEqual(
-            self.Oplog.objects.all(),
-            [f"<Oplog: {oplog.name} : {oplog.project}>"],
-        )
 
         # Update
         oplog.name = "Updated Oplog"
@@ -94,3 +90,15 @@ class OplogEntryModelTests(TestCase):
         entry.save()
         entry.refresh_from_db()
         self.assertEqual(entry.end_date, valid_end_date)
+
+    def test_tagging(self):
+        tags = ["tag1", "tag2", "tag3"]
+        entry = OplogEntryFactory(tags=tags)
+
+        self.assertEqual(list(entry.tags.names()), tags)
+
+        tags.append("tag4")
+        entry.tags.add("tag4")
+        entry.refresh_from_db()
+
+        self.assertEqual(list(entry.tags.names()), tags)

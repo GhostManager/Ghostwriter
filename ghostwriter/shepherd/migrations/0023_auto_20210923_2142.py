@@ -5,19 +5,25 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0022_auto_20210923_2115'),
+        ("shepherd", "0022_auto_20210923_2115"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='transientserver',
-            name='address',
+            model_name="transientserver",
+            name="address",
         ),
         migrations.AddField(
-            model_name='transientserver',
-            name='aux_address',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.GenericIPAddressField(help_text='Enter additional IP addresses', verbose_name='Auxiliary IP Address'), default=list, help_text='Enter a comma-separated list of IP addresses', size=5),
+            model_name="transientserver",
+            name="aux_address",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.GenericIPAddressField(
+                    help_text="Enter additional IP addresses", verbose_name="Auxiliary IP Address"
+                ),
+                default=list,
+                help_text="Enter a comma-separated list of IP addresses",
+                size=5,
+            ),
         ),
     ]

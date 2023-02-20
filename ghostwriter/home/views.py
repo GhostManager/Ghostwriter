@@ -1,4 +1,4 @@
-"""This contains all of the views used by the Home application."""
+"""This contains all the views used by the Home application."""
 
 # Standard Libraries
 import logging
@@ -95,19 +95,17 @@ class Dashboard(LoginRequiredMixin, View):
         # Get incomplete :model:`reporting.ReportFindingLink` for current :model:`users.User`
         user_tasks = (
             ReportFindingLink.objects.select_related("report", "report__project")
-            .filter(
-                Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False)
-            )
+            .filter(Q(assigned_to=request.user) & Q(report__complete=False) & Q(complete=False))
             .order_by("report__project__end_date")[:10]
         )
         # Get active :model:`reporting.ProjectAssignment` for current :model:`users.User`
-        user_projects = ProjectAssignment.objects.select_related(
-            "project", "project__client", "role"
-        ).filter(operator=request.user)
+        user_projects = ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
+            operator=request.user
+        )
         # Get future :model:`reporting.ProjectAssignment` for current :model:`users.User`
-        active_project = ProjectAssignment.objects.select_related(
-            "project", "project__client", "role"
-        ).filter(Q(operator=request.user) & Q(project__complete=False))
+        active_project = ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
+            Q(operator=request.user) & Q(project__complete=False)
+        )
         # Get system status
         system_health = "OK"
         try:
@@ -129,6 +127,7 @@ class Dashboard(LoginRequiredMixin, View):
         }
         # Render the HTML template index.html with the data in the context variable
         return render(request, "index.html", context=context)
+
 
 class Management(LoginRequiredMixin, UserPassesTestMixin, View):
     """

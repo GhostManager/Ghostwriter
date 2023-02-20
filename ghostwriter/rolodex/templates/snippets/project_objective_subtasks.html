@@ -26,7 +26,7 @@
         </form>
 
         {% if objective.projectsubtask_set.all %}
-            <p class="mb-0 mt-3 icon info-circle-icon">Click a task or deadline to edit. Click outside of the task to save.</p>
+            <p class="mb-0 mt-3 icon info-circle-icon">Click a task or deadline to edit. Click away from the task to save.</p>
 
             <!-- Task List Filters -->
             <ul class="nav nav-pills todo-nav">
@@ -50,8 +50,9 @@
                         refresh-task-url="{% url 'rolodex:ajax_update_objective_tasks' objective.id %}"
                     >
                         <div class="checker col-sm-1 my-auto">
-                            <span>
-                                <input type="checkbox" onclick="toggleTodo($(this).parent().parent().parent());" {% if task.complete %}checked{% endif %}>
+                            <span class="custom-control custom-switch">
+                                <input type="checkbox" id="subtask_{{ task.id }}" class="form-check-input custom-control-input" onclick="toggleTodo($(this).parent().parent().parent());" {% if task.complete %}checked{% endif %}>
+                                <label class="form-check-label custom-control-label" for="subtask_{{ task.id }}"></label>
                             </span>
                         </div>
 

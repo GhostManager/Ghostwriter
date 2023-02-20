@@ -1,4 +1,4 @@
-"""This contains all of the model filters used by the Shepherd application."""
+"""This contains all the model filters used by the Shepherd application."""
 
 # Standard Libraries
 from datetime import date
@@ -21,8 +21,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.modules.custom_layout_object import SwitchToggle
-
-from .models import Domain, DomainStatus, HealthStatus, ServerStatus
+from ghostwriter.shepherd.models import Domain, DomainStatus, HealthStatus, ServerStatus
 
 
 class DomainFilter(django_filters.FilterSet):
@@ -87,7 +86,6 @@ class DomainFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = True
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
@@ -103,11 +101,7 @@ class DomainFilter(django_filters.FilterSet):
                 css_class="form-row",
             ),
             Accordion(
-                AccordionGroup(
-                    "Domain Status",
-                    InlineCheckboxes("domain_status"),
-                    SwitchToggle("exclude_expired")
-                ),
+                AccordionGroup("Domain Status", InlineCheckboxes("domain_status"), SwitchToggle("exclude_expired")),
                 AccordionGroup("Health Status", InlineCheckboxes("health_status")),
             ),
             ButtonHolder(
@@ -164,7 +158,6 @@ class ServerFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_class = "newitem"
         self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(

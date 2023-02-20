@@ -1,4 +1,4 @@
-"""This contains all of the database models for the CommandCenter application."""
+"""This contains all the database models for the CommandCenter application."""
 
 # Django Imports
 from django.db import models
@@ -33,22 +33,14 @@ def sanitize(sensitive_thing):
             )
         # Handle anything else that's long enough to be a key
         elif length > 15:
-            sanitized_string = (
-                sensitive_thing[0:4]
-                + "\u2717" * (length - 8)
-                + sensitive_thing[length - 5 : length - 1]
-            )
+            sanitized_string = sensitive_thing[0:4] + "\u2717" * (length - 8) + sensitive_thing[length - 5 : length - 1]
     return sanitized_string
 
 
 class NamecheapConfiguration(SingletonModel):
     enable = models.BooleanField(default=False)
-    api_key = models.CharField(
-        max_length=255, default="Namecheap API Key", help_text="Your Namecheap API key"
-    )
-    username = models.CharField(
-        max_length=255, default="Account Username", help_text="Your Namecheap username"
-    )
+    api_key = models.CharField(max_length=255, default="Namecheap API Key", help_text="Your Namecheap API key")
+    username = models.CharField(max_length=255, default="Account Username", help_text="Your Namecheap username")
     api_username = models.CharField(
         "API Username",
         max_length=255,
@@ -79,21 +71,17 @@ class NamecheapConfiguration(SingletonModel):
 
 
 class ReportConfiguration(SingletonModel):
-    enable_borders = models.BooleanField(
-        default=False, help_text="Enable borders around images in Word documents"
-    )
+    enable_borders = models.BooleanField(default=False, help_text="Enable borders around images in Word documents")
     border_weight = models.IntegerField(
         default=12700,
         help_text="Weight in EMUs – 12700 is equal to the 1pt weight in Word",
     )
-    border_color = models.CharField(
-        "Picture Border Color", max_length=6, default="2D2B6B"
-    )
+    border_color = models.CharField("Picture Border Color", max_length=6, default="2D2B6B")
 
     prefix_figure = models.CharField(
         "Character Before Figure Captions",
         max_length=255,
-        default=u"\u2013",
+        default="\u2013",
         help_text="Unicode character to place between the label and your figure caption in Word reports",
     )
     label_figure = models.CharField(
@@ -105,7 +93,7 @@ class ReportConfiguration(SingletonModel):
     prefix_table = models.CharField(
         "Character Before Table Titles",
         max_length=255,
-        default=u"\u2013",
+        default="\u2013",
         help_text="Unicode character to place between the label and your table caption in Word reports",
     )
     label_table = models.CharField(
@@ -153,9 +141,7 @@ class ReportConfiguration(SingletonModel):
 
 class SlackConfiguration(SingletonModel):
     enable = models.BooleanField(default=False)
-    webhook_url = models.CharField(
-        max_length=255, default="https://hooks.slack.com/services/<your_webhook_url>"
-    )
+    webhook_url = models.CharField(max_length=255, default="https://hooks.slack.com/services/<your_webhook_url>")
     slack_emoji = models.CharField(
         max_length=255,
         default=":ghost:",
@@ -215,18 +201,10 @@ class CompanyInformation(SingletonModel):
 
 
 class CloudServicesConfiguration(SingletonModel):
-    enable = models.BooleanField(
-        default=False, help_text="Enable to allow the cloud monitoring task to run"
-    )
-    aws_key = models.CharField(
-        "AWS Access Key", max_length=255, default="Your AWS Access Key"
-    )
-    aws_secret = models.CharField(
-        "AWS Secret Key", max_length=255, default="Your AWS Secret Key"
-    )
-    do_api_key = models.CharField(
-        "Digital Ocean API Key", max_length=255, default="Digital Ocean API Key"
-    )
+    enable = models.BooleanField(default=False, help_text="Enable to allow the cloud monitoring task to run")
+    aws_key = models.CharField("AWS Access Key", max_length=255, default="Your AWS Access Key")
+    aws_secret = models.CharField("AWS Secret Key", max_length=255, default="Your AWS Secret Key")
+    do_api_key = models.CharField("Digital Ocean API Key", max_length=255, default="Digital Ocean API Key")
     ignore_tag = models.CharField(
         "Ignore Tags",
         max_length=255,
@@ -259,9 +237,7 @@ class CloudServicesConfiguration(SingletonModel):
 
 
 class VirusTotalConfiguration(SingletonModel):
-    enable = models.BooleanField(
-        default=False, help_text="Enable to allow domain health checks with VirusTotal"
-    )
+    enable = models.BooleanField(default=False, help_text="Enable to allow domain health checks with VirusTotal")
     api_key = models.CharField(max_length=255, default="VirusTotal API Key")
     sleep_time = models.IntegerField(
         default=20,

@@ -4,20 +4,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0032_deconfliction_deconflictionstatus'),
+        ("rolodex", "0032_deconfliction_deconflictionstatus"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='deconfliction',
-            name='alert_timestamp',
-            field=models.DateTimeField(blank=True, help_text='Date and time the alert fired', null=True, verbose_name='Alert Timestamp'),
+            model_name="deconfliction",
+            name="alert_timestamp",
+            field=models.DateTimeField(
+                blank=True, help_text="Date and time the alert fired", null=True, verbose_name="Alert Timestamp"
+            ),
         ),
         migrations.AlterField(
-            model_name='deconfliction',
-            name='response_timestamp',
-            field=models.DateTimeField(blank=True, help_text='Date and time you responded to the report', null=True, verbose_name='Response Timestamp'),
+            model_name="deconfliction",
+            name="response_timestamp",
+            field=models.DateTimeField(
+                blank=True,
+                help_text="Date and time you responded to the report",
+                null=True,
+                verbose_name="Response Timestamp",
+            ),
         ),
     ]

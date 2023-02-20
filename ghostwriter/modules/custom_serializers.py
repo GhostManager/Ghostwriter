@@ -3,23 +3,25 @@
 # Standard Libraries
 from datetime import datetime
 
-# Django Imports
-from django.conf import settings
-from django.utils import dateformat
-
 # 3rd Party Libraries
 import pytz
 from bs4 import BeautifulSoup
+
+# Django Imports
+from django.conf import settings
+from django.utils import dateformat
 from rest_framework import serializers
 from rest_framework.serializers import (
     RelatedField,
     SerializerMethodField,
     StringRelatedField,
 )
+from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -129,11 +131,12 @@ class CompanyInfoSerializer(CustomModelSerializer):
         exclude = ["id", "company_name", "company_twitter", "company_email"]
 
 
-class EvidenceSerializer(CustomModelSerializer):
+class EvidenceSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Evidence` entries."""
 
     path = SerializerMethodField("get_path")
     url = SerializerMethodField("get_url")
+    tags = TagListSerializerField()
 
     class Meta:
         model = Evidence
@@ -148,7 +151,7 @@ class EvidenceSerializer(CustomModelSerializer):
         return obj.document.url
 
 
-class FindingSerializer(CustomModelSerializer):
+class FindingSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Finding` entries."""
 
     finding_type = StringRelatedField()
@@ -156,6 +159,7 @@ class FindingSerializer(CustomModelSerializer):
     severity_color = SerializerMethodField("get_severity_color")
     severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
+    tags = TagListSerializerField()
 
     class Meta:
         model = Finding
@@ -171,7 +175,7 @@ class FindingSerializer(CustomModelSerializer):
         return obj.severity.color_hex
 
 
-class FindingLinkSerializer(CustomModelSerializer):
+class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:ReportFindingLink` entries."""
 
     assigned_to = SerializerMethodField("get_assigned_to")
@@ -180,6 +184,7 @@ class FindingLinkSerializer(CustomModelSerializer):
     severity_color = SerializerMethodField("get_severity_color")
     severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
+    tags = TagListSerializerField()
 
     # Include a copy of the ``mitigation`` field as ``recommendation`` to match legacy JSON output
     recommendation = serializers.CharField(source="mitigation")
@@ -220,7 +225,7 @@ class ReportTemplateSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class ReportSerializer(CustomModelSerializer):
+class ReportSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Report` entries."""
 
     created_by = StringRelatedField()
@@ -229,9 +234,9 @@ class ReportSerializer(CustomModelSerializer):
     creation = SerializerMethodField("get_last_update")
     total_findings = SerializerMethodField("get_total_findings")
 
-    findings = FindingLinkSerializer(
-        source="reportfindinglink_set", many=True, exclude=["id", "report"]
-    )
+    findings = FindingLinkSerializer(source="reportfindinglink_set", many=True, exclude=["id", "report"])
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Report
@@ -257,7 +262,7 @@ class ClientContactSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class ClientSerializer(CustomModelSerializer):
+class ClientSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`rolodex:Client` entries."""
 
     short_name = SerializerMethodField("get_short_name")
@@ -272,6 +277,8 @@ class ClientSerializer(CustomModelSerializer):
     )
 
     timezone = TimeZoneSerializerField()
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Client
@@ -429,8 +436,10 @@ class AuxServerAddressSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class DomainSerializer(CustomModelSerializer):
+class DomainSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`shepherd:Domain` entries."""
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Domain
@@ -483,12 +492,13 @@ class DomainHistorySerializer(CustomModelSerializer):
         return dateformat.format(obj.end_date, settings.DATE_FORMAT)
 
 
-class StaticServerSerializer(CustomModelSerializer):
+class StaticServerSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`shepherd.StaticServer` entries."""
 
     provider = serializers.CharField(source="server_provider")
     status = serializers.CharField(source="server_status")
     last_used_by = StringRelatedField()
+    tags = TagListSerializerField()
 
     class Meta:
         model = StaticServer
@@ -559,7 +569,7 @@ class TransientServerSerializer(CustomModelSerializer):
         ]
 
 
-class ProjectSerializer(CustomModelSerializer):
+class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`rolodex:Project` entries."""
 
     name = SerializerMethodField("get_name")
@@ -576,6 +586,8 @@ class ProjectSerializer(CustomModelSerializer):
     timezone = TimeZoneSerializerField()
 
     notes = ProjectNoteSerializer(source="projectnote_set", many=True, exclude=["id", "project"])
+
+    tags = TagListSerializerField()
 
     class Meta:
         model = Project
@@ -623,9 +635,7 @@ class ProjectInfrastructureSerializer(CustomModelSerializer):
         many=True,
         exclude=["id", "project", "operator", "client"],
     )
-    cloud = TransientServerSerializer(
-        source="transientserver_set", many=True, exclude=["id", "project", "operator"]
-    )
+    cloud = TransientServerSerializer(source="transientserver_set", many=True, exclude=["id", "project", "operator"])
     servers = ServerHistorySerializer(
         source="serverhistory_set",
         many=True,
@@ -660,9 +670,20 @@ class WhiteCardSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
+class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
+    """Serialize :model:`oplog.OplogEntry` entries."""
+
+    tags = TagListSerializerField()
+
+    class Meta:
+        model = OplogEntry
+        fields = "__all__"
+
+
 class ReportDataSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Project` and all related entries."""
 
+    tags = TagListSerializerField()
     report_date = SerializerMethodField("get_report_date")
     project = ProjectSerializer(
         exclude=[
@@ -671,24 +692,12 @@ class ReportDataSerializer(CustomModelSerializer):
         ]
     )
     client = ClientSerializer(source="project.client")
-    team = ProjectAssignmentSerializer(
-        source="project.projectassignment_set", many=True, exclude=["id", "project"]
-    )
-    objectives = ProjectObjectiveSerializer(
-        source="project.projectobjective_set", many=True, exclude=["id", "project"]
-    )
-    targets = ProjectTargetSerializer(
-        source="project.projecttarget_set", many=True, exclude=["id", "project"]
-    )
-    scope = ProjectScopeSerializer(
-        source="project.projectscope_set", many=True, exclude=["id", "project"]
-    )
-    deconflictions = DeconflictionSerializer(
-        source="project.deconfliction_set", many=True, exclude=["id", "project"]
-    )
-    whitecards = WhiteCardSerializer(
-        source="project.whitecard_set", many=True, exclude=["id", "project"]
-    )
+    team = ProjectAssignmentSerializer(source="project.projectassignment_set", many=True, exclude=["id", "project"])
+    objectives = ProjectObjectiveSerializer(source="project.projectobjective_set", many=True, exclude=["id", "project"])
+    targets = ProjectTargetSerializer(source="project.projecttarget_set", many=True, exclude=["id", "project"])
+    scope = ProjectScopeSerializer(source="project.projectscope_set", many=True, exclude=["id", "project"])
+    deconflictions = DeconflictionSerializer(source="project.deconfliction_set", many=True, exclude=["id", "project"])
+    whitecards = WhiteCardSerializer(source="project.whitecard_set", many=True, exclude=["id", "project"])
     infrastructure = ProjectInfrastructureSerializer(source="project")
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",

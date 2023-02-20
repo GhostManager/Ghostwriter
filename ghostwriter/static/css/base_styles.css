@@ -88,4 +88,9 @@
   --high-rating-color: #FF7E79;
   --crit-rating-color: #966FD6;
   --neutral-rating-color: #7a7a7a;
+
+  /* BRANDS */
+  --word-color: #185abd;
+  --pptx-color: #c43f1d;
+  --excel-color: #107a40;
 }

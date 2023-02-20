@@ -28,9 +28,7 @@ def review_active_logs(hours: int = 24) -> dict:
     ``hours``
         The number of hours to check for log activity (Default: 24)
     """
-    logger.info(
-        "Checking for active logs that have not been updated in the past %s hours", hours
-    )
+    logger.info("Checking for active logs that have not been updated in the past %s hours", hours)
 
     results = {"errors": [], "logs": []}
 
@@ -58,9 +56,7 @@ def review_active_logs(hours: int = 24) -> dict:
 
             # Try to get the latest log entry
             try:
-                latest_log_entry = OplogEntry.objects.filter(oplog_id=log).latest(
-                    "start_date"
-                )
+                latest_log_entry = OplogEntry.objects.filter(oplog_id=log).latest("start_date")
             except OplogEntry.DoesNotExist:
                 pass
 
@@ -86,12 +82,8 @@ def review_active_logs(hours: int = 24) -> dict:
                     if log.project.slack_channel:
                         channel = log.project.slack_channel
 
-                    logger.info(
-                        "Sending Slack notification about inactive log to %s", channel
-                    )
-                    blocks = slack.craft_inactive_log_msg(
-                        log.name, log.project, hours, last_activity
-                    )
+                    logger.info("Sending Slack notification about inactive log to %s", channel)
+                    blocks = slack.craft_inactive_log_msg(log.name, log.project, hours, last_activity)
                     err = slack.send_msg(
                         message=f"This activity log has had no activity in the past {hours} hours",
                         channel=channel,
@@ -102,9 +94,7 @@ def review_active_logs(hours: int = 24) -> dict:
                         results["errors"].append(err)
             else:
                 if latest_log_entry:
-                    last_activity = dateformat.format(
-                        latest_log_entry.start_date, settings.DATE_FORMAT
-                    )
+                    last_activity = dateformat.format(latest_log_entry.start_date, settings.DATE_FORMAT)
 
             # Record results
             results["logs"].append(

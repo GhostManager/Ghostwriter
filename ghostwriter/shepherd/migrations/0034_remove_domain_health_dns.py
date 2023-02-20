@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0033_delete_old_domain_categories'),
+        ("shepherd", "0033_delete_old_domain_categories"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='domain',
-            name='health_dns',
+            model_name="domain",
+            name="health_dns",
         ),
     ]

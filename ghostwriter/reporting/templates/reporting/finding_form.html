@@ -17,7 +17,7 @@
 {% endblock %}
 
 {% block content %}
-    <div id="accordion" class="myaccordion">
+    <div id="accordion" class="finding-accordion">
         <!-- Keyword Cheatsheet -->
         <div class="card">
             <div class="card-header" id="keyword" data-toggle="collapse" data-target="#collapseKeyword">
@@ -82,10 +82,12 @@
     {% crispy form form.helper %}
 {% endblock %}
 
-{% block tabs %}
-    {{ block.super }}
+{%  block morescripts %}
+    <script>
+      {%  comment %} Prepare CVSS calculator {% endcomment %}
+      $(document).ready(function () {
+        prepareCVSSCalc()
+      });
+    </script>
 {% endblock %}
 
-{% block tabforms %}
-    {{ block.super }}
-{% endblock %}

@@ -37,7 +37,10 @@
     <div class="container">
         <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
     </div>
-    <hr />
+    {% for tag in staticserver.tags.names %}
+        <span class="badge badge-secondary">{{ tag|bleach }}</span>
+    {% endfor %}
+    <hr>
 
     <div>
         <!-- Navigation Tabs -->
@@ -128,9 +131,7 @@
                                 <th>Project</th>
                                 <th>Activity Type</th>
                                 <th>Server Role</th>
-                                <th>staticserver</th>
                                 <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
-                                <th class="sorter-false">Notes</th>
                                 <th class="sorter-false">Edit</th>
                             </tr>
                         </thead>
@@ -139,13 +140,7 @@
                                 <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
                                 <td>{{ project.activity_type }}</td>
                                 <td>{{ project.server_role }}</td>
-                                {% if project.staticserver %}
-                                    <td>{{ project.staticserver.name }}</td>
-                                {% else %}
-                                    <td>No Assoc. staticserver</td>
-                                {% endif %}
                                 <td>{{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</td>
-                                <td class="table-note">{{ project.note|bleach }}</td>
                                 <td>
                                     <a class="icon edit-icon" href="{% url 'shepherd:server_history_update' project.id %}"></a>
                                 </td>

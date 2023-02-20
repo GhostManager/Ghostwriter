@@ -4,6 +4,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.2.2] - 13 February 2023
+
+## Changed
+
+* Upgraded Ghostwriter CLI binaries to v0.2.9
+
+## Fixed
+
+* Fixed situations where the webpage could fail to load after submitting a client and project form with a validation error (Fixes #290)
+* Fixed tags on log entries not appearing immediately in the table after adding them
+* Fixed issue that prevented updating a domain
+
+## [v3.2.1] - 7 February 2023
+
+### Added
+
+* Added a warning to the report form about still needing to select a template if a global default is not configured
+* Added report tags to the report data as a new `tags` variable accessible in report templates
+
+### Fixed
+
+* Fixed a server error that could occur when attempting to add a domain that already existed in the library
+* Fixed the report update form still requiring a template selection after the v3.2 changes
+* Fixed the report template linter not recognizing `tags` as a valid key for objects with tags
+
+## [v3.2.0] - 2 February 2023
+
+### Added
+
+* Added support for applying tags to clients, projects, reports, findings, domains, servers, logs, and log entries
+* Added whitecards and deconflictions nodes to the GraphQL schema for projects
+* Added a notification to finding forms that warns you if another user has submitted changes to the same finding
+* Added a button to project scope forms to automatically split comma-delimited scope lists into separate lines
+
+### Fixed
+
+* Fixed the wrong avatar appearing in the corner when viewing another user's profile
+* Fixed unnecessary scrolling animation that could occur when clicking a tab in certain browsers
+
+### Changed
+
+* All new log view page with improved editing functionality
+  * Selections for showing/hiding a column are now persistent between page visits and refreshes
+  * Editing table rows now use a modal and allows all fields to be edited and saved at once 
+* The web UI now supports customizing the severity category titles
+* Changed project assignments to allow the same person to be assigned more than once as long as the date ranges do not overlap
+* You can clear the docx or pptx template selected for a report
+  * If you clear the template, the default template will be used instead
+  * If you do not have a default template configured, the report will not be able to be generated
+* A domain's "reset DNS" flag will now default to true when creating a new domain
+* Moved all CSS and JavaScript files to local hosting for instances where Ghostwriter is running on a system without any internet access 
+* The IP address field for project targets now accepts individual IP addresses and CIDR ranges (Closes [#211](https://github.com/GhostManager/Ghostwriter/issues/211))
+* Report templates can now be flagged as landscape for tracking (Reference [#281](https://github.com/GhostManager/Ghostwriter/issues/281))
+* Various web UI and scripting improvements for better performance, usability, and accessibility
+
+### Security
+
+* Proactively upgraded core dependencies and base OS images to their latest stable versions
+* Applied additional sanitization to user-editable strings that may appear in HTML to address potential XSS vulnerabilities
+* Updated TinyMCE to the latest v5 to address CVE-2022-23494 (Reference [CVE-2022-23494](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-23494))
+
 ## [3.1.4] - 11 November 2022
 
 ### Fixed
@@ -275,11 +336,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * User profiles now only show the user's role, groups, and Ghostwriter user status to the profile owner
 * Updated nginx.conf to align it with Mozilla's recommendations for nginx v1.21.1 and OpenSSL 1.1.1l
   * See config: [https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6](https://ssl-config.mozilla.org/#server=nginx&version=1.21.1&config=intermediate&openssl=1.1.1l&ocsp=false&guideline=5.6)
-* Toast messages for errors are no longer sticky so they do not have to be manually dismissed when covering UI elements
+* Toast messages for errors are no longer sticky, so they do not have to be manually dismissed when covering UI elements
 * Domain list table now shows an "Expiry" column and "Categories" column now parses the new ``categorization`` JSON field data
 * Domain list filtering now includes a "Filter Expired" toggle that on by default
   * Filters out domains with expiration dates in the past and `auto_renew` set to `False` even if status is set to "Available"
-* The table on the domain list page and the menu on the domain details page will no longer disable the check out option if a domain's status is set to "Burned"
+* The table on the domain list page and the menu on the domain details page will no longer disable the check-out option if a domain's status is set to "Burned"
 * Simplified usage of the `format_datetime` filter
   * Filter now accepts only two arguments: the date and the new format string
   * Format string should use Django values (e.g., `M d, Y`) instead of values translated to Python's standard (e.g., `%b %d, %Y`)
@@ -325,7 +386,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Fixed sidebar tab appearing below delete confirmations
 * Fixed cloud server forms requiring users to fill in all auxiliary IP addresses
 * Fixed project serialization issue that prevented project data from loading automatically for domain and server checkout forms
-* Fixed active project filtering for the list in the sidebar so it will no longer contain some projects marked as completed
+* Fixed active project filtering for the list in the sidebar, so it will no longer contain some projects marked as completed
 * Fixed a rare reporting error that could occur if the WYSIWYG editor created a block of nested HTML tags with no content
 * Fixed ignore tags not working for Digital Ocean assets
 * Fixed an error caused by cascading deletes when deleting a report under some circumstances
@@ -441,7 +502,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Fixed cloud server forms requiring users to fill in all auxiliary IP addresses
 * Fixed project serialization issue that prevented project data from loading automatically for domain and server checkout forms
-* Fixed active project filtering for the list in the sidebar so it will no longer contain some projects marked as completed
+* Fixed active project filtering for the list in the sidebar, so it will no longer contain some projects marked as completed
 * Fixed a rare reporting error that could occur if the WYSIWYG editor created a block of nested HTML tags with no content
 * Fixed ignore tags not working for Digital Ocean assets
 * Fixed an error caused by cascading deletes when deleting a report under some circumstances
@@ -494,7 +555,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Moved some form validation logic to Django Signals in preparation for the API
 * Added a custom "division by zero" error message for times when a Jinja2 template attempts to divide a value (e.g., total num of completed objectives) that is zero without first checking the value
 * Bumped Toastr message opacity to `.9` (up from `.8`) to improve readability
-* Bumped 50 character limit on certain `OplogEntry` values to 255 (the standard for other models)
+* Bumped 50-character limit on certain `OplogEntry` values to 255 (the standard for other models)
 * Condensed Docker image layers and disabled caching for `pip` and `apk` to reduce image sizes by about 0.2 to 0.3GB
 * Optimized and improved code quality throughout the project based on recommendations from Code Factor ([https://www.codefactor.io/repository/github/ghostmanager/ghostwriter](https://www.codefactor.io/repository/github/ghostmanager/ghostwriter))
 * Added Signals to release a checked-out server or domain if the current checkout is deleted (so it is released immediately rather than waiting for a scheduled task to run)
@@ -548,7 +609,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Moved some form validation logic to Django Signals in preparation for the API
 * Added a custom "division by zero" error message for times when a Jinja2 template attempts to divide a value \(e.g., total num of completed objectives\) that is zero without first checking the value
 * Bumped Toastr message opacity to `.9` \(up from `.8`\) to improve readability
-* Bumped 50 character limit on certain `OplogEntry` values to 255 \(the standard for other models\)
+* Bumped 50-character limit on certain `OplogEntry` values to 255 \(the standard for other models\)
 * Condensed Docker image layers and disabled caching for `pip` and `apk` to reduce image sizes by about 0.2 to 0.3GB
 * Optimized and improved code quality throughout the project based on recommendations from Code Factor \([https://www.codefactor.io/repository/github/ghostmanager/ghostwriter](https://www.codefactor.io/repository/github/ghostmanager/ghostwriter)\)
 
@@ -581,7 +642,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Added new `filter_type` filter to report templates \(submitted by @5il with PR \#152\).
 * Introduced the new `ReportData` serializer. This is nearly invisible to users but is a huge efficiency and performance upgrade for the back-end. Changes to project data models will now automatically appear in the raw JSON reports and be accessible within DOCX reports.
-* The new serializer has modified some of the Jinja2 template expressions. View a JSON report to see everything available. For example, instead of writing `{{ project_codename }}`, you will access this project value with `{{ project.codename }}`.
+* The new serializer has modified some Jinja2 template expressions. View a JSON report to see everything available. For example, instead of writing `{{ project_codename }}`, you will access this project value with `{{ project.codename }}`.
 * Ghostwriter now handles dates differently to better support all international date formats. Dates displayed in the interface and dates within reports \(e.g., `report_date`\) will match the date locale set in your server settings \(`en-us` by default\).
 
 ### Fixed
@@ -616,7 +677,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Introduced the new `ReportData` serializer. This is nearly invisible to users but is a huge efficiency and performance upgrade for the back-end. Changes to project data models will now automatically appear in the raw JSON reports and be accessible within DOCX reports.
-* The new serializer has modified some of the Jinja2 template expressions. View a JSON report to see everything available. For example, instead of writing `{{ project_codename }}`, you will access this project value with `{{ project.codename }}`.
+* The new serializer has modified some Jinja2 template expressions. View a JSON report to see everything available. For example, instead of writing `{{ project_codename }}`, you will access this project value with `{{ project.codename }}`.
 * Ghostwriter now handles dates differently to better support all international date formats. Dates displayed in the interface and dates within reports \(e.g., `report_date`\) will match the date locale set in your server settings \(`en-us` by default\).
 
 ### Fixed
@@ -668,7 +729,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * Notable changes and adjustments:
         * Added a project calendar to track assignments, objectives, tasks, and project dates
         * Added new objective tracker with task management, prioritization, and sorting
-* Implemented a new server search in the side bar (under _Servers_) that searches all static servers, cloud servers in projects, and alternate addresses tied to servers
+* Implemented a new server search in the sidebar (under _Servers_) that searches all static servers, cloud servers in projects, and alternate addresses tied to servers
 * Added template linting checks for additional styles that may not be present in a report (closes #139)
 * Added Clipboard.js to support better, more flexible "click to copy to clipboard" in the UI
 * Added several new Jinja2 expressions, statements, and filters for Word DOCX reports

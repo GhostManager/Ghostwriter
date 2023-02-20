@@ -119,11 +119,9 @@ update_permissions:
 delete_permissions:
   - role: manager
     permission:
-      backend_only: false
       filter: {}
   - role: user
     permission:
-      backend_only: false
       filter:
         project:
           _or:

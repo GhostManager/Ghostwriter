@@ -1,69 +1,59 @@
-"""This contains all of the WebSocket consumers used by the Oplog application."""
+"""This contains all the WebSocket consumers used by the Oplog application."""
 
 # Standard Libraries
 import json
 import logging
-
-# Django Imports
-from django.core.serializers import serialize
+from copy import deepcopy
 
 # 3rd Party Libraries
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from rest_framework.utils.serializer_helpers import ReturnList
 
-from .models import OplogEntry
+# Ghostwriter Libraries
+from ghostwriter.modules.custom_serializers import OplogEntrySerializer
+from ghostwriter.oplog.models import OplogEntry
 
 # Using __name__ resolves to ghostwriter.oplog.consumers
 logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
-def createOplogEntry(oplog_id):
-    newEntry = OplogEntry.objects.create(oplog_id_id=oplog_id)
-    newEntry.output = ""
-    newEntry.save()
+def createOplogEntry(oplog_id, user):
+    OplogEntry.objects.create(oplog_id_id=oplog_id, operator_name=user.username)
 
 
 @database_sync_to_async
-def deleteOplogEntry(oplogEntryId):
+def deleteOplogEntry(entry_id):
     try:
-        OplogEntry.objects.get(pk=oplogEntryId).delete()
+        OplogEntry.objects.get(pk=entry_id).delete()
     except OplogEntry.DoesNotExist:
         # This is fine, it just means the entry was already deleted
         pass
 
 
 @database_sync_to_async
-def copyOplogEntry(oplogEntryId):
-    entry = OplogEntry.objects.get(pk=oplogEntryId)
+def copyOplogEntry(entry_id):
+    entry = OplogEntry.objects.get(pk=entry_id)
     if entry:
-        entry.pk = None
-        entry.save()
-
-
-@database_sync_to_async
-def editOplogEntry(oplogEntryId, modifiedRow):
-    entry = OplogEntry.objects.get(pk=oplogEntryId)
-
-    for key, value in modifiedRow.items():
-        setattr(entry, key, value)
-
-    entry.save()
+        copy = deepcopy(entry)
+        copy.pk = None
+        copy.save()
+        copy.tags.add(*entry.tags.all())
 
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
-    def getLogEntries(self, oplogId, offset):
-        entries = OplogEntry.objects.filter(oplog_id=oplogId).order_by("-start_date")
+    def getLogEntries(self, oplog_id: int, offset: int) -> ReturnList:
+        entries = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
         if len(entries) == offset:
-            serialized_entries = json.loads(serialize("json", []))
+            serialized_entries = OplogEntrySerializer([], many=True).data
         else:
             if len(entries) < (offset + 100):
-                serialized_entries = json.loads(serialize("json", entries[offset:]))
+                serialized_entries = OplogEntrySerializer(entries[offset:], many=True).data
             else:
-                serialized_entries = json.loads(
-                    serialize("json", entries[offset : offset + 100])
-                )
+                serialized_entries = OplogEntrySerializer(entries[offset : offset + 100], many=True).data
+
         return serialized_entries
 
     async def send_oplog_entry(self, event):
@@ -89,16 +79,13 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         if json_data["action"] == "delete":
             oplog_entry_id = int(json_data["oplogEntryId"])
             await deleteOplogEntry(oplog_entry_id)
+
         if json_data["action"] == "copy":
             oplog_entry_id = int(json_data["oplogEntryId"])
             await copyOplogEntry(oplog_entry_id)
 
-        if json_data["action"] == "edit":
-            oplog_entry_id = int(json_data["oplogEntryId"])
-            await editOplogEntry(oplog_entry_id, json_data["modifiedRow"])
-
         if json_data["action"] == "create":
-            await createOplogEntry(json_data["oplog_id"])
+            await createOplogEntry(json_data["oplog_id"], self.scope["user"])
 
         if json_data["action"] == "sync":
             oplog_id = json_data["oplog_id"]

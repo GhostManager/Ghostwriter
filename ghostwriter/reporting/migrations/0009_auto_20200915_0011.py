@@ -4,25 +4,38 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0008_auto_20200825_1947'),
+        ("reporting", "0008_auto_20200825_1947"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='severity',
-            name='color',
-            field=models.CharField(default='7A7A7A', help_text='Six character hex color code associated with this severity for reports (e.g., FF7E79)', max_length=6, verbose_name='Severity Color'),
+            model_name="severity",
+            name="color",
+            field=models.CharField(
+                default="7A7A7A",
+                help_text="Six character hex color code associated with this severity for reports (e.g., FF7E79)",
+                max_length=6,
+                verbose_name="Severity Color",
+            ),
         ),
         migrations.AlterField(
-            model_name='severity',
-            name='severity',
-            field=models.CharField(help_text='Name for this severity rating (e.g. High, Low)', max_length=255, unique=True, verbose_name='Severity'),
+            model_name="severity",
+            name="severity",
+            field=models.CharField(
+                help_text="Name for this severity rating (e.g. High, Low)",
+                max_length=255,
+                unique=True,
+                verbose_name="Severity",
+            ),
         ),
         migrations.AlterField(
-            model_name='severity',
-            name='weight',
-            field=models.IntegerField(default=1, help_text='Weight for sorting severity categories in reports (lower numbers are more severe)', verbose_name='Severity Weight'),
+            model_name="severity",
+            name="weight",
+            field=models.IntegerField(
+                default=1,
+                help_text="Weight for sorting severity categories in reports (lower numbers are more severe)",
+                verbose_name="Severity Weight",
+            ),
         ),
     ]

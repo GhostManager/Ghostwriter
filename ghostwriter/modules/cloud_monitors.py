@@ -84,9 +84,7 @@ def test_aws(aws_key, aws_secret):
         aws_sts.get_caller_identity()
         return {"capable": True, "message": messages}
     except ClientError:
-        logger.error(
-            "AWS could not validate the provided credentials with STS; check your AWS policies"
-        )
+        logger.error("AWS could not validate the provided credentials with STS; check your AWS policies")
         messages.append("AWS could not validate the provided credentials for EC2; check your attached AWS policies")
     except Exception:
         logger.exception("Testing authentication to AWS failed")
@@ -115,11 +113,11 @@ def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=None, only_running=False):
         ignore_tags = []
     try:
         ec2_config = Config(
-            retries = {
+            retries={
                 "max_attempts": 1,
                 "mode": "standard",
             },
-            connect_timeout = 30
+            connect_timeout=30,
         )
         client = boto3.client(
             "ec2",
@@ -128,9 +126,7 @@ def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=None, only_running=False):
             aws_secret_access_key=aws_secret,
             config=ec2_config,
         )
-        regions = [
-            region["RegionName"] for region in client.describe_regions()["Regions"]
-        ]
+        regions = [region["RegionName"] for region in client.describe_regions()["Regions"]]
         # Loop over the regions to check each one for EC2 instances
         for region in regions:
             logger.info("Checking AWS region %s for EC2", region)
@@ -197,11 +193,11 @@ def fetch_aws_ec2(aws_key, aws_secret, ignore_tags=None, only_running=False):
                     )
             except ConnectTimeoutError:
                 logger.exception("AWS timed out while trying to describe instances in %s", region)
-                messages.append(f"AWS timed out while trying to describe instances in {region}: {traceback.format_exc()}")
+                messages.append(
+                    f"AWS timed out while trying to describe instances in {region}: {traceback.format_exc()}"
+                )
     except ClientError:
-        logger.error(
-            "AWS denied access to EC2 for the supplied keys; check your AWS policies"
-        )
+        logger.error("AWS denied access to EC2 for the supplied keys; check your AWS policies")
         messages.append("AWS denied access to EC2 for the supplied keys; check your attached AWS policies")
     except ConnectTimeoutError:
         logger.exception("AWS timed out while connecting to EC2 region")
@@ -239,9 +235,7 @@ def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=None):
             aws_access_key_id=aws_key,
             aws_secret_access_key=aws_secret,
         )
-        regions = [
-            region["name"] for region in default_lightsail.get_regions()["regions"]
-        ]
+        regions = [region["name"] for region in default_lightsail.get_regions()["regions"]]
 
         for region in regions:
             logger.info("Checking AWS region %s for Lightsail", region)
@@ -298,13 +292,11 @@ def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=None):
                     }
                 )
     except ClientError:
-        logger.error(
-            "AWS denied access to Lightsail for the supplied keys; check your AWS policies"
-        )
+        logger.error("AWS denied access to Lightsail for the supplied keys; check your AWS policies")
         message = "AWS denied access to Lightsail for the supplied keys; check your attached AWS policies"
     except Exception:
         logger.exception("Encountered an unexpected error with AWS Lightsail")
-        message = (f"Encountered an unexpected error with AWS Lightsail: {traceback.format_exc()}")
+        message = f"Encountered an unexpected error with AWS Lightsail: {traceback.format_exc()}"
     return {"instances": instances, "message": message}
 
 
@@ -363,9 +355,7 @@ def fetch_aws_s3(aws_key, aws_secret, ignore_tags=None):
                 }
             )
     except ClientError:
-        logger.error(
-            "AWS denied access to S3 for the supplied keys; check your AWS policies"
-        )
+        logger.error("AWS denied access to S3 for the supplied keys; check your AWS policies")
         message = "AWS denied access to S3 for the supplied keys; check your attached AWS policies"
     except Exception:
         logger.exception("Encountered an unexpected error with AWS S3")
@@ -402,9 +392,7 @@ def fetch_digital_ocean(api_key, ignore_tags=None):
         if active_droplets.status_code == 200:
             capable = True
             active_droplets = active_droplets.json()
-            logger.info(
-                "Digital Ocean credentials are functional, beginning droplet review"
-            )
+            logger.info("Digital Ocean credentials are functional, beginning droplet review")
         else:
             logger.info(
                 "Digital Ocean denied access with HTTP code %s and this message: %s",
@@ -418,19 +406,15 @@ def fetch_digital_ocean(api_key, ignore_tags=None):
                     api_response = error_message["message"]
             except ValueError:
                 api_response = active_droplets.text
-            message = (
-                f"Digital Ocean API request failed with this response: {api_response}"
-            )
+            message = f"Digital Ocean API request failed with this response: {api_response}"
     # Catch a JSON decoding error with the response
     except ValueError:
         logger.exception("Could not decode the response from Digital Ocean")
-        message = (
-            f"Could not decode this response from Digital Ocean: {active_droplets.text}"
-        )
+        message = f"Could not decode this response from Digital Ocean: {active_droplets.text}"
     # Catch any other errors related to the web request
     except Exception:
         logger.exception("Encountered an unexpected error with Digital Ocean")
-        message = (f"Encountered an unexpected error with Digital Ocean: {traceback.format_exc()}")
+        message = f"Encountered an unexpected error with Digital Ocean: {traceback.format_exc()}"
 
     # Loop over the droplets to generate the info dict
     if capable and "droplets" in active_droplets:
@@ -460,9 +444,7 @@ def fetch_digital_ocean(api_key, ignore_tags=None):
                     pub_addresses.append(address["ip_address"])
             # Calculate how long the instance has been running in UTC and cost to date
             time_up = months_between(
-                datetime.strptime(
-                    droplet["created_at"].split("T")[0], "%Y-%m-%d"
-                ).replace(tzinfo=utc),
+                datetime.strptime(droplet["created_at"].split("T")[0], "%Y-%m-%d").replace(tzinfo=utc),
                 datetime.today().replace(tzinfo=utc),
             )
             cost_to_date = (
@@ -483,17 +465,15 @@ def fetch_digital_ocean(api_key, ignore_tags=None):
                     "provider": "Digital Ocean",
                     "service": "Droplets",
                     "name": droplet["name"],
-                    "type": droplet["image"]["distribution"]
-                    + " "
-                    + droplet["image"]["name"],
+                    "type": droplet["image"]["distribution"] + " " + droplet["image"]["name"],
                     "monthly_cost": droplet["size"]["price_monthly"],
                     "cost_to_date": cost_to_date,
                     "state": droplet["status"],
                     "private_ip": priv_addresses,
                     "public_ip": pub_addresses,
-                    "launch_time": datetime.strptime(
-                        droplet["created_at"].split("T")[0], "%Y-%m-%d"
-                    ).replace(tzinfo=utc),
+                    "launch_time": datetime.strptime(droplet["created_at"].split("T")[0], "%Y-%m-%d").replace(
+                        tzinfo=utc
+                    ),
                     "time_up": "{} months".format(time_up),
                     "tags": ", ".join(droplet["tags"]),
                     "ignore": ignore,

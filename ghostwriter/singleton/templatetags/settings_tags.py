@@ -9,7 +9,6 @@ try:
 except ImportError:  # pragma: no cover
     from django.db.models.loading import get_model  # noqa isort:skip
 
-
 register = template.Library()
 
 
@@ -19,10 +18,7 @@ def get_solo(model_path):
         app_label, model_name = model_path.rsplit(".", 1)
     except ValueError:  # pragma: no cover
         raise template.TemplateSyntaxError(
-            _(
-                "Templatetag requires the model dotted path: 'app_label.ModelName'. "
-                "Received '%s'." % model_path
-            )
+            _("Templatetag requires the model dotted path: 'app_label.ModelName'. " "Received '%s'." % model_path)
         )
     model_class = get_model(app_label, model_name)
     if not model_class:  # pragma: no cover

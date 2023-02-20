@@ -4,14 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0022_auto_20210211_2109'),
+        ("reporting", "0022_auto_20210211_2109"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='severity',
-            options={'ordering': ['weight', 'severity'], 'verbose_name': 'Severity rating', 'verbose_name_plural': 'Severity ratings'},
+            name="severity",
+            options={
+                "ordering": ["weight", "severity"],
+                "verbose_name": "Severity rating",
+                "verbose_name_plural": "Severity ratings",
+            },
         ),
     ]

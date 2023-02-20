@@ -71,7 +71,6 @@ class UserAdmin(auth_admin.UserAdmin):
 
 admin.site.register(User, UserAdmin)
 
-
 # Unregister the original Group admin
 admin.site.unregister(Group)
 

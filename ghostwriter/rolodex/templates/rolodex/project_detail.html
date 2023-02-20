@@ -1,226 +1,267 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary %}
-
-{% load bleach_tags %}
+{% load determine_primary bleach_tags %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}" href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client.name }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ project.start_date|date:"DATE_FORMAT" }} {{ project.project_type }}</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a data-toggle="tooltip" title="{{ project.client }}"
+                                     href="{% url 'rolodex:client_detail' project.client.id %}">{{ project.client.name }}</a>
+      </li>
+      <li class="breadcrumb-item active"
+          aria-current="page">{{ project.start_date|date:"DATE_FORMAT" }} {{ project.project_type }}</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <div>
-        <div class="dropdown">
-            <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-                <div class="bar1"></div>
-                <div class="bar2"></div>
-                <div class="bar3"></div>
-            </div>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
-                <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
-                <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to Client</a>
-                <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
-            </div>
+  <div>
+    <div class="dropdown">
+      <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+           onclick="hamburger(this)">
+        <div class="bar1"></div>
+        <div class="bar2"></div>
+        <div class="bar3"></div>
+      </div>
+      <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
+        <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
+        <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to
+          Client</a>
+        <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
+      </div>
+    </div>
+  </div>
+
+  {% comment %} Project title constructed from attributes {% endcomment %}
+  <div class="container">
+    <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
+  </div>
+  {% if project.tags.all %}
+    {% for tag in project.tags.names %}<span class="badge badge-secondary">{{ tag|bleach }}</span>{% endfor %}
+  {% endif %}
+  <hr/>
+
+  <p class="form-spacer"></p>
+
+  <div>
+    {% comment %}
+      Navigation Tabs
+      Load tabs via AJAX so badges update with delete actions
+    {% endcomment %}
+    <ul id="tab-bar" class="nav nav-tabs nav-justified"
+        js-update-tabs-url="{% url 'rolodex:ajax_update_project_badges' project.id %}">
+      {% include "snippets/project_nav_tabs.html" %}
+    </ul>
+
+    <div class="tab-content">
+      {% comment %} Planning Tab {% endcomment %}
+      <div id="planning" class="tab-pane in active">
+        <h4>Project Details</h4>
+        <hr/>
+
+        <table class="table table-borderless table-centered project-details-table">
+          <tr>
+            <td class="text-left bold">Project Status</td>
+            <td class="text-left">
+              <span data-toggle="tooltip"
+                    title="Toggle the project's status between executing and complete">
+                  {% if project.complete %}
+                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status"
+                       toggle-project-status-csrftoken="{{ csrf_token }}"
+                       toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
+                       toggle-project-status-id="{{ project.id }}">
+                          <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i> <span
+                      id="js-project-status">Complete</span>
+                      </a>
+                  {% else %}
+                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status"
+                       toggle-project-status-csrftoken="{{ csrf_token }}"
+                       toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}"
+                       toggle-project-status-id="{{ project.id }}">
+                          <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i> <span
+                      id="js-project-status">In Progress</span>
+                      </a>
+                  {% endif %}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Codename</td>
+            <td class="text-left">
+              {% if project.codename %} {{ project.codename }} {% else %} No Codename {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Execution Dates</td>
+            <td class="text-left">{{ project.start_date|date:"DATE_FORMAT" }}
+              – {{ project.end_date|date:"DATE_FORMAT" }}</td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Working Hours</td>
+            <td class="text-left">
+              {% if project.start_time and project.end_time %} {{ project.start_time|date:"G:i" }} to
+                {{ project.end_time|date:"G:i" }} ({{ project.timezone }}) {% else %} No Working Hours Set {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Slack Channel</td>
+            <td class="text-left">
+              {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Project Description</td>
+            <td class="text-left">
+              <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show
+                Description</a>
+            </td>
+          </tr>
+        </table>
+
+        <div id="projectDescription" class="description-block offset-md-2 col-8">
+          {% if project.note %}
+            {{ project.note|bleach }}
+          {% else %}
+            <p class="text-center">No one has added a description of this project. <a class="clickable"
+                                                                                      href="{% url 'rolodex:project_update' project.id %}">Fix that here.
+                                                                                   </a>
+            </p>
+          {% endif %}
         </div>
-    </div>
 
-    {% comment %} Project title constructed from attributes {% endcomment %}
-    <div class="container">
-        <h2>{{ project.client }} {{ project.project_type }} ({{ project.start_date }})</h2>
-    </div>
-    <hr />
+        {% comment %} This element prevents the "jump" that happens when the description is toggled {% endcomment %}
+        <div class="hidden-element"></div>
 
-    <p class="form-spacer"></p>
+        {% comment %} Assignment Section {% endcomment %}
+        <h4>Project Assignments</h4>
+        <hr/>
 
-    <div>
-        <!-- Navigation Tabs -->
-        {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
-        <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'rolodex:ajax_update_project_badges' project.id %}">
-            {% include "snippets/project_nav_tabs.html" %}
-        </ul>
-
-        <div class="tab-content">
-            <!-- Planning Tab -->
-            <div id="planning" class="tab-pane in active">
-                <h4>Project Details</h4>
-                <hr />
-
-                <table class="table table-borderless table-centered project-details-table">
-                    <tr>
-                        <td class="text-left bold">Project Status</td>
-                        <td class="text-left">
-                            <span data-toggle="tooltip" title="Toggle the project's status between executing and complete">
-                                {% if project.complete %}
-                                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
-                                        <i id="js-toggle-project-status-icon" class="fas fa-toggle-on"></i> <span id="js-project-status">Complete</span>
-                                    </a>
-                                {% else %}
-                                    <a href="javascript:void(0)" class="clickable-link js-toggle-project-status" toggle-project-status-csrftoken="{{ csrf_token }}" toggle-project-status-url="{% url 'rolodex:ajax_toggle_project' project.id %}" toggle-project-status-id="{{ project.id }}">
-                                        <i id="js-toggle-project-status-icon" class="fas fa-toggle-off"></i> <span id="js-project-status">In Progress</span>
-                                    </a>
-                                {% endif %}
-                            </span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Codename</td>
-                        <td class="text-left">
-                            {% if project.codename %} {{ project.codename }} {% else %} No Codename {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Execution Dates</td>
-                        <td class="text-left">{{ project.start_date|date:"DATE_FORMAT" }} – {{ project.end_date|date:"DATE_FORMAT" }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Working Hours</td>
-                        <td class="text-left">
-                            {% if project.start_time and project.end_time %} {{ project.start_time|date:"G:i" }} to {{ project.end_time|date:"G:i" }} ({{ project.timezone }}) {% else %} No Working Hours Set {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Slack Channel</td>
-                        <td class="text-left">
-                            {% if project.slack_channel %} {{ project.slack_channel }} {% else %} No Slack Channel {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Project Description</td>
-                        <td class="text-left">
-                            <a href="javascript:void(0);" id="projectDescriptionDropdown" class="align-icon icon add-icon">Show Description</a>
-                        </td>
-                    </tr>
-                </table>
-
-                <div id="projectDescription" class="description-block offset-md-2 col-8">
-                    {% if project.note %}
-                        {{ project.note|bleach }}
+        <a class="icon edit-icon btn btn-primary mb-1 col-3"
+           href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+        {% if project.projectassignment_set.all %}
+          <table id="assignmentTable" class="tablesorter table">
+            <thead>
+            <th class="align-middle pr-4">Operator</th>
+            <th class="align-middle pr-4">Role</th>
+            <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
+            <th class="sorter-false align-middle">Note</th>
+            <th class="sorter-false text-center align-middle">Options</th>
+            </thead>
+            {% for operator in project.projectassignment_set.all %}
+              <tr>
+                <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle">
+                  <a class="clickable" href="{% url 'users:user_detail' operator.operator.username %}">
+                    {% if operator.operator.name %}
+                      {{ operator.operator.name }}
                     {% else %}
-                        <p class="text-center">No one has added a description of this project. <a class="clickable" href="{% url 'rolodex:project_update' project.id %}">Fix that here.</a></p>
+                      Missing Full Name ({{ operator.operator.username|capfirst }})
                     {% endif %}
+                  </a>
+                </td>
+                <td class="align-middle">{{ operator.role }}</td>
+                <td class="align-middle">{{ operator.start_date|date:"d M Y" }} –
+                  <br/> {{ operator.end_date|date:"d M Y" }}</td>
+                <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="assignment-dropdown-btn-{{ assignment.id }}" class="dropdown-menu-btn-table"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                    <div id="assignment-dropdown-menu-{{ assignment.id }}" class="dropdown-menu"
+                         aria-labelledby="assignment-dropdown-btn_{{ assignment.id }}">
+                      <a class="dropdown-item icon edit-icon"
+                         href="{% url 'rolodex:project_update' project.id %}#assignments">Edit Assignment</a>
+                      <a id="assignment-delete-button-{{ operator.id }}"
+                         class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal"
+                         data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}"
+                         delete-target-id="{{ operator.id }}" delete-target-type="assignment">Unassign</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p>No operators have been assigned to this project yet.</p>
+        {% endif %}
+
+        {% comment %} Calendar Section {% endcomment %}
+        <h4>Project Calendar</h4>
+        <hr/>
+
+        <div id="calendar"></div>
+      </div>
+
+      {% comment %} White Cards Tab {% endcomment %}
+      <div id="whitecards" class="tab-pane">
+        <h4>White Cards</h4>
+        <hr/>
+
+        <a class="icon edit-icon btn btn-primary mb-3 col-3"
+           href="{% url 'rolodex:project_update' project.id %}#whitecards">Add & Edit White Cards</a>
+        {% if project.whitecard_set.all %}
+          {% for card in project.whitecard_set.all %}
+            <div id="whitecard-card-{{ card.id }}" class="card card-project text-center mb-3">
+              <div class="card-header">
+                <h5 class="card-title">{{ card.title }}</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-sm-12">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Date and time the client approved this white card.">Issued</span>
+                    </h6>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-12">
+                    <p class="card-text">{{ card.issued|date:"d M Y @ H:i:s e" }}</p>
+                  </div>
                 </div>
 
-                <div class="hidden-element"></div>
-
-                <!-- Assignment Section -->
-                <h4>Project Assignments</h4>
-                <hr />
-
-                <a class="icon edit-icon btn btn-primary mb-1 col-3" href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
-                {% if project.projectassignment_set.all %}
-                    <table id="assignmentTable" class="tablesorter table">
-                        <thead>
-                            <th class="align-middle pr-4">Operator</th>
-                            <th class="align-middle pr-4">Role</th>
-                            <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
-                            <th class="sorter-false align-middle">Note</th>
-                            <th class="sorter-false text-center align-middle">Options</th>
-                        </thead>
-                        {% for operator in project.projectassignment_set.all %}
-                            <tr>
-                                <td id="delete-target-content-assignment-{{ operator.id }}" class="align-middle">
-                                    <a class="clickable" href="{% url 'users:user_detail' operator.operator.username %}">
-                                        {% if operator.operator.name %}
-                                            {{ operator.operator.name }}
-                                        {% else %}
-                                            Missing Full Name ({{ operator.operator.username|capfirst }})
-                                        {% endif %}
-                                    </a>
-                                </td>
-                                <td class="align-middle">{{ operator.role }}</td>
-                                <td class="align-middle">{{ operator.start_date|date:"d M Y" }} – <br/> {{ operator.end_date|date:"d M Y" }}</td>
-                                <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button id="assignment-dropdown-btn-{{ assignment.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div id="assignment-dropdown-menu-{{ assignment.id }}" class="dropdown-menu" aria-labelledby="assignment-dropdown-btn_{{ assignment.id }}">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#assignments">Edit Assignment</a>
-                                            <a id="assignment-delete-button-{{ operator.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}" delete-target-id="{{ operator.id }}" delete-target-type="assignment">Unassign</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>No operators have been assigned to this project yet.</p>
-                {% endif %}
-
-                <!-- Calendar Section -->
-                <h4>Project Calendar</h4>
-                <hr />
-
-                <div id="calendar"></div>
+                <p class="card-text">
+                  {% if card.description %}
+                    {{ card.description|bleach }}
+                  {% else %}
+                    <p>No one has added a description of this white card.</p>
+                  {% endif %}
+                </p>
+              </div>
             </div>
+          {% endfor %}
+        {% else %}
+          <p>No white cards have been added to this project yet.</p>
+        {% endif %}
+      </div>
 
-            <!-- White Cards Tab -->
-            <div id="whitecards" class="tab-pane">
-                <h4>White Cards</h4>
-                <hr />
+      {% comment %} Scope Tab {% endcomment %}
+      <div id="scopes" class="tab-pane">
+        <h4>Scope Lists</h4>
+        <hr/>
 
-                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#whitecards">Add & Edit White Cards</a>
-                {% if project.whitecard_set.all %}
-                    {% for card in project.whitecard_set.all %}
-                        <div id="whitecard-card-{{ card.id }}" class="card text-center mb-3">
-                            <div class="card-header">
-                                <h5 class="card-title">{{ card.title }}</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time the client approved this white card.">Issued</span></h6>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <p class="card-text">{{ card.issued|date:"d M Y @ H:i:s e" }}</p>
-                                    </div>
-                                </div>
+        <a class="icon edit-icon btn btn-primary mb-3 col-3"
+           href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
 
-                                <p class="card-text">
-                                    {% if card.description %}
-                                        {{ card.description|bleach }}
-                                    {% else %}
-                                        <p>No one has added a description of this white card.</p>
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No white cards have been added to this project yet.</p>
-                {% endif %}
-            </div>
+        <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by
+          objectives.</p>
 
-            <!-- Scope Tab -->
-            <div id="scopes" class="tab-pane">
-                <h4>Scope Lists</h4>
-                <hr />
-
-                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
-
-                <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by objectives.</p>
-
-                {% if project.projectscope_set.all %}
-                    <table id="scopeTable" class="tablesorter table">
-                        <thead>
-                            <th class="align-middle pr-4">Name</th>
-                            <th class="sorter-false align-middle">Preview</th>
-                            <th class="sorter-false align-middle"></th>
-                            <th class="sorter-false align-middle">Description</th>
-                            <th class="sorter-false align-middle">Options</th>
-                        </thead>
-                        {% for list in project.projectscope_set.all %}
-                            <tr>
-                                <td id="delete-target-content-scope-{{ list.id }}" class="text-center align-middle icon
+        {% if project.projectscope_set.all %}
+          <table id="scopeTable" class="tablesorter table">
+            <thead>
+            <th class="align-middle pr-4">Name</th>
+            <th class="sorter-false align-middle">Preview</th>
+            <th class="sorter-false align-middle"></th>
+            <th class="sorter-false align-middle">Description</th>
+            <th class="sorter-false align-middle">Options</th>
+            </thead>
+            {% for list in project.projectscope_set.all %}
+              <tr>
+                <td id="delete-target-content-scope-{{ list.id }}" class="text-center align-middle icon
                                     {% if list.requires_caution %}
                                         scope-warning-icon
                                     {% endif %}
@@ -228,1573 +269,1632 @@
                                         scope-block-icon
                                     {% endif %}
                                 ">
-                                    {{ list.name }}
-                                </td>
+                  {{ list.name }}
+                </td>
 
-                                {% with scope_limit=5 %}
-                                    <td class="align-middle">
-                                        <div
-                                            data-toggle="tooltip"
-                                            data-placement="top"
-                                            {% if list.count_lines > scope_limit %}
-                                                title="The first {{ scope_limit }} of {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
-                                            {% else %}
-                                                title="The full scope, {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
-                                            {% endif %}
-                                        >
-                                            {{ list.scope|get_scope_preview:scope_limit|linebreaks }}
-                                            {% if list.count_lines > scope_limit %}
-                                                Expand for more ...
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                <td class="align-middle">
-                                    <div
-                                        data-toggle="tooltip"
-                                        data-placement="top"
-                                        title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
-                                    >
-                                        <button type="button" class="btn btn-info icon ext-link-icon" data-toggle="modal" data-target="#id_scope_{{ list.id }}">
-                                            Expand
-                                        </button>
-                                    </div>
-                                </td>
-                                {% endwith %}
+                {% with scope_limit=5 %}
+                  <td class="align-middle">
+                    <div
+                      data-toggle="tooltip"
+                      data-placement="top"
+                      {% if list.count_lines > scope_limit %}
+                      title="The first {{ scope_limit }} of {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
+                      {% else %}
+                      title="The full scope, {{ list.count_lines }} line{{ list.count_lines|pluralize }}"
+                      {% endif %}
+                    >
+                      {{ list.scope|get_scope_preview:scope_limit|linebreaks }}
+                      {% if list.count_lines > scope_limit %}
+                        Expand for more ...
+                      {% endif %}
+                    </div>
+                  </td>
+                  <td class="align-middle">
+                    <div
+                      data-toggle="tooltip"
+                      data-placement="top"
+                      title="View and copy the {{ list.count_lines }} line{{ list.count_lines|pluralize }} in this scope"
+                    >
+                      <button type="button" class="btn btn-info icon ext-link-icon" data-toggle="modal"
+                              data-target="#id_scope_{{ list.id }}">
+                        Expand
+                      </button>
+                    </div>
+                  </td>
+                {% endwith %}
 
-                                <td class="text-justify align-middle">{{ list.description|bleach }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button id="scope-dropdown-btn-{{ list.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div id="scope-dropdown-menu-{{ list.id }}" class="dropdown-menu" aria-labelledby="assignment-dropdown-btn_{{ list.id }}">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#scopes">Edit Scope</a>
-                                            <a id="scope-export-button-{{ list.id }}" class="dropdown-item js-export-project-scope icon export-icon" href="javascript:void(0);" export-scope-url="{% url 'rolodex:ajax_export_project_scope' list.id %}" export-scope-name="{{ list.name }}">Export Text File</a>
-                                            <a id="scope-delete-button-{{ list.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_scope' list.id %}" delete-target-id="{{ list.id }}" delete-target-type="scope">Delete Scope</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>No scope lists have been set up to this project yet.</p>
-                {% endif %}
-            </div>
+                <td class="text-justify align-middle">{{ list.description|bleach }}</td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="scope-dropdown-btn-{{ list.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false"></button>
+                    <div id="scope-dropdown-menu-{{ list.id }}" class="dropdown-menu"
+                         aria-labelledby="assignment-dropdown-btn_{{ list.id }}">
+                      <a class="dropdown-item icon edit-icon"
+                         href="{% url 'rolodex:project_update' project.id %}#scopes">Edit Scope</a>
+                      <a id="scope-export-button-{{ list.id }}"
+                         class="dropdown-item js-export-project-scope icon export-icon" href="javascript:void(0);"
+                         export-scope-url="{% url 'rolodex:ajax_export_project_scope' list.id %}"
+                         export-scope-name="{{ list.name }}">Export Text File</a>
+                      <a id="scope-delete-button-{{ list.id }}" class="dropdown-item js-confirm-delete icon trash-icon"
+                         data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'rolodex:ajax_delete_project_scope' list.id %}"
+                         delete-target-id="{{ list.id }}" delete-target-type="scope">Delete Scope</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p>No scope lists have been set up to this project yet.</p>
+        {% endif %}
+      </div>
 
-            <div id="objectives" class="tab-pane ">
-                {% include "snippets/project_objectives.html"  %}
-            </div>
+      <div id="objectives" class="tab-pane ">
+        {% include "snippets/project_objectives.html" %}
+      </div>
 
-            <!-- Targets Tab -->
-            <div id="targets" class="tab-pane">
-                <h4>Targets</h4>
-                <hr />
+      {% comment %} Targets Tab {% endcomment %}
+      <div id="targets" class="tab-pane">
+        <h4>Targets</h4>
+        <hr/>
 
-                <a class="icon edit-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
+        <a class="icon edit-icon btn btn-primary mb-3 col-3"
+           href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
 
-                <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are interesting.</p>
+        <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are
+          interesting.</p>
 
-                {% if project.projecttarget_set.all %}
-                    <table id="targetTable" class="tablesorter table table-sm">
-                        <thead>
-                            <th class="align-middle pr-4">Owned</th>
-                            <th class="align-middle pr-4">Target</th>
-                            <th class="sorter-false align-middle pr-4">Note</th>
-                            <th class="sorter-false test-center align-middle">Options</th>
-                        </thead>
-                        {% for target in project.projecttarget_set.all %}
-                            <tr>
-                                <td id="target-status-{{ target.id }}" class="align-middle icon
+        {% if project.projecttarget_set.all %}
+          <table id="targetTable" class="tablesorter table table-sm">
+            <thead>
+            <th class="align-middle pr-4">Owned</th>
+            <th class="align-middle pr-4">Target</th>
+            <th class="sorter-false align-middle pr-4">Note</th>
+            <th class="sorter-false test-center align-middle">Options</th>
+            </thead>
+            {% for target in project.projecttarget_set.all %}
+              <tr>
+                <td id="target-status-{{ target.id }}" class="align-middle icon
                                     {% if target.compromised %}
                                         skull-icon
                                     {% endif %}
                                 ">
-                                </td>
-                                <td id="delete-target-content-target-{{ target.id }}" class="align-middle">
-                                    {% if target.ip_address and target.hostname %}
-                                        {{ target.hostname }} ({{ target.ip_address }})
-                                    {% elif target.ip_address %}
-                                        {{ target.ip_address }}
-                                    {% elif target.hostname %}
-                                        {{ target.hostname }}
-                                    {% endif %}
-                                </td>
-                                <td class="text-justify align-middle">{{ target.note|bleach }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu" aria-labelledby="target-dropdown-btn_{{ target.id }}">
-                                            <a class="dropdown-item icon burn-icon js-compromise-target" href="javascript:void(0);" compromise-target-csrftoken="{{ csrf_token }}" compromise-target-id="{{ target.id }}" compromise-target-url="{% url 'rolodex:ajax_toggle_project_target' target.id %}">Toggle Compromised Status</a>
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}#targets">Edit Target</a>
-                                            <a id="target-delete-button-{{ target.id }}" class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_target' target.id %}" delete-target-id="{{ target.id }}" delete-target-type="target">Remove</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>No targets have been set for this project yet.</p>
-                {% endif %}
-            </div>
+                </td>
+                <td id="delete-target-content-target-{{ target.id }}" class="align-middle">
+                  {% if target.ip_address and target.hostname %}
+                    {{ target.hostname }} ({{ target.ip_address }})
+                  {% elif target.ip_address %}
+                    {{ target.ip_address }}
+                  {% elif target.hostname %}
+                    {{ target.hostname }}
+                  {% endif %}
+                </td>
+                <td class="text-justify align-middle">{{ target.note|bleach }}</td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false"></button>
+                    <div class="dropdown-menu" aria-labelledby="target-dropdown-btn_{{ target.id }}">
+                      <a class="dropdown-item icon burn-icon js-compromise-target" href="javascript:void(0);"
+                         compromise-target-csrftoken="{{ csrf_token }}" compromise-target-id="{{ target.id }}"
+                         compromise-target-url="{% url 'rolodex:ajax_toggle_project_target' target.id %}">Toggle
+                        Compromised Status</a>
+                      <a class="dropdown-item icon edit-icon"
+                         href="{% url 'rolodex:project_update' project.id %}#targets">Edit Target</a>
+                      <a id="target-delete-button-{{ target.id }}"
+                         class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal"
+                         data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'rolodex:ajax_delete_project_target' target.id %}"
+                         delete-target-id="{{ target.id }}" delete-target-type="target">Remove</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p>No targets have been set for this project yet.</p>
+        {% endif %}
+      </div>
 
-            <!-- Logging Tab -->
-            <div id="activity" class="tab-pane">
-                <h4>Operation Logs</h4>
-                <hr />
+      {% comment %} Logging Tab {% endcomment %}
+      <div id="activity" class="tab-pane">
+        <h4>Operation Logs</h4>
+        <hr/>
 
-                <p>
-                    <a class="icon add-icon btn btn-primary col-3" href="{% url 'oplog:oplog_create' project.id %}">Start New Operation Log</a>
-                    <span style="padding-right: 20px; padding-left: 20px;">OR</span>
-                    <a class="icon upload-icon btn btn-info col-3" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
-                </p>
+        <p>
+          <a class="icon add-icon btn btn-primary col-3" href="{% url 'oplog:oplog_create' project.id %}">Start New
+            Operation Log</a>
+          <span style="padding-right: 20px; padding-left: 20px;">OR</span>
+          <a class="icon upload-icon btn btn-info col-3" href="{% url 'oplog:oplog_import' %}">Import Oplog</a>
+        </p>
 
-                {% if project.oplog_set.all %}
-                    <table id="oplogTable" class="tablesorter table">
-                        <thead>
-                            <th class="align-middle">ID</th>
-                            <th class="align-middle">Name</th>
-                            <th class="align-middle">Last Activity</th>
-                            <th class="align-middle">Export CSV</th>
-                        </thead>
-                        {% for log in project.oplog_set.all %}
-                            <tr>
-                                <td class="oplog-id align-middle">{{ log.id }}</td>
-                                <td class="align-middle"><a class="clickable" href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
-                                <td class="align-middle">
-                                    {% if log.entries.all %}
-                                        {% for entry in log.entries.all %}
-                                            {% if forloop.last %}
-                                                {{ entry.start_date }}
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% else %}
-                                        No entries yet
-                                    {% endif %}
-                                </td>
-                                <td class="js-export-oplog align-middle"><a href="javascript:void(0);" class="btn btn-secondary col-md-12">Export</a></td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>An operation logs has not been started for this project yet.</p>
-                {% endif %}
-            </div>
-            <div id="documents" class="tab-pane ">
-                <!-- Reporting Section -->
-                <h4>Reports & Findings</h4>
-                <hr />
-
-                {% if project.complete %}
-                    <p>The project is marked as complete so no additional reports may be created.</p>
-                {% else %}
-                    <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'reporting:report_create' project.id %}">Add a Report</a>
-                {% endif %}
-
-                <p>View and edit findings by opening the related report (click the link).</p>
-
-                {% if project.report_set.all %}
-                    <table id="reportTable" class="tablesorter table">
-                        <thead>
-                            <th class="align-middle pr-4">Title</th>
-                            <th class="align-middle pr-4">Status</th>
-                            <th class="align-middle pr-4">Last Update</th>
-                            <th class="align-middle pr-4">Created by</th>
-                            <th class="sorter-false text-center align-middle">Options</th>
-                        </thead>
-                        {% for report in project.report_set.all %}
-                            <tr>
-                                <td class="align-middle"><a class="clickable" href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
-                                {% if report.complete %}
-                                    {% if report.delivered %}
-                                        <td class="align-middle">Delivered</td>
-                                    {% else %}
-                                        <td class="align-middle">Complete, Awaiting Delivery</td>
-                                    {% endif %}
-                                {% else %}
-                                    <td class="align-middle">In Progress</td>
-                                {% endif %}
-                                <td class="align-middle">{{ report.last_update|date:"DATE_FORMAT" }}</td>
-                                <td class="align-middle">{{ report.created_by }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button id="report-dropdown-btn_{{ report.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu" aria-labelledby="report-dropdown-btn_{{ report.id }}">
-                                            <a title="Set this report as your active report" href="javascript:void(0)" class="dropdown-item clickable-link js-activate-report icon power-icon" activate-report-csrftoken="{{ csrf_token }}" activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}" activate-report-id="{{ report.id }}">Activate</a>
-                                            <a class="dropdown-item icon clone-icon" href="{% url 'reporting:report_clone' report.id %}">Clone</a>
-                                            <a class="dropdown-item icon archive-icon" href="{% url 'reporting:archive' report.id %}">Archive</a>
-                                            <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-
-                    {% for report in project.report_set.all %}
-                        {% if report.reportfindinglink_set.all %}
-                            <h4>Findings in {{ report.title }}</h4>
-                            <hr />
-                            <table class="table">
-                                <thead>
-                                    <th class="align-middle">Severity</th>
-                                    <th class="align-middle">Finding</th>
-                                    <th class="align-middle">Owner</th>
-                                    <th class="align-middle">Status</th>
-                                </thead>
-                                {% for finding in report.reportfindinglink_set.all %}
-                                    <tr>
-                                        {% if finding.severity.severity == "Critical" %}
-                                            <td class="critical align-middle">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "High" %}
-                                            <td class="high align-middle">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "Medium" %}
-                                            <td class="medium align-middle">{{ finding.severity }}</td>
-                                        {% elif finding.severity.severity == "Low" %}
-                                            <td class="low align-middle">{{ finding.severity }}</td>
-                                        {% else %}
-                                            <td class="info align-middle">{{ finding.severity }}</td>
-                                        {% endif %}
-                                        <td class="align-middle"><a class="clickable" href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a></td>
-                                        {% if finding.assigned_to == request.user %}
-                                            {% if finding.complete %}
-                                                <td class="low align-middle">You</td>
-                                            {% else %}
-                                                <td class="high align-middle">You</td>
-                                            {% endif %}
-                                        {% else %}
-                                            <td class="neutral align-middle">{{ finding.assigned_to }}</td>
-                                        {% endif %}
-                                        {% if finding.complete %}
-                                            <td class="low align-middle">Ready for Review</td>
-                                        {% else %}
-                                            <td class="high align-middle">Needs Editing</td>
-                                        {% endif %}
-                                    </tr>
-                                {% endfor %}
-                            </table>
-                        {% else %}
-                            <p>No findings have been added to this project's reports yet.</p>
-                        {% endif %}
+        {% if project.oplog_set.all %}
+          <table id="oplogTable" class="tablesorter table">
+            <thead>
+            <th class="align-middle">ID</th>
+            <th class="align-middle">Name</th>
+            <th class="align-middle">Last Activity</th>
+            <th class="align-middle">Export CSV</th>
+            </thead>
+            {% for log in project.oplog_set.all %}
+              <tr>
+                <td class="oplog-id align-middle">{{ log.id }}</td>
+                <td class="align-middle"><a class="clickable"
+                                            href="{% url 'oplog:oplog_entries' log.pk %}">{{ log.name }}</a></td>
+                <td class="align-middle">
+                  {% if log.entries.all %}
+                    {% for entry in log.entries.all %}
+                      {% if forloop.last %}
+                        {{ entry.start_date }}
+                      {% endif %}
                     {% endfor %}
+                  {% else %}
+                    No entries yet
+                  {% endif %}
+                </td>
+                <td class="js-export-oplog align-middle"><a href="javascript:void(0);"
+                                                            class="btn btn-secondary col-md-12">Export</a></td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p>An operation logs has not been started for this project yet.</p>
+        {% endif %}
+      </div>
+      <div id="documents" class="tab-pane ">
+        {% comment %} Reporting Section {% endcomment %}
+        <h4>Reports & Findings</h4>
+        <hr/>
+
+        {% if project.complete %}
+          <p>The project is marked as complete so no additional reports may be created.</p>
+        {% else %}
+          <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'reporting:report_create' project.id %}">Add
+            a Report</a>
+        {% endif %}
+
+        <p>View and edit findings by opening the related report (click the link).</p>
+
+        {% if project.report_set.all %}
+          <table id="reportTable" class="tablesorter table">
+            <thead>
+            <th class="align-middle pr-4">Title</th>
+            <th class="align-middle pr-4">Status</th>
+            <th class="align-middle pr-4">Last Update</th>
+            <th class="align-middle pr-4">Created by</th>
+            <th class="sorter-false text-center align-middle">Options</th>
+            </thead>
+            {% for report in project.report_set.all %}
+              <tr>
+                <td class="align-middle"><a class="clickable"
+                                            href="{{ report.get_absolute_url }}">{{ report.title }}</a></td>
+                {% if report.complete %}
+                  {% if report.delivered %}
+                    <td class="align-middle">Delivered</td>
+                  {% else %}
+                    <td class="align-middle">Complete, Awaiting Delivery</td>
+                  {% endif %}
                 {% else %}
-                    <p>No reports have been created for this project yet.</p>
+                  <td class="align-middle">In Progress</td>
                 {% endif %}
+                <td class="align-middle">{{ report.last_update|date:"DATE_FORMAT" }}</td>
+                <td class="align-middle">{{ report.created_by }}</td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="report-dropdown-btn_{{ report.id }}" class="dropdown-menu-btn-table"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                    <div class="dropdown-menu" aria-labelledby="report-dropdown-btn_{{ report.id }}">
+                      <a title="Set this report as your active report" href="javascript:void(0)"
+                         class="dropdown-item clickable-link js-activate-report icon power-icon"
+                         activate-report-csrftoken="{{ csrf_token }}"
+                         activate-report-url="{% url 'reporting:ajax_activate_report' report.id %}"
+                         activate-report-id="{{ report.id }}">Activate</a>
+                      <a class="dropdown-item icon clone-icon"
+                         href="{% url 'reporting:report_clone' report.id %}">Clone</a>
+                      <a class="dropdown-item icon archive-icon"
+                         href="{% url 'reporting:archive' report.id %}">Archive</a>
+                      <a class="dropdown-item icon trash-icon" href="{% url 'reporting:report_delete' report.id %}">Delete</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
 
+          {% for report in project.report_set.all %}
+            {% if report.reportfindinglink_set.all %}
+              <h4>Findings in {{ report.title }}</h4>
+              <hr/>
+              <table class="table">
+                <thead>
+                <th class="align-middle">Severity</th>
+                <th class="align-middle">Finding</th>
+                <th class="align-middle">Owner</th>
+                <th class="align-middle">Status</th>
+                </thead>
+                {% for finding in report.reportfindinglink_set.all %}
+                  <tr>
+                    {% if finding.severity.weight == 1 %}
+                      <td class="critical align-middle">{{ finding.severity }}</td>
+                    {% elif finding.severity.weight == 2 %}
+                      <td class="high align-middle">{{ finding.severity }}</td>
+                    {% elif finding.severity.weight == 3 %}
+                      <td class="medium align-middle">{{ finding.severity }}</td>
+                    {% elif finding.severity.weight == 4 %}
+                      <td class="low align-middle">{{ finding.severity }}</td>
+                    {% else %}
+                      <td class="info align-middle">{{ finding.severity }}</td>
+                    {% endif %}
+                    <td class="align-middle"><a class="clickable"
+                                                href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}</a>
+                    </td>
+                    {% if finding.assigned_to == request.user %}
+                      {% if finding.complete %}
+                        <td class="low align-middle">You</td>
+                      {% else %}
+                        <td class="high align-middle">You</td>
+                      {% endif %}
+                    {% else %}
+                      <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+                    {% endif %}
+                    {% if finding.complete %}
+                      <td class="low align-middle">Ready for Review</td>
+                    {% else %}
+                      <td class="high align-middle">Needs Editing</td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+              </table>
+            {% else %}
+              <p>No findings have been added to this project's reports yet.</p>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <p>No reports have been created for this project yet.</p>
+        {% endif %}
+
+      </div>
+
+      {% comment %} Infrastructure Tab {% endcomment %}
+      <div id="infrastructure" class="tab-pane">
+        <h4>Project Infrastructure</h4>
+        <hr/>
+
+        <p>Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project.
+          Associate your domains and subdomains with servers by creating connections.</p>
+        {% comment %} Domain Section {% endcomment %}
+        <h4>Domains</h4>
+        <hr/>
+
+        {% comment %} Search Section {% endcomment %}
+        <div class="search inline-search-bar">
+          <form action="{% url 'shepherd:domains' %}" method="GET">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text" id="inner-domain-search-addon"><span class="fa fa-search"></span></span>
+              </div>
+              <input autocomplete="off" type="text" class="form-control" name="domain_search"
+                     placeholder="Search Domains..." aria-label="domains" aria-describedby="inner-domain-search-addon">
             </div>
+            <input type="submit" style="display: none"/>
+          </form>
+        </div>
 
-            <!-- Infrastructure Tab -->
-            <div id="infrastructure" class="tab-pane">
-                <h4>Project Infrastructure</h4>
-                <hr />
-
-                <p>Checked-out domains and servers will appear here. Add cloud servers here as they are created for the project. Associate your domains and subdomains with servers by creating connections.</p>
-                <!-- Domain Section -->
-                <h4>Domains</h4>
-                <hr />
-
-                <!-- Search Section -->
-                <div class="search inline-search-bar">
-                    <form action="{% url 'shepherd:domains' %}" method="GET">
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text" id="inner-domain-search-addon"><span class="fa fa-search"></span></span>
-                            </div>
-                            <input autocomplete="off" type="text" class="form-control" name="domain_search" placeholder="Search Domains..." aria-label="domains" aria-describedby="inner-domain-search-addon">
-                        </div>
-                        <input type="submit" style="display: none" />
-                    </form>
-                </div>
-
-                {% if project.history_set.all %}
-                    <table id="domainTable" class="tablesorter table">
-                        <thead>
-                            <th class="align-middle">Domain Name</th>
-                            <th class="align-middle">Purpose</th>
-                            <th class="sorter-date-range-dMMMyyyy align-middle">Date Range</th>
-                            <th class="sorter-false align-middle">Options</th>
-                            <th class="sorter-false align-middle">Additional Info</th>
-                        </thead>
-                        {% for domain in project.history_set.all %}
-                            <tr>
-                                <td nowrap class="text-left align-middle">
-                                    <span id="domain_{{ domain.domain.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ domain.domain.name }}" onclick="copyToClipboard('#domain_{{ domain.domain.id }}')" class="copy-link">
+        {% if project.history_set.all %}
+          <table id="domainTable" class="tablesorter table">
+            <thead>
+            <th class="align-middle">Domain Name</th>
+            <th class="align-middle">Purpose</th>
+            <th class="sorter-date-range-dMMMyyyy align-middle">Date Range</th>
+            <th class="sorter-false align-middle">Additional Info</th>
+            <th class="sorter-false align-middle">Options</th>
+            </thead>
+            {% for domain in project.history_set.all %}
+              <tr>
+                <td nowrap class="text-left align-middle">
+                                    <span id="domain_{{ domain.domain.id }}" data-toggle="tooltip" data-placement="top"
+                                          title="Copy {{ domain.domain.name }}"
+                                          onclick="copyToClipboard('#domain_{{ domain.domain.id }}')" class="copy-link">
                                         {{ domain.domain.name }}
                                     </span>
-                                </td>
-                                <td class="align-middle">{{ domain.activity_type }}</td>
-                                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button id="domain-dropdown-btn-{{ domain.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div id="domain-dropdown-menu-{{ domain.id }}" class="dropdown-menu" aria-labelledby="domain-dropdown-btn-{{ domain.id }}">
-                                            <a class="dropdown-item icon view-icon" href="{% url 'shepherd:domain_detail' domain.domain.id %}">View Details</a>
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' domain.id %}">Edit Checkout</a>
-                                            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' domain.id %}">Delete Checkout</a>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button
-                                        class="expandme btn btn-transaprent"
-                                        onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
-                                        title="Expand to view additional information"
-                                    ></button>
-                                </td>
-                            </tr>
-                            <tr class="hidden-row">
-                                <td colspan=5>
-                                    <div id="hidden-domain-data-{{ domain.id }}" class="hidden-div">
-                                        {{ domain.note|bleach }}
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>There are no domains tied to this project yet.</p>
-                {% endif %}
+                </td>
+                <td class="align-middle">{{ domain.activity_type }}</td>
+                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
+                <td>
+                  <button
+                    class="expandme btn btn-transaprent"
+                    onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
+                    title="Expand to view additional information"
+                  ></button>
+                </td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="domain-dropdown-btn-{{ domain.id }}" class="dropdown-menu-btn-table"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                    <div id="domain-dropdown-menu-{{ domain.id }}" class="dropdown-menu"
+                         aria-labelledby="domain-dropdown-btn-{{ domain.id }}">
+                      <a class="dropdown-item icon view-icon"
+                         href="{% url 'shepherd:domain_detail' domain.domain.id %}">View Details</a>
+                      <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' domain.id %}">Edit
+                        Checkout</a>
+                      <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' domain.id %}">Delete
+                        Checkout</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr class="hidden-row">
+                <td colspan=5>
+                  <div id="hidden-domain-data-{{ domain.id }}" class="hidden-div">
+                    {{ domain.note|bleach }}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p>There are no domains tied to this project yet.</p>
+        {% endif %}
 
-                <!-- Server Section -->
-                <h4>Servers</h4>
-                <hr />
+        {% comment %} Server Section {% endcomment %}
+        <h4>Servers</h4>
+        <hr/>
 
-                <!-- Search Section -->
-                <div class="search inline-search-bar">
-                    <form action="{% url 'shepherd:server_search' %}" method="POST">
-                        {% csrf_token %}
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="fa fa-search input-group-text" id="inner-server-search-addon"></span>
-                            </div>
-                            <input autocomplete="off" type="text" class="form-control" name="server_search" placeholder="Enter a Server to Checkout..." aria-label="servers" aria-describedby="inner-server-search-addon">
-                        </div>
-                        <input type="hidden" name="project_id" value="{{ project.id }}" />
-                        <input type="submit" style="display: none" />
-                    </form>
+        {% comment %} Search Section {% endcomment %}
+        <div class="search inline-search-bar">
+          <form action="{% url 'shepherd:server_search' %}" method="POST">
+            {% csrf_token %}
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="fa fa-search input-group-text" id="inner-server-search-addon"></span>
+              </div>
+              <input autocomplete="off" type="text" class="form-control" name="server_search"
+                     placeholder="Enter a Server to Checkout..." aria-label="servers"
+                     aria-describedby="inner-server-search-addon">
+            </div>
+            <input type="hidden" name="project_id" value="{{ project.id }}"/>
+            <input type="submit" style="display: none"/>
+          </form>
+        </div>
+
+        <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
+                           href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
+        {% if project.serverhistory_set.all or project.transientserver_set.all %}
+          <table id="serverTable" class="tablesorter table">
+            <thead>
+            <th class="align-middle">
+              <div class="dropdown dropleft">
+                <span id="address-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true"
+                      aria-expanded="false">Primary IP</span>
+                <div id="address-info" class="dropdown-menu dropdown-info-content" aria-labelledby="address-info-btn">
+                  <p>The primary IP address is set in the database and used only to allow users to determine which IP
+                    address is used globally to refer to the server.<br/>
+                    Only <em>static servers</em> will be links.</p>
                 </div>
-
-                <p class="mt-3"><a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
-                {% if project.serverhistory_set.all or project.transientserver_set.all %}
-                    <table id="serverTable" class="tablesorter table">
-                        <thead>
-                            <th class="align-middle">
-                                <div class="dropdown dropleft">
-                                    <span id="address-info-btn" class="dropdown-info mr-2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Primary IP</span>
-                                    <div id="address-info" class="dropdown-menu dropdown-info-content" aria-labelledby="address-info-btn">
-                                        <p>The primary IP address is set in the database and used only to allow users to determine which IP address is used globally to refer to the server.<br />
-                                        Only <em>static servers</em> will be links.</p>
-                                    </div>
-                                </div>
-                            </th>
-                            <th class="align-middle pr-4">Other Addresses</th>
-                            <th class="align-middle pr-4">Name</th>
-                            <th class="align-middle pr-4">Purpose</th>
-                            <th class="align-middle pr-4">Role</th>
-                            <th class="align-middle pr-4">Provider</th>
-                            <th class="sorter-false align-middle">Options</th>
-                            <th class="sorter-false align-middle">Additional Info</th>
-                        </thead>
-                        {% for server in project.serverhistory_set.all %}
-                            {% get_primary_address server.server as primary_address%}
-                            <tr>
-                                <td nowrap class="text-left align-middle">
-                                    <span id="server_{{ server.server.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ primary_address }}" onclick="copyToClipboard('#server_{{ server.server.id }}')" class="copy-link">
+              </div>
+            </th>
+            <th class="align-middle pr-4">Other Addresses</th>
+            <th class="align-middle pr-4">Name</th>
+            <th class="align-middle pr-4">Purpose</th>
+            <th class="align-middle pr-4">Role</th>
+            <th class="align-middle pr-4">Provider</th>
+            <th class="sorter-false align-middle">Additional Info</th>
+            <th class="sorter-false align-middle">Options</th>
+            </thead>
+            {% for server in project.serverhistory_set.all %}
+              {% get_primary_address server.server as primary_address %}
+              <tr>
+                <td nowrap class="text-left align-middle">
+                                    <span id="server_{{ server.server.id }}" data-toggle="tooltip" data-placement="top"
+                                          title="Copy {{ primary_address }}"
+                                          onclick="copyToClipboard('#server_{{ server.server.id }}')" class="copy-link">
                                         {{ primary_address }}
                                     </span>
-                                </td>
-                                <td nowrap class="text-left align-middle">
-                                    {% if server.server.auxserveraddress_set %}
-                                        {% for addy in server.server.auxserveraddress_set.all %}
-                                            <div id="address_{{ addy.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ addy }}" onclick="copyToClipboard('#address_{{ addy.id }}')" class="copy-link">
-                                                {{ addy }}
-                                            </div>
-                                        {% endfor %}
-                                    {% else %}
-                                        --
-                                    {% endif %}
-                                </td>
-                                <td class="align-middle">{{ server.server.name }}</td>
-                                <td class="align-middle">{{ server.activity_type }}</td>
-                                <td class="align-middle">{{ server.server_role }}</td>
-                                <td class="align-middle">{{ server.server.server_provider }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button id="server-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div id="server-dropdown-menu-{{ server.id }}" class="dropdown-menu" aria-labelledby="server-dropdown-btn_{{ server.id }}">
-                                            <a class="dropdown-item icon view-icon" href="{% url 'shepherd:server_detail' server.server.id %}">View Details</a>
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_history_update' server.id %}">Edit Checkout</a>
-                                            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_history_delete' server.id %}">Delete Checkout</a>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button
-                                        class="expandme btn btn-transaprent"
-                                        onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
-                                        title="Expand to view additional information"
-                                    ></button>
-                                </td>
-                            </tr>
-                            <tr class="hidden-row">
-                                <td colspan=8>
-                                    <div id="hidden-server-data-{{ server.id }}" class="hidden-div">
-                                        {{ server.note|bleach }}
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        {% for server in project.transientserver_set.all %}
-                            <tr>
-                                <td nowrap class="text-left align-middle">
-                                    <span id="vps_{{ server.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ server.ip_address }}" onclick="copyToClipboard('#vps_{{ server.id }}')" class="copy-link">
+                </td>
+                <td nowrap class="text-left align-middle">
+                  {% if server.server.auxserveraddress_set %}
+                    {% for addy in server.server.auxserveraddress_set.all %}
+                      <div id="address_{{ addy.id }}" data-toggle="tooltip" data-placement="top" title="Copy {{ addy }}"
+                           onclick="copyToClipboard('#address_{{ addy.id }}')" class="copy-link">
+                        {{ addy }}
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    --
+                  {% endif %}
+                </td>
+                <td class="align-middle">{{ server.server.name }}</td>
+                <td class="align-middle">{{ server.activity_type }}</td>
+                <td class="align-middle">{{ server.server_role }}</td>
+                <td class="align-middle">{{ server.server.server_provider }}</td>
+                <td>
+                  <button
+                    class="expandme btn btn-transaprent"
+                    onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
+                    title="Expand to view additional information"
+                  ></button>
+                </td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="server-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                    <div id="server-dropdown-menu-{{ server.id }}" class="dropdown-menu"
+                         aria-labelledby="server-dropdown-btn_{{ server.id }}">
+                      <a class="dropdown-item icon view-icon"
+                         href="{% url 'shepherd:server_detail' server.server.id %}">View Details</a>
+                      <a class="dropdown-item icon edit-icon"
+                         href="{% url 'shepherd:server_history_update' server.id %}">Edit Checkout</a>
+                      <a class="dropdown-item icon trash-icon"
+                         href="{% url 'shepherd:server_history_delete' server.id %}">Delete Checkout</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr class="hidden-row">
+                <td colspan=8>
+                  <div id="hidden-server-data-{{ server.id }}" class="hidden-div">
+                    {{ server.note|bleach }}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+            {% for server in project.transientserver_set.all %}
+              <tr>
+                <td nowrap class="text-left align-middle">
+                                    <span id="vps_{{ server.id }}" data-toggle="tooltip" data-placement="top"
+                                          title="Copy {{ server.ip_address }}"
+                                          onclick="copyToClipboard('#vps_{{ server.id }}')" class="copy-link">
                                         {{ server.ip_address }}
                                     </span>
-                                </td>
-                                <td class="align-middle"> {{ server.aux_address|join:"<br />" }} </td>
-                                <td id="delete-target-content-server-{{ server.id }}" class="align-middle">{{ server.name }}</td>
-                                <td class="align-middle">{{ server.activity_type }}</td>
-                                <td class="align-middle">{{ server.server_role }}</td>
-                                <td class="align-middle">{{ server.server_provider }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button id="vps-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div id="vps-dropdown-menu-{{ server.id }}" class="dropdown-menu" aria-labelledby="vps-dropdown-btn_{{ server.id }}">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:vps_update' server.id %}">Edit VPS</a>
-                                            <a class="dropdown-item icon trash-icon" id="server-delete-button-{{ server.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id%}" delete-target-id="{{ server.id }}" delete-target-type="server">Delete VPS</a>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <button
-                                        class="expandme btn btn-transaprent"
-                                        onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
-                                        title="Expand to view additional information"
-                                    ></button>
-                                </td>
-                            </tr>
-                            <tr class="hidden-row">
-                                <td colspan=8>
-                                    <div id="hidden-vps-data-{{ server.id }}" class="hidden-div">
-                                        {{ server.note|bleach }}
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>There are no servers tied to this project yet.</p>
-                {% endif %}
+                </td>
+                <td class="align-middle"> {{ server.aux_address|join:"<br />" }} </td>
+                <td id="delete-target-content-server-{{ server.id }}" class="align-middle">{{ server.name }}</td>
+                <td class="align-middle">{{ server.activity_type }}</td>
+                <td class="align-middle">{{ server.server_role }}</td>
+                <td class="align-middle">{{ server.server_provider }}</td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="vps-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false"></button>
+                    <div id="vps-dropdown-menu-{{ server.id }}" class="dropdown-menu"
+                         aria-labelledby="vps-dropdown-btn_{{ server.id }}">
+                      <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:vps_update' server.id %}">Edit
+                        VPS</a>
+                      <a class="dropdown-item icon trash-icon js-confirm-delete"
+                         id="server-delete-button-{{ server.id }}" data-toggle="modal"
+                         data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'shepherd:ajax_delete_vps' server.id %}"
+                         delete-target-id="{{ server.id }}" delete-target-type="server">Delete VPS</a>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <button
+                    class="expandme btn btn-transaprent"
+                    onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
+                    title="Expand to view additional information"
+                  ></button>
+                </td>
+              </tr>
+              <tr class="hidden-row">
+                <td colspan=8>
+                  <div id="hidden-vps-data-{{ server.id }}" class="hidden-div">
+                    {{ server.note|bleach }}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p>There are no servers tied to this project yet.</p>
+        {% endif %}
 
-                <!-- DNS Section -->
-                <h4>Domains and Servers</h4>
-                <hr />
+        {% comment %} DNS Section {% endcomment %}
+        <h4>Domains and Servers</h4>
+        <hr/>
 
-                <!-- Determine if at least one server and one domain -->
-                {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
-                    <p>
-                        <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:link_create' project.id %}">Associate a Domain + Server</a>
-                    </p>
-                    {% if project.domainserverconnection_set.all %}
-                        <table class="table">
-                            <tr>
-                                <th class="align-middle pr-4">Domain</th>
-                                <th class="align-middle pr-4">Server IP</th>
-                                <th class="align-middle pr-4">Server name</ht>
-                                <th class="align-middle pr-4">CDN Endpoint</th>
-                                <th class="sorter-false align-middle">Options</th>
-                            </tr>
-                            {% for connection in project.domainserverconnection_set.all %}
-                                <tr>
-                                    <td id="delete-target-content-connection-{{ connection.id }}" class="align-middle">{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
-                                    {% if connection.static_server %}
-                                        <td class="align-middle">{{ connection.static_server.server.ip_address }}</td>
-                                        <td class="align-middle">{{ connection.static_server.server.name }}</td>
-                                    {% else %}
-                                        <td class="align-middle">{{ connection.transient_server.ip_address }}</td>
-                                        <td class="align-middle">{{ connection.transient_server.name }}</td>
-                                    {% endif %}
-                                    {% if connection.endpoint %}
-                                        <td class="align-middle">{{ connection.endpoint }}</td>
-                                    {% else %}
-                                        <td class="align-middle">No Endpoint</td>
-                                    {% endif %}
-                                    <td class="align-middle">
-                                        <div class="dropdown dropleft">
-                                            <button id="dns-dropdown-btn-{{ connection.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                            <div id="dns-dropdown-menu-{{ connection.id }}" class="dropdown-menu" aria-labelledby="dns-dropdown-btn_{{ connection.id }}">
-                                                <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:link_update' connection.id %}">Edit Link</a>
-                                                <a class="dropdown-item icon trash-icon" id="connection-delete-button-{{ connection.id }}" class="js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_link' connection.id%}" delete-target-id="{{ connection.id }}" delete-target-type="connection">Delete Link</a>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    {% endif %}
-                {% else %}
-                    <p>Check-out/add at least one domain and one server to create an association.</p>
-                {% endif %}
-            </div>
+        {% comment %} Determine if at least one server and one domain {% endcomment %}
+        {% if project.transientserver_set.all or project.serverhistory_set.all and project.history_set.all %}
+          <p>
+            <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:link_create' project.id %}">Associate
+              a Domain + Server</a>
+          </p>
+          {% if project.domainserverconnection_set.all %}
+            <table class="table">
+              <tr>
+                <th class="align-middle pr-4">Domain</th>
+                <th class="align-middle pr-4">Server IP</th>
+                <th class="align-middle pr-4">Server name</th>
+                <th class="align-middle pr-4">CDN Endpoint</th>
+                <th class="sorter-false align-middle">Options</th>
+              </tr>
+              {% for connection in project.domainserverconnection_set.all %}
+                <tr>
+                  <td id="delete-target-content-connection-{{ connection.id }}"
+                      class="align-middle">{{ connection.subdomain }}.{{ connection.domain.domain.name }}</td>
+                  {% if connection.static_server %}
+                    <td class="align-middle">{{ connection.static_server.server.ip_address }}</td>
+                    <td class="align-middle">{{ connection.static_server.server.name }}</td>
+                  {% else %}
+                    <td class="align-middle">{{ connection.transient_server.ip_address }}</td>
+                    <td class="align-middle">{{ connection.transient_server.name }}</td>
+                  {% endif %}
+                  {% if connection.endpoint %}
+                    <td class="align-middle">{{ connection.endpoint }}</td>
+                  {% else %}
+                    <td class="align-middle">No Endpoint</td>
+                  {% endif %}
+                  <td class="align-middle">
+                    <div class="dropdown dropleft">
+                      <button id="dns-dropdown-btn-{{ connection.id }}" class="dropdown-menu-btn-table"
+                              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                      <div id="dns-dropdown-menu-{{ connection.id }}" class="dropdown-menu"
+                           aria-labelledby="dns-dropdown-btn_{{ connection.id }}">
+                        <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:link_update' connection.id %}">Edit
+                          Link</a>
+                        <a class="dropdown-item icon trash-icon js-confirm-delete"
+                           id="connection-delete-button-{{ connection.id }}" data-toggle="modal"
+                           data-target="#confirm-delete-modal" href="javascript:void(0);"
+                           delete-target-csrftoken="{{ csrf_token }}"
+                           delete-target-url="{% url 'shepherd:ajax_delete_domain_link' connection.id %}"
+                           delete-target-id="{{ connection.id }}" delete-target-type="connection">Delete Link</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </table>
+          {% endif %}
+        {% else %}
+          <p>Check-out/add at least one domain and one server to create an association.</p>
+        {% endif %}
+      </div>
 
-            <!-- Deconflictions Tab -->
-            <div id="deconflictions" class="tab-pane">
-                <h4>Deconfliction Events</h4>
-                <hr />
+      {% comment %} Deconflictions Tab {% endcomment %}
+      <div id="deconflictions" class="tab-pane">
+        <h4>Deconfliction Events</h4>
+        <hr/>
 
-                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_deconfliction_create' project.id %}">Record a Deconfliction</a>
+        <a class="icon add-icon btn btn-primary mb-3 col-3"
+           href="{% url 'rolodex:project_deconfliction_create' project.id %}">Record a Deconfliction</a>
 
-                {% if project.deconfliction_set.all %}
-                    {% for event in project.deconfliction_set.all %}
-                        <div id="decon-card-{{ event.id }}" class="card text-center mb-3">
-                            <div class="card-header">
-                                <h5 class="card-title"><span id="delete-target-content-deconfliction-{{ event.id }}">{{ event.title|title }}</span> ({{ event.status }})</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-sm-4">
-                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Source of the alert (e.g., EDR).">Alert Source</span></h6>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time of the original alert.">Time Alert Triggered</span></h6>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Log entries from the hour before the alert.">Log Entries</span></h6>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-sm-4">
-                                        <p class="card-text">{{ event.alert_source }}</p>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <p class="card-text">{% if event.alert_timestamp %}{{ event.alert_timestamp|date:"d M Y @ H:i:s e" }}{% else %}TBD{% endif %}</p>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <p class="card-text">
-                                            {% if event.alert_timestamp %}
-                                                {% if event.log_entries %}
-                                                    <button type="button" class="btn btn-info icon ext-link-icon col-4" data-toggle="modal" data-target="#id_deconfliction_{{ event.id }}">
-                                                        {{ event.log_entries|length }} Entries
-                                                    </button>
-                                                {% else %}
-                                                    No entries
-                                                {% endif %}
-                                            {% else %}
-                                                TBD
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div class="row pt-2">
-                                    <div class="col-sm-4">
-                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time of when we were informed of the event.">Report Received</span></h6>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Date and time of our response to the event.">Response Sent</span></h6>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip" data-placement="top" title="Time delay between report and response.">Response Delay</span></h6>
-                                    </div>
-                                </div>
-                                <div class="row pb-2">
-                                    <div class="col-sm-4">
-                                        <p class="card-text">{{ event.report_timestamp|date:"d M Y @ H:i:s e" }}</p>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <p class="card-text">{% if event.response_timestamp %}{{ event.response_timestamp|date:"d M Y @ H:i:s e" }}{% else %}TBD{% endif %}</p>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <p class="card-text">
-                                            {% if event.response_timestamp %}
-                                                {{ event.response_timestamp|timeuntil:event.report_timestamp }}
-                                            {% else %}
-                                                TBD
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <p class="card-text">
-                                    {% if event.description %}
-                                        {{ event.description|bleach }}
-                                    {% else %}
-                                        <p>No one has added a description of this event. <a class="clickable" href="{% url 'rolodex:project_deconfliction_update' event.id %}">Fix that here.</a></p>
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <div class="card-footer text-muted">
-                                <a href="{% url 'rolodex:project_deconfliction_update' event.id %}" class="btn btn-primary col-md-2">Update</a>
-                                <a id="deconfliction-delete-button-{{ event.id }}" class="btn btn-danger col-md-2 js-confirm-delete" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_deconfliction' event.id %}" delete-target-id="{{ event.id }}" delete-target-type="deconfliction">Delete</a>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No deconfliction events for this project.</p>
-                {% endif %}
-
-            </div>
-
-            <!-- Notes Tab -->
-            <div id="notes" class="tab-pane">
-                <h4>Project Notes</h4>
-                <hr />
-
-                <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a Note</a>
-
-                {% if project.projectnote_set.all %}
-                    {% for note in project.projectnote_set.all reversed %}
-                        <div id="note-container-{{ note.id }}">
-                            <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                <div class="float-left col-10 col-md-10 col-sm-8">
-                                    {{ note.note|bleach }}
-                                </div>
-
-                                <div class="float-right col-2 col-md-2 col-sm-4">
-                                    <div>{% if note.operator %}<a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}<span class="note-link">Deleted</span>{% endif %}</div>
-                                    <div><p class="note-time">{{ note.timestamp }}</p></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {% if request.user == note.operator or request.user.is_staff %}
-                            <div class="pb-3">
-                                <a class="note-link" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a> |
-                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                            </div>
+        {% if project.deconfliction_set.all %}
+          {% for event in project.deconfliction_set.all %}
+            <div id="decon-card-{{ event.id }}" class="card card-project text-center mb-3">
+              <div class="card-header">
+                <h5 class="card-title"><span
+                  id="delete-target-content-deconfliction-{{ event.id }}">{{ event.title|title }}</span>
+                  ({{ event.status }})</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-sm-4">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Source of the alert (e.g., EDR).">Alert Source</span>
+                    </h6>
+                  </div>
+                  <div class="col-sm-4">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Date and time of the original alert.">Time Alert Triggered</span>
+                    </h6>
+                  </div>
+                  <div class="col-sm-4">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Log entries from the hour before the alert.">Log Entries</span>
+                    </h6>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-4">
+                    <p class="card-text">{{ event.alert_source }}</p>
+                  </div>
+                  <div class="col-sm-4">
+                    <p class="card-text">
+                      {% if event.alert_timestamp %}{{ event.alert_timestamp|date:"d M Y @ H:i:s e" }}{% else %}
+                        TBD{% endif %}</p>
+                  </div>
+                  <div class="col-sm-4">
+                    <p class="card-text">
+                      {% if event.alert_timestamp %}
+                        {% if event.log_entries %}
+                          <button type="button" class="btn btn-info icon ext-link-icon col-4" data-toggle="modal"
+                                  data-target="#id_deconfliction_{{ event.id }}">
+                            {{ event.log_entries|length }} Entries
+                          </button>
+                        {% else %}
+                          No entries
                         {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <p>No notes for this project.</p>
-                {% endif %}
+                      {% else %}
+                        TBD
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="row pt-2">
+                  <div class="col-sm-4">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Date and time of when we were informed of the event.">Report Received</span>
+                    </h6>
+                  </div>
+                  <div class="col-sm-4">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Date and time of our response to the event.">Response Sent</span>
+                    </h6>
+                  </div>
+                  <div class="col-sm-4">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Time delay between report and response.">Response Delay</span>
+                    </h6>
+                  </div>
+                </div>
+                <div class="row pb-2">
+                  <div class="col-sm-4">
+                    <p class="card-text">{{ event.report_timestamp|date:"d M Y @ H:i:s e" }}</p>
+                  </div>
+                  <div class="col-sm-4">
+                    <p class="card-text">
+                      {% if event.response_timestamp %}{{ event.response_timestamp|date:"d M Y @ H:i:s e" }}{% else %}
+                        TBD{% endif %}</p>
+                  </div>
+                  <div class="col-sm-4">
+                    <p class="card-text">
+                      {% if event.response_timestamp %}
+                        {{ event.response_timestamp|timeuntil:event.report_timestamp }}
+                      {% else %}
+                        TBD
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+
+                <p class="card-text">
+                  {% if event.description %}
+                    {{ event.description|bleach }}
+                  {% else %}
+                    No one has added a description of this event.
+                    <a class="clickable" href="{% url 'rolodex:project_deconfliction_update' event.id %}">Fix that
+                      here.</a>
+                  {% endif %}
+                </p>
+              </div>
+              <div class="card-footer text-muted">
+                <a href="{% url 'rolodex:project_deconfliction_update' event.id %}" class="btn btn-primary col-md-2">Update</a>
+                <a id="deconfliction-delete-button-{{ event.id }}" class="btn btn-danger col-md-2 js-confirm-delete"
+                   data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);"
+                   delete-target-csrftoken="{{ csrf_token }}"
+                   delete-target-url="{% url 'rolodex:ajax_delete_project_deconfliction' event.id %}"
+                   delete-target-id="{{ event.id }}" delete-target-type="deconfliction">Delete</a>
+              </div>
             </div>
-        </div>
+          {% endfor %}
+        {% else %}
+          <p>No deconfliction events for this project.</p>
+        {% endif %}
+
+      </div>
+
+      {% comment %} Notes Tab {% endcomment %}
+      <div id="notes" class="tab-pane">
+        <h4>Project Notes</h4>
+        <hr/>
+
+        <a class="icon add-icon btn btn-primary mb-3 col-3" href="{% url 'rolodex:project_note_add' project.id %}">Add a
+          Note</a>
+
+        {% if project.projectnote_set.all %}
+          {% for note in project.projectnote_set.all reversed %}
+            <div id="note-container-{{ note.id }}">
+              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                <div class="float-left col-10 col-md-10 col-sm-8">
+                  {{ note.note|bleach }}
+                </div>
+
+                <div class="float-right col-2 col-md-2 col-sm-4">
+                  <div>{% if note.operator %}<a class="note-link"
+                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
+                    <span class="note-link">Deleted</span>{% endif %}</div>
+                  <div><p class="note-time">{{ note.timestamp }}</p></div>
+                </div>
+              </div>
+            </div>
+
+            {% if request.user == note.operator or request.user.is_staff %}
+              <div class="pb-3">
+                <a class="note-link" href="{% url 'rolodex:project_note_edit' note.id %}">Edit</a> |
+                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
+                   data-target="#confirm-delete-modal" href="javascript:void(0);"
+                   delete-target-csrftoken="{{ csrf_token }}"
+                   delete-target-url="{% url 'rolodex:ajax_delete_project_note' note.id %}"
+                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <p>No notes for this project.</p>
+        {% endif %}
+      </div>
     </div>
+  </div>
 {% endblock %}
 
 {% block tabs %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $("#assignmentTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#serverTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#domainTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#objectiveTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#reportTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $("#scopeTable").tablesorter(
-                {
-                    cssAsc: 'down',
-                    cssDesc: 'up',
-                    cssNone: 'none',
-                }
-            );
-            $("#targetTable").tablesorter(
-                {
-                    cssAsc: 'down',
-                    cssDesc: 'up',
-                    cssNone: 'none',
-                }
-            );
-            $('.tablesorter').trigger('update');
-        });
-    </script>
+  <script>
+    const $projectDescription = $('#projectDescription')
+    const $projectDescDropdown = $('#projectDescriptionDropdown')
+    const $editTodoInout = $('.edit-todo-input')
 
-    <!-- Hide Project Description -->
-    <script>
-        $('div.description-block').each(function(){
-            $(this).css('height', $(this).height()+'px');
-            $(this).hide();
-        });
-    </script>
+    $(document).ready(function () {
+      new ClipboardJS('.js-copy-scope');
 
-    <!-- Expand Hidden Project Description -->
-    <script>
-        $('#projectDescriptionDropdown').click(function (e) {
-            $('#projectDescription').slideToggle('slow');
-            $('#projectDescriptionDropdown').toggleClass('add-icon sub-icon')
-        });
-    </script>
+      {% comment %} jQuery Tablesorter {% endcomment %}
+      $('#assignmentTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('#serverTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('#domainTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('#objectiveTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('#reportTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('#scopeTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('#targetTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('.tablesorter').trigger('update');
+    });
 
-    <!-- Toggle Task Lists Under Objectives -->
-    <script>
-        function expandObjective(ele) {
-            ele.parent().parent().toggleClass('open');
-            var accordionRow = ele.parent().parent().next('.accordion');
-            if (!accordionRow.is(':visible')) {
+    {% comment %} Show/hide the project descirption block {% endcomment %}
+    $('div.description-block').each(function () {
+      $(this).css('height', $(this).height() + 'px');
+      $(this).hide();
+    });
+
+    $projectDescDropdown.click(function () {
+      $projectDescription.slideToggle('slow');
+      $projectDescDropdown.toggleClass('add-icon sub-icon')
+    });
+
+    {% comment %} Toggle task lists under objectives {% endcomment %}
+    function expandObjective(ele) {
+      ele.parent().parent().toggleClass('open');
+      let accordionRow = ele.parent().parent().next('.accordion');
+      if (!accordionRow.is(':visible')) {
+        accordionRow.show().find('.accordion-content').slideDown();
+      } else {
+        accordionRow.find('.accordion-content').slideUp(function () {
+          if (!$(this).is(':visible')) {
+            accordionRow.hide();
+          }
+        });
+      }
+    }
+
+    {% comment %} Sortable groups of objectives {% endcomment %}
+    {% group_by_priority project.projectobjective_set.all as priority_groups %}
+    {% for group in priority_groups %}
+      try {
+        let $objTable = $('#objectives-table')
+        let update_url = $objTable.attr('objectives-update-url');
+        let project_id = $objTable.attr('project-id');
+        let csrftoken = $objTable.attr('objectives-update-csrftoken');
+        let {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_priority, {
+          items: 'tbody > tr',
+          group: 'priority',
+          animation: 150,
+          filter: '.priority-row-placeholder',
+          ghostClass: 'sortable-ghost',
+          handle: '.holdme',
+
+          // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
+          setData: function (dataTransfer, dragEl) {
+            dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+          },
+
+        {% comment %} Element is chosen {% endcomment %}
+          onChoose: function (event) {
+            {% comment %} Close the tasks view on pick-up {% endcomment %}
+            let $eventItem = $('#' + event.item.id)
+            if ($eventItem.hasClass('open')) {
+              $eventItem.toggleClass('open');
+              let accordionRow = $eventItem.next('.accordion');
+              if (!accordionRow.is(':visible')) {
                 accordionRow.show().find('.accordion-content').slideDown();
+              } else {
+                accordionRow.find('.accordion-content').slideUp(function () {
+                  if (!$(this).is(':visible')) {
+                    accordionRow.hide();
+                  }
+                });
+              }
+            }
+          },
+
+        {% comment %} Element is unchosen {% endcomment %}
+          onUnchoose: function (event) {
+          },
+
+        {% comment %} Element dragging started {% endcomment %}
+          onStart: function (event) {
+            event.item.startPos = event.oldIndex;
+          },
+
+        {% comment %} Element dragging started {% endcomment %}
+          onEnd: function (event) {
+            let $eventItem = $('#' + event.item.id)
+            let $tasksEventItem = $('#tasks-' + event.item.id)
+            {% comment %} Check if objective was moved to be after another objective {% endcomment %}
+            if (event.item.startPos < event.newIndex) {
+              {% comment %} Remove and clone the objective's tasks row {% endcomment %}
+              let child = $tasksEventItem.remove().clone();
+              {% comment %} Place the tasks row after the objective in its new position {% endcomment %}
+              $eventItem.after(child);
+              {% comment %} Move the orphaned tasks row before the moved objective {% endcomment %}
+              let childTr = $tasksEventItem.next('tr').remove().clone();
+              $eventItem.before(childTr);
             } else {
-                accordionRow.find('.accordion-content').slideUp(function() {
-                    if (!$(this).is(':visible')) {
-                        accordionRow.hide();
-                    }
-                });
+              let child = $('#tasks-' + event.item.id).remove().clone();
+              $('#' + event.item.id).after(child);
             }
-        };
-    </script>
-
-   <!-- Script for Sortable Groups of Objectives -->
-   <script>
-        {% group_by_priority project.projectobjective_set.all as priority_groups %}
-        {% for group in priority_groups %}
-            try {
-                var update_url = $('#objectives-table').attr('objectives-update-url');
-                var project_id = $('#objectives-table').attr('project-id');
-                var csrftoken = $('#objectives-table').attr('objectives-update-csrftoken');
-                var {{ group | lower }}_sortable = Sortable.create({{ group | lower }}_priority, {
-                    items: 'tbody > tr',
-                    group: 'priority',
-                    animation: 150,
-                    filter: '.priority-row-placeholder',
-                    ghostClass: 'sortable-ghost',
-                    handle: '.holdme',
-
-                    // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
-                    setData: function (dataTransfer, dragEl) {
-                        dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
-                    },
-
-                    // Element is chosen
-                    onChoose: function (event) {
-                        // Close the tasks view on pick-up
-                        if ($('#' + event.item.id).hasClass('open')) {
-                            $('#' + event.item.id).toggleClass('open');
-                            var accordionRow = $('#' + event.item.id).next('.accordion');
-                            if (!accordionRow.is(':visible')) {
-                                accordionRow.show().find('.accordion-content').slideDown();
-                            } else {
-                                accordionRow.find('.accordion-content').slideUp(function() {
-                                    if (!$(this).is(':visible')) {
-                                        accordionRow.hide();
-                                    }
-                                });
-                            }
-                        }
-                    },
-
-                    // Element is unchosen
-                    onUnchoose: function (event) {},
-
-                    // Element dragging started
-                    onStart: function (event) {
-                        event.item.startPos = event.oldIndex;
-                    },
-
-                    // Element dragging started
-                    onEnd: function (event) {
-                        // Check if objective was moved to be after another objective
-                        if(event.item.startPos < event.newIndex){
-                            // Remove and clone the objective's tasks row
-                            var child = $('#tasks-' + event.item.id).remove().clone();
-                            // Place the tasks row after the objective in its new position
-                            $('#' + event.item.id).after(child);
-                            // Move the orphaned tasks row before the moved objective
-                            var child = $('#tasks-' + event.item.id).next('tr').remove().clone();
-                            $('#' + event.item.id).before(child);
-                        }else{
-                            var child = $('#tasks-' + event.item.id).remove().clone();
-                            $('#' + event.item.id).after(child);
-                        }
-                        // Re-init the click functions for task lists following removals and clones
-                        prepareTodoList();
-                    },
-
-                    // Element is dropped into the list from another list
-                    onAdd: function (event) {
-                        // Get the placeholder `tr` if it exists
-                        placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
-                        var positions = {{ group | lower }}_sortable.toArray();
-                        // Prep AJAX request with CSRF token
-                        $.ajaxSetup({
-                            beforeSend: function(xhr, settings) {
-                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                                }
-                            }
-                        });
-                        // Send AJAX POST request
-                        $.ajax(update_url, {
-                            type: 'POST',
-                            data: {
-                                'project': project_id,
-                                'priority': event.to.id,
-                                'positions': JSON.stringify(positions)
-                            },
-                            success: function (data) {
-                                console.log(data)
-                            }
-                        });
-                        // An "empty" group will have one row, the placeholder row
-                        if (event.to.rows.length > 0) {
-                            if (placeholder !== undefined) {
-                                // Group contains at least one finding, delete the placeholder
-                                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-                            };
-                        };
-                    },
-
-                    // Called by any change to the list (add / update / remove)
-                    onSort: function (event) {
-                        // Code here triggers twice for the element if dragged to another group (two sorts)
-                        [].forEach.call(event.item.parentNode.getElementsByClassName('priority_row'), function (el, index) {
-                            var cell = el.getElementsByClassName('holdme')[0];
-                        });
-                    },
-
-                    // Changed sorting within list
-                    onUpdate: function (event) {
-                        var positions = {{ group | lower }}_sortable.toArray();
-                        // Prep AJAX request with CSRF token
-                        $.ajaxSetup({
-                            beforeSend: function(xhr, settings) {
-                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                                }
-                            }
-                        });
-                        // Send AJAX POST request
-                        $.ajax(update_url, {
-                            type: 'POST',
-                            data: {
-                                'project': project_id,
-                                'priority': event.item.parentNode.id,
-                                'positions': JSON.stringify(positions)
-                            },
-                            success: function (data) {
-                                console.log(data);
-                            }
-                        });
-                    },
-
-                    // Element is removed from the list into another list
-                    onRemove: function (event) {
-                        // Get the placeholder `tr` if it exists
-                        placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
-                        var positions = {{ group | lower }}_sortable.toArray();
-                        // Prep AJAX request with CSRF token
-                        $.ajaxSetup({
-                            beforeSend: function(xhr, settings) {
-                                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                                }
-                            }
-                        });
-                        // Send AJAX POST request
-                        $.ajax(update_url, {
-                            type: 'POST',
-                            data: {
-                                'project': project_id,
-                                'priority': event.from.id,
-                                'positions': JSON.stringify(positions)
-                            },
-                            success: function (data) {
-                                console.log(data);
-                            }
-                        });
-                        // This fires before ``onEnd()`` where we adjust the hidden tasks lists so
-                        // an "empty" row will still have the hidden row during the remove
-                        if (event.from.rows.length == 1) {
-                            // Add a placeholder row
-                            var placeholder_row = event.from.insertRow(0)
-                            placeholder_row.id = '{{ group|lower }}_placeholder'
-                            placeholder_row.className = 'priority-row-placeholder'
-                            placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder', 0)
-                            cell = placeholder_row.insertCell(0);
-                            cell.colSpan = 7
-                            cell.innerHTML = 'Create a {{ group }} objective or drag-and-drop an objective here to update its priority.'
-                        } else {
-                            if (placeholder !== undefined) {
-                                // Otherwise, delete the placeholder
-                                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
-                            };
-                        };
-                    },
-
-                    // Event when you move an item in the list or between lists
-                    onMove: function (event, originalEvent) {
-                        // Code here triggers with every drag to a new position
-                    },
-
-                    // Attempt to drag a filtered element
-                    onFilter: function (event) {},
-
-                    // Called when creating a clone of element
-                    onClone: function (event) {},
-
-                    // Called when dragging element changes position
-                    onChange: function (event) {
-                        // Code here triggers with every move while drag is in progress
-                    },
-                });
-            } catch (error) {
-                console.log('No objectives found for the "{{ group | lower }}" group, so the sortable list is not initialized.');
-            }
-        {% endfor %}
-    </script>
-
-    <!-- Cycle Project Objective Status with AJAX -->
-    <script>
-        function cycleStatus(ele) {
-            var badge = ele;
-            var url = ele.attr('obj-status-update-url');
-            var statusId = ele.attr('status-id');
-            var objectiveId = ele.attr('objective-id');
-            var csrftoken = ele.attr('obj-status-csrftoken');
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'status': statusId,
-                    'objective': objectiveId
-                },
-                success: function (data) {
-                    console.log(data);
-                    badge.html(data['status']);
-                }
-            });
-        };
-    </script>
-
-    <!-- Toggle Project Status with AJAX -->
-    <script>
-        $('.js-toggle-project-status').click(function () {
-            var url = $(this).attr('toggle-project-status-url');
-            var projectId = $(this).attr('toggle-project-status-id');
-            var csrftoken = $(this).attr('toggle-project-status-csrftoken');
-            var statusIcon = $('#js-toggle-project-status-icon');
-            var statusText = $('#js-project-status')
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'project': projectId
-                },
-                success: function (data) {
-                    statusText.html(data['status']);
-                    if (data['toggle']) {
-                        statusIcon.removeClass('fa-toggle-off')
-                        statusIcon.addClass('fa-toggle-on')
-                    } else {
-                        statusIcon.removeClass('fa-toggle-on')
-                        statusIcon.addClass('fa-toggle-off')
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Project Update'});
-                    }
-                }
-            });
-        });
-    </script>
-
-    <!-- Set Project Target Status with AJAX -->
-    <script>
-        $('.js-compromise-target').each(function(index) {
-            $(this).click(function () {
-                var url = $(this).attr('compromise-target-url');
-                var targetId = $(this).attr('compromise-target-id');
-                var csrftoken = $(this).attr('compromise-target-csrftoken');
-                var statusCellId = '#target-status-' + targetId;
-                var statusCell = $(statusCellId);
-                // Prep AJAX request with CSRF token
-                $.ajaxSetup({
-                    beforeSend: function(xhr, settings) {
-                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                        }
-                    }
-                });
-                // Send AJAX POST request
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        'target': targetId,
-                    },
-                    success: function (data) {
-                        if (data['result'] == 'success') {
-                            if (data['toggle'] == 0) {
-                                statusCell.removeClass('skull-icon')
-                            } else {
-                                statusCell.addClass('skull-icon')
-                            }
-                        }
-                        if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Target Update'});
-                        }
-                    }
-                });
-            });
-        });
-    </script>
-
-    <!-- Activate Report with AJAX -->
-    <script>
-        $('.js-activate-report').click(function () {
-            var url = $(this).attr('activate-report-url');
-            var reportId = $(this).attr('activate-report-id');
-            var csrftoken = $(this).attr('activate-report-csrftoken');
-            var activeReportBar = $('#active-report-id');
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'report': reportId
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        activeReportBar.html(data['report']);
-                        activeReportBar.attr('href', data['report_url']);
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Report Update'});
-                    }
-                }
-            });
-        });
-    </script>
-
-    <!-- Export Oplog with JS -->
-    <script>
-        function download(url, filename) {
-            fetch(url).then(function (t) {
-                return t.blob().then((b) => {
-                    var a = document.createElement("a");
-                    a.href = URL.createObjectURL(b);
-                    a.setAttribute("download", filename);
-                    a.click();
-                });
-            });
-        }
-
-        $(".js-export-oplog").on("click", function () {
-            id = $(this).parent().find('.oplog-id').html()
-            download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
-        });
-
-        $('.js-export-project-scope').click(function () {
-            var url = $(this).attr('export-scope-url');
-            var name = $(this).attr('export-scope-name');
-            download(url, name.concat('_scope.txt'));
-        });
-    </script>
-
-    <!-- FullCalendar Rendering -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Track the initial calendar view in local storage
-            var defaultView = (localStorage.getItem("fcDefaultViewProject") !== null ? localStorage.getItem("fcDefaultViewProject") : "dayGridWeek");
-            var calendarEl = document.getElementById('calendar');
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: defaultView,
-                height: 'auto',
-                headerToolbar: {
-                    left: 'today prev,next',
-                    center: 'title',
-                    right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
-                },
-                // On view change, save the selected view to local storage so it persists between page loads
-                viewClassNames: function (info) {
-                    localStorage.setItem("fcDefaultViewProject", info.view.type);
-                }
-            });
-            calendar.render();
-            // Add project execution window
-            var event = {
-                title: 'Execution',
-                allDay: true,
-                start: '{{ project.start_date|date:"Y-m-d" }}',
-                end: '{{ project.end_date|plus_days:1|date:"Y-m-d" }}',
-                color: 'var(--primary-color)',
-                className: 'calendar-exec-icon'
-            };
-            calendar.addEvent(event);
-            // Add project assignments
-            {% for operator in project.projectassignment_set.all %}
-                var event = {
-                    title: {% if operator.operator.name %}'{{ operator.operator.name|bleach }}'{% else %}'{{ operator.operator.username|bleach }}'{% endif %},
-                    allDay: true,
-                    startRecur: '{{ operator.start_date|date:"Y-m-d" }}',
-                    endRecur: '{{ operator.end_date|plus_days:1|date:"Y-m-d" }}',
-                    daysOfWeek: [1,2,3,4,5],
-                    color: 'var(--neutral-color)',
-                    className: 'calendar-user-icon'
-                };
-                calendar.addEvent(event);
-            {% endfor %}
-            // Add project tasks
-            {% for objective in project.projectobjective_set.all %}
-                var event = {
-                    title: '{{ objective.objective|striptags }}',
-                    allDay: true,
-                    start: '{{ objective.deadline|date:"Y-m-d" }}',
-                    end: '{{ objective.deadline|date:"Y-m-d" }}',
-                    color: 'var(--secondary-color-fade)',
-                    className: 'calendar-objective-icon'
-                };
-                calendar.addEvent(event);
-                {% if objective.projectsubtask_set.all %}
-                    {% for task in objective.projectsubtask_set.all %}
-                        var event = {
-                            title: '{{ task.task|striptags }}',
-                            allDay: true,
-                            start: '{{ task.deadline|date:"Y-m-d" }}',
-                            end: '{{ task.deadline|date:"Y-m-d" }}',
-                            color: 'var(--secondary-color-med)',
-                            className: 'calendar-task-icon'
-                        };
-                        calendar.addEvent(event);
-                    {% endfor %}
-                {% endif %}
-            {% endfor %}
-        });
-    </script>
-
-    {% comment %} Generate modals for displaying the scope lists {% endcomment %}
-    {% for list in project.projectscope_set.all %}
-        <div class="modal" id="id_scope_{{ list.id }}" tabindex="-1" role="dialog" aria-labelledby="scope_modal_{{ list.id }}" aria-hidden="true">
-            <div class="modal-dialog scope-modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="scopeModal_{{ list.id }}">{{ list.name }} – {{ list.count_lines_str }}</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div id="modal_scope_{{ list.id }}" class="modal-body scope-modal-body">
-                        {{ list.scope|bleach|linebreaks }}
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary js-copy-scope" data-clipboard-target="#modal_scope_{{ list.id }}">Copy to Clipboard</button>
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endfor %}
-
-    {% comment %} Generate modals for displaying log entries for deconfliction events {% endcomment %}
-    {% for event in project.deconfliction_set.all %}
-        <div class="modal " id="id_deconfliction_{{ event.id }}" tabindex="-1" role="dialog" aria-labelledby="deconfliction_modal_{{ event.id }}" aria-hidden="true">
-            <div class="modal-dialog modal-super-sized oplog-modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related Log Entries</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-
-                    <div id="modal_deconfliction_{{ event.id }}" class="modal-body oplog-modal-body">
-                        <p>Log entries from the hour prior to the alert timestamp, sorted from most recent to oldest.</p>
-                        <table id="projectTable" class="tablesorter table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th class="align-middle">Start Date</th>
-                                    <th class="align-middle">Destination</th>
-                                    <th class="align-middle">Tool</th>
-                                    <th class="align-middle">User</th>
-                                    <th class="align-middle">Command</th>
-                                    <th class="align-middle">Description</th>
-                                    <th class="align-middle">Comments</th>
-                                    <th class="align-middle">Operator</th>
-                                </tr>
-                            </thead>
-                            {% for entry in event.log_entries %}
-                                <tr>
-                                    <td class="align-middle">{% if entry.start_date %}{{ entry.start_date|date:"d M Y @ H:i:s e" }}{% endif %}</td>
-                                    <td class="align-middle">{% if entry.dest_ip %}{{ entry.dest_ip }}{% endif %}</td>
-                                    <td class="align-middle">{% if entry.tool %}{{ entry.tool }}{% endif %}</td>
-                                    <td class="align-middle">{% if entry.user_context %}{{ entry.user_context }}{% endif %}</td>
-                                    <td class="align-middle">{% if entry.command %}{{ entry.command }}{% endif %}</td>
-                                    <td class="align-middle">{% if entry.description %}{{ entry.description }}{% endif %}</td>
-                                    <td class="align-middle">{% if entry.comments %}{{ entry.comments }}{% endif %}</td>
-                                    <td class="align-middle">{% if entry.operator_name %}{{ entry.operator_name }}{% endif %}</td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endfor %}
-
-    <!-- Clipboard Events -->
-    <script>
-        new ClipboardJS('.js-copy-scope');
-    </script>
-
-    <!-- Objective Task Management -->
-    <script>
-        // Toggle an objective's ``complete`` value
-        function toggleObjective(ele) {
-            var url = ele.attr('toggle-objective-url');
-            var objectiveId = ele.attr('objective-id');
-            var csrftoken = ele.attr('objective-csrftoken');
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'objective': objectiveId
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        updateObjectiveRow(ele);
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Objective Update'});
-                    }
-                    update_badges();
-                }
-            });
-        };
-
-        // Example code: https://www.bootdey.com/snippets/view/bs4-todo-list#preview
-        // Toggle a task's ``complete`` value
-        function toggleTodo(ele) {
-            var url = ele.attr('toggle-task-url');
-            var taskId = ele.attr('task-id');
-            var csrftoken = ele.attr('task-csrftoken');
-            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
-            var objectiveRow = $(objectiveRowId);
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'task': taskId
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        ele.toggleClass('complete');
-                        updateObjectiveRow(objectiveRow);
-                        updateTodoList(ele);
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Task Update'});
-                    }
-                }
-            });
-        };
-
-        // Create a new task below an objective
-        function createTodo(ele) {
-            var url = ele.attr('new-task-url');
-            var csrftoken = ele.attr('new-task-csrftoken');
-            var objectiveId = ele.attr('objective-id');
-            var task = ele.find('input[name="task"]').val()
-            var deadline = ele.find('input[name="deadline"]').val()
-            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
-            var objectiveRow = $(objectiveRowId);
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'objectiveId': objectiveId,
-                    'task': task,
-                    'deadline': deadline,
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        // Reset form
-                        ele.trigger('reset');
-                        updateObjectiveRow(objectiveRow);
-                        updateTodoList(ele);
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Task Update'});
-                    }
-                }
-            });
-        };
-
-        // Delete a task
-        function deleteTodo(ele) {
-            var url = ele.attr('delete-task-url');
-            var csrftoken = ele.attr('task-csrftoken');
-            var taskId = ele.attr('task-id');
-            var objectiveRowId = '#objective-row-' + ele.attr('objective-id');
-            var objectiveRow = $(objectiveRowId);
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'taskId': taskId,
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        updateTodoList(ele);
-                        updateObjectiveRow(objectiveRow);
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Task Deleted'});
-                    }
-                }
-            });
-        };
-
-        // Update a task
-        function updateTodo(ele) {
-            var url = ele.attr('update-task-url');
-            var csrftoken = ele.attr('task-csrftoken');
-            var taskId = ele.attr('task-id');
-            var task = $('textarea[name="task-' + taskId + '"]').val();
-            var deadline = $('input[name="task-deadline-' + taskId + '"]').val();
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'taskId': taskId,
-                    'task': task,
-                    'deadline': deadline,
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        // Do Something
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Task Updated'});
-                    }
-                }
-            });
-        };
-
-        function updateObjectiveRow(ele) {
-            var objectiveId = ele.attr('objective-id');
-            var url = ele.attr('refresh-objective-url');
-            var open = false;
-            if (ele.hasClass('open')) {
-                open = true;
-            }
-            if (url != null) {
-                console.log("Updating objective row...");
-                // Refresh the HTML from the update URL
-                ele.load(url, function(data) {
-                    data = $(data);
-                    ele.replaceWith(data);
-                    checker = data.find('input:checkbox:first');
-                    checker.tooltip('enable');
-                    if (open) {
-                        data.toggleClass('open');
-                    }
-                });
-            }
-        };
-
-        function updateTodoList(ele) {
-            var objectiveId = ele.attr('objective-id');
-            var taskList = $('#task-list-' + objectiveId);
-            var url = ele.attr('refresh-task-url');
-            if (url != null) {
-                console.log("Updating task list...");
-                // Refresh the HTML from the update URL
-                taskList.html('').load(url, function() {
-                    prepareTodoList();
-                });
-            }
-        };
-
-        // Prepare task list's click events
-        var todo = function() {
-            $('.todo-nav .all-task').click(function() {
-                $('.todo-list').removeClass('only-active');
-                $('.todo-list').removeClass('only-complete');
-                $('.todo-nav li.active').removeClass('active');
-                $(this).addClass('active');
-            });
-
-            $('.todo-nav .active-task').click(function() {
-                $('.todo-list').removeClass('only-complete');
-                $('.todo-list').addClass('only-active');
-                $('.todo-nav li.active').removeClass('active');
-                $(this).addClass('active');
-            });
-
-            $('.todo-nav .completed-task').click(function() {
-                $('.todo-list').removeClass('only-active');
-                $('.todo-list').addClass('only-complete');
-                $('.todo-nav li.active').removeClass('active');
-                $(this).addClass('active');
-            });
-
-            $('#uniform-all-complete input').click(function() {
-                if($(this).is(':checked')) {
-                    $('.todo-item .checker span:not(.checked) input').click();
-                } else {
-                    $('.todo-item .checker span.checked input').click();
-                }
-            });
-        };
-
-        function prepareTodoList() {
-            $('.edit-todo-input').textareaAutoSize();
-
-            todo();
-
-            // Get current date with timezone offset
-            Date.prototype.toDateInputValue = (function() {
-                var local = new Date(this);
-                local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
-                return local.toJSON().slice(0,10);
-            });
-
-            // Set parent's deadline as placeholder value for deadline fields
-            var rows = document.querySelectorAll('.accordion-row');
-            rows.forEach(function(row) {
-                var parentDeadline = row.getAttribute('deadline-date');
-                var taskList = $('#task-list-' + row.getAttribute('objective-id'))[0];
-                var deadlineField = taskList.querySelectorAll('.add-deadline')[0];
-                deadlineField.value = parentDeadline;
-            });
-
-            // Toggle ``readonly`` attribute on fields and save
-            $('.edit-todo-input').click(function() {
-                $(this).removeAttr('readonly');
-            });
-
-            $('.edit-todo-input').blur(function() {
-                $(this).attr('readonly', true);
-                var currentValue = $(this).val();
-                var previousValue = $(this).attr('value');
-                $(this).attr('readonly', true);
-                if (currentValue != previousValue) {
-                    updateTodo($(this).parent().parent());
-                    updateTodoList($(this).parent().parent());
-                }
-            });
-        };
-
-        $( document ).ready(function() {
-
-            "use strict";
-
+            {% comment %} Re-init the click functions for task lists following removals and clones {% endcomment %}
             prepareTodoList();
+          },
+
+        {% comment %} Element is dropped into the list from another list {% endcomment %}
+          onAdd: function (event) {
+            let placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
+            let positions = {{ group | lower }}_sortable.toArray();
+            $.ajaxSetup({
+              beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
+              }
+            });
+            $.ajax(update_url, {
+              type: 'POST',
+              data: {
+                'project': project_id,
+                'priority': event.to.id,
+                'positions': JSON.stringify(positions)
+              },
+              success: function (data) {
+                console.log(data)
+              }
+            });
+
+            {% comment %} An "empty" group will have one row, the placeholder row {% endcomment %}
+            if (event.to.rows.length > 0) {
+              if (placeholder !== undefined) {
+                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+              }
+
+            }
+          },
+
+          {% comment %} Called by any change to the list (add / update / remove) {% endcomment %}
+          onSort: function (event) {
+            {% comment %} Code here triggers twice for the element if dragged to another group (two sorts) {% endcomment %}
+            [].forEach.call(event.item.parentNode.getElementsByClassName('priority_row'), function (el) {
+              let _ = el.getElementsByClassName('holdme')[0];
+            });
+          },
+
+        {% comment %} Changed sorting within list {% endcomment %}
+          onUpdate: function (event) {
+            let positions = {{ group | lower }}_sortable.toArray();
+            $.ajaxSetup({
+              beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
+              }
+            });
+            $.ajax(update_url, {
+              type: 'POST',
+              data: {
+                'project': project_id,
+                'priority': event.item.parentNode.id,
+                'positions': JSON.stringify(positions)
+              },
+              success: function (data) {
+                console.log(data);
+              }
+            });
+          },
+
+        {% comment %} Element is removed from the list into another list {% endcomment %}
+          onRemove: function (event) {
+            let placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
+            let positions = {{ group | lower }}_sortable.toArray();
+            $.ajaxSetup({
+              beforeSend: function (xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                  xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
+              }
+            });
+            $.ajax(update_url, {
+              type: 'POST',
+              data: {
+                'project': project_id,
+                'priority': event.from.id,
+                'positions': JSON.stringify(positions)
+              },
+              success: function (data) {
+                console.log(data);
+              }
+            });
+
+            {% comment %}
+              This fires before ``onEnd()`` where we adjust the hidden tasks lists so
+              an "empty" row will still have the hidden row during the remove
+            {% endcomment %}
+            if (event.from.rows.length === 1) {
+              let placeholder_row = event.from.insertRow(0)
+              placeholder_row.id = '{{ group|lower }}_placeholder'
+              placeholder_row.className = 'priority-row-placeholder'
+              placeholder_row.setAttribute('data-id', '{{ group|lower }}_placeholder')
+              let cell = placeholder_row.insertCell(0);
+              cell.colSpan = 7
+              cell.innerHTML = 'Create a {{ group }} objective or drag-and-drop an objective here to update its priority.'
+            } else {
+              if (placeholder !== undefined) {
+                placeholder.parentNode.parentNode.deleteRow(placeholder.rowIndex)
+              }
+
+            }
+
+          },
+
+          {% comment %} Event when you move an item in the list or between lists {% endcomment %}
+          onMove: function (event, originalEvent) {},
+
+          {% comment %} Attempt to drag a filtered element {% endcomment %}
+          onFilter: function (event) {},
+
+          {% comment %} Called when creating a clone of element {% endcomment %}
+          onClone: function (event) {},
+
+          {% comment %} Called when dragging element changes position {% endcomment %}
+          onChange: function (event) {},
         });
-    </script>
+      } catch (error) {
+        console.log('No objectives found for the "{{ group | lower }}" group, so the sortable list is not initialized.');
+      }
+    {% endfor %}
 
-    <!-- Show/Hide Hidden Data Rows -->
-    <script type="text/javascript">
-        function showHideRow(btn, row) {
-            btn.toggleClass('open');
-            $("#" + row).slideToggle(500);
+    {% comment %} Cycle Project Objective Status with AJAX {% endcomment %}
+    function cycleStatus(ele) {
+      let badge = ele;
+      let url = ele.attr('obj-status-update-url');
+      let statusId = ele.attr('status-id');
+      let objectiveId = ele.attr('objective-id');
+      let csrftoken = ele.attr('obj-status-csrftoken');
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
         }
-    </script>
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'status': statusId,
+          'objective': objectiveId
+        },
+        success: function (data) {
+          console.log(data);
+          badge.html(data['status']);
+        }
+      });
+    }
 
-    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
-    {% include "confirm_delete_modal.html" %}
+    {% comment %} Toggle Project Status with AJAX {% endcomment %}
+    $('.js-toggle-project-status').click(function () {
+      let url = $(this).attr('toggle-project-status-url');
+      let projectId = $(this).attr('toggle-project-status-id');
+      let csrftoken = $(this).attr('toggle-project-status-csrftoken');
+      let statusIcon = $('#js-toggle-project-status-icon');
+      let statusText = $('#js-project-status')
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'project': projectId
+        },
+        success: function (data) {
+          statusText.html(data['status']);
+          if (data['toggle']) {
+            statusIcon.removeClass('fa-toggle-off')
+            statusIcon.addClass('fa-toggle-on')
+          } else {
+            statusIcon.removeClass('fa-toggle-on')
+            statusIcon.addClass('fa-toggle-off')
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Project Update'});
+          }
+        }
+      });
+    });
+
+    {% comment %} Set Project Target Status with AJAX {% endcomment %}
+    $('.js-compromise-target').each(function () {
+      $(this).click(function () {
+        let url = $(this).attr('compromise-target-url');
+        let targetId = $(this).attr('compromise-target-id');
+        let csrftoken = $(this).attr('compromise-target-csrftoken');
+        let statusCellId = '#target-status-' + targetId;
+        let statusCell = $(statusCellId);
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
+        });
+        $.ajax({
+          url: url,
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            'target': targetId,
+          },
+          success: function (data) {
+            if (data['result'] === 'success') {
+              if (data['toggle'] == 0) {
+                statusCell.removeClass('skull-icon')
+              } else {
+                statusCell.addClass('skull-icon')
+              }
+            }
+            if (data['message']) {
+              displayToastTop({type: data['result'], string: data['message'], title: 'Target Update'});
+            }
+          }
+        });
+      });
+    });
+
+    {% comment %} Activate Report with AJAX {% endcomment %}
+    $('.js-activate-report').click(function () {
+      let url = $(this).attr('activate-report-url');
+      let reportId = $(this).attr('activate-report-id');
+      let csrftoken = $(this).attr('activate-report-csrftoken');
+      let activeReportBar = $('#active-report-id');
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'report': reportId
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            activeReportBar.html(data['report']);
+            activeReportBar.attr('href', data['report_url']);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Report Update'});
+          }
+        }
+      });
+    });
+
+    {% comment %} Export functions for logs and scopes {% endcomment %}
+    $('.js-export-oplog').on('click', function () {
+      let id = $(this).parent().find('.oplog-id').html()
+      download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, `exports_${id}.csv`);
+    });
+
+    $('.js-export-project-scope').click(function () {
+      let url = $(this).attr('export-scope-url');
+      let name = $(this).attr('export-scope-name');
+      download(url, name.concat('_scope.txt'));
+    });
+
+    {% comment %} FullCalendar rendering {% endcomment %}
+    document.addEventListener('DOMContentLoaded', function () {
+      {% comment %} Track the initial calendar view in local storage {% endcomment %}
+      let defaultView = (localStorage.getItem('fcDefaultViewProject') !== null ? localStorage.getItem('fcDefaultViewProject') : 'dayGridWeek');
+      let calendarEl = document.getElementById('calendar');
+      let calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: defaultView,
+        height: 'auto',
+        headerToolbar: {
+          left: 'today prev,next',
+          center: 'title',
+          right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
+        },
+
+        {% comment %} On view change, save the selected view to local storage, so it persists between page loads {% endcomment %}
+        viewClassNames: function (info) {
+          localStorage.setItem("fcDefaultViewProject", info.view.type);
+        }
+      });
+      calendar.render();
+
+      {% comment %} Add project execution window {% endcomment %}
+      let execWindows = {
+        title: 'Execution',
+        allDay: true,
+        start: '{{ project.start_date|date:"Y-m-d" }}',
+        end: '{{ project.end_date|plus_days:1|date:"Y-m-d" }}',
+        color: 'var(--primary-color)',
+        className: 'calendar-exec-icon'
+      };
+      calendar.addEvent(execWindows);
+
+      {% comment %} Add project assignments {% endcomment %}
+      {% for operator in project.projectassignment_set.all %}
+        let operator_{{ operator.id }}  = {
+          title: {% if operator.operator.name %}'{{ operator.operator.name|bleach }}'
+            {% else %}'{{ operator.operator.username|bleach }}'{% endif %},
+          allDay: true,
+          startRecur: '{{ operator.start_date|date:"Y-m-d" }}',
+          endRecur: '{{ operator.end_date|plus_days:1|date:"Y-m-d" }}',
+          daysOfWeek: [1, 2, 3, 4, 5],
+          color: 'var(--neutral-color)',
+          className: 'calendar-user-icon'
+        };
+        calendar.addEvent(operator_{{ operator.id }});
+      {% endfor %}
+
+      {% comment %} Add project objectives {% endcomment %}
+      {% for objective in project.projectobjective_set.all %}
+        let obj_{{  objective.id }} = {
+          title: '{{ objective.objective|striptags }}',
+          allDay: true,
+          start: '{{ objective.deadline|date:"Y-m-d" }}',
+          end: '{{ objective.deadline|date:"Y-m-d" }}',
+          color: 'var(--secondary-color-fade)',
+          className: 'calendar-objective-icon'
+        };
+        calendar.addEvent(obj_{{  objective.id }});
+
+        {% comment %} Add project tasks {% endcomment %}
+        {% if objective.projectsubtask_set.all %}
+          {% for task in objective.projectsubtask_set.all %}
+            let task_{{  task.id }} = {
+              title: '{{ task.task|striptags }}',
+              allDay: true,
+              start: '{{ task.deadline|date:"Y-m-d" }}',
+              end: '{{ task.deadline|date:"Y-m-d" }}',
+              color: 'var(--secondary-color-med)',
+              className: 'calendar-task-icon'
+            };
+            calendar.addEvent(task_{{  task.id }});
+          {% endfor %}
+        {% endif %}
+      {% endfor %}
+    });
+
+    {% comment %} Objective and task status management {% endcomment %}
+    function toggleObjective(ele) {
+      let url = ele.attr('toggle-objective-url');
+      let objectiveId = ele.attr('objective-id');
+      let csrftoken = ele.attr('objective-csrftoken');
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'objective': objectiveId
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            updateObjectiveRow(ele);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Objective Update'});
+          }
+          update_badges();
+        }
+      });
+    }
+
+    function toggleTodo(ele) {
+      let url = ele.attr('toggle-task-url');
+      let taskId = ele.attr('task-id');
+      let csrftoken = ele.attr('task-csrftoken');
+      let objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+      let objectiveRow = $(objectiveRowId);
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'task': taskId
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            updateObjectiveRow(objectiveRow);
+            updateTodoList(ele);
+            ele.toggleClass('complete');
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Task Update'});
+          }
+        }
+      });
+    }
+
+    function createTodo(ele) {
+      let url = ele.attr('new-task-url');
+      let csrftoken = ele.attr('new-task-csrftoken');
+      let objectiveId = ele.attr('objective-id');
+      let task = ele.find('input[name="task"]').val()
+      let deadline = ele.find('input[name="deadline"]').val()
+      let objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+      let objectiveRow = $(objectiveRowId);
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'objectiveId': objectiveId,
+          'task': task,
+          'deadline': deadline,
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            ele.trigger('reset');
+            updateObjectiveRow(objectiveRow);
+            updateTodoList(ele);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Task Update'});
+          }
+        }
+      });
+    }
+
+    function deleteTodo(ele) {
+      let url = ele.attr('delete-task-url');
+      let csrftoken = ele.attr('task-csrftoken');
+      let taskId = ele.attr('task-id');
+      let objectiveRowId = '#objective-row-' + ele.attr('objective-id');
+      let objectiveRow = $(objectiveRowId);
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'taskId': taskId,
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            updateTodoList(ele);
+            updateObjectiveRow(objectiveRow);
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Task Deleted'});
+          }
+        }
+      });
+    }
+
+    function updateTodo(ele) {
+      let url = ele.attr('update-task-url');
+      let csrftoken = ele.attr('task-csrftoken');
+      let taskId = ele.attr('task-id');
+      let task = $('textarea[name="task-' + taskId + '"]').val();
+      let deadline = $('input[name="task-deadline-' + taskId + '"]').val();
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'taskId': taskId,
+          'task': task,
+          'deadline': deadline,
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            // Do Something
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Task Updated'});
+          }
+        }
+      });
+    }
+
+    function updateObjectiveRow(ele) {
+      let url = ele.attr('refresh-objective-url');
+      let open = false;
+      if (ele.hasClass('open')) {
+        open = true;
+      }
+      if (url != null) {
+        console.log("Updating objective row...");
+        ele.load(url, function (data) {
+          data = $(data);
+          ele.replaceWith(data);
+          checker = data.find('input:checkbox:first');
+          checker.tooltip('enable');
+          if (open) {
+            data.toggleClass('open');
+          }
+        });
+      }
+    }
+
+    function updateTodoList(ele) {
+      let objectiveId = ele.attr('objective-id');
+      let taskList = $('#task-list-' + objectiveId);
+      let url = ele.attr('refresh-task-url');
+      if (url != null) {
+        taskList.html('').load(url, function () {
+          prepareTodoList();
+        });
+      }
+    }
+
+    let todo = function () {
+      $('.todo-nav .all-task').click(function () {
+        let $todoList = $('.todo-list')
+        $todoList.removeClass('only-active');
+        $todoList.removeClass('only-complete');
+        $('.todo-nav li.active').removeClass('active');
+        $(this).addClass('active');
+      });
+
+      $('.todo-nav .active-task').click(function () {
+        let $todoList = $('.todo-list')
+        $todoList.removeClass('only-complete');
+        $todoList.addClass('only-active');
+        $('.todo-nav li.active').removeClass('active');
+        $(this).addClass('active');
+      });
+
+      $('.todo-nav .completed-task').click(function () {
+        let $todoList = $('.todo-list')
+        $todoList.removeClass('only-active');
+        $todoList.addClass('only-complete');
+        $('.todo-nav li.active').removeClass('active');
+        $(this).addClass('active');
+      });
+
+      $('#uniform-all-complete input').click(function () {
+        if ($(this).is(':checked')) {
+          $('.todo-item .checker span:not(.checked) input').click();
+        } else {
+          $('.todo-item .checker span.checked input').click();
+        }
+      });
+    };
+
+    function prepareTodoList() {
+      $editTodoInout.textareaAutoSize();
+
+      todo();
+
+      // Get current date with timezone offset
+      Date.prototype.toDateInputValue = (function () {
+        let local = new Date(this);
+        local.setMinutes(this.getMinutes() - this.getTimezoneOffset());
+        return local.toJSON().slice(0, 10);
+      });
+
+      // Set parent's deadline as placeholder value for deadline fields
+      let rows = document.querySelectorAll('.accordion-row');
+      rows.forEach(function (row) {
+        let parentDeadline = row.getAttribute('deadline-date');
+        let taskList = $('#task-list-' + row.getAttribute('objective-id'))[0];
+        let deadlineField = taskList.querySelectorAll('.add-deadline')[0];
+        deadlineField.value = parentDeadline;
+      });
+
+      // Toggle ``readonly`` attribute on fields and save
+      $editTodoInout.click(function () {
+        $(this).attr('readonly', false);
+      });
+
+      $editTodoInout.blur(function () {
+        $(this).attr('readonly', true);
+        let currentValue = $(this).val();
+        let previousValue = $(this).attr('value');
+        $(this).attr('readonly', true);
+        if (currentValue != previousValue) {
+          updateTodo($(this).parent().parent());
+          updateTodoList($(this).parent().parent());
+        }
+      });
+    }
+
+    $(document).ready(function () {
+
+      "use strict";
+
+      prepareTodoList();
+    });
+  </script>
+
+  {% comment %} Generate modals for displaying the scope lists {% endcomment %}
+  {% for list in project.projectscope_set.all %}
+    <div class="modal" id="id_scope_{{ list.id }}" tabindex="-1" role="dialog"
+         aria-labelledby="scope_modal_{{ list.id }}" aria-hidden="true">
+      <div class="modal-dialog scope-modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="scopeModal_{{ list.id }}">{{ list.name }} – {{ list.count_lines_str }}</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="modal_scope_{{ list.id }}" class="modal-body scope-modal-body">
+            {{ list.scope|bleach|linebreaks }}
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary js-copy-scope"
+                    data-clipboard-target="#modal_scope_{{ list.id }}">Copy to Clipboard
+            </button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  {% comment %} Generate modals for displaying log entries for deconfliction events {% endcomment %}
+  {% for event in project.deconfliction_set.all %}
+    <div class="modal" id="id_deconfliction_{{ event.id }}" tabindex="-1" role="dialog"
+         aria-labelledby="deconfliction_modal_{{ event.id }}" aria-hidden="true">
+      <div class="modal-dialog modal-super-sized oplog-modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deconflictionModal_{{ event.id }}">Related Log Entries</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+
+          <div id="modal_deconfliction_{{ event.id }}" class="modal-body oplog-modal-body">
+            <p>Log entries from the hour prior to the alert timestamp, sorted from most recent to oldest.</p>
+            <table id="projectTable" class="tablesorter table table-sm table-hover">
+              <thead>
+              <tr>
+                <th class="align-middle">Start Date</th>
+                <th class="align-middle">Destination</th>
+                <th class="align-middle">Tool</th>
+                <th class="align-middle">User</th>
+                <th class="align-middle">Command</th>
+                <th class="align-middle">Description</th>
+                <th class="align-middle">Comments</th>
+                <th class="align-middle">Operator</th>
+              </tr>
+              </thead>
+              {% for entry in event.log_entries %}
+                <tr>
+                  <td class="align-middle">
+                    {% if entry.start_date %}{{ entry.start_date|date:"d M Y @ H:i:s e" }}{% endif %}</td>
+                  <td class="align-middle">{% if entry.dest_ip %}{{ entry.dest_ip }}{% endif %}</td>
+                  <td class="align-middle">{% if entry.tool %}{{ entry.tool }}{% endif %}</td>
+                  <td class="align-middle">{% if entry.user_context %}{{ entry.user_context }}{% endif %}</td>
+                  <td class="align-middle">{% if entry.command %}{{ entry.command }}{% endif %}</td>
+                  <td class="align-middle">{% if entry.description %}{{ entry.description }}{% endif %}</td>
+                  <td class="align-middle">{% if entry.comments %}{{ entry.comments }}{% endif %}</td>
+                  <td class="align-middle">{% if entry.operator_name %}{{ entry.operator_name }}{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </table>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
 {% endblock %}

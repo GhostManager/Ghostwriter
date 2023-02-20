@@ -28,9 +28,8 @@ def convert_to_jsonfield(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0031_auto_20220201_2331'),
+        ("shepherd", "0031_auto_20220201_2331"),
     ]
 
     operations = [

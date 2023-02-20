@@ -1,4 +1,4 @@
-"""This contains the custom template tags used by he Rolodex application."""
+"""This contains the custom template tags used by the Rolodex application."""
 
 # Standard Libraries
 import datetime
@@ -64,7 +64,7 @@ def plus_days(value, days):
 @register.filter
 def days_left(value):
     """
-    Calculate how many days between the current date and a provide ``datetime`` value.
+    Calculate how many days between the current date and provide a ``datetime`` value.
 
     **Parameters**
 
@@ -86,7 +86,7 @@ def get_item(dictionary, key):
     ``dictionary``
         Python dictionary object to parse
     ``key``
-        Key name tor retrieve from the dictionary
+        Key name to retrieve from the dictionary
     """
     # Use `get` to return `None` if not found
     return dictionary.get(key)
@@ -108,5 +108,5 @@ def group_by_priority(queryset):
         priority_dict[str(priority)] = []
     for objective in queryset:
         priority_dict[str(objective.priority)].append(objective)
-    # Return a basic dict because templates can't handle defaultdict
+    # Return a basic dict because templates can't handle the defaultdict type
     return dict(priority_dict)

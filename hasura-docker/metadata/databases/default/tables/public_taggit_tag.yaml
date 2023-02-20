@@ -1,0 +1,16 @@
+table:
+  name: taggit_tag
+  schema: public
+configuration:
+  column_config: {}
+  custom_column_names: {}
+  custom_name: tag
+  custom_root_fields: {}
+array_relationships:
+  - name: taggedItem
+    using:
+      foreign_key_constraint_on:
+        column: tag_id
+        table:
+          name: taggit_taggeditem
+          schema: public

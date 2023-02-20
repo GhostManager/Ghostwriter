@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "3.1.4"
+__version__ = "3.2.2"
 VERSION = __version__
-RELEASE_DATE = "11 November 2022"
+RELEASE_DATE = "13 February 2023"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -107,6 +107,7 @@ THIRD_PARTY_APPS = [
     "health_check.contrib.migrations",
     "health_check.contrib.psutil",
     "health_check.contrib.redis",
+    "taggit",
 ]
 
 LOCAL_APPS = [
@@ -265,9 +266,7 @@ X_FRAME_OPTIONS = "SAMEORIGIN"
 # EMAIL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
-EMAIL_BACKEND = env(
-    "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
-)
+EMAIL_BACKEND = env("DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # https://docs.djangoproject.com/en/2.2/ref/settings/#email-timeout
@@ -290,11 +289,7 @@ MANAGERS = ADMINS
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
-        }
-    },
+    "formatters": {"verbose": {"format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"}},
     "handlers": {
         "console": {
             "level": "DEBUG",
@@ -322,7 +317,9 @@ ACCOUNT_ADAPTER = "ghostwriter.users.adapters.AccountAdapter"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 SOCIALACCOUNT_ADAPTER = "ghostwriter.users.adapters.SocialAccountAdapter"
 ACCOUNT_SIGNUP_FORM_CLASS = "ghostwriter.home.forms.SignupForm"
-
+ACCOUNT_FORMS = {
+    "login": "ghostwriter.users.forms.UserLoginForm",
+}
 # django-compressor
 # ------------------------------------------------------------------------------
 # https://django-compressor.readthedocs.io/en/latest/quickstart/#installation
@@ -463,3 +460,7 @@ HEALTH_CHECK = {
     "MEMORY_MIN": env("HEALTHCHECK_MEM_MIN", default=100),
 }
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379")
+
+# Tagging
+# ------------------------------------------------------------------------------
+TAGGIT_CASE_INSENSITIVE = True

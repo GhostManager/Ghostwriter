@@ -5,15 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('shepherd', '0030_auto_20211103_1719'),
+        ("shepherd", "0030_auto_20211103_1719"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='domain',
-            name='categorization',
-            field=models.JSONField(blank=True, help_text='Categories applied to this domain as JSON - e.g., `source:category`', null=True, verbose_name='Categorization'),
+            model_name="domain",
+            name="categorization",
+            field=models.JSONField(
+                blank=True,
+                help_text="Categories applied to this domain as JSON - e.g., `source:category`",
+                null=True,
+                verbose_name="Categorization",
+            ),
         ),
     ]

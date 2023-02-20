@@ -36,9 +36,7 @@ class UserProfileModelTests(TestCase):
         )
         cls.in_memory_image = image
 
-        cls.uploaded_image_file = SimpleUploadedFile(
-            image_file.name, image_file.read(), content_type="image/png"
-        )
+        cls.uploaded_image_file = SimpleUploadedFile(image_file.name, image_file.read(), content_type="image/png")
 
     def test_crud_finding(self):
         # Create

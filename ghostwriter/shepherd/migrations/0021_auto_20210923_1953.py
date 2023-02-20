@@ -14,7 +14,6 @@ def convert_to_arrayfield(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("shepherd", "0020_transientserver_address"),
     ]

@@ -4,20 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0021_project_timezone'),
+        ("rolodex", "0021_project_timezone"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='project',
-            name='end_time',
-            field=models.TimeField(blank=True, help_text='Select the end time for each day', null=True, verbose_name='End Time'),
+            model_name="project",
+            name="end_time",
+            field=models.TimeField(
+                blank=True, help_text="Select the end time for each day", null=True, verbose_name="End Time"
+            ),
         ),
         migrations.AddField(
-            model_name='project',
-            name='start_time',
-            field=models.TimeField(blank=True, help_text='Select the start time for each day', null=True, verbose_name='Start Time'),
+            model_name="project",
+            name="start_time",
+            field=models.TimeField(
+                blank=True, help_text="Select the start time for each day", null=True, verbose_name="Start Time"
+            ),
         ),
     ]

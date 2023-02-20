@@ -1,4 +1,4 @@
-"""This contains all of the ``import_export`` model resources used by the Oplog application."""
+"""This contains all the ``import_export`` model resources used by the Oplog application."""
 
 # Standard Libraries
 from datetime import datetime as dt
@@ -6,7 +6,8 @@ from datetime import datetime as dt
 # 3rd Party Libraries
 from import_export import resources
 
-from .models import OplogEntry
+# Ghostwriter Libraries
+from ghostwriter.oplog.models import OplogEntry
 
 
 class OplogEntryResource(resources.ModelResource):

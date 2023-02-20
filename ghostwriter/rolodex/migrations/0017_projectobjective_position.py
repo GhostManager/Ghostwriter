@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('rolodex', '0016_auto_20210224_0645'),
+        ("rolodex", "0016_auto_20210224_0645"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='projectobjective',
-            name='position',
-            field=models.IntegerField(default=1, verbose_name='List Position'),
+            model_name="projectobjective",
+            name="position",
+            field=models.IntegerField(default=1, verbose_name="List Position"),
         ),
     ]

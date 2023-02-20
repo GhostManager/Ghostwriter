@@ -2,16 +2,16 @@
 
 <!-- Form Error Section -->
 {% if form.errors %}
-    <script>
-        {% for field in form %}
-            {% for error in field.errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-            {% endfor %}
-        {% endfor %}
-        {% for error in form.non_field_errors %}
-            displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-        {% endfor %}
-    </script>
+  <script>
+    {% for field in form %}
+      {% for error in field.errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    {% endfor %}
+    {% for error in form.non_field_errors %}
+      displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+    {% endfor %}
+  </script>
 {% endif %}
 
 <!-- Form Section -->
@@ -19,51 +19,38 @@
 
 <!-- Adds in a pretty border to the file input when a file is dragged over -->
 <script>
-    // Query the file drop element
-    const ele = document.getElementById("id_document")
-    // Add frame when dragging file into input
-    ele.addEventListener('dragover', function (e) {
-        filename.classList.add('dragging');
-    });
-    ele.addEventListener('dragenter', function (e) {
-        filename.classList.add('dragging');
-    });
-    // Removes drag class when drag leaves or file is dropped
-    ele.addEventListener('dragleave', function (e) {
-        filename.classList.remove('dragging');
-    });
-    ele.addEventListener('drop', function (e) {
-        filename.classList.remove('dragging');
-    });
-</script>
+  const fileInput = document.getElementById('id_document')
+  const previewDiv = document.getElementById('findingPreview')
 
-<!-- Script for File Upload -->
-<script>
-    // Insert a preview for pasted or selected image files
-    function renderPreview() {
-        fileInput = document.getElementById('id_document')
-        previewDiv = document.getElementById("findingPreview")
-        if (fileInput.files[0].type.indexOf("image")==0){
-            previewDiv.innerHTML = '<img id="loadedImage" alt="image"/ >'
-            loadedImage.src = URL.createObjectURL(fileInput.files[0])
-            loadedImage.style.border = "thin solid #555555";
-        }
+  // Add frame when dragging file into input
+  fileInput.addEventListener('dragover', function () {
+    filename.classList.add('dragging');
+  });
+  fileInput.addEventListener('dragenter', function () {
+    filename.classList.add('dragging');
+  });
+  // Removes drag class when drag leaves or file is dropped
+  fileInput.addEventListener('dragleave', function () {
+    filename.classList.remove('dragging');
+  });
+  fileInput.addEventListener('drop', function () {
+    filename.classList.remove('dragging');
+  });
+
+  // Detect when a file is pasted into the page and update the input and preview
+  $(window).on('paste', function (e) {
+    // Use event.originalEvent.clipboard for newer Chrome versions
+    let pastedFileObj = (e.clipboardData || e.originalEvent.clipboardData);
+
+    if (pastedFileObj.files.length) {
+      fileInput.files = pastedFileObj.files
+      filename.textContent = 'C:\\fakepath\\' + fileInput.files[0].name
+      renderPreview(fileInput, previewDiv)
     }
-    // Detect when a file is pasted into the page and update the input and preview
-    $(window).on('paste', function(e) {
-        fileInput = document.getElementById('id_document')
-        // use event.originalEvent.clipboard for newer chrome versions
-        var pastedFileObj = (e.clipboardData  || e.originalEvent.clipboardData);
-
-        if (pastedFileObj.files.length){
-            fileInput.files = pastedFileObj.files
-            filename.textContent = 'C:\\fakepath\\'+fileInput.files[0].name
-            renderPreview()
-        }
-    });
-    // Detect when a file is dragged into the page and update the input and preview
-    $('input[type=file]').on('change', function() {
-        $("#filename").text($(this).val());
-        renderPreview()
-    });
+  });
+  // Detect when a file is dragged into the page and update the input and preview
+  $('input[type=file]').on('change', function () {
+    $('#filename').text($(this).val());
+    renderPreview(fileInput, previewDiv)
+  });
 </script>

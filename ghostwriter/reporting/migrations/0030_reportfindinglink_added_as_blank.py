@@ -5,15 +5,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reporting', '0029_auto_20220706_1717'),
+        ("reporting", "0029_auto_20220706_1717"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='reportfindinglink',
-            name='added_as_blank',
-            field=models.BooleanField(default=False, help_text='Identify a finding that was created for this report instead of copied from the library', verbose_name='Added as Blank'),
+            model_name="reportfindinglink",
+            name="added_as_blank",
+            field=models.BooleanField(
+                default=False,
+                help_text="Identify a finding that was created for this report instead of copied from the library",
+                verbose_name="Added as Blank",
+            ),
         ),
     ]

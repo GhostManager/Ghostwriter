@@ -1,9 +1,9 @@
-"""This contains all of the URL mappings used by the Reporting application."""
+"""This contains all the URL mappings used by the Reporting application."""
 
 # Django Imports
 from django.urls import path
 
-from . import views
+from ghostwriter.reporting import views
 
 app_name = "reporting"
 
@@ -89,12 +89,8 @@ urlpatterns += [
 urlpatterns += [
     path("findings/<int:pk>", views.FindingDetailView.as_view(), name="finding_detail"),
     path("findings/create/", views.FindingCreate.as_view(), name="finding_create"),
-    path(
-        "findings/update/<int:pk>", views.FindingUpdate.as_view(), name="finding_update"
-    ),
-    path(
-        "findings/delete/<int:pk>", views.FindingDelete.as_view(), name="finding_delete"
-    ),
+    path("findings/update/<int:pk>", views.FindingUpdate.as_view(), name="finding_update"),
+    path("findings/delete/<int:pk>", views.FindingDelete.as_view(), name="finding_delete"),
     path(
         "findings/notes/create/<int:pk>",
         views.FindingNoteCreate.as_view(),

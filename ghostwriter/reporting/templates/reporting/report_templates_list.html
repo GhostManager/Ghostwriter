@@ -29,6 +29,7 @@
                     <th class="align-middle pr-4">Status</th>
                     <th class="align-middle pr-4">Doc Type</th>
                     <th class="align-middle pr-4">Name</th>
+                    <th class="align-middle pr-4">Orientation</th>
                     <th class="align-middle pr-4">Client</th>
                     <th class="sorter-false align-middle">Options</th>
                 </tr>
@@ -53,8 +54,9 @@
                                 {% endif %}
                         {% endwith %}
                     </td>
-                    <td class="align-middle">{{ template.doc_type }}</td>
+                    <td class="align-middle icon {% if template.doc_type.doc_type == "docx" %}word-icon{% else %}pptx-icon{% endif %}"></td>
                     <td class="align-middle"><a class="clickable" href="{% url 'reporting:template_detail' template.id %}">{{ template.name }}</a></td>
+                    <td class="align-middle">{% if template.landscape %}Landscsape{%  else %}Portrait{% endif %}</td>
                     <td class="align-middle">
                         {% if template.client %}
                             {{ template.client }}
