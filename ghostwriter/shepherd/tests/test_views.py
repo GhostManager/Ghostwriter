@@ -195,6 +195,7 @@ class DomainListViewTests(TestCase):
 
         cls.num_of_domains = 10
         cls.domains = []
+        categorization = {"Vendor": "Business"}
         for domain_id in range(cls.num_of_domains):
             name = f"domain{domain_id}.com"
             cls.domains.append(DomainFactory(name=name))
@@ -226,18 +227,21 @@ class DomainListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
 
-    def test_search_domains(self):
-        response = self.client_auth.get(self.uri + "?domain_search=domain2")
+    def test_filter_domains(self):
+        response = self.client_auth.get(self.uri + "?domain=domain2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
 
-    def test_filter_domains(self):
-        response = self.client_auth.get(self.uri + "?name=domain2&submit=Filter")
+        response = self.client_auth.get(self.uri + "?domain=domain&submit=Filter")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
+
+        response = self.client_auth.get(self.uri + "?domain=business&submit=Filter")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
 
     def test_blank_search(self):
-        response = self.client_auth.get(self.uri + "?domain_search=")
+        response = self.client_auth.get(self.uri + "?domain=")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
 
@@ -661,7 +665,8 @@ class ServerListViewTests(TestCase):
         cls.servers = []
         for server_id in range(cls.num_of_servers):
             name = f"server{server_id}.local"
-            cls.servers.append(StaticServerFactory(name=name))
+            ip_address = f"192.168.1.{server_id}"
+            cls.servers.append(StaticServerFactory(name=name, ip_address=ip_address))
 
         cls.uri = reverse("shepherd:servers")
 
@@ -691,9 +696,22 @@ class ServerListViewTests(TestCase):
         self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
 
     def test_filter_servers(self):
-        response = self.client_auth.get(self.uri + "?name=server2&submit=Filter")
+        response = self.client_auth.get(self.uri + "?server=server2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
+
+        response = self.client_auth.get(self.uri + "?server=server&submit=Filter")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
+
+        response = self.client_auth.get(self.uri + "?server=192.168.1.&submit=Filter")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
+
+    def test_blank_search(self):
+        response = self.client_auth.get(self.uri + "?server=")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
 
 
 class ServerDetailViewTests(TestCase):
