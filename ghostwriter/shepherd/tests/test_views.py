@@ -198,7 +198,7 @@ class DomainListViewTests(TestCase):
         categorization = {"Vendor": "Business"}
         for domain_id in range(cls.num_of_domains):
             name = f"domain{domain_id}.com"
-            cls.domains.append(DomainFactory(name=name))
+            cls.domains.append(DomainFactory(name=name, categorization=categorization))
 
         cls.uri = reverse("shepherd:domains")
 
