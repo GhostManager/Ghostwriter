@@ -30,10 +30,8 @@ class DomainFilter(django_filters.FilterSet):
 
     **Fields**
 
-    ``name``
-        Case insensitive search of the name field contents
-    ``categorization``
-        Case insensitive search of the categorization field
+    ``domain``
+        Case insensitive search of the `name` and `categorization` fields contents
     ``health_status``
         Checkbox choice filter using :model:`shepherd.HealthStatus`
     ``domain_status``
@@ -42,15 +40,10 @@ class DomainFilter(django_filters.FilterSet):
         Checkbox to exclude expired domains from search results
     """
 
-    name = django_filters.CharFilter(
-        lookup_expr="icontains",
-        label="Domain Name Contains",
-        widget=TextInput(attrs={"placeholder": "Domain Name", "autocomplete": "off"}),
-    )
-    categorization = django_filters.CharFilter(
-        lookup_expr="icontains",
-        label="Categories Contain",
-        widget=TextInput(attrs={"placeholder": "Category", "autocomplete": "off"}),
+    domain = django_filters.CharFilter(
+        method="search_name_and_category",
+        label="Domain Name or Category Contains",
+        widget=TextInput(attrs={"placeholder": "Partial Domain Name or Category", "autocomplete": "off"}),
     )
     health_status = django_filters.ModelMultipleChoiceFilter(
         queryset=HealthStatus.objects.all(),
@@ -71,16 +64,7 @@ class DomainFilter(django_filters.FilterSet):
 
     class Meta:
         model = Domain
-        fields = ["name", "categorization", "health_status", "domain_status"]
-
-    def filter_expired(self, queryset, name, value):
-        """
-        Choose to include or exclude expired domains in search results.
-        """
-        if value:
-            # return queryset.filter(Q(expiration__lt=date.today()) & Q(auto_renew=False))
-            return queryset.filter(Q(expiration__gte=date.today()) | Q(auto_renew=True))
-        return queryset
+        fields = ["health_status", "domain_status"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -91,12 +75,8 @@ class DomainFilter(django_filters.FilterSet):
         self.helper.layout = Layout(
             Row(
                 Column(
-                    PrependedText("name", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-6",
-                ),
-                Column(
-                    PrependedText("categorization", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-6",
+                    PrependedText("domain", '<i class="fas fa-filter"></i>'),
+                    css_class="col-md-12",
                 ),
                 css_class="form-row",
             ),
@@ -118,6 +98,20 @@ class DomainFilter(django_filters.FilterSet):
                 ),
             ),
         )
+
+    def filter_expired(self, queryset, name, value):
+        """
+        Choose to include or exclude expired domains in search results.
+        """
+        if value:
+            return queryset.filter(Q(expiration__gte=date.today()) | Q(auto_renew=True))
+        return queryset
+
+    def search_name_and_category(self, queryset, name, value):
+        """
+        Search for a value that appears in either the :model:`shepherd.Domain` `name` and `categorization` fields.
+        """
+        return queryset.filter(Q(name__icontains=value) | Q(categorization__icontains=value))
 
 
 class ServerFilter(django_filters.FilterSet):
