@@ -120,23 +120,17 @@ class ServerFilter(django_filters.FilterSet):
 
     **Fields**
 
-    ``io_address``
-        Case insensitive search of the ip_address field contents
-    ``name``
-        Case insensitive search of the name field contents
+    ``server``
+        Case insensitive search of the `ip_address` and `name` fields tied to
+        :model:`shepherd.StaticServer` and :model:`shepherd.AuxServerAddress`
     ``server_status``
         Checkbox choice filter using :model:`shepherd.ServerStatus`
     """
 
-    ip_address = django_filters.CharFilter(
-        lookup_expr="icontains",
-        label="IP Address Contains",
-        widget=TextInput(attrs={"placeholder": "IP Address", "autocomplete": "off"}),
-    )
-    name = django_filters.CharFilter(
-        lookup_expr="icontains",
-        label="Server Name Contains",
-        widget=TextInput(attrs={"placeholder": "Hostname", "autocomplete": "off"}),
+    server = django_filters.CharFilter(
+        method="search_name_and_address",
+        label="IP Address or Hostname Contains",
+        widget=TextInput(attrs={"placeholder": "Partial IP Address or Hostname", "autocomplete": "off"}),
     )
     server_status = django_filters.ModelMultipleChoiceFilter(
         queryset=ServerStatus.objects.all(),
@@ -146,23 +140,19 @@ class ServerFilter(django_filters.FilterSet):
 
     class Meta:
         model = Domain
-        fields = ["ip_address", "name", "server_status"]
+        fields = ["server_status"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_show_labels = False
+        self.helper.form_show_labels = True
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Row(
                 Column(
-                    PrependedText("ip_address", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-6",
-                ),
-                Column(
-                    PrependedText("name", '<i class="fas fa-filter"></i>'),
-                    css_class=" col-md-6",
+                    PrependedText("server", '<i class="fas fa-filter"></i>'),
+                    css_class="col-md-12",
                 ),
                 css_class="form-row",
             ),
@@ -182,4 +172,13 @@ class ServerFilter(django_filters.FilterSet):
                     """
                 ),
             ),
+        )
+
+    def search_name_and_address(self, queryset, name, value):
+        """
+        Search for a value that appears in either the :model:`shepherd.StaticServer` `name` and `ip_address` fields
+        or the :model:`shepherd.AuxServerAddress` `ip_address` field.
+        """
+        return queryset.filter(
+            Q(ip_address__icontains=value) | Q(name__icontains=value) | Q(auxserveraddress__ip_address__icontains=value)
         )
