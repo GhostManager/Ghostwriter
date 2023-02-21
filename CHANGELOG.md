@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 21 February 2023
+
+## Changed
+
+* The server will now update references to an evidence file inside the associated finding when you change that file's name
+* Changed the server search form under the project dashboard's Infrastructure tab to work like the adjacent domain search form
+  * The form no longer requires an exact match for an IP address
+  * It is now possible to search for partial matches against one of the server's IP addresses or its hostname
+  * The form will now load a list of results for review rather than take you directly to the checkout page
+* Combined some fields for the domain and server filter forms on their respective library pages
+  * The domain filter has combined the "Name" and "Categorization" fields
+  * The server filter has combined the "Hostname" and "IP Address" fields 
+
 ## [v3.2.2] - 13 February 2023
 
 ## Changed
