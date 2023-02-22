@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The domain filter has combined the "Name" and "Categorization" fields
   * The server filter has combined the "Hostname" and "IP Address" fields 
 
+## Fixed
+
+* Fixed severity category ordering appearing reversed for new installations of v3.2.0 to v3.0.2 (Fixes #292)
+
 ## [v3.2.2] - 13 February 2023
 
 ## Changed
