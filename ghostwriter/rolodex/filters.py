@@ -96,19 +96,21 @@ class ProjectFilter(django_filters.FilterSet):
     """
 
     client = django_filters.CharFilter(
-        lookup_expr="name__icontains",
+        label="Client Name Contains",
+        method="search_all_client_names",
         widget=TextInput(
             attrs={
-                "placeholder": "Part of Client Name",
+                "placeholder": "Partial Client Name",
                 "autocomplete": "off",
             }
         ),
     )
     codename = django_filters.CharFilter(
+        label="Project Codename Contains",
         lookup_expr="icontains",
         widget=TextInput(
             attrs={
-                "placeholder": "Part of Codename",
+                "placeholder": "Partial Project Codename",
                 "autocomplete": "off",
             }
         ),
@@ -125,14 +127,27 @@ class ProjectFilter(django_filters.FilterSet):
         label="End Date",
         widget=forms.DateInput(attrs={"type": "date", "class": "dateinput form-control"}),
     )
-    start_date_range = django_filters.DateRangeFilter(field_name="start_date", empty_label="-- Relative Start Date --")
+    start_date_range = django_filters.DateRangeFilter(
+        label="Relative Start Date", field_name="start_date", empty_label="-- Relative Start Date --"
+    )
 
     STATUS_CHOICES = (
         (0, "Active"),
         (1, "Completed"),
     )
 
-    complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label="All Projects", label="Project status")
+    complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label="All Projects", label="Project Status")
+
+    PROJECT_TYPE_CHOICES = []
+    for p_type in ProjectType.objects.all():
+        PROJECT_TYPE_CHOICES.append((p_type.pk, p_type.project_type))
+
+    project_type = django_filters.ChoiceFilter(
+        choices=PROJECT_TYPE_CHOICES,
+        label="Project Type",
+        field_name="project_type",
+        empty_label="-- Project Type --",
+    )
 
     class Meta:
         model = Project
@@ -144,20 +159,23 @@ class ProjectFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Div(
                 Row(
                     Column(
                         PrependedText("client", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-4 mb-0",
+                        css_class="form-group col-md-6 mb-0",
                     ),
                     Column(
                         PrependedText("codename", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-4 mb-0",
+                        css_class="form-group col-md-6 mb-0",
                     ),
-                    Column("complete", css_class="form-group col-md-4 mb-0"),
+                ),
+                Row(
+                    Column("project_type", css_class="form-group col-md-6 mb-0"),
+                    Column("complete", css_class="form-group col-md-6 mb-0"),
+                    css_class="form-row",
                 ),
                 Row(
                     Column("start_date_range", css_class="form-group col-md-4 mb-0"),
@@ -177,16 +195,29 @@ class ProjectFilter(django_filters.FilterSet):
                 ButtonHolder(
                     HTML(
                         """
-                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'rolodex:project_create_no_client' %}">Create</a>
+                        <a class="btn btn-info col-md-2" role="button"
+                        href="{%  url 'rolodex:project_create_no_client' %}">Create</a>
                         """
                     ),
                     Submit("submit_btn", "Filter", css_class="btn btn-primary col-md-2"),
                     HTML(
                         """
-                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'rolodex:projects' %}">Reset</a>
+                        <a class="btn btn-outline-secondary col-md-2" role="button"
+                        href="{%  url 'rolodex:projects' %}">Reset</a>
                         """
                     ),
                 ),
                 css_class="justify-content-center",
             ),
+        )
+
+    def search_all_client_names(self, queryset, name, value):
+        """
+        Search for a value that appears in the :model:`rolodex.Client`
+        `name`, `short_name`, or `codename` fields.
+        """
+        return queryset.filter(
+            Q(client__name__icontains=value)
+            | Q(client__short_name__icontains=value)
+            | Q(client__codename__icontains=value)
         )
