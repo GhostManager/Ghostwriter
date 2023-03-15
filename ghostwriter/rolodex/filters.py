@@ -8,9 +8,10 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 
 # Django Imports
 from django import forms
+from django.db.models import Q
 from django.forms.widgets import TextInput
 
-from ghostwriter.rolodex.models import Client, Project
+from ghostwriter.rolodex.models import Client, Project, ProjectType
 
 
 class ClientFilter(django_filters.FilterSet):
@@ -26,22 +27,9 @@ class ClientFilter(django_filters.FilterSet):
     """
 
     name = django_filters.CharFilter(
-        lookup_expr="icontains",
-        widget=TextInput(
-            attrs={
-                "placeholder": "Part of Name",
-                "autocomplete": "off",
-            }
-        ),
-    )
-    codename = django_filters.CharFilter(
-        lookup_expr="icontains",
-        widget=TextInput(
-            attrs={
-                "placeholder": "Part of Codename",
-                "autocomplete": "off",
-            }
-        ),
+        method="search_all_names",
+        label="Client Name Contains",
+        widget=TextInput(attrs={"placeholder": "Partial Name, Short Name, or Code Name", "autocomplete": "off"}),
     )
 
     class Meta:
@@ -52,18 +40,13 @@ class ClientFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Div(
                 Row(
                     Column(
                         PrependedText("name", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-6 mb-0",
-                    ),
-                    Column(
-                        PrependedText("codename", '<i class="fas fa-filter"></i>'),
-                        css_class="form-group col-md-6 mb-0",
+                        css_class="form-group col-md-12 mb-0",
                     ),
                     css_class="form-row",
                 ),
@@ -83,6 +66,13 @@ class ClientFilter(django_filters.FilterSet):
                 css_class="justify-content-center",
             ),
         )
+
+    def search_all_names(self, queryset, name, value):
+        """
+        Search for a value that appears in the :model:`rolodex.Client`
+        `name`, `short_name`, or `codename` fields.
+        """
+        return queryset.filter(Q(name__icontains=value) | Q(short_name__icontains=value) | Q(codename__icontains=value))
 
 
 class ProjectFilter(django_filters.FilterSet):
