@@ -30,8 +30,8 @@ class FindingFilter(django_filters.FilterSet):
 
     title = django_filters.CharFilter(
         lookup_expr="icontains",
-        label="Title Contains",
-        widget=TextInput(attrs={"placeholder": "Part of Title", "autocomplete": "off"}),
+        label="Finding Title Contains",
+        widget=TextInput(attrs={"placeholder": "Partial Finding Title", "autocomplete": "off"}),
     )
     severity = django_filters.ModelMultipleChoiceFilter(
         queryset=Severity.objects.all().order_by("weight"),
@@ -52,7 +52,6 @@ class FindingFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Div(
@@ -109,8 +108,8 @@ class ReportFilter(django_filters.FilterSet):
 
     title = django_filters.CharFilter(
         lookup_expr="icontains",
-        label="Title Contains",
-        widget=TextInput(attrs={"placeholder": "Part of Title", "autocomplete": "off"}),
+        label="Report Title Contains",
+        widget=TextInput(attrs={"placeholder": "Partial Report Title", "autocomplete": "off"}),
     )
 
     STATUS_CHOICES = (
@@ -128,7 +127,6 @@ class ReportFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Div(
@@ -173,9 +171,9 @@ class ArchiveFilter(django_filters.FilterSet):
 
     client = django_filters.CharFilter(
         field_name="project__client__name",
-        label="Client Name",
+        label="Client Name Contains",
         lookup_expr="icontains",
-        widget=TextInput(attrs={"placeholder": "Part of Name", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "Partial Client Name", "autocomplete": "off"}),
     )
 
     class Meta:
@@ -186,7 +184,6 @@ class ArchiveFilter(django_filters.FilterSet):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
         self.helper.form_method = "get"
-        self.helper.form_show_labels = False
         # Layout the form for Bootstrap
         self.helper.layout = Layout(
             Div(
