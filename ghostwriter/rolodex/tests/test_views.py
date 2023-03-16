@@ -552,3 +552,107 @@ class ProjectCreateTests(TestCase):
         response = self.client_auth.get(self.no_client_uri)
         self.assertIn("client", response.context["form"].initial)
         self.assertEqual(response.context["client"], "")
+
+
+class ClientListViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.client_list`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        ClientFactory(name="SpecterOps", short_name="SO", codename="BloodHound")
+        ClientFactory(name="SpecterPops", short_name="SP", codename="Ghost")
+        ClientFactory(name="Test", short_name="TST", codename="Popsicle")
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("rolodex:clients")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/client_list.html")
+
+    def test_client_filtering(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 3)
+
+        response = self.client_auth.get(f"{self.uri}?name=SpecterOps")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+
+        response = self.client_auth.get(f"{self.uri}?name=pops")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 2)
+
+
+class ProjectListViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.project_list`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        client_1 = ClientFactory(name="SpecterOps", short_name="SO", codename="BloodHound")
+        client_2 = ClientFactory(name="SpecterPops", short_name="SP", codename="Ghost")
+        client_3 = ClientFactory(name="Test", short_name="TST", codename="Popsicle")
+        ProjectFactory(codename="P1", client=client_1)
+        ProjectFactory(codename="P2", client=client_2)
+        ProjectFactory(codename="P2", client=client_3)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("rolodex:projects")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/project_list.html")
+
+    def test_client_filtering(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 3)
+
+        response = self.client_auth.get(f"{self.uri}?client=SpecterOps")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+
+        response = self.client_auth.get(f"{self.uri}?client=pops")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 2)
+
+    def test_codename_filtering(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 3)
+
+        response = self.client_auth.get(f"{self.uri}?codename=p")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 3)
+
+        response = self.client_auth.get(f"{self.uri}?codename=p1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
