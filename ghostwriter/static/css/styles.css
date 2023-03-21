@@ -2552,6 +2552,11 @@ ol {
   margin-right: 0;
 }
 
+.note-container a {
+  color: var(--active-link-color);
+  text-decoration: underline;
+}
+
 .note-time {
   color: #aaa;
   font-size: .8em;
