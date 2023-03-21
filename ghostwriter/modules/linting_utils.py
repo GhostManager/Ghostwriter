@@ -389,4 +389,5 @@ LINTER_CONTEXT = {
         "team": 2,
         "targets": 1,
     },
+    "tools": ["beacon", "covenant", "mythic", "poseidon"],
 }
