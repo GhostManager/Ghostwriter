@@ -26,15 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Short names are now listed alongside the full name and codename on the client list page
 * Filtering by client name on the project filter page also searches against the client's full name, short name, and codename
 * Copied log entries now have their start and end dates set automatically to the current timestamp
+* Updated WYSIWYG editor skin to better match the rest of the interface
 
 ## Fixed
 
 * Fixed severity category ordering appearing reversed for new installations of v3.2.0 to v3.0.2 (Fixes #292)
 * Fixed hyperlinks not being distinguishable from the regular text in notes (Closes #295)
-
-# Security
-
-* Upgraded to TinyMCE v5.10.7
 
 ## [v3.2.2] - 13 February 2023
 
