@@ -1,16 +1,18 @@
 """This contains all the model filters used by the Rolodex application."""
 
+# Django Imports
+from django import forms
+from django.db import ProgrammingError
+from django.db.models import Q
+from django.forms.widgets import TextInput
+
 # 3rd Party Libraries
 import django_filters
 from crispy_forms.bootstrap import PrependedText
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
-# Django Imports
-from django import forms
-from django.db.models import Q
-from django.forms.widgets import TextInput
-
+# Ghostwriter Libraries
 from ghostwriter.rolodex.models import Client, Project, ProjectType
 
 
@@ -139,8 +141,12 @@ class ProjectFilter(django_filters.FilterSet):
     complete = django_filters.ChoiceFilter(choices=STATUS_CHOICES, empty_label="All Projects", label="Project Status")
 
     PROJECT_TYPE_CHOICES = []
-    for p_type in ProjectType.objects.all():
-        PROJECT_TYPE_CHOICES.append((p_type.pk, p_type.project_type))
+    try:
+        for p_type in ProjectType.objects.all():
+            PROJECT_TYPE_CHOICES.append((p_type.pk, p_type))
+    # New installs will not have the ``ProjectType`` table yet and throw a ``ProgrammingError`` exception here
+    except ProgrammingError:
+        pass
 
     project_type = django_filters.ChoiceFilter(
         choices=PROJECT_TYPE_CHOICES,
