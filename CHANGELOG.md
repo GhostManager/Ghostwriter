@@ -4,7 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 21 February 2023
+## [v3.2.3] - 22 March 2023
+
+## Added
+
+* Added the option to filter the project list by the assessment type
+* Added `NO_PROXY` environment variables to production containers to prevent a proxy from being used for internal container connections
+* Added a `tools` key to the report template context data that contains a list of unique tools that appeared in activity log entries
 
 ## Changed
 
@@ -15,11 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The form will now load a list of results for review rather than take you directly to the checkout page
 * Combined some fields for the domain and server filter forms on their respective library pages
   * The domain filter has combined the "Name" and "Categorization" fields
-  * The server filter has combined the "Hostname" and "IP Address" fields 
+  * The server filter has combined the "Hostname" and "IP Address" fields
+* Simplified the client search to a single field that searches against the client's full name, short name, and codename (Closes #294)
+  * Short names are now listed alongside the full name and codename on the client list page
+* Filtering by client name on the project filter page also searches against the client's full name, short name, and codename
+* Copied log entries now have their start and end dates set automatically to the current timestamp
 
 ## Fixed
 
 * Fixed severity category ordering appearing reversed for new installations of v3.2.0 to v3.0.2 (Fixes #292)
+* Fixed hyperlinks not being distinguishable from the regular text in notes (Closes #295)
+
+# Security
+
+* Upgraded to TinyMCE v5.10.7
 
 ## [v3.2.2] - 13 February 2023
 
