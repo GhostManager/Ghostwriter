@@ -1,6 +1,8 @@
 # Standard Libraries
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+
+import pytz
 
 # Django Imports
 from django.test import TestCase
@@ -876,11 +878,11 @@ class WhiteCardFormSetTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.project = ProjectFactory()
+        cls.project = ProjectFactory(start_date=date.today())
         cls.project_dict = cls.project.__dict__
-        cls.whitecard_1 = WhiteCardFactory(project=cls.project)
-        cls.whitecard_2 = WhiteCardFactory(project=cls.project)
-        cls.to_be_deleted = WhiteCardFactory(project=cls.project)
+        cls.whitecard_1 = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
+        cls.whitecard_2 = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
+        cls.to_be_deleted = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
 
     def form_data(self, data, **kwargs):
         return instantiate_formset(WhiteCardFormSet, data=data, instance=self.project)

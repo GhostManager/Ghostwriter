@@ -39,6 +39,7 @@ services:
       - HASURA_ACTION_SECRET=${HASURA_GRAPHQL_ACTION_SECRET}
       - MAILGUN_API_KEY=${DJANGO_MAILGUN_API_KEY}
       - MAILGUN_DOMAIN=${DJANGO_MAILGUN_DOMAIN}
+      - NO_PROXY=graphql_engine
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -69,6 +70,7 @@ services:
     labels:
       name: ghostwriter_postgres
     environment:
+      - NO_PROXY=django,graphql_engine
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -99,6 +101,8 @@ services:
     ports:
       - "0.0.0.0:80:80"
       - "0.0.0.0:443:443"
+    environment:
+      - NO_PROXY=django,graphql_engine
     healthcheck:
       test: curl --insecure --fail https://localhost/accounts/login || exit 1
       interval: ${HEALTHCHECK_INTERVAL}
@@ -172,6 +176,7 @@ services:
       - HASURA_GRAPHQL_METADATA_DIR=${HASURA_GRAPHQL_METADATA_DIR}
       - HASURA_GRAPHQL_MIGRATIONS_DIR=${HASURA_GRAPHQL_MIGRATIONS_DIR}
       - HASURA_GRAPHQL_SERVER_PORT=${HASURA_GRAPHQL_SERVER_PORT}
+      - NO_PROXY=django
     healthcheck:
       test: curl --insecure --fail http://graphql_engine:8080/healthz || exit 1
       interval: ${HEALTHCHECK_INTERVAL}

@@ -4,6 +4,10 @@
 import json
 import logging
 from copy import deepcopy
+from datetime import datetime
+
+# Django Imports
+from django.utils.timezone import make_aware
 
 # 3rd Party Libraries
 from channels.db import database_sync_to_async
@@ -38,6 +42,8 @@ def copyOplogEntry(entry_id):
     if entry:
         copy = deepcopy(entry)
         copy.pk = None
+        copy.start_date = make_aware(datetime.utcnow())
+        copy.end_date = make_aware(datetime.utcnow())
         copy.save()
         copy.tags.add(*entry.tags.all())
 

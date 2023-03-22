@@ -564,14 +564,38 @@ class EvidenceModelTests(TestCase):
         except Exception:
             self.fail("Evidence model `filename` property failed unexpectedly!")
 
-    def test_delete_old_evidence_on_update_signal(self):
-        evidence = EvidenceFactory(document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"))
+    def test_evidence_update_signal(self):
+        finding = ReportFindingLinkFactory(
+            description="<p>Here is some evidence:</p><p>{{.Evidence}}</p><p>{{.ref Evidence}}</p>"
+        )
+        evidence = EvidenceFactory(
+            finding=finding,
+            friendly_name="Evidence",
+            document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"),
+        )
+
+        self.assertEqual(f"evidence/{finding.report.id}/evidence.txt", evidence.document.name)
+
         evidence.document = SimpleUploadedFile("new_evidence.txt", b"lorem ipsum")
         evidence.save()
+        evidence.refresh_from_db()
 
+        self.assertTrue(hasattr(evidence, "_current_evidence"))
         self.assertTrue(evidence._current_evidence.path not in evidence.document.path)
         self.assertFalse(os.path.exists(evidence._current_evidence.path))
         self.assertTrue(os.path.exists(evidence.document.path))
+
+        evidence.friendly_name = "New Name"
+        evidence.save()
+        evidence.refresh_from_db()
+        finding.refresh_from_db()
+
+        self.assertTrue(hasattr(evidence, "_current_friendly_name"))
+        self.assertEqual(evidence._current_friendly_name, "Evidence")
+        self.assertEqual(evidence.friendly_name, "New Name")
+        self.assertEqual(
+            finding.description, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
+        )
 
 
 class FindingNoteModelTests(TestCase):

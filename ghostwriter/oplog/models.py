@@ -82,7 +82,7 @@ class OplogEntry(models.Model):
         "User Context",
         null=True,
         blank=True,
-        help_text="The user context under which th command executed.",
+        help_text="The user context under which the command executed.",
         max_length=255,
     )
     command = models.TextField(

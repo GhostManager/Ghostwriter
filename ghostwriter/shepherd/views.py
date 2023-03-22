@@ -521,13 +521,11 @@ def domain_list(request):
 
     :template:`shepherd/domain_list.html`
     """
-    # Check if a search parameter is in the request
     search_term = ""
-    if "domain_search" in request.GET:
-        search_term = request.GET.get("domain_search").strip()
+    if "domain" in request.GET:
+        search_term = request.GET.get("domain").strip()
         if search_term is None or search_term == "":
             search_term = ""
-    # If there is a search term, filter the query by domain name or category
     if search_term:
         messages.success(
             request,
@@ -541,9 +539,9 @@ def domain_list(request):
         )
     else:
         domains_list = Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
-    # Copy the GET request data
+
+    # If user has not submitted a filter, default showing available domains with expiry dates in the future
     data = request.GET.copy()
-    # If user has not submitted a filter, default showing Available domains with expiry dates in the future
     if len(data) == 0:
         data["domain_status"] = 1
         data["exclude_expired"] = True
@@ -565,83 +563,35 @@ def server_list(request):
 
     :template:`shepherd/server_list.html`
     """
-    servers_list = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
-    # Copy the GET request data
+    search_term = ""
+    if "server" in request.GET:
+        search_term = request.GET.get("server").strip()
+        if search_term is None or search_term == "":
+            search_term = ""
+    if search_term:
+        messages.success(
+            request,
+            f"Showing search results for: {search_term}",
+            extra_tags="alert-success",
+        )
+        servers_list = (
+            StaticServer.objects.select_related("server_status")
+            .filter(
+                Q(ip_address__icontains=search_term)
+                | Q(name__icontains=search_term)
+                | Q(auxserveraddress__ip_address__icontains=search_term)
+            )
+            .order_by("ip_address")
+        )
+    else:
+        servers_list = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+
+    # If user has not submitted their own filter, default to showing only available servers
     data = request.GET.copy()
-    # If user has not submitted their own filter, default to showing only Available domains
     if len(data) == 0:
         data["server_status"] = 1
     servers_filter = ServerFilter(data, queryset=servers_list)
     return render(request, "shepherd/server_list.html", {"filter": servers_filter})
-
-
-@login_required
-def server_search(request):
-    """
-    Search :model:`shepherd.StaticServer` and :model:`shepherd.AuxServerAddress` for
-    an instance of :model:`rolodex.Project` to return a matching :model:`shepherd.StaticServer`.
-    """
-    if request.method == "POST":
-        ip_address = request.POST.get("server_search").strip()
-        project_id = request.POST.get("project_id")
-        try:
-            server_instance = StaticServer.objects.get(ip_address=ip_address)
-            if server_instance:
-                unavailable = ServerStatus.objects.get(server_status="Unavailable")
-                if server_instance.server_status == unavailable:
-                    messages.warning(
-                        request,
-                        "The server matching {server} is currently marked as unavailable".format(server=ip_address),
-                        extra_tags="alert-warning",
-                    )
-                    return HttpResponseRedirect(
-                        "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": project_id}))
-                    )
-                return HttpResponseRedirect(
-                    reverse(
-                        "shepherd:server_checkout",
-                        kwargs={"pk": server_instance.id},
-                    )
-                )
-        except StaticServer.DoesNotExist:
-            pass
-        except Exception:
-            logger.exception("Encountered error with search query")
-
-        try:
-            server_instance = AuxServerAddress.objects.select_related("static_server").get(ip_address=ip_address)
-            if server_instance:
-                unavailable = ServerStatus.objects.get(server_status="Unavailable")
-                if server_instance.static_server.server_status == unavailable:
-                    messages.warning(
-                        request,
-                        "The server matching {server} is currently marked as unavailable".format(server=ip_address),
-                        extra_tags="alert-warning",
-                    )
-                    return HttpResponseRedirect(
-                        "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": project_id}))
-                    )
-                return HttpResponseRedirect(
-                    reverse(
-                        "shepherd:server_checkout",
-                        kwargs={"pk": server_instance.static_server.id},
-                    )
-                )
-        except AuxServerAddress.DoesNotExist:
-            pass
-        except Exception:
-            logger.exception("Encountered error with search query")
-
-        messages.warning(
-            request,
-            "No server was found matching {server}".format(server=ip_address),
-            extra_tags="alert-warning",
-        )
-        return HttpResponseRedirect(
-            "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": project_id}))
-        )
-
-    return HttpResponseRedirect(reverse("shepherd:servers"))
 
 
 @login_required

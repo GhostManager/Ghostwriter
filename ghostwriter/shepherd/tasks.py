@@ -71,7 +71,7 @@ class BearerAuth(requests.auth.AuthBase):
 
 def namecheap_reset_dns(namecheap_config, domain):
     """
-    Try to use the Namecheap API to reset th DNS records for a target domain.
+    Try to use the Namecheap API to reset the DNS records for a target domain.
 
     **Parameters**
 

@@ -1,10 +1,11 @@
 # Standard Libraries
 import logging
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 # Django Imports
 from django.test import Client, TestCase
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_str
 
 # Ghostwriter Libraries
@@ -195,9 +196,10 @@ class DomainListViewTests(TestCase):
 
         cls.num_of_domains = 10
         cls.domains = []
+        categorization = {"Vendor": "Business"}
         for domain_id in range(cls.num_of_domains):
             name = f"domain{domain_id}.com"
-            cls.domains.append(DomainFactory(name=name))
+            cls.domains.append(DomainFactory(name=name, categorization=categorization))
 
         cls.uri = reverse("shepherd:domains")
 
@@ -226,18 +228,21 @@ class DomainListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
 
-    def test_search_domains(self):
-        response = self.client_auth.get(self.uri + "?domain_search=domain2")
+    def test_filter_domains(self):
+        response = self.client_auth.get(self.uri + "?domain=domain2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
 
-    def test_filter_domains(self):
-        response = self.client_auth.get(self.uri + "?name=domain2&submit=Filter")
+        response = self.client_auth.get(self.uri + "?domain=domain&submit=Filter")
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["filter"].qs) == 1)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
+
+        response = self.client_auth.get(self.uri + "?domain=business&submit=Filter")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
 
     def test_blank_search(self):
-        response = self.client_auth.get(self.uri + "?domain_search=")
+        response = self.client_auth.get(self.uri + "?domain=")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == len(self.domains))
 
@@ -661,7 +666,8 @@ class ServerListViewTests(TestCase):
         cls.servers = []
         for server_id in range(cls.num_of_servers):
             name = f"server{server_id}.local"
-            cls.servers.append(StaticServerFactory(name=name))
+            ip_address = f"192.168.1.{server_id}"
+            cls.servers.append(StaticServerFactory(name=name, ip_address=ip_address))
 
         cls.uri = reverse("shepherd:servers")
 
@@ -691,9 +697,22 @@ class ServerListViewTests(TestCase):
         self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
 
     def test_filter_servers(self):
-        response = self.client_auth.get(self.uri + "?name=server2&submit=Filter")
+        response = self.client_auth.get(self.uri + "?server=server2&submit=Filter")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(len(response.context["filter"].qs) == 1)
+
+        response = self.client_auth.get(self.uri + "?server=server&submit=Filter")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
+
+        response = self.client_auth.get(self.uri + "?server=192.168.1.&submit=Filter")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
+
+    def test_blank_search(self):
+        response = self.client_auth.get(self.uri + "?server=")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["filter"].qs) == len(self.servers))
 
 
 class ServerDetailViewTests(TestCase):
@@ -1322,107 +1341,6 @@ class UserAssetsViewTests(TestCase):
         self.assertEqual(len(response.context["servers"]), len(self.servers_qs))
 
 
-class ServerSearchViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.server_search`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.user = UserFactory(password=PASSWORD)
-
-        cls.server_status = ServerStatusFactory(server_status="Unavailable")
-        cls.project = ProjectFactory()
-
-        cls.servers = []
-        cls.addresses = []
-        for x in range(3):
-            server = StaticServerFactory(ip_address=f"192.168.1.{x}")
-            addy = AuxServerAddressFactory(ip_address=f"192.168.2.{x}", static_server=server)
-            cls.servers.append(server)
-            cls.addresses.append(addy)
-
-        cls.unavailable_server = StaticServerFactory(ip_address="192.168.3.30", server_status=cls.server_status)
-        cls.unavailable_aux_address = AuxServerAddressFactory(
-            ip_address="192.168.3.31", static_server=cls.unavailable_server
-        )
-
-        cls.uri = reverse("shepherd:server_search")
-
-    def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-
-    def test_view_uri_exists_at_desired_location(self):
-        post_data = {
-            "server_search": self.servers[0].ip_address,
-            "project_id": self.project.id,
-        }
-        response = self.client_auth.post(self.uri, post_data)
-        expected_url = reverse("shepherd:server_checkout", kwargs={"pk": self.servers[0].id})
-        self.assertRedirects(
-            response,
-            expected_url,
-            status_code=302,
-            target_status_code=200,
-            msg_prefix="",
-            fetch_redirect_response=True,
-        )
-
-    def test_unavailable_server_match(self):
-        post_data = {
-            "server_search": self.unavailable_server.ip_address,
-            "project_id": self.project.id,
-        }
-        response = self.client_auth.post(self.uri, post_data)
-        expected_url = "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.project.id}))
-        self.assertRedirects(
-            response,
-            expected_url,
-            status_code=302,
-            target_status_code=200,
-            msg_prefix="",
-            fetch_redirect_response=True,
-        )
-
-    def test_aux_address_match(self):
-        post_data = {
-            "server_search": self.addresses[0].ip_address,
-            "project_id": self.project.id,
-        }
-        response = self.client_auth.post(self.uri, post_data)
-        expected_url = reverse("shepherd:server_checkout", kwargs={"pk": self.addresses[0].static_server.id})
-        self.assertRedirects(
-            response,
-            expected_url,
-            status_code=302,
-            target_status_code=200,
-            msg_prefix="",
-            fetch_redirect_response=True,
-        )
-
-    def test_unavailable_aux_address_match(self):
-        post_data = {
-            "server_search": self.unavailable_aux_address.ip_address,
-            "project_id": self.project.id,
-        }
-        response = self.client_auth.post(self.uri, post_data)
-        expected_url = "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.project.id}))
-        self.assertRedirects(
-            response,
-            expected_url,
-            status_code=302,
-            target_status_code=200,
-            msg_prefix="",
-            fetch_redirect_response=True,
-        )
-
-    def test_view_requires_login(self):
-        post_data = {"server_search": "192.168.1.1", "project_id": self.project.id}
-        response = self.client.post(self.uri, post_data)
-        self.assertEqual(response.status_code, 302)
-
-
 class InfrastructureSearchViewTests(TestCase):
     """Collection of tests for :view:`shepherd.infrastructure_search`."""
 
@@ -1774,3 +1692,140 @@ class ServerNoteDeleteTests(TestCase):
 
         response = self.client.post(uri)
         self.assertEqual(response.status_code, 302)
+
+
+class DomainListViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.domain_list`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        Domain = DomainFactory._meta.model
+        Domain.objects.all().delete()
+
+        DomainStatus = DomainStatusFactory._meta.model
+        DomainStatus.objects.all().delete()
+
+        available_status = DomainStatusFactory(domain_status="Available", id=1)
+        other_status = DomainStatusFactory(domain_status="Other", id=2)
+        DomainFactory(name="specterops.io", categorization={"vendor": "business"}, domain_status=available_status)
+        DomainFactory(name="ghostwriter.wiki", categorization={"vendor": "media"}, domain_status=available_status)
+        DomainFactory(name="specterpops.com", categorization={"vendor": "malicious"}, domain_status=available_status)
+        DomainFactory(name="unavailable.com", categorization={"vendor": "uncategorized"}, domain_status=other_status)
+        DomainFactory(
+            name="expired.com",
+            categorization={"vendor": "uncategorized"},
+            domain_status=available_status,
+            expiration=timezone.now() - timedelta(days=1),
+            expired=True,
+            auto_renew=False,
+        )
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("shepherd:domains")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "shepherd/domain_list.html")
+
+    def test_domain_filtering(self):
+        # Filter defaults to only showing available domains (id 1), so we should only see 3
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 3)
+
+        # Filter defaults to filtering out expired domains, so we should only see 4
+        response = self.client_auth.get(f"{self.uri}?domain=")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 5)
+
+        # With a filter provided, the filter won't add an exclusion for status, so we should see 4
+        response = self.client_auth.get(f"{self.uri}?exclude_expired=on")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 4)
+
+        response = self.client_auth.get(f"{self.uri}?domain=spec")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 2)
+
+        response = self.client_auth.get(f"{self.uri}?domain=mal")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+
+
+class ServerListViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.server_list`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        StaticServer = StaticServerFactory._meta.model
+        StaticServer.objects.all().delete()
+
+        ServerStatus = ServerStatusFactory._meta.model
+        ServerStatus.objects.all().delete()
+
+        available_status = ServerStatusFactory(server_status="Available", id=1)
+        other_status = ServerStatusFactory(server_status="Other", id=2)
+        StaticServerFactory(ip_address="192.168.1.10", name="localhost", server_status=available_status)
+        StaticServerFactory(ip_address="192.168.11.10", name="ghostwriter.local", server_status=available_status)
+        StaticServerFactory(ip_address="192.200.20.30", name="mythic.local", server_status=other_status)
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("shepherd:servers")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "shepherd/server_list.html")
+
+    def test_server_filtering(self):
+        # Filter defaults to only showing available servers (id 1), so we should only see 2
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 2)
+
+        # With a filter provided, the filter won't add an exclusion for status, so we should see three 3
+        response = self.client_auth.get(f"{self.uri}?server=")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client_auth.get(f"{self.uri}?server=10")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 2)
+
+        response = self.client_auth.get(f"{self.uri}?server=ghost")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+
+        response = self.client_auth.get(f"{self.uri}?server=200")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+
+        response = self.client_auth.get(f"{self.uri}?server_status=2")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)

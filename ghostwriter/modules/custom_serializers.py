@@ -731,6 +731,7 @@ class ReportDataSerializer(CustomModelSerializer):
         ]
     )
     company = SerializerMethodField("get_company_info")
+    tools = SerializerMethodField("get_tools")
 
     class Meta:
         model = Report
@@ -743,6 +744,14 @@ class ReportDataSerializer(CustomModelSerializer):
     def get_company_info(self, obj):
         serializer = CompanyInfoSerializer(CompanyInformation.get_solo())
         return serializer.data
+
+    def get_tools(self, obj):
+        tools = []
+        for oplog in obj.project.oplog_set.all():
+            for entry in oplog.entries.all():
+                if entry.tool and entry.tool.lower() not in tools:
+                    tools.append(entry.tool.lower())
+        return tools
 
     def to_representation(self, instance):
         # Get the standard JSON from ``super()``

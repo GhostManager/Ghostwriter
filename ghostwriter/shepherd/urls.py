@@ -109,7 +109,6 @@ urlpatterns += [
         views.ServerHistoryCreate.as_view(),
         name="server_checkout",
     ),
-    path("servers/search", views.server_search, name="server_search"),
     path(
         "servers/search/all",
         views.infrastructure_search,
