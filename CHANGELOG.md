@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Filtering by client name on the project filter page also searches against the client's full name, short name, and codename
 * Copied log entries now have their start and end dates set automatically to the current timestamp
 * Updated WYSIWYG editor skin to better match the rest of the interface
+* Merged PR #274 to allow option for authenticating with social accounts
 
 ## Fixed
 
