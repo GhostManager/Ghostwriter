@@ -87,7 +87,6 @@ def evidence_update(sender, instance, **kwargs):
                 link.save()
             except ReportFindingLink.DoesNotExist:
                 logger.exception("Could not find ReportFindingLink for Evidence %s", instance.id)
-                pass
 
 
 @receiver(post_delete, sender=Evidence)
