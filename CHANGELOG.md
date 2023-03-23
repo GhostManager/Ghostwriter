@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 23 March 2023
+
+## Fixed
+
+* Fixed an oversight that could result in an activity logs "latest activity" timestamp to be incorrect
+
 ## [v3.2.3] - 22 March 2023
 
 ## Added
@@ -27,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Filtering by client name on the project filter page also searches against the client's full name, short name, and codename
 * Copied log entries now have their start and end dates set automatically to the current timestamp
 * Updated WYSIWYG editor skin to better match the rest of the interface
-* Merged PR #274 to allow option for authenticating with social accounts
+* Merged PR #274 to allow the option for authenticating with social accounts
 
 ## Fixed
 
