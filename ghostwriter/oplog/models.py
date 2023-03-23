@@ -34,6 +34,9 @@ class Oplog(models.Model):
 
     class Meta:
         unique_together = ["name", "project"]
+        ordering = ["id", "project", "name"]
+        verbose_name = "Activity log"
+        verbose_name_plural = "Activity logs"
 
     def __str__(self):
         return f"{self.name} : {self.project}"
@@ -131,6 +134,11 @@ class OplogEntry(models.Model):
         # Stash the initial date values for future operations
         self.initial_start_date = self.start_date
         self.initial_end_date = self.end_date
+
+    class Meta:
+        ordering = ["-start_date", "-end_date", "oplog_id"]
+        verbose_name = "Activity log entry"
+        verbose_name_plural = "Activity log entries"
 
     def clean(self, *args, **kwargs):
         if isinstance(self.start_date, str):
