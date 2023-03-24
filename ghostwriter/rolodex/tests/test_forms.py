@@ -878,7 +878,7 @@ class WhiteCardFormSetTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.project = ProjectFactory(start_date=date.today())
+        cls.project = ProjectFactory(start_date=date.today(), end_date=date.today() + timedelta(days=10))
         cls.project_dict = cls.project.__dict__
         cls.whitecard_1 = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
         cls.whitecard_2 = WhiteCardFactory(project=cls.project, issued=datetime.now(pytz.UTC))
