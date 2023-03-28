@@ -159,6 +159,7 @@ class ReportFindingLinkUpdateFormTests(TestCase):
     def setUpTestData(cls):
         cls.finding = ReportFindingLinkFactory()
         cls.blank_finding = ReportFindingLinkFactory(added_as_blank=True)
+        cls.complete_finding = ReportFindingLinkFactory(complete=True)
 
     def setUp(self):
         pass
@@ -221,6 +222,12 @@ class ReportFindingLinkUpdateFormTests(TestCase):
         self.assertTrue(form.is_valid())
         form.save()
         self.assertTrue(self.blank_finding.added_as_blank)
+
+    def test_complete_field(self):
+        form = self.form_data(instance=self.complete_finding, **self.complete_finding.__dict__)
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.assertTrue(self.complete_finding.complete)
 
 
 class EvidenceFormTests(TestCase):
