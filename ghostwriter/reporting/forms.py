@@ -330,6 +330,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             "position",
             "finding_guidance",
             "added_as_blank",
+            "complete",
         )
 
     def __init__(self, *args, **kwargs):
