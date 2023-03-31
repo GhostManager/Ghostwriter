@@ -30,6 +30,7 @@ PASSWORD = "SuperNaturalReporting!"
 
 # Tests related to custom management commands
 
+
 class ManagementCommandsTestCase(TestCase):
     """Collection of tests for custom template tags."""
 
@@ -59,6 +60,7 @@ class ManagementCommandsTestCase(TestCase):
         out = self.call_command("ghostwriter/reporting/fixtures/initial.json", "--force")
         self.assertIn("Applying all fixtures.", out)
         self.assertIn("Found 16 new records to insert into the database.", out)
+
 
 # Tests related to custom template tags and filters
 
@@ -117,6 +119,11 @@ class TemplateTagTests(TestCase):
         result = custom_tags.strip_empty_tags(example_html)
         # The tag uses BS4's `prettify()` method to format the HTML, so there are newlines and indentations
         self.assertEqual(result, "<html>\n <body>\n  <p>\n   Example HTML\n  </p>\n </body>\n</html>")
+
+        result = custom_tags.divide(12700, 12700)
+        self.assertEqual(result, 1.0)
+        result = custom_tags.divide(12700, 0)
+        self.assertEqual(result, None)
 
 
 class DashboardTests(TestCase):
