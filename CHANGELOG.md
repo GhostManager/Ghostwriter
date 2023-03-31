@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.2.5] - 31 March 2023
+
+## Added
+
+* A report's title can now be added to the report download filename template as a new `title` variable
+
+## Changed
+
+* The global report configuration can now be reviewed on the management page (_/home/management/_)
+
+## Fixed
+
+* Fixed an issue that prevented saving an edited activity log entry when editing a timestamps seconds value
+
 ## [v3.2.4] - 28 March 2023
 
 ## Changed
