@@ -1683,6 +1683,22 @@ th.icon {
   padding: 0;
 }
 
+.tint-icon {
+  content: '\f043';
+}
+
+.border-icon:before {
+  content: '\f853';
+}
+
+.report-icon:before {
+  content:'\f570';
+}
+
+.tag-icon:before {
+  content: '\f02b';
+}
+
 .whitecard-icon:before {
   content: '\f15b';
 }
