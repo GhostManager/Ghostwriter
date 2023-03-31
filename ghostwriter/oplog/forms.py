@@ -10,7 +10,7 @@ from django.utils.timezone import make_aware
 
 # 3rd Party Libraries
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Column, Layout, Row, Submit
+from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -126,8 +126,8 @@ class OplogEntryForm(forms.ModelForm):
 
         self.helper.layout = Layout(
             Row(
-                Column("start_date", css_class="form-group col-4 mb-0"),
-                Column("end_date", css_class="form-group col-4 mb-0"),
+                Column(Field("start_date", step=1), css_class="form-group col-4 mb-0"),
+                Column(Field("end_date", step=1), css_class="form-group col-4 mb-0"),
                 Column("operator_name", css_class="form-group col-4 mb-0"),
                 css_class="form-row",
             ),
