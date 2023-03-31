@@ -1,250 +1,321 @@
 {% extends "base_generic.html" %}
 
-{% load settings_tags %}
+{% load settings_tags custom_tags %}
 
 {% block pagetitle %}Manage API Access{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb" style="padding-left: 20px;">
-        <ul class="breadcrumb" style="margin: 0;">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Review Configuration</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb" style="padding-left: 20px;">
+    <ul class="breadcrumb" style="margin: 0;">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Review Configuration</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    {% comment %} Get the current configuration from the singleton models {% endcomment %}
-    {% get_solo "commandcenter.CompanyInformation" as company_config %}
-    {% get_solo "commandcenter.CloudServicesConfiguration" as cloud_config %}
-    {% get_solo "commandcenter.NamecheapConfiguration" as namecheap_config %}
-    {% get_solo "commandcenter.ReportConfiguration" as report_config %}
-    {% get_solo "commandcenter.SlackConfiguration" as slack_config %}
-    {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
+  {% comment %} Get the current configuration from the singleton models {% endcomment %}
+  {% get_solo "commandcenter.CompanyInformation" as company_config %}
+  {% get_solo "commandcenter.CloudServicesConfiguration" as cloud_config %}
+  {% get_solo "commandcenter.NamecheapConfiguration" as namecheap_config %}
+  {% get_solo "commandcenter.ReportConfiguration" as report_config %}
+  {% get_solo "commandcenter.SlackConfiguration" as slack_config %}
+  {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
 
-    <h2>API & Notification Configurations</h2>
-    <p>These settings are managed in the Django administration panel under the <em>Command Center</em> application.</p>
-    <p>To change the <em>Timezone</em>, edit the application's settings file and restart the server.</p>
+  <h2>API & Notification Configurations</h2>
+  <p>These settings are managed in the Django administration panel under the <em>Command Center</em> application.</p>
+  <p>To change the <em>Timezone</em>, edit the application's settings file and restart the server.</p>
 
-    <table class="table table-responsive-lg table-borderless table-config">
-        <!-- General Section -->
-        <tr>
-            <th class="text-left icon gears-icon">General Settings</th>
-            <th></th>
-        </tr>
-        <tr>
-            <td class="text-left icon clock-icon">Timezone Time</td>
-            <td class="text-justify">{{ timezone }}</td>
-        </tr>
-        <tr>
-            <td class="text-left icon client-icon">Company Name</td>
-            <td class="text-justify">{{ company_config.company_name }}</td>
-        </tr>
-        <tr>
-            <td class="text-left icon twitter-icon">Twitter</td>
-            <td class="text-justify">{{ company_config.company_twitter }}</td>
-        </tr>
-        <tr>
-            <td class="text-left icon email-icon">Email</td>
-            <td class="text-justify">{{ company_config.company_email }}</td>
-        </tr>
+  <table class="table table-responsive-lg table-borderless table-config">
+    <!-- General Section -->
+    <tr>
+      <th class="text-left icon gears-icon">General Settings</th>
+      <th></th>
+    </tr>
+    <tr>
+      <td class="text-left icon clock-icon">Timezone Time</td>
+      <td class="text-justify">{{ timezone }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon client-icon">Company Name</td>
+      <td class="text-justify">{{ company_config.company_name }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon twitter-icon">Twitter</td>
+      <td class="text-justify">{{ company_config.company_twitter }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon email-icon">Email</td>
+      <td class="text-justify">{{ company_config.company_email }}</td>
+    </tr>
 
-        <!-- Spacer -->
-        <tr>
-            <td class="text-justify">&nbsp;</td>
-            <td class="text-justify">&nbsp;</td>
-        </tr>
+    <!-- Spacer -->
+    <tr>
+      <td class="text-justify">&nbsp;</td>
+      <td class="text-justify">&nbsp;</td>
+    </tr>
 
-        <!-- Domain Health Section -->
-        <tr>
-            <th class="text-left icon heartbeat-icon">Domain Health Checks</th>
-            <th></th>
-        </tr>
-        <tr>
-            <td class="text-left icon vt-icon">VirusTotal API Key</td>
-            {% if vt_config.enable %}
-                <td class="text-justify">{{ vt_config.sanitized_api_key }}</td>
-            {% else %}
-                <td class="text-justify">Disabled</td>
-            {% endif %}
-        </tr>
-        <tr>
-            <td class="text-left icon sleep-icon">Sleep Time</td>
-            <td class="text-justify">{{ vt_config.sleep_time }} seconds</td>
-        </tr>
+    <!-- Domain Health Section -->
+    <tr>
+      <th class="text-left icon heartbeat-icon">Domain Health Checks</th>
+      <th></th>
+    </tr>
+    <tr>
+      <td class="text-left icon vt-icon">VirusTotal API Key</td>
+      {% if vt_config.enable %}
+        <td class="text-justify">{{ vt_config.sanitized_api_key }}</td>
+      {% else %}
+        <td class="text-justify">Disabled</td>
+      {% endif %}
+    </tr>
+    <tr>
+      <td class="text-left icon sleep-icon">Sleep Time</td>
+      <td class="text-justify">{{ vt_config.sleep_time }} seconds</td>
+    </tr>
 
-        <!-- Spacer -->
-        <tr>
-            <td class="text-justify">&nbsp;</td>
-            <td class="text-justify">&nbsp;</td>
-        </tr>
+    <!-- Spacer -->
+    <tr>
+      <td class="text-justify">&nbsp;</td>
+      <td class="text-justify">&nbsp;</td>
+    </tr>
 
-        <!-- Registrar Section -->
-        <tr>
-            <th class="text-left icon sync-icon">Domain Registrar API</th>
-            <th></th>
-        </tr>
-        {% if namecheap_config.enable %}
-            <tr>
-                <td class="text-left icon toggle-on-icon">Namecheap API Enabled</td>
-                <td class="text-justify">{{ namecheap_config.enable }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon laptop-icon">Namecheap Whitelisted IP</td>
-                <td class="text-justify">{{ namecheap_config.client_ip }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon key-icon">Namecheap API Key</td>
-                <td class="text-justify">{{ namecheap_config.sanitized_api_key }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon user-icon">Namecheap Username</td>
-                <td class="text-justify">{{ namecheap_config.username }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon user-gear-icon">Namecheap API Username</td>
-                <td class="text-justify">{{ namecheap_config.api_username }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon hash-icon">Namecheap Page Size</td>
-                <td class="text-justify">{{ namecheap_config.page_size }}</td>
-            </tr>
-        {% else %}
-            <tr>
-                <td class="text-left icon toggle-off-icon">Namecheap API Enabled</td>
-                <td class="text-justify">Disabled</td>
-            </tr>
-        {% endif %}
+    <!-- Registrar Section -->
+    <tr>
+      <th class="text-left icon sync-icon">Domain Registrar API</th>
+      <th></th>
+    </tr>
+    {% if namecheap_config.enable %}
+      <tr>
+        <td class="text-left icon toggle-on-icon">Namecheap API Enabled</td>
+        <td class="text-justify">{{ namecheap_config.enable }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon laptop-icon">Namecheap Whitelisted IP</td>
+        <td class="text-justify">{{ namecheap_config.client_ip }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon key-icon">Namecheap API Key</td>
+        <td class="text-justify">{{ namecheap_config.sanitized_api_key }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon user-icon">Namecheap Username</td>
+        <td class="text-justify">{{ namecheap_config.username }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon user-gear-icon">Namecheap API Username</td>
+        <td class="text-justify">{{ namecheap_config.api_username }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon hash-icon">Namecheap Page Size</td>
+        <td class="text-justify">{{ namecheap_config.page_size }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td class="text-left icon toggle-off-icon">Namecheap API Enabled</td>
+        <td class="text-justify">Disabled</td>
+      </tr>
+    {% endif %}
 
-        <!-- Spacer -->
-        <tr>
-            <td class="text-justify">&nbsp;</td>
-            <td class="text-justify">&nbsp;</td>
-        </tr>
+    <!-- Spacer -->
+    <tr>
+      <td class="text-justify">&nbsp;</td>
+      <td class="text-justify">&nbsp;</td>
+    </tr>
 
-        <!-- Cloud Monitor Section -->
-        <tr>
-            <th class="text-left icon cloud-icon">Cloud Services</th>
-            <th></th>
-        </tr>
-        {% if cloud_config.enable %}
-            <tr>
-                <td class="text-left icon toggle-on-icon">Cloud Monitoring Enabled</td>
-                <td class="text-justify">{{ cloud_config.enable }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon aws-icon">AWS Access Key</td>
-                <td class="text-justify">{{ cloud_config.sanitized_aws_key }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon aws-icon">AWS Access Key Secret</td>
-                <td class="text-justify">{{ cloud_config.sanitized_aws_secret }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon do-icon">Digital Ocean API Key</td>
-                <td class="text-justify">{{ cloud_config.sanitized_do_api_key }}</td>
-            </tr>
-        {% else %}
-            <tr>
-                <td class="text-left icon toggle-off-icon">Cloud Monitoring Enabled</td>
-                <td class="text-justify">Disabled</td>
-            </tr>
-        {% endif %}
+    <!-- Cloud Monitor Section -->
+    <tr>
+      <th class="text-left icon cloud-icon">Cloud Services</th>
+      <th></th>
+    </tr>
+    {% if cloud_config.enable %}
+      <tr>
+        <td class="text-left icon toggle-on-icon">Cloud Monitoring Enabled</td>
+        <td class="text-justify">{{ cloud_config.enable }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon aws-icon">AWS Access Key</td>
+        <td class="text-justify">{{ cloud_config.sanitized_aws_key }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon aws-icon">AWS Access Key Secret</td>
+        <td class="text-justify">{{ cloud_config.sanitized_aws_secret }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon do-icon">Digital Ocean API Key</td>
+        <td class="text-justify">{{ cloud_config.sanitized_do_api_key }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td class="text-left icon toggle-off-icon">Cloud Monitoring Enabled</td>
+        <td class="text-justify">Disabled</td>
+      </tr>
+    {% endif %}
 
-        <!-- Spacer -->
-        <tr>
-            <td class="text-justify">&nbsp;</td>
-            <td class="text-justify">&nbsp;</td>
-        </tr>
+    <!-- Spacer -->
+    <tr>
+      <td class="text-justify">&nbsp;</td>
+      <td class="text-justify">&nbsp;</td>
+    </tr>
 
-        <!-- Notification Section -->
-        <tr>
-            <th class="text-left icon notification-icon">Notifications</th>
-            <th></th>
-        </tr>
-        {% if slack_config.enable %}
-            <tr>
-                <td class="text-left icon toggle-on-icon">Slack Enabled</td>
-                <td class="text-justify">{{ slack_config.enable }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon slack-icon">Slack WebHook</td>
-                <td class="text-justify">{{ slack_config.sanitized_webhook }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon slack-icon">Slack Bot Name</td>
-                <td class="text-justify">{{ slack_config.slack_username }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon slack-icon">Slack Bot Avatar</td>
-                <td class="text-justify">{{ slack_config.slack_emoji }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon slack-icon">Global Slack Channel</td>
-                <td class="text-justify">{{ slack_config.slack_channel }}</td>
-            </tr>
-            <tr>
-                <td class="text-left icon slack-icon">Slack Target</td>
-                <td class="text-justify">{{ slack_config.slack_alert_target }}</td>
-            </tr>
-        {% else %}
-            <tr>
-                <td class="text-left icon toggle-off-icon">Slack Enabled</td>
-                <td class="text-justify">Disabled</td>
-            </tr>
-        {% endif %}
-    </table>
+    <tr>
+      <th class="text-left icon report-icon">Reporting</th>
+      <th></th>
+    </tr>
+    <tr>
+      <td class="text-left icon toggle-on-icon">Image Borders</td>
+      <td class="text-justify">{{ report_config.enable_borders }}</td>
+    </tr>
+    {% if report_config.enable_borders %}
+      <tr>
+        <td class="text-left icon border-icon">Image Border Weight</td>
+        <td class="text-justify">{{ report_config.border_weight }} EMUs ({{ report_config.border_weight|divide:12700 }}
+          pt)
+        </td>
+      </tr>
+      <tr>
+        <td class="text-left icon border-icon">Image Border Color</td>
+        <td class="text-justify">{{ report_config.border_color }} <i class="fas fa-tint"
+                                                                     style="color:#{{ report_config.border_color }}"></i>
+        </td>
+      </tr>
+    {% endif %}
+    <tr>
+      <td class="text-left icon tag-icon">Figure Label & Prefix</td>
+      <td class="text-justify">{{ report_config.label_figure }} {{ report_config.prefix_figure }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon tag-icon">Table Label & Prefix</td>
+      <td class="text-justify">{{ report_config.label_table }} {{ report_config.prefix_table }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon signature-icon">Report Download Filename</td>
+      <td class="text-justify"> {{ report_config.report_filename }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon word-icon">Default DOCX Template</td>
+      {% if report_config.default_docx_template %}
+        <td class="text-justify"><a class="clickable"
+                                    href="{% url 'reporting:template_detail' report_config.default_docx_template.id %}">{{ report_config.default_docx_template }}</a>
+        </td>
+      {% else %}
+        <td class="text-justify">No Default Configured</td>
+      {% endif %}
+    </tr>
+    <tr>
+      <td class="text-left icon pptx-icon">Default PPTX Template</td>
+      {% if report_config.default_pptx_template %}
+        <td class="text-justify"><a class="clickable"
+                                    href="{% url 'reporting:template_detail' report_config.default_pptx_template.id %}">{{ report_config.default_pptx_template }}</a>
+        </td>
+      {% else %}
+        <td class="text-justify">No Default Configured</td>
+      {% endif %}
+    </tr>
 
-    <h6>Test Configurations</h6>
-    <hr />
+    <!-- Spacer -->
+    <tr>
+      <td class="text-justify">&nbsp;</td>
+      <td class="text-justify">&nbsp;</td>
+    </tr>
 
-    <div class="form-group">
+    <!-- Notification Section -->
+    <tr>
+      <th class="text-left icon notification-icon">Notifications</th>
+      <th></th>
+    </tr>
+    {% if slack_config.enable %}
+      <tr>
+        <td class="text-left icon toggle-on-icon">Slack Enabled</td>
+        <td class="text-justify">{{ slack_config.enable }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon slack-icon">Slack WebHook</td>
+        <td class="text-justify">{{ slack_config.sanitized_webhook }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon slack-icon">Slack Bot Name</td>
+        <td class="text-justify">{{ slack_config.slack_username }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon slack-icon">Slack Bot Avatar</td>
+        <td class="text-justify">{{ slack_config.slack_emoji }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon slack-icon">Global Slack Channel</td>
+        <td class="text-justify">{{ slack_config.slack_channel }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon slack-icon">Slack Target</td>
+        <td class="text-justify">{{ slack_config.slack_alert_target }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td class="text-left icon toggle-off-icon">Slack Enabled</td>
+        <td class="text-justify">Disabled</td>
+      </tr>
+    {% endif %}
+  </table>
+
+  <h6>Test Configurations</h6>
+  <hr/>
+
+  <div class="form-group">
     <div class="btn-toolbar justify-content-center" role="toolbar" aria-label="Config Test Toolbar">
-        <div class="btn-group mr-2" role="group" aria-label="Cloud Tests">
-            <button type="submit" class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_aws' %}" queue-task-csrf-token="{{ csrf_token }}">Test AWS Keys</button>
-            <button type="submit" class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_do' %}" queue-task-csrf-token="{{ csrf_token }}">Test Digital Ocean</button>
-        </div>
+      <div class="btn-group mr-2" role="group" aria-label="Cloud Tests">
+        <button type="submit" class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_aws' %}"
+                queue-task-csrf-token="{{ csrf_token }}">Test AWS Keys
+        </button>
+        <button type="submit" class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_do' %}"
+                queue-task-csrf-token="{{ csrf_token }}">Test Digital Ocean
+        </button>
+      </div>
 
-        <div class="btn-group mr-2" role="group" aria-label="API Tests">
-                <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_namecheap' %}" queue-task-csrf-token="{{ csrf_token }}">Test Namecheap API</button>
-                <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_virustotal' %}" queue-task-csrf-token="{{ csrf_token }}">Test VirusTotal API</button>
-        </div>
+      <div class="btn-group mr-2" role="group" aria-label="API Tests">
+        <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_namecheap' %}"
+                queue-task-csrf-token="{{ csrf_token }}">Test Namecheap API
+        </button>
+        <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_virustotal' %}"
+                queue-task-csrf-token="{{ csrf_token }}">Test VirusTotal API
+        </button>
+      </div>
 
-        <div class="btn-group" role="group" aria-label="Notification Tests">
-                <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_slack' %}" queue-task-csrf-token="{{ csrf_token }}">Test Slack Webhook</button>
-        </div>
+      <div class="btn-group" role="group" aria-label="Notification Tests">
+        <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_slack' %}"
+                queue-task-csrf-token="{{ csrf_token }}">Test Slack Webhook
+        </button>
+      </div>
     </div>
-    </div>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Queue Tasks with AJAX -->
-    <script>
-        $('.js-queue-task').each(function(index) {
-            $(this).on('click', function (event) {
-                // Prevent default browser behavior for a form submission
-                event.preventDefault();
-                // Get the URL from form attribute
-                var url = $(this).attr('queue-task-url');
-                var csrf_token = $(this).attr('queue-task-csrf-token');
-                // Send AJAX POST request
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        csrfmiddlewaretoken: csrf_token,
-                    },
-                    success: function (data) {
-                        if (data['result'] == 'success') {
-                            // Do something
-                        }
-                        if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Task Update'});
-                        }
-                    }
-                });
-            });
+  <!-- Queue Tasks with AJAX -->
+  <script>
+    $('.js-queue-task').each(function (index) {
+      $(this).on('click', function (event) {
+        // Prevent default browser behavior for a form submission
+        event.preventDefault();
+        // Get the URL from form attribute
+        var url = $(this).attr('queue-task-url');
+        var csrf_token = $(this).attr('queue-task-csrf-token');
+        // Send AJAX POST request
+        $.ajax({
+          url: url,
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            csrfmiddlewaretoken: csrf_token,
+          },
+          success: function (data) {
+            if (data['result'] == 'success') {
+              // Do something
+            }
+            if (data['message']) {
+              displayToastTop({type: data['result'], string: data['message'], title: 'Task Update'});
+            }
+          }
         });
-    </script>
+      });
+    });
+  </script>
 {% endblock %}
