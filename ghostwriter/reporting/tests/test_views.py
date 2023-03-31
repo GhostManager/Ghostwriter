@@ -1780,7 +1780,7 @@ class GenerateReportTests(TestCase):
     def test_generate_report_name(self):
         company_config = CompanyInformationFactory()
         ReportConfigurationFactory(
-            report_filename="{D d m Y} {date} {company} - {client} {assessment_type} Report <>:'/|?.,:;[]"
+            report_filename="{D d m Y} {date} {company} - {client} {assessment_type} {title} <>:'/|?.,:;[]"
         )
 
         current_date = timezone.now()
@@ -1793,10 +1793,12 @@ class GenerateReportTests(TestCase):
 
         assessment = self.project.project_type.project_type
 
+        title = self.report.title
+
         report_name = generate_report_name(self.report)
         self.assertEqual(
             report_name,
-            f"{date_format} {date_str} {company} - {client} {assessment} Report",
+            f"{date_format} {date_str} {company} - {client} {assessment} {title}",
         )
 
     def test_view_json_uri_exists_at_desired_location(self):
