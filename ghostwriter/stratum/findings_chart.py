@@ -13,22 +13,27 @@ class CalcCol(Enum):
     WEIGHT = "Weight"
 
 
-FONT_FAMILY = "Liberation Sans Narrow"
-FONT_SIZE = 8
-BACKGROUND_COLOR = "#F6F5EE"
+FONT_FAMILY = "Arial Narrow"
+FONT_SIZE = 9
 
 
 def _build_axis_style(ax, max_y):
+    labelpad = 10
+    label_font_size = FONT_SIZE + 3
     ax.set_xlabel(
-        "Findings Category", fontfamily=FONT_FAMILY, fontsize=FONT_SIZE, fontweight="bold"
+        "Findings Category",
+        fontfamily=FONT_FAMILY,
+        fontsize=label_font_size,
+        fontweight="bold",
+        labelpad=labelpad,
     )
     ax.set_ylabel(
         "Total Number of Findings",
         fontfamily=FONT_FAMILY,
-        fontsize=FONT_SIZE,
+        fontsize=label_font_size,
         fontweight="bold",
+        labelpad=labelpad,
     )
-    ax.set_facecolor(BACKGROUND_COLOR)
     ax.set_yticks(range(0, max_y))
 
     # Hide the right and top spines
@@ -39,16 +44,23 @@ def _build_axis_style(ax, max_y):
     ax.spines.bottom.set_color(spine_color)
 
 
-def _build_legend_style(ax, fig):
-    # Set the right font for the legend, remove frame, and anchor in the upper right corner
+def _build_legend_style(ax):
+    # Set the right font for the legend, remove frame, horizontal legend,
+    # and anchor in the upper right corner outside the bar chart to prevent bars being close to legend
     h, l = ax.get_legend_handles_labels()
     legend = ax.legend(
-        reversed(h), reversed(l), prop={"family": FONT_FAMILY, "size": FONT_SIZE}
+        reversed(h),
+        reversed(l),
+        prop={"family": FONT_FAMILY, "size": FONT_SIZE + 2},
+        loc="upper right",
+        ncol=5,
+        columnspacing=1,
+        handletextpad=-0.5,
+        bbox_to_anchor=(1, 1.2),
     )
     legend.set_frame_on(False)
     for h in legend.legendHandles:
         h.set_width(8)
-    legend.set_bbox_to_anchor((1, 1), fig.transFigure)
 
 
 def _label_bars(ax):
@@ -63,11 +75,11 @@ def _label_bars(ax):
             color="white",
             fontweight="bold",
             fontfamily=FONT_FAMILY,
-            fontsize=FONT_SIZE,
+            fontsize=FONT_SIZE + 3,
         )
 
 
-def build_chart(report_data):
+def build_bar_chart(report_data):
     category_label = "Category"
     df = pd.DataFrame(
         report_data,
@@ -103,34 +115,42 @@ def build_chart(report_data):
     df = df.drop(columns=[CalcCol.TOTAL.value, CalcCol.WEIGHT.value])
 
     # Digital Color Meter was used to get exact color codes from Excel chart
-    # font size - 2 is used to prevent overlapping x-axis labels
+    # Font size subtraction is used to prevent overlapping x-axis labels
+    # When finding categories exceeds 6, we need to shrink the font size some more on the labels
+    if len(df.index) > 6:
+        # Subtracting by 0.5 on font size is the best when all finding categories are present to prevent overlapping
+        label_font_size = FONT_SIZE - 0.5
+    else:
+        label_font_size = FONT_SIZE
+
     ax = df.plot(
         x=category_label,
         legend="reverse",
         kind="bar",
-        fontsize=FONT_SIZE - 2,
+        fontsize=label_font_size,
         stacked=True,
         rot=0,
+        # Color scheme came from
+        # https://miro.medium.com/v2/resize:fit:500/format:webp/1*msOeUmFxdojyrur1kqxwaw.png
         color={
-            Severity.BP.value: "#4F81BD",
-            Severity.LOW.value: "#008001",
-            Severity.MED.value: "#E46C0B",
-            Severity.HIGH.value: "#FF0000",
-            Severity.CRIT.value: "#A60023",
+            Severity.BP.value: "#4E81BD",
+            Severity.LOW.value: "#8BC53F",
+            Severity.MED.value: "#F6941F",
+            Severity.HIGH.value: "#F0582B",
+            Severity.CRIT.value: "#DE0604",
         },
     )
 
     _build_axis_style(ax, max_y)
     fig = ax.get_figure()
-    fig.set_facecolor(BACKGROUND_COLOR)
 
     # Shrink figure to be close to current size in Word template
     # Current literals set make the figure fit on the page correctly
-    fig.set_size_inches(6.3, 2.8)
+    fig.set_size_inches(10, 2.9)
     # Think of DPI as zooming in on the image making it easier to see
     fig.set_dpi(200)
 
-    _build_legend_style(ax, fig)
+    _build_legend_style(ax)
     _label_bars(ax)
     return fig
 
@@ -140,6 +160,8 @@ def build_pie_chart(report_data, total_findings):
     # Make the category label the index and then the only column in the frame is the percentage
     df = df.set_index(0)
     df = round(df.sum(axis=1, numeric_only=True) / total_findings * 100, 0).astype(int)
+    # Sorting also helps to prevent overlapping on the labels
+    df = df.sort_index()
     ax = df.plot(
         kind="pie",
         radius=1.5,
@@ -148,13 +170,26 @@ def build_pie_chart(report_data, total_findings):
         wedgeprops={"linewidth": 1, "edgecolor": "white", "antialiased": True},
         autopct="%1.0f%%",
         pctdistance=0.8,
-        figsize=(10, 5),
-        startangle=0,
-        labeldistance=1.2,
-        # TODO Update colors based on what John wants when he gets back to me
-        colors=["#4F81BD", "#008001", "#E46C0B", "#FF0000", "#A60023"],
+        startangle=145,
+        labeldistance=1.3,
+        # Color scheme came from
+        # https://medium.com/@alrieristivan/guide-to-colour-wheel-7ea66881a83a
+        colors=[
+            "#662D91",
+            "#1075BD",
+            "#BE1E2E",
+            "#0D9444",
+            "#FCB040",
+            "#10A89E",
+            "#8BC53F",
+            "#D91A5C",
+            "#F6941F",
+            "#F0582B",
+            "#BE1E2E",
+            "#262262",
+        ],
         textprops={
-            "size": 11,
+            "size": FONT_SIZE,
             "weight": "bold",
             "family": FONT_FAMILY,
             "horizontalalignment": "center",
@@ -167,6 +202,6 @@ def build_pie_chart(report_data, total_findings):
             text.set_color("white")
 
     fig = ax.get_figure()
-    fig.set_facecolor(BACKGROUND_COLOR)
-    fig.set_dpi(100)
+    fig.set_figheight(2.8)
+    fig.set_dpi(200)
     return fig

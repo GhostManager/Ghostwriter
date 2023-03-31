@@ -275,6 +275,7 @@ ghostwriter/media/
 ssl/*.crt
 ssl/*.key
 ssl/dhparam.pem
+ssl/*.cnf
 
 # Temporary ignore of Cypress front end testing data
 cypress/*

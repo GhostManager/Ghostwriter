@@ -11,15 +11,15 @@ class Severity(Enum):
 
 
 class DifficultyExploitColor(Enum):
-    LOW = (Severity.LOW.value, "#FF0000")
-    MED = (Severity.MED.value, "#ED9146")
-    HIGH = (Severity.HIGH.value, "#16A43E")
+    LOW = (Severity.LOW.value, "#F0582B")
+    MED = (Severity.MED.value, "#F6941F")
+    HIGH = (Severity.HIGH.value, "#8BC53F")
 
 
 class FindingStatusColor(Enum):
-    OPEN = ("OPEN", "#FF0000")
-    CLOSED = ("CLOSED", "#16A43E")
-    ACCEPTED = ("ACCEPTED", "#0C5AB2")
+    OPEN = ("OPEN", "#F0582B")
+    CLOSED = ("CLOSED", "#8BC53F")
+    ACCEPTED = ("ACCEPTED", "#4E81BD")
 
 
 def get_value_from_key(e, key):

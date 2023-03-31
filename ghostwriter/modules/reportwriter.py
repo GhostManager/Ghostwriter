@@ -14,6 +14,10 @@ import re
 from datetime import timedelta
 from string import ascii_letters
 
+# Django Imports
+from django.conf import settings
+from django.utils.dateformat import format as dateformat
+
 # 3rd Party Libraries
 import docx
 import jinja2
@@ -22,10 +26,6 @@ import pptx
 from bs4 import BeautifulSoup, NavigableString
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
-
-# Django Imports
-from django.conf import settings
-from django.utils.dateformat import format as dateformat
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
@@ -56,8 +56,8 @@ from ghostwriter.stratum.enums import (
     Severity,
     get_value_from_key,
 )
-from ghostwriter.stratum.findings_chart import build_chart, build_pie_chart
-from ghostwriter.stratum.sd_graph import build_sd_graph
+from ghostwriter.stratum.findings_chart import build_bar_chart, build_pie_chart
+from ghostwriter.stratum.sd_graph import build_sd_graph, plt
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -242,16 +242,18 @@ def sort_findings(findings):
         Severity.HIGH.value.lower(): 65,
         Severity.MED.value.lower(): 20,
         Severity.LOW.value.lower(): 5,
-        Severity.BP.value.lower(): 1
+        Severity.BP.value.lower(): 1,
     }
     diff_of_exploit = {
         Severity.LOW.value.lower(): 3,
         Severity.MED.value.lower(): 2,
-        Severity.HIGH.value.lower(): 1
+        Severity.HIGH.value.lower(): 1,
     }
 
     for finding in findings:
-        weight = severities[finding["severity"].lower()] * diff_of_exploit.get(strip_html(finding["host_detection_techniques"]).lower(), 1)
+        weight = severities[finding["severity"].lower()] * diff_of_exploit.get(
+            strip_html(finding["host_detection_techniques"]).lower(), 1
+        )
         finding["weight"] = weight
 
     return sorted(findings, key=lambda f: f["weight"], reverse=True)
@@ -882,25 +884,34 @@ class Reportwriter:
             else:
                 font.superscript = styles["superscript"]
 
-    def _add_image(self, par, fig, filename, pad=0.1):
+    def _add_image(self, par, fig, filename, pad=0.1, image_width=None, image_height=None):
         # Build the filepath to save the figure and add to report
         # Strip special chars except for - and _
-        allowed = ascii_letters + "-"+"_"
-        new_file_name = ''.join(list(filter(allowed.__contains__, filename)))
+        allowed = ascii_letters + "-" + "_"
+        new_file_name = "".join(list(filter(allowed.__contains__, filename)))
         directory = f'{settings.MEDIA_ROOT}/evidence/{self.report_json["project"]["id"]}'
 
         if not os.path.exists(directory):
             # Create a new directory because it does not exist
             os.makedirs(directory)
 
-        filepath = f'{directory}/{new_file_name}.png'
+        filepath = f"{directory}/{new_file_name}.png"
         # Save the figure as a png to the file system under the report directory to be saved into the report
-        fig.savefig(filepath,pad_inches=pad, bbox_inches='tight', dpi=fig.get_dpi())
+        fig.savefig(filepath, pad_inches=pad, bbox_inches="tight", dpi=fig.get_dpi())
 
         # Replace figure in report with saved image
         # Use the filename as a label for replacing the text with the image
         run = par.add_run()
-        run.add_picture(filepath, width=Inches(fig.get_figwidth()), height=Inches(fig.get_figheight()))
+        width = Inches(image_width) if image_width else None
+        height = Inches(image_height) if image_height else None
+
+        # The image_width and image_height are separate if we want to change the image
+        # dimensions but not the figure
+        # For example, we only care about setting the figure height to a specific value
+        # but don't care about the width of the image
+        run.add_picture(filepath, width=width, height=height)
+        # Close the current figure window to clear up memory
+        plt.close(fig)
 
     def _replace_and_write(self, text, par, finding, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
         """
@@ -973,20 +984,74 @@ class Reportwriter:
                         # Captions are on their own line so return
                         return par
 
-                    if keyword == "chart_bar":
-                        chart_data = self.report_json["totals"]["chart_data"]
+                    # Bar charts
+                    def _build_bar_chart(self, par, keyword, label):
                         par.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        self._add_image(par, build_chart(chart_data), keyword)
+                        fig = build_bar_chart(self.report_json["totals"][label])
+                        # Subtracting - 3.5 from the width to make it fit perfectly on the page with the font sizes
+                        # to prevent overlapping on the x-axis and make it more readable
+                        self._add_image(par, fig, keyword, image_width=fig.get_figwidth() - 3.5, image_height=fig.get_figheight())
+
+                    if keyword == "chart_bar":
+                        _build_bar_chart(self, par, keyword, "chart_data")
                         return par
-                    elif keyword == "chart_sdscore":
-                        sd_score = self.report_json["totals"]["sd_score"]
+
+                    if keyword == "chart_bar_external":
+                        _build_bar_chart(self, par, keyword, "chart_data_external")
+                        return par
+
+                    if keyword == "chart_bar_internal":
+                        _build_bar_chart(self, par, keyword, "chart_data_internal")
+                        return par
+
+                    # SD Graphs
+                    def _build_sd_graph(self, par, keyword, label):
                         par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        self._add_image(par, build_sd_graph(sd_score), keyword)
+                        fig = build_sd_graph(self.report_json["totals"][label])
+                        self._add_image(par, fig, keyword, image_height=fig.get_figheight())
+
+                    # Unfortunately had to register new tags until GW has a proper way to build charts
+                    # into reports
+                    if keyword == "chart_sdscore_appsec":
+                        _build_sd_graph(self, par, keyword, "sd_score_appsec")
                         return par
-                    elif keyword == "chart_pie":
-                        chart_data = self.report_json["totals"]["chart_data"]
-                        total_findings = self.report_json["totals"]["findings"]
-                        self._add_image(par, build_pie_chart(chart_data, total_findings), keyword)
+
+                    if keyword == "chart_sdscore_cloud":
+                        _build_sd_graph(self, par, keyword, "sd_score_cloud")
+                        return par
+
+                    if keyword == "chart_sdscore_external":
+                        _build_sd_graph(self, par, keyword, "sd_score_external")
+                        return par
+
+                    if keyword == "chart_sdscore_internal":
+                        _build_sd_graph(self, par, keyword, "sd_score_internal")
+                        return par
+
+                    if keyword == "chart_sdscore_physical":
+                        _build_sd_graph(self, par, keyword, "sd_score_physical")
+                        return par
+
+                    if keyword == "chart_sdscore_wireless":
+                        _build_sd_graph(self, par, keyword, "sd_score_wireless")
+                        return par
+
+                    # Pie charts
+                    def _build_pie(self, par, keyword, label):
+                        chart_data = self.report_json["totals"][label]
+                        total_findings = 0
+                        for r in chart_data:
+                            total_findings += sum(r[1:])
+
+                        fig = build_pie_chart(chart_data, total_findings)
+                        self._add_image(par, fig, keyword, image_height=fig.get_figheight())
+
+                    if keyword == "chart_pie_internal":
+                        _build_pie(self, par, keyword, "chart_data_internal")
+                        return par
+
+                    if keyword == "chart_pie_external":
+                        _build_pie(self, par, keyword, "chart_data_external")
                         return par
 
                     # Handle evidence files
@@ -1645,11 +1710,11 @@ class Reportwriter:
             finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding)
             finding["host_detection_techniques_rt"] = RichText(
                 strip_html(finding["host_detection_techniques"]),
-                color=get_value_from_key(DifficultyExploitColor, strip_html(finding["host_detection_techniques"]))
+                color=get_value_from_key(DifficultyExploitColor, strip_html(finding["host_detection_techniques"]),)
             )
             finding["network_detection_techniques_rt"] = RichText(
                 strip_html(finding["network_detection_techniques"]),
-                color=get_value_from_key(FindingStatusColor, strip_html(finding["network_detection_techniques"]))
+                color=get_value_from_key(FindingStatusColor, strip_html(finding["network_detection_techniques"]),)
             )
             finding["references_rt"] = render_subdocument(finding["references"], finding)
 
@@ -1660,20 +1725,54 @@ class Reportwriter:
         # Project Notes
         context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None)
 
-        # Project Findings Charts
+        # Bar Charts
         context["project"]["chart_bar"] = "<p>{{.chart_bar}}</p>"
         context["project"]["chart_bar_rt"] = render_subdocument(
             context["project"]["chart_bar"], finding=None
         )
-
-        context["project"]["chart_sdscore"] = "<p>{{.chart_sdscore}}</p>"
-        context["project"]["chart_sdscore_rt"] = render_subdocument(
-            context["project"]["chart_sdscore"], finding=None
+        context["project"]["chart_bar_external"] = "<p>{{.chart_bar_external}}</p>"
+        context["project"]["chart_bar_external_rt"] = render_subdocument(
+            context["project"]["chart_bar_external"], finding=None
+        )
+        context["project"]["chart_bar_internal"] = "<p>{{.chart_bar_internal}}</p>"
+        context["project"]["chart_bar_internal_rt"] = render_subdocument(
+            context["project"]["chart_bar_internal"], finding=None
         )
 
-        context["project"]["chart_pie"] = "<p>{{.chart_pie}}</p>"
-        context["project"]["chart_pie_rt"] = render_subdocument(
-            context["project"]["chart_pie"], finding=None
+        # SD Graphs
+        context["project"]["chart_sdscore_appsec"] = "<p>{{.chart_sdscore_appsec}}</p>"
+        context["project"]["chart_sdscore_appsec_rt"] = render_subdocument(
+            context["project"]["chart_sdscore_appsec"], finding=None
+        )
+        context["project"]["chart_sdscore_cloud"] = "<p>{{.chart_sdscore_cloud}}</p>"
+        context["project"]["chart_sdscore_cloud_rt"] = render_subdocument(
+            context["project"]["chart_sdscore_cloud"], finding=None
+        )
+        context["project"]["chart_sdscore_wireless"] = "<p>{{.chart_sdscore_wireless}}</p>"
+        context["project"]["chart_sdscore_wireless_rt"] = render_subdocument(
+            context["project"]["chart_sdscore_wireless"], finding=None
+        )
+        context["project"]["chart_sdscore_external"] = "<p>{{.chart_sdscore_external}}</p>"
+        context["project"]["chart_sdscore_external_rt"] = render_subdocument(
+            context["project"]["chart_sdscore_external"], finding=None
+        )
+        context["project"]["chart_sdscore_internal"] = "<p>{{.chart_sdscore_internal}}</p>"
+        context["project"]["chart_sdscore_internal_rt"] = render_subdocument(
+            context["project"]["chart_sdscore_internal"], finding=None
+        )
+        context["project"]["chart_sdscore_physical"] = "<p>{{.chart_sdscore_physical}}</p>"
+        context["project"]["chart_sdscore_physical_rt"] = render_subdocument(
+            context["project"]["chart_sdscore_physical"], finding=None
+        )
+
+        # Pie Charts
+        context["project"]["chart_pie_external"] = "<p>{{.chart_pie_external}}</p>"
+        context["project"]["chart_pie_external_rt"] = render_subdocument(
+            context["project"]["chart_pie_external"], finding=None
+        )
+        context["project"]["chart_pie_internal"] = "<p>{{.chart_pie_internal}}</p>"
+        context["project"]["chart_pie_internal_rt"] = render_subdocument(
+            context["project"]["chart_pie_internal"], finding=None
         )
 
         # Assignments

@@ -7,7 +7,7 @@ MEAN = "mean"
 SD = "sd"
 BLUE = "#14588F"
 ORANGE = "#EC6403"
-FONT_FAMILY = "Liberation Sans Narrow"
+FONT_FAMILY = "Arial Narrow"
 
 
 def _get_regions(x_normdist, plotdata):
@@ -51,13 +51,13 @@ def _label_x_axis(ax):
     labels = ax.get_xticklabels()
     labels = [item.get_text() for item in labels]
 
-    labels[1] = "-3\n|\nFar Below Average\n"
-    labels[2] = "-2"
+    labels[1] = "-3"
+    labels[2] = "-2\n|\nFar Below Average\n"
     labels[3] = "-1"
     labels[4] = "0\n|\nAverage\n"
     labels[5] = "1"
-    labels[6] = "2"
-    labels[7] = "3\n|\nFar Above Average\n"
+    labels[6] = "2\n|\nFar Above Average\n"
+    labels[7] = "3"
     ax.set_xticks(
         ticks=locs,
         labels=labels,
@@ -147,7 +147,7 @@ def build_sd_graph(sd_score):
     _plot_score(sd_score, ax, plotdata)
 
     # Shrink figure to be close to current size in Word template
-    fig.set_size_inches(4.5, 1.85)
+    fig.set_figheight(1.85)
     # Think of DPI as zooming in on the image making it easier to see
     fig.set_dpi(150)
     return fig
