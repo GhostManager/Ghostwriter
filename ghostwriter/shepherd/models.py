@@ -233,7 +233,7 @@ class Domain(models.Model):
         verbose_name_plural = "Domains"
 
     def natural_key(self):  # pragma: no cover
-        return (self.name,)
+        return self.name
 
     def get_absolute_url(self):
         return reverse("shepherd:domain_detail", args=[str(self.id)])

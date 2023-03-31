@@ -40,10 +40,10 @@ class CheckoutForm(forms.ModelForm):
         widgets = {
             "domain": forms.HiddenInput(),
             "start_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
             "end_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
         }
 
@@ -160,10 +160,10 @@ class DomainForm(forms.ModelForm):
         )
         widgets = {
             "creation": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
             "expiration": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
         }
 

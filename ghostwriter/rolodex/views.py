@@ -104,20 +104,15 @@ def roll_codename(request):
     """
     Fetch a unique codename for use with a model.
     """
-
     try:
         codename_verified = False
+        new_codename = None
         while not codename_verified:
             new_codename = codenames.codename(uppercase=True)
-            try:
-                Project.objects.filter(codename__iequal=new_codename)
-                codename_verified = False  # pragma: no cover
-            except Exception:
-                codename_verified = True
-            try:
-                Client.objects.filter(codename__iequal=new_codename)
-                codename_verified = False  # pragma: no cover
-            except Exception:
+            if (
+                not Project.objects.filter(codename__iexact=new_codename).exists()
+                and not Client.objects.filter(codename__iexact=new_codename).exists()
+            ):
                 codename_verified = True
         data = {
             "result": "success",
@@ -203,11 +198,12 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
             old_status = objective.status
             # Get all available status
             all_status = ObjectiveStatus.objects.all()
+            new_status = all_status[0]
             total_status = all_status.count()
-            for index, status in enumerate(all_status):
+            for i, status in enumerate(all_status):
                 if status == old_status:
                     # Check if we're at the last status
-                    next_index = index + 1
+                    next_index = i + 1
                     if total_status - 1 >= next_index:
                         new_status = all_status[next_index]
                     # If at end, roll-over to the first status
@@ -221,7 +217,6 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
 
             if not success:
                 logger.warning("Failed to match old status, %s, with any existing status, so set status to ``0``")
-                new_status = all_status[0]
                 objective.status = new_status
                 objective.save()
 

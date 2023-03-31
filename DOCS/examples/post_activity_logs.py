@@ -54,9 +54,7 @@ if len(sys.argv) >= 3:
     url = f"{server}/oplog/api/entries/"
     test_url = f"{server}/oplog/api/oplogs/{oplog_id}"
 
-    print(
-        f'[+] Creating {count} entries for Oplog ID #{oplog_id} with the key "{api_key}"'
-    )
+    print(f'[+] Creating {count} entries for Oplog ID #{oplog_id} with the key "{api_key}"')
     print(f"[*] Testing the key with your server: {test_url}")
 
     headers = {
@@ -92,12 +90,10 @@ if len(sys.argv) >= 3:
     letters = string.ascii_uppercase
 
     for i in range(total):
-        addresses.append(
-            socket.inet_ntoa(struct.pack(">I", random.randint(1, 0xFFFFFFFF)))
-        )
+        addresses.append(socket.inet_ntoa(struct.pack(">I", random.randint(1, 0xFFFFFFFF))))
 
     for i in range(total):
-        hostname = "".join(random.choice(letters) for i in range(8))
+        hostname = "".join(random.choice(letters) for n in range(8))
         rand_digit = random.randint(1, 9)
         hostname += str(rand_digit)
         hostnames.append(hostname)
@@ -175,9 +171,7 @@ if len(sys.argv) >= 3:
         resp = requests.post(url, headers=headers, data=json.dumps(data))
 
         if not resp.status_code == 201:
-            print(
-                f"[!] Log creation failed – Received code {resp.status_code}: {resp.text}"
-            )
+            print(f"[!] Log creation failed – Received code {resp.status_code}: {resp.text}")
             sys.exit()
 
         print(f"... Created {i+1}/{count} log entries")

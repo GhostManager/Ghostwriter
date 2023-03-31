@@ -37,7 +37,7 @@ urlpatterns = [
         name="oplog_entry_delete",
     ),
     path("<int:pk>/entries", views.OplogListEntries.as_view(), name="oplog_entries"),
-    path("import", views.OplogEntriesImport, name="oplog_import"),
+    path("import", views.oplog_entries_import, name="oplog_import"),
 ]
 
 # URLs for AJAX requests

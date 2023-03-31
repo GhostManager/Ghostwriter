@@ -106,18 +106,18 @@ class DomainReview:
         ``subdomains``
             Return a list of subdomains (Default: False)
         """
+        # The VT API is case-sensitive, so domains should always be lowercase
+        if not ignore_case:
+            domain = domain.lower()
+
         if subdomains:
             virustotal_endpoint_uri = "/domains/{domain}/relationships/subdomains".format(domain=domain)
         else:
             virustotal_endpoint_uri = "/domains/{domain}".format(domain=domain)
 
         url = self.VIRUSTOTAL_BASE_API_URL + virustotal_endpoint_uri
-        results = {}
-        results["result"] = "success"
+        results = {"result": "success"}
         if self.virustotal_config.enable:
-            # The VT API is case sensitive, so domains should always be lowercase
-            if not ignore_case:
-                domain = domain.lower()
             try:
                 headers = {
                     "x-apikey": self.virustotal_config.api_key,

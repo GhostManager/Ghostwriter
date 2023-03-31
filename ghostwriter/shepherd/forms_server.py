@@ -408,10 +408,10 @@ class ServerCheckoutForm(forms.ModelForm):
         widgets = {
             "server": forms.HiddenInput(),
             "start_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
             "end_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
         }
 

@@ -1167,7 +1167,7 @@ def test_digital_ocean(user):
     Test the Digital Ocean API key configured in
     :model:`commandcenter.CloudServicesConfiguration`.
     """
-    DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
+    digital_ocean_endpoint = "https://api.digitalocean.com/v2/droplets"
     cloud_config = CloudServicesConfiguration.get_solo()
     level = "error"
     logger.info("Starting a test of the Digital Ocean API key at %s", datetime.now())
@@ -1175,7 +1175,7 @@ def test_digital_ocean(user):
         # Request all active droplets (as done in the real task)
         headers = {"Content-Type": "application/json"}
         active_droplets = requests.get(
-            DIGITAL_OCEAN_ENDPOINT,
+            digital_ocean_endpoint,
             headers=headers,
             auth=BearerAuth(cloud_config.do_api_key),
         )

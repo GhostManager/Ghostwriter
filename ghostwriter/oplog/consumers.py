@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
-def createOplogEntry(oplog_id, user):
+def create_oplog_entry(oplog_id, user):
     OplogEntry.objects.create(oplog_id_id=oplog_id, operator_name=user.username)
 
 
 @database_sync_to_async
-def deleteOplogEntry(entry_id):
+def delete_oplog_entry(entry_id):
     try:
         OplogEntry.objects.get(pk=entry_id).delete()
     except OplogEntry.DoesNotExist:
@@ -37,7 +37,7 @@ def deleteOplogEntry(entry_id):
 
 
 @database_sync_to_async
-def copyOplogEntry(entry_id):
+def copy_oplog_entry(entry_id):
     entry = OplogEntry.objects.get(pk=entry_id)
     if entry:
         copy = deepcopy(entry)
@@ -50,7 +50,7 @@ def copyOplogEntry(entry_id):
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
-    def getLogEntries(self, oplog_id: int, offset: int) -> ReturnList:
+    def get_log_entries(self, oplog_id: int, offset: int) -> ReturnList:
         entries = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
         if len(entries) == offset:
             serialized_entries = OplogEntrySerializer([], many=True).data
@@ -72,7 +72,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(str(oplog_id), self.channel_name)
             await self.accept()
 
-            serialized_entries = await self.getLogEntries(oplog_id, 0)
+            serialized_entries = await self.get_log_entries(oplog_id, 0)
             message = json.dumps({"action": "sync", "data": serialized_entries})
 
             await self.send(text_data=message)
@@ -84,19 +84,19 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         json_data = json.loads(text_data)
         if json_data["action"] == "delete":
             oplog_entry_id = int(json_data["oplogEntryId"])
-            await deleteOplogEntry(oplog_entry_id)
+            await delete_oplog_entry(oplog_entry_id)
 
         if json_data["action"] == "copy":
             oplog_entry_id = int(json_data["oplogEntryId"])
-            await copyOplogEntry(oplog_entry_id)
+            await copy_oplog_entry(oplog_entry_id)
 
         if json_data["action"] == "create":
-            await createOplogEntry(json_data["oplog_id"], self.scope["user"])
+            await create_oplog_entry(json_data["oplog_id"], self.scope["user"])
 
         if json_data["action"] == "sync":
             oplog_id = json_data["oplog_id"]
             offset = json_data["offset"]
-            entries = await self.getLogEntries(oplog_id, offset)
+            entries = await self.get_log_entries(oplog_id, offset)
             message = json.dumps({"action": "sync", "data": entries})
 
             await self.send(text_data=message)

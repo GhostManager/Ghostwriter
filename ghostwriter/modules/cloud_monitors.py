@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 utc = pytz.UTC
 
 # Digital Ocean API endpoint for droplets
-DIGITAL_OCEAN_ENDPOINT = "https://api.digitalocean.com/v2/droplets"
+digital_ocean_endpoint = "https://api.digitalocean.com/v2/droplets"
 
 
 class BearerAuth(requests.auth.AuthBase):
@@ -268,10 +268,8 @@ def fetch_aws_lightsail(aws_key, aws_secret, ignore_tags=None):
                         # Check for "ignore tags"
                         if tag["Key"] in ignore_tags or tag["Value"] in ignore_tags:
                             ignore = True
-                pub_addresses = []
-                pub_addresses.append(instance["publicIpAddress"])
-                priv_addresses = []
-                priv_addresses.append(instance["privateIpAddress"])
+                pub_addresses = [instance["publicIpAddress"]]
+                priv_addresses = [instance["privateIpAddress"]]
                 # Add instance info to a dictionary
                 instances.append(
                     {
@@ -385,7 +383,7 @@ def fetch_digital_ocean(api_key, ignore_tags=None):
     headers = {"Content-Type": "application/json"}
     try:
         active_droplets = requests.get(
-            DIGITAL_OCEAN_ENDPOINT,
+            digital_ocean_endpoint,
             headers=headers,
             auth=BearerAuth(api_key),
         )

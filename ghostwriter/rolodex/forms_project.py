@@ -379,8 +379,8 @@ class BaseWhiteCardInlineFormSet(BaseInlineFormSet):
                                 code="incomplete",
                             ),
                         )
-                    # Raise an error if dates are out of bounds
-                    # We only check if ``issued`` is after the project's end date because white cards can be issued prior to execution
+                    # Raise an error if dates are out of bounds. We only check if ``issued`` is after the project's
+                    # end date because white cards can be issued prior to execution.
                     if self.instance.start_date and issued:
                         if issued.date() > self.instance.end_date:
                             form.add_error(
@@ -406,10 +406,10 @@ class ProjectAssignmentForm(forms.ModelForm):
         exclude = ()
         widgets = {
             "start_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
             "end_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
         }
 
@@ -467,7 +467,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                                 StrictButton(
                                     "Copy",
                                     onclick="copyStartDate($(this).closest('div').find('input'))",
-                                    css_class="btn btn-secondary"
+                                    css_class="btn btn-secondary",
                                 ),
                             ),
                             css_class="form-group col-md-6 mb-0",
@@ -478,7 +478,7 @@ class ProjectAssignmentForm(forms.ModelForm):
                                 StrictButton(
                                     "Copy",
                                     onclick="copyEndDate($(this).closest('div').find('input'))",
-                                    css_class="btn btn-secondary"
+                                    css_class="btn btn-secondary",
                                 ),
                             ),
                             css_class="form-group col-md-6 mb-0",
@@ -526,7 +526,7 @@ class ProjectObjectiveForm(forms.ModelForm):
         )
         widgets = {
             "deadline": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
         }
 
@@ -579,7 +579,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                                 StrictButton(
                                     "Copy",
                                     onclick="copyEndDate($(this).closest('div').find('input'))",
-                                    css_class="btn btn-secondary"
+                                    css_class="btn btn-secondary",
                                 ),
                             ),
                             css_class="col-4",
@@ -687,7 +687,7 @@ class ProjectScopeForm(forms.ModelForm):
                                 onclick="formatScope($(this).closest('div').next('div').find('textarea'))",
                                 data_toggle="tooltip",
                                 title="Split a comma-delimited scope list to newlines",
-                                css_class="btn btn-outline-secondary col-6"
+                                css_class="btn btn-outline-secondary col-6",
                             ),
                         ),
                     ),
@@ -859,7 +859,7 @@ class WhiteCardForm(forms.ModelForm):
                                 StrictButton(
                                     "Now",
                                     onclick="setNow($(this).closest('div').find('input'))",
-                                    css_class="btn btn-secondary"
+                                    css_class="btn btn-secondary",
                                 ),
                             ),
                             css_class="col-md-6",
@@ -956,10 +956,10 @@ class ProjectForm(forms.ModelForm):
         exclude = ("operator", "complete")
         widgets = {
             "start_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
             "end_date": forms.DateInput(
-                format=("%Y-%m-%d"),
+                format="%Y-%m-%d",
             ),
         }
 

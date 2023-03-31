@@ -445,7 +445,6 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
     model = ReportFindingLink
 
     def post(self, *args, **kwargs):
-        data = {}
         # Get ``status`` kwargs from the URL
         status = self.kwargs["status"]
         finding = self.get_object()
@@ -680,13 +679,14 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         report_to_clone = self.get_object()
+        report_pk = None
         try:
             findings = ReportFindingLink.objects.select_related("report").filter(report=report_to_clone.pk)
             report_to_clone.title = report_to_clone.title + " Copy"
             report_to_clone.complete = False
             report_to_clone.pk = None
             report_to_clone.save()
-            new_report_pk = report_to_clone.pk
+            report_pk = report_to_clone.pk
             for finding in findings:
                 # Get any evidence files attached to the original finding
                 evidences = Evidence.objects.filter(finding=finding.pk)
@@ -737,7 +737,7 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, View):
                 extra_tags="alert-error",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": new_report_pk}))
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report_pk}))
 
 
 class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, View):
@@ -954,28 +954,29 @@ def generate_report_name(report_instance):
     the filename browser-friendly.
     """
 
-    def replace_placeholders(report_name, report_instance):
+    def replace_placeholders(name, instance):
         """Replace placeholders in the report name with the appropriate values."""
         company_info = CompanyInformation.get_solo()
-        report_name = report_name.replace("{company}", company_info.company_name)
-        report_name = report_name.replace("{client}", report_instance.project.client.name)
-        report_name = report_name.replace("{date}", dateformat.format(timezone.now(), settings.DATE_FORMAT))
-        report_name = report_name.replace("{assessment_type}", report_instance.project.project_type.project_type)
-        return report_name
+        name = name.replace("{title}", instance.title)
+        name = name.replace("{company}", company_info.company_name)
+        name = name.replace("{client}", instance.project.client.name)
+        name = name.replace("{date}", dateformat.format(timezone.now(), settings.DATE_FORMAT))
+        name = name.replace("{assessment_type}", instance.project.project_type.project_type)
+        return name
 
-    def replace_date_format(report_name):
+    def replace_date_format(name):
         """Replace date format placeholders in the report name with the appropriate values."""
         # Find all strings wrapped in curly braces
         datetime_regex = r"(?<=\{)(.*?)(?=\})"
-        for match in re.findall(datetime_regex, report_name):
+        for match in re.findall(datetime_regex, name):
             strfmt = dateformat.format(timezone.now(), match)
-            report_name = report_name.replace(match, strfmt)
-        return report_name
+            name = name.replace(match, strfmt)
+        return name
 
-    def replace_chars(report_name):
+    def replace_chars(name):
         """Remove illegal characters from the report name."""
-        report_name = report_name.replace("–", "-")
-        return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", report_name)
+        name = name.replace("–", "-")
+        return re.sub(r"[<>:;\"'/\\|?*.,{}\[\]]", "", name)
 
     report_config = ReportConfiguration.get_solo()
     report_name = report_config.report_filename
@@ -2226,8 +2227,7 @@ class EvidenceDetailView(LoginRequiredMixin, DetailView):
                 filetype = "unknown"
         else:
             filetype = "text"
-            file_content = []
-            file_content.append("FILE NOT FOUND")
+            file_content = ["FILE NOT FOUND"]
 
         ctx["filetype"] = filetype
         ctx["evidence"] = self.object

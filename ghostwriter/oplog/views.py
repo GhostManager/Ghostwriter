@@ -112,7 +112,7 @@ def index(request):
 
 
 @login_required
-def OplogEntriesImport(request):
+def oplog_entries_import(request):
     """
     Import a collection of :model:`oplog.OplogEntry` entries for an individual
     :model:`oplog.Oplog`.
@@ -296,6 +296,9 @@ class OplogUpdate(LoginRequiredMixin, UpdateView):
 
 
 class AjaxTemplateMixin:
+    def __init__(self):
+        pass
+
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(self, "ajax_template_name"):
             split = self.template_name.split(".html")
@@ -362,7 +365,6 @@ class OplogEntryViewSet(viewsets.ModelViewSet):
     permission_classes = [HasAPIKey | IsAuthenticated]
 
     def list(self, request):
-        queryset = OplogEntry.objects.all().order_by("-start_date")
         if "oplog_id" not in self.request.query_params:
             queryset = OplogEntry.objects.all().order_by("-start_date")
         else:

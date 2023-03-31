@@ -84,8 +84,7 @@ class DNSCollector:
         """
         logger.debug("Fetching %s records for %s", record_type, domain)
         # Prepare the results dictionary
-        result = {}
-        result[domain] = {}
+        result = {domain: {}}
         result[domain]["domain"] = domain
 
         # Handle DMARC as a special record type

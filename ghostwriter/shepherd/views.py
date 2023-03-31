@@ -601,8 +601,8 @@ def infrastructure_search(request):
     :model:`shepherd:TransientServer` and return any matches with any related
     :model:`rolodex.Project` entries.
     """
+    context = {}
     if request.method == "GET":
-        context = {}
         search_term = ""
         try:
             if "query" in request.GET:

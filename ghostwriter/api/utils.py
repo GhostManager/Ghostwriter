@@ -181,11 +181,11 @@ def verify_graphql_request(headers):
     ``headers``
         Headers from a Django ``request`` object
     """
-    HASURA_ACTION_SECRET = headers.get("Hasura-Action-Secret")
-    if HASURA_ACTION_SECRET is None:
+    hasura_action_secret = headers.get("Hasura-Action-Secret")
+    if hasura_action_secret is None:
         return False
 
-    if HASURA_ACTION_SECRET == settings.HASURA_ACTION_SECRET:
+    if hasura_action_secret == settings.HASURA_ACTION_SECRET:
         return True
     return False
 

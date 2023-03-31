@@ -129,6 +129,9 @@ class HasuraView(View):
 class JwtRequiredMixin:
     """Mixin for ``HasuraView`` to require a JWT to be present in the request header."""
 
+    def __init__(self):
+        pass
+
     def dispatch(self, request, *args, **kwargs):
         # This does not allow the use of Hasura's ``x-hasura-admin-secret`` header in lieu of a JWT
         if self.encoded_token:

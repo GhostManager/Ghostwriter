@@ -1260,6 +1260,7 @@ class Reportwriter:
         ``level``
             Indentation level for the list item (Defaults to 0)
         """
+        p = prev_p
         # Get the individuals contents of the tag
         contents = tag.contents
         # Loop over the contents to find nested lists
