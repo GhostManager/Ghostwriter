@@ -96,3 +96,12 @@ def strip_empty_tags(content):
         if len(x.get_text(strip=True)) == 0:
             x.extract()
     return soup.prettify()
+
+
+@register.filter
+def divide(value, arg):
+    """Divide the value by the argument."""
+    try:
+        return int(value) / int(arg)
+    except (ValueError, ZeroDivisionError):
+        return None
