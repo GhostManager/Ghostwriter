@@ -918,7 +918,17 @@ class ReportDataSerializer(CustomModelSerializer):
             ("physical", findings_score_total, 64.30909091, 56.55371468),
         ]
         for d in score_type_data:
-            rep["totals"]["sd_score_" + d[0]] = _get_score(d[1], d[2], d[3])
+            mean = d[2]
+            std = d[3]
+            best_score = _get_score(0, mean, std)
+            score = _get_score(d[1], mean, std)
+
+            # Convert the score to a percentage based on the range of the SD graph max value (3 STD)
+            # Negatives we are graphing as a score whereas positive as a percentage
+            # since we don't know the worst score but do know the best score
+            if score > 0:
+                score = score / best_score * 3
+            rep["totals"]["sd_score_" + d[0]] = score
 
         # Calculate the findings chart data variable
         def _get_chart_data(findings):
