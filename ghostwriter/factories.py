@@ -373,6 +373,19 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+class BlankReportFindingLinkFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "reporting.ReportFindingLink"
+
+    title = factory.Sequence(lambda n: "Blank Finding %s" % n)
+    position = 1
+    added_as_blank = True
+    assigned_to = factory.SubFactory(UserFactory)
+    severity = factory.SubFactory(SeverityFactory)
+    finding_type = factory.SubFactory(FindingTypeFactory)
+    report = factory.SubFactory(ReportFactory)
+
+
 class EvidenceFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.Evidence"
