@@ -4,17 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.2.6] - 10 April 2023
+
+### Changed
+
+* Changed the project assignments list on the home dashboard to show the assignment's start and end dates instead of the project's start and end dates (Closes #302)
+
+### Fixed
+
+* Fixed an issue that would cause a server error whe uploading or editing an evidence file to a blank finding (Fixes #303)
+
 ## [v3.2.5] - 31 March 2023
 
-## Added
+### Added
 
 * A report's title can now be added to the report download filename template as a new `title` variable
 
-## Changed
+### Changed
 
 * The global report configuration can now be reviewed on the management page (_/home/management/_)
 
-## Fixed
+### Fixed
 
 * Fixed an issue that prevented saving an edited activity log entry when editing a timestamps seconds value
 
@@ -24,20 +34,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Updated the pre-built Ghostwriter CLI binaries to v0.2.11
 
-## Fixed
+### Fixed
 
 * Fixed an issue that could result in an activity log's "latest activity" timestamp to be incorrect
 * Fixed a bug that toggled a reported finding's editing status from "Ready" to "Needs Editing" after saving that finding
 
 ## [v3.2.3] - 22 March 2023
 
-## Added
+### Added
 
 * Added the option to filter the project list by the assessment type
 * Added `NO_PROXY` environment variables to production containers to prevent a proxy from being used for internal container connections
 * Added a `tools` key to the report template context data that contains a list of unique tools that appeared in activity log entries
 
-## Changed
+### Changed
 
 * The server will now update references to an evidence file inside the associated finding when you change that file's name
 * Changed the server search form under the project dashboard's Infrastructure tab to work like the adjacent domain search form
@@ -54,18 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Updated WYSIWYG editor skin to better match the rest of the interface
 * Merged PR #274 to allow the option for authenticating with social accounts
 
-## Fixed
+### Fixed
 
 * Fixed severity category ordering appearing reversed for new installations of v3.2.0 to v3.0.2 (Fixes #292)
 * Fixed hyperlinks not being distinguishable from the regular text in notes (Closes #295)
 
 ## [v3.2.2] - 13 February 2023
 
-## Changed
+### Changed
 
 * Upgraded Ghostwriter CLI binaries to v0.2.9
 
-## Fixed
+### Fixed
 
 * Fixed situations where the webpage could fail to load after submitting a client and project form with a validation error (Fixes #290)
 * Fixed tags on log entries not appearing immediately in the table after adding them
