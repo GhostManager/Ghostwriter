@@ -76,17 +76,22 @@ def evidence_update(sender, instance, **kwargs):
             friendly_ref = f"{{{{.ref {instance.friendly_name}}}}}"
             prev_friendly = f"{{{{.{instance._current_friendly_name}}}}}"
             prev_friendly_ref = f"{{{{.ref {instance._current_friendly_name}}}}}"
-            try:
-                link = ReportFindingLink.objects.get(id=instance.finding.id)
-                for field in link._meta.get_fields():
-                    if field.name not in ignore:
-                        current = getattr(link, field.name)
-                        new = current.replace(prev_friendly, friendly)
-                        new = new.replace(prev_friendly_ref, friendly_ref)
-                        setattr(link, field.name, new)
-                link.save()
-            except ReportFindingLink.DoesNotExist:
-                logger.exception("Could not find ReportFindingLink for Evidence %s", instance.id)
+            if friendly_ref != prev_friendly_ref:
+                logger.info(
+                    "Updating content of ReportFindingLink instances with updated name for Evidence %s", instance.id
+                )
+                try:
+                    link = ReportFindingLink.objects.get(id=instance.finding.id)
+                    for field in link._meta.get_fields():
+                        if field.name not in ignore:
+                            current = getattr(link, field.name)
+                            if current:
+                                new = current.replace(prev_friendly, friendly)
+                                new = new.replace(prev_friendly_ref, friendly_ref)
+                                setattr(link, field.name, new)
+                    link.save()
+                except ReportFindingLink.DoesNotExist:
+                    logger.exception("Could not find ReportFindingLink for Evidence %s", instance.id)
 
 
 @receiver(post_delete, sender=Evidence)
