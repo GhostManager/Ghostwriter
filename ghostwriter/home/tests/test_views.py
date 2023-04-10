@@ -118,7 +118,7 @@ class TemplateTagTests(TestCase):
         example_html = "<body><p>Example HTML</p><br /><br /><p></p></body>"
         result = custom_tags.strip_empty_tags(example_html)
         # The tag uses BS4's `prettify()` method to format the HTML, so there are newlines and indentations
-        self.assertEqual(result, "<html>\n <body>\n  <p>\n   Example HTML\n  </p>\n </body>\n</html>")
+        self.assertEqual(result, "<html>\n <body>\n  <p>\n   Example HTML\n  </p>\n </body>\n</html>\n")
 
         result = custom_tags.divide(12700, 12700)
         self.assertEqual(result, 1.0)
