@@ -23,13 +23,16 @@
                     <div class="card">
                         <p class="dashboard-header text-center">Project Assignments</p>
                         {% if active_projects %}
-                            <ul class="text-left" style="list-style-type: none;">
+                            <table>
                                 {% for project in active_projects %}
-                                    <li class="pb-2"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }}) {{ project.project.start_date }}–{{ project.project.end_date }}</a></li>
+                                  <tr>
+                                    <td class="text-left align-middle"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }})</a></td>
+                                    <td class="text-right align-middle">{{ project.start_date }}–{{ project.end_date }}</td>
+                                  </tr>
                                 {% endfor %}
-                            </ul>
+                            </table>
                         {% else %}
-                            <p class="align-middle text-center">You have no project assignments.</p>
+                            <p class="align-middle text-center pt-3">You have no project assignments.</p>
                         {% endif %}
                     </div>
                 </div>
@@ -45,7 +48,7 @@
                                 {% endfor %}
                             </ul>
                         {% else %}
-                            <p class="align-middle text-center">You have no reporting tasks. Nice!</p>
+                            <p class="align-middle text-center pt-3">You have no reporting tasks. Nice!</p>
                         {% endif %}
                     </div>
                 </div>
