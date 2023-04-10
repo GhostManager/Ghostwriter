@@ -13,6 +13,7 @@ from django.test import TestCase
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ArchiveFactory,
+    BlankReportFindingLinkFactory,
     DocTypeFactory,
     EvidenceFactory,
     FindingFactory,
@@ -596,6 +597,15 @@ class EvidenceModelTests(TestCase):
         self.assertEqual(
             finding.description, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
         )
+
+        # Regression test for this signal updating a finding with blank fields
+        blank = BlankReportFindingLinkFactory()
+        evidence = EvidenceFactory(finding=blank, friendly_name="Blank Test")
+        evidence.refresh_from_db()
+
+        evidence.friendly_name = "New Name"
+        evidence.save()
+        evidence.refresh_from_db()
 
 
 class FindingNoteModelTests(TestCase):
