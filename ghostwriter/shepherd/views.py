@@ -612,10 +612,10 @@ def infrastructure_search(request):
 
                 if search_term:
                     server_qs = StaticServer.objects.filter(
-                        Q(ip_address__contains=search_term) | Q(name__contains=search_term)
+                        Q(ip_address__contains=search_term) | Q(name__icontains=search_term)
                     )
                     vps_qs = TransientServer.objects.select_related("project").filter(
-                        Q(ip_address__contains=search_term) | Q(name__contains=search_term)
+                        Q(ip_address__contains=search_term) | Q(name__icontains=search_term)
                     )
                     aux_qs = AuxServerAddress.objects.select_related("static_server").filter(
                         ip_address__contains=search_term
