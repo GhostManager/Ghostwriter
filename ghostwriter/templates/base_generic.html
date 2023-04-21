@@ -185,7 +185,7 @@
             <ul class="collapse list-unstyled text-left" id="clientSubmenu">
               {% comment %} Search for Clients {% endcomment %}
               <form class="px-6 py-2" action="{% url 'rolodex:clients' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="client-search" name="client_search"
+                <input type="search" autocomplete="off" class="form-control" id="client-search" name="name"
                        placeholder="Search Clients..." autofocus="autofocus">
               </form>
               {% comment %} Clients Submenu Items {% endcomment %}
@@ -199,7 +199,7 @@
             <ul class="collapse list-unstyled text-left" id="findingsSubmenu">
               {% comment %} Search for Findings {% endcomment %}
               <form class="px-6 py-2" action="{% url 'reporting:findings' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="finding-search" name="finding_search"
+                <input type="search" autocomplete="off" class="form-control" id="finding-search" name="title"
                        placeholder="Search Findings..." autofocus="autofocus">
               </form>
               {% comment %} Findings Submenu Items {% endcomment %}
@@ -287,7 +287,7 @@
             <ul class="collapse list-unstyled text-left" id="shepSubmenu">
               {% comment %} Search for Domains {% endcomment %}
               <form class="px-6 py-2" action="{% url 'shepherd:domains' %}" method="GET">
-                <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain_search"
+                <input type="search" autocomplete="off" class="form-control" id="domain-search" name="domain"
                        placeholder="Search Domains..." autofocus="autofocus">
               </form>
               {% comment %} Domains Submenu Items {% endcomment %}
