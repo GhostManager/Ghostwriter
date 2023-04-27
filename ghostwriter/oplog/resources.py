@@ -5,13 +5,22 @@ from datetime import datetime as dt
 
 # 3rd Party Libraries
 from import_export import resources
+from taggit.models import Tag
 
 # Ghostwriter Libraries
+from ghostwriter.modules.shared import TagFieldImport, TagWidget, taggit_before_import_row
 from ghostwriter.oplog.models import OplogEntry
 
 
 class OplogEntryResource(resources.ModelResource):
+    """
+    Import and export for :model:`oplog.OplogEntry`.
+    """
+
+    tags = TagFieldImport(attribute="tags", column_name="tags", widget=TagWidget(Tag, separator=","), default="")
+
     def before_import_row(self, row, **kwargs):
+        taggit_before_import_row(row)
         if "start_date" in row.keys():
             try:
                 timestamp = int(float(row["start_date"]))
@@ -29,9 +38,9 @@ class OplogEntryResource(resources.ModelResource):
 
     class Meta:
         model = OplogEntry
-        skip_unchanged = True
-        exclude = ("id",)
-        import_id_fields = (
+        skip_unchanged = False
+        export_order = (
+            "id",
             "oplog_id",
             "start_date",
             "end_date",
@@ -44,4 +53,5 @@ class OplogEntryResource(resources.ModelResource):
             "output",
             "comments",
             "operator_name",
+            "tags",
         )

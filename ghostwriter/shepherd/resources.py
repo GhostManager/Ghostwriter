@@ -4,8 +4,10 @@
 from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
+from taggit.models import Tag
 
 # Ghostwriter Libraries
+from ghostwriter.modules.shared import TagFieldImport, TagWidget, taggit_before_import_row
 from ghostwriter.shepherd.models import (
     Domain,
     DomainStatus,
@@ -37,25 +39,33 @@ class DomainResource(resources.ModelResource):
         column_name="whois_status",
         widget=ForeignKeyWidget(WhoisStatus, "whois_status"),
     )
+    tags = TagFieldImport(attribute="tags", column_name="tags", widget=TagWidget(Tag, separator=","))
+
+    def before_import_row(self, row, **kwargs):
+        taggit_before_import_row(row)
 
     class Meta:
         model = Domain
-        skip_unchanged = True
-        exclude = ("last_used_by",)
+        skip_unchanged = False
+        exclude = ("last_used_by", "last_health_check", "vt_permalink")
 
         export_order = (
             "id",
             "name",
             "domain_status",
-            "health_status",
-            "whois_status",
+            "registrar",
+            "auto_renew",
             "creation",
             "expiration",
-            "auto_renew",
+            "health_status",
+            "whois_status",
             "expired",
             "categorization",
+            "dns",
+            "reset_dns",
             "note",
             "burned_explanation",
+            "tags",
         )
 
 
@@ -74,10 +84,14 @@ class StaticServerResource(resources.ModelResource):
         column_name="server_provider",
         widget=ForeignKeyWidget(ServerProvider, "server_provider"),
     )
+    tags = TagFieldImport(attribute="tags", column_name="tags", widget=TagWidget(Tag, separator=","))
+
+    def before_import_row(self, row, **kwargs):
+        taggit_before_import_row(row)
 
     class Meta:
         model = StaticServer
-        skip_unchanged = True
+        skip_unchanged = False
         exclude = ("last_used_by",)
 
         export_order = (
@@ -86,4 +100,6 @@ class StaticServerResource(resources.ModelResource):
             "name",
             "server_status",
             "server_provider",
+            "note",
+            "tags",
         )
