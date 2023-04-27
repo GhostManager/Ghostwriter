@@ -3,13 +3,13 @@
 # Standard Libraries
 from datetime import datetime
 
-# 3rd Party Libraries
-import pytz
-from bs4 import BeautifulSoup
-
 # Django Imports
 from django.conf import settings
 from django.utils import dateformat
+
+# 3rd Party Libraries
+import pytz
+from bs4 import BeautifulSoup
 from rest_framework import serializers
 from rest_framework.serializers import (
     RelatedField,
@@ -21,7 +21,7 @@ from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation
-from ghostwriter.oplog.models import OplogEntry
+from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
@@ -680,6 +680,19 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
         fields = "__all__"
 
 
+class OplogSerializer(TaggitSerializer, CustomModelSerializer):
+    """Serialize :model:`oplog.Oplog` entries."""
+
+    entries = OplogEntrySerializer(
+        many=True,
+        exclude=["id", "oplog_id"],
+    )
+
+    class Meta:
+        model = Oplog
+        fields = "__all__"
+
+
 class ReportDataSerializer(CustomModelSerializer):
     """Serialize :model:`rolodex:Project` and all related entries."""
 
@@ -730,6 +743,7 @@ class ReportDataSerializer(CustomModelSerializer):
             "client",
         ]
     )
+    logs = OplogSerializer(source="project.oplog_set", many=True, exclude=["id", "mute_notifications", "project"])
     company = SerializerMethodField("get_company_info")
     tools = SerializerMethodField("get_tools")
 
