@@ -28,24 +28,31 @@ class OplogForm(forms.ModelForm):
 
     def __init__(self, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # If this is an update, mark project as read-only
+        # If this is an update, mark the project field as read-only
         instance = getattr(self, "instance", None)
         if instance and instance.pk:
             self.fields["project"].disabled = True
+
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name for Identification"
         self.fields["name"].label = "Name for the Log"
         self.fields["name"].help_text = "Enter a name for this log that will help you identify it"
 
-        # Limit the list to just projects not marked as complete
+        # Limit the list to the selected project and disable the field if this is log created for a specific project
         self.project_instance = project
-        active_projects = Project.objects.filter(complete=False).order_by("-start_date")
-        if active_projects:
-            self.fields["project"].empty_label = "-- Select an Active Project --"
-        else:
-            self.fields["project"].empty_label = "-- No Active Projects --"
-        self.fields["project"].queryset = active_projects
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
+        if project:
+            self.fields["project"].queryset = Project.objects.filter(pk=project.pk)
+            self.fields["project"].disabled = True
+
+        # Limit the list to active projects if this is a new log made from the sidebar
+        if not project:
+            active_projects = Project.objects.filter(complete=False).order_by("-start_date")
+            if active_projects:
+                self.fields["project"].empty_label = "-- Select an Active Project --"
+            else:
+                self.fields["project"].empty_label = "-- No Active Projects --"
+            self.fields["project"].queryset = active_projects
 
         # Design form layout with Crispy's ``FormHelper``
         self.helper = FormHelper()

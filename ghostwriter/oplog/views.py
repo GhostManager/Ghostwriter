@@ -240,14 +240,12 @@ class OplogCreate(LoginRequiredMixin, CreateView):
         form.save()
         # Create new API key for this oplog
         try:
-            project = form.instance.project.id
             oplog_name = form.instance.name
-            api_key_name = oplog_name
-            api_key, key = APIKey.objects.create_key(name=api_key_name[:50])
+            _, key = APIKey.objects.create_key(name=oplog_name[:50])
             # Pass the API key via the messages framework
             messages.info(
                 self.request,
-                f'The logging API key for project {project} and log "{api_key}" is: {key}\r\nPlease store it somewhere safe: you will not be able to see it again.',
+                f"The logging API key for your log (ID #{form.instance.id}) is: {key}\r\nPlease store it somewhere safe: you will not be able to see it again.",
                 extra_tags="api-key no-toast",
             )
         except Exception:

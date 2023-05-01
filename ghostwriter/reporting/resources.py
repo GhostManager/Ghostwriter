@@ -4,8 +4,10 @@
 from import_export import resources
 from import_export.fields import Field
 from import_export.widgets import ForeignKeyWidget
+from taggit.models import Tag
 
 # Ghostwriter Libraries
+from ghostwriter.modules.shared import TagFieldImport, TagWidget, taggit_before_import_row
 from ghostwriter.reporting.models import Finding, FindingType, Severity
 
 
@@ -24,10 +26,14 @@ class FindingResource(resources.ModelResource):
         column_name="finding_type",
         widget=ForeignKeyWidget(FindingType, "finding_type"),
     )
+    tags = TagFieldImport(attribute="tags", column_name="tags", widget=TagWidget(Tag, separator=","))
+
+    def before_import_row(self, row, **kwargs):
+        taggit_before_import_row(row)
 
     class Meta:
         model = Finding
-        skip_unchanged = True
+        skip_unchanged = False
         fields = (
             "id",
             "severity",
@@ -41,6 +47,7 @@ class FindingResource(resources.ModelResource):
             "network_detection_techniques",
             "references",
             "finding_guidance",
+            "tags",
         )
         export_order = (
             "id",
@@ -55,4 +62,5 @@ class FindingResource(resources.ModelResource):
             "network_detection_techniques",
             "references",
             "finding_guidance",
+            "tags",
         )
