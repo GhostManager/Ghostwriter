@@ -1,7 +1,7 @@
 """This contains shared model resources used by multiple applications."""
 
 # 3rd Party Libraries
-from import_export import resources, widgets
+from import_export import widgets
 from import_export.fields import Field
 from taggit.forms import TagField
 from taggit.models import Tag
