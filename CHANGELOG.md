@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v3.2.7] - 1 May 2023
+
+### Added
+
+* Added support for exporting and importing tags for the current import/export models (log entries, domains, servers, and findings)
+
+### Changed
+
+* The legacy REST API key notification for new activity logs now displays the log's ID to be used with the API and extensions like `mythic_sync` and `cobalt_sync`
+* When creating a new activity log from the project dashboard, that project will now be automatically selected for the new log
+
+### Fixed
+
+* Fixed sidebar search boxes not working as intended following changes in v3.2.3 (Closes #294)
+
 ## [v3.2.6] - 10 April 2023
 
 ### Changed
