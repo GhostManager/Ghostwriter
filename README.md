@@ -1,12 +1,13 @@
 # Ghostwriter
 
+[![Sponsored by SpecterOps](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fspecterops%2F.github%2Fmain%2Fconfig%2Fshield.json&style=flat)](https://github.com/specterops#ghostwriter)
+
 [![Python Version](https://img.shields.io/badge/Python-3.10-brightgreen.svg)](.) [![Django Verison](https://img.shields.io/badge/Django-3.2-006400)](.) [![License](https://img.shields.io/badge/License-BSD3-darkred.svg)](.) ![GitHub Release (Latest by Date)](https://img.shields.io/github/v/release/GhostManager/Ghostwriter?label=Latest%20Release) ![GitHub Release Date](https://img.shields.io/github/release-date/ghostmanager/ghostwriter?label=Release%20Date&color=blue)
 
-[![CodeFactor](https://img.shields.io/codefactor/grade/github/GhostManager/Ghostwriter?label=Code%20Quality)](.)  [![Code Coverage](https://img.shields.io/codecov/c/github/GhostManager/Ghostwriter?label=Code%20Coverage)](.)  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5139/badge)](https://bestpractices.coreinfrastructure.org/projects/5139)
+[![CodeFactor](https://img.shields.io/codefactor/grade/github/GhostManager/Ghostwriter?label=Code%20Quality)](.)  [![Code Coverage](https://img.shields.io/codecov/c/github/GhostManager/Ghostwriter?label=Code%20Coverage)](.)  [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5139/badge)](https://bestpractices.coreinfrastructure.org/projects/5139) [![Build and Run Unit Test Workflow](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml/badge.svg)](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml)
 
 [![Black Hat USA Arsenal 2019 & 2022](https://img.shields.io/badge/2019%20&%202022-Black%20Hat%20USA%20Arsenal-lightgrey.svg)](https://www.blackhat.com/us-19/arsenal/schedule/index.html#ghostwriter-15475) [![Black Hat Asia Arsenal 2022](https://img.shields.io/badge/2022-Black%20Hat%20Asia%20Arsenal-lightgrey.svg)](https://www.blackhat.com/asia-22/arsenal/schedule/index.html#ghostwriter-26252)
 
-[![Build and Run Unit Test Workflow](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml/badge.svg)](https://github.com/GhostManager/Ghostwriter/actions/workflows/workflow.yml)
 
 ![ghostwriter](DOCS/images/logo.png)
 
@@ -30,7 +31,7 @@ The wiki covers everything from installation and setup information for first tim
 
 ## Getting Help
 
-[![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet)](https://bloodhoundgang.herokuapp.com)
+[![Slack Status](https://img.shields.io/badge/Slack-%23ghostwriter-blueviolet?logo=slack)](https://join.slack.com/t/bloodhoundhq/shared_invite/zt-1tgq6ojd2-ixpx5nz9Wjtbhc3i8AVAWw)
 
 The quickest way to get help is Slack. The BloodHound Slack Team has a *#ghostwriter* channel for discussing this project and requesting assistance. There is also a *#reporting* channel for discussing various topics related to writing and managing reports and findings.
 
@@ -59,6 +60,7 @@ These folks kindly submitted feedback and PRs to fix bugs and enhance existing f
 * [@dbuentello](https://github.com/dbuentello)
 * [@therealtoastycat](https://github.com/therealtoastycat)
 * [@brandonscholet](https://github.com/brandonscholet)
+* [@er4z0r](https://github.com/er4z0r)
 
 ## Supporters
 
