@@ -157,21 +157,17 @@
       calendar.render();
       {% for assignment in user_projects %}
         // Add project execution window
-        var event = {
+        let event_{{ assignment.id }} = {
           title: '{{ assignment.project.client }} {{ assignment.project.project_type }} ({{ assignment.role }})',
           allDay: true,
           start: '{{ assignment.start_date|date:"Y-m-d" }}',
           end: '{{ assignment.end_date|plus_days:1|date:"Y-m-d" }}',
           backgroundColor: 'var(--primary-color)',
           borderColor: 'var(--secondary-color-light)',
-          {% if assignment.project.complete %}
-            classNames: ['calendar-exec-icon', 'calendar-exec-complete',],
-          {% else %}
-            classNames: ['calendar-exec-icon'],
-          {% endif %}
+          classNames: ['calendar-exec-icon'],
           url: '{{ assignment.project.get_absolute_url }}',
         };
-        calendar.addEvent(event);
+        calendar.addEvent(event_{{ assignment.id }});
       {% endfor %}
     });
   </script>
