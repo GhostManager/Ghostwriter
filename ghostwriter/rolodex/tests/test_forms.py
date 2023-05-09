@@ -611,6 +611,13 @@ class ProjectAssignmentFormSetTests(TestCase):
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors["end_date"].as_data()[0].code, "invalid_date")
 
+        assignment_1["end_date"] = assignment_1["start_date"] - timedelta(days=1)
+        data = [assignment_1, assignment_2]
+        form = self.form_data(data)
+        errors = form.errors[0]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["end_date"].as_data()[0].code, "invalid_date")
+
     def test_incomplete_form(self):
         assignment_1 = self.assignment_1.__dict__.copy()
         assignment_2 = self.assignment_2.__dict__.copy()
@@ -653,6 +660,27 @@ class ProjectAssignmentFormSetTests(TestCase):
         errors = form.errors[0]
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors["operator"].as_data()[0].code, "incomplete")
+
+    def test_overlapping_assignments(self):
+        assignment_1 = self.assignment_1.__dict__.copy()
+        assignment_2 = self.assignment_2.__dict__.copy()
+
+        assignment_1["start_date"] = self.project.start_date
+        assignment_1["end_date"] = self.project.end_date - timedelta(days=1)
+        assignment_1["operator"] = self.new_assignee
+        assignment_1["operator_id"] = self.new_assignee.id
+
+        assignment_2["start_date"] = self.project.end_date - timedelta(days=2)
+        assignment_2["end_date"] = self.project.end_date
+        assignment_2["operator"] = self.new_assignee
+        assignment_2["operator_id"] = self.new_assignee.id
+
+        data = [assignment_1, assignment_2]
+        form = self.form_data(data)
+        errors = form.errors[1]
+        self.assertFalse(form.is_valid())
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors["operator"].as_data()[0].code, "duplicate")
 
 
 class ProjectObjectiveFormSetTests(TestCase):
