@@ -26,7 +26,7 @@
                             <table>
                                 {% for project in active_projects %}
                                   <tr>
-                                    <td class="text-left align-middle"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }})</a></td>
+                                    <td class="text-left align-middle"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.role }})</a></td>
                                     <td class="text-right align-middle">{{ project.start_date }}–{{ project.end_date }}</td>
                                   </tr>
                                 {% endfor %}
@@ -118,7 +118,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Track the initial calendar view in local storage
-            var defaultView = (localStorage.getItem("fcDefaultView") !== null ? localStorage.getItem("fcDefaultView") : "dayGridWeek");
+            var defaultView = (localStorage.getItem('fcDefaultView') !== null ? localStorage.getItem('fcDefaultView') : 'dayGridWeek');
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: defaultView,
@@ -129,24 +129,34 @@
                     right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
                 },
                 eventClick: function(info) {
-                    var eventObj = info.event;
+                    let eventObj = info.event;
                     window.open(eventObj.url);
                     info.jsEvent.preventDefault(); // Prevents browser from following link in current tab.
                 },
                 // On view change, save the selected view to local storage so it persists between page loads
                 viewClassNames: function (info) {
                     localStorage.setItem("fcDefaultView", info.view.type);
-                }
+                },
+                eventDidMount: function (info) {
+                  $(info.el).popover({
+                      title: 'Assignment: ' + info.event.title,
+                      placement: 'top',
+                      trigger: 'hover',
+                      content: 'Click to view more details.',
+                      container: 'body'
+                  });
+                },
             });
             calendar.render();
             {% for assignment in user_projects %}
                 // Add project execution window
                 var event = {
-                    title: 'Assigned: {{ assignment.project.client }} {{ assignment.project.project_type }} ({{ assignment.project.codename }})',
+                    title: '{{ assignment.project.client }} {{ assignment.project.project_type }} ({{ assignment.role }})',
                     allDay: true,
                     start: '{{ assignment.start_date|date:"Y-m-d" }}',
                     end: '{{ assignment.end_date|plus_days:1|date:"Y-m-d" }}',
-                    color: 'var(--primary-color)',
+                    backgroundColor: 'var(--primary-color)',
+                    borderColor: 'var(--secondary-color-light)',
                     {% if assignment.project.complete %}
                         classNames: ['calendar-exec-icon', 'calendar-exec-complete',],
                     {% else %}
