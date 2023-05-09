@@ -69,7 +69,15 @@ class CheckoutFormTests(TestCase):
             domain_status=cls.unavailable_status,
             expiration=date.today() + timedelta(days=360),
         )
-        cls.expired_domain = DomainFactory(expiration=date.today() - timedelta(days=30))
+        cls.expired_domain = DomainFactory(
+            expiration=date.today() - timedelta(days=30), auto_renew=False, expired=False
+        )
+        cls.auto_renew_expired_domain = DomainFactory(
+            expiration=date.today() - timedelta(days=30), auto_renew=True, expired=False
+        )
+        cls.set_expired_domain = DomainFactory(
+            expiration=date.today() + timedelta(days=30), auto_renew=True, expired=True
+        )
         cls.project = ProjectFactory()
 
     def setUp(self):
@@ -132,7 +140,23 @@ class CheckoutFormTests(TestCase):
         self.assertEqual(errors[0].code, "unavailable")
 
     def test_expired_domain(self):
+        # A domain with an expiration date in the past that is NOT set to auto-renew should fail validation
         checkout = HistoryFactory(client=self.project.client, project=self.project, domain=self.expired_domain)
+        form = self.form_data(**checkout.__dict__)
+        errors = form["domain"].errors.as_data()
+
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "expired")
+
+        # A domain with an expiration date in the past that is set to auto-renew should pass validation
+        checkout = HistoryFactory(
+            client=self.project.client, project=self.project, domain=self.auto_renew_expired_domain
+        )
+        form = self.form_data(**checkout.__dict__)
+        self.assertTrue(form.is_valid())
+
+        # A domain flagged as expired should fail validation even with a good expiration date
+        checkout = HistoryFactory(client=self.project.client, project=self.project, domain=self.set_expired_domain)
         form = self.form_data(**checkout.__dict__)
         errors = form["domain"].errors.as_data()
 
