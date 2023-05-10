@@ -6,156 +6,169 @@
 {% block navtitle %}Ghostwriter{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item active" aria-current="page">Welcome, {{ user|capfirst }}!</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item active" aria-current="page">Welcome, {{ user|capfirst }}!</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <div id="calendar" class="mt-3 mb-3"></div>
+  <div id="calendar" class="mt-3 mb-3"></div>
 
-    <div class="admin">
-        <main class="admin__main">
-            <div class="dashboard">
-                <div class="dashboard__item">
-                    <div class="card">
-                        <p class="dashboard-header text-center">Project Assignments</p>
-                        {% if active_projects %}
-                            <table>
-                                {% for project in active_projects %}
-                                  <tr>
-                                    <td class="text-left align-middle"><a href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }} ({{ project.project.codename }})</a></td>
-                                    <td class="text-right align-middle">{{ project.start_date }}–{{ project.end_date }}</td>
-                                  </tr>
-                                {% endfor %}
-                            </table>
-                        {% else %}
-                            <p class="align-middle text-center pt-3">You have no project assignments.</p>
+  <div class="admin">
+    <main class="admin__main">
+      <div class="dashboard">
+        <div class="dashboard__item">
+          <div class="card">
+            <p class="dashboard-header text-center">Project Assignments</p>
+            {% if active_projects %}
+              <table>
+                {% for project in active_projects %}
+                  <tr>
+                    <td class="text-left align-middle"><a
+                      href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project.client }} {{ project.project.project_type }}
+                      ({{ project.role }})</a></td>
+                    <td class="text-right align-middle">{{ project.start_date }}–{{ project.end_date }}</td>
+                  </tr>
+                {% endfor %}
+              </table>
+            {% else %}
+              <p class="align-middle text-center pt-3">You have no project assignments.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="dashboard__item">
+          <div class="card">
+            <p class="dashboard-header text-center">Top Ten Reporting Tasks</p>
+            {% count_assignments request as assignment_count %}
+            {% if user_tasks %}
+              <ul class="text-left" style="list-style-type: none;">
+                {% for finding in user_tasks %}
+                  <li class="pb-2"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
+                    ({{ finding.report.project.codename }})</a></li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="align-middle text-center pt-3">You have no reporting tasks. Nice!</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="dashboard__item">
+          <div class="card">
+            <p class="dashboard-header text-center">Recent Background Tasks</p>
+            <table>
+              {% if recent_tasks %}
+                {% for task in recent_tasks %}
+                  <tr>
+                    {% if task.success %}
+                      <td class="text-center healthy align-middle">SUCCESS</td>
+                      <td class="align-middle text-center">{{ task.group }}</td>
+                    {% else %}
+                      <td class="text-center burned">
+                        {% if task.result %}
+                          <div class="dropdown dropleft">
+                            <span id="task-status-info-btn" class="dropdown-info dropdown-info-dashboard"
+                                  data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">FAILED</span>
+                            <div id="task-status-info" class="dropdown-menu dropdown-info-content"
+                                 aria-labelledby="task-status-info-btn">
+                              <p>Unsuccessful task returned this message/stack trace:</p>
+                              <br/>
+                              <code>{{ task.result }}</code>
+                            </div>
+                          </div>
                         {% endif %}
-                    </div>
-                </div>
+                      </td>
+                      <td class="align-middle text-center">{{ task.group }}</td>
+                    {% endif %}
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td class="align-middle text-center">No completed tasks.</td>
+                </tr>
+              {% endif %}
+            </table>
+          </div>
+        </div>
 
-                <div class="dashboard__item">
-                    <div class="card">
-                        <p class="dashboard-header text-center">Top Ten Reporting Tasks</p>
-                        {% count_assignments request as assignment_count %}
-                        {% if user_tasks %}
-                            <ul class="text-left" style="list-style-type: none;">
-                                {% for finding in user_tasks %}
-                                    <li class="pb-2"><a href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }} ({{ finding.report.project.codename }})</a></li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p class="align-middle text-center pt-3">You have no reporting tasks. Nice!</p>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="dashboard__item">
-                    <div class="card">
-                        <p class="dashboard-header text-center">Recent Background Tasks</p>
-                        <table>
-                            {% if recent_tasks %}
-                                {% for task in recent_tasks %}
-                                    <tr>
-                                        {% if task.success %}
-                                            <td class="text-center healthy align-middle">SUCCESS</td>
-                                            <td class="align-middle text-center">{{ task.group }}</td>
-                                        {% else %}
-                                            <td class="text-center burned">
-                                                {% if task.result %}
-                                                    <div class="dropdown dropleft">
-                                                        <span id="task-status-info-btn" class="dropdown-info dropdown-info-dashboard" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">FAILED</span>
-                                                        <div id="task-status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="task-status-info-btn">
-                                                            <p>Unsuccessful task returned this message/stack trace:</p>
-                                                            <br />
-                                                            <code>{{ task.result }}</code>
-                                                        </div>
-                                                    </div>
-                                                {% endif %}
-                                            </td>
-                                            <td class="align-middle text-center">{{ task.group }}</td>
-                                        {% endif %}
-                                    </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td class="align-middle text-center">No completed tasks.</td>
-                                </tr>
-                            {% endif %}
-                        </table>
-                    </div>
-                </div>
-
-                <div class="dashboard__item">
-                    <div class="card">
-                        <p class="dashboard-header text-center">System Status</p><div class="float-right {% if system_health == "OK" %}led-green{% else %}led-red{% endif %}"></div>
-                        {% if system_health == "OK" %}
-                            <table class="align-middle">
-                                <tr>
-                                    <td class="text-center healthy align-middle">All Systems Go!</td>
-                                </tr>
-                            </table>
-                        {% else %}
-                            <table>
-                                <tr>
-                                    <td class="text-center burned align-middle">Issues Detected!</td>
-                                </tr>
-                            </table>
-                        {% endif %}
-                        <p class="mt-auto">Visit the <a class="clickable italic" href="{% url 'status:healthcheck' %}">Detailed Status Page</a></p>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
+        <div class="dashboard__item">
+          <div class="card">
+            <p class="dashboard-header text-center">System Status</p>
+            <div class="float-right {% if system_health == "OK" %}led-green{% else %}led-red{% endif %}"></div>
+            {% if system_health == "OK" %}
+              <table class="align-middle">
+                <tr>
+                  <td class="text-center healthy align-middle">All Systems Go!</td>
+                </tr>
+              </table>
+            {% else %}
+              <table>
+                <tr>
+                  <td class="text-center burned align-middle">Issues Detected!</td>
+                </tr>
+              </table>
+            {% endif %}
+            <p class="mt-auto">Visit the <a class="clickable italic" href="{% url 'status:healthcheck' %}">Detailed
+              Status Page</a></p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 {% endblock %}
 
 {% block morescripts %}
-    <!-- FullCalendar Rendering -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Track the initial calendar view in local storage
-            var defaultView = (localStorage.getItem("fcDefaultView") !== null ? localStorage.getItem("fcDefaultView") : "dayGridWeek");
-            var calendarEl = document.getElementById('calendar');
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: defaultView,
-                height: 'auto',
-                headerToolbar: {
-                    left: 'today prev,next',
-                    center: 'title',
-                    right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
-                },
-                eventClick: function(info) {
-                    var eventObj = info.event;
-                    window.open(eventObj.url);
-                    info.jsEvent.preventDefault(); // Prevents browser from following link in current tab.
-                },
-                // On view change, save the selected view to local storage so it persists between page loads
-                viewClassNames: function (info) {
-                    localStorage.setItem("fcDefaultView", info.view.type);
-                }
-            });
-            calendar.render();
-            {% for assignment in user_projects %}
-                // Add project execution window
-                var event = {
-                    title: 'Assigned: {{ assignment.project.client }} {{ assignment.project.project_type }} ({{ assignment.project.codename }})',
-                    allDay: true,
-                    start: '{{ assignment.start_date|date:"Y-m-d" }}',
-                    end: '{{ assignment.end_date|plus_days:1|date:"Y-m-d" }}',
-                    color: 'var(--primary-color)',
-                    {% if assignment.project.complete %}
-                        classNames: ['calendar-exec-icon', 'calendar-exec-complete',],
-                    {% else %}
-                        classNames: ['calendar-exec-icon'],
-                    {% endif %}
-                    url: '{{ assignment.project.get_absolute_url }}',
-                };
-                calendar.addEvent(event);
-            {% endfor %}
-        });
-    </script>
+  <!-- FullCalendar Rendering -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Track the initial calendar view in local storage
+      var defaultView = (localStorage.getItem('fcDefaultView') !== null ? localStorage.getItem('fcDefaultView') : 'dayGridWeek');
+      var calendarEl = document.getElementById('calendar');
+      var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: defaultView,
+        height: 'auto',
+        headerToolbar: {
+          left: 'today prev,next',
+          center: 'title',
+          right: 'dayGridDay dayGridWeek dayGridMonth listWeek'
+        },
+        eventClick: function (info) {
+          let eventObj = info.event;
+          window.open(eventObj.url);
+          info.jsEvent.preventDefault(); // Prevents browser from following link in current tab.
+        },
+        // On view change, save the selected view to local storage so it persists between page loads
+        viewClassNames: function (info) {
+          localStorage.setItem("fcDefaultView", info.view.type);
+        },
+        eventDidMount: function (info) {
+          $(info.el).popover({
+            title: 'Assignment: ' + info.event.title,
+            placement: 'top',
+            trigger: 'hover',
+            content: 'Click to view more details.',
+            container: 'body'
+          });
+        },
+      });
+      calendar.render();
+      {% for assignment in user_projects %}
+        // Add project execution window
+        let event_{{ assignment.id }} = {
+          title: '{{ assignment.project.client }} {{ assignment.project.project_type }} ({{ assignment.role }})',
+          allDay: true,
+          start: '{{ assignment.start_date|date:"Y-m-d" }}',
+          end: '{{ assignment.end_date|plus_days:1|date:"Y-m-d" }}',
+          backgroundColor: 'var(--primary-color)',
+          borderColor: 'var(--secondary-color-light)',
+          classNames: ['calendar-exec-icon'],
+          url: '{{ assignment.project.get_absolute_url }}',
+        };
+        calendar.addEvent(event_{{ assignment.id }});
+      {% endfor %}
+    });
+  </script>
 {% endblock %}
