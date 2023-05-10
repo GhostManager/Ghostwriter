@@ -63,11 +63,19 @@ class CheckoutFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        cls.available_status = DomainStatusFactory(domain_status="Available")
         cls.unavailable_status = DomainStatusFactory(domain_status="Unavailable")
-        cls.domain = DomainFactory(expiration=date.today() + timedelta(days=360))
+        cls.domain = DomainFactory(
+            expiration=date.today() + timedelta(days=360),
+            expired=False,
+            auto_renew=True,
+            domain_status=cls.available_status,
+        )
         cls.unavailable_domain = DomainFactory(
             domain_status=cls.unavailable_status,
             expiration=date.today() + timedelta(days=360),
+            expired=False,
+            auto_renew=True,
         )
         cls.expired_domain = DomainFactory(
             expiration=date.today() - timedelta(days=30), auto_renew=False, expired=False
@@ -109,6 +117,7 @@ class CheckoutFormTests(TestCase):
     def test_valid_data(self):
         checkout = HistoryFactory(client=self.project.client, project=self.project, domain=self.domain)
         form = self.form_data(**checkout.__dict__)
+        print(form.errors)
         self.assertTrue(form.is_valid())
 
     def test_invalid_dates(self):
