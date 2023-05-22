@@ -45,6 +45,7 @@ from ghostwriter.modules.reportwriter import (
     filter_type,
     format_datetime,
     strip_html,
+    get_item,
 )
 from ghostwriter.reporting.templatetags import report_tags
 from ghostwriter.reporting.views import generate_report_name
@@ -1992,6 +1993,11 @@ class ReportTemplateFilterTests(TestCase):
         test_string = "<p>This is a test<br />with a newline</p>"
         result = strip_html(test_string)
         self.assertEqual(result, "This is a test\nwith a newline")
+
+    def test_get_item(self):
+        test_list = ["a", "b", "c"]
+        result = get_item(test_list, 1)
+        self.assertEqual(result, "b")
 
 
 class LocalFindingNoteUpdateTests(TestCase):
