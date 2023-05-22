@@ -224,6 +224,20 @@ def format_datetime(date, new_format):
     return formatted_date
 
 
+def get_item(lst, index):
+    """
+    Get the item at the specified index in a list.
+
+    **Parameters**
+
+    ``list``
+        List to get item from
+    ``index``
+        Index of item to get
+    """
+    return lst[index]
+
+
 def prepare_jinja2_env(debug=False):
     """Prepare a Jinja2 environment with all custom filters."""
     if debug:
@@ -238,6 +252,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["compromised"] = compromised
     env.filters["add_days"] = add_days
     env.filters["format_datetime"] = format_datetime
+    env.filters["get_item"] = get_item
 
     return env
 
