@@ -237,7 +237,7 @@ def release_domains(no_action=False):
                 domain_updates[domain.id]["change"] = "released"
 
             # Handle DNS record resets
-            if domain.reset_dns:
+            if domain.reset_dns and domain.registrar:
                 if namecheap_config.enable and domain.registrar.lower() == "namecheap":
                     reset_result = namecheap_reset_dns(namecheap_config, domain)
                     domain_updates[domain.id]["dns"] = reset_result["result"]

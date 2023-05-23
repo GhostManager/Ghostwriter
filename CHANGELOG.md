@@ -4,15 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 9 May 2023
+## [3.2.8] - 24 May 2023
 
 ### Added
 
 * Added a popover tooltip to the dashboard calendar's events to show the full title and additional details about the event
+* Added a `get_item` filter for use in report templates that allows you to retrieve a single item from a list of items
+* Added the Sugar parser to the JavaScript to improve international date parsing
 
 ### Changed
 
 * Assignments displayed in the calendar and on the dashboard now show the project role for the assignment (Closes #311)
+* The server will now allow domains with expiration dates in the past to be checked out if auto-renew is enabled
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.13
+
+### Fixed
+
+* Fixed an issue with the domain expiration dates sorting as integers
+* Fixed an issue that could prevent releasing a domain if the domain's registrar was empty
 
 ## [v3.2.7] - 1 May 2023
 

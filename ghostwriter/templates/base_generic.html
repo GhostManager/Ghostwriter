@@ -23,10 +23,14 @@
   <script src="{% static 'js/popper.min.js' %}"></script>
   <script src="{% static 'js/bootstrap.min.js' %}"></script>
 
+  <!-- Sugar Parser -->
+  <script src="{% static 'js/sugar.min.js' %}"></script>
+
   <!-- jQuery Tablesorter Plugin -->
   <script type="text/javascript" src="{% static 'js/jquery.tablesorter.js' %}"></script>
   <script type="text/javascript" src="{% static 'js/jquery.tablesorter.widgets.js' %}"></script>
   <script type="text/javascript" src="{% static 'js/parser-date-range.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/parser-date.js' %}"></script>
 
   <!-- SortableJS for Drag n Drop -->
   <script src="{% static 'js/Sortable.min.js' %}"></script>
@@ -706,8 +710,8 @@
       });
     });
 
-    {% comment %} Toggle the hamburger menu back to normal if user clicks away {% endcomment %}
     $(window).click(function () {
+      {% comment %} Toggle the hamburger menu back to normal if user clicks away {% endcomment %}
       let $hamburgerMenu = $('.dropdown-menu-btn')
       if ($hamburgerMenu.hasClass('change')) {
         $hamburgerMenu.removeClass('change');

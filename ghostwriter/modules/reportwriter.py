@@ -171,7 +171,7 @@ def add_days(date, days):
         days = int(days)
     except ValueError:
         logger.exception("Error parsing ``days`` as an integer: %s", days)
-        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into `add_days()` filter')
+        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into the `add_days()` filter')
 
     try:
         date_obj = parse_datetime(date)
@@ -198,7 +198,7 @@ def add_days(date, days):
         new_date = dateformat(date_obj, settings.DATE_FORMAT)
     except ParserError:
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `add_days()` filter')
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `add_days()` filter')
     return new_date
 
 
@@ -220,8 +220,29 @@ def format_datetime(date, new_format):
     except ParserError:
         formatted_date = date
         logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into `format_datetime()` filter')
+        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter')
     return formatted_date
+
+
+def get_item(lst, index):
+    """
+    Get the item at the specified index in a list.
+
+    **Parameters**
+
+    ``list``
+        List to get item from
+    ``index``
+        Index of item to get
+    """
+    try:
+        return lst[index]
+    except TypeError:
+        logger.exception("Error getting list index %s from this list: %s", index, lst)
+        raise InvalidFilterValue(f"Invalid list or string passed into the `get_item()` filter")
+    except IndexError:
+        logger.exception("Error getting index %s from this list: %s", index, lst)
+        raise InvalidFilterValue(f"Invalid or unavailable index passed into the `get_item()` filter")
 
 
 def prepare_jinja2_env(debug=False):
@@ -238,6 +259,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["compromised"] = compromised
     env.filters["add_days"] = add_days
     env.filters["format_datetime"] = format_datetime
+    env.filters["get_item"] = get_item
 
     return env
 

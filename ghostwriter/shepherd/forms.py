@@ -133,7 +133,6 @@ class CheckoutForm(forms.ModelForm):
 
         if insert:
             unavailable = DomainStatus.objects.get(domain_status="Unavailable")
-
             if (domain.expiration < date.today() and domain.auto_renew is False) or domain.expired:
                 raise ValidationError(_("This domain has expired!"), code="expired")
             if domain.domain_status == unavailable:
