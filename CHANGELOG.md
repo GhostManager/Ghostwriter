@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.8] - 22 May 2023
+
+### Added
+
+* Added a `get_item` filter for use in report templates that allows you to retrieve a single item from a list of items
+* Added the Sugar parser to the JavaScript to improve international date parsing
+
+### Changed
+
+* The server will now allow domain's with expiration dates in the past to be checked out if auto-renew is enabled 
+
+### Fixed
+
+* Fixed an issue with the domain expiration dates sorting as integers
+
 ## [v3.2.7] - 1 May 2023
 
 ### Added
