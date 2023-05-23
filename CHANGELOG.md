@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* The server will now allow domain's with expiration dates in the past to be checked out if auto-renew is enabled
-* Updated the pre-built Ghostwriter CLI binaries to v0.2.12
+* The server will now allow domains with expiration dates in the past to be checked out if auto-renew is enabled
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.13
 
 ### Fixed
 
