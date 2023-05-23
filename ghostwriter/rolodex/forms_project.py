@@ -152,6 +152,14 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
 
                     # Check if the person has already been assigned to this project within the same time period
                     if operator and start_date and end_date:
+                        if end_date < start_date:
+                            form.add_error(
+                                "end_date",
+                                ValidationError(
+                                    _("Your end date is earlier than your start date"),
+                                    code="invalid_date",
+                                ),
+                            )
                         if any(operator.username in assign.user for assign in assignments):
                             for assign in assignments:
                                 if assign.user == operator.username:

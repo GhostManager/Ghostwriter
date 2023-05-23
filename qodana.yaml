@@ -1,0 +1,45 @@
+version: "1.0"
+profile:
+  name: qodana.recommended
+include:
+  - name: CheckDependencyLicenses
+  - name: DjangoOrmInspection
+  - name: DuplicatedBlockNamesInspection
+  - name: DjangoIncompatibleInspection
+exclude:
+  - name: All
+    paths:
+      - ghostwriter/api/tests
+      - ghostwriter/api/migrations
+      - ghostwriter/commandcenter/tests
+      - ghostwriter/commandcenter/migrations
+      - ghostwriter/home/tests
+      - ghostwriter/home/migrations
+      - ghostwriter/oplog/tests
+      - ghostwriter/oplog/migrations
+      - ghostwriter/reporting/tests
+      - ghostwriter/reporting/migrations
+      - ghostwriter/rolodex/tests
+      - ghostwriter/rolodex/migrations
+      - ghostwriter/shepherd/tests
+      - ghostwriter/shepherd/migrations
+      - ghostwriter/singleton/tests
+      - ghostwriter/singleton/migrations
+      - ghostwriter/status/tests
+      - ghostwriter/status/migrations
+      - ghostwriter/users/tests
+      - ghostwriterusers/migrations
+      - ghostwriter/static/tests
+      - ghostwriter/factories.py
+      - ghostwriter/context_processors.py
+      - ghostwriter/contrib
+  - name: PyAttributeOutsideInitInspection
+  - name: PyUnusedLocalInspection
+  - name: DjangoUnresolvedFilterInspection
+  - name: DjangoUnresolvedLoadInspection
+  - name: DjangoUnresolvedStaticReferenceInspection
+  - name: DjangoUnresolvedTagInspection
+  - name: DjangoUnresolvedTemplateReferenceInspection
+  - name: PyUnresolvedReferencesInspection
+  - name: PyInterpreterInspection
+  - name: PyProtectedMemberInspection

@@ -1267,6 +1267,23 @@ tr.hidden-row td>div {
   margin-bottom: 0 !important;
 }
 
+a.fc-event {
+  background: var(--secondary-color);
+}
+
+a.fc-event:active {
+
+}
+
+a.fc-event:hover, a.fc-event:active, a.fc-event:hover, a.fc-event:focus, a.fc-event:focus:after {
+  font-size: .85em;
+  background: var(--primary-color);
+}
+
+fc-hover {
+  background: var(--active-link-color);
+}
+
 .fc-scrollgrid>thead>tr>td,
 .fc-scrollgrid>tbody>tr>td {
   padding-left: 5px;
@@ -1298,12 +1315,6 @@ tr.hidden-row td>div {
 .calendar-exec-complete .fc-event-title,
 .calendar-exec-complete .fc-list-event-title {
   text-decoration: line-through;
-}
-
-.calendar-exec-complete .fc-event-title:after,
-.calendar-exec-complete .fc-list-event-title:after {
-  content: '\00a0: COMPLETE';
-  display: inline-block;
 }
 
 .calendar-objective-icon .fc-event-title:before,
