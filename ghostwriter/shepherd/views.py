@@ -200,7 +200,7 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
                 self.request.user,
             )
             # If domain is set to be reset on release get the necessary API config and task
-            if domain_instance.reset_dns:
+            if domain_instance.reset_dns and domain_instance.registrar:
                 # Namecheap
                 if domain_instance.registrar.lower() == "namecheap":
                     namecheap_config = NamecheapConfiguration.get_solo()
