@@ -226,3 +226,20 @@ def get_user_from_token(token):
     """
     user_obj = User.objects.get(id=token["sub"])
     return user_obj
+
+
+def verify_user_is_privileged(user):
+    """
+    Verify that the user holds a privileged role or the ``is_staff`` flag.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if user.role in (
+        "manager",
+        "admin",
+    ):
+        return True
+    return user.is_staff
