@@ -20,6 +20,7 @@ from django_q.models import Task
 from django_q.tasks import async_task
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import verify_user_is_privileged
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -144,7 +145,7 @@ class Management(LoginRequiredMixin, UserPassesTestMixin, View):
     """
 
     def test_func(self):
-        return self.request.user.is_staff
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
@@ -165,7 +166,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
 
     def test_func(self):
-        return self.request.user.is_staff
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
@@ -200,7 +201,7 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
 
     def test_func(self):
-        return self.request.user.is_staff
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
@@ -235,7 +236,7 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
 
     def test_func(self):
-        return self.request.user.is_staff
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
@@ -270,7 +271,7 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
 
     def test_func(self):
-        return self.request.user.is_staff
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
@@ -305,7 +306,7 @@ class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
     """
 
     def test_func(self):
-        return self.request.user.is_staff
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that")
