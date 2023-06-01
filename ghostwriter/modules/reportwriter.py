@@ -2234,6 +2234,10 @@ class TemplateLinter:
                             "result": "failed",
                             "errors": [f"Jinja2 template syntax error: {error.message}"],
                         }
+                        if error.message == "expected token 'end of print statement', got 'such'":
+                            results["errors"].append(
+                                "The above error means you may have a typo in a variable name or expression"
+                            )
                     except UndefinedError as error:
                         logger.error("Template syntax error: %s", error)
                         results = {
