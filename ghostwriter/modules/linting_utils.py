@@ -306,6 +306,7 @@ LINTER_CONTEXT = {
     },
     "findings": [
         {
+            "id": 1,
             "assigned_to": "Benny the Ghost",
             "finding_type": "Network",
             "severity": "Critical",
