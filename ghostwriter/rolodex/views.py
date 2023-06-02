@@ -10,7 +10,9 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -20,6 +22,13 @@ from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import (
+    verify_client_access,
+    verify_project_access,
+    verify_user_is_privileged,
+    get_client_list,
+    get_project_list,
+)
 from ghostwriter.modules import codenames
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
@@ -74,6 +83,10 @@ def update_project_badges(request, pk):
     :template:`snippets/project_nav_tabs.html`
     """
     project_instance = get_object_or_404(Project, pk=pk)
+
+    if not verify_project_access(request.user, project_instance):
+        raise PermissionDenied
+
     html = render_to_string(
         "snippets/project_nav_tabs.html",
         {"project": project_instance},
@@ -92,6 +105,10 @@ def update_client_badges(request, pk):
     :template:`snippets/client_nav_tabs.html`
     """
     client_instance = get_object_or_404(Client, pk=pk)
+
+    if not verify_client_access(request.user, client_instance):
+        raise PermissionDenied
+
     html = render_to_string(
         "snippets/client_nav_tabs.html",
         {"client": client_instance},
@@ -101,9 +118,7 @@ def update_client_badges(request, pk):
 
 @login_required
 def roll_codename(request):
-    """
-    Fetch a unique codename for use with a model.
-    """
+    """Fetch a unique codename for use with a model."""
     try:
         codename_verified = False
         new_codename = None
@@ -144,6 +159,10 @@ def ajax_update_project_objectives(request):
         priority_class = request.POST.get("priority").replace("_priority", "")
         order = json.loads(data)
 
+        project_instance = get_object_or_404(Project, id=project_id)
+        if not verify_project_access(request.user, project_instance):
+            raise PermissionDenied
+
         logger.info(
             "Received AJAX POST to update project %s's %s objectives in this order: %s",
             project_id,
@@ -183,12 +202,16 @@ def ajax_update_project_objectives(request):
     return JsonResponse(data)
 
 
-class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Update the ``status`` field of an individual :model:`rolodex.ProjectObjective`.
-    """
+class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """Update the ``status`` field of an individual :model:`rolodex.ProjectObjective`."""
 
     model = ProjectObjective
+
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
 
     def post(self, *args, **kwargs):
         objective = self.get_object()
@@ -242,18 +265,22 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Toggle the ``complete`` field of an individual :model:`rolodex.Project`.
-    """
+class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """Toggle the ``complete`` field of an individual :model:`rolodex.Project`."""
 
     model = Project
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object())
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         try:
-            if self.object.complete:
-                self.object.complete = False
+            if obj.complete:
+                obj.complete = False
                 data = {
                     "result": "success",
                     "message": "Project successfully marked as incomplete",
@@ -261,18 +288,18 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
                     "toggle": 0,
                 }
             else:
-                self.object.complete = True
+                obj.complete = True
                 data = {
                     "result": "success",
                     "message": "Project successfully marked as complete",
                     "status": "Complete",
                     "toggle": 1,
                 }
-            self.object.save()
+            obj.save()
             logger.info(
                 "Toggled status of %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                obj.__class__.__name__,
+                obj.id,
                 self.request.user,
             )
         except Exception as exception:  # pragma: no cover
@@ -284,42 +311,50 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectObjectiveDelete(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Delete an individual :model:`rolodex.ProjectObjective`.
-    """
+class ProjectObjectiveDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """Delete an individual :model:`rolodex.ProjectObjective`."""
 
     model = ProjectObjective
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Objective successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Delete an individual :model:`rolodex.ProjectAssignment`.
-    """
+class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """Delete an individual :model:`rolodex.ProjectAssignment`."""
 
     model = ProjectAssignment
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Assignment successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
@@ -327,28 +362,26 @@ class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
 
 class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
-    """
-    Delete an individual :model:`rolodex.ProjectNote`.
-    """
+    """Delete an individual :model:`rolodex.ProjectNote`."""
 
     model = ProjectNote
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
@@ -356,105 +389,115 @@ class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
 
 
 class ClientNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
-    """
-    Delete an individual :model:`rolodex.ClientNote`.
-    """
+    """Delete an individual :model:`rolodex.ClientNote`."""
 
     model = ClientNote
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Delete an individual :model:`rolodex.ClientContact`.
-    """
+class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """Delete an individual :model:`rolodex.ClientContact`."""
 
     model = ClientContact
 
+    def test_func(self):
+        return verify_client_access(self.request.user, self.get_object().client)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Contact successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Delete an individual :model:`rolodex.ProjectTarget`.
-    """
+class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """Delete an individual :model:`rolodex.ProjectTarget`."""
 
     model = ProjectTarget
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Target successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Toggle the ``compromised`` field of an individual :model:`rolodex.ProjectTarget`.
-    """
+class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+    """Toggle the ``compromised`` field of an individual :model:`rolodex.ProjectTarget`."""
 
     model = ProjectTarget
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         try:
-            if self.object.compromised:
-                self.object.compromised = False
+            if obj.compromised:
+                obj.compromised = False
                 data = {
                     "result": "success",
                     "message": "Target successfully marked as NOT compromised",
                     "toggle": 0,
                 }
             else:
-                self.object.compromised = True
+                obj.compromised = True
                 data = {
                     "result": "success",
                     "message": "Target successfully marked as compromised",
                     "toggle": 1,
                 }
-            self.object.save()
+            obj.save()
             logger.info(
                 "Toggled status of %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                obj.__class__.__name__,
+                obj.id,
                 self.request.user,
             )
         except Exception as exception:  # pragma: no cover
@@ -466,45 +509,57 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`rolodex.ProjectScope`.
     """
 
     model = ProjectScope
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Scope list successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Create a new :model:`rolodex.ProjectSubTask` for an individual :model:`ProjectObjective`.
     """
 
     model = ProjectObjective
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         task = self.request.POST.get("task", None)
         deadline = self.request.POST.get("deadline", None)
         try:
             if task and deadline:
                 deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
 
-                if deadline.date() <= self.object.deadline:
+                if deadline.date() <= obj.deadline:
                     new_task = ProjectSubTask(
-                        parent=self.object,
+                        parent=obj,
                         task=task,
                         deadline=deadline.date(),
                     )
@@ -517,8 +572,8 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
                         "Created new %s %s under %s %s by request of %s",
                         new_task.__class__.__name__,
                         new_task.id,
-                        self.object.__class__.__name__,
-                        self.object.id,
+                        obj.__class__.__name__,
+                        obj.id,
                         self.request.user,
                     )
                 else:
@@ -543,37 +598,43 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Toggle the ``complete`` field of an individual :model:`rolodex.ProjectSubTask`.
     """
 
     model = ProjectSubTask
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().parent.project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         try:
-            if self.object.complete:
-                self.object.complete = False
-                self.object.marked_complete = None
+            if obj.complete:
+                obj.complete = False
+                obj.marked_complete = None
                 data = {
                     "result": "success",
                     "message": "Task successfully marked as incomplete",
                     "toggle": 0,
                 }
             else:
-                self.object.complete = True
-                self.object.marked_complete = datetime.date.today()
+                obj.complete = True
+                obj.marked_complete = datetime.date.today()
                 data = {
                     "result": "success",
                     "message": "Task successfully marked as complete",
                     "toggle": 1,
                 }
-            self.object.save()
+            obj.save()
             logger.info(
                 "Toggled status of %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                obj.__class__.__name__,
+                obj.id,
                 self.request.user,
             )
         except Exception as exception:  # pragma: no cover
@@ -585,37 +646,43 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Toggle the ``complete`` field of an individual :model:`rolodex.ProjectObjective`.
     """
 
     model = ProjectObjective
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         try:
-            if self.object.complete:
-                self.object.complete = False
-                self.object.marked_complete = None
+            if obj.complete:
+                obj.complete = False
+                obj.marked_complete = None
                 data = {
                     "result": "success",
                     "message": "Objective successfully marked as incomplete",
                     "toggle": 0,
                 }
             else:
-                self.object.complete = True
-                self.object.marked_complete = datetime.date.today()
+                obj.complete = True
+                obj.marked_complete = datetime.date.today()
                 data = {
                     "result": "success",
                     "message": "Objective successfully marked as complete",
                     "toggle": 1,
                 }
-            self.object.save()
+            obj.save()
             logger.info(
                 "Toggled status of %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
+                obj.__class__.__name__,
+                obj.id,
                 self.request.user,
             )
         except Exception as exception:  # pragma: no cover
@@ -627,55 +694,68 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`rolodex.ProjectSubTask`.
     """
 
     model = ProjectSubTask
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().parent.project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Task successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Update an individual :model:`rolodex.ProjectSubTask`.
     """
 
     model = ProjectSubTask
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().parent.project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         task = self.request.POST.get("task", None)
         deadline = self.request.POST.get("deadline", None)
         try:
             if task and deadline:
                 deadline = datetime.datetime.strptime(deadline, "%Y-%m-%d")
                 logger.info(deadline.date())
-                logger.info(self.object.deadline)
-                if deadline.date() <= self.object.parent.deadline:
-                    self.object.task = task
-                    self.object.deadline = deadline.date()
-                    self.object.save()
+                logger.info(obj.deadline)
+                if deadline.date() <= obj.parent.deadline:
+                    obj.task = task
+                    obj.deadline = deadline.date()
+                    obj.save()
                     data = {
                         "result": "success",
                         "message": "Task successfully updated",
                     }
                     logger.info(
                         "Updated %s %s by request of %s",
-                        self.object.__class__.__name__,
-                        self.object.id,
+                        obj.__class__.__name__,
+                        obj.id,
                         self.request.user,
                     )
                 else:
@@ -700,7 +780,7 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Return an updated version of the template following an update or delete action related
     to an individual :model:`rolodex.ProjectSubTask.
@@ -712,17 +792,23 @@ class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, View):
 
     model = ProjectObjective
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def get(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         html = render_to_string(
             "snippets/project_objective_subtasks.html",
-            {"objective": self.object},
+            {"objective": obj},
             request=self.request,
         )
         return HttpResponse(html)
 
 
-class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Return an updated version of the template following an update action related
     to an individual :model:`rolodex.ProjectObjective`.
@@ -734,46 +820,65 @@ class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, View):
 
     model = ProjectObjective
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def get(self, *args, **kwargs):
-        self.object = self.get_object()
+        obj = self.get_object()
         html = render_to_string(
             "snippets/project_objective_row.html",
-            {"objective": self.object},
+            {"objective": obj},
             request=self.request,
         )
         return HttpResponse(html)
 
 
-class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, View):
+class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """Export scope list from an individual :model:`rolodex.ProjectScope` as a file."""
 
     model = ProjectScope
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        raise PermissionDenied
+
     def get(self, *args, **kwargs):
         lines = []
-        self.object = self.get_object()
-        for row in self.object.scope.split("\n"):
+        obj = self.get_object()
+        for row in obj.scope.split("\n"):
             lines.append(row)
         response = HttpResponse(lines, content_type="text/plain")
-        response["Content-Disposition"] = f"attachment; filename={self.object.name}_scope.txt"
+        response["Content-Disposition"] = f"attachment; filename={obj.name}_scope.txt"
         return response
 
 
-class DeconflictionDelete(LoginRequiredMixin, SingleObjectMixin, View):
+class DeconflictionDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
     """
     Delete an individual :model:`rolodex.Deconfliction`.
     """
 
     model = Deconfliction
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        obj_id = self.object.id
-        self.object.delete()
+        obj = self.get_object()
+        obj_id = obj.id
+        obj.delete()
         data = {"result": "success", "message": "Deconfliction event successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
+            obj.__class__.__name__,
             obj_id,
             self.request.user,
         )
@@ -810,17 +915,20 @@ def client_list(request):
     # Check if a search parameter is in the request
     try:
         search_term = request.GET.get("client_search").strip()
-    except Exception:
+    except AttributeError:
         search_term = ""
+
+    user = request.user
+    clients = get_client_list(user)
+
     if search_term:
         messages.success(
             request,
             "Displaying search results for: {}".format(search_term),
             extra_tags="alert-success",
         )
-        clients = Client.objects.filter(name__icontains=search_term).order_by("name")
-    else:
-        clients = Client.objects.all().order_by("name")
+        clients = clients.filter(name__icontains=search_term)
+
     client_filter = ClientFilter(request.GET, queryset=clients)
     return render(request, "rolodex/client_list.html", {"filter": client_filter})
 
@@ -839,7 +947,9 @@ def project_list(request):
 
     :template:`rolodex/project_list.html`
     """
-    projects = Project.objects.select_related("client").all().order_by("complete", "client")
+    user = request.user
+    projects = get_project_list(user)
+
     # Copy the GET request data
     data = request.GET.copy()
     # If user has not submitted their own filter, default to showing only active projects
@@ -856,7 +966,7 @@ def project_list(request):
 # CBVs related to :model:`rolodex.Client`
 
 
-class ClientDetailView(LoginRequiredMixin, DetailView):
+class ClientDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """
     Display an individual :model:`rolodex.Client`.
 
@@ -875,6 +985,13 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
     """
 
     model = Client
+
+    def test_func(self):
+        return verify_client_access(self.request.user, self.get_object())
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -899,7 +1016,7 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class ClientCreate(LoginRequiredMixin, CreateView):
+class ClientCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """
     Create an individual :model:`rolodex.Client`.
 
@@ -918,6 +1035,13 @@ class ClientCreate(LoginRequiredMixin, CreateView):
     model = Client
     form_class = ClientForm
     template_name = "rolodex/client_form.html"
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
@@ -950,15 +1074,15 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                obj = form.save()
 
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
-                    contacts.instance = self.object
+                    contacts.instance = obj
                     contacts.save()
 
                 if form.is_valid() and contacts_valid:
-                    self.object.save()
+                    obj.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -975,16 +1099,15 @@ class ClientCreate(LoginRequiredMixin, CreateView):
         codename = ""
         while not codename_verified:
             codename = codenames.codename(uppercase=True)
-            try:
-                Project.objects.filter(codename__iequal=codename)
-            except Exception:
+            clients = Client.objects.filter(codename__iexact="foo")
+            if not clients:
                 codename_verified = True
         return {
             "codename": codename,
         }
 
 
-class ClientUpdate(LoginRequiredMixin, UpdateView):
+class ClientUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual :model:`rolodex.Client`.
 
@@ -1003,6 +1126,13 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
     model = Client
     form_class = ClientForm
     template_name = "rolodex/client_form.html"
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
@@ -1031,15 +1161,15 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                obj = form.save()
 
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
-                    contacts.instance = self.object
+                    contacts.instance = obj
                     contacts.save()
 
                 if form.is_valid() and contacts_valid:
-                    self.object.save()
+                    obj.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1051,7 +1181,7 @@ class ClientUpdate(LoginRequiredMixin, UpdateView):
             return super().form_invalid(form)
 
 
-class ClientDelete(LoginRequiredMixin, DeleteView):
+class ClientDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
     Delete an individual :model:`rolodex.Client`.
 
@@ -1073,6 +1203,13 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
     success_url = reverse_lazy("rolodex:clients")
 
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
@@ -1082,7 +1219,7 @@ class ClientDelete(LoginRequiredMixin, DeleteView):
         return ctx
 
 
-class ClientNoteCreate(LoginRequiredMixin, CreateView):
+class ClientNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """
     Create an individual :model:`rolodex.ClientNote`.
 
@@ -1101,6 +1238,13 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
     model = ClientNote
     form_class = ClientNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        return verify_client_access(self.request.user, self.get_object().client)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
@@ -1123,10 +1267,10 @@ class ClientNoteCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form, **kwargs):
-        self.object = form.save(commit=False)
-        self.object.operator = self.request.user
-        self.object.client_id = self.kwargs.get("pk")
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.operator = self.request.user
+        obj.client_id = self.kwargs.get("pk")
+        obj.save()
         return super().form_valid(form)
 
 
@@ -1151,11 +1295,11 @@ class ClientNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get_success_url(self):
@@ -1172,7 +1316,7 @@ class ClientNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 # CBVs related to :model:`rolodex.Project`
 
 
-class ProjectDetailView(LoginRequiredMixin, DetailView):
+class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """
     Display an individual :model:`rolodex.Project`.
 
@@ -1183,8 +1327,15 @@ class ProjectDetailView(LoginRequiredMixin, DetailView):
 
     model = Project
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object())
 
-class ProjectCreate(LoginRequiredMixin, CreateView):
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+
+class ProjectCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """
     Create an individual :model:`rolodex.Project` with zero or more
     :model:`rolodex.ProjectAssignment` and :model:`rolodex.ProjectObjective`.
@@ -1212,6 +1363,13 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
     model = Project
     form_class = ProjectForm
     template_name = "rolodex/project_form.html"
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
@@ -1279,31 +1437,31 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                obj = form.save()
 
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
-                    objectives.instance = self.object
+                    objectives.instance = obj
                     objectives.save()
 
                 assignments_valid = assignments.is_valid()
                 if assignments_valid:
-                    assignments.instance = self.object
+                    assignments.instance = obj
                     assignments.save()
 
                 scopes_valid = scopes.is_valid()
                 if scopes_valid:
-                    scopes.instance = self.object
+                    scopes.instance = obj
                     scopes.save()
 
                 targets_valid = targets.is_valid()
                 if targets_valid:
-                    targets.instance = self.object
+                    targets.instance = obj
                     targets.save()
 
                 whitecards_valid = whitecards.is_valid()
                 if whitecards_valid:
-                    whitecards.instance = self.object
+                    whitecards.instance = obj
                     whitecards.save()
 
                 if (
@@ -1314,7 +1472,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
                     and targets_valid
                     and whitecards_valid
                 ):
-                    self.object.save()
+                    obj.save()
                     return HttpResponseRedirect(self.get_success_url())
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1331,9 +1489,8 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         codename = ""
         while not codename_verified:
             codename = codenames.codename(uppercase=True)
-            try:
-                Project.objects.filter(codename__iequal=codename)
-            except Exception:
+            projects = Project.objects.filter(codename__iexact=codename)
+            if not projects:
                 codename_verified = True
         return {
             "client": self.client,
@@ -1341,7 +1498,7 @@ class ProjectCreate(LoginRequiredMixin, CreateView):
         }
 
 
-class ProjectUpdate(LoginRequiredMixin, UpdateView):
+class ProjectUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual :model:`rolodex.Project`.
 
@@ -1368,6 +1525,13 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
     model = Project
     form_class = ProjectForm
     template_name = "rolodex/project_form.html"
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -1405,31 +1569,31 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                obj = form.save()
 
                 objectives_valid = objectives.is_valid()
                 if objectives_valid:
-                    objectives.instance = self.object
+                    objectives.instance = obj
                     objectives.save()
 
                 assignments_valid = assignments.is_valid()
                 if assignments_valid:
-                    assignments.instance = self.object
+                    assignments.instance = obj
                     assignments.save()
 
                 scopes_valid = scopes.is_valid()
                 if scopes_valid:
-                    scopes.instance = self.object
+                    scopes.instance = obj
                     scopes.save()
 
                 targets_valid = targets.is_valid()
                 if targets_valid:
-                    targets.instance = self.object
+                    targets.instance = obj
                     targets.save()
 
                 whitecards_valid = whitecards.is_valid()
                 if whitecards_valid:
-                    whitecards.instance = self.object
+                    whitecards.instance = obj
                     whitecards.save()
 
                 # Proceed with form submission
@@ -1441,17 +1605,17 @@ class ProjectUpdate(LoginRequiredMixin, UpdateView):
                     and targets_valid
                     and whitecards_valid
                 ):
-                    self.object.save()
+                    obj.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
         # Otherwise return ``form_invalid`` and display errors
         except Exception:
-            logger.exception("Failed to update the project")
+            logger.exception("Failed to update the project.")
             return super().form_invalid(form)
 
 
-class ProjectDelete(LoginRequiredMixin, DeleteView):
+class ProjectDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
     Delete an individual :model:`rolodex.Project`.
 
@@ -1472,6 +1636,13 @@ class ProjectDelete(LoginRequiredMixin, DeleteView):
     model = Project
     template_name = "confirm_delete.html"
 
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
@@ -1484,7 +1655,7 @@ class ProjectDelete(LoginRequiredMixin, DeleteView):
         return "{}#history".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
 
 
-class ProjectNoteCreate(LoginRequiredMixin, CreateView):
+class ProjectNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """
     Create an individual :model:`rolodex.ProjectNote`.
 
@@ -1503,6 +1674,13 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
     model = ProjectNote
     form_class = ProjectNoteForm
     template_name = "note_form.html"
+
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
@@ -1525,10 +1703,10 @@ class ProjectNoteCreate(LoginRequiredMixin, CreateView):
         return ctx
 
     def form_valid(self, form, **kwargs):
-        self.object = form.save(commit=False)
-        self.object.operator = self.request.user
-        self.object.project_id = self.kwargs.get("pk")
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.operator = self.request.user
+        obj.project_id = self.kwargs.get("pk")
+        obj.save()
         return super().form_valid(form)
 
 
@@ -1553,11 +1731,11 @@ class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get_success_url(self):
@@ -1571,7 +1749,7 @@ class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return ctx
 
 
-class DeconflictionCreate(LoginRequiredMixin, CreateView):
+class DeconflictionCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """
     Create an individual :model:`rolodex.Deconfliction`.
 
@@ -1589,6 +1767,13 @@ class DeconflictionCreate(LoginRequiredMixin, CreateView):
     form_class = DeconflictionForm
     template_name = "rolodex/deconfliction_form.html"
 
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_success_url(self):
         messages.success(
             self.request,
@@ -1603,9 +1788,9 @@ class DeconflictionCreate(LoginRequiredMixin, CreateView):
         }
 
     def form_valid(self, form, **kwargs):
-        self.object = form.save(commit=False)
-        self.object.project_id = self.kwargs.get("pk")
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.project_id = self.kwargs.get("pk")
+        obj.save()
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -1618,7 +1803,7 @@ class DeconflictionCreate(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class DeconflictionUpdate(LoginRequiredMixin, UpdateView):
+class DeconflictionUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """
     Update an individual :model:`rolodex.Deconfliction`.
 
@@ -1635,6 +1820,13 @@ class DeconflictionUpdate(LoginRequiredMixin, UpdateView):
     model = Deconfliction
     form_class = DeconflictionForm
     template_name = "rolodex/deconfliction_form.html"
+
+    def test_func(self):
+        return verify_project_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
 
     def get_success_url(self):
         messages.success(
