@@ -10,7 +10,13 @@ from django.contrib.auth import get_user_model
 import jwt
 
 # Ghostwriter Libraries
-from ghostwriter.rolodex.models import ClientInvite, ProjectAssignment, ProjectInvite
+from ghostwriter.rolodex.models import (
+    Client,
+    ClientInvite,
+    Project,
+    ProjectAssignment,
+    ProjectInvite,
+)
 
 # Using __name__ resolves to ghostwriter.utils
 logger = logging.getLogger(__name__)
@@ -190,31 +196,6 @@ def verify_graphql_request(headers):
     return False
 
 
-def verify_project_access(user, project):
-    """
-    Verify that the user has access to the project.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    ``project``
-        The :model:`projects.Project` object
-    """
-    if user.role == "admin":
-        return True
-
-    if user.role == "manager":
-        return True
-
-    assignments = ProjectAssignment.objects.filter(operator=user, project=project)
-    client_invites = ClientInvite.objects.filter(user=user, client=project.client)
-    project_invites = ProjectInvite.objects.filter(user=user, project=project)
-    if any([assignments, client_invites, project_invites]):
-        return True
-    return False
-
-
 def get_user_from_token(token):
     """
     Get the user from the JWT token.
@@ -243,3 +224,108 @@ def verify_user_is_privileged(user):
     ):
         return True
     return user.is_staff
+
+
+def verify_project_access(user, project):
+    """
+    Verify that the user has access to the project.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``project``
+        The :model:`rolodex.Project` object
+    """
+    logger.info("Testing user %s with %s role for access to project %s", user, user.role, project.id)
+    if user.role == "admin":
+        return True
+
+    if user.role == "manager":
+        return True
+
+    assignments = ProjectAssignment.objects.filter(operator=user, project=project)
+    client_invites = ClientInvite.objects.filter(user=user, client=project.client)
+    project_invites = ProjectInvite.objects.filter(user=user, project=project)
+    if any([assignments, client_invites, project_invites]):
+        return True
+    return False
+
+
+def verify_client_access(user, client):
+    """
+    Verify that the user has access to the client.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    ``client``
+        The :model:`rolodex.Client` object
+    """
+    logger.info("Testing user %s with %s role for access to client %s", user, user.role, client.id)
+    if user.role == "admin":
+        return True
+
+    if user.role == "manager":
+        return True
+
+    assignments = ProjectAssignment.objects.filter(operator=user, project__client=client)
+    client_invites = ClientInvite.objects.filter(user=user, client=client)
+    project_invites = ProjectInvite.objects.filter(user=user, project__client=client)
+    if any([assignments, client_invites, project_invites]):
+        return True
+    return False
+
+
+def get_client_list(user):
+    """
+    Retrieve a filtered list of :model:`rolodex.Client` entries based on the user's role.
+
+    Privileged users will receive all entries. Non-privileged users will receive only those entries to which they
+    have access.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        clients = Client.objects.all().order_by("name")
+    else:
+        clients = (
+            Client.objects.filter(
+                Q(clientinvite__user=user)
+                | Q(project__projectinvite__user=user)
+                | Q(project__projectassignment__operator=user)
+            )
+            .order_by("name")
+            .distinct()
+        )
+    return clients
+
+
+def get_project_list(user):
+    """
+    Retrieve a filtered list of :model:`rolodex.Project` entries based on the user's role.
+
+    Privileged users will receive all entries. Non-privileged users will receive only those entries to which they
+    have access.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        projects = Project.objects.select_related("client").all().order_by("complete", "client")
+    else:
+        projects = (
+            Project.objects.select_related("client")
+            .filter(
+                Q(projectinvite__user=user) | Q(client__clientinvite__user=user) | Q(projectassignment__operator=user)
+            )
+            .order_by("complete", "client")
+            .distinct()
+        )
+    return projects
