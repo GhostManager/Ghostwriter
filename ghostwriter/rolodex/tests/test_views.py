@@ -49,7 +49,6 @@ class IndexViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -122,7 +121,6 @@ class RollCodenameViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -229,7 +227,7 @@ class ProjectObjectiveToggleViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         data = {
             "result": "success",
-            "message": "Objective successfully marked as complete",
+            "message": "Objective successfully marked as complete.",
             "toggle": 1,
         }
         self.objective.complete = False
@@ -244,7 +242,7 @@ class ProjectObjectiveToggleViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Objective successfully marked as incomplete",
+            "message": "Objective successfully marked as incomplete.",
             "toggle": 0,
         }
         response = self.client_mgr.post(self.uri)
@@ -286,7 +284,7 @@ class ProjectStatusToggleViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         data = {
             "result": "success",
-            "message": "Project successfully marked as complete",
+            "message": "Project successfully marked as complete.",
             "status": "Complete",
             "toggle": 1,
         }
@@ -302,7 +300,7 @@ class ProjectStatusToggleViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Project successfully marked as incomplete",
+            "message": "Project successfully marked as incomplete.",
             "status": "In Progress",
             "toggle": 0,
         }
@@ -528,9 +526,7 @@ class ProjectCreateTests(TestCase):
         self.client = Client()
         self.client_auth = Client()
         self.client_mgr = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -610,11 +606,8 @@ class ClientListViewTests(TestCase):
         self.client_auth = Client()
         self.client_mgr = Client()
         self.client_assign = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
-        self.client_assign.login(username=self.assign_user.username, password=PASSWORD)
         self.assertTrue(self.client_assign.login(username=self.assign_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -678,11 +671,8 @@ class ProjectListViewTests(TestCase):
         self.client_auth = Client()
         self.client_mgr = Client()
         self.client_assign = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
-        self.client_assign.login(username=self.assign_user.username, password=PASSWORD)
         self.assertTrue(self.client_assign.login(username=self.assign_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
