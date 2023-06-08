@@ -5,11 +5,15 @@ from datetime import datetime
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import Q
+from django.http import JsonResponse
 
 # 3rd Party Libraries
 import jwt
 
 # Ghostwriter Libraries
+from ghostwriter.oplog.models import Oplog
 from ghostwriter.rolodex.models import (
     Client,
     ClientInvite,
@@ -329,3 +333,43 @@ def get_project_list(user):
             .distinct()
         )
     return projects
+
+
+def get_logs_list(user):
+    """
+    Retrieve a filtered list of :model:`oplog.Oplog` entries based on the user's role.
+
+    Privileged users will receive all logs. Non-privileged users will receive only those entries to which they
+    have access.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        logs = Oplog.objects.select_related("project").all()
+    else:
+        logs = (
+            Oplog.objects.select_related("project")
+            .filter(
+                Q(project__projectinvite__user=user)
+                | Q(project__client__clientinvite__user=user)
+                | Q(project__projectassignment__operator=user)
+            )
+            .distinct()
+        )
+    return logs
+
+
+class ForbiddenJsonResponse(JsonResponse):
+    """
+    A  custom JSON response class with a static 403 status code and default error message.
+    """
+
+    status_code = 403
+
+    def __init__(self, data=None, encoder=DjangoJSONEncoder, safe=True, json_dumps_params=None, **kwargs):
+        if data is None:
+            data = {"result": "error", "message": "Ah ah ah! You didn't say the magic word!"}
+        super().__init__(data, encoder, safe, json_dumps_params, **kwargs)
