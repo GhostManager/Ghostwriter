@@ -15,6 +15,7 @@ from ghostwriter.factories import (
     OplogFactory,
     ProjectFactory,
     UserFactory,
+    ProjectAssignmentFactory,
 )
 
 logging.disable(logging.CRITICAL)
@@ -25,20 +26,22 @@ PASSWORD = "SuperNaturalReporting!"
 # Tests related to report modification actions
 
 
-class OplogListTests(TestCase):
-    """Collection of tests for :view:`oplog.index`."""
+class OplogListViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogListView`."""
 
     @classmethod
     def setUpTestData(cls):
         cls.Oplog = OplogFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("oplog:index")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -53,11 +56,19 @@ class OplogListTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_list.html")
 
-    def test_custom_context_exists(self):
+    def test_oplog_list_values(self):
         OplogFactory.create_batch(5)
+        test_log = self.Oplog.objects.all()[0]
+
+        response = self.client_mgr.get(self.uri)
+        self.assertIn("oplog_list", response.context)
+        self.assertEqual(response.context["oplog_list"][0], self.Oplog.objects.all()[0])
+        self.assertEqual(len(response.context["oplog_list"]), self.Oplog.objects.count())
+
+        ProjectAssignmentFactory(operator=self.user, project=test_log.project)
         response = self.client_auth.get(self.uri)
-        self.assertIn("op_logs", response.context)
-        self.assertEqual(response.context["op_logs"][0], self.Oplog.objects.all()[0])
+        self.assertEqual(response.context["oplog_list"][0], test_log)
+        self.assertEqual(len(response.context["oplog_list"]), 1)
 
 
 class OplogListEntriesTests(TestCase):
@@ -72,24 +83,34 @@ class OplogListEntriesTests(TestCase):
         OplogEntryFactory.create_batch(5, oplog_id=cls.oplog)
 
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("oplog:oplog_entries", kwargs={"pk": cls.oplog.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.oplog.project)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_detail.html")
 
@@ -108,6 +129,7 @@ class OplogEntriesImportTests(TestCase):
             OplogEntryFactory(oplog_id=cls.oplog)
 
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("oplog:oplog_import")
         cls.redirect_uri = reverse("oplog:oplog_entries", kwargs={"pk": cls.oplog.pk})
         cls.failure_redirect_uri = reverse("oplog:oplog_import")
@@ -115,8 +137,9 @@ class OplogEntriesImportTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -131,7 +154,57 @@ class OplogEntriesImportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_import.html")
 
-    def test_post_data(self):
+    def test_post_data_and_permissions(self):
+        filename = "oplog_import_test.csv"
+        fieldnames = [
+            "start_date",
+            "end_date",
+            "source_ip",
+            "dest_ip",
+            "tool",
+            "user_context",
+            "command",
+            "description",
+            "output",
+            "comments",
+            "operator_name",
+        ]
+        with open(filename, "w") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_NONE)
+            writer.writeheader()
+            for entry in self.OplogEntry.objects.all():
+                row = {}
+                for field in fieldnames:
+                    if field == "start_date":
+                        row[field] = datetime.timestamp(entry.start_date)
+                    elif field == "end_date":
+                        row[field] = datetime.timestamp(entry.end_date)
+                    else:
+                        row[field] = getattr(entry, field)
+                writer.writerow(row)
+
+        with open(filename, "r") as csvfile:
+            response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(response, self.redirect_uri)
+            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 2)
+
+        with open(filename, "r") as csvfile:
+            response = self.client_auth.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(response, self.failure_redirect_uri)
+            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 2)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.oplog.project)
+        with open(filename, "r") as csvfile:
+            response = self.client_auth.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(response, self.redirect_uri)
+            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 3)
+        os.remove(filename)
+
+    def test_oplog_id_override(self):
+        """Test that the ``oplog_id`` field is overridden when importing."""
         filename = "oplog_import_test.csv"
         fieldnames = [
             "oplog_id",
@@ -154,7 +227,7 @@ class OplogEntriesImportTests(TestCase):
                 row = {}
                 for field in fieldnames:
                     if field == "oplog_id":
-                        row[field] = int(entry.oplog_id.id)
+                        row[field] = 9000
                     elif field == "start_date":
                         row[field] = datetime.timestamp(entry.start_date)
                     elif field == "end_date":
@@ -164,10 +237,13 @@ class OplogEntriesImportTests(TestCase):
                 writer.writerow(row)
 
         with open(filename, "r") as csvfile:
-            response = self.client_auth.post(self.uri, {"csv_file": csvfile})
+            starting_entries = self.OplogEntry.objects.filter(oplog_id=self.oplog).count()
+            response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
             self.assertRedirects(response, self.redirect_uri)
-            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 2)
+            self.assertEqual(
+                self.OplogEntry.objects.filter(oplog_id=self.oplog).count(), starting_entries + self.num_of_entries
+            )
         os.remove(filename)
 
 
@@ -178,14 +254,19 @@ class OplogCreateViewTests(TestCase):
     def setUpTestData(cls):
         cls.project = ProjectFactory(complete=False)
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("oplog:oplog_create_no_project")
         cls.project_uri = reverse("oplog:oplog_create", kwargs={"pk": cls.project.pk})
+        ProjectAssignmentFactory(operator=cls.user, project=cls.project)
+        ProjectFactory.create_batch(5, complete=False)
+        ProjectFactory.create_batch(5, complete=True)
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -195,9 +276,18 @@ class OplogCreateViewTests(TestCase):
         response = self.client_auth.get(self.project_uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 1)
+        self.assertEqual(response.context["form"].fields["project"].queryset[0], self.project)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["project"].queryset), 6)
 
     def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
@@ -205,14 +295,14 @@ class OplogCreateViewTests(TestCase):
         self.assertTemplateUsed(response, "oplog/oplog_form.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertIn("project", response.context)
         self.assertEqual(response.context["cancel_link"], reverse("oplog:index"))
         self.assertEqual(response.context["project"], "")
 
     def test_custom_context_exists_with_project(self):
-        response = self.client_auth.get(self.project_uri)
+        response = self.client_mgr.get(self.project_uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
@@ -221,7 +311,7 @@ class OplogCreateViewTests(TestCase):
         self.assertEqual(response.context["project"], self.project)
 
     def test_custom_context_changes_for_project(self):
-        response = self.client_auth.get(self.project_uri)
+        response = self.client_mgr.get(self.project_uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
@@ -272,7 +362,7 @@ class OplogMuteToggleViewTests(TestCase):
     def test_view_uri_exists_at_desired_location(self):
         data = {
             "result": "success",
-            "message": "Oplog monitor notifications have been muted",
+            "message": "Log monitor notifications have been muted.",
             "toggle": 1,
         }
         self.log.mute_notifications = False
@@ -287,7 +377,7 @@ class OplogMuteToggleViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Oplog monitor notifications have been unmuted",
+            "message": "Log monitor notifications have been unmuted.",
             "toggle": 0,
         }
         response = self.client_staff.post(self.uri)
@@ -299,18 +389,13 @@ class OplogMuteToggleViewTests(TestCase):
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 403)
-        data = {
-            "result": "error",
-            "message": "You must be logged in",
-        }
-        self.assertJSONEqual(force_str(response.content), data)
 
     def test_view_permissions(self):
         response = self.client_auth.post(self.uri)
         self.assertEqual(response.status_code, 403)
         data = {
             "result": "error",
-            "message": "Only a manager or admin can mute notifications",
+            "message": "Only a manager or admin can mute notifications.",
         }
         self.assertJSONEqual(force_str(response.content), data)
 
@@ -335,15 +420,29 @@ class OplogEntryUpdateViewTests(TestCase):
         cls.log = OplogFactory()
         cls.entry = OplogEntryFactory(oplog_id=cls.log)
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("oplog:oplog_entry_update", kwargs={"pk": cls.entry.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_permissions(self):
+        response = self.client_auth.get(self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"})
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.log.project)
+
+        response = self.client_auth.get(self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"})
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client_mgr.get(self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"})
+        self.assertEqual(response.status_code, 200)
 
     def test_view_uses_correct_ajax_template(self):
-        response = self.client_auth.get(self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"})
+        response = self.client_mgr.get(self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/snippets/oplogentry_form_inner.html")
