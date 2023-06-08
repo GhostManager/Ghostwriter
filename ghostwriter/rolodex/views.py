@@ -10,7 +10,6 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -28,6 +27,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
     get_client_list,
     get_project_list,
+    ForbiddenJsonResponse,
 )
 from ghostwriter.modules import codenames
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
@@ -85,7 +85,7 @@ def update_project_badges(request, pk):
     project_instance = get_object_or_404(Project, pk=pk)
 
     if not verify_project_access(request.user, project_instance):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     html = render_to_string(
         "snippets/project_nav_tabs.html",
@@ -107,7 +107,7 @@ def update_client_badges(request, pk):
     client_instance = get_object_or_404(Client, pk=pk)
 
     if not verify_client_access(request.user, client_instance):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     html = render_to_string(
         "snippets/client_nav_tabs.html",
@@ -161,7 +161,7 @@ def ajax_update_project_objectives(request):
 
         project_instance = get_object_or_404(Project, id=project_id)
         if not verify_project_access(request.user, project_instance):
-            raise PermissionDenied
+            return ForbiddenJsonResponse()
 
         logger.info(
             "Received AJAX POST to update project %s's %s objectives in this order: %s",
@@ -211,7 +211,7 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, UserPa
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         objective = self.get_object()
@@ -274,7 +274,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return verify_project_access(self.request.user, self.get_object())
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -283,7 +283,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
                 obj.complete = False
                 data = {
                     "result": "success",
-                    "message": "Project successfully marked as incomplete",
+                    "message": "Project successfully marked as incomplete.",
                     "status": "In Progress",
                     "toggle": 0,
                 }
@@ -291,7 +291,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
                 obj.complete = True
                 data = {
                     "result": "success",
-                    "message": "Project successfully marked as complete",
+                    "message": "Project successfully marked as complete.",
                     "status": "Complete",
                     "toggle": 1,
                 }
@@ -306,7 +306,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update project status"}
+            data = {"result": "error", "message": "Could not update project status."}
 
         return JsonResponse(data)
 
@@ -320,7 +320,7 @@ class ProjectObjectiveDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -345,7 +345,7 @@ class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesT
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -424,7 +424,7 @@ class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return verify_client_access(self.request.user, self.get_object().client)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -449,7 +449,7 @@ class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -474,7 +474,7 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -483,14 +483,14 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
                 obj.compromised = False
                 data = {
                     "result": "success",
-                    "message": "Target successfully marked as NOT compromised",
+                    "message": "Target successfully marked as NOT compromised.",
                     "toggle": 0,
                 }
             else:
                 obj.compromised = True
                 data = {
                     "result": "success",
-                    "message": "Target successfully marked as compromised",
+                    "message": "Target successfully marked as compromised.",
                     "toggle": 1,
                 }
             obj.save()
@@ -504,7 +504,7 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update target status"}
+            data = {"result": "error", "message": "Could not update target status."}
 
         return JsonResponse(data)
 
@@ -520,7 +520,7 @@ class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -547,7 +547,7 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -566,7 +566,7 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
                     new_task.save()
                     data = {
                         "result": "success",
-                        "message": "Task successfully saved",
+                        "message": "Task successfully saved.",
                     }
                     logger.info(
                         "Created new %s %s under %s %s by request of %s",
@@ -579,12 +579,12 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
                 else:
                     data = {
                         "result": "error",
-                        "message": "Your new due date must be before (or the same) as the objective due date",
+                        "message": "Your new due date must be before (or the same) as the objective due date.",
                     }
             else:
                 data = {
                     "result": "error",
-                    "message": "Your new task must have a valid task and due date",
+                    "message": "Your new task must have a valid task and due date.",
                 }
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -592,7 +592,7 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
             logger.error(log_message)
             data = {
                 "result": "error",
-                "message": "Could not create new task with provided values",
+                "message": "Could not create new task with provided values.",
             }
 
         return JsonResponse(data)
@@ -609,7 +609,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return verify_project_access(self.request.user, self.get_object().parent.project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -619,7 +619,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
                 obj.marked_complete = None
                 data = {
                     "result": "success",
-                    "message": "Task successfully marked as incomplete",
+                    "message": "Task successfully marked as incomplete.",
                     "toggle": 0,
                 }
             else:
@@ -627,7 +627,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
                 obj.marked_complete = datetime.date.today()
                 data = {
                     "result": "success",
-                    "message": "Task successfully marked as complete",
+                    "message": "Task successfully marked as complete.",
                     "toggle": 1,
                 }
             obj.save()
@@ -641,7 +641,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update task status"}
+            data = {"result": "error", "message": "Could not update task status."}
 
         return JsonResponse(data)
 
@@ -657,7 +657,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -667,7 +667,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
                 obj.marked_complete = None
                 data = {
                     "result": "success",
-                    "message": "Objective successfully marked as incomplete",
+                    "message": "Objective successfully marked as incomplete.",
                     "toggle": 0,
                 }
             else:
@@ -675,7 +675,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
                 obj.marked_complete = datetime.date.today()
                 data = {
                     "result": "success",
-                    "message": "Objective successfully marked as complete",
+                    "message": "Objective successfully marked as complete.",
                     "toggle": 1,
                 }
             obj.save()
@@ -689,7 +689,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             log_message = template.format(type(exception).__name__, exception.args)
             logger.error(log_message)
-            data = {"result": "error", "message": "Could not update objective status"}
+            data = {"result": "error", "message": "Could not update objective status."}
 
         return JsonResponse(data)
 
@@ -705,7 +705,7 @@ class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return verify_project_access(self.request.user, self.get_object().parent.project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -750,7 +750,7 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
                     obj.save()
                     data = {
                         "result": "success",
-                        "message": "Task successfully updated",
+                        "message": "Task successfully updated.",
                     }
                     logger.info(
                         "Updated %s %s by request of %s",
@@ -761,12 +761,12 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
                 else:
                     data = {
                         "result": "error",
-                        "message": "Your task due date must be before (or the same) as the objective due date",
+                        "message": "Your task due date must be before (or the same) as the objective due date.",
                     }
             else:
                 data = {
                     "result": "error",
-                    "message": "Task cannot be updated without a valid task and due date",
+                    "message": "Task cannot be updated without a valid task and due date.",
                 }
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -774,7 +774,7 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
             logger.error(log_message)
             data = {
                 "result": "error",
-                "message": "Could not update the task with provided values",
+                "message": "Could not update the task with provided values.",
             }
 
         return JsonResponse(data)
@@ -796,7 +796,7 @@ class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
@@ -824,7 +824,7 @@ class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesT
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def get(self, *args, **kwargs):
         obj = self.get_object()
@@ -845,7 +845,7 @@ class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        raise PermissionDenied
+        return ForbiddenJsonResponse()
 
     def get(self, *args, **kwargs):
         lines = []
