@@ -1758,6 +1758,8 @@ class Reportwriter:
         headers = [
             "Finding",
             "Severity",
+            "CVSS Score",
+            "CVSS Vector",
             "Affected Entities",
             "Description",
             "Impact",
@@ -1775,6 +1777,12 @@ class Reportwriter:
             self.col += 1
         self.worksheet.set_column(0, 10, 30)
         self.worksheet.set_column(1, 1, 10)
+
+        # Formatting for severity cells
+        severity_format = xlsx_doc.add_format({"bold": True})
+        severity_format.set_align("vcenter")
+        severity_format.set_align("center")
+        severity_format.set_font_color("black")
 
         # Loop through the findings to create the rest of the worksheet
         self.col = 0
