@@ -1724,7 +1724,14 @@ class Reportwriter:
         return text
 
     def generate_excel_xlsx(self, memory_object):
-        """Generate a complete Excel spreadsheet for the current report."""
+        """
+        Generate a complete Excel spreadsheet for the current report.
+
+        **Parameters**
+
+        ``memory_object``
+            In-memory file-like object to write the Excel spreadsheet to
+        """
 
         # Create an in-memory Excel workbook with a named worksheet
         xlsx_doc = Workbook(memory_object, {"in_memory": True, "strings_to_formulas": False, "strings_to_urls": False})
@@ -1773,7 +1780,7 @@ class Reportwriter:
 
         # Create 30 width columns and then shrink severity to 10
         for header in headers:
-            worksheet.write(0, col, header, bold_format)
+            worksheet.write_string(0, col, header, bold_format)
             col += 1
         worksheet.set_column(0, 12, 30)
         worksheet.set_column(1, 1, 10)
@@ -1792,11 +1799,16 @@ class Reportwriter:
             severity_format.set_bg_color(finding["severity_color"])
 
             # Severity and CVSS information
-            worksheet.write(row, col, finding["severity"], severity_format)
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["severity"], finding), severity_format)
             col += 1
-            worksheet.write(row, col, finding["cvss_score"], severity_format)
+            if isinstance(finding["cvss_score"], float):
+                worksheet.write_number(row, col, finding["cvss_score"], severity_format)
+            else:
+                worksheet.write_string(
+                    row, col, self._process_text_xlsx(finding["cvss_score"], finding), severity_format
+                )
             col += 1
-            worksheet.write(row, col, finding["cvss_vector"], severity_format)
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["cvss_vector"], finding), severity_format)
             col += 1
 
             # Affected Entities
