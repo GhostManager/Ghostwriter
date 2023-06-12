@@ -6,10 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.2.9] - 13 June 2023
 
+### Added
+
+* Added CVSS and tags to the finding rows in the Excel workbook report (xlsx)
+
 ### Changed
 
 * Added a linter error message to offer suggestions for the often confusing `expected token 'end of print statement', got 'such'` Jinja2 syntax error
- * Excel workbooks now include the CVSS and CVSS Vector columns for findings
 
 ### Fixed
 
