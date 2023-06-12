@@ -1723,7 +1723,13 @@ class Reportwriter:
                 else:
                     pass
 
-        self.worksheet.write(self.row, self.col, text, text_format)
+        # Sanitize text to prevent command injection
+        bad_chars = ["=", "+", "-", "@", "\t", "\r", "{"]
+        for char in bad_chars:
+            if text.startswith(char):
+                text = text.replace(char, f"'{char}")
+
+        self.worksheet.write_string(self.row, self.col, text, text_format)
 
     def generate_excel_xlsx(self, memory_object):
         """
