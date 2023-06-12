@@ -318,6 +318,9 @@ class Reportwriter:
         self.template_loc = template_loc
         self.report_queryset = report_queryset
 
+        # Generate the report JSON
+        self.report_json = json.loads(self.generate_json())
+
         # Get the global report configuration
         global_report_config = ReportConfiguration.get_solo()
         self.company_config = CompanyInformation.get_solo()
@@ -1472,11 +1475,7 @@ class Reportwriter:
                         )
 
     def generate_word_docx(self):
-        """
-        Generate a complete Word document for the current report.
-        """
-        # Generate the JSON for the report
-        self.report_json = json.loads(self.generate_json())
+        """Generate a complete Word document for the current report."""
 
         # Create Word document writer using the specified template file
         try:
@@ -2156,11 +2155,8 @@ class Reportwriter:
         return self.ppt_presentation
 
     def generate_all_reports(self, docx_template, pptx_template):
-        """
-        Generate all available report types and return memory streams for each file.
-        """
-        # Generate the JSON report - it just needs to be a string object
-        self.report_json = json.loads(self.generate_json())
+        """Generate all available report types and return memory streams for each file."""
+
         # Generate the docx report - save it in a memory stream
         word_stream = io.BytesIO()
         self.template_loc = docx_template
