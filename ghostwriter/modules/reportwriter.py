@@ -101,7 +101,7 @@ def filter_type(findings, allowlist):
     """
     filtered_values = []
     if isinstance(allowlist, list):
-        allowlist = [type.lower() for type in allowlist]
+        allowlist = [t.lower() for t in allowlist]
     else:
         raise InvalidFilterValue(
             f'Allowlist passed into `filter_type()` filter is not a list ("{allowlist}"); must be like `["Network", "Web"]`'
@@ -218,12 +218,10 @@ def format_datetime(date, new_format):
     ``format_str``
         The format of the provided date
     """
-    formatted_date = None
     try:
         date_obj = parse_datetime(date)
         formatted_date = dateformat(date_obj, new_format)
     except ParserError:
-        formatted_date = date
         logger.exception("Error parsing ``date`` as a date: %s", date)
         raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter')
     return formatted_date
@@ -531,7 +529,7 @@ class Reportwriter:
             to the same level as in ``prev``. Otherwise, defaults to zero.
         ``num`` : bool
             If ``prev`` is :py:obj:`None` and the style of the paragraph does not correspond
-            to an existing numbering style, this will determine wether or not the list will
+            to an existing numbering style, this will determine whether the list will
             be numbered or bulleted. The result is not guaranteed, but is fairly safe for
             most Word templates.
         """
@@ -541,18 +539,14 @@ class Reportwriter:
         }
 
         def style_xpath(prefer_single=True):
-            """
-            The style comes from the outer-scope variable ``par.style.name``.
-            """
+            """The style comes from the outer-scope variable ``par.style.name``."""
             style = par.style.style_id
             return (
                 "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]' "]/@w:abstractNumId"
             ).format(style=style, **xpath_options[prefer_single])
 
         def type_xpath(prefer_single=True):
-            """
-            The type is from the outer-scope variable ``num``.
-            """
+            """The type is from the outer-scope variable ``num``."""
             t = "decimal" if num else "bullet"
             return (
                 "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]' "]/@w:abstractNumId"
@@ -1028,7 +1022,7 @@ class Reportwriter:
             """Check the tag name and update the provided styles dictionary as needed."""
             tag_name = tag.name
 
-            # A ``code`` tag here is inline code inside of a ``p`` tag
+            # A ``code`` tag here is inline code inside a ``p`` tag
             if tag_name == "code":
                 styles_dict["inline_code"] = True
 
@@ -1464,7 +1458,6 @@ class Reportwriter:
                     # PowerPoint lacks a blockquote style, so we just add a basic paragraph
                     if self.report_type == "pptx":
                         p = self.finding_body_shape.text_frame.add_paragraph()
-                        ALIGNMENT = PP_ALIGN
                     else:
                         p = self.sacrificial_doc.add_paragraph()
                         p.style = "Blockquote"
@@ -1675,8 +1668,6 @@ class Reportwriter:
 
         ``html``
             HTML content to parse with BeautifulSoup 4
-        ``text_format``
-            Format to apply to the Excel worksheet cell – defined in ``generate_excel_xlsx()``
         ``finding``
             Current report finding being processed
         """
@@ -1705,7 +1696,7 @@ class Reportwriter:
         # No evidence or captions in workbook cells
         text = text.replace("{{.caption}}", "Caption \u2013 ")
 
-        # Find/replace evidence keywords to make everything human readable
+        # Find/replace evidence keywords to make everything human-readable
         match = re.findall(keyword_regex, text)
         if match:
             for keyword in match:
