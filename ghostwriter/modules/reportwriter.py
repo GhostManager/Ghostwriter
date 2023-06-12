@@ -1776,13 +1776,14 @@ class Reportwriter:
             "Network Detection Techniques",
             "References",
             "Supporting Evidence",
+            "Tags",
         ]
 
         # Create 30 width columns and then shrink severity to 10
         for header in headers:
             worksheet.write_string(0, col, header, bold_format)
             col += 1
-        worksheet.set_column(0, 12, 30)
+        worksheet.set_column(0, 13, 30)
         worksheet.set_column(1, 1, 10)
         worksheet.set_column(2, 2, 10)
         worksheet.set_column(3, 3, 40)
@@ -1863,6 +1864,10 @@ class Reportwriter:
             evidence = [f.filename for f in evidence_queryset if f in self.image_extensions or self.text_extensions]
             finding_evidence_names = "\r\n".join(map(str, evidence))
             worksheet.write_string(row, col, self._process_text_xlsx(finding_evidence_names, finding), wrap_format)
+            col += 1
+
+            # Tags
+            worksheet.write_string(row, col, self._process_text_xlsx(", ".join(finding["tags"]), finding), wrap_format)
 
             # Increment row counter and reset columns before moving on to next finding
             row += 1
