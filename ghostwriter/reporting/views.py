@@ -45,7 +45,6 @@ from channels.layers import get_channel_layer
 from docx.image.exceptions import UnrecognizedImageError
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
-from xlsxwriter.workbook import Workbook
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
@@ -1028,13 +1027,10 @@ def archive(request, pk):
         engine = reportwriter.Reportwriter(report_instance, template_loc=None)
         json_doc, word_doc, excel_doc, ppt_doc = engine.generate_all_reports(docx_template, pptx_template)
 
-        # Convert the dict to pretty JSON output for the file
-        pretty_json = json.dumps(json_doc, indent=4)
-
         # Create a zip file in memory and add the reports to it
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "a") as zf:
-            zf.writestr("report.json", pretty_json)
+            zf.writestr("report.json", json_doc)
             zf.writestr("report.docx", word_doc.getvalue())
             zf.writestr("report.xlsx", excel_doc.getvalue())
             zf.writestr("report.pptx", ppt_doc.getvalue())
@@ -1831,8 +1827,7 @@ class GenerateReportXLSX(LoginRequiredMixin, SingleObjectMixin, View):
             engine = reportwriter.Reportwriter(self.object, template_loc=None)
 
             output = io.BytesIO()
-            workbook = Workbook(output, {"in_memory": True})
-            engine.generate_excel_xlsx(workbook)
+            engine.generate_excel_xlsx(output)
             output.seek(0)
             response = HttpResponse(
                 output.read(),
@@ -2027,13 +2022,10 @@ class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, View):
             # Generate all types of reports
             json_doc, docx_doc, xlsx_doc, pptx_doc = engine.generate_all_reports(docx_template, pptx_template)
 
-            # Convert the dict to pretty JSON output for the file
-            pretty_json = json.dumps(json_doc, indent=4)
-
             # Create a zip file in memory and add the reports to it
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "a") as zf:
-                zf.writestr(f"{report_name}.json", pretty_json)
+                zf.writestr(f"{report_name}.json", json_doc)
                 zf.writestr(f"{report_name}.docx", docx_doc.getvalue())
                 zf.writestr(f"{report_name}.xlsx", xlsx_doc.getvalue())
                 zf.writestr(f"{report_name}.pptx", pptx_doc.getvalue())
