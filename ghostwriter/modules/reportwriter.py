@@ -1736,11 +1736,13 @@ class Reportwriter:
         # Create xlsxwriter in memory with a named worksheet
         xlsx_doc = memory_object
         self.worksheet = xlsx_doc.add_worksheet("Findings")
+        self.worksheet.strings_to_formulas = False
 
         # Create a format for headers
         bold_format = xlsx_doc.add_format({"bold": True})
         bold_format.set_text_wrap()
         bold_format.set_align("vcenter")
+        bold_format.set_align("center")
 
         # Create a format for affected entities
         asset_format = xlsx_doc.add_format()
@@ -2163,7 +2165,7 @@ class Reportwriter:
         word_doc.save(word_stream)
         # Generate the xlsx report - save it in a memory stream
         excel_stream = io.BytesIO()
-        workbook = Workbook(excel_stream, {"in_memory": True})
+        workbook = Workbook(excel_stream, {"in_memory": True, "strings_to_formulas": False, "strings_to_urls": False})
         self.generate_excel_xlsx(workbook)
         # Generate the pptx report - save it in a memory stream
         ppt_stream = io.BytesIO()
