@@ -11,7 +11,12 @@ import logging
 import os
 import random
 import re
+from copy import deepcopy
 from datetime import timedelta
+
+# Django Imports
+from django.conf import settings
+from django.utils.dateformat import format as dateformat
 
 # 3rd Party Libraries
 import docx
@@ -1552,7 +1557,8 @@ class Reportwriter:
             block_par.widow_control = True
 
         # Process template context, converting HTML elements to XML as needed
-        context = self._process_richtext(self.report_json)
+        context = deepcopy(self.report_json)
+        context = self._process_richtext(context)
 
         # Render the Word document + auto-escape any unsafe XML/HTML
         self.word_doc.render(context, self.jinja_env, autoescape=True)
