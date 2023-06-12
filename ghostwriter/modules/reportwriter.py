@@ -1784,15 +1784,15 @@ class Reportwriter:
             self.worksheet.write(self.row, self.col, finding["title"], wrap_format)
             self.col += 1
 
-            # Severity
-            severity_format = xlsx_doc.add_format({"bold": True})
-            severity_format.set_align("vcenter")
-            severity_format.set_align("center")
-            severity_format.set_font_color("black")
-
             # Color the cell based on corresponding severity color
             severity_format.set_bg_color(finding["severity_color"])
-            self.worksheet.write(self.row, 1, finding["severity"], severity_format)
+
+            # Severity and CVSS information
+            self.worksheet.write(self.row, self.col, finding["severity"], severity_format)
+            self.col += 1
+            self.worksheet.write(self.row, self.col, finding["cvss_score"], severity_format)
+            self.col += 1
+            self.worksheet.write(self.row, self.col, finding["cvss_vector"], severity_format)
             self.col += 1
 
             # Affected Entities
