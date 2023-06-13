@@ -11,7 +11,12 @@ import logging
 import os
 import random
 import re
+from copy import deepcopy
 from datetime import timedelta
+
+# Django Imports
+from django.conf import settings
+from django.utils.dateformat import format as dateformat
 
 # 3rd Party Libraries
 import docx
@@ -21,10 +26,6 @@ import pptx
 from bs4 import BeautifulSoup, NavigableString
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
-
-# Django Imports
-from django.conf import settings
-from django.utils.dateformat import format as dateformat
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
@@ -96,7 +97,7 @@ def filter_type(findings, allowlist):
     """
     filtered_values = []
     if isinstance(allowlist, list):
-        allowlist = [type.lower() for type in allowlist]
+        allowlist = [t.lower() for t in allowlist]
     else:
         raise InvalidFilterValue(
             f'Allowlist passed into `filter_type()` filter is not a list ("{allowlist}"); must be like `["Network", "Web"]`'
@@ -213,12 +214,10 @@ def format_datetime(date, new_format):
     ``format_str``
         The format of the provided date
     """
-    formatted_date = None
     try:
         date_obj = parse_datetime(date)
         formatted_date = dateformat(date_obj, new_format)
     except ParserError:
-        formatted_date = date
         logger.exception("Error parsing ``date`` as a date: %s", date)
         raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter')
     return formatted_date
@@ -314,6 +313,9 @@ class Reportwriter:
     def __init__(self, report_queryset, template_loc=None):
         self.template_loc = template_loc
         self.report_queryset = report_queryset
+
+        # Generate the report JSON
+        self.report_json = json.loads(self.generate_json())
 
         # Get the global report configuration
         global_report_config = ReportConfiguration.get_solo()
@@ -526,7 +528,7 @@ class Reportwriter:
             to the same level as in ``prev``. Otherwise, defaults to zero.
         ``num`` : bool
             If ``prev`` is :py:obj:`None` and the style of the paragraph does not correspond
-            to an existing numbering style, this will determine wether or not the list will
+            to an existing numbering style, this will determine whether the list will
             be numbered or bulleted. The result is not guaranteed, but is fairly safe for
             most Word templates.
         """
@@ -536,18 +538,14 @@ class Reportwriter:
         }
 
         def style_xpath(prefer_single=True):
-            """
-            The style comes from the outer-scope variable ``par.style.name``.
-            """
+            """The style comes from the outer-scope variable ``par.style.name``."""
             style = par.style.style_id
             return (
                 "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]' "]/@w:abstractNumId"
             ).format(style=style, **xpath_options[prefer_single])
 
         def type_xpath(prefer_single=True):
-            """
-            The type is from the outer-scope variable ``num``.
-            """
+            """The type is from the outer-scope variable ``num``."""
             t = "decimal" if num else "bullet"
             return (
                 "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]' "]/@w:abstractNumId"
@@ -1023,7 +1021,7 @@ class Reportwriter:
             """Check the tag name and update the provided styles dictionary as needed."""
             tag_name = tag.name
 
-            # A ``code`` tag here is inline code inside of a ``p`` tag
+            # A ``code`` tag here is inline code inside a ``p`` tag
             if tag_name == "code":
                 styles_dict["inline_code"] = True
 
@@ -1459,7 +1457,6 @@ class Reportwriter:
                     # PowerPoint lacks a blockquote style, so we just add a basic paragraph
                     if self.report_type == "pptx":
                         p = self.finding_body_shape.text_frame.add_paragraph()
-                        ALIGNMENT = PP_ALIGN
                     else:
                         p = self.sacrificial_doc.add_paragraph()
                         p.style = "Blockquote"
@@ -1474,11 +1471,7 @@ class Reportwriter:
                         )
 
     def generate_word_docx(self):
-        """
-        Generate a complete Word document for the current report.
-        """
-        # Generate the JSON for the report
-        self.report_json = json.loads(self.generate_json())
+        """Generate a complete Word document for the current report."""
 
         # Create Word document writer using the specified template file
         try:
@@ -1552,7 +1545,8 @@ class Reportwriter:
             block_par.widow_control = True
 
         # Process template context, converting HTML elements to XML as needed
-        context = self._process_richtext(self.report_json)
+        context = deepcopy(self.report_json)
+        context = self._process_richtext(context)
 
         # Render the Word document + auto-escape any unsafe XML/HTML
         self.word_doc.render(context, self.jinja_env, autoescape=True)
@@ -1660,7 +1654,7 @@ class Reportwriter:
 
         return context
 
-    def _process_text_xlsx(self, html, text_format, finding):
+    def _process_text_xlsx(self, html, finding):
         """
         Process the provided text from the specified finding to parse keywords for
         evidence placement and formatting in xlsx documents.
@@ -1669,8 +1663,6 @@ class Reportwriter:
 
         ``html``
             HTML content to parse with BeautifulSoup 4
-        ``text_format``
-            Format to apply to the Excel worksheet cell – defined in ``generate_excel_xlsx()``
         ``finding``
             Current report finding being processed
         """
@@ -1699,7 +1691,7 @@ class Reportwriter:
         # No evidence or captions in workbook cells
         text = text.replace("{{.caption}}", "Caption \u2013 ")
 
-        # Find/replace evidence keywords to make everything human readable
+        # Find/replace evidence keywords to make everything human-readable
         match = re.findall(keyword_regex, text)
         if match:
             for keyword in match:
@@ -1723,24 +1715,33 @@ class Reportwriter:
                 else:
                     pass
 
-        self.worksheet.write(self.row, self.col, text, text_format)
+        # Sanitize text to prevent command injection
+        bad_chars = ["=", "+", "-", "@", "\t", "\r", "{"]
+        for char in bad_chars:
+            if text.startswith(char):
+                text = text.replace(char, f"'{char}")
+
+        return text
 
     def generate_excel_xlsx(self, memory_object):
         """
         Generate a complete Excel spreadsheet for the current report.
+
+        **Parameters**
+
+        ``memory_object``
+            In-memory file-like object to write the Excel spreadsheet to
         """
 
-        # Generate the JSON for the report
-        self.report_json = json.loads(self.generate_json())
-
-        # Create xlsxwriter in memory with a named worksheet
-        xlsx_doc = memory_object
-        self.worksheet = xlsx_doc.add_worksheet("Findings")
+        # Create an in-memory Excel workbook with a named worksheet
+        xlsx_doc = Workbook(memory_object, {"in_memory": True, "strings_to_formulas": False, "strings_to_urls": False})
+        worksheet = xlsx_doc.add_worksheet("Findings")
 
         # Create a format for headers
         bold_format = xlsx_doc.add_format({"bold": True})
         bold_format.set_text_wrap()
         bold_format.set_align("vcenter")
+        bold_format.set_align("center")
 
         # Create a format for affected entities
         asset_format = xlsx_doc.add_format()
@@ -1748,16 +1749,24 @@ class Reportwriter:
         asset_format.set_align("vcenter")
         asset_format.set_align("center")
 
+        # Formatting for severity cells
+        severity_format = xlsx_doc.add_format({"bold": True})
+        severity_format.set_align("vcenter")
+        severity_format.set_align("center")
+        severity_format.set_font_color("black")
+
         # Create a format for everything else
         wrap_format = xlsx_doc.add_format()
         wrap_format.set_text_wrap()
         wrap_format.set_align("vcenter")
 
         # Create header row for findings
-        self.col = 0
+        col = 0
         headers = [
             "Finding",
             "Severity",
+            "CVSS Score",
+            "CVSS Vector",
             "Affected Entities",
             "Description",
             "Impact",
@@ -1767,66 +1776,82 @@ class Reportwriter:
             "Network Detection Techniques",
             "References",
             "Supporting Evidence",
+            "Tags",
         ]
 
         # Create 30 width columns and then shrink severity to 10
         for header in headers:
-            self.worksheet.write(0, self.col, header, bold_format)
-            self.col += 1
-        self.worksheet.set_column(0, 10, 30)
-        self.worksheet.set_column(1, 1, 10)
+            worksheet.write_string(0, col, header, bold_format)
+            col += 1
+        worksheet.set_column(0, 13, 30)
+        worksheet.set_column(1, 1, 10)
+        worksheet.set_column(2, 2, 10)
+        worksheet.set_column(3, 3, 40)
 
         # Loop through the findings to create the rest of the worksheet
-        self.col = 0
-        self.row = 1
+        col = 0
+        row = 1
         for finding in self.report_json["findings"]:
             # Finding Name
-            self.worksheet.write(self.row, self.col, finding["title"], wrap_format)
-            self.col += 1
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["title"], finding), bold_format)
+            col += 1
 
-            # Severity
-            severity_format = xlsx_doc.add_format({"bold": True})
-            severity_format.set_align("vcenter")
-            severity_format.set_align("center")
-            severity_format.set_font_color("black")
-
-            # Color the cell based on corresponding severity color
+            # Update severity format bg color with the finding's severity color
             severity_format.set_bg_color(finding["severity_color"])
-            self.worksheet.write(self.row, 1, finding["severity"], severity_format)
-            self.col += 1
+
+            # Severity and CVSS information
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["severity"], finding), severity_format)
+            col += 1
+            if isinstance(finding["cvss_score"], float):
+                worksheet.write_number(row, col, finding["cvss_score"], severity_format)
+            else:
+                worksheet.write_string(
+                    row, col, self._process_text_xlsx(finding["cvss_score"], finding), severity_format
+                )
+            col += 1
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["cvss_vector"], finding), severity_format)
+            col += 1
 
             # Affected Entities
             if finding["affected_entities"]:
-                self._process_text_xlsx(finding["affected_entities"], asset_format, finding)
+                worksheet.write_string(
+                    row, col, self._process_text_xlsx(finding["affected_entities"], finding), asset_format
+                )
             else:
-                self.worksheet.write(self.row, self.col, "N/A", asset_format)
-            self.col += 1
+                worksheet.write_string(row, col, "N/A", asset_format)
+            col += 1
 
             # Description
-            self._process_text_xlsx(finding["description"], wrap_format, finding)
-            self.col += 1
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["description"], finding), wrap_format)
+            col += 1
 
             # Impact
-            self._process_text_xlsx(finding["impact"], wrap_format, finding)
-            self.col += 1
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["impact"], finding), wrap_format)
+            col += 1
 
             # Recommendation
-            self._process_text_xlsx(finding["recommendation"], wrap_format, finding)
-            self.col += 1
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["recommendation"], finding), wrap_format)
+            col += 1
 
             # Replication
-            self._process_text_xlsx(finding["replication_steps"], wrap_format, finding)
-            self.col += 1
+            worksheet.write_string(
+                row, col, self._process_text_xlsx(finding["replication_steps"], finding), wrap_format
+            )
+            col += 1
 
             # Detection
-            self._process_text_xlsx(finding["host_detection_techniques"], wrap_format, finding)
-            self.col += 1
-            self._process_text_xlsx(finding["network_detection_techniques"], wrap_format, finding)
-            self.col += 1
+            worksheet.write_string(
+                row, col, self._process_text_xlsx(finding["host_detection_techniques"], finding), wrap_format
+            )
+            col += 1
+            worksheet.write_string(
+                row, col, self._process_text_xlsx(finding["network_detection_techniques"], finding), wrap_format
+            )
+            col += 1
 
             # References
-            self._process_text_xlsx(finding["references"], wrap_format, finding)
-            self.col += 1
+            worksheet.write_string(row, col, self._process_text_xlsx(finding["references"], finding), wrap_format)
+            col += 1
 
             # Collect the evidence, if any, from the finding's folder and insert inline with description
             try:
@@ -1836,29 +1861,29 @@ class Reportwriter:
             except Exception:
                 logger.exception("Query for evidence failed for finding %s", finding["id"])
                 evidence_queryset = []
-            evidence = [
-                f.document.name for f in evidence_queryset if f in self.image_extensions or self.text_extensions
-            ]
+            evidence = [f.filename for f in evidence_queryset if f in self.image_extensions or self.text_extensions]
             finding_evidence_names = "\r\n".join(map(str, evidence))
-            self.worksheet.write(self.row, self.col, finding_evidence_names, wrap_format)
+            worksheet.write_string(row, col, self._process_text_xlsx(finding_evidence_names, finding), wrap_format)
+            col += 1
+
+            # Tags
+            worksheet.write_string(row, col, self._process_text_xlsx(", ".join(finding["tags"]), finding), wrap_format)
 
             # Increment row counter and reset columns before moving on to next finding
-            self.row += 1
-            self.col = 0
+            row += 1
+            col = 0
 
         # Add a filter to the worksheet
-        self.worksheet.autofilter("A1:J{}".format(len(self.report_json["findings"]) + 1))
+        worksheet.autofilter("A1:M{}".format(len(self.report_json["findings"]) + 1))
 
         # Finalize document
         xlsx_doc.close()
         return xlsx_doc
 
     def generate_powerpoint_pptx(self):
-        """
-        Generate a complete PowerPoint slide deck for the current report.
-        """
+        """Generate a complete PowerPoint slide deck for the current report."""
+
         self.report_type = "pptx"
-        self.report_json = json.loads(self.generate_json())
 
         # Create document writer using the specified template
         try:
@@ -2143,11 +2168,8 @@ class Reportwriter:
         return self.ppt_presentation
 
     def generate_all_reports(self, docx_template, pptx_template):
-        """
-        Generate all available report types and return memory streams for each file.
-        """
-        # Generate the JSON report - it just needs to be a string object
-        self.report_json = json.loads(self.generate_json())
+        """Generate all available report types and return memory streams for each file."""
+
         # Generate the docx report - save it in a memory stream
         word_stream = io.BytesIO()
         self.template_loc = docx_template
@@ -2155,15 +2177,14 @@ class Reportwriter:
         word_doc.save(word_stream)
         # Generate the xlsx report - save it in a memory stream
         excel_stream = io.BytesIO()
-        workbook = Workbook(excel_stream, {"in_memory": True})
-        self.generate_excel_xlsx(workbook)
+        self.generate_excel_xlsx(excel_stream)
         # Generate the pptx report - save it in a memory stream
         ppt_stream = io.BytesIO()
         self.template_loc = pptx_template
         ppt_doc = self.generate_powerpoint_pptx()
         ppt_doc.save(ppt_stream)
         # Return each memory object
-        return self.report_json, word_stream, excel_stream, ppt_stream
+        return json.dumps(self.report_json, indent=4), word_stream, excel_stream, ppt_stream
 
 
 class TemplateLinter:
