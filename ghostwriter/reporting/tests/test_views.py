@@ -825,6 +825,7 @@ class ReportDeleteViewTests(TestCase):
         cls.report = ReportFactory()
         cls.delete_report = ReportFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:report_delete", kwargs={"pk": cls.report.pk})
         cls.delete_uri = reverse("reporting:report_delete", kwargs={"pk": cls.delete_report.pk})
         cls.success_uri = f"{reverse('rolodex:project_detail', kwargs={'pk': cls.delete_report.project.pk})}#reports"
@@ -832,8 +833,9 @@ class ReportDeleteViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
@@ -865,15 +867,15 @@ class ReportDeleteViewTests(TestCase):
 
     def test_get_success_url(self):
         # Set session variables to "activate" target report object
-        self.session = self.client_auth.session
+        self.session = self.client_mgr.session
         self.session["active_report"] = {}
         self.session["active_report"]["id"] = self.delete_report.id
         self.session["active_report"]["title"] = self.delete_report.title
         self.session.save()
 
         # Send POST to delete and check if session is now cleared
-        response = self.client_auth.post(self.delete_uri)
-        self.session = self.client_auth.session
+        response = self.client_mgr.post(self.delete_uri)
+        self.session = self.client_mgr.session
         self.assertRedirects(response, self.success_uri)
         self.assertEqual(
             self.session["active_report"],
