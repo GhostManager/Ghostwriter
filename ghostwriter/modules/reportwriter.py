@@ -1678,10 +1678,9 @@ class Reportwriter:
         keyword_regex = r"\{\{\.(.*?)\}\}"
 
         # Strip out all HTML tags because we can't format text runs for XLSX
+        text = ""
         if html:
             text = BeautifulSoup(html, "lxml").text
-        else:
-            text = ""
 
         # Perform the necessary replacements
         if "{{.client}}" in text:
@@ -1706,7 +1705,6 @@ class Reportwriter:
                 if "evidence" in finding:
                     if (
                         keyword
-                        # and keyword in finding["evidence"]
                         and any(ev["friendly_name"] == keyword for ev in finding["evidence"])
                         and not keyword.startswith("ref ")
                     ):
