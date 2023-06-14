@@ -4,19 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [TBD] - 8 June 2023
+## [3.2.9] - 13 June 2023
 
-### Changed
+### Added
 
-* Applied the authorization model to all views and forms for role-based access control
-* Changed the activity log import to make it possible to select the log to update
-  * The `oplog_id` header is no longer required in the csv and will be ignored
-
-### Security
-
-* Increased the versions of several dependencies to address security vulnerabilities in these packages
-
-## [Unreleased] - 1 June 2023
+* Added CVSS and tags to the finding rows in the Excel workbook report (xlsx)
 
 ### Changed
 
@@ -25,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * The linter will now recognize the `id` value on findings as valid
+
+### Security
+
+* Added checks to escape potential formulas in Excel workbooks
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-6367-mm8f-96gr](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-6367-mm8f-96gr)
 
 ## [3.2.8] - 24 May 2023
 
