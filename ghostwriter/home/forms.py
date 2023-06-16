@@ -13,9 +13,7 @@ from ghostwriter.home.models import UserProfile
 
 
 class UserProfileForm(forms.ModelForm):
-    """
-    Upload user profile avatar for an individual :model:`home.UserProfile`.
-    """
+    """Upload user profile avatar for an individual :model:`home.UserProfile`."""
 
     class Meta:
         model = UserProfile
@@ -69,9 +67,7 @@ class UserProfileForm(forms.ModelForm):
 
 
 class SignupForm(forms.ModelForm):
-    """
-    Create a new :model:`users.User`.
-    """
+    """Create a new :model:`users.User`."""
 
     class Meta:
         model = get_user_model()

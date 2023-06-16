@@ -13,15 +13,13 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_project_access, get_project_list
+from ghostwriter.api.utils import get_project_list, verify_project_access
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.rolodex.models import Project
 
 
 class OplogForm(forms.ModelForm):
-    """
-    Save an individual :model:`oplog.Oplog`.
-    """
+    """Save an individual :model:`oplog.Oplog`."""
 
     class Meta:
         model = Oplog
@@ -34,14 +32,7 @@ class OplogForm(forms.ModelForm):
         if instance and instance.pk:
             self.fields["project"].disabled = True
 
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name for Identification"
-        self.fields["name"].label = "Name for the Log"
-        self.fields["name"].help_text = "Enter a name for this log that will help you identify it"
-
-        # Limit the list to the selected project and disable the field if this is log created for a specific project
-        self.project_instance = project
+        # Limit the list to the pre-selected project and disable the field
         if project:
             self.fields["project"].queryset = Project.objects.filter(pk=project.pk)
             self.fields["project"].disabled = True
@@ -55,6 +46,12 @@ class OplogForm(forms.ModelForm):
             else:
                 self.fields["project"].empty_label = "-- No Active Projects --"
             self.fields["project"].queryset = active_projects
+
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name for Identification"
+        self.fields["name"].label = "Name for the Log"
+        self.fields["name"].help_text = "Enter a name for this log that will help you identify it"
 
         # Design form layout with Crispy's ``FormHelper``
         self.helper = FormHelper()
@@ -75,9 +72,7 @@ class OplogForm(forms.ModelForm):
 
 
 class OplogEntryForm(forms.ModelForm):
-    """
-    Save an individual :model:`oplog.OplogEntry`.
-    """
+    """Save an individual :model:`oplog.OplogEntry`."""
 
     start_date = forms.DateTimeField(
         input_formats=["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M"],

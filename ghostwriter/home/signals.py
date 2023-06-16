@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
-    """
-    Create a new :model:`home.UserProfile` whenever a new :model:`users.User` is created.
-    """
+    """Create a new :model:`home.UserProfile` whenever a new :model:`users.User` is created."""
     if created:
         UserProfile.objects.create(user=instance)
 

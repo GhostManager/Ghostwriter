@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_project_freshness():
-    """
-    Checks all entries in :model:`rolodex.Project` for incomplete projects that are overdue.
-    """
+    """Checks all entries in :model:`rolodex.Project` for incomplete projects that are overdue."""
     slack = SlackNotification()
     project_queryset = Project.objects.filter(complete=False)
     for project in project_queryset:

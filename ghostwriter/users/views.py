@@ -68,12 +68,12 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "users/profile_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.request.user.id == self.object.id
+        user = self.get_object()
+        return self.request.user.id == user.id
 
     def handle_no_permission(self):
         if self.request.user.username:
-            messages.warning(self.request, "You do not have permission to access that")
+            messages.warning(self.request, "You do not have permission to access that.")
             return redirect("users:redirect")
         return redirect("home:dashboard")
 
@@ -88,7 +88,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Successfully updated your profile",
+            "Successfully updated your profile!",
             extra_tags="alert-success",
         )
         return reverse("users:user_detail", kwargs={"username": self.request.user.username})
@@ -118,12 +118,12 @@ class UserProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     template_name = "users/profile_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.request.user.id == self.object.user.id
+        profile = self.get_object()
+        return self.request.user.id == profile.user.id
 
     def handle_no_permission(self):
         if self.request.user.username:
-            messages.warning(self.request, "You do not have permission to access that")
+            messages.warning(self.request, "You do not have permission to access that.")
             return redirect("users:redirect")
         return redirect("home:dashboard")
 
@@ -139,7 +139,7 @@ class UserProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     def get_success_url(self):
         messages.success(
             self.request,
-            "Successfully updated your profile",
+            "Successfully updated your profile!",
             extra_tags="alert-success",
         )
         return reverse("users:user_detail", kwargs={"username": self.request.user.username})
@@ -183,7 +183,7 @@ class GhostwriterPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     def get_success_url(self):
         messages.success(
             self.request,
-            "Your password was successfully updated!",
+            "Successfully updated your password!",
             extra_tags="alert-success",
         )
         return reverse_lazy("users:user_detail", kwargs={"username": self.request.user.username})

@@ -38,9 +38,7 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def update_session(request):
-    """
-    Update the requesting user's session variable based on ``session_data`` in POST.
-    """
+    """Update the requesting user's session variable based on ``session_data`` in POST."""
     if request.method == "POST":
         req_data = request.POST.get("session_data", None)
         if req_data:
@@ -62,9 +60,7 @@ def update_session(request):
 
 @login_required
 def protected_serve(request, path, document_root=None, show_indexes=False):
-    """
-    Serve static files from ``MEDIA_ROOT`` for authenticated requests.
-    """
+    """Serve static files from ``MEDIA_ROOT`` for authenticated requests."""
     return serve(request, path, document_root, show_indexes)
 
 
@@ -148,7 +144,7 @@ class Management(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get(self, request, *args, **kwargs):
@@ -169,7 +165,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -181,7 +177,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="AWS Test",
             )
-            message = "AWS access key test has been successfully queued"
+            message = "AWS access key test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
             message = "AWS access key test could not be queued"
@@ -204,7 +200,7 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -216,10 +212,10 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Digital Ocean Test",
             )
-            message = "Digital Ocean API key test has been successfully queued"
+            message = "Digital Ocean API key test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "Digital Ocean API key test could not be queued"
+            message = "Digital Ocean API key test could not be queued."
 
         data = {
             "result": result,
@@ -239,7 +235,7 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -251,10 +247,10 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Namecheap Test",
             )
-            message = "Namecheap API test has been successfully queued"
+            message = "Namecheap API test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "Namecheap API test could not be queued"
+            message = "Namecheap API test could not be queued."
 
         data = {
             "result": result,
@@ -274,7 +270,7 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -286,10 +282,10 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Slack Test",
             )
-            message = "Slack Webhook test has been successfully queued"
+            message = "Slack Webhook test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "Slack Webhook test could not be queued"
+            message = "Slack Webhook test could not be queued."
 
         data = {
             "result": result,
@@ -309,7 +305,7 @@ class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -321,10 +317,10 @@ class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Slack Test",
             )
-            message = "VirusTotal API test has been successfully queued"
+            message = "VirusTotal API test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "VirusTotal API test could not be queued"
+            message = "VirusTotal API test could not be queued."
 
         data = {
             "result": result,

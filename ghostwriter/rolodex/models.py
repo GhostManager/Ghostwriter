@@ -15,16 +15,14 @@ from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import OplogEntry
-from ghostwriter.rolodex.validators import validate_ip_range
 from ghostwriter.reporting.models import ReportFindingLink
+from ghostwriter.rolodex.validators import validate_ip_range
 
 User = get_user_model()
 
 
 class Client(models.Model):
-    """
-    Stores an individual client.
-    """
+    """Stores an individual client."""
 
     name = models.CharField(
         "Client Name",
@@ -78,9 +76,7 @@ class Client(models.Model):
 
 
 class ClientContact(models.Model):
-    """
-    Stores an individual point of contact, related to :model:`rolodex.Client`.
-    """
+    """Stores an individual point of contact, related to :model:`rolodex.Client`."""
 
     name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
     job_title = models.CharField(
@@ -132,9 +128,7 @@ class ClientContact(models.Model):
 
 
 class ProjectType(models.Model):
-    """
-    Stores an individual project type, related to :model:`rolodex.Project`.
-    """
+    """Stores an individual project type, related to :model:`rolodex.Project`."""
 
     project_type = models.CharField(
         "Project Type",
@@ -241,9 +235,7 @@ class Project(models.Model):
 
 
 class ProjectRole(models.Model):
-    """
-    Stores an individual project role.
-    """
+    """Stores an individual project role."""
 
     project_role = models.CharField(
         "Project Role",
@@ -315,9 +307,7 @@ class ProjectAssignment(models.Model):
 
 
 class ObjectiveStatus(models.Model):
-    """
-    Stores an individual objective status.
-    """
+    """Stores an individual objective status."""
 
     objective_status = models.CharField(
         "Objective Status",
@@ -336,9 +326,7 @@ class ObjectiveStatus(models.Model):
 
 
 class ObjectivePriority(models.Model):
-    """
-    Stores an individual objective priority category.
-    """
+    """Stores an individual objective priority category."""
 
     weight = models.IntegerField(
         "Priority Weight",
@@ -508,9 +496,7 @@ class ProjectSubTask(models.Model):
 
 
 class ClientNote(models.Model):
-    """
-    Stores an individual note, related to an individual :model:`rolodex.Client` and :model:`users.User`.
-    """
+    """Stores an individual note, related to an individual :model:`rolodex.Client` and :model:`users.User`."""
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
@@ -534,9 +520,7 @@ class ClientNote(models.Model):
 
 
 class ProjectNote(models.Model):
-    """
-    Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`.
-    """
+    """Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`."""
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
@@ -560,9 +544,7 @@ class ProjectNote(models.Model):
 
 
 class ProjectScope(models.Model):
-    """
-    Stores an individual scope list, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual scope list, related to an individual :model:`rolodex.Project`."""
 
     name = models.CharField(
         "Scope Name",
@@ -617,9 +599,7 @@ class ProjectScope(models.Model):
 
 
 class ProjectTarget(models.Model):
-    """
-    Stores an individual target host, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual target host, related to an individual :model:`rolodex.Project`."""
 
     ip_address = models.CharField(
         "IP Address",
@@ -706,9 +686,7 @@ class ProjectInvite(models.Model):
 
 
 class DeconflictionStatus(models.Model):
-    """
-    Stores an individual deconfliction status.
-    """
+    """Stores an individual deconfliction status."""
 
     status = models.CharField(
         "Status",
@@ -732,9 +710,7 @@ class DeconflictionStatus(models.Model):
 
 
 class Deconfliction(models.Model):
-    """
-    Stores an individual deconfliction, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual deconfliction, related to an individual :model:`rolodex.Project`."""
 
     created_at = models.DateTimeField(
         "Timestamp",
@@ -806,9 +782,7 @@ class Deconfliction(models.Model):
 
 
 class WhiteCard(models.Model):
-    """
-    Stores an individual white card, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual white card, related to an individual :model:`rolodex.Project`."""
 
     issued = models.DateTimeField(
         "Issued",

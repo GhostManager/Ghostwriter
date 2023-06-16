@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 @database_sync_to_async
 def create_oplog_entry(oplog_id, user):
+    """Attempt to create a new log entry for the given log ID."""
     try:
         oplog = Oplog.objects.get(pk=oplog_id)
     except Oplog.DoesNotExist:
@@ -43,6 +44,7 @@ def create_oplog_entry(oplog_id, user):
 
 @database_sync_to_async
 def delete_oplog_entry(entry_id, user):
+    """Attempt to delete the log entry with the given entry ID."""
     try:
         entry = OplogEntry.objects.get(pk=entry_id)
         if verify_project_access(user, entry.oplog_id.project):
@@ -61,6 +63,7 @@ def delete_oplog_entry(entry_id, user):
 
 @database_sync_to_async
 def copy_oplog_entry(entry_id, user):
+    """Attempt to copy the log entry with the given entry ID."""
     try:
         entry = OplogEntry.objects.get(pk=entry_id)
     except OplogEntry.DoesNotExist:
@@ -84,6 +87,8 @@ def copy_oplog_entry(entry_id, user):
 
 
 class OplogEntryConsumer(AsyncWebsocketConsumer):
+    """This consumer handles WebSocket connections for :model:`oplog.OplogEntry`."""
+
     @database_sync_to_async
     def get_log_entries(self, oplog_id: int, offset: int, user: User) -> ReturnList:
         serialized_entries = []
@@ -134,7 +139,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
             await copy_oplog_entry(oplog_entry_id, user)
 
         if json_data["action"] == "create":
-            result = await create_oplog_entry(json_data["oplog_id"], self.scope["user"])
+            await create_oplog_entry(json_data["oplog_id"], self.scope["user"])
 
         if json_data["action"] == "sync":
             oplog_id = json_data["oplog_id"]

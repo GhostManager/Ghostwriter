@@ -22,12 +22,12 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
+    ForbiddenJsonResponse,
+    get_client_list,
+    get_project_list,
     verify_client_access,
     verify_project_access,
     verify_user_is_privileged,
-    get_client_list,
-    get_project_list,
-    ForbiddenJsonResponse,
 )
 from ghostwriter.modules import codenames
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
@@ -892,9 +892,7 @@ class DeconflictionDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
 
 @login_required
 def index(request):
-    """
-    Display the main homepage.
-    """
+    """Display the main homepage."""
     return HttpResponseRedirect(reverse("home:dashboard"))
 
 

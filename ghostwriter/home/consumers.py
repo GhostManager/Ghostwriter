@@ -8,9 +8,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 
 class UserConsumer(AsyncWebsocketConsumer):
-    """
-    Handle notifications related individual :model:`users.User` over WebSockets.
-    """
+    """Handle notifications related individual :model:`users.User` over WebSockets."""
 
     def __init__(self):
         super().__init__()
