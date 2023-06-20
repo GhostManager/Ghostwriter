@@ -11,7 +11,6 @@ from json import JSONDecodeError
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import redirect
@@ -781,7 +780,7 @@ class GraphqlOplogEntryDeleteEvent(HasuraEventView):
 ##################
 
 
-class ApiKeyRevoke(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ApiKeyRevoke(utils.RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Revoke an individual :model:`users.APIKey`.
     """
@@ -814,7 +813,7 @@ class ApiKeyRevoke(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, V
 ##################
 
 
-class ApiKeyCreate(LoginRequiredMixin, FormView):
+class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
     """
     Create an individual :model:`api.APIKey`.
 

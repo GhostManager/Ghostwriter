@@ -6,7 +6,6 @@ import logging
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -25,6 +24,7 @@ from tablib import Dataset
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
+    RoleBasedAccessControlMixin,
     get_client_list,
     get_logs_list,
     get_project_list,
@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 ##################
 
 
-class OplogMuteToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class OplogMuteToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Toggle the ``mute_notifications`` field of an individual :model:`oplog.Oplog`."""
 
     model = Oplog
@@ -178,7 +178,7 @@ def oplog_entries_import(request):
 ################
 
 
-class OplogListView(LoginRequiredMixin, ListView):
+class OplogListView(RoleBasedAccessControlMixin, ListView):
     """
     Display a list of :model:`oplog.Oplog`. Only show logs associated with :model:`rolodex.Project`
     to which the user has access.
@@ -197,7 +197,7 @@ class OplogListView(LoginRequiredMixin, ListView):
         return queryset
 
 
-class OplogListEntries(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`oplog.Oplog`.
 
@@ -221,7 +221,7 @@ class OplogListEntries(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return redirect("oplog:index")
 
 
-class OplogCreate(LoginRequiredMixin, CreateView):
+class OplogCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual instance of :model:`oplog.Oplog`.
 
@@ -298,7 +298,7 @@ class OplogCreate(LoginRequiredMixin, CreateView):
         return reverse("oplog:index")
 
 
-class OplogUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class OplogUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`oplog.Oplog`.
 
@@ -346,7 +346,7 @@ class AjaxTemplateMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class OplogEntryCreate(LoginRequiredMixin, UserPassesTestMixin, AjaxTemplateMixin, CreateView):
+class OplogEntryCreate(RoleBasedAccessControlMixin, AjaxTemplateMixin, CreateView):
     """
     Create an individual :model:`oplog.OplogEntry`.
 
@@ -371,7 +371,7 @@ class OplogEntryCreate(LoginRequiredMixin, UserPassesTestMixin, AjaxTemplateMixi
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
 
 
-class OplogEntryUpdate(LoginRequiredMixin, UserPassesTestMixin, AjaxTemplateMixin, UpdateView):
+class OplogEntryUpdate(RoleBasedAccessControlMixin, AjaxTemplateMixin, UpdateView):
     """
     Update an individual :model:`oplog.OplogEntry`.
 
@@ -396,7 +396,7 @@ class OplogEntryUpdate(LoginRequiredMixin, UserPassesTestMixin, AjaxTemplateMixi
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
 
 
-class OplogEntryDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class OplogEntryDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual :model:`oplog.OplogEntry`.
     """

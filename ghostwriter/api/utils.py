@@ -5,12 +5,16 @@ from datetime import datetime
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import AccessMixin
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
+from django.contrib.auth.views import redirect_to_login
 from django.http import JsonResponse
+from django.shortcuts import resolve_url
 
 # 3rd Party Libraries
 import jwt
+from urllib.parse import urlparse
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import Oplog
@@ -450,3 +454,53 @@ class ForbiddenJsonResponse(JsonResponse):
         if data is None:
             data = {"result": "error", "message": "Ah ah ah! You didn't say the magic word!"}
         super().__init__(data, encoder, safe, json_dumps_params, **kwargs)
+
+
+class RoleBasedAccessControlMixin(AccessMixin):
+    """
+    Verify the current user is authenticated. If authenticated, deny a request with a permission error if the
+    ``test_func()`` method returns ``False``.
+
+    This class uses the same logic as Django's built-in ``LoginRequiredMixin`` and ``UserPassesTestMixin`` classes.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        # Test for authentication
+        if not request.user.is_authenticated:
+            return self.handle_not_authenticated()
+
+        # Check the permissions
+        user_test_result = self.get_test_func()()
+        if not user_test_result:
+            return self.handle_no_permission()
+
+        # Continue with the request
+        return super().dispatch(request, *args, **kwargs)
+
+    def handle_not_authenticated(self):
+        if self.raise_exception or self.request.user.is_authenticated:
+            raise PermissionDenied(self.get_permission_denied_message())
+        path = self.request.build_absolute_uri()
+        resolved_login_url = resolve_url(self.get_login_url())
+        # If the login url is the same scheme and net location then use the path as the "next" url
+        login_scheme, login_netloc = urlparse(resolved_login_url)[:2]
+        current_scheme, current_netloc = urlparse(path)[:2]
+        if (
+            (not login_scheme or login_scheme == current_scheme) and
+            (not login_netloc or login_netloc == current_netloc)
+        ):
+            path = self.request.get_full_path()
+        return redirect_to_login(
+            path,
+            resolved_login_url,
+            self.get_redirect_field_name(),
+        )
+
+    def test_func(self):
+        """Override this method to use a different ``test_func`` method."""
+        return self.request.user.is_active
+
+    def get_test_func(self):
+        """Override this method to use a different ``test_func`` method."""
+        return self.test_func
+

@@ -8,7 +8,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
@@ -20,7 +19,7 @@ from django_q.models import Task
 from django_q.tasks import async_task
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_user_is_privileged
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, verify_user_is_privileged
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -64,7 +63,7 @@ def protected_serve(request, path, document_root=None, show_indexes=False):
     return serve(request, path, document_root, show_indexes)
 
 
-class Dashboard(LoginRequiredMixin, View):
+class Dashboard(RoleBasedAccessControlMixin, View):
     """
     Display the home page.
 
@@ -126,7 +125,7 @@ class Dashboard(LoginRequiredMixin, View):
         return render(request, "index.html", context=context)
 
 
-class Management(LoginRequiredMixin, UserPassesTestMixin, View):
+class Management(RoleBasedAccessControlMixin, View):
     """
     Display the current Ghostwriter settings.
 
@@ -154,7 +153,7 @@ class Management(LoginRequiredMixin, UserPassesTestMixin, View):
         return render(request, "home/management.html", context=context)
 
 
-class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestAWSConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``AWS Test`` with
     :task:`shepherd.tasks.test_aws_keys` to test AWS keys in
@@ -189,7 +188,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestDOConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Digital Ocean Test`` with
     :task:`shepherd.tasks.test_digital_ocean` to test the Digital Ocean API key stored in
@@ -224,7 +223,7 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestNamecheapConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Namecheap Test`` with
     :task:`shepherd.tasks.test_namecheap` to test the Namecheap API configuration stored
@@ -259,7 +258,7 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestSlackConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Slack Test`` with
     :task:`shepherd.tasks.test_slack_webhook` to test the Slack Webhook configuration
@@ -294,7 +293,7 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestVirusTotalConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``VirusTotal Test`` with
     :task:`shepherd.tasks.test_virustotal` to test the VirusTotal API key stored in

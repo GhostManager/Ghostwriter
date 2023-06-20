@@ -1566,13 +1566,13 @@ class ReportTemplateDetailViewTests(TestCase):
     def test_view_for_protected_template(self):
         response = self.client_auth.get(self.uri)
         self.assertInHTML(
-            '<div class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it</div>',
+            '<div class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it.</div>',
             response.content.decode(),
         )
 
         response = self.client_admin.get(self.uri)
         self.assertInHTML(
-            '<div class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template</div>',
+            '<div class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template.</div>',
             response.content.decode(),
         )
 

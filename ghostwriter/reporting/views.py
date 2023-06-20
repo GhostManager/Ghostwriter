@@ -17,11 +17,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import (
-    LoginRequiredMixin,
-    PermissionRequiredMixin,
-    UserPassesTestMixin,
-)
 from django.core.exceptions import PermissionDenied
 from django.core.files import File
 from django.core.files.base import ContentFile
@@ -56,6 +51,7 @@ from ghostwriter.api.utils import (
     verify_finding_access,
     verify_project_access,
     verify_user_is_privileged,
+    RoleBasedAccessControlMixin,
 )
 from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
 from ghostwriter.modules import reportwriter
@@ -217,7 +213,7 @@ def ajax_update_report_findings(request):
     return JsonResponse(data)
 
 
-class UpdateTemplateLintResults(LoginRequiredMixin, SingleObjectMixin, View):
+class UpdateTemplateLintResults(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Return an updated version of the template following a request to update linter results
     for an individual :model:`reporting.ReportTemplate`.
@@ -238,7 +234,7 @@ class UpdateTemplateLintResults(LoginRequiredMixin, SingleObjectMixin, View):
         return HttpResponse(html)
 
 
-class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
+class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Copy an individual :model:`reporting.Finding` to create a new
     :model:`reporting.ReportFindingLink` connected to the user's active
@@ -290,7 +286,7 @@ class AssignFinding(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class LocalFindingNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`reporting.LocalFindingNote`."""
 
     model = LocalFindingNote
@@ -300,8 +296,6 @@ class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
         return note.operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -318,7 +312,7 @@ class LocalFindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
         return JsonResponse(data)
 
 
-class FindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class FindingNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`reporting.FindingNote`."""
 
     model = FindingNote
@@ -328,8 +322,6 @@ class FindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return note.operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -346,7 +338,7 @@ class FindingNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return JsonResponse(data)
 
 
-class ReportFindingLinkDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ReportFindingLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`reporting.ReportFindingLink`."""
 
     model = ReportFindingLink
@@ -355,8 +347,6 @@ class ReportFindingLinkDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesT
         return verify_project_access(self.request.user, self.get_object().report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
@@ -376,7 +366,7 @@ class ReportFindingLinkDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesT
         return JsonResponse(data)
 
 
-class ReportActivate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Set an individual :model:`reporting.Report` as active for the current user session."""
 
     model = Report
@@ -385,8 +375,6 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin,
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
@@ -416,7 +404,7 @@ class ReportActivate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin,
         return JsonResponse(data)
 
 
-class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ReportStatusToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Toggle the ``complete`` field of an individual :model:`rolodex.Report`."""
 
     model = Report
@@ -425,8 +413,6 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
@@ -464,7 +450,7 @@ class ReportStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return JsonResponse(data)
 
 
-class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ReportDeliveryToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Toggle the ``delivered`` field of an individual :model:`rolodex.Report`."""
 
     model = Report
@@ -473,8 +459,6 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTest
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
@@ -515,7 +499,7 @@ class ReportDeliveryToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTest
         return JsonResponse(data)
 
 
-class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ReportFindingStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Update the ``complete`` field of an individual :model:`reporting.ReportFindingLink`."""
 
     model = ReportFindingLink
@@ -524,8 +508,6 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, UserPasse
         return verify_project_access(self.request.user, self.get_object().report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
@@ -575,7 +557,7 @@ class ReportFindingStatusUpdate(LoginRequiredMixin, SingleObjectMixin, UserPasse
         return JsonResponse(data)
 
 
-class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Update the ``template`` value for an individual :model:`reporting.Report`."""
 
     model = Report
@@ -584,8 +566,6 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def post(self, *args, **kwargs):
@@ -724,7 +704,7 @@ class ReportTemplateSwap(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return JsonResponse(data)
 
 
-class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
+class ReportTemplateLint(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Check an individual :model:`reporting.ReportTemplate` for Jinja2 syntax errors
     and undefined variables.
@@ -760,7 +740,7 @@ class ReportTemplateLint(LoginRequiredMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
-class ReportClone(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Create an identical copy of an individual :model:`reporting.Report`."""
 
     model = Report
@@ -769,8 +749,6 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, Vi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def get(self, *args, **kwargs):
@@ -836,7 +814,7 @@ class ReportClone(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, Vi
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report_pk}))
 
 
-class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Create a blank :model:`reporting.ReportFindingLink` entry linked to an individual
     :model:`reporting.Report`.
@@ -848,8 +826,6 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         return ForbiddenJsonResponse()
 
     def __init__(self):
@@ -897,7 +873,7 @@ class AssignBlankFinding(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)))
 
 
-class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Create a copy of an individual :model:`reporting.ReportFindingLink` and prepare
     it to be saved as a new :model:`reporting.Finding`.
@@ -916,8 +892,6 @@ class ConvertFinding(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin,
         return False
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have the necessary permission to create new findings.")
         return redirect(reverse("reporting:report_detail", kwargs={"pk": self.get_object().report.pk}))
 
@@ -1080,7 +1054,7 @@ def export_findings_to_csv(request):
 # CBVs related to :model:`reporting.Finding`
 
 
-class FindingDetailView(LoginRequiredMixin, DetailView):
+class FindingDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`reporting.Finding`.
 
@@ -1092,7 +1066,7 @@ class FindingDetailView(LoginRequiredMixin, DetailView):
     model = Finding
 
 
-class FindingCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class FindingCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual instance of :model:`reporting.Finding`.
 
@@ -1113,8 +1087,6 @@ class FindingCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return verify_finding_access(self.request.user, "create")
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have the necessary permission to create new findings.")
         return redirect("reporting:findings")
 
@@ -1132,7 +1104,7 @@ class FindingCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
 
 
-class FindingUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class FindingUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.Finding`.
 
@@ -1153,8 +1125,6 @@ class FindingUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return verify_finding_access(self.request.user, "edit")
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have the necessary permission to edit findings.")
         return redirect(reverse("reporting:finding_detail", kwargs={"pk": self.get_object().pk}))
 
@@ -1172,7 +1142,7 @@ class FindingUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return reverse("reporting:finding_detail", kwargs={"pk": self.object.pk})
 
 
-class FindingDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class FindingDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual instance of :model:`reporting.Finding`.
 
@@ -1197,8 +1167,6 @@ class FindingDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return verify_finding_access(self.request.user, "delete")
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have the necessary permission to delete findings.")
         return redirect(reverse("reporting:finding_detail", kwargs={"pk": self.get_object().pk}))
 
@@ -1222,7 +1190,7 @@ class FindingDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 # CBVs related to :model:`reporting.Report`
 
 
-class ArchiveView(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Generate all report types for an individual :model:`reporting.Report`, collect all
     related :model:`reporting.Evidence` and related files, and compress the files into a
@@ -1235,8 +1203,6 @@ class ArchiveView(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, Vi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -1333,7 +1299,7 @@ class ArchiveView(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, Vi
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report_instance.id}))
 
 
-class ArchiveDownloadView(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ArchiveDownloadView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Return the target :model:`reporting.Report` archive file for download."""
 
     model = Archive
@@ -1342,8 +1308,6 @@ class ArchiveDownloadView(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -1358,7 +1322,7 @@ class ArchiveDownloadView(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         raise Http404
 
 
-class ReportDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`reporting.Report`.
 
@@ -1373,8 +1337,6 @@ class ReportDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("reporting:reports")
 
@@ -1399,7 +1361,7 @@ class ReportDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return ctx
 
 
-class ReportCreate(LoginRequiredMixin, CreateView):
+class ReportCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual instance of :model:`reporting.Report`.
 
@@ -1484,7 +1446,7 @@ class ReportCreate(LoginRequiredMixin, CreateView):
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
 
 
-class ReportUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.Report`.
 
@@ -1505,8 +1467,6 @@ class ReportUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("reporting:reports")
 
@@ -1533,7 +1493,7 @@ class ReportUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return reverse("reporting:report_detail", kwargs={"pk": self.object.pk})
 
 
-class ReportDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual instance of :model:`reporting.Report`.
 
@@ -1558,8 +1518,6 @@ class ReportDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("reporting:reports")
 
@@ -1586,7 +1544,7 @@ class ReportDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return ctx
 
 
-class ReportTemplateListView(LoginRequiredMixin, generic.ListView):
+class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
     """
     Display a list of all :model:`reporting.ReportTemplate`.
 
@@ -1599,7 +1557,7 @@ class ReportTemplateListView(LoginRequiredMixin, generic.ListView):
     template_name = "reporting/report_templates_list.html"
 
 
-class ReportTemplateDetailView(LoginRequiredMixin, DetailView):
+class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`reporting.ReportTemplate`.
 
@@ -1612,7 +1570,7 @@ class ReportTemplateDetailView(LoginRequiredMixin, DetailView):
     template_name = "reporting/report_template_detail.html"
 
 
-class ReportTemplateCreate(LoginRequiredMixin, CreateView):
+class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual instance of :model:`reporting.ReportTemplate`.
 
@@ -1656,7 +1614,7 @@ class ReportTemplateCreate(LoginRequiredMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
+class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Save an individual instance of :model:`reporting.ReportTemplate`.
 
@@ -1673,19 +1631,16 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
     model = ReportTemplate
     form_class = ReportTemplateForm
     template_name = "reporting/report_template_form.html"
-    permission_denied_message = "Only an admin can edit this template."
 
-    def has_permission(self):
+    def test_func(self):
         obj = self.get_object()
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
         return self.request.user.is_active
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         obj = self.get_object()
-        messages.error(self.request, "That template is protected – only an admin can edit it")
+        messages.error(self.request, "That template is protected – only an admin can edit it.")
         return HttpResponseRedirect(
             reverse(
                 "reporting:template_detail",
@@ -1714,7 +1669,7 @@ class ReportTemplateUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateVi
         return HttpResponseRedirect(self.get_success_url())
 
 
-class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
+class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual instance of :model:`reporting.ReportTemplate`.
 
@@ -1734,17 +1689,14 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
 
     model = ReportTemplate
     template_name = "confirm_delete.html"
-    permission_denied_message = "Only an admin can delete this template."
 
-    def has_permission(self):
+    def test_func(self):
         obj = self.get_object()
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
         return self.request.user.is_active
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         obj = self.get_object()
         messages.error(self.request, "That template is protected – only an admin can edit it.")
         return HttpResponseRedirect(
@@ -1774,7 +1726,7 @@ class ReportTemplateDelete(LoginRequiredMixin, PermissionRequiredMixin, DeleteVi
         return ctx
 
 
-class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
+class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Return the target :model:`reporting.ReportTemplate` template file for download."""
 
     model = ReportTemplate
@@ -1791,7 +1743,7 @@ class ReportTemplateDownload(LoginRequiredMixin, SingleObjectMixin, View):
         raise Http404
 
 
-class GenerateReportJSON(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Generate a JSON report for an individual :model:`reporting.Report`."""
 
     model = Report
@@ -1800,8 +1752,6 @@ class GenerateReportJSON(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -1821,7 +1771,7 @@ class GenerateReportJSON(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return HttpResponse(json_report, "application/json")
 
 
-class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Generate a DOCX report for an individual :model:`reporting.Report`."""
 
     model = Report
@@ -1830,8 +1780,6 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -1973,7 +1921,7 @@ class GenerateReportDOCX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
 
 
-class GenerateReportXLSX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Generate an XLSX report for an individual :model:`reporting.Report`."""
 
     model = Report
@@ -1982,8 +1930,6 @@ class GenerateReportXLSX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2027,7 +1973,7 @@ class GenerateReportXLSX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
 
 
-class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Generate a PPTX report for an individual :model:`reporting.Report`."""
 
     model = Report
@@ -2036,8 +1982,6 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2160,7 +2104,7 @@ class GenerateReportPPTX(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
 
 
-class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Generate all report types for an individual :model:`reporting.Report`."""
 
     model = Report
@@ -2169,8 +2113,6 @@ class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return verify_project_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2262,7 +2204,7 @@ class GenerateReportAll(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
 # CBVs related to :model:`reporting.ReportFindingLink`
 
 
-class ReportFindingLinkUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.ReportFindingLink`.
 
@@ -2285,8 +2227,6 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateVie
         return verify_project_access(self.request.user, self.get_object().report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2378,7 +2318,7 @@ class ReportFindingLinkUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateVie
 # CBVs related to :model:`reporting.Evidence`
 
 
-class EvidenceDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual instance of :model:`reporting.Evidence`.
 
@@ -2393,8 +2333,6 @@ class EvidenceDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return verify_project_access(self.request.user, self.get_object().finding.report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2434,7 +2372,7 @@ class EvidenceDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return ctx
 
 
-class EvidenceCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`reporting.Evidence` entry linked to an individual
     :model:`reporting.ReportFindingLink`.
@@ -2451,8 +2389,6 @@ class EvidenceCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return verify_project_access(self.request.user, self.finding_instance.report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2516,7 +2452,7 @@ class EvidenceCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return reverse("reporting:report_detail", args=(self.object.finding.report.pk,))
 
 
-class EvidenceUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.Evidence`.
 
@@ -2537,8 +2473,6 @@ class EvidenceUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return verify_project_access(self.request.user, self.get_object().finding.report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2565,7 +2499,7 @@ class EvidenceUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return reverse("reporting:evidence_detail", kwargs={"pk": self.object.pk})
 
 
-class EvidenceDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual instance of :model:`reporting.Evidence`.
 
@@ -2590,8 +2524,6 @@ class EvidenceDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return verify_project_access(self.request.user, self.get_object().finding.report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2618,7 +2550,7 @@ class EvidenceDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 # CBVs related to :model:`reporting.Finding`
 
 
-class FindingNoteCreate(LoginRequiredMixin, CreateView):
+class FindingNoteCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual instance of :model:`reporting.FindingNote`.
 
@@ -2658,7 +2590,7 @@ class FindingNoteCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class FindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class FindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.FindingNote`.
 
@@ -2680,8 +2612,6 @@ class FindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return self.get_object().operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2698,7 +2628,7 @@ class FindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 # CBVs related to :model:`reporting.LocalFindingNote`
 
 
-class LocalFindingNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class LocalFindingNoteCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual instance of :model:`reporting.LocalFindingNote`.
 
@@ -2724,8 +2654,6 @@ class LocalFindingNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView
         return verify_project_access(self.request.user, self.finding_instance.report.project)
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
@@ -2750,7 +2678,7 @@ class LocalFindingNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView
         return super().form_valid(form)
 
 
-class LocalFindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class LocalFindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual instance of :model:`reporting.LocalFindingNote`.
 
@@ -2772,8 +2700,6 @@ class LocalFindingNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView
         return self.get_object().operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        if not self.request.user.is_authenticated:
-            return super().handle_no_permission()
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 

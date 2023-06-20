@@ -199,7 +199,7 @@ class ProjectObjectiveStatusUpdateViewTests(TestCase):
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 403)
@@ -253,7 +253,7 @@ class ProjectObjectiveToggleViewTests(TestCase):
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 403)
@@ -312,7 +312,7 @@ class ProjectStatusToggleViewTests(TestCase):
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 403)
@@ -346,7 +346,7 @@ class ProjectScopeExportViewTests(TestCase):
 
     def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 403)

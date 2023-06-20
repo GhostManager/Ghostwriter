@@ -388,7 +388,7 @@ class OplogMuteToggleViewTests(TestCase):
 
     def test_view_requires_login(self):
         response = self.client.post(self.uri)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
 
     def test_view_permissions(self):
         response = self.client_auth.post(self.uri)

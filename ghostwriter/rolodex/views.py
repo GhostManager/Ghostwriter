@@ -9,7 +9,6 @@ import logging
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -23,6 +22,7 @@ from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
+    RoleBasedAccessControlMixin,
     get_client_list,
     get_project_list,
     verify_client_access,
@@ -202,7 +202,7 @@ def ajax_update_project_objectives(request):
     return JsonResponse(data)
 
 
-class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Update the ``status`` field of an individual :model:`rolodex.ProjectObjective`."""
 
     model = ProjectObjective
@@ -265,7 +265,7 @@ class ProjectObjectiveStatusUpdate(LoginRequiredMixin, SingleObjectMixin, UserPa
         return JsonResponse(data)
 
 
-class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectStatusToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Toggle the ``complete`` field of an individual :model:`rolodex.Project`."""
 
     model = Project
@@ -311,7 +311,7 @@ class ProjectStatusToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return JsonResponse(data)
 
 
-class ProjectObjectiveDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectObjectiveDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`rolodex.ProjectObjective`."""
 
     model = ProjectObjective
@@ -336,7 +336,7 @@ class ProjectObjectiveDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
         return JsonResponse(data)
 
 
-class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectAssignmentDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`rolodex.ProjectAssignment`."""
 
     model = ProjectAssignment
@@ -361,7 +361,7 @@ class ProjectAssignmentDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesT
         return JsonResponse(data)
 
 
-class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`rolodex.ProjectNote`."""
 
     model = ProjectNote
@@ -388,7 +388,7 @@ class ProjectNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return JsonResponse(data)
 
 
-class ClientNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ClientNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`rolodex.ClientNote`."""
 
     model = ClientNote
@@ -415,7 +415,7 @@ class ClientNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixi
         return JsonResponse(data)
 
 
-class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ClientContactDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`rolodex.ClientContact`."""
 
     model = ClientContact
@@ -440,7 +440,7 @@ class ClientContactDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return JsonResponse(data)
 
 
-class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectTargetDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Delete an individual :model:`rolodex.ProjectTarget`."""
 
     model = ProjectTarget
@@ -465,7 +465,7 @@ class ProjectTargetDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return JsonResponse(data)
 
 
-class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectTargetToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Toggle the ``compromised`` field of an individual :model:`rolodex.ProjectTarget`."""
 
     model = ProjectTarget
@@ -509,7 +509,7 @@ class ProjectTargetToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestM
         return JsonResponse(data)
 
 
-class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectScopeDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Delete an individual :model:`rolodex.ProjectScope`.
     """
@@ -536,7 +536,7 @@ class ProjectScopeDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return JsonResponse(data)
 
 
-class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectTaskCreate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Create a new :model:`rolodex.ProjectSubTask` for an individual :model:`ProjectObjective`.
     """
@@ -598,7 +598,7 @@ class ProjectTaskCreate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return JsonResponse(data)
 
 
-class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectTaskToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Toggle the ``complete`` field of an individual :model:`rolodex.ProjectSubTask`.
     """
@@ -646,7 +646,7 @@ class ProjectTaskToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return JsonResponse(data)
 
 
-class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectObjectiveToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Toggle the ``complete`` field of an individual :model:`rolodex.ProjectObjective`.
     """
@@ -694,7 +694,7 @@ class ProjectObjectiveToggle(LoginRequiredMixin, SingleObjectMixin, UserPassesTe
         return JsonResponse(data)
 
 
-class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectTaskDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Delete an individual :model:`rolodex.ProjectSubTask`.
     """
@@ -721,7 +721,7 @@ class ProjectTaskDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return JsonResponse(data)
 
 
-class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectTaskUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Update an individual :model:`rolodex.ProjectSubTask`.
     """
@@ -780,7 +780,7 @@ class ProjectTaskUpdate(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMix
         return JsonResponse(data)
 
 
-class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectTaskRefresh(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Return an updated version of the template following an update or delete action related
     to an individual :model:`rolodex.ProjectSubTask.
@@ -808,7 +808,7 @@ class ProjectTaskRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return HttpResponse(html)
 
 
-class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectObjectiveRefresh(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Return an updated version of the template following an update action related
     to an individual :model:`rolodex.ProjectObjective`.
@@ -836,7 +836,7 @@ class ProjectObjectiveRefresh(LoginRequiredMixin, SingleObjectMixin, UserPassesT
         return HttpResponse(html)
 
 
-class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ProjectScopeExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Export scope list from an individual :model:`rolodex.ProjectScope` as a file."""
 
     model = ProjectScope
@@ -857,7 +857,7 @@ class ProjectScopeExport(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMi
         return response
 
 
-class DeconflictionDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class DeconflictionDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Delete an individual :model:`rolodex.Deconfliction`.
     """
@@ -964,7 +964,7 @@ def project_list(request):
 # CBVs related to :model:`rolodex.Client`
 
 
-class ClientDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`rolodex.Client`.
 
@@ -1014,7 +1014,7 @@ class ClientDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return ctx
 
 
-class ClientCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class ClientCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`rolodex.Client`.
 
@@ -1105,7 +1105,7 @@ class ClientCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         }
 
 
-class ClientUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`rolodex.Client`.
 
@@ -1179,7 +1179,7 @@ class ClientUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return super().form_invalid(form)
 
 
-class ClientDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class ClientDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual :model:`rolodex.Client`.
 
@@ -1217,7 +1217,7 @@ class ClientDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return ctx
 
 
-class ClientNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class ClientNoteCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`rolodex.ClientNote`.
 
@@ -1272,7 +1272,7 @@ class ClientNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return super().form_valid(form)
 
 
-class ClientNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ClientNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`rolodex.ClientNote`.
 
@@ -1314,7 +1314,7 @@ class ClientNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 # CBVs related to :model:`rolodex.Project`
 
 
-class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`rolodex.Project`.
 
@@ -1333,7 +1333,7 @@ class ProjectDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return redirect("home:dashboard")
 
 
-class ProjectCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`rolodex.Project` with zero or more
     :model:`rolodex.ProjectAssignment` and :model:`rolodex.ProjectObjective`.
@@ -1496,7 +1496,7 @@ class ProjectCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         }
 
 
-class ProjectUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`rolodex.Project`.
 
@@ -1613,7 +1613,7 @@ class ProjectUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return super().form_invalid(form)
 
 
-class ProjectDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class ProjectDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual :model:`rolodex.Project`.
 
@@ -1653,7 +1653,7 @@ class ProjectDelete(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return "{}#history".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
 
 
-class ProjectNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class ProjectNoteCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`rolodex.ProjectNote`.
 
@@ -1708,7 +1708,7 @@ class ProjectNoteCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return super().form_valid(form)
 
 
-class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ProjectNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`rolodex.ProjectNote`.
 
@@ -1747,7 +1747,7 @@ class ProjectNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return ctx
 
 
-class DeconflictionCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class DeconflictionCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`rolodex.Deconfliction`.
 
@@ -1801,7 +1801,7 @@ class DeconflictionCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return ctx
 
 
-class DeconflictionUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`rolodex.Deconfliction`.
 
