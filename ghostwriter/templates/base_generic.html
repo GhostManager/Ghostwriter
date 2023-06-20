@@ -403,6 +403,20 @@
 
 {% comment %} Scripts included on ALL pages {% endcomment %}
 <script>
+  {% comment %} Handle AJAX errors {% endcomment %}
+  (function($){
+    $(document).on('ajaxError', function(event, xhr) {
+      if (xhr.status === 401 || xhr.status === 403) {
+        if (xhr.hasOwnProperty('responseJSON')) {
+          let errorData = xhr.responseJSON;
+          if (errorData['message']) {
+            displayToastTop({type:errorData['result'], string:errorData['message'], title:'Error'});
+          }
+        }
+      }
+    });
+  })(jQuery);
+
   {% comment %} Scroll button handling {% endcomment %}
   let scrollButton = $('#scroll-button');
 
