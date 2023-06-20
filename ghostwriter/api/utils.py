@@ -14,6 +14,7 @@ import jwt
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import Oplog
+from ghostwriter.reporting.models import Archive, Report
 from ghostwriter.rolodex.models import (
     Client,
     ClientInvite,
@@ -223,8 +224,8 @@ def verify_user_is_privileged(user):
         The :model:`users.User` object
     """
     if user.role in (
-        "manager",
         "admin",
+        "manager",
     ):
         return True
     return user.is_staff
@@ -241,11 +242,8 @@ def verify_project_access(user, project):
     ``project``
         The :model:`rolodex.Project` object
     """
-    logger.info("Testing user %s with %s role for access to project %s", user, user.role, project.id)
-    if user.role == "admin":
-        return True
-
-    if user.role == "manager":
+    logger.info("Verifying project access for %s with %s role", user, user.role)
+    if user.role in ("admin", "manager") or user.is_staff:
         return True
 
     assignments = ProjectAssignment.objects.filter(operator=user, project=project)
@@ -267,11 +265,7 @@ def verify_client_access(user, client):
     ``client``
         The :model:`rolodex.Client` object
     """
-    logger.info("Testing user %s with %s role for access to client %s", user, user.role, client.id)
-    if user.role == "admin":
-        return True
-
-    if user.role == "manager":
+    if user.role in ("admin", "manager") or user.is_staff:
         return True
 
     assignments = ProjectAssignment.objects.filter(operator=user, project__client=client)
@@ -279,6 +273,33 @@ def verify_client_access(user, client):
     project_invites = ProjectInvite.objects.filter(user=user, project__client=client)
     if any([assignments, client_invites, project_invites]):
         return True
+    return False
+
+
+def verify_finding_access(user, mode):
+    """
+    Verify that the user is flagged as being able to create and/or edit findings in the global library.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+
+    ``mode``
+        The mode to check for. Valid values are ``create`` and ``edit``.
+    """
+    if user.role in ("admin", "manager") or user.is_staff:
+        return True
+
+    if mode == "create" and user.enable_finding_create:
+        return True
+
+    elif mode == "edit" and user.enable_finding_edit:
+        return True
+
+    elif mode == "delete" and user.enable_finding_delete:
+        return True
+
     return False
 
 
@@ -360,6 +381,62 @@ def get_logs_list(user):
             .distinct()
         )
     return logs
+
+
+def get_reports_list(user):
+    """
+    Retrieve a filtered list of :model:`reporting.Report` entries based on the user's role.
+
+    Privileged users will receive all reports. Non-privileged users will receive only those reports to which they
+    have access.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        reports = Report.objects.select_related("created_by").all().order_by("complete", "title")
+    else:
+        reports = (
+            Report.objects.select_related("created_by")
+            .filter(
+                Q(project__projectinvite__user=user)
+                | Q(project__client__clientinvite__user=user)
+                | Q(project__projectassignment__operator=user)
+            )
+            .order_by("complete", "title")
+            .distinct()
+        )
+    return reports
+
+
+def get_archives_list(user):
+    """
+    Retrieve a filtered list of :model:`reporting.Archive` entries based on the user's role.
+
+    Privileged users will receive all archives. Non-privileged users will receive only those archives to which they
+    have access.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        archives = Archive.objects.select_related("project__client").all().order_by("project__client")
+    else:
+        archives = (
+            Archive.objects.select_related("project__client")
+            .filter(
+                Q(project__projectinvite__user=user)
+                | Q(project__client__clientinvite__user=user)
+                | Q(project__projectassignment__operator=user)
+            )
+            .order_by("project__client")
+            .distinct()
+        )
+    return archives
 
 
 class ForbiddenJsonResponse(JsonResponse):
