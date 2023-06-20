@@ -43,9 +43,9 @@
     {% if reporttemplate.protected %}
         <div
             {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
-                class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template
+                class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template.
             {% else %}
-                class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it
+                class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it.
             {% endif %}
         </div>
     {% endif %}
