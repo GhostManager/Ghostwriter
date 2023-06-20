@@ -2,7 +2,7 @@
 
 # Django Imports
 from django.contrib.auth.models import AbstractUser
-from django.db.models import CharField
+from django.db.models import BooleanField, CharField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
@@ -47,14 +47,27 @@ class User(AbstractUser):
         default="user",
         help_text="Role used for role-based access controls. Most users should be `user`. Users who need broader access to projects for oversight should be `manager`. See documentation for more details.",
     )
+    enable_finding_create = BooleanField(
+        default=False,
+        help_text="Allow the user to create new findings in the library (only applies to account with the User role)",
+        verbose_name="Allow Finding Creation",
+    )
+    enable_finding_edit = BooleanField(
+        default=False,
+        help_text="Allow the user to edit findings in the library (only applies to accounts with the User role)",
+        verbose_name="Allow Finding Editing",
+    )
+    enable_finding_delete = BooleanField(
+        default=False,
+        help_text="Allow the user to delete findings in the library (only applies to accounts with the User role)",
+        verbose_name="Allow Finding Deleting",
+    )
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})
 
     def get_display_name(self):
-        """
-        Return a display name appropriate for dropdown menus.
-        """
+        """Return a display name appropriate for dropdown menus."""
         if self.name:
             display_name = "{full_name} ({username})".format(full_name=self.name, username=self.username)
         else:

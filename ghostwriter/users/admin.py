@@ -29,6 +29,9 @@ class UserAdmin(auth_admin.UserAdmin):
         "is_active",
         "is_staff",
         "is_superuser",
+        "enable_finding_create",
+        "enable_finding_edit",
+        "enable_finding_delete",
         "last_login",
     )
     list_filter = (
@@ -52,6 +55,16 @@ class UserAdmin(auth_admin.UserAdmin):
                 ),
             },
         ),
+        (
+            _("Permission Augmentation"),
+            {
+                "fields": (
+                    "enable_finding_create",
+                    "enable_finding_edit",
+                    "enable_finding_delete",
+                ),
+            },
+        ),
         (_("Important Dates"), {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
@@ -64,7 +77,12 @@ class UserAdmin(auth_admin.UserAdmin):
         ),
     )
     search_fields = ("username", "name", "email")
-    list_editable = ("is_active",)
+    list_editable = (
+        "is_active",
+        "enable_finding_create",
+        "enable_finding_edit",
+        "enable_finding_delete",
+    )
     list_display_links = ("name", "username", "email")
     inlines = (AdminProfileInline,)
 
