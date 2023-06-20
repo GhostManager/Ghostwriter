@@ -24,6 +24,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import get_project_list, verify_project_access
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (
@@ -40,9 +41,7 @@ from ghostwriter.rolodex.models import Project
 
 
 class FindingForm(forms.ModelForm):
-    """
-    Save an individual :model:`reporting.Finding`.
-    """
+    """Save an individual :model:`reporting.Finding`."""
 
     class Meta:
         model = Finding
@@ -254,19 +253,34 @@ class ReportForm(forms.ModelForm):
         model = Report
         exclude = ("creation", "last_update", "created_by", "complete")
 
-    def __init__(self, project=None, *args, **kwargs):
+    def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.project_instance = project
-        # Limit the list to just projects not marked as complete
-        active_projects = Project.objects.filter(complete=False).order_by("-start_date", "client", "project_type")
-        if active_projects:
-            self.fields["project"].empty_label = "-- Select an Active Project --"
-        else:
-            self.fields["project"].empty_label = "-- No Active Projects --"
-        self.fields["project"].queryset = active_projects
-        self.fields[
-            "project"
-        ].label_from_instance = lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
+        # If this is an update, mark the project field as read-only
+        instance = getattr(self, "instance", None)
+        if instance and instance.pk:
+            self.fields["project"].disabled = True
+
+        # Limit the list to the pre-selected project and disable the field
+        if project:
+            self.fields["project"].queryset = Project.objects.filter(pk=project.pk)
+            self.fields["project"].disabled = True
+
+        if not project:
+            projects = get_project_list(user)
+            active_projects = projects.filter(complete=False).order_by("-start_date", "client", "project_type")
+            if active_projects:
+                self.fields["project"].empty_label = "-- Select an Active Project --"
+            else:
+                self.fields["project"].empty_label = "-- No Active Projects --"
+            self.fields["project"].queryset = active_projects
+            self.fields[
+                "project"
+            ].label_from_instance = (
+                lambda obj: f"{obj.start_date} {obj.client.name} {obj.project_type} ({obj.codename})"
+            )
+
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
         self.fields["docx_template"].label = "DOCX Template"
         self.fields["pptx_template"].label = "PPTX Template"
         self.fields["docx_template"].required = False
@@ -742,9 +756,7 @@ class LocalFindingNoteForm(forms.ModelForm):
 
 
 class ReportTemplateForm(forms.ModelForm):
-    """
-    Save an individual :model:`reporting.ReportTemplate`.
-    """
+    """Save an individual :model:`reporting.ReportTemplate`."""
 
     class Meta:
         model = ReportTemplate
@@ -945,9 +957,7 @@ class SelectReportTemplateForm(forms.ModelForm):
 
 
 class SeverityForm(forms.ModelForm):
-    """
-    Save an individual :model:`reporting.Severity`.
-    """
+    """Save an individual :model:`reporting.Severity`."""
 
     class Meta:
         model = Severity

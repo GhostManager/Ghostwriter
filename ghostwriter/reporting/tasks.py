@@ -57,10 +57,7 @@ def archive_projects():
             evidence_loc = os.path.join(settings.MEDIA_ROOT, "evidence", str(report.project.id))
             docx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.docx")
             pptx_template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.pptx")
-            # Ask Spenny to make us reports with these findings
             output_path = os.path.join(settings.MEDIA_ROOT, report.title)
-            evidence_path = os.path.join(settings.MEDIA_ROOT)
-            template_loc = os.path.join(settings.MEDIA_ROOT, "templates", "template.docx")
             spenny = reportwriter.Reportwriter(report, output_path)
             json_doc, word_doc, excel_doc, ppt_doc = spenny.generate_all_reports(docx_template_loc, pptx_template_loc)
             # Create a zip file in memory and add the reports to it

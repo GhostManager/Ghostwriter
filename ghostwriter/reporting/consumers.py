@@ -8,16 +8,13 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 
 class ReportConsumer(AsyncWebsocketConsumer):
-    """
-    Handle notifications related to individual :model:`reporting.Report` entries over WebSockets.
-    """
+    """Handle notifications related to individual :model:`reporting.Report` entries over WebSockets."""
 
     def __init__(self):
         super().__init__()
         self.user = None
         self.report_id = None
         self.report_group_name = None
-
 
     async def connect(self):
         self.user = self.scope["user"]
@@ -50,9 +47,7 @@ class ReportConsumer(AsyncWebsocketConsumer):
 
 
 class ReportFindingConsumer(AsyncWebsocketConsumer):
-    """
-    Handle notifications related to individual :model:`reporting.ReportFindingLink` entries over WebSockets.
-    """
+    """Handle notifications related to individual :model:`reporting.ReportFindingLink` entries over WebSockets."""
 
     def __init__(self):
         super().__init__()

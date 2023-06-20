@@ -24,9 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class Severity(models.Model):
-    """
-    Stores an individual severity rating.
-    """
+    """Stores an individual severity rating."""
 
     def get_default_weight():
         """
@@ -54,23 +52,17 @@ class Severity(models.Model):
     )
 
     def count_findings(self):
-        """
-        Return the number of :model:`reporting.Finding` associated with an instance.
-        """
+        """Return the number of :model:`reporting.Finding` associated with an instance."""
         return Finding.objects.filter(severity=self).count()
 
     @property
     def color_rgb(self):
-        """
-        Return the severity color code as a list of RGB values.
-        """
+        """Return the severity color code as a list of RGB values."""
         return tuple(int(self.color[i : i + 2], 16) for i in (0, 2, 4))
 
     @property
     def color_hex(self):
-        """
-        Return the severity color code as a list of hexadecimal.
-        """
+        """Return the severity color code as a list of hexadecimal."""
         n = 2
         return tuple(hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n))
 
@@ -124,16 +116,12 @@ class Severity(models.Model):
 
 
 class FindingType(models.Model):
-    """
-    Stores an individual finding type.
-    """
+    """Stores an individual finding type."""
 
     finding_type = models.CharField("Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)")
 
     def count_findings(self):
-        """
-        Return the number of :model:`reporting.Finding` associated with an instance.
-        """
+        """Return the number of :model:`reporting.Finding` associated with an instance."""
         return Finding.objects.filter(finding_type=self).count()
 
     count = property(count_findings)
@@ -148,9 +136,7 @@ class FindingType(models.Model):
 
 
 class Finding(models.Model):
-    """
-    Stores an individual finding, related to :model:`reporting.Severity` and :model:`reporting.FindingType`.
-    """
+    """Stores an individual finding, related to :model:`reporting.Severity` and :model:`reporting.FindingType`."""
 
     title = models.CharField(
         "Title",
@@ -246,9 +232,7 @@ class Finding(models.Model):
 
 
 class DocType(models.Model):
-    """
-    Stores an individual document type, related to :model:`reporting.ReportTemplate`.
-    """
+    """Stores an individual document type, related to :model:`reporting.ReportTemplate`."""
 
     doc_type = models.CharField(
         "Document Type",
@@ -269,9 +253,7 @@ class DocType(models.Model):
 
 
 class ReportTemplate(models.Model):
-    """
-    Stores an individual report template file, related to :model:`reporting.Report`.
-    """
+    """Stores an individual report template file, related to :model:`reporting.Report`."""
 
     # Direct template uploads to ``TEMPLATE_LOC`` instead of ``MEDIA``
     template_storage = FileSystemStorage(location=settings.TEMPLATE_LOC)
@@ -369,9 +351,7 @@ class ReportTemplate(models.Model):
 
 
 class Report(models.Model):
-    """
-    Stores an individual report, related to :model:`rolodex.Project` and :model:`users.User`.
-    """
+    """Stores an individual report, related to :model:`rolodex.Project` and :model:`users.User`."""
 
     title = models.CharField(
         "Title",
@@ -626,9 +606,7 @@ class Evidence(models.Model):
     """
 
     def set_upload_destination(self, filename):
-        """
-        Sets the `upload_to` destination to the evidence folder for the associated report ID.
-        """
+        """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
         return os.path.join("evidence", str(self.finding.report.id), filename)
 
     document = models.FileField(
@@ -680,9 +658,7 @@ class Evidence(models.Model):
 
 
 class Archive(models.Model):
-    """
-    Stores an individual archived report, related to :model:`rolodex.Project.
-    """
+    """Stores an individual archived report, related to :model:`rolodex.Project."""
 
     report_archive = models.FileField()
     project = models.ForeignKey("rolodex.Project", on_delete=models.CASCADE, null=True)
@@ -701,9 +677,7 @@ class Archive(models.Model):
 
 
 class FindingNote(models.Model):
-    """
-    Stores an individual finding note, related to :model:`reporting.Finding`.
-    """
+    """Stores an individual finding note, related to :model:`reporting.Finding`."""
 
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
@@ -726,9 +700,7 @@ class FindingNote(models.Model):
 
 
 class LocalFindingNote(models.Model):
-    """
-    Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`.
-    """
+    """Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`."""
 
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
