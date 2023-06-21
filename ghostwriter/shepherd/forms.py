@@ -14,10 +14,10 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import get_client_list
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
-
-from .models import (
+from ghostwriter.shepherd.models import (
     Domain,
     DomainNote,
     DomainServerConnection,
@@ -47,15 +47,20 @@ class CheckoutForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, user=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
         overwatch_url = reverse("shepherd:ajax_domain_overwatch")
+
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+
+        clients = get_client_list(user)
+        self.fields["client"].queryset = clients
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["client"].label = ""
+
         self.fields["activity_type"].empty_label = "-- Select Activity --"
         self.fields["activity_type"].label = ""
         self.fields["project"].empty_label = "-- Select a Client First --"
@@ -278,10 +283,7 @@ class DomainLinkForm(forms.ModelForm):
 
     class Meta:
         model = DomainServerConnection
-        fields = "__all__"
-        widgets = {
-            "project": forms.HiddenInput(),
-        }
+        exclude = ("project",)
 
     def __init__(self, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

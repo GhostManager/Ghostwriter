@@ -21,8 +21,8 @@ urlpatterns = [
 
 # URLs for AJAX requests – deletion and toggle views
 urlpatterns += [
-    path("ajax/load_projects/", views.ajax_load_projects, name="ajax_load_projects"),
-    path("ajax/load_project/", views.ajax_load_project, name="ajax_load_project"),
+    path("ajax/load_projects/", views.AjaxLoadProjects.as_view(), name="ajax_load_projects"),
+    path("ajax/load_project/", views.AjaxLoadProject.as_view(), name="ajax_load_project"),
     path(
         "ajax/domain/release/<int:pk>",
         views.DomainRelease.as_view(),
@@ -81,25 +81,25 @@ urlpatterns += [
     ),
     path(
         "ajax/domain/refresh/<int:pk>",
-        views.update_domain_badges,
+        views.AjaxUpdateDomainBadges.as_view(),
         name="ajax_update_domain_badges",
     ),
     path(
         "ajax/domain/overwatch",
-        views.ajax_domain_overwatch,
+        views.AjaxDomainOverwatch.as_view(),
         name="ajax_domain_overwatch",
     ),
     path(
-        "ajax/project/<int:pk>/domains",
-        views.ajax_project_domains,
-        name="ajax_project_domains",
+        "ajax/server/refresh/<int:pk>",
+        views.AjaxUpdateServerBadges.as_view(),
+        name="ajax_update_server_badges",
     ),
 ]
 
 # URLs for domain status change functions
 urlpatterns += [
     path("domains/checkout/<int:pk>", views.HistoryCreate.as_view(), name="checkout"),
-    path("domains/burn/<int:pk>", views.burn, name="burn"),
+    path("domains/burn/<int:pk>", views.BurnDomain.as_view(), name="burn"),
 ]
 
 # URLs for server status change functions
