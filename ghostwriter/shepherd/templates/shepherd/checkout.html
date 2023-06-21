@@ -4,106 +4,112 @@
 {% block pagetitle %}Domain Check-out{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'shepherd:domain_detail' form.domain.value %}">{{ domain_name }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Checkout</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'shepherd:domain_detail' domain.id %}">{{ domain_name }}</a>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <p>Complete this form and then click Save to checkout {{ domain_name }}:</p>
+  <p>Complete this form and then click Save to checkout {{ domain_name }}:</p>
 
-    <!-- Form Error Section -->
-    {% if form.errors %}
-        <script>
-            {% for field in form %}
-                {% for error in field.errors %}
-                    displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-                {% endfor %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                displayToastTop({type:'error', string:'{{ error }}', context:'form'});
-            {% endfor %}
-        </script>
-    {% endif %}
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
 
-    <!-- Form Section -->
-    {% crispy form form.helper %}
+  <!-- Form Section -->
+  {% crispy form form.helper %}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- Domain Overwatch Checks -->
-    {% if domain.health_status.health_status == "Burned" %}
-        <script>
-            displayToastTop({type:'warning', string:'Domain is flagged as Burned', delay:0});
-        </script>
-    {% endif %}
-
-    {% if domain.is_expiring_soon %}
-        <script>
-            displayToastTop({type:'warning', string:'Domain expires within the next 30 days and will not auto-renew', delay:0});
-        </script>
-    {% endif %}
-
+  <!-- Domain Overwatch Checks -->
+  {% if domain.health_status.health_status == "Burned" %}
     <script>
-        $("#id_client").change(function () {
-            var url = $("#checkout-form").attr("overwatch-url");
-            var clientId = $(this).val();
-            var domainId = $("#checkout-form").find('input[name="domain"]').val();
-            $.ajax({
-                url: url,
-                data: {
-                    'client': clientId,
-                    'domain': domainId
-                },
-                success: function (data) {
-                    if (data['result'] == 'warning') {
-                        displayToastTop({type:'warning', string:data['message'], delay:0});
-                    }
-                }
-            });
-        });
+      displayToastTop({type: 'warning', string: 'Domain is flagged as Burned!', delay: 0});
     </script>
+  {% endif %}
 
-    <!-- Script for Project Dropdown Filtering -->
+  {% if domain.is_expiring_soon %}
     <script>
-        $("#id_client").change(function () {
-            var url = $("#checkout-form").attr("data-projects-url");
-            var clientId = $(this).val();
-            $.ajax({
-                url: url,
-                data: {
-                    'client': clientId
-                },
-                success: function (data) {
-                    $("#id_project").html(data);
-                }
-            });
-        });
-    </script>
-
-    <!-- Script to Set the Default Dates -->
-    <script>
-      $("#id_project").change(function () {
-        var url = $("#checkout-form").attr("data-project-url");
-        var projectId = $(this).val();
-        $.ajax({
-            url: url,
-            data: {
-                'project': projectId
-            },
-            success: function (data) {
-                if(data.length > 0) {
-                  project = data[0]['fields'];
-                  $("#id_start_date")[0].value = project['start_date'];
-                  $("#id_end_date")[0].value = project['end_date'];
-                }
-            }
-        });
+      displayToastTop({
+        type: 'warning',
+        string: 'Domain expires within the next 30 days and will not auto-renew.',
+        delay: 0
       });
     </script>
+  {% endif %}
+
+  <script>
+    $("#id_client").change(function () {
+      var url = $('#checkout-form').attr('overwatch-url');
+      var clientId = $(this).val();
+      var domainId = $('#checkout-form').find('input[name="domain"]').val();
+      $.ajax({
+        url: url,
+        data: {
+          'client': clientId,
+          'domain': domainId
+        },
+        success: function (data) {
+          if (data['result'] == 'warning') {
+            displayToastTop({type: 'warning', string: data['message'], delay: 0});
+          }
+        }
+      });
+    });
+  </script>
+
+  <!-- Script for Project Dropdown Filtering -->
+  <script>
+    $("#id_client").change(function () {
+      var url = $('#checkout-form').attr('data-projects-url');
+      var clientId = $(this).val();
+      $.ajax({
+        url: url,
+        data: {
+          'client': clientId
+        },
+        success: function (data) {
+          $('#id_project').html();
+          $('#id_project').html(data);
+        }
+      });
+    });
+  </script>
+
+  <!-- Script to Set the Default Dates -->
+  <script>
+    $("#id_project").change(function () {
+      var url = $('#checkout-form').attr('data-project-url');
+      var projectId = $(this).val();
+      $.ajax({
+        url: url,
+        data: {
+          'project': projectId
+        },
+        success: function (data) {
+          if (data.length > 0) {
+            project = data[0]['fields'];
+            $('#id_start_date')[0].value = project['start_date'];
+            $('#id_end_date')[0].value = project['end_date'];
+          }
+        }
+      });
+    });
+  </script>
 {% endblock %}
