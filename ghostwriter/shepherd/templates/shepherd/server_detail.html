@@ -44,7 +44,7 @@
 
     <div>
         <!-- Navigation Tabs -->
-        <ul id="tab-bar" class="nav nav-tabs nav-justified">
+        <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'shepherd:ajax_update_server_badges' staticserver.id %}">
             {% include "snippets/server_nav_tabs.html" %}
         </ul>
 
