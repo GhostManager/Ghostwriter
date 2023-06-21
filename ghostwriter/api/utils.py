@@ -288,9 +288,8 @@ def verify_finding_access(user, mode):
 
     ``user``
         The :model:`users.User` object
-
     ``mode``
-        The mode to check for. Valid values are ``create`` and ``edit``.
+        The mode to check for (``create``, ``edit``, or ``delete``)
     """
     if user.role in ("admin", "manager") or user.is_staff:
         return True
