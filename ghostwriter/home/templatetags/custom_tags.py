@@ -10,6 +10,7 @@ from django.db.models import Q
 from bs4 import BeautifulSoup
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import verify_access
 from ghostwriter.reporting.models import Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
@@ -105,3 +106,9 @@ def divide(value, arg):
         return int(value) / int(arg)
     except (ValueError, ZeroDivisionError):
         return None
+
+
+@register.filter
+def has_access(project, user):
+    """Check if the user has access to the project."""
+    return verify_access(user, project)
