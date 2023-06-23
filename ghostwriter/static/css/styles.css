@@ -89,6 +89,11 @@ hr {
   text-align: justify;
 }
 
+.blurry {
+  color: transparent;
+  text-shadow: 0 0 8px #000;
+}
+
 /* ---------------------------------------------------
     CUSTOM BOOTSTRAP INPUT STYLES
 ----------------------------------------------------- */
