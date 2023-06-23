@@ -554,93 +554,6 @@ def index(request):
 
 
 @login_required
-def domain_list(request):
-    """
-    Display a list of all :model:`shepherd.Domain`.
-
-    **Context**
-
-    ``filter``
-        Instance of :filter:`shepherd.DomainFilter`
-
-    **Template**
-
-    :template:`shepherd/domain_list.html`
-    """
-    search_term = ""
-    if "domain" in request.GET:
-        search_term = request.GET.get("domain").strip()
-        if search_term is None or search_term == "":
-            search_term = ""
-    if search_term:
-        messages.success(
-            request,
-            "Showing search results for: {}".format(search_term),
-            extra_tags="alert-success",
-        )
-        domains_list = (
-            Domain.objects.select_related("domain_status", "whois_status", "health_status")
-            .filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term))
-            .order_by("name")
-        )
-    else:
-        domains_list = Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
-
-    # If user has not submitted a filter, default showing available domains with expiry dates in the future
-    data = request.GET.copy()
-    if len(data) == 0:
-        data["domain_status"] = 1
-        data["exclude_expired"] = True
-    domains_filter = DomainFilter(data, queryset=domains_list)
-    return render(request, "shepherd/domain_list.html", {"filter": domains_filter})
-
-
-@login_required
-def server_list(request):
-    """
-    Display a list of all :model:`shepherd.StaticServer`.
-
-    **Context**
-
-    ``filter``
-        Instance of :filter:`shepherd.ServerFilter.
-
-    **Template**
-
-    :template:`shepherd/server_list.html`
-    """
-    search_term = ""
-    if "server" in request.GET:
-        search_term = request.GET.get("server").strip()
-        if search_term is None or search_term == "":
-            search_term = ""
-    if search_term:
-        messages.success(
-            request,
-            f"Showing search results for: {search_term}",
-            extra_tags="alert-success",
-        )
-        servers_list = (
-            StaticServer.objects.select_related("server_status")
-            .filter(
-                Q(ip_address__icontains=search_term)
-                | Q(name__icontains=search_term)
-                | Q(auxserveraddress__ip_address__icontains=search_term)
-            )
-            .order_by("ip_address")
-        )
-    else:
-        servers_list = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
-
-    # If user has not submitted their own filter, default to showing only available servers
-    data = request.GET.copy()
-    if len(data) == 0:
-        data["server_status"] = 1
-    servers_filter = ServerFilter(data, queryset=servers_list)
-    return render(request, "shepherd/server_list.html", {"filter": servers_filter})
-
-
-@login_required
 def infrastructure_search(request):
     """
     Search :model:`shepherd.StaticServer`, :model:`shepherd.AuxServerAddress`, and
@@ -739,6 +652,7 @@ def user_assets(request):
     # Pass the context on to the custom HTML
     context = {"domains": domains, "servers": servers}
     return render(request, "shepherd/checkouts_for_user.html", context)
+
 
 @login_required
 def update(request):
@@ -947,6 +861,103 @@ def export_servers_to_csv(request):
 ################
 # View Classes #
 ################
+
+
+class DomainListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`shepherd.Domain`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`shepherd.DomainFilter`
+
+    **Template**
+
+    :template:`shepherd/domain_list.html`
+    """
+
+    model = Domain
+    template_name = "shepherd/domain_list.html"
+
+    def get_queryset(self):
+        search_term = ""
+        if "domain" in self.request.GET:
+            search_term = self.request.GET.get("domain").strip()
+            if search_term is None or search_term == "":
+                search_term = ""
+        if search_term:
+            messages.success(
+                self.request,
+                "Showing search results for: {}".format(search_term),
+                extra_tags="alert-success",
+            )
+            return (
+                Domain.objects.select_related("domain_status", "whois_status", "health_status")
+                .filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term))
+                .order_by("name")
+            )
+        else:
+            return Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
+
+    def get(self, request, *args, **kwarg):
+        # If user has not submitted a filter, default showing available domains with expiry dates in the future
+        data = request.GET.copy()
+        if len(data) == 0:
+            data["domain_status"] = 1
+            data["exclude_expired"] = True
+        domains_filter = DomainFilter(data, queryset=self.get_queryset())
+        return render(request, "shepherd/domain_list.html", {"filter": domains_filter})
+
+
+class ServerListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`shepherd.StaticServer`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`shepherd.ServerFilter.
+
+    **Template**
+
+    :template:`shepherd/server_list.html`
+    """
+
+    model = StaticServer
+    template_name = "shepherd/server_list.html"
+
+    def get_queryset(self):
+        search_term = ""
+        if "server" in self.request.GET:
+            search_term = self.request.GET.get("server").strip()
+            if search_term is None or search_term == "":
+                search_term = ""
+        if search_term:
+            messages.success(
+                self.request,
+                f"Showing search results for: {search_term}",
+                extra_tags="alert-success",
+            )
+            return (
+                StaticServer.objects.select_related("server_status")
+                .filter(
+                    Q(ip_address__icontains=search_term)
+                    | Q(name__icontains=search_term)
+                    | Q(auxserveraddress__ip_address__icontains=search_term)
+                )
+                .order_by("ip_address")
+            )
+        else:
+            return StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+
+    def get(self, request, *args, **kwarg):
+        # If user has not submitted their own filter, default to showing only available servers
+        data = request.GET.copy()
+        if len(data) == 0:
+            data["server_status"] = 1
+        servers_filter = ServerFilter(data, queryset=self.get_queryset())
+        return render(request, "shepherd/server_list.html", {"filter": servers_filter})
 
 
 class BurnDomain(RoleBasedAccessControlMixin, SingleObjectMixin, View):

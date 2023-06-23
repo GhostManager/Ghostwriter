@@ -11,9 +11,9 @@ app_name = "shepherd"
 # URLs for the basic domain views
 urlpatterns = [
     path("", views.index, name="index"),
-    path("domains/", views.domain_list, name="domains"),
+    path("domains/", views.DomainListView.as_view(), name="domains"),
     path("domains/<int:pk>", views.DomainDetailView.as_view(), name="domain_detail"),
-    path("servers/", views.server_list, name="servers"),
+    path("servers/", views.ServerListView.as_view(), name="servers"),
     path("servers/<int:pk>", views.ServerDetailView.as_view(), name="server_detail"),
     path("user/active_assets", views.user_assets, name="user_assets"),
     path("update/", views.update, name="update"),
