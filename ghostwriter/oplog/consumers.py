@@ -16,7 +16,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from rest_framework.utils.serializer_helpers import ReturnList
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_project_access
+from ghostwriter.api.utils import verify_access
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.users.models import User
@@ -34,7 +34,7 @@ def create_oplog_entry(oplog_id, user):
         logger.warning("Failed to create log entry for log ID %s because that log ID does not exist.", oplog_id)
         return
 
-    if verify_project_access(user, oplog.project):
+    if verify_access(user, oplog.project):
         OplogEntry.objects.create(oplog_id_id=oplog_id, operator_name=user.username)
     else:
         logger.warning(
@@ -47,7 +47,7 @@ def delete_oplog_entry(entry_id, user):
     """Attempt to delete the log entry with the given entry ID."""
     try:
         entry = OplogEntry.objects.get(pk=entry_id)
-        if verify_project_access(user, entry.oplog_id.project):
+        if verify_access(user, entry.oplog_id.project):
             entry.delete()
         else:
             logger.warning(
@@ -70,7 +70,7 @@ def copy_oplog_entry(entry_id, user):
         logger.warning("Failed to copy log entry %s because that entry ID does not exist.", entry_id)
         return
 
-    if verify_project_access(user, entry.oplog_id.project):
+    if verify_access(user, entry.oplog_id.project):
         copy = deepcopy(entry)
         copy.pk = None
         copy.start_date = make_aware(datetime.utcnow())
@@ -94,7 +94,7 @@ class OplogEntryConsumer(AsyncWebsocketConsumer):
         serialized_entries = []
         try:
             oplog = Oplog.objects.get(pk=oplog_id)
-            if verify_project_access(user, oplog.project):
+            if verify_access(user, oplog.project):
                 entries = OplogEntry.objects.filter(oplog_id=oplog_id).order_by("-start_date")
                 if len(entries) == offset:
                     serialized_entries = OplogEntrySerializer([], many=True).data

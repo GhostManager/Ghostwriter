@@ -211,7 +211,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
             self.project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
-        if utils.verify_project_access(self.user_obj, self.project):
+        if utils.verify_access(self.user_obj, self.project):
             # Get the target object – :model:`shepherd.Domain` or :model:`shepherd.StaticServer``
             if "domainId" in self.input:
                 object_id = self.input["domainId"]
@@ -288,7 +288,7 @@ class HasuraCheckoutDeleteView(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Checkout does not exist", f"{self.model.__name__}DoesNotExist"),
                 status=400,
             )
-        if utils.verify_project_access(self.user_obj, instance.project):
+        if utils.verify_access(self.user_obj, instance.project):
             # Delete the checkout which triggers the ``pre_delete`` signal
             instance.delete()
             data = {
@@ -469,7 +469,7 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
         except Report.DoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
-        if utils.verify_project_access(self.user_obj, report.project):
+        if utils.verify_access(self.user_obj, report.project):
             engine = Reportwriter(report, template_loc=None)
             json_report = engine.generate_json()
             report_bytes = json.dumps(json_report).encode("utf-8")
@@ -631,7 +631,7 @@ class GraphqlDeleteEvidenceAction(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Evidence does not exist", "EvidenceDoesNotExist"), status=400
             )
 
-        if utils.verify_project_access(self.user_obj, evidence.finding.report.project):
+        if utils.verify_access(self.user_obj, evidence.finding.report.project):
             evidence.delete()
             data = {
                 "result": "success",
@@ -709,7 +709,7 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Finding does not exist", "FindingDoesNotExist"), status=400
             )
 
-        if utils.verify_project_access(self.user_obj, report.project):
+        if utils.verify_access(self.user_obj, report.project):
             finding_dict = to_dict(finding, resolve_fk=True)
             # Remove the tags from the finding dict to add them later with the ``taggit`` API
             del finding_dict["tags"]

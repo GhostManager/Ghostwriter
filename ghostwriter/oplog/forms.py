@@ -13,7 +13,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import get_project_list, verify_project_access
+from ghostwriter.api.utils import get_project_list, verify_access
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.rolodex.models import Project
 

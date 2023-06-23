@@ -24,7 +24,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import get_project_list, verify_project_access
+from ghostwriter.api.utils import get_project_list, verify_access
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (

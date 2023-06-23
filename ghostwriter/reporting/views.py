@@ -49,7 +49,7 @@ from ghostwriter.api.utils import (
     get_archives_list,
     get_reports_list,
     verify_finding_access,
-    verify_project_access,
+    verify_access,
     verify_user_is_privileged,
     RoleBasedAccessControlMixin,
 )
@@ -169,7 +169,7 @@ def ajax_update_report_findings(request):
         order = json.loads(pos)
 
         report = get_object_or_404(Report, pk=report_id)
-        if verify_project_access(request.user, report.project):
+        if verify_access(request.user, report.project):
             logger.info(
                 "Received AJAX POST to update report %s's %s severity group findings in this order: %s",
                 report_id,
@@ -256,7 +256,7 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         if active_report:
             try:
                 report = Report.objects.get(pk=active_report["id"])
-                if not verify_project_access(self.request.user, report.project):
+                if not verify_access(self.request.user, report.project):
                     return ForbiddenJsonResponse()
             except Report.DoesNotExist:
                 message = "Please select a report to edit before trying to assign a finding."
@@ -344,7 +344,7 @@ class ReportFindingLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
     model = ReportFindingLink
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().report.project)
+        return verify_access(self.request.user, self.get_object().report.project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -372,7 +372,7 @@ class ReportActivate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -410,7 +410,7 @@ class ReportStatusToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -456,7 +456,7 @@ class ReportDeliveryToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -505,7 +505,7 @@ class ReportFindingStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, 
     model = ReportFindingLink
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().report.project)
+        return verify_access(self.request.user, self.get_object().report.project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -563,7 +563,7 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -746,7 +746,7 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -823,7 +823,7 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -886,7 +886,7 @@ class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ReportFindingLink
 
     def test_func(self):
-        if verify_project_access(self.request.user, self.get_object().report.project):
+        if verify_access(self.request.user, self.get_object().report.project):
             if verify_finding_access(self.request.user, "create"):
                 return True
         return False
@@ -1200,7 +1200,7 @@ class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1305,7 +1305,7 @@ class ArchiveDownloadView(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Archive
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1334,7 +1334,7 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1391,7 +1391,7 @@ class ReportCreate(RoleBasedAccessControlMixin, CreateView):
             if pk:
                 try:
                     project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-                    if verify_project_access(self.request.user, project):
+                    if verify_access(self.request.user, project):
                         self.project = project
                 except Project.DoesNotExist:
                     logger.info(
@@ -1464,7 +1464,7 @@ class ReportUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = ReportForm
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1515,7 +1515,7 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1749,7 +1749,7 @@ class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1777,7 +1777,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1927,7 +1927,7 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1979,7 +1979,7 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2110,7 +2110,7 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Report
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2224,7 +2224,7 @@ class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
     success_url = reverse_lazy("reporting:reports")
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().report.project)
+        return verify_access(self.request.user, self.get_object().report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2330,7 +2330,7 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Evidence
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().finding.report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2386,7 +2386,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.finding_instance.report.project)
+        return verify_access(self.request.user, self.finding_instance.report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2470,7 +2470,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().finding.report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2521,7 +2521,7 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().finding.report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2651,7 +2651,7 @@ class LocalFindingNoteCreate(RoleBasedAccessControlMixin, CreateView):
         self.finding_instance = get_object_or_404(ReportFindingLink, pk=self.kwargs.get("pk"))
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.finding_instance.report.project)
+        return verify_access(self.request.user, self.finding_instance.report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
