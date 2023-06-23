@@ -19,6 +19,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.views.generic.list import ListView
 
 # 3rd Party Libraries
 from django_q.models import Task
@@ -995,14 +996,16 @@ class BurnDomain(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             self.domain.last_used_by = request.user
             self.domain.save()
             messages.warning(request, "Domain has been marked as burned.", extra_tags="alert-warning")
-            return HttpResponseRedirect("{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk})))
+            return HttpResponseRedirect(
+                "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk}))
+            )
 
     def get(self, request, *args, **kwargs):
         form = BurnForm()
         context = {
             "form": form,
-            "domain_instance": self.domain_instance,
-            "domain_name": self.domain_instance.name,
+            "domain_instance": self.domain,
+            "domain_name": self.domain.name,
             "cancel_link": reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk}),
         }
         return render(request, "shepherd/burn.html", context)
@@ -1474,6 +1477,9 @@ class ServerHistoryCreate(RoleBasedAccessControlMixin, CreateView):
         super().setup(request, *args, **kwargs)
         self.server = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
 
+    def get_initial(self):
+        return {"server": self.server}
+
     def form_valid(self, form):
         obj = form.save(commit=False)
         obj.server = self.server
@@ -1739,7 +1745,6 @@ class DomainServerConnectionCreate(RoleBasedAccessControlMixin, CreateView):
         obj.save()
         return super().form_valid(form)
 
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
@@ -1782,7 +1787,7 @@ class DomainServerConnectionUpdate(RoleBasedAccessControlMixin, UpdateView):
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_form_kwargs(self, **kwargs):
-        form_kwargs = super().get_form_kwargs(**kwargs)
+        form_kwargs = super().get_form_kwargs()
         form_kwargs["project"] = self.object.project
         return form_kwargs
 
@@ -1829,9 +1834,7 @@ class DomainNoteCreate(RoleBasedAccessControlMixin, CreateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["note_object"] = self.domain.name.upper()
-        ctx["cancel_link"] = "{}#notes".format(
-            reverse("shepherd:domain_detail", kwargs={"pk": self.domain.id})
-        )
+        ctx["cancel_link"] = "{}#notes".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.id}))
         return ctx
 
     def form_valid(self, form, **kwargs):
