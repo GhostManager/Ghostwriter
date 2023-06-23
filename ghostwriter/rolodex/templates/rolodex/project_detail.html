@@ -126,8 +126,9 @@
             {{ project.note|bleach }}
           {% else %}
             <p class="text-center">No one has added a description of this project. <a class="clickable"
-                                                                                      href="{% url 'rolodex:project_update' project.id %}">Fix that here.
-                                                                                   </a>
+                                                                                      href="{% url 'rolodex:project_update' project.id %}">Fix
+              that here.
+            </a>
             </p>
           {% endif %}
         </div>
@@ -577,7 +578,8 @@
                 <span class="input-group-text" id="inner-domain-search-addon"><span class="fa fa-search"></span></span>
               </div>
               <input autocomplete="off" type="text" class="form-control" name="domain"
-                     placeholder="Search domains by name or category..." aria-label="domains" aria-describedby="inner-domain-search-addon">
+                     placeholder="Search domains by name or category..." aria-label="domains"
+                     aria-describedby="inner-domain-search-addon">
             </div>
             <input type="submit" style="display: none"/>
           </form>
@@ -602,10 +604,11 @@
                                     </span>
                 </td>
                 <td class="align-middle">{{ domain.activity_type }}</td>
-                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
+                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}
+                </td>
                 <td>
                   <button
-                    class="expandme btn btn-transaprent"
+                    class="expandme btn btn-transparent"
                     onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
                     title="Expand to view additional information"
                   ></button>
@@ -629,7 +632,11 @@
               <tr class="hidden-row">
                 <td colspan=5>
                   <div id="hidden-domain-data-{{ domain.id }}" class="hidden-div">
-                    {{ domain.note|bleach }}
+                    {%  if domain.note %}
+                      {{ domain.note|bleach }}
+                    {% else %}
+                      <p>No notes for this domain.</p>
+                    {%  endif %}
                   </div>
                 </td>
               </tr>
@@ -710,7 +717,7 @@
                 <td class="align-middle">{{ server.server.server_provider }}</td>
                 <td>
                   <button
-                    class="expandme btn btn-transaprent"
+                    class="expandme btn btn-tranapprent"
                     onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
                     title="Expand to view additional information"
                   ></button>
@@ -734,7 +741,11 @@
               <tr class="hidden-row">
                 <td colspan=8>
                   <div id="hidden-server-data-{{ server.id }}" class="hidden-div">
-                    {{ server.note|bleach }}
+                    {%  if server.note %}
+                      {{ server.note|bleach }}
+                    {% else %}
+                      <p>No notes for this server.</p>
+                    {%  endif %}
                   </div>
                 </td>
               </tr>
@@ -753,6 +764,13 @@
                 <td class="align-middle">{{ server.activity_type }}</td>
                 <td class="align-middle">{{ server.server_role }}</td>
                 <td class="align-middle">{{ server.server_provider }}</td>
+                <td>
+                  <button
+                    class="expandme btn btn-transparent"
+                    onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
+                    title="Expand to view additional information"
+                  ></button>
+                </td>
                 <td class="align-middle">
                   <div class="dropdown dropleft">
                     <button id="vps-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown"
@@ -770,18 +788,15 @@
                     </div>
                   </div>
                 </td>
-                <td>
-                  <button
-                    class="expandme btn btn-transaprent"
-                    onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
-                    title="Expand to view additional information"
-                  ></button>
-                </td>
               </tr>
               <tr class="hidden-row">
                 <td colspan=8>
                   <div id="hidden-vps-data-{{ server.id }}" class="hidden-div">
-                    {{ server.note|bleach }}
+                    {%  if server.note %}
+                      {{ server.note|bleach }}
+                    {% else %}
+                      <p>No notes for this server.</p>
+                    {%  endif %}
                   </div>
                 </td>
               </tr>
@@ -1104,6 +1119,7 @@
     });
 
     {% comment %} Toggle task lists under objectives {% endcomment %}
+
     function expandObjective(ele) {
       ele.parent().parent().toggleClass('open');
       let accordionRow = ele.parent().parent().next('.accordion');
@@ -1139,7 +1155,7 @@
             dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
           },
 
-        {% comment %} Element is chosen {% endcomment %}
+          {% comment %} Element is chosen {% endcomment %}
           onChoose: function (event) {
             {% comment %} Close the tasks view on pick-up {% endcomment %}
             let $eventItem = $('#' + event.item.id)
@@ -1158,16 +1174,16 @@
             }
           },
 
-        {% comment %} Element is unchosen {% endcomment %}
+          {% comment %} Element is unchosen {% endcomment %}
           onUnchoose: function (event) {
           },
 
-        {% comment %} Element dragging started {% endcomment %}
+          {% comment %} Element dragging started {% endcomment %}
           onStart: function (event) {
             event.item.startPos = event.oldIndex;
           },
 
-        {% comment %} Element dragging started {% endcomment %}
+          {% comment %} Element dragging started {% endcomment %}
           onEnd: function (event) {
             let $eventItem = $('#' + event.item.id)
             let $tasksEventItem = $('#tasks-' + event.item.id)
@@ -1188,7 +1204,7 @@
             prepareTodoList();
           },
 
-        {% comment %} Element is dropped into the list from another list {% endcomment %}
+          {% comment %} Element is dropped into the list from another list {% endcomment %}
           onAdd: function (event) {
             let placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
             let positions = {{ group | lower }}_sortable.toArray();
@@ -1228,7 +1244,7 @@
             });
           },
 
-        {% comment %} Changed sorting within list {% endcomment %}
+          {% comment %} Changed sorting within list {% endcomment %}
           onUpdate: function (event) {
             let positions = {{ group | lower }}_sortable.toArray();
             $.ajaxSetup({
@@ -1251,7 +1267,7 @@
             });
           },
 
-        {% comment %} Element is removed from the list into another list {% endcomment %}
+          {% comment %} Element is removed from the list into another list {% endcomment %}
           onRemove: function (event) {
             let placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
             let positions = {{ group | lower }}_sortable.toArray();
@@ -1296,16 +1312,20 @@
           },
 
           {% comment %} Event when you move an item in the list or between lists {% endcomment %}
-          onMove: function (event, originalEvent) {},
+          onMove: function (event, originalEvent) {
+          },
 
           {% comment %} Attempt to drag a filtered element {% endcomment %}
-          onFilter: function (event) {},
+          onFilter: function (event) {
+          },
 
           {% comment %} Called when creating a clone of element {% endcomment %}
-          onClone: function (event) {},
+          onClone: function (event) {
+          },
 
           {% comment %} Called when dragging element changes position {% endcomment %}
-          onChange: function (event) {},
+          onChange: function (event) {
+          },
         });
       } catch (error) {
         console.log('No objectives found for the "{{ group | lower }}" group, so the sortable list is not initialized.');
@@ -1313,6 +1333,7 @@
     {% endfor %}
 
     {% comment %} Cycle Project Objective Status with AJAX {% endcomment %}
+
     function cycleStatus(ele) {
       let badge = ele;
       let url = ele.attr('obj-status-update-url');
@@ -1494,7 +1515,7 @@
 
       {% comment %} Add project assignments {% endcomment %}
       {% for operator in project.projectassignment_set.all %}
-        let operator_{{ operator.id }}  = {
+        let operator_{{ operator.id }} = {
           title: {% if operator.operator.name %}'{{ operator.operator.name|bleach }}'
             {% else %}'{{ operator.operator.username|bleach }}'{% endif %},
           allDay: true,
@@ -1537,6 +1558,7 @@
     });
 
     {% comment %} Objective and task status management {% endcomment %}
+
     function toggleObjective(ele) {
       let url = ele.attr('toggle-objective-url');
       let objectiveId = ele.attr('objective-id');
