@@ -235,48 +235,37 @@ def verify_user_is_privileged(user):
     return user.is_staff
 
 
-def verify_project_access(user, project):
+def verify_access(user, obj):
     """
-    Verify that the user has access to the project.
+    Verify that the user has access to a client or project.
 
     **Parameters**
 
     ``user``
         The :model:`users.User` object
-    ``project``
-        The :model:`rolodex.Project` object
+    ``obj``
+        Instance of :model:`rolodex.Project` or :model:`rolodex.Client`
     """
-    logger.info("Verifying project access for %s with %s role", user, user.role)
-    if user.role in ("admin", "manager") or user.is_staff:
+    if verify_user_is_privileged(user):
         return True
 
-    assignments = ProjectAssignment.objects.filter(operator=user, project=project)
-    client_invites = ClientInvite.objects.filter(user=user, client=project.client)
-    project_invites = ProjectInvite.objects.filter(user=user, project=project)
+    assignments = None
+    client_invites = None
+    project_invites = None
+
+    if isinstance(obj, Project):
+        projects = get_project_list(user)
+        if obj in projects:
+            return True
+
+    if isinstance(obj, Client):
+        clients = get_client_list(user)
+        if obj in clients:
+            return True
+
     if any([assignments, client_invites, project_invites]):
         return True
-    return False
 
-
-def verify_client_access(user, client):
-    """
-    Verify that the user has access to the client.
-
-    **Parameters**
-
-    ``user``
-        The :model:`users.User` object
-    ``client``
-        The :model:`rolodex.Client` object
-    """
-    if user.role in ("admin", "manager") or user.is_staff:
-        return True
-
-    assignments = ProjectAssignment.objects.filter(operator=user, project__client=client)
-    client_invites = ClientInvite.objects.filter(user=user, client=client)
-    project_invites = ProjectInvite.objects.filter(user=user, project__client=client)
-    if any([assignments, client_invites, project_invites]):
-        return True
     return False
 
 
@@ -291,7 +280,7 @@ def verify_finding_access(user, mode):
     ``mode``
         The mode to check for (``create``, ``edit``, or ``delete``)
     """
-    if user.role in ("admin", "manager") or user.is_staff:
+    if verify_user_is_privileged(user):
         return True
 
     if mode == "create" and user.enable_finding_create:
@@ -348,10 +337,11 @@ def get_project_list(user):
     if verify_user_is_privileged(user):
         projects = Project.objects.select_related("client").all().order_by("complete", "client")
     else:
+        clients = get_client_list(user)
         projects = (
             Project.objects.select_related("client")
             .filter(
-                Q(projectinvite__user=user) | Q(client__clientinvite__user=user) | Q(projectassignment__operator=user)
+                client__in=clients,
             )
             .order_by("complete", "client")
             .distinct()
@@ -374,12 +364,11 @@ def get_logs_list(user):
     if verify_user_is_privileged(user):
         logs = Oplog.objects.select_related("project").all()
     else:
+        projects = get_project_list(user)
         logs = (
             Oplog.objects.select_related("project")
             .filter(
-                Q(project__projectinvite__user=user)
-                | Q(project__client__clientinvite__user=user)
-                | Q(project__projectassignment__operator=user)
+                project__in=projects,
             )
             .distinct()
         )
@@ -401,12 +390,11 @@ def get_reports_list(user):
     if verify_user_is_privileged(user):
         reports = Report.objects.select_related("created_by").all().order_by("complete", "title")
     else:
+        projects = get_project_list(user)
         reports = (
             Report.objects.select_related("created_by")
             .filter(
-                Q(project__projectinvite__user=user)
-                | Q(project__client__clientinvite__user=user)
-                | Q(project__projectassignment__operator=user)
+                project__in=projects,
             )
             .order_by("complete", "title")
             .distinct()
@@ -429,12 +417,11 @@ def get_archives_list(user):
     if verify_user_is_privileged(user):
         archives = Archive.objects.select_related("project__client").all().order_by("project__client")
     else:
+        projects = get_project_list(user)
         archives = (
             Archive.objects.select_related("project__client")
             .filter(
-                Q(project__projectinvite__user=user)
-                | Q(project__client__clientinvite__user=user)
-                | Q(project__projectassignment__operator=user)
+                project__in=projects,
             )
             .order_by("project__client")
             .distinct()
@@ -484,9 +471,8 @@ class RoleBasedAccessControlMixin(AccessMixin):
         # If the login url is the same scheme and net location then use the path as the "next" url
         login_scheme, login_netloc = urlparse(resolved_login_url)[:2]
         current_scheme, current_netloc = urlparse(path)[:2]
-        if (
-            (not login_scheme or login_scheme == current_scheme) and
-            (not login_netloc or login_netloc == current_netloc)
+        if (not login_scheme or login_scheme == current_scheme) and (
+            not login_netloc or login_netloc == current_netloc
         ):
             path = self.request.get_full_path()
         return redirect_to_login(
@@ -502,4 +488,3 @@ class RoleBasedAccessControlMixin(AccessMixin):
     def get_test_func(self):
         """Override this method to use a different ``test_func`` method."""
         return self.test_func
-
