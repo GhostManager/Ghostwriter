@@ -25,8 +25,7 @@ from ghostwriter.api.utils import (
     RoleBasedAccessControlMixin,
     get_client_list,
     get_project_list,
-    verify_client_access,
-    verify_project_access,
+    verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.modules import codenames
@@ -84,7 +83,7 @@ def update_project_badges(request, pk):
     """
     project_instance = get_object_or_404(Project, pk=pk)
 
-    if not verify_project_access(request.user, project_instance):
+    if not verify_access(request.user, project_instance):
         return ForbiddenJsonResponse()
 
     html = render_to_string(
@@ -106,7 +105,7 @@ def update_client_badges(request, pk):
     """
     client_instance = get_object_or_404(Client, pk=pk)
 
-    if not verify_client_access(request.user, client_instance):
+    if not verify_access(request.user, client_instance):
         return ForbiddenJsonResponse()
 
     html = render_to_string(
@@ -160,7 +159,7 @@ def ajax_update_project_objectives(request):
         order = json.loads(data)
 
         project_instance = get_object_or_404(Project, id=project_id)
-        if not verify_project_access(request.user, project_instance):
+        if not verify_access(request.user, project_instance):
             return ForbiddenJsonResponse()
 
         logger.info(
@@ -208,7 +207,7 @@ class ProjectObjectiveStatusUpdate(RoleBasedAccessControlMixin, SingleObjectMixi
     model = ProjectObjective
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -271,7 +270,7 @@ class ProjectStatusToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Project
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object())
+        return verify_access(self.request.user, self.get_object())
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -317,7 +316,7 @@ class ProjectObjectiveDelete(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     model = ProjectObjective
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -342,7 +341,7 @@ class ProjectAssignmentDelete(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
     model = ProjectAssignment
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -421,7 +420,7 @@ class ClientContactDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ClientContact
 
     def test_func(self):
-        return verify_client_access(self.request.user, self.get_object().client)
+        return verify_access(self.request.user, self.get_object().client)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -446,7 +445,7 @@ class ProjectTargetDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectTarget
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -471,7 +470,7 @@ class ProjectTargetToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectTarget
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -517,7 +516,7 @@ class ProjectScopeDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectScope
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -544,7 +543,7 @@ class ProjectTaskCreate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectObjective
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -606,7 +605,7 @@ class ProjectTaskToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectSubTask
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().parent.project)
+        return verify_access(self.request.user, self.get_object().parent.project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -654,7 +653,7 @@ class ProjectObjectiveToggle(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     model = ProjectObjective
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -702,7 +701,7 @@ class ProjectTaskDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectSubTask
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().parent.project)
+        return verify_access(self.request.user, self.get_object().parent.project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -729,7 +728,7 @@ class ProjectTaskUpdate(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectSubTask
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().parent.project)
+        return verify_access(self.request.user, self.get_object().parent.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -793,7 +792,7 @@ class ProjectTaskRefresh(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectObjective
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -821,7 +820,7 @@ class ProjectObjectiveRefresh(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
     model = ProjectObjective
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -842,7 +841,7 @@ class ProjectScopeExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = ProjectScope
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
@@ -865,7 +864,7 @@ class DeconflictionDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Deconfliction
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -985,7 +984,7 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Client
 
     def test_func(self):
-        return verify_client_access(self.request.user, self.get_object())
+        return verify_access(self.request.user, self.get_object())
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1238,7 +1237,7 @@ class ClientNoteCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return verify_client_access(self.request.user, self.get_object().client)
+        return verify_access(self.request.user, self.get_object().client)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1326,7 +1325,7 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Project
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object())
+        return verify_access(self.request.user, self.get_object())
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1674,7 +1673,7 @@ class ProjectNoteCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1766,7 +1765,7 @@ class DeconflictionCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "rolodex/deconfliction_form.html"
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1820,7 +1819,7 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "rolodex/deconfliction_form.html"
 
     def test_func(self):
-        return verify_project_access(self.request.user, self.get_object().project)
+        return verify_access(self.request.user, self.get_object().project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
