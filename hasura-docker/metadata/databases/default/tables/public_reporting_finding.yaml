@@ -71,7 +71,17 @@ insert_permissions:
         - title
   - role: user
     permission:
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_finding_create:
+                  _eq: true
       columns:
         - cvss_score
         - cvss_vector
@@ -167,7 +177,17 @@ update_permissions:
         - severity_id
         - title
       filter: {}
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_finding_edit:
+                  _eq: true
 delete_permissions:
   - role: manager
     permission:
@@ -177,4 +197,14 @@ delete_permissions:
       filter: {}
   - role: user
     permission:
-      filter: {}
+      filter:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_finding_delete:
+                  _eq: true
