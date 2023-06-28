@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * Added the option for admins to control who can create, edit, and delete findings in the global library
-  * Each of these permissions can be controlled separately via the admin panel
+  * Admins can control each of these permissions separately via the admin panel
 
 ### Changed
 
-* Applied the authorization model to all views and forms for role-based access control
+* Applied the authorization model to the user interface for role-based access control
   * Accounts with the `manager` role will not notice a difference
   * For more information: [https://www.ghostwriter.wiki/features/graphql-api/authorization](https://www.ghostwriter.wiki/features/graphql-api/authorization)
 * When viewing server and domain history, if a user does not have access to the client or project, the client and project names will be hidden
@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The `oplog_id` header is no longer required in the csv and will be ignored
 * Refined the domain and server view pages to match the user interface and experience of the project dashboard
 * Updated the Hasura GraphQL Engine to v2.28.0
+
+### Removed
+
+* Removed the legacy REST API endpoints for activity logs
+  * The GraphQL API has been the primary API for activity logs since v3.0.0
+  * Legacy API keys will no longer work for activity logs
+  * The current release of the `cobalt_sync` project will not work with Ghostwriter v4.0.0-beta (look for `cobalt_sync` v2.0 to be released later this year)
 
 ### Security
 
