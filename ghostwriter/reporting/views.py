@@ -147,7 +147,7 @@ def zip_directory(path, zip_handler):
         # Add each file to the zip file handler
         for file in files:
             absname = os.path.abspath(os.path.join(root, file))
-            arcname = absname[len(abs_src) + 1:]
+            arcname = absname[len(abs_src) + 1 :]
             zip_handler.write(os.path.join(root, file), "evidence/" + arcname)
 
 
@@ -264,7 +264,12 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 return JsonResponse(data)
 
             # Clone the selected object to make a new :model:`reporting.ReportFindingLink`
-            report_link = ReportFindingLink(report=report, assigned_to=self.request.user, position=get_position(report.id, finding_instance.severity), **finding_dict)
+            report_link = ReportFindingLink(
+                report=report,
+                assigned_to=self.request.user,
+                position=get_position(report.id, finding_instance.severity),
+                **finding_dict,
+            )
             report_link.save()
             report_link.tags.add(*finding_instance.tags.all())
 
