@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0-beta] - 30 June 2023
+
+### Added
+
+* Added the option for admins to control who can create, edit, and delete findings in the global library
+  * Each of these permissions can be controlled separately via the admin panel
+
+### Changed
+
+* Applied the authorization model to all views and forms for role-based access control
+  * Accounts with the `manager` role will not notice a difference
+  * For more information: [https://www.ghostwriter.wiki/features/graphql-api/authorization](https://www.ghostwriter.wiki/features/graphql-api/authorization)
+* When viewing server and domain history, if a user does not have access to the client or project, the client and project names will be hidden
+* Changed the activity log import to make it possible to select the log to update
+  * The `oplog_id` header is no longer required in the csv and will be ignored
+* Refined the domain and server view pages to match the user interface and experience of the project dashboard
+* Updated the Hasura GraphQL Engine to v2.28.0
+
+### Security
+
+* Increased the versions of several dependencies to address security vulnerabilities in these packages
+
 ## [3.2.9] - 13 June 2023
 
 ### Added
