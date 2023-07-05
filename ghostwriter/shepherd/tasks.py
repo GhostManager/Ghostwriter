@@ -749,9 +749,12 @@ def fetch_namecheap_domains():
         # Get the current list of Namecheap domains in the library
         domain_queryset = Domain.objects.filter(registrar="Namecheap")
         expired_status = DomainStatus.objects.get(domain_status="Expired")
+        burned_status = DomainStatus.objects.get(domain_status="Burned")
+        health_burned_status = HealthStatus.objects.get(health_status="Burned")
         for domain in domain_queryset:
             # Check if a domain in the library is _not_ in the Namecheap response
             if not any(d["Name"] == domain.name for d in domains_list):
+                logger.info("Domain %s is not in the Namecheap data", domain.name)
                 # Domains not found in Namecheap have expired and fallen off the account
                 if not domain.expired:
                     logger.info(
@@ -798,32 +801,36 @@ def fetch_namecheap_domains():
                 entry["expired"] = True
                 # Expired domains have WhoisGuard set to ``NOTPRESENT``
                 entry["whois_status"] = WhoisStatus.objects.get(pk=2)
+                entry["domain_status"] = expired_status
             else:
-                try:
-                    entry["whois_status"] = WhoisStatus.objects.get(
-                        whois_status__iexact=domain["WhoisGuard"].capitalize()
-                    )
-                # Anything not ``Enabled`` or ``Disabled``, set to ``Unknown``
-                except Exception:
-                    logger.exception(
-                        "Namecheap WHOIS status (%s) was not found in the database, so defaulted to `Unknown`",
-                        domain["WhoisGuard"].capitalize(),
-                    )
-                    entry["whois_status"] = WhoisStatus.objects.get(pk=3)
+                if domain["WhoisGuard"].lower() == "notpresent":
+                    entry["whois_status"] = WhoisStatus.objects.get(pk=2)
+                else:
+                    try:
+                        entry["whois_status"] = WhoisStatus.objects.get(
+                            whois_status__iexact=domain["WhoisGuard"].capitalize()
+                        )
+                    # Anything not ``Enabled`` or ``Disabled``, set to ``Unknown``
+                    except Exception:
+                        logger.exception(
+                            "Namecheap WHOIS status (%s) was not found in the database, so defaulted to `Unknown`",
+                            domain["WhoisGuard"].capitalize(),
+                        )
+                        entry["whois_status"] = WhoisStatus.objects.get(pk=3)
 
             # Check if the domain is locked - locked generally means it's burned
             newly_burned = False
             if domain["IsLocked"] == "true":
                 logger.warning("Domain %s is marked as LOCKED by Namecheap", domain["Name"])
                 newly_burned = True
-                entry["health_status"] = HealthStatus.objects.get(health_status="Burned")
-                entry["domain_status"] = DomainStatus.objects.get(domain_status="Burned")
+                entry["health_status"] = health_burned_status
+                entry["domain_status"] = burned_status
                 entry[
                     "burned_explanation"
                 ] = "<p>Namecheap has locked the domain. This is usually the result of a legal complaint related to phishing/malicious activities.</p>"
 
             # Set AutoRenew status
-            if domain["AutoRenew"] == "false":
+            if domain["AutoRenew"] == "false" or domain["IsExpired"] == "true":
                 entry["auto_renew"] = False
 
             # Convert Namecheap dates to Django
