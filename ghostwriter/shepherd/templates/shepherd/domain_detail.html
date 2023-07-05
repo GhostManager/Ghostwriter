@@ -23,18 +23,20 @@
       <div class="bar3"></div>
     </div>
     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="domain-dropdown-btn">
-      <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
-      {% if domain.is_expired %}
-        <a class="dropdown-item icon skull-icon" href="#">Domain Expired</a>
-      {% else %}
+      {% if domain.is_expired is False %}
+        <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
         {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
           <a class="dropdown-item icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}">Checkout Domain</a>
         {% else %}
           <a class="dropdown-item icon block-icon" href="#">Domain Unavailable</a>
         {% endif %}
-      {% endif %}
-      {% if domain.health_status.health_status == "Healthy" %}
-        <a class="dropdown-item icon burn-icon" href="{% url 'shepherd:burn' domain.id %}">Mark Burned</a>
+        {% if domain.health_status.health_status == "Healthy" %}
+          <a class="dropdown-item icon burn-icon" href="{% url 'shepherd:burn' domain.id %}">Mark Burned</a>
+        {% endif %}
+      {%  else %}
+        {%  if request.user.role in 'manager, admin' %}
+            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
+        {% endif %}
       {% endif %}
       <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:domain_delete' domain.id %}">Delete</a>
     </div>
@@ -64,7 +66,7 @@
 
         {% if domain.is_expired %}
           <div class="alert alert-danger" role="alert">
-            Domain is <strong>Expired</strong>, so this data is now read-only.
+            This domain is <strong>Expired</strong>, so it cannot be checked out, and the data is now read-only. Managers and admins can edit this domain to update the expiration date.
           </div>
         {% endif %}
 
