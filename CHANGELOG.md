@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.10] - 13 July 2023
+
+### Fixed
+
+* Adjusted logic for marking a domain as expired when syncing with Namecheap
+  * A domain marked as auto-renewable can expire, so Ghostwriter will now also mark a domain as expired and disable auto-renew if the API response has `AutoRenew` and `IsExpired` both set to `true`
+
 ## [3.2.9] - 13 June 2023
 
 ### Added
