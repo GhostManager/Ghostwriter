@@ -1087,7 +1087,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
         except Exception as exception:  # pragma: no cover
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(exception).__name__, exception.args)
-            logger.error(message)
+            logger.exception(message)
             return super().form_invalid(form)
 
     def get_initial(self):
