@@ -1763,7 +1763,8 @@ class DeconflictionCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "rolodex/deconfliction_form.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        self.project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+        return verify_access(self.request.user, self.project_instance)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1790,10 +1791,9 @@ class DeconflictionCreate(RoleBasedAccessControlMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        ctx["project"] = project_instance
+        ctx["project"] = self.project_instance
         ctx["cancel_link"] = "{}#deconflictions".format(
-            reverse("rolodex:project_detail", kwargs={"pk": project_instance.id})
+            reverse("rolodex:project_detail", kwargs={"pk": self.project_instance.id})
         )
         return ctx
 
