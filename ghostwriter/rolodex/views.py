@@ -1237,7 +1237,8 @@ class ClientNoteCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().client)
+        self.client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
+        return verify_access(self.request.user, self.client_instance)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1252,15 +1253,12 @@ class ClientNoteCreate(RoleBasedAccessControlMixin, CreateView):
         return "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.object.client.id}))
 
     def get_initial(self):
-        client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        client = client_instance
-        return {"client": client, "operator": self.request.user}
+        return {"client": self.client_instance, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        client_instance = get_object_or_404(Client, pk=self.kwargs.get("pk"))
-        ctx["note_object"] = client_instance
-        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": client_instance.id}))
+        ctx["note_object"] = self.client_instance
+        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:client_detail", kwargs={"pk": self.client_instance.id}))
         return ctx
 
     def form_valid(self, form, **kwargs):
@@ -1673,7 +1671,8 @@ class ProjectNoteCreate(RoleBasedAccessControlMixin, CreateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        self.project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+        return verify_access(self.request.user, self.project_instance)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -1688,15 +1687,14 @@ class ProjectNoteCreate(RoleBasedAccessControlMixin, CreateView):
         return "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id}))
 
     def get_initial(self):
-        project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        project = project_instance
-        return {"project": project, "operator": self.request.user}
+        return {"project": self.project_instance, "operator": self.request.user}
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        ctx["note_object"] = project_instance
-        ctx["cancel_link"] = "{}#notes".format(reverse("rolodex:project_detail", kwargs={"pk": project_instance.id}))
+        ctx["note_object"] = self.project_instance
+        ctx["cancel_link"] = "{}#notes".format(
+            reverse("rolodex:project_detail", kwargs={"pk": self.project_instance.id})
+        )
         return ctx
 
     def form_valid(self, form, **kwargs):
