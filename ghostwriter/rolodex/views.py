@@ -1339,6 +1339,8 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
 
     ``client``
         Instance of :model:`rolodex.Client` associated with this project
+    ``whitecards``
+        Instance of the `WhiteCardFormSet()` formset
     ``objectives``
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``
@@ -1501,6 +1503,8 @@ class ProjectUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     ``object``
         Instance of :model:`rolodex.Project` being updated
+    ``whitecards``
+        Instance of the `WhiteCardFormSet()` formset
     ``objectives``
         Instance of the `ProjectObjectiveFormSet()` formset
     ``assignments``
