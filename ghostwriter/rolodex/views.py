@@ -39,6 +39,7 @@ from ghostwriter.rolodex.forms_project import (
     DeconflictionForm,
     ProjectAssignmentFormSet,
     ProjectForm,
+    ProjectComponentForm,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
     ProjectScopeFormSet,
@@ -1841,3 +1842,112 @@ class DeconflictionUpdate(RoleBasedAccessControlMixin, UpdateView):
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.id})
         )
         return ctx
+
+
+class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
+    """
+    Update related components of an individual :model:`rolodex.Project`. This view is accessible
+    to regular users to add, edit, and remove white cards, objectives, scopes, and targets..
+
+    **Context**
+
+    ``object``
+        Instance of :model:`rolodex.Project` being updated
+    ``whitecards``
+        Instance of the `WhiteCardFormSet()` formset
+    ``objectives``
+        Instance of the `ProjectObjectiveFormSet()` formset
+    ``scopes``
+        Instance of the `ProjectScopeFormSet()` formset
+    ``targets``
+        Instance of the `ProjectTargetFormSet()` formset
+    ``cancel_link``
+        Link for the form's Cancel button to return to project's detail page
+
+    **Template**
+
+    :template:`rolodex/project_form.html`
+    """
+
+    model = Project
+    form_class = ProjectComponentForm
+    template_name = "rolodex/project_form.html"
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object())
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["object"] = self.get_object()
+        ctx["cancel_link"] = reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
+        if self.request.POST:
+            ctx["objectives"] = ProjectObjectiveFormSet(self.request.POST, prefix="obj", instance=self.object)
+            ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope", instance=self.object)
+            ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target", instance=self.object)
+            ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card", instance=self.object)
+        else:
+            ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
+            ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
+            ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
+            ctx["whitecards"] = WhiteCardFormSet(prefix="card", instance=self.object)
+        return ctx
+
+    def get_success_url(self):
+        messages.success(self.request, "Project successfully saved.", extra_tags="alert-success")
+        return reverse("rolodex:project_detail", kwargs={"pk": self.object.pk})
+
+    def form_valid(self, form):
+        # Get form context data – used for validation of inline forms
+        ctx = self.get_context_data()
+        scopes = ctx["scopes"]
+        targets = ctx["targets"]
+        objectives = ctx["objectives"]
+        whitecards = ctx["whitecards"]
+
+        # Now validate inline formsets
+        # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
+        try:
+            with transaction.atomic():
+                # Save the parent form – will rollback if a child fails validation
+                obj = form.save()
+
+                objectives_valid = objectives.is_valid()
+                if objectives_valid:
+                    objectives.instance = obj
+                    objectives.save()
+
+                scopes_valid = scopes.is_valid()
+                if scopes_valid:
+                    scopes.instance = obj
+                    scopes.save()
+
+                targets_valid = targets.is_valid()
+                if targets_valid:
+                    targets.instance = obj
+                    targets.save()
+
+                whitecards_valid = whitecards.is_valid()
+                if whitecards_valid:
+                    whitecards.instance = obj
+                    whitecards.save()
+
+                # Proceed with form submission
+                if (
+                    form.is_valid()
+                    and objectives_valid
+                    and scopes_valid
+                    and targets_valid
+                    and whitecards_valid
+                ):
+                    obj.save()
+                    return super().form_valid(form)
+                # Raise an error to rollback transactions
+                raise forms.ValidationError(_("Invalid form data"))
+        # Otherwise return ``form_invalid`` and display errors
+        except Exception:
+            logger.exception("Failed to update the project.")
+            return super().form_invalid(form)

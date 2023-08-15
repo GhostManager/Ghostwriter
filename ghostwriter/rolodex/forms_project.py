@@ -879,7 +879,7 @@ class WhiteCardForm(forms.ModelForm):
                             Button(
                                 "formset-del-button",
                                 "Delete White Card",
-                                css_class="btn-outline-danger formset-del-button col-4",
+                                css_class="btn-outline-danger formset-del-button col-5",
                             ),
                             css_class="form-group col-6 offset-3",
                         ),
@@ -1052,15 +1052,15 @@ class ProjectForm(forms.ModelForm):
                     css_id="assignments",
                 ),
                 CustomTab(
-                    "Objectives",
-                    Formset("objectives", object_context_name="Objective"),
+                    "White Cards",
+                    Formset("whitecards", object_context_name="White Card"),
                     Button(
-                        "add-objective",
-                        "Add Objective",
-                        css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
+                        "add-whitecard",
+                        "Add White Card",
+                        css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
                     ),
-                    link_css_class="objective-icon",
-                    css_id="objectives",
+                    link_css_class="tab-icon whitecard-icon",
+                    css_id="whitecards",
                 ),
                 CustomTab(
                     "Scope Lists",
@@ -1074,6 +1074,17 @@ class ProjectForm(forms.ModelForm):
                     css_id="scopes",
                 ),
                 CustomTab(
+                    "Objectives",
+                    Formset("objectives", object_context_name="Objective"),
+                    Button(
+                        "add-objective",
+                        "Add Objective",
+                        css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
+                    ),
+                    link_css_class="objective-icon",
+                    css_id="objectives",
+                ),
+                CustomTab(
                     "Targets",
                     Formset("targets", object_context_name="Target"),
                     Button(
@@ -1083,17 +1094,6 @@ class ProjectForm(forms.ModelForm):
                     ),
                     link_css_class="tab-icon list-icon",
                     css_id="targets",
-                ),
-                CustomTab(
-                    "White Cards",
-                    Formset("whitecards", object_context_name="White Card"),
-                    Button(
-                        "add-whitecard",
-                        "Add White Card",
-                        css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
-                    ),
-                    link_css_class="tab-icon whitecard-icon",
-                    css_id="whitecards",
                 ),
                 template="tab.html",
                 css_class="nav-justified",
@@ -1275,3 +1275,85 @@ class DeconflictionForm(forms.ModelForm):
                         code="invalid_datetime",
                     ),
                 )
+
+
+class ProjectComponentForm(forms.ModelForm):
+    """
+    Save an individual :model:`rolodex.Project` with instances of
+    :model:`rolodex.ProjectAssignment` and :model:`rolodex.ProjectObjective` associated
+    with an individual :model:`rolodex.Client`.
+    """
+
+    class Meta:
+        model = Project
+        fields = ("id",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        general_config = GeneralConfiguration.get_solo()
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        # Design form layout with Crispy FormHelper
+        self.helper = FormHelper()
+        # Turn on <form> tags for this parent form
+        self.helper.form_tag = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            TabHolder(
+                CustomTab(
+                    "White Cards",
+                    Formset("whitecards", object_context_name="White Card"),
+                    Button(
+                        "add-whitecard",
+                        "Add White Card",
+                        css_class="btn-block btn-secondary formset-add-card mb-2 offset-4 col-4",
+                    ),
+                    link_css_class="tab-icon whitecard-icon",
+                    css_id="whitecards",
+                ),
+                CustomTab(
+                    "Scope Lists",
+                    Formset("scopes", object_context_name="Scope"),
+                    Button(
+                        "add-scope",
+                        "Add Scope List",
+                        css_class="btn-block btn-secondary formset-add-scope mb-2 offset-4 col-4",
+                    ),
+                    link_css_class="tab-icon list-icon",
+                    css_id="scopes",
+                ),
+                CustomTab(
+                    "Objectives",
+                    Formset("objectives", object_context_name="Objective"),
+                    Button(
+                        "add-objective",
+                        "Add Objective",
+                        css_class="btn-block btn-secondary formset-add-obj mb-2 offset-4 col-4",
+                    ),
+                    link_css_class="objective-icon",
+                    css_id="objectives",
+                ),
+                CustomTab(
+                    "Targets",
+                    Formset("targets", object_context_name="Target"),
+                    Button(
+                        "add-target",
+                        "Add Target",
+                        css_class="btn-block btn-secondary formset-add-target mb-2 offset-4 col-4",
+                    ),
+                    link_css_class="tab-icon list-icon",
+                    css_id="targets",
+                ),
+                template="tab.html",
+                css_class="nav-justified",
+            ),
+            ButtonHolder(
+                Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )

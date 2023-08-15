@@ -191,4 +191,9 @@ urlpatterns += [
         views.DeconflictionUpdate.as_view(),
         name="project_deconfliction_update",
     ),
+    path(
+        "projects/update/components/<int:pk>",
+        views.ProjectComponentsUpdate.as_view(),
+        name="project_component_update",
+    ),
 ]
