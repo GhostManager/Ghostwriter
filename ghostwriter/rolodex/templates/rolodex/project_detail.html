@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags %}
+{% load determine_primary bleach_tags custom_tags %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -151,7 +151,7 @@
             <th class="align-middle pr-4">Role</th>
             <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
             <th class="sorter-false align-middle">Note</th>
-            <th class="sorter-false text-center align-middle">Options</th>
+            {% if request.user|is_privileged %}<th class="sorter-false text-center align-middle">Options</th>{% endif %}
             </thead>
             {% for operator in project.projectassignment_set.all %}
               <tr>
@@ -207,7 +207,7 @@
         <hr/>
 
         <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#whitecards">Add & Edit White Cards</a>
+           href="{% url 'rolodex:project_component_update' project.id %}#whitecards">Add & Edit White Cards</a>
         {% if project.whitecard_set.all %}
           {% for card in project.whitecard_set.all %}
             <div id="whitecard-card-{{ card.id }}" class="card card-project text-center mb-3">
@@ -250,7 +250,7 @@
         <hr/>
 
         <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
+           href="{% url 'rolodex:project_component_update' project.id %}#scopes">Add & Edit Scope Lists</a>
 
         <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by
           objectives.</p>
@@ -347,7 +347,7 @@
         <hr/>
 
         <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
+           href="{% url 'rolodex:project_component_update' project.id %}#targets">Add & Edit Targets</a>
 
         <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are
           interesting.</p>
