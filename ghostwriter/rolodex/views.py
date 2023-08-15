@@ -341,7 +341,7 @@ class ProjectAssignmentDelete(RoleBasedAccessControlMixin, SingleObjectMixin, Vi
     model = ProjectAssignment
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().project)
+        return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         return ForbiddenJsonResponse()
