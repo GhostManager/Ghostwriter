@@ -72,7 +72,7 @@ class TemplateTagTests(TestCase):
     def setUpTestData(cls):
         cls.group_1 = GroupFactory(name="Group 1")
         cls.group_2 = GroupFactory(name="Group 2")
-        cls.user = UserFactory(password=PASSWORD, groups=(cls.group_1,))
+        cls.user = UserFactory(password=PASSWORD, groups=(cls.group_1,), role="user")
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
         cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
@@ -124,6 +124,19 @@ class TemplateTagTests(TestCase):
         self.assertEqual(result, 1.0)
         result = custom_tags.divide(12700, 0)
         self.assertEqual(result, None)
+
+        result = custom_tags.has_access(self.project, self.user)
+        self.assertTrue(result)
+
+        self.assertFalse(custom_tags.can_create_finding(self.user))
+        self.user.enable_finding_create = True
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_finding(self.user))
+
+        self.assertFalse(custom_tags.is_privileged(self.user))
+        self.user.role = "manager"
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_finding(self.user))
 
 
 class DashboardTests(TestCase):

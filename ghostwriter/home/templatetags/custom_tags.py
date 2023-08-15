@@ -10,7 +10,7 @@ from django.db.models import Q
 from bs4 import BeautifulSoup
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_access
+from ghostwriter.api.utils import verify_access, verify_finding_access, verify_user_is_privileged
 from ghostwriter.reporting.models import Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
@@ -112,3 +112,15 @@ def divide(value, arg):
 def has_access(project, user):
     """Check if the user has access to the project."""
     return verify_access(user, project)
+
+
+@register.filter
+def can_create_finding(user):
+    """Check if the user has the permission to create a finding."""
+    return verify_finding_access(user, "create")
+
+
+@register.filter
+def is_privileged(user):
+    """Check if the user has the permission to create a finding."""
+    return verify_user_is_privileged(user)
