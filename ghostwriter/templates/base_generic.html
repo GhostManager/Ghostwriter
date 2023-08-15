@@ -194,7 +194,9 @@
               </form>
               {% comment %} Clients Submenu Items {% endcomment %}
               <li><a class="icon list-icon" href="{% url 'rolodex:clients' %}">Client Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
+              {% if request.user|is_privileged %}
+                <li><a class="icon plus-icon" href="{% url 'rolodex:client_create' %}">Add New Client</a></li>
+              {% endif %}
             </ul>
           </li>
           <li>
@@ -208,7 +210,9 @@
               </form>
               {% comment %} Findings Submenu Items {% endcomment %}
               <li><a class="icon list-icon" href="{% url 'reporting:findings' %}">Finding Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
+              {% if request.user|can_create_finding %}
+                <li><a class="icon plus-icon" href="{% url 'reporting:finding_create' %}">Add New Finding</a></li>
+              {% endif %}
             </ul>
           </li>
         </ul>
@@ -226,7 +230,9 @@
                class="dropdown-toggle sidebar-dropdown-toggle">Projects</a>
             <ul class="collapse list-unstyled text-left" id="projectSubmenu">
               <li><a class="icon list-icon" href="{% url 'rolodex:projects' %}">Projects Library</a></li>
-              <li><a class="icon plus-icon" href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
+              {% if request.user|is_privileged %}
+                <li><a class="icon plus-icon" href="{% url 'rolodex:project_create_no_client' %}">Add New Project</a></li>
+              {% endif %}
             </ul>
           </li>
           <li>
