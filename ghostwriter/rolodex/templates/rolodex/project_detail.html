@@ -166,23 +166,25 @@
                 <td class="align-middle">{{ operator.start_date|date:"d M Y" }} –
                   <br/> {{ operator.end_date|date:"d M Y" }}</td>
                 <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
-                <td class="align-middle">
-                  <div class="dropdown dropleft">
-                    <button id="assignment-dropdown-btn-{{ assignment.id }}" class="dropdown-menu-btn-table"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                    <div id="assignment-dropdown-menu-{{ assignment.id }}" class="dropdown-menu"
-                         aria-labelledby="assignment-dropdown-btn_{{ assignment.id }}">
-                      <a class="dropdown-item icon edit-icon"
-                         href="{% url 'rolodex:project_update' project.id %}#assignments">Edit Assignment</a>
-                      <a id="assignment-delete-button-{{ operator.id }}"
-                         class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal"
-                         data-target="#confirm-delete-modal" href="javascript:void(0);"
-                         delete-target-csrftoken="{{ csrf_token }}"
-                         delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}"
-                         delete-target-id="{{ operator.id }}" delete-target-type="assignment">Unassign</a>
+                {% if request.user|is_privileged %}
+                  <td class="align-middle">
+                    <div class="dropdown dropleft">
+                      <button id="assignment-dropdown-btn-{{ assignment.id }}" class="dropdown-menu-btn-table"
+                              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                      <div id="assignment-dropdown-menu-{{ assignment.id }}" class="dropdown-menu"
+                           aria-labelledby="assignment-dropdown-btn_{{ assignment.id }}">
+                        <a class="dropdown-item icon edit-icon"
+                           href="{% url 'rolodex:project_update' project.id %}#assignments">Edit Assignment</a>
+                        <a id="assignment-delete-button-{{ operator.id }}"
+                           class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal"
+                           data-target="#confirm-delete-modal" href="javascript:void(0);"
+                           delete-target-csrftoken="{{ csrf_token }}"
+                           delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}"
+                           delete-target-id="{{ operator.id }}" delete-target-type="assignment">Unassign</a>
+                      </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
+                {% endif %}
               </tr>
             {% endfor %}
           </table>
