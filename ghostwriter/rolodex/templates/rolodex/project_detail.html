@@ -140,8 +140,10 @@
         <h4>Project Assignments</h4>
         <hr/>
 
-        <a class="icon edit-icon btn btn-primary mb-1 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+        {% if request.user|is_privileged %}
+          <a class="icon edit-icon btn btn-primary mb-1 col-3"
+             href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+        {% endif %}
         {% if project.projectassignment_set.all %}
           <table id="assignmentTable" class="tablesorter table">
             <thead>
