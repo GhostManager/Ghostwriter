@@ -4,7 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.0-beta] - 30 June 2023
+## [4.0.0-rc2] - 16 August 2023
+
+### Changed
+
+* Separated the project form into two forms: one for the project details and assignments and one for project components (e.g., white cards, objectives)
+  * This allows accounts with the `user` role to edit project components without permission to edit the project or its assignments
+* Hid menus and buttons for features that are not available to the current user
+* Removed the `user` role's privileges to create, edit, and delete project assignments and client contacts to better adhere with the role's intended permissions
+
+### Fixed
+
+* Fixed an issue that would prevent new projects from saving properly
+
+## [4.0.0-rc1] - 30 June 2023
 
 ### Added
 
