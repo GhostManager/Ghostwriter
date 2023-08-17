@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import Oplog
-from ghostwriter.reporting.models import Archive, Report
+from ghostwriter.reporting.models import Archive, Report, ReportTemplate
 from ghostwriter.rolodex.models import (
     Client,
     ClientInvite,
@@ -427,6 +427,32 @@ def get_archives_list(user):
             .distinct()
         )
     return archives
+
+
+def get_templates_list(user):
+    """
+    Retrieve a filtered list of :model:`reporting.ReportTemplate` entries based on the user's role.
+
+    Privileged users will receive all templates. Non-privileged users will receive all entries to which they
+    have access based on the `client` field.
+
+    **Parameters**
+
+    ``user``
+        The :model:`users.User` object
+    """
+    if verify_user_is_privileged(user):
+        templates = ReportTemplate.objects.select_related("client").all()
+    else:
+        clients = get_client_list(user)
+        templates = (
+            ReportTemplate.objects.select_related("client")
+            .filter(
+                Q(client__in=clients) | Q(client__isnull=True),
+            )
+            .distinct()
+        )
+    return templates
 
 
 class ForbiddenJsonResponse(JsonResponse):
