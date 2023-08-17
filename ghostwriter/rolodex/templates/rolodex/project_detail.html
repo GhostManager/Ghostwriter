@@ -134,8 +134,50 @@
         {% comment %} This element prevents the "jump" that happens when the description is toggled {% endcomment %}
         <div class="hidden-element"></div>
 
+        {% comment %} Calendar Section {% endcomment %}
+        <h4>Project Calendar</h4>
+        <hr/>
+
+        <div id="calendar"></div>
+      </div>
+
+      {% comment %} People Tab {% endcomment %}
+      <div id="people" class="tab-pane">
+        {% comment %} Contacts Section {% endcomment %}
+        <h4>Client Points of Contacts</h4>
+        <hr/>
+
+        {% if project.client.clientcontact_set.all %}
+          <table id="contactTable" class="tablesorter table">
+            <thead>
+              <th class="align-middle pr-4">Name</th>
+              <th class="align-middle pr-4">Title/Role</th>
+              <th class="sorter-false align-middle pr-4">Email</th>
+              <th class="sorter-false align-middle">Phone</th>
+              <th class="sorter-false align-middle">Note</th>
+            </thead>
+            {% for contact in project.client.clientcontact_set.all %}
+              <tr>
+                <td class="align-middle">{{ contact.name }}</td>
+                <td class="align-middle">{{ contact.job_title }}</td>
+                <td class="align-middle">{{ contact.email }}</td>
+                <td class="align-middle">
+                  {% if contact.phone %}
+                      {{ contact.phone }}
+                  {% else %}
+                      --
+                  {% endif %}
+                </td>
+                <td class="text-justify align-middle">{{ contact.note|bleach }}</td>
+              </tr>
+            {% endfor %}
+          </table>
+        {% else %}
+          <p>No points of contacts have been assigned to this client yet.</p>
+        {% endif %}
+
         {% comment %} Assignment Section {% endcomment %}
-        <h4>Project Assignments</h4>
+        <h4>Project Team Assignments</h4>
         <hr/>
 
         {% if request.user|is_privileged %}
@@ -145,11 +187,11 @@
         {% if project.projectassignment_set.all %}
           <table id="assignmentTable" class="tablesorter table">
             <thead>
-            <th class="align-middle pr-4">Operator</th>
-            <th class="align-middle pr-4">Role</th>
-            <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
-            <th class="sorter-false align-middle">Note</th>
-            {% if request.user|is_privileged %}<th class="sorter-false text-center align-middle">Options</th>{% endif %}
+              <th class="align-middle pr-4">Operator</th>
+              <th class="align-middle pr-4">Role</th>
+              <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
+              <th class="sorter-false align-middle">Note</th>
+              {% if request.user|is_privileged %}<th class="sorter-false text-center align-middle">Options</th>{% endif %}
             </thead>
             {% for operator in project.projectassignment_set.all %}
               <tr>
@@ -191,12 +233,49 @@
         {% else %}
           <p>No operators have been assigned to this project yet.</p>
         {% endif %}
+      </div>
 
-        {% comment %} Calendar Section {% endcomment %}
-        <h4>Project Calendar</h4>
+      {% comment %} White Cards Tab {% endcomment %}
+      <div id="whitecards" class="tab-pane">
+        <h4>White Cards</h4>
         <hr/>
 
-        <div id="calendar"></div>
+        <a class="icon edit-icon btn btn-primary mb-3 col-3"
+           href="{% url 'rolodex:project_component_update' project.id %}#whitecards">Add & Edit White Cards</a>
+        {% if project.whitecard_set.all %}
+          {% for card in project.whitecard_set.all %}
+            <div id="whitecard-card-{{ card.id }}" class="card card-project text-center mb-3">
+              <div class="card-header">
+                <h5 class="card-title">{{ card.title }}</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-sm-12">
+                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="Date and time the client approved this white card.">Issued</span>
+                    </h6>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-sm-12">
+                    <p class="card-text">{{ card.issued|date:"d M Y @ H:i:s e" }}</p>
+                  </div>
+                </div>
+
+                <p class="card-text">
+                  {% if card.description %}
+                    {{ card.description|bleach }}
+                  {% else %}
+                    <p>No one has added a description of this white card.</p>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p>No white cards have been added to this project yet.</p>
+        {% endif %}
       </div>
 
       {% comment %} White Cards Tab {% endcomment %}
@@ -1057,6 +1136,13 @@
       new ClipboardJS('.js-copy-scope');
 
       {% comment %} jQuery Tablesorter {% endcomment %}
+      $('#contactTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
       $('#assignmentTable').tablesorter(
         {
           cssAsc: 'down',
