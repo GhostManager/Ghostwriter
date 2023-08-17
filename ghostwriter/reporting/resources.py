@@ -35,6 +35,8 @@ class FindingResource(resources.ModelResource):
         fields = (
             "id",
             "severity",
+            "cvss_score",
+            "cvss_vector",
             "finding_type",
             "title",
             "description",
@@ -50,6 +52,8 @@ class FindingResource(resources.ModelResource):
         export_order = (
             "id",
             "severity",
+            "cvss_score",
+            "cvss_vector",
             "finding_type",
             "title",
             "description",
