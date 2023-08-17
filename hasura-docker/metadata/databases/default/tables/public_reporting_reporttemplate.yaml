@@ -67,18 +67,19 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - protected
-        - document
-        - name
-        - last_update
-        - upload_date
-        - client_id
-        - doc_type_id
-        - id
-        - uploaded_by_id
         - changelog
+        - client_id
         - description
+        - doc_type_id
+        - document
+        - id
+        - landscape
+        - last_update
         - lint_result
+        - name
+        - protected
+        - upload_date
+        - uploaded_by_id
       filter: {}
   - role: user
     permission:
@@ -96,50 +97,8 @@ select_permissions:
                 invites:
                   user_id:
                     _eq: X-Hasura-User-Id
-update_permissions:
-  - role: manager
-    permission:
-      columns:
-        - changelog
-        - client_id
-        - description
-        - doc_type_id
-        - name
-        - protected
-      filter: {}
-      check: {}
-  - role: user
-    permission:
-      columns:
-        - changelog
-        - client_id
-        - description
-        - doc_type_id
-        - name
-        - protected
-      filter:
-        _and:
-          - protected:
-              _eq: false
           - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-      check:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
+              projects:
+                assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id
