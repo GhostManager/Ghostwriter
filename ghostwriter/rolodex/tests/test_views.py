@@ -509,7 +509,7 @@ class ProjectNoteDeleteTests(TestCase):
 
 
 class ProjectCreateTests(TestCase):
-    """Collection of tests for :view:`rolodex.ProjectNoteDelete`."""
+    """Collection of tests for :view:`rolodex.ProjectCreate`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -555,18 +555,10 @@ class ProjectCreateTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-        self.assertIn("objectives", response.context)
         self.assertIn("assignments", response.context)
-        self.assertIn("scopes", response.context)
-        self.assertIn("targets", response.context)
-        self.assertIn("whitecards", response.context)
         self.assertIn("cancel_link", response.context)
 
-        self.assertTrue(isinstance(response.context["objectives"], ProjectObjectiveFormSet))
         self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
-        self.assertTrue(isinstance(response.context["scopes"], ProjectScopeFormSet))
-        self.assertTrue(isinstance(response.context["targets"], ProjectTargetFormSet))
-        self.assertTrue(isinstance(response.context["whitecards"], WhiteCardFormSet))
         self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
         self.assertEqual(response.context["cancel_link"], self.client_cancel_uri)
 
@@ -585,8 +577,60 @@ class ProjectCreateTests(TestCase):
         self.assertEqual(response.context["client"], "")
 
 
+class ProjectComponentsUpdateTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectComponentsUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.Project = ProjectFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.uri = reverse("rolodex:project_component_update", kwargs={"pk": cls.project.pk})
+        cls.cancel_uri = reverse("rolodex:project_detail", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/project_form.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn("objectives", response.context)
+        self.assertIn("scopes", response.context)
+        self.assertIn("targets", response.context)
+        self.assertIn("whitecards", response.context)
+        self.assertIn("cancel_link", response.context)
+
+        self.assertTrue(isinstance(response.context["objectives"], ProjectObjectiveFormSet))
+        self.assertTrue(isinstance(response.context["scopes"], ProjectScopeFormSet))
+        self.assertTrue(isinstance(response.context["targets"], ProjectTargetFormSet))
+        self.assertTrue(isinstance(response.context["whitecards"], WhiteCardFormSet))
+        self.assertEqual(response.context["cancel_link"], self.cancel_uri)
+
+
 class ClientListViewTests(TestCase):
-    """Collection of tests for :view:`rolodex.client_list`."""
+    """Collection of tests for :view:`rolodex.ClientListView`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -611,7 +655,7 @@ class ClientListViewTests(TestCase):
         self.assertTrue(self.client_assign.login(username=self.assign_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -648,7 +692,7 @@ class ClientListViewTests(TestCase):
 
 
 class ProjectListViewTests(TestCase):
-    """Collection of tests for :view:`rolodex.project_list`."""
+    """Collection of tests for :view:`rolodex.ProjectListView`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -676,7 +720,7 @@ class ProjectListViewTests(TestCase):
         self.assertTrue(self.client_assign.login(username=self.assign_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):

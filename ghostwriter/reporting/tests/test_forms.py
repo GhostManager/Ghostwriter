@@ -409,6 +409,7 @@ class ReportTemplateFormTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory()
         cls.template_dict = cls.template.__dict__
+        cls.user = UserFactory(password=PASSWORD)
 
     def setUp(self):
         pass
@@ -423,6 +424,7 @@ class ReportTemplateFormTests(TestCase):
         changelog=None,
         client_id=None,
         doc_type=None,
+        user=None,
         **kwargs,
     ):
         return ReportTemplateForm(
@@ -435,6 +437,7 @@ class ReportTemplateFormTests(TestCase):
                 "client": client_id,
                 "doc_type": doc_type,
             },
+            user=user,
             files={
                 "document": document,
             },
@@ -443,14 +446,14 @@ class ReportTemplateFormTests(TestCase):
     def test_valid_data(self):
         template = self.template_dict.copy()
 
-        form = self.form_data(**template)
+        form = self.form_data(**template, user=self.user)
         self.assertTrue(form.is_valid())
 
     def test_blank_template(self):
         template = self.template_dict.copy()
         template["document"] = None
 
-        form = self.form_data(**template)
+        form = self.form_data(**template, user=self.user)
         errors = form["document"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "incomplete")
