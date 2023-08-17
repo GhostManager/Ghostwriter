@@ -48,6 +48,7 @@ from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
     get_archives_list,
     get_reports_list,
+    get_templates_list,
     verify_finding_access,
     verify_access,
     verify_user_is_privileged,
@@ -1561,6 +1562,11 @@ class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
     model = ReportTemplate
     template_name = "reporting/report_templates_list.html"
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_templates_list(user)
+        return queryset
+
 
 class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
     """
@@ -1573,6 +1579,16 @@ class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
 
     model = ReportTemplate
     template_name = "reporting/report_template_detail.html"
+
+    def test_func(self):
+        client = self.get_object().client
+        if client:
+            return verify_access(self.request.user, client)
+        return self.request.user.is_active
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("reporting:templates")
 
 
 class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
@@ -1617,6 +1633,11 @@ class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
         self.object.save()
         form.save_m2m()
         return HttpResponseRedirect(self.get_success_url())
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
 
 class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
@@ -1673,6 +1694,11 @@ class ReportTemplateUpdate(RoleBasedAccessControlMixin, UpdateView):
         form.save_m2m()
         return HttpResponseRedirect(self.get_success_url())
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
+
 
 class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
     """
@@ -1699,15 +1725,15 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
         obj = self.get_object()
         if obj.protected:
             return verify_user_is_privileged(self.request.user)
+        if obj.client:
+            return verify_access(self.request.user, obj.client)
         return self.request.user.is_active
 
     def handle_no_permission(self):
-        obj = self.get_object()
-        messages.error(self.request, "That template is protected – only an admin can edit it.")
+        messages.error(self.request, "You do not have permission to access that.")
         return HttpResponseRedirect(
             reverse(
-                "reporting:template_detail",
-                args=(obj.pk,),
+                "reporting:templates",
             )
         )
 

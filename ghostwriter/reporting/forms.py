@@ -24,7 +24,7 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import get_project_list, verify_access
+from ghostwriter.api.utils import get_client_list, get_project_list, verify_access
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (
@@ -765,7 +765,7 @@ class ReportTemplateForm(forms.ModelForm):
             "document": forms.FileInput(attrs={"class": "form-control"}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, user=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
@@ -777,6 +777,8 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
+        clients = get_client_list(user)
+        self.fields["client"].queryset = clients
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_method = "post"
