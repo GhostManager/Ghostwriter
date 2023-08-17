@@ -16,6 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
+from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
@@ -896,8 +897,14 @@ def index(request):
     return HttpResponseRedirect(reverse("home:dashboard"))
 
 
-@login_required
-def client_list(request):
+################
+# View Classes #
+################
+
+# CBVs related to :model:`rolodex.Client`
+
+
+class ClientListView(RoleBasedAccessControlMixin, ListView):
     """
     Display a list of all :model:`rolodex.Client`.
 
@@ -910,58 +917,33 @@ def client_list(request):
 
     :template:`rolodex/client_list.html`
     """
-    # Check if a search parameter is in the request
-    try:
-        search_term = request.GET.get("client_search").strip()
-    except AttributeError:
-        search_term = ""
 
-    user = request.user
-    clients = get_client_list(user)
+    model = Client
+    template_name = "rolodex/client_list.html"
 
-    if search_term:
-        messages.success(
-            request,
-            "Displaying search results for: {}".format(search_term),
-            extra_tags="alert-success",
-        )
-        clients = clients.filter(name__icontains=search_term)
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_client_list(user)
 
-    client_filter = ClientFilter(request.GET, queryset=clients)
-    return render(request, "rolodex/client_list.html", {"filter": client_filter})
+        # Check if a search parameter is in the request
+        try:
+            search_term = self.request.GET.get("client_search").strip()
+        except AttributeError:
+            search_term = ""
 
+        if search_term:
+            messages.success(
+                self.request,
+                "Displaying search results for: {}".format(search_term),
+                extra_tags="alert-success",
+            )
+            queryset = queryset.filter(name__icontains=search_term)
+        return queryset
 
-@login_required
-def project_list(request):
-    """
-    Display a list of all :model:`rolodex.Project`.
-
-    **Context**
-
-    ``filter``
-        Instance of :filter:`rolodex.ProjectFilter`
-
-    **Template**
-
-    :template:`rolodex/project_list.html`
-    """
-    user = request.user
-    projects = get_project_list(user)
-
-    # Copy the GET request data
-    data = request.GET.copy()
-    # If user has not submitted their own filter, default to showing only active projects
-    if len(data) == 0:
-        data["complete"] = 0
-    filtered_list = ProjectFilter(data, queryset=projects)
-    return render(request, "rolodex/project_list.html", {"filter": filtered_list})
-
-
-################
-# View Classes #
-################
-
-# CBVs related to :model:`rolodex.Client`
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["filter"] = ClientFilter(self.request.GET, queryset=self.get_queryset())
+        return ctx
 
 
 class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
@@ -1310,6 +1292,39 @@ class ClientNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
 
 # CBVs related to :model:`rolodex.Project`
+
+
+class ProjectListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`rolodex.Project`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`rolodex.ProjectFilter`
+
+    **Template**
+
+    :template:`rolodex/project_list.html`
+    """
+
+    model = Project
+    template_name = "rolodex/project_list.html"
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = get_project_list(user)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        # Copy the GET request data
+        data = self.request.GET.copy()
+        # If user has not submitted their own filter, default to showing only active projects
+        if len(data) == 0:
+            data["complete"] = 0
+        ctx["filter"] = ProjectFilter(data, queryset=self.get_queryset())
+        return ctx
 
 
 class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):

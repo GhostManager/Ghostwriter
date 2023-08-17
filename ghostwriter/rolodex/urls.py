@@ -11,8 +11,8 @@ app_name = "rolodex"
 # URLs for the basic views
 urlpatterns = [
     path("", views.index, name="index"),
-    path("clients/", views.client_list, name="clients"),
-    path("projects/", views.project_list, name="projects"),
+    path("clients/", views.ClientListView.as_view(), name="clients"),
+    path("projects/", views.ProjectListView.as_view(), name="projects"),
 ]
 
 # URLs for AJAX requests – deletion and toggle views
