@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "4.0.0-beta"
+__version__ = "4.0.0-rc2"
 VERSION = __version__
-RELEASE_DATE = "30 June 2023"
+RELEASE_DATE = "18 August 2023"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -257,7 +257,7 @@ FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/3.2/ref/settings/#session-cookie-age
-SESSION_COOKIE_AGE = env("DJANGO_SESSION_COOKIE_AGE", default=1209600)
+SESSION_COOKIE_AGE = env("DJANGO_SESSION_COOKIE_AGE", default=60 * 60 * 24 * 7 * 2)
 # https://docs.djangoproject.com/en/3.2/ref/settings/#session-expire-at-browser-close
 SESSION_EXPIRE_AT_BROWSER_CLOSE = env("DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE", default=False)
 # https://docs.djangoproject.com/en/3.2/topics/http/sessions/#when-sessions-are-saved
