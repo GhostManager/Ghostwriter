@@ -24,10 +24,6 @@ select_permissions:
         - id
         - whois_status
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'

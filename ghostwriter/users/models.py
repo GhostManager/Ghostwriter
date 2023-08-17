@@ -14,7 +14,6 @@ active_roles = (
     ("user", "user"),
     ("manager", "manager"),
     ("admin", "admin"),
-    ("restricted", "restricted"),
 )
 
 

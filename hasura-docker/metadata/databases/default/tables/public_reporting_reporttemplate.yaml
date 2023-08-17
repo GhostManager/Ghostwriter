@@ -80,22 +80,6 @@ select_permissions:
         - description
         - lint_result
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter:
-        _or:
-          - client_id:
-              _is_null: true
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-          - client:
-              projects:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns: '*'
@@ -124,41 +108,6 @@ update_permissions:
         - protected
       filter: {}
       check: {}
-  - role: restricted
-    permission:
-      columns:
-        - changelog
-        - client_id
-        - description
-        - doc_type_id
-        - name
-        - protected
-      filter:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-      check:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:

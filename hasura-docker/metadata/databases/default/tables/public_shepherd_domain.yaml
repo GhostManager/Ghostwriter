@@ -77,26 +77,6 @@ insert_permissions:
         - reset_dns
         - vt_permalink
         - whois_status_id
-  - role: restricted
-    permission:
-      check: {}
-      columns:
-        - auto_renew
-        - burned_explanation
-        - categorization
-        - creation
-        - dns
-        - domain_status_id
-        - expiration
-        - expired
-        - health_status_id
-        - last_health_check
-        - name
-        - note
-        - registrar
-        - reset_dns
-        - vt_permalink
-        - whois_status_id
   - role: user
     permission:
       check: {}
@@ -140,36 +120,12 @@ select_permissions:
         - burned_explanation
         - note
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'
       filter: {}
 update_permissions:
   - role: manager
-    permission:
-      columns:
-        - auto_renew
-        - burned_explanation
-        - categorization
-        - creation
-        - dns
-        - domain_status_id
-        - expiration
-        - expired
-        - health_status_id
-        - name
-        - note
-        - registrar
-        - reset_dns
-        - vt_permalink
-        - whois_status_id
-      filter: {}
-      check: {}
-  - role: restricted
     permission:
       columns:
         - auto_renew

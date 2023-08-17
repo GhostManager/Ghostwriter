@@ -28,14 +28,6 @@ insert_permissions:
       columns:
         - note
         - server_id
-  - role: restricted
-    permission:
-      check: {}
-      set:
-        operator_id: x-hasura-User-Id
-      columns:
-        - note
-        - server_id
   - role: user
     permission:
       check: {}
@@ -54,10 +46,6 @@ select_permissions:
         - server_id
         - timestamp
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'
@@ -74,17 +62,6 @@ update_permissions:
       check:
         note:
           _neq: '""'
-  - role: restricted
-    permission:
-      columns:
-        - note
-        - server_id
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-      check:
-        operator_id:
-          _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:
@@ -98,11 +75,6 @@ update_permissions:
           _eq: X-Hasura-User-Id
 delete_permissions:
   - role: manager
-    permission:
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-  - role: restricted
     permission:
       filter:
         operator_id:

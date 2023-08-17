@@ -24,14 +24,6 @@ select_permissions:
         - company_twitter
         - id
       filter: {}
-  - role: restricted
-    permission:
-      columns:
-        - company_email
-        - company_name
-        - company_twitter
-        - id
-      filter: {}
   - role: user
     permission:
       columns:

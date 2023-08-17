@@ -46,18 +46,6 @@ select_permissions:
         - id
         - user_id
       filter: {}
-  - role: restricted
-    permission:
-      columns:
-        - client_id
-        - id
-        - user_id
-        - comment
-      filter:
-        client:
-          invites:
-            user_id:
-              _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:

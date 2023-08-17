@@ -31,12 +31,6 @@ select_permissions:
         - id
         - server_provider
       filter: {}
-  - role: restricted
-    permission:
-      columns:
-        - id
-        - server_provider
-      filter: {}
   - role: user
     permission:
       columns:
