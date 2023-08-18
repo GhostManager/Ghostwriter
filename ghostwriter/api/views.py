@@ -663,14 +663,13 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
             )
 
         if template.protected:
-            if not any(
-                [
-                    self.user_obj.is_staff,
-                    self.user_obj.is_superuser,
-                    self.user_obj.role == "manager",
-                    self.user_obj.role == "admin",
-                ]
-            ):
+            if not utils.verify_user_is_privileged(self.user_obj):
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
+                )
+
+        if template.client:
+            if not utils.verify_access(self.user_obj, template.client):
                 return JsonResponse(
                     utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
                 )
