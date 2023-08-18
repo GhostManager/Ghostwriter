@@ -155,5 +155,11 @@
       }
       $field.val(scope_list_trimmed.join(''));
     }
+
+    {% comment %} Set objective deadline to project end date {% endcomment %}
+    function setObjectiveDeadline(deadline_field) {
+      let project_date = new Date('{{ project.end_date }}').toISOString().split('T')[0];
+      deadline_field.val(project_date);
+    }
   </script>
 {% endblock %}

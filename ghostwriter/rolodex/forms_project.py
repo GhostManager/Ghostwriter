@@ -586,7 +586,7 @@ class ProjectObjectiveForm(forms.ModelForm):
                                 "deadline",
                                 StrictButton(
                                     "Copy",
-                                    onclick="copyEndDate($(this).closest('div').find('input'))",
+                                    onclick="setObjectiveDeadline($(this).closest('div').find('input'))",
                                     css_class="btn btn-secondary",
                                 ),
                             ),
