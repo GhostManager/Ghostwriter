@@ -177,6 +177,20 @@ hr {
   border-color: #aaa;
 }
 
+.tooltip-inner {
+    color: #fff;
+    background: var(--primary-color);
+}
+
+.tooltip .arrow:before {
+    border-bottom-color: var(--primary-color);
+}
+
+.tooltip.top .tooltip-arrow { border-top-color: var(--primary-color); }
+.tooltip.right .tooltip-arrow { border-right-color: var(--primary-color); }
+.tooltip.bottom .tooltip-arrow { border-bottom-color: var(--primary-color); }
+.tooltip.left .tooltip-arrow { border-left-color: var(--primary-color); }
+
 /* ---------------------------------------------------
     IMAGE STYLES
 ----------------------------------------------------- */
@@ -1267,6 +1281,10 @@ tr.hidden-row td>div {
 /* ---------------------------------------------------
     CALENDAR STYLES
 ----------------------------------------------------- */
+
+.popover-header {
+  font-weight: 600;
+}
 
 .fc .fc-toolbar.fc-header-toolbar {
   margin-bottom: 0 !important;
