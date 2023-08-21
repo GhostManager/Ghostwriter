@@ -11,6 +11,9 @@ from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 
+# 3rd Party Libraries
+from django_otp.plugins.otp_static.models import StaticToken
+
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     GroupFactory,
@@ -137,6 +140,12 @@ class TemplateTagTests(TestCase):
         self.user.role = "manager"
         self.user.save()
         self.assertTrue(custom_tags.can_create_finding(self.user))
+
+        self.assertFalse(custom_tags.has_2fa(self.user))
+        self.user.totpdevice_set.create()
+        static_model = self.user.staticdevice_set.create()
+        static_model.token_set.create(token=StaticToken.random_token())
+        self.assertTrue(custom_tags.has_2fa(self.user))
 
 
 class DashboardTests(TestCase):

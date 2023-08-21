@@ -8,6 +8,7 @@ from django.db.models import Q
 
 # 3rd Party Libraries
 from bs4 import BeautifulSoup
+from allauth_2fa.utils import user_has_valid_totp_device
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import verify_access, verify_finding_access, verify_user_is_privileged
@@ -124,3 +125,9 @@ def can_create_finding(user):
 def is_privileged(user):
     """Check if the user has the permission to create a finding."""
     return verify_user_is_privileged(user)
+
+
+@register.filter
+def has_2fa(user):
+    """Check if the user has a valid TOTP method configured."""
+    return user_has_valid_totp_device(user)
