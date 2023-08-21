@@ -91,6 +91,10 @@ THIRD_PARTY_APPS = [
     "crispy_forms",
     "allauth",
     "allauth.account",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
+    "allauth_2fa",
     "allauth.socialaccount",
     "rest_framework",
     "rest_framework_api_key",
@@ -188,6 +192,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
+    "ghostwriter.middleware.Require2FAMiddleware",
 ]
 
 # STATIC
@@ -317,13 +324,22 @@ ACCOUNT_EMAIL_REQUIRED = True
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = env.bool("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_ADAPTER = "ghostwriter.users.adapters.AccountAdapter"
+ACCOUNT_ADAPTER = "allauth_2fa.adapter.OTPAdapter"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 SOCIALACCOUNT_ADAPTER = "ghostwriter.users.adapters.SocialAccountAdapter"
 ACCOUNT_SIGNUP_FORM_CLASS = "ghostwriter.home.forms.SignupForm"
 ACCOUNT_FORMS = {
     "login": "ghostwriter.users.forms.UserLoginForm",
 }
+ALLAUTH_2FA_FORMS = {
+    "authenticate": "ghostwriter.users.forms.User2FAAuthenticateForm",
+    "setup": "ghostwriter.users.forms.User2FADeviceForm",
+    "remove": "ghostwriter.users.forms.User2FADeviceRemoveForm",
+}
+ALLAUTH_2FA_ALWAYS_REVEAL_BACKUP_TOKENS = env("2FA_ALWAYS_REVEAL_BACKUP_TOKENS", default=False)
+ALLAUTH_2FA_SETUP_SUCCESS_URL = "users:redirect"
+ALLAUTH_2FA_REMOVE_SUCCESS_URL = "users:redirect"
+
 # django-compressor
 # ------------------------------------------------------------------------------
 # https://django-compressor.readthedocs.io/en/latest/quickstart/#installation

@@ -24,15 +24,13 @@ class UserAdmin(auth_admin.UserAdmin):
     list_display = (
         "name",
         "username",
-        "role",
         "email",
-        "is_active",
+        "role",
+        "require_2fa",
         "is_staff",
         "is_superuser",
-        "enable_finding_create",
-        "enable_finding_edit",
-        "enable_finding_delete",
         "last_login",
+        "is_active",
     )
     list_filter = (
         "role",
@@ -42,7 +40,7 @@ class UserAdmin(auth_admin.UserAdmin):
     )
 
     fieldsets = (
-        (_("User Information"), {"fields": ("username", "password")}),
+        (_("User Information"), {"fields": ("username", "password", "require_2fa")}),
         (_("Personal Information"), {"fields": ("name", "email", "phone", "timezone")}),
         (
             _("User Permissions"),
@@ -79,9 +77,7 @@ class UserAdmin(auth_admin.UserAdmin):
     search_fields = ("username", "name", "email")
     list_editable = (
         "is_active",
-        "enable_finding_create",
-        "enable_finding_edit",
-        "enable_finding_delete",
+        "require_2fa",
     )
     list_display_links = ("name", "username", "email")
     inlines = (AdminProfileInline,)

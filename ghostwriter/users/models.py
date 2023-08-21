@@ -61,6 +61,11 @@ class User(AbstractUser):
         help_text="Allow the user to delete findings in the library (only applies to accounts with the User role)",
         verbose_name="Allow Finding Deleting",
     )
+    require_2fa = BooleanField(
+        default=False,
+        help_text="Require the user to set up two-factor authentication",
+        verbose_name="Require 2FA",
+    )
 
     def get_absolute_url(self):
         return reverse("users:detail", kwargs={"username": self.username})

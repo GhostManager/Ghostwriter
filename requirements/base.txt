@@ -20,6 +20,7 @@ channels==3.0.5  # https://channels.readthedocs.io/en/stable/index.html
 channels-redis==3.4.1 # https://github.com/django/channels_redis/
 djangorestframework==3.12.4  # https://github.com/encode/django-rest-framework
 django-health-check==3.17.0  # https://github.com/KristianOellegaard/django-health-check
+django-allauth-2fa==0.11.1  # https://github.com/valohai/django-allauth-2fa
 
 # Ghostwriter specific
 boto3==1.18.46

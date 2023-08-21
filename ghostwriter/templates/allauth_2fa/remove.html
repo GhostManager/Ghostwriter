@@ -1,0 +1,43 @@
+{% extends "base_generic.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block pagetitle %}Remove 2FA{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
+      <li class="breadcrumb-item active" aria-current="page">2FA Backup Codes</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <h2>
+  {% trans "Disable Two-Factor Authentication" %}
+  </h2>
+
+  {% if form.otp_token %}
+    <p>{% trans "Please enter a valid authentication token to disable two-factor authentication:" %}</p>
+  {% endif %}
+
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
+
+  <!-- Form Section -->
+  {% crispy form form.helper %}
+
+{% endblock %}

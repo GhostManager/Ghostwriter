@@ -1717,7 +1717,11 @@ th.icon {
   padding: 0;
 }
 
-.tint-icon {
+.2fa-icon:before {
+  content: '\f577';
+}
+
+.tint-icon:before {
   content: '\f043';
 }
 
