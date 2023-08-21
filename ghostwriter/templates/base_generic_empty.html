@@ -1,235 +1,456 @@
-{% load custom_tags %}
+{% load static i18n compress custom_tags %}
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-        <title>{% block title %}Ghostwriter{% endblock %}</title>
+  <title>{% block title %}Ghostwriter{% endblock %}</title>
 
-        <!-- Load Static Files -->
-        {% load static %}
-        <link rel="shortcut icon" href="{%  static 'favicon.ico' %}">
+  <!-- Load Static Files -->
+  <link rel="shortcut icon" href="{% static 'favicon.ico' %}"/>
 
-        <!-- Bootstrap CSS CDN -->
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
 
-        <!-- Font Awesome JS -->
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'css/fontawesome/all.css' %}"/>
 
-        <!-- jQuery UI & jQuery CDN -->
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+  <!-- jQuery JS -->
+  <script src="{% static 'js/jquery-3.6.1.min.js' %}"></script>
+  <script src="{% static 'js/popper.min.js' %}"></script>
+  <script src="{% static 'js/bootstrap.min.js' %}"></script>
 
-        <!-- jQuery Tablesorter Plugin -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.js" crossorigin="anonymous"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.1/js/jquery.tablesorter.widgets.js" crossorigin="anonymous"></script>
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-date-range.min.js" crossorigin="anonymous"></script>
+  <!-- Sugar Parser -->
+  <script src="{% static 'js/sugar.min.js' %}"></script>
 
-        <!-- SortableJS for Drag n Drop -->
-        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <!-- jQuery Tablesorter Plugin -->
+  <script type="text/javascript" src="{% static 'js/jquery.tablesorter.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/jquery.tablesorter.widgets.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/parser-date-range.min.js' %}"></script>
+  <script type="text/javascript" src="{% static 'js/parser-date.js' %}"></script>
 
-        <!-- Toastr -->
-        <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+  <!-- SortableJS for Drag n Drop -->
+  <script src="{% static 'js/Sortable.min.js' %}"></script>
 
-        <!-- TinyMCE -->
-        <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
+  <!-- Toastr -->
+  <link rel="stylesheet" type="text/css" href="{% static 'css/toastr.min.css' %}">
+  <script type="text/javascript" src="{% static 'js/toastr.min.js' %}"></script>
 
-        <!-- TinyMCE -->
-        <script type="application/javascript" src= "{% static 'js/tinymce/config.js' %}"></script>
+  <!-- TinyMCE -->
+  <script src="{% static 'js/tinymce/tinymce.min.js' %}"></script>
 
-        <!-- Ghostwriter JS & CSS -->
-        <script src="{% static 'js/project.js' %}"></script>
-        <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    </head>
+  <!-- Ghostwriter JS & CSS -->
+  <script src="{% static 'js/project.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
 
-    <body>
-        <div class="wrapper">
-            <!-- Page Content Holder -->
-            <div id="content">
-                <!-- Page Content Goes Here -->
-                <div>
-                    {% block content %}{% endblock %}
-                    {% block pagination %}
-                        {% if is_paginated %}
-                            <div class="pagination">
-                                <span class="page-links">
-                                    <span class="page-current">
-                                        <p>
-                                            {% if page_obj.has_previous %}
-                                                <a href="{{ request.path }}?page={{ page_obj.previous_page_number }}"></a>
-                                            {% endif %}
-                                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                                            {% if page_obj.has_next %}
-                                                <a href="{{ request.path }}?page={{ page_obj.next_page_number }}"> ></a>
-                                            {% endif %}
-                                        </p>
-                                    </span>
-                                </span>
-                            </div>
-                        {% endif %}
-                    {% endblock %}
-                </div>
-            </div>
-        </div>
+  <!-- TinyMCE -->
+  <script type="application/javascript" src="{% static 'js/tinymce/config.js' %}"></script>
 
-        <!-- Script for Sidebar -->
-        <script>
-            $(document).ready(function () {
-              $('#sidebarCollapse').on('click', function () {
-                $('#sidebar').toggleClass('active');
-                $(this).toggleClass('active');
-              });
-            });
-        </script>
+  <!-- FullCalendar -->
+  <script src="{% static 'js/fullcalendar-main.min.js' %}"></script>
+  <script src="{% static 'js/fullcalendar-locales-all.min.js' %}"></script>
+  <link rel="stylesheet" type="text/css" href="{% static 'css/fullcalendar-main.min.css' %}">
 
-        <!-- Script for Collapsibles -->
-        <script>
-            var coll = document.getElementsByClassName('collapsible');
-            var i;
-            for (i = 0; i < coll.length; i++) {
-              coll[i].addEventListener('click', function () {
-                this.classList.toggle('active');
-                var content = this.nextElementSibling;
-                if (content.style.maxHeight) {
-                  content.style.maxHeight = null;
-                } else {
-                  content.style.maxHeight = content.scrollHeight + 'px';
-                }
-              });
+  <!-- ClipboardJS -->
+  <script src="{% static 'js/clipboard.min.js' %}"></script>
+
+  <!-- Textarea Autoresize -->
+  <script src="{% static 'js/jquery.textarea_autosize.js' %}"></script>
+
+  <!-- CVSS JS & CSS -->
+  <!--
+    Copyright (c) 2019, FIRST.ORG, INC.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+    following conditions are met:
+    1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+       disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+       following disclaimer in the documentation and/or other materials provided with the distribution.
+    3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote
+       products derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+    WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  -->
+  <link rel="stylesheet" href="{% static 'css/cvss_styles.css' %}">
+  <script src="{% static 'js/cvsscalc30.js' %}"></script>
+  <script src="{% static 'js/cvsscalc30_ui.js' %}"></script>
+</head>
+
+<body>
+<div class="wrapper">
+  <!-- Page Content Holder -->
+  <div id="content">
+    {% if user.is_authenticated %}
+      <div class="top-bar container-fluid align-middle">
+        <!-- Breadcrumb Links -->
+        {% block breadcrumbs %}{% endblock %}
+
+        <!-- User Profile & Avatar -->
+        <a href="{% url 'users:user_detail' request.user.username %}">
+          <img class="navbar-avatar"
+               data-toggle="tooltip" data-placement="top" title="Logged-in as {{ request.user.username }}"
+               src="{{ request.user.userprofile.avatar_url }}"
+               alt="Avatar">
+        </a>
+      </div>
+    {% endif %}
+
+    {%  comment %} Page Content Goes Here {% endcomment %}
+    <div>
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<a style="display: none;" id="scroll-button"></a>
+
+{% comment %} Scripts included on ALL pages {% endcomment %}
+<script>
+  {% comment %} Handle AJAX errors {% endcomment %}
+  (function($){
+    $(document).on('ajaxError', function(event, xhr) {
+      if (xhr.status === 401 || xhr.status === 403) {
+        if (xhr.hasOwnProperty('responseJSON')) {
+          let errorData = xhr.responseJSON;
+          if (errorData['message']) {
+            displayToastTop({type:errorData['result'], string:errorData['message'], title:'Error'});
+          }
+        }
+      }
+    });
+  })(jQuery);
+
+  {% comment %} Scroll button handling {% endcomment %}
+  let scrollButton = $('#scroll-button');
+
+  {% comment %} When the user scrolls down 20px from the top of the document, show the button {% endcomment %}
+  $(window).on('scroll', function () {
+    if ($(window).scrollTop() > 300) {
+      scrollButton.show(500);
+    } else {
+      scrollButton.hide(500);
+    }
+  });
+
+  {% comment %} When the user clicks on the button, scroll to the top of the document {% endcomment %}
+  scrollButton.on('click', function () {
+    $('html, body').animate({scrollTop: 0}, '300');
+  });
+
+  {% comment %} Activate a report with AJAX {% endcomment %}
+  $('.js-activate-report').click(function (e) {
+    let url = $(this).attr('activate-report-url');
+    let reportId = $(this).attr('activate-report-id');
+    let csrftoken = $(this).attr('activate-report-csrftoken');
+    let shortcut = $('.active-report-shortcut');
+    let shortcut_url = shortcut.attr('href');
+    let url_tpl = '{% url 'reporting:report_detail' 0 %}';
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader('X-CSRFToken', csrftoken);
+        }
+      }
+    });
+    $.ajax({
+      url: url,
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        'report': reportId
+      },
+      success: function (data) {
+        if (data['result'] === 'success') {
+          let $emptyReport = $('.empty-report')
+          $emptyReport.addClass('selected-report');
+          $emptyReport.toggleClass('empty-report');
+          $('.selected-report').each(function () {
+            if (reportId !== $(this).attr('activate-report-id')) {
+              $(this).toggleClass('selected-report');
             }
-        </script>
-
-        <!-- Script for Bootstrap Hover Tooltip -->
-        <script>
-            $(document).ready(function () {
-              $('[data-toggle="tooltip"]').tooltip();
-            });
-        </script>
-
-        <!-- Script to Opening Accordions on Link -->
-        <script>
-            // Modification of https://gist.github.com/raddevon/8958486
-            function openAnchorAccordion() {
-              if (window.location.hash) {
-                var jQuerytarget = jQuery('body').find(window.location.hash);
-                // console.log( jQuerytarget );
-                if (jQuerytarget.hasClass('collapse')) {
-                  var jQuerytargetAccordion = jQuerytarget.find('.collapse');
-                  // console.log( jQuerytargetAccordion );
-                  jQuerytarget.collapse('show');
-                }
-              }
+          });
+          $('.js-activate-report').each(function () {
+            if (reportId === $(this).attr('activate-report-id') && !$(this).hasClass('selected-report')) {
+              $(this).toggleClass('selected-report');
+              $(this).addClass('toggle-on-icon');
+              $(this).removeClass('toggle-off-icon');
+            } else {
+              $(this).show(1000);
+              $(this).removeClass('toggle-on-icon');
+              $(this).addClass('toggle-off-icon');
             }
+          });
+          {% comment %} Update shortcut button {% endcomment %}
+          let current_value = shortcut_url.substring(shortcut_url.lastIndexOf('/') + 1);
+          if (current_value === reportId) {
+            shortcut.attr('href', shortcut_url);
+          } else {
+            shortcut.attr('href', url_tpl.replace('0', reportId));
+            shortcut.text('Jump to Report');
+            shortcut.removeClass('btn-disabled');
+          }
+        }
+        if (data['message']) {
+          displayToastTop({type: data['result'], string: data['message'], title: 'Report Update', delay: 5});
+          setTimeout(function () {
+            window.location.href = shortcut_url;
+          }, 5000);
+        }
+      }
+    });
+    e.stopImmediatePropagation();
+  });
 
-            openAnchorAccordion();
+  {% comment %} Open and close the sidebar {% endcomment %}
 
-            jQuery('body').on('click', 'a', openAnchorAccordion);
-        </script>
+  function sidebarOpen() {
+    $('#sidebar').toggleClass('active');
+    $('.sidebar-toggle-btn').toggleClass('fa-flip-horizontal');
 
-        <!-- Initialize Config for Toastr Toasts -->
-        <script>
-            // Default Configuration
-            $(document).ready(function () {
-              toastr.options = {
-                'closeButton': true,
-                'debug': false,
-                'newestOnTop': false,
-                'progressBar': true,
-                'positionClass': 'toast-top-right',
-                'preventDuplicates': false,
-                'showDuration': '1000',
-                'hideDuration': '1000',
-                'timeOut': '4000',
-                'extendedTimeOut': '4000',
-                'showEasing': 'swing',
-                'hideEasing': 'linear',
-                'showMethod': 'fadeIn',
-                'hideMethod': 'fadeOut',
-              }
-              // Need to set this outside of the dict per the README
-              // https://github.com/CodeSeven/toastr#escape-html-characters
-              toastr.options.escapeHtml = true;
-            });
+    {% comment %} Send AJAX POST request to update session {% endcomment %}
+    $.ajax({
+      url: '/home/ajax/session/update',
+      type: 'POST',
+      dataType: 'json',
+      data: {
+        'session_data': 'sidebar',
+      },
+    });
+  }
 
-            // Display toast notification for each message on page load
-            {% for message in messages %}
-                {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
-                    displayToastTop({type:'success', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
-                    displayToastTop({type:'warning', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
-                    displayToastTop({type:'error', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
-                    displayToastTop({type:'info', string:'{{ message }}'});
-                {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
-                    displayToastTop({type:'info', string:'{{ message }}'});
-                {% endif %}
-            {% endfor %}
-        </script>
+  {% comment %} Open the sidebar {% endcomment %}
+  $('.sidebar-header-tab').click(function () {
+    sidebarOpen();
+  });
 
-        {% if user.is_authenticated %}
-            <!-- Script for WebSockets Group for Authenticated Users -->
-            <script>
-                // Connect to channel for individual notifcations
-                var username = '{{ user }}';
-                var ws_user = new WebSocket(
-                  'ws://' + window.location.host +
-                  '/ws/users/' + username + '/');
-                // Connect to channel for all user notifications
-                var ws_all = new WebSocket(
-                  'ws://' + window.location.host +
-                  '/ws/users/all/');
+  {% comment %} Activate Bootstrap hover tooltips {% endcomment %}
+  $(document).ready(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+  });
 
-                // Functions for sending messages
-                function sendMessage(socket, msg) {
-                  // Wait until the state of the socket is not ready and send the message when it is...
-                  waitForSocketConnection(socket, function () {
-                    socket.send(msg);
-                  });
-                }
-                // Make the function wait until the connection is made...
-                function waitForSocketConnection(socket, callback) {
-                  setTimeout(
-                    function () {
-                      if (socket.readyState === 1) {
-                        if (callback != null) {
-                          callback();
-                        }
-                      } else {
-                        console.log('Waiting for connection...')
-                        waitForSocketConnection(socket, callback);
-                      }
-                    }, 5); // wait 5 milisecond for the connection...
-                }
+  {% comment %} All of the Toastr JavaScript {% endcomment %}
+  $(document).ready(function () {
+    toastr.options = {
+      'closeButton': true,
+      'debug': false,
+      'newestOnTop': false,
+      'progressBar': true,
+      'positionClass': 'toast-top-right',
+      'preventDuplicates': false,
+      'showDuration': '1000',
+      'hideDuration': '1000',
+      'timeOut': '4000',
+      'extendedTimeOut': '4000',
+      'showEasing': 'swing',
+      'hideEasing': 'linear',
+      'showMethod': 'fadeIn',
+      'hideMethod': 'fadeOut',
+    }
+    // Need to set this outside of the dict per the README
+    // https://github.com/CodeSeven/toastr#escape-html-characters
+    toastr.options.escapeHtml = true;
+  });
 
-                // Handle receiving messages on channels
-                ws_user.onmessage = function (e) {
-                  var data = JSON.parse(e.data);
-                  if (data.assignments !== undefined) {
-                    document.getElementById('assignment-count').innerHTML = data.assignments
-                  }
-                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
-                }
-                ws_all.onmessage = function (e) {
-                  var data = JSON.parse(e.data);
-                  displayToastTop({type:data.message['level'], string:data.message['message'], title:data.message['title']});
-                };
+  {% comment %} Display toast notification for each message on page load {% endcomment %}
+  {% for message in messages %}
+    {% if 'no-toast' not in message.tags %}
+      {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+        displayToastTop({type: 'success', string: '{{ message }}'});
+      {% elif message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}
+        displayToastTop({type: 'warning', string: '{{ message }}'});
+      {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+        displayToastTop({type: 'error', string: '{{ message }}'});
+      {% elif message.level == DEFAULT_MESSAGE_LEVELS.INFO %}
+        displayToastTop({type: 'info', string: '{{ message }}'});
+      {% elif message.level == DEFAULT_MESSAGE_LEVELS.DEBUG %}
+        displayToastTop({type: 'info', string: '{{ message }}'});
+      {% endif %}
+    {% endif %}
+  {% endfor %}
 
-                // Handle unexpected WebSocket closures
-                ws_user.onclose = function (e) {
-                  console.error('User notfication WebSocket closed unexpectedly');
-                };
-                ws_all.onclose = function (e) {
-                  console.error('Global notification WebSocket closed unexpectedly');
-                };
-            </script>
-        {% endif %}
+  {% if user.is_authenticated %}
+    {% comment %} Configure WebSockets protocol – HTTP for dev and HTTPS for prod {% endcomment %}
+    let ws_proto = 'ws://'
+    if (location.protocol === 'https:') {
+      ws_proto = 'wss://'
+    }
+    const protocol = ws_proto
+    const username = '{{ user }}';
 
-        {% block morescripts %}{% endblock %}
-    </body>
+    {% comment %} Connect to channel for individual notifications {% endcomment %}
+    const ws_user = new WebSocket(
+      protocol + window.location.host +
+      '/ws/users/' + username + '/');
+
+    {% comment %} Connect to channel for all user notifications {% endcomment %}
+    const ws_all = new WebSocket(
+      protocol + window.location.host +
+      '/ws/users/all/');
+
+    {% comment %} Functions for sending messages {% endcomment %}
+    function sendMessage(socket, msg) {
+      {% comment %} Wait until the state of the socket is not ready and send the message when it is... {% endcomment %}
+      waitForSocketConnection(socket, function () {
+        socket.send(msg);
+      });
+    }
+
+    {% comment %} Make the function wait until the connection is made... {% endcomment %}
+    function waitForSocketConnection(socket, callback) {
+      setTimeout(
+        function () {
+          if (socket.readyState === 1) {
+            if (callback != null) {
+              callback();
+            }
+          } else {
+            console.log('Waiting for connection...')
+            waitForSocketConnection(socket, callback);
+          }
+        }, 5); // wait 5 millisecond for the connection...
+    }
+
+    {% comment %} Handle receiving messages on channels {% endcomment %}
+    ws_user.onmessage = function (e) {
+      let data = JSON.parse(e.data);
+      displayToastTop({type: data.message.level, string: data.message.message, title: data.message.title});
+    }
+    ws_all.onmessage = function (e) {
+      let data = JSON.parse(e.data);
+      displayToastTop({type: data.message.level, string: data.message.message, title: data.message.title});
+    };
+
+    {% comment %} Handle unexpected WebSocket closures {% endcomment %}
+    ws_user.onclose = function () {
+      console.error('User notification WebSocket closed unexpectedly');
+    };
+    ws_all.onclose = function () {
+      console.error('Global notification WebSocket closed unexpectedly');
+    };
+  {% endif %}
+</script>
+
+{% comment %} Blocks used by forms that use Bootstrap tabs {% endcomment %}
+{% block tabs %}
+  <script>
+    $(function () {
+      let hash = window.location.hash.replace(/[^\w-#]/g, '');
+      hash && $('ul.nav a[href="' + hash + '"]').tab('show');
+
+      $('.nav-tabs a').click(function (e) {
+        {%  comment %} Prevent the scrolling-to-tab animation {% endcomment %}
+        $('html,body').stop().animate({
+          scrollTop: $($(this).attr('href')).offset().top - $('.nav').height()
+        }, 700, 'swing');
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        $(this).tab('show');
+        window.location.hash = $(this).attr('href');
+      });
+    });
+  </script>
+{% endblock %}
+
+{% block tabforms %}
+  {% comment %} Handle the Delete and Undo buttons {% endcomment %}
+  <script>
+    $(document).on('click', '.formset-del-button', function () {
+      // Get the parent divs for this formset instance
+      let parent_div = $(this).closest('div.formset-container');
+      let formset_instance = parent_div.find('div.formset');
+      // Find the parent formset's Bootstrap alert div
+      let alert = parent_div.find('div.alert');
+      // Find the hidden DELETE checkbox and check it
+      let del_checkbox = formset_instance.find(":input[id*='DELETE']");
+      console.log(del_checkbox);
+      del_checkbox.eq(0).prop('checked', true);
+      console.log(del_checkbox.eq(0).prop('checked'));
+      // Hide the formset instance and display the alert
+      formset_instance.hide();
+      $(alert).show();
+    });
+
+    $(document).on('click', '.formset-undo-button', function () {
+      // Get the parent divs for the formset instance
+      let parent_div = $(this).closest('div.formset-container');
+      let formset_instance = parent_div.find('div.formset');
+      // Find the hidden DELETE checkbox and uncheck it
+      let del_checkbox = formset_instance.find(":input[id*='DELETE']");
+      console.log(del_checkbox);
+      del_checkbox.eq(0).prop('checked', false);
+      console.log(del_checkbox.eq(0).prop('checked'));
+      // Show the formset instance and hide the alert
+      formset_instance.show();
+      $(this).hide();
+    });
+  </script>
+
+  {% comment %} Switch to Tab with Invalid Inputs {% endcomment %}
+  <script>
+    // Open tab with the first invalid/missing field on submission but before POST
+    $('#submit-id-submit').click(function () {
+      $('input:invalid').each(function () {
+        // Find the tab-pane that this element is inside, and get the id
+        let $closest = $(this).closest('.tab-pane');
+        let id = $closest.attr('id');
+
+        // Find the link that corresponds to the pane and have it show
+        $('.nav a[href="#' + id + '"]').tab('show');
+
+        // Only want to do it once
+        return false;
+      });
+    });
+    // Open tab with the first invalid/missing field when returning from a POST that failed validation
+    $(window).on('load', function () {
+      $('input.is-invalid').each(function () {
+        // Find the tab-pane that this element is inside, and get the id
+        let $closest = $(this).closest('.tab-pane');
+        let id = $closest.attr('id');
+
+        // Find the link that corresponds to the pane and have it show
+        $('.nav a[href="#' + id + '"]').tab('show');
+
+        // Only want to do it once
+        return false;
+      });
+      // If no invalid fields, look for invalid-feedback messages
+      // This catches invalid fields taken over by TinyMCE
+      $('span.invalid-feedback').each(function () {
+        // Find the tab-pane that this element is inside, and get the id
+        let $closest = $(this).closest('.tab-pane');
+        let id = $closest.attr('id');
+
+        // Find the link that corresponds to the pane and have it show
+        $('.nav a[href="#' + id + '"]').tab('show');
+
+        // Only want to do it once
+        return false;
+      });
+    });
+
+    $(window).click(function () {
+      {% comment %} Toggle the hamburger menu back to normal if user clicks away {% endcomment %}
+      let $hamburgerMenu = $('.dropdown-menu-btn')
+      if ($hamburgerMenu.hasClass('change')) {
+        $hamburgerMenu.removeClass('change');
+      }
+    });
+  </script>
+{% endblock %}
+
+{% comment %} Block to hold additional one-off JavaScript needed by an individual template {% endcomment %}
+{% block morescripts %}{% endblock %}
+</body>
 </html>
