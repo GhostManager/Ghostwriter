@@ -85,8 +85,6 @@
   <link rel="stylesheet" href="{% static 'css/cvss_styles.css' %}">
   <script src="{% static 'js/cvsscalc30.js' %}"></script>
   <script src="{% static 'js/cvsscalc30_ui.js' %}"></script>
-
-
 </head>
 
 <body>
@@ -392,6 +390,7 @@
         <!-- User Profile & Avatar -->
         <a href="{% url 'users:user_detail' request.user.username %}">
           <img class="navbar-avatar"
+               data-toggle="tooltip" data-placement="top" title="Logged-in as {{ request.user.username }}"
                src="{{ request.user.userprofile.avatar_url }}"
                alt="Avatar">
         </a>
