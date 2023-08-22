@@ -264,13 +264,17 @@ FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
 SESSION_COOKIE_HTTPONLY = True
 # https://docs.djangoproject.com/en/3.2/ref/settings/#session-cookie-age
-SESSION_COOKIE_AGE = env("DJANGO_SESSION_COOKIE_AGE", default=60 * 60 * 24 * 7 * 2)
+SESSION_COOKIE_AGE = env("DJANGO_SESSION_COOKIE_AGE", default=60 * 60 * 2)
 # https://docs.djangoproject.com/en/3.2/ref/settings/#session-expire-at-browser-close
-SESSION_EXPIRE_AT_BROWSER_CLOSE = env("DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE", default=False)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = env("DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE", default=True)
 # https://docs.djangoproject.com/en/3.2/topics/http/sessions/#when-sessions-are-saved
-SESSION_SAVE_EVERY_REQUEST = env("DJANGO_SESSION_SAVE_EVERY_REQUEST", default=False)
+SESSION_SAVE_EVERY_REQUEST = env("DJANGO_SESSION_SAVE_EVERY_REQUEST", default=True)
+# https://docs.djangoproject.com/en/3.2/ref/settings/#session-cookie-secure
+SESSION_COOKIE_SECURE = env("DJANGO_SESSION_COOKIE_SECURE", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
 CSRF_COOKIE_HTTPONLY = True
+# https://docs.djangoproject.com/en/3.2/ref/settings/#csrf-cookie-secure
+CSRF_COOKIE_SECURE = env("DJANGO_CSRF_COOKIE_SECURE", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
@@ -336,7 +340,7 @@ ALLAUTH_2FA_FORMS = {
     "setup": "ghostwriter.users.forms.User2FADeviceForm",
     "remove": "ghostwriter.users.forms.User2FADeviceRemoveForm",
 }
-ALLAUTH_2FA_ALWAYS_REVEAL_BACKUP_TOKENS = env("2FA_ALWAYS_REVEAL_BACKUP_TOKENS", default=False)
+ALLAUTH_2FA_ALWAYS_REVEAL_BACKUP_TOKENS = env("DJANGO_2FA_ALWAYS_REVEAL_BACKUP_TOKENS", default=False)
 ALLAUTH_2FA_SETUP_SUCCESS_URL = "users:redirect"
 ALLAUTH_2FA_REMOVE_SUCCESS_URL = "users:redirect"
 
