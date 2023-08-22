@@ -2,14 +2,14 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 
-{% block pagetitle %}Setup 2FA{% endblock %}
+{% block pagetitle %}Set Up 2FA{% endblock %}
 
 {% block breadcrumbs %}
   <nav aria-label="breadcrumb">
     <ul class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
       <li class="breadcrumb-item"><a href="{% url 'users:user_detail' request.user.username %}">Your Profile</a></li>
-      <li class="breadcrumb-item active" aria-current="page">Setup 2FA</li>
+      <li class="breadcrumb-item active" aria-current="page">Set Up 2FA</li>
     </ul>
   </nav>
 {% endblock %}
