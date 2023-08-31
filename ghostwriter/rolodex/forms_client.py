@@ -61,7 +61,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "name",
                             ValidationError(
-                                _("This person is already assigned as a contact"),
+                                _("This person is already assigned as a contact."),
                                 code="duplicate",
                             ),
                         )
@@ -71,7 +71,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "job_title",
                                 ValidationError(
-                                    _("This person is missing a job title / role"),
+                                    _("This person is missing a job title / role."),
                                     code="incomplete",
                                 ),
                             )
@@ -79,7 +79,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "email",
                                 ValidationError(
-                                    _("This person is missing an email address"),
+                                    _("This person is missing an email address."),
                                     code="incomplete",
                                 ),
                             )
@@ -91,7 +91,7 @@ class BaseClientContactInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "email",
                                 ValidationError(
-                                    _("Enter a valid email address for this contact"),
+                                    _("Enter a valid email address for this contact."),
                                     code="invalid",
                                 ),
                             )
@@ -193,7 +193,7 @@ ClientContactFormSet = inlineformset_factory(
     ClientContact,
     form=ClientContactForm,
     formset=BaseClientContactInlineFormSet,
-    extra=0,
+    extra=EXTRAS,
     can_delete=True,
 )
 
@@ -334,7 +334,7 @@ class ClientNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"),
+                _("You must provide some content for the note."),
                 code="required",
             )
         return note

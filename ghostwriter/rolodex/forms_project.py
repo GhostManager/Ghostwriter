@@ -7,6 +7,7 @@ from collections import namedtuple
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -33,6 +34,7 @@ from ghostwriter.rolodex.models import (
     Deconfliction,
     Project,
     ProjectAssignment,
+    ProjectContact,
     ProjectNote,
     ProjectObjective,
     ProjectScope,
@@ -77,7 +79,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "objective",
                             ValidationError(
-                                _("Your project objectives must be unique"),
+                                _("Your project objectives must be unique."),
                                 code="duplicate",
                             ),
                         )
@@ -86,7 +88,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "objective",
                             ValidationError(
-                                _("You set a deadline without an objective"),
+                                _("You set a deadline without an objective."),
                                 code="incomplete",
                             ),
                         )
@@ -94,7 +96,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "deadline",
                             ValidationError(
-                                _("Your objective still needs a deadline"),
+                                _("Your objective still needs a deadline."),
                                 code="incomplete",
                             ),
                         )
@@ -113,7 +115,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "deadline",
                                 ValidationError(
-                                    _("Your selected date is before the project start date"),
+                                    _("Your selected date is before the project start date."),
                                     code="invalid_date",
                                 ),
                             )
@@ -121,7 +123,7 @@ class BaseProjectObjectiveInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "deadline",
                                 ValidationError(
-                                    _("Your selected date is after the project end date"),
+                                    _("Your selected date is after the project end date."),
                                     code="invalid_date",
                                 ),
                             )
@@ -156,7 +158,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "end_date",
                                 ValidationError(
-                                    _("Your end date is earlier than your start date"),
+                                    _("Your end date is earlier than your start date."),
                                     code="invalid_date",
                                 ),
                             )
@@ -175,7 +177,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "operator",
                                 ValidationError(
-                                    _("This operator is assigned more than once for an overlapping time period"),
+                                    _("This operator is assigned more than once for an overlapping time period."),
                                     code="duplicate",
                                 ),
                             )
@@ -186,7 +188,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "start_date",
                                 ValidationError(
-                                    _("Your assigned operator is missing a start date"),
+                                    _("Your assigned operator is missing a start date."),
                                     code="incomplete",
                                 ),
                             )
@@ -194,7 +196,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "end_date",
                                 ValidationError(
-                                    _("Your assigned operator is missing an end date"),
+                                    _("Your assigned operator is missing an end date."),
                                     code="incomplete",
                                 ),
                             )
@@ -202,7 +204,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "role",
                                 ValidationError(
-                                    _("Your assigned operator is missing a project role"),
+                                    _("Your assigned operator is missing a project role."),
                                     code="incomplete",
                                 ),
                             )
@@ -211,7 +213,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "operator",
                             ValidationError(
-                                _("Your assignment is missing an operator"),
+                                _("Your assignment is missing an operator."),
                                 code="incomplete",
                             ),
                         )
@@ -220,7 +222,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "note",
                             ValidationError(
-                                _("This note is part of an incomplete assignment form"),
+                                _("This note is part of an incomplete assignment form."),
                                 code="incomplete",
                             ),
                         )
@@ -230,7 +232,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "start_date",
                                 ValidationError(
-                                    _("Your selected date is before the project start date"),
+                                    _("Your selected date is before the project start date."),
                                     code="invalid_date",
                                 ),
                             )
@@ -238,7 +240,7 @@ class BaseProjectAssignmentInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "end_date",
                                 ValidationError(
-                                    _("Your selected date is after the project end date"),
+                                    _("Your selected date is after the project end date."),
                                     code="invalid_date",
                                 ),
                             )
@@ -273,7 +275,7 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "name",
                             ValidationError(
-                                _("Your names must be unique"),
+                                _("Your names must be unique."),
                                 code="duplicate",
                             ),
                         )
@@ -282,7 +284,7 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "scope",
                                 ValidationError(
-                                    _("You scope list is missing"),
+                                    _("You scope list is missing."),
                                     code="incomplete",
                                 ),
                             )
@@ -290,7 +292,7 @@ class BaseProjectScopeInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "name",
                             ValidationError(
-                                _("Your scope list is missing a name"),
+                                _("Your scope list is missing a name."),
                                 code="incomplete",
                             ),
                         )
@@ -327,7 +329,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "hostname",
                             ValidationError(
-                                _("Your targets should be unique"),
+                                _("Your targets should be unique."),
                                 code="duplicate",
                             ),
                         )
@@ -339,7 +341,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "ip_address",
                             ValidationError(
-                                _("Your targets should be unique"),
+                                _("Your targets should be unique."),
                                 code="duplicate",
                             ),
                         )
@@ -347,7 +349,7 @@ class BaseProjectTargetInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "note",
                             ValidationError(
-                                _("You must provide a hostname or IP address with your note"),
+                                _("You must provide a hostname or IP address with your note."),
                                 code="incomplete",
                             ),
                         )
@@ -375,7 +377,7 @@ class BaseWhiteCardInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "issued",
                             ValidationError(
-                                _("Your white card still needs an issued date and time"),
+                                _("Your white card still needs an issued date and time."),
                                 code="incomplete",
                             ),
                         )
@@ -383,7 +385,7 @@ class BaseWhiteCardInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "title",
                             ValidationError(
-                                _("Your white card still needs a title"),
+                                _("Your white card still needs a title."),
                                 code="incomplete",
                             ),
                         )
@@ -394,8 +396,86 @@ class BaseWhiteCardInlineFormSet(BaseInlineFormSet):
                             form.add_error(
                                 "issued",
                                 ValidationError(
-                                    _("Your selected date is after the project end date"),
+                                    _("Your selected date is after the project end date."),
                                     code="invalid_datetime",
+                                ),
+                            )
+
+
+class BaseProjectContactInlineFormSet(BaseInlineFormSet):
+    """
+    BaseInlineFormset template for :model:`rolodex.ProjectContact` that adds validation
+    for this model.
+    """
+
+    def clean(self):
+        contacts = []
+        primary_set = False
+        duplicates = False
+        super().clean()
+        if any(self.errors):
+            return
+        for form in self.forms:
+            if form.cleaned_data:
+                # Only validate if the form is NOT marked for deletion
+                if form.cleaned_data["DELETE"] is False:
+                    name = form.cleaned_data["name"]
+                    job_title = form.cleaned_data["job_title"]
+                    email = form.cleaned_data["email"]
+                    primary = form.cleaned_data["primary"]
+
+                    # Check that the same person has not been added more than once
+                    if name:
+                        if name in contacts:
+                            duplicates = True
+                        contacts.append(name)
+                    if duplicates:
+                        form.add_error(
+                            "name",
+                            ValidationError(
+                                _("This person is already assigned as a contact."),
+                                code="duplicate",
+                            ),
+                        )
+                    if primary:
+                        if primary_set:
+                            form.add_error(
+                                "primary",
+                                ValidationError(
+                                    _("You can only set one primary contact."),
+                                    code="duplicate",
+                                ),
+                            )
+                        primary_set = True
+
+                    # Raise an error if a name is provided without any required details
+                    if name and any(x is None for x in [job_title, email]):
+                        if not job_title:
+                            form.add_error(
+                                "job_title",
+                                ValidationError(
+                                    _("This person is missing a job title / role."),
+                                    code="incomplete",
+                                ),
+                            )
+                        if not email:
+                            form.add_error(
+                                "email",
+                                ValidationError(
+                                    _("This person is missing an email address."),
+                                    code="incomplete",
+                                ),
+                            )
+                    # Check that the email address is in a valid format
+                    if email:
+                        try:
+                            validate_email(email)
+                        except ValidationError:
+                            form.add_error(
+                                "email",
+                                ValidationError(
+                                    _("Enter a valid email address for this contact."),
+                                    code="invalid",
                                 ),
                             )
 
@@ -897,6 +977,96 @@ class WhiteCardForm(forms.ModelForm):
         )
 
 
+class ProjectContactForm(forms.ModelForm):
+    """
+    Save an individual :model:`rolodex.ProjectContact` associated with an individual
+    :model:`rolodex.Project`.
+    """
+
+    class Meta:
+        model = ProjectContact
+        exclude = ("project",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        general_config = GeneralConfiguration.get_solo()
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["name"].widget.attrs["placeholder"] = "Janine Melnitz"
+        self.fields["name"].label = "Full Name"
+        self.fields["email"].widget.attrs["placeholder"] = "info@getghostwriter.io"
+        self.fields["email"].label = "Email Address"
+        self.fields["job_title"].widget.attrs["placeholder"] = "COO"
+        self.fields["phone"].widget.attrs["placeholder"] = "(212) 897-1964"
+        self.fields["phone"].label = "Phone Number"
+        self.fields["note"].widget.attrs["placeholder"] = "Janine is our main contact for assessment work and ..."
+        self.fields["timezone"].initial = general_config.default_timezone
+        self.helper = FormHelper()
+        # Disable the <form> tags because this will be part of an instance of `ProjectForm()`
+        self.helper.form_tag = False
+        # Disable CSRF so `csrfmiddlewaretoken` is not rendered multiple times
+        self.helper.disable_csrf = True
+        # Layout the form for Bootstrap
+        self.helper.layout = Layout(
+            # Wrap form in a div so Django renders form instances in their own element
+            Div(
+                # These Bootstrap alerts begin hidden and function as undo buttons for deleted forms
+                Alert(
+                    content=(
+                        """
+                        <strong>Contact Deleted!</strong>
+                        Deletion will be permanent once the form is submitted. Click this alert to undo.
+                        """
+                    ),
+                    css_class="alert alert-danger show formset-undo-button",
+                    style="display:none; cursor:pointer;",
+                    template="alert.html",
+                    block=False,
+                    dismiss=False,
+                ),
+                Div(
+                    HTML(
+                        """
+                        <h6>Contact #<span class="counter">{{ forloop.counter }}</span></h6>
+                        <hr>
+                        """
+                    ),
+                    Row(
+                        Column("name", css_class="form-group col-md-6 mb-0"),
+                        Column("job_title", css_class="form-group col-md-6 mb-0"),
+                        css_class="form-row",
+                    ),
+                    Row(
+                        Column("email", css_class="form-group col-md-4 mb-0"),
+                        Column("phone", css_class="form-group col-md-4 mb-0"),
+                        Column("timezone", css_class="form-group col-md-4 mb-0"),
+                        css_class="form-row",
+                    ),
+                    SwitchToggle("primary", onchange="cbChange(this)", css_class="js-cb-toggle"),
+                    "note",
+                    Row(
+                        Column(
+                            Button(
+                                "formset-del-button",
+                                "Delete Contact",
+                                css_class="btn-outline-danger formset-del-button col-4",
+                            ),
+                            css_class="form-group col-6 offset-3",
+                        ),
+                        Column(
+                            Field(
+                                "DELETE", style="display: none;", visibility="hidden", template="delete_checkbox.html"
+                            ),
+                            css_class="form-group col-3 text-center",
+                        ),
+                    ),
+                    css_class="formset",
+                ),
+                css_class="formset-container",
+            )
+        )
+
+
 # Create the `inlineformset_factory()` objects for `ProjectForm()`
 
 ProjectAssignmentFormSet = inlineformset_factory(
@@ -940,6 +1110,15 @@ WhiteCardFormSet = inlineformset_factory(
     WhiteCard,
     form=WhiteCardForm,
     formset=BaseWhiteCardInlineFormSet,
+    extra=EXTRAS,
+    can_delete=True,
+)
+
+ProjectContactFormSet = inlineformset_factory(
+    Project,
+    ProjectContact,
+    form=ProjectContactForm,
+    formset=BaseProjectContactInlineFormSet,
     extra=EXTRAS,
     can_delete=True,
 )
@@ -1071,7 +1250,7 @@ class ProjectForm(forms.ModelForm):
         # Check if ``end_date`` comes before the ``start_date``
         if end_date < start_date:
             raise ValidationError(
-                _("The provided end date comes before the start date"),
+                _("The provided end date comes before the start date."),
                 code="invalid_date",
             )
         return end_date
@@ -1081,7 +1260,7 @@ class ProjectForm(forms.ModelForm):
         if slack_channel:
             if not slack_channel.startswith("#") and not slack_channel.startswith("@"):
                 raise ValidationError(
-                    _("Slack channels should start with # or @ – check this channel name"),
+                    _("Slack channels should start with # or @."),
                     code="invalid_channel",
                 )
         return slack_channel
@@ -1120,7 +1299,7 @@ class ProjectNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"),
+                _("You must provide some content for the note."),
                 code="required",
             )
         return note
@@ -1217,7 +1396,7 @@ class DeconflictionForm(forms.ModelForm):
                 self.add_error(
                     "response_timestamp",
                     ValidationError(
-                        _("The response timestamp cannot be before the report timestamp"),
+                        _("The response timestamp cannot be before the report timestamp."),
                         code="invalid_datetime",
                     ),
                 )
@@ -1227,7 +1406,7 @@ class DeconflictionForm(forms.ModelForm):
                 self.add_error(
                     "report_timestamp",
                     ValidationError(
-                        _("The report timestamp cannot be before the alert timestamp"),
+                        _("The report timestamp cannot be before the alert timestamp."),
                         code="invalid_datetime",
                     ),
                 )
@@ -1256,6 +1435,17 @@ class ProjectComponentForm(forms.ModelForm):
         self.helper.form_method = "post"
         self.helper.layout = Layout(
             TabHolder(
+                CustomTab(
+                    "Contacts",
+                    Formset("contacts", object_context_name="Contact"),
+                    Button(
+                        "add-contact",
+                        "Add Contact",
+                        css_class="btn-block btn-secondary formset-add-contact mb-2 offset-4 col-4",
+                    ),
+                    link_css_class="poc-icon",
+                    css_id="contacts",
+                ),
                 CustomTab(
                     "White Cards",
                     Formset("whitecards", object_context_name="White Card"),

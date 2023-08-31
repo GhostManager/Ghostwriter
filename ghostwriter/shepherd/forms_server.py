@@ -65,7 +65,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "ip_address",
                             ValidationError(
-                                _("This address entry is incomplete"),
+                                _("This address entry is incomplete."),
                                 code="incomplete",
                             ),
                         )
@@ -78,7 +78,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "ip_address",
                             ValidationError(
-                                _("This address is already assigned to this server"),
+                                _("This address is already assigned to this server."),
                                 code="duplicate",
                             ),
                         )
@@ -90,7 +90,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "primary",
                             ValidationError(
-                                _("You can not mark two addresses as the primary address"),
+                                _("You can not mark two addresses as the primary address."),
                                 code="duplicate",
                             ),
                         )
@@ -386,7 +386,7 @@ class ServerNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"),
+                _("You must provide some content for the note."),
                 code="required",
             )
         return note
