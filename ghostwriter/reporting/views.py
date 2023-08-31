@@ -689,7 +689,7 @@ class ReportTemplateSwap(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             except Exception:  # pragma: no cover
                 data = {
                     "result": "error",
-                    "message": "An exception prevented the template chang.",
+                    "message": "An exception prevented the template change.",
                 }
                 logger.exception(
                     "Encountered an error trying to update %s %s with template IDs %s & %s from a request submitted by %s",

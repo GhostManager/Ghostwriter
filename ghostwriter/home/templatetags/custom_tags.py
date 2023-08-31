@@ -7,11 +7,15 @@ from django.contrib.auth.models import Group
 from django.db.models import Q
 
 # 3rd Party Libraries
-from bs4 import BeautifulSoup
 from allauth_2fa.utils import user_has_valid_totp_device
+from bs4 import BeautifulSoup
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_access, verify_finding_access, verify_user_is_privileged
+from ghostwriter.api.utils import (
+    verify_access,
+    verify_finding_access,
+    verify_user_is_privileged,
+)
 from ghostwriter.reporting.models import Report, ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
 
