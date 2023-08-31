@@ -22,5 +22,11 @@
   {% endif %}
 
   <!-- Form Section -->
-  {% crispy form form.helper %}
+  <form class="validate" method="POST" action="{% url 'two-factor-authenticate' %}" novalidate>
+    {% csrf_token %}
+    {% crispy form form.helper %}
+    {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+    {% endif %}
+  </form>
 {% endblock %}

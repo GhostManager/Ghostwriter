@@ -141,6 +141,7 @@ class UserLoginForm(LoginForm):
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_tag = False
+        self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
                 Column("login", css_class="form-group col-12 mb-0"),
@@ -166,6 +167,7 @@ class User2FAAuthenticateForm(TOTPAuthenticateForm):
         self.fields["otp_token"].widget.attrs["placeholder"] = "421 984"
         self.helper = FormHelper()
         self.helper.form_method = "post"
+        self.helper.form_tag = False
         self.helper.form_show_errors = False
         self.helper.layout = Layout(
             Row(
