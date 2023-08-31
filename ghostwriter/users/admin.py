@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.contrib.auth import admin as auth_admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.contrib.sessions.models import Session
 from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
@@ -12,6 +13,16 @@ from ghostwriter.home.models import UserProfile
 from ghostwriter.users.forms import GroupAdminForm
 
 User = get_user_model()
+
+
+class SessionAdmin(admin.ModelAdmin):
+    def _session_data(self, obj):
+        return obj.get_decoded()
+
+    list_display = ["session_key", "_session_data", "expire_date"]
+
+
+admin.site.register(Session, SessionAdmin)
 
 
 class AdminProfileInline(admin.StackedInline):
