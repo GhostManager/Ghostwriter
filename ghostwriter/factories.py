@@ -217,6 +217,20 @@ class ProjectTargetFactory(factory.django.DjangoModelFactory):
     project = factory.SubFactory(ProjectFactory)
 
 
+class ProjectContactFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ProjectContact"
+
+    name = Faker("name")
+    job_title = Faker("job")
+    email = Faker("email")
+    phone = Faker("phone_number")
+    note = Faker("paragraph")
+    primary = False
+    timezone = random.choice(TIMEZONES)
+    project = factory.SubFactory(ProjectFactory)
+
+
 # Reporting Factories
 
 

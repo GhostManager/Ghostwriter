@@ -30,6 +30,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
 )
 from ghostwriter.modules import codenames
+from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
 from ghostwriter.rolodex.forms_client import (
     ClientContactFormSet,
@@ -40,6 +41,7 @@ from ghostwriter.rolodex.forms_project import (
     DeconflictionForm,
     ProjectAssignmentFormSet,
     ProjectComponentForm,
+    ProjectContactFormSet,
     ProjectForm,
     ProjectNoteForm,
     ProjectObjectiveFormSet,
@@ -56,6 +58,7 @@ from ghostwriter.rolodex.models import (
     ObjectiveStatus,
     Project,
     ProjectAssignment,
+    ProjectContact,
     ProjectNote,
     ProjectObjective,
     ProjectScope,
@@ -113,6 +116,28 @@ def update_client_badges(request, pk):
     html = render_to_string(
         "snippets/client_nav_tabs.html",
         {"client": client_instance},
+    )
+    return HttpResponse(html)
+
+
+@login_required
+def update_project_contacts(request, pk):
+    """
+    Return an updated version of the template following the addition of a new
+    :model:`rolodex.ProjectContact` entry.
+
+    **Template**
+
+    :template:`snippets/project_contacts_table.html`
+    """
+    project_instance = get_object_or_404(Project, pk=pk)
+
+    if not verify_access(request.user, project_instance):
+        return ForbiddenJsonResponse()
+
+    html = render_to_string(
+        "snippets/project_contacts_table.html",
+        {"project": project_instance},
     )
     return HttpResponse(html)
 
@@ -886,6 +911,76 @@ class DeconflictionDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
+class AssignProjectContact(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Copy an individual :model:`rolodex.ClientContact` to create a new :model:`rolodex.ProjectContact`"""
+
+    model = Project
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object())
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        data = {"result": "success", "message": ""}
+        contact_id = self.request.POST.get("contact", None)
+        logger.info("Received AJAX POST to assign contact %s to project", contact_id)
+        try:
+            contact_id = int(contact_id)
+            if contact_id:
+                if contact_id < 0:
+                    return JsonResponse({"result": "error", "message": "You must choose a contact."})
+                contact_instance = get_object_or_404(ClientContact, id=contact_id)
+                if not verify_access(self.request.user, contact_instance.client):
+                    return ForbiddenJsonResponse()
+                contact_dict = to_dict(contact_instance, resolve_fk=True)
+                del contact_dict["client"]
+                del contact_dict["note"]
+
+                # Check if this contact already exists in the project
+                if ProjectContact.objects.filter(**contact_dict, project=self.get_object()).count() > 0:
+                    message = "{} already exists in your project.".format(contact_instance.name)
+                    data = {"result": "error", "message": message}
+                else:
+                    project_contact = ProjectContact(
+                        project=self.get_object(), **contact_dict, note=contact_instance.note
+                    )
+                    project_contact.save()
+
+                    message = "{} successfully added to your project.".format(contact_instance.name)
+                    data = {"result": "success", "message": message}
+                    logger.info(
+                        "Assigned %s %s to %s %s by request of %s",
+                        contact_instance.__class__.__name__,
+                        contact_instance.id,
+                        self.get_object().__class__.__name__,
+                        self.get_object().id,
+                        self.request.user,
+                    )
+        except ValueError:
+            data = {
+                "result": "error",
+                "message": "Submitted contact ID was not an integer.",
+            }
+            logger.error(
+                "Received an invalid (non-integer) contact IDs (%s) from a request submitted by %s",
+                contact_id,
+                self.request.user,
+            )
+        except Exception:  # pragma: no cover
+            data = {
+                "result": "error",
+                "message": "An exception prevented contact assignment.",
+            }
+            logger.exception(
+                "Encountered an error trying to create a project contact with contact ID %s from a request submitted by %s",
+                contact_id,
+                self.request.user,
+            )
+        return JsonResponse(data)
+
+
 ##################
 # View Functions #
 ##################
@@ -1345,6 +1440,24 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        contacts = ClientContact.objects.filter(client=self.object.client)
+        for contact in contacts:
+            if (
+                ProjectContact.objects.filter(
+                    name=contact.name,
+                    email=contact.email,
+                    phone=contact.phone,
+                    project=self.object,
+                ).count()
+                > 0
+            ):
+                contacts = contacts.exclude(id=contact.id)
+        ctx["client_contacts"] = contacts
+        return ctx
+
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
     """
@@ -1615,11 +1728,13 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
             ctx["scopes"] = ProjectScopeFormSet(self.request.POST, prefix="scope", instance=self.object)
             ctx["targets"] = ProjectTargetFormSet(self.request.POST, prefix="target", instance=self.object)
             ctx["whitecards"] = WhiteCardFormSet(self.request.POST, prefix="card", instance=self.object)
+            ctx["contacts"] = ProjectContactFormSet(self.request.POST, prefix="contact", instance=self.object)
         else:
             ctx["objectives"] = ProjectObjectiveFormSet(prefix="obj", instance=self.object)
             ctx["scopes"] = ProjectScopeFormSet(prefix="scope", instance=self.object)
             ctx["targets"] = ProjectTargetFormSet(prefix="target", instance=self.object)
             ctx["whitecards"] = WhiteCardFormSet(prefix="card", instance=self.object)
+            ctx["contacts"] = ProjectContactFormSet(prefix="contact", instance=self.object)
         return ctx
 
     def get_success_url(self):
@@ -1633,6 +1748,7 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
         targets = ctx["targets"]
         objectives = ctx["objectives"]
         whitecards = ctx["whitecards"]
+        contacts = ctx["contacts"]
 
         # Now validate inline formsets
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
@@ -1661,8 +1777,20 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
                     whitecards.instance = obj
                     whitecards.save()
 
+                contacts_valid = contacts.is_valid()
+                if contacts_valid:
+                    contacts.instance = obj
+                    contacts.save()
+
                 # Proceed with form submission
-                if form.is_valid() and objectives_valid and scopes_valid and targets_valid and whitecards_valid:
+                if (
+                    form.is_valid()
+                    and objectives_valid
+                    and scopes_valid
+                    and targets_valid
+                    and whitecards_valid
+                    and contacts_valid
+                ):
                     obj.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions

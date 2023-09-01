@@ -110,7 +110,7 @@ class ClientContact(models.Model):
         help_text="The contact's timezone",
     )
     note = models.TextField(
-        "Client Note",
+        "Contact Note",
         null=True,
         blank=True,
         help_text="Provide additional information about the contact",
@@ -304,6 +304,63 @@ class ProjectAssignment(models.Model):
 
     def __str__(self):
         return f"{self.operator} - {self.project} {self.end_date})"
+
+
+class ProjectContact(models.Model):
+    """Stores an individual point of contact, related to :model:`rolodex.Project`."""
+
+    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
+    job_title = models.CharField(
+        "Title or Role",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Enter the contact's job title or project role as you want it to appear in a report",
+    )
+    email = models.CharField(
+        "Email",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Enter an email address for this contact",
+    )
+    # The ITU E.164 states phone numbers should not exceed 15 characters
+    # We want valid phone numbers, but validating them (here or in forms) is unnecessary
+    # Numbers are not used for anything – and any future use would involve human involvement
+    # The `max_length` allows for people adding spaces, other chars, and extension numbers
+    phone = models.CharField(
+        "Phone",
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Enter a phone number for this contact",
+    )
+    timezone = TimeZoneField(
+        "Timezone",
+        default="America/Los_Angeles",
+        help_text="The contact's timezone",
+    )
+    note = models.TextField(
+        "Contact Note",
+        null=True,
+        blank=True,
+        help_text="Provide additional information about the contact",
+    )
+    primary = models.BooleanField(
+        "Primary Contact",
+        default=False,
+        help_text="Flag this contact as the primary point of contact / report recipient for the project",
+    )
+    # Foreign keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False, blank=False)
+
+    class Meta:
+        ordering = ["project", "id"]
+        verbose_name = "Project POC"
+        verbose_name_plural = "Project POCs"
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class ObjectiveStatus(models.Model):

@@ -2,6 +2,7 @@
 
 # Django Imports
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex import views
@@ -81,6 +82,16 @@ urlpatterns += [
         "ajax/project/refresh/<int:pk>",
         views.update_project_badges,
         name="ajax_update_project_badges",
+    ),
+    path(
+        "ajax/project/contacts/refresh/<int:pk>",
+        views.update_project_contacts,
+        name="ajax_update_project_contacts",
+    ),
+    path(
+        "ajax/contact/assign/<int:pk>",
+        csrf_exempt(views.AssignProjectContact.as_view()),
+        name="ajax_assign_project_contact",
     ),
     path(
         "ajax/client/refresh/<int:pk>",

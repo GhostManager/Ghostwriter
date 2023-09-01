@@ -10,6 +10,7 @@ from django.utils.encoding import force_str
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     AuxServerAddressFactory,
+    ClientContactFactory,
     ClientFactory,
     ClientInviteFactory,
     ClientNoteFactory,
@@ -766,3 +767,64 @@ class ProjectListViewTests(TestCase):
         response = self.client_mgr.get(f"{self.uri}?codename=p1")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
+
+
+class AssignProjectContactViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.AssignProjectContact`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory()
+        cls.contact = ClientContactFactory(client=cls.project.client)
+        cls.other_contact = ClientContactFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD)
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        data = {
+            "result": "success",
+            "message": f"{self.contact.name} successfully added to your project.",
+        }
+        response = self.client_mgr.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        response = self.client_auth.post(self.uri, {"contact": self.other_contact.pk})
+        self.assertEqual(response.status_code, 403)
+        response = self.client_auth.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 200)
+
+    def test_invalid_contact_id(self):
+        data = {
+            "result": "error",
+            "message": "Submitted contact ID was not an integer.",
+        }
+        response = self.client_mgr.post(self.uri, {"contact": "foo"})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {
+            "result": "error",
+            "message": "You must choose a contact.",
+        }
+        response = self.client_mgr.post(self.uri, {"contact": -1})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)

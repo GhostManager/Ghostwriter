@@ -203,3 +203,16 @@ const escapeHtml = (unsafe) => {
     return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 }
 
+
+function update_project_contacts() {
+  // Get the update URL from the ``nav-tabs`` element
+  let $contactsSection = $('#project-contacts');
+  let update_url = $contactsSection.attr('js-update-contacts-url');
+  if (update_url != null) {
+    console.log("Updating contacts...");
+    // Refresh the HTML from the update URL
+    $contactsSection.html('').load(update_url, function () {
+    });
+  }
+}
+

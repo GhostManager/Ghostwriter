@@ -18,7 +18,7 @@
 {% endblock %}
 
 {% block content %}
-  {%  if request.user|is_privileged %}
+  {% if request.user|is_privileged %}
     <div class="dropdown">
       <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
            onclick="hamburger(this)">
@@ -143,39 +143,6 @@
 
       {% comment %} People Tab {% endcomment %}
       <div id="people" class="tab-pane">
-        {% comment %} Contacts Section {% endcomment %}
-        <h4>Client Points of Contacts</h4>
-        <hr/>
-
-        {% if project.client.clientcontact_set.all %}
-          <table id="contactTable" class="tablesorter table">
-            <thead>
-              <th class="align-middle pr-4">Name</th>
-              <th class="align-middle pr-4">Title/Role</th>
-              <th class="sorter-false align-middle pr-4">Email</th>
-              <th class="sorter-false align-middle">Phone</th>
-              <th class="sorter-false align-middle">Note</th>
-            </thead>
-            {% for contact in project.client.clientcontact_set.all %}
-              <tr>
-                <td class="align-middle">{{ contact.name }}</td>
-                <td class="align-middle">{{ contact.job_title }}</td>
-                <td class="align-middle">{{ contact.email }}</td>
-                <td class="align-middle">
-                  {% if contact.phone %}
-                      {{ contact.phone }}
-                  {% else %}
-                      --
-                  {% endif %}
-                </td>
-                <td class="text-justify align-middle">{{ contact.note|bleach }}</td>
-              </tr>
-            {% endfor %}
-          </table>
-        {% else %}
-          <p>No points of contacts have been assigned to this client yet.</p>
-        {% endif %}
-
         {% comment %} Assignment Section {% endcomment %}
         <h4>Project Team Assignments</h4>
         <hr/>
@@ -187,11 +154,12 @@
         {% if project.projectassignment_set.all %}
           <table id="assignmentTable" class="tablesorter table">
             <thead>
-              <th class="align-middle pr-4">Operator</th>
-              <th class="align-middle pr-4">Role</th>
-              <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
-              <th class="sorter-false align-middle">Note</th>
-              {% if request.user|is_privileged %}<th class="sorter-false text-center align-middle">Options</th>{% endif %}
+            <th class="align-middle pr-4">Operator</th>
+            <th class="align-middle pr-4">Role</th>
+            <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
+            <th class="sorter-false align-middle">Note</th>
+            {% if request.user|is_privileged %}
+              <th class="sorter-false text-center align-middle">Options</th>{% endif %}
             </thead>
             {% for operator in project.projectassignment_set.all %}
               <tr>
@@ -231,8 +199,15 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>No operators have been assigned to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no operators assigned to
+            this project yet.
+          </div>
         {% endif %}
+
+        <div id="project-contacts"
+             js-update-contacts-url="{% url 'rolodex:ajax_update_project_contacts' project.id %}">
+          {% include "snippets/project_contacts_table.html" %}
+        </div>
       </div>
 
       {% comment %} White Cards Tab {% endcomment %}
@@ -274,50 +249,9 @@
             </div>
           {% endfor %}
         {% else %}
-          <p>No white cards have been added to this project yet.</p>
-        {% endif %}
-      </div>
-
-      {% comment %} White Cards Tab {% endcomment %}
-      <div id="whitecards" class="tab-pane">
-        <h4>White Cards</h4>
-        <hr/>
-
-        <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_component_update' project.id %}#whitecards">Add & Edit White Cards</a>
-        {% if project.whitecard_set.all %}
-          {% for card in project.whitecard_set.all %}
-            <div id="whitecard-card-{{ card.id }}" class="card card-project text-center mb-3">
-              <div class="card-header">
-                <h5 class="card-title">{{ card.title }}</h5>
-              </div>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-sm-12">
-                    <h6 class="card-subtitle mb-2 text-muted"><span class="card-help-text" data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="Date and time the client approved this white card.">Issued</span>
-                    </h6>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-sm-12">
-                    <p class="card-text">{{ card.issued|date:"d M Y @ H:i:s e" }}</p>
-                  </div>
-                </div>
-
-                <p class="card-text">
-                  {% if card.description %}
-                    {{ card.description|bleach }}
-                  {% else %}
-                    <p>No one has added a description of this white card.</p>
-                  {% endif %}
-                </p>
-              </div>
-            </div>
-          {% endfor %}
-        {% else %}
-          <p>No white cards have been added to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no white cards attached to
+            this project yet.
+          </div>
         {% endif %}
       </div>
 
@@ -410,7 +344,9 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>No scope lists have been set up to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no scope lists attached to
+            this project yet.
+          </div>
         {% endif %}
       </div>
 
@@ -479,7 +415,9 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>No targets have been set for this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no targets attached to this
+            project yet.
+          </div>
         {% endif %}
       </div>
 
@@ -523,7 +461,9 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>An operation logs has not been started for this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no activity logs started for
+            this project yet.
+          </div>
         {% endif %}
       </div>
       <div id="documents" class="tab-pane ">
@@ -631,11 +571,13 @@
                 {% endfor %}
               </table>
             {% else %}
-              <p>No findings have been added to this project's reports yet.</p>
+              <p>There are no findings for this project yet.</p>
             {% endif %}
           {% endfor %}
         {% else %}
-          <p>No reports have been created for this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no reports attached to this
+            project yet.
+          </div>
         {% endif %}
 
       </div>
@@ -713,18 +655,20 @@
               <tr class="hidden-row">
                 <td colspan=5>
                   <div id="hidden-domain-data-{{ domain.id }}" class="hidden-div">
-                    {%  if domain.note %}
+                    {% if domain.note %}
                       {{ domain.note|bleach }}
                     {% else %}
-                      <p>No notes for this domain.</p>
-                    {%  endif %}
+                      <p>There are no notes for this domain.</p>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
             {% endfor %}
           </table>
         {% else %}
-          <p>There are no domains tied to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains tied to this
+            project yet.
+          </div>
         {% endif %}
 
         {% comment %} Server Section {% endcomment %}
@@ -746,8 +690,8 @@
           </form>
         </div>
 
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
-                           href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
+        <a class="icon add-icon btn btn-primary col-3 mt-3"
+           href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a>
         {% if project.serverhistory_set.all or project.transientserver_set.all %}
           <table id="serverTable" class="tablesorter table">
             <thead>
@@ -822,11 +766,11 @@
               <tr class="hidden-row">
                 <td colspan=8>
                   <div id="hidden-server-data-{{ server.id }}" class="hidden-div">
-                    {%  if server.note %}
+                    {% if server.note %}
                       {{ server.note|bleach }}
                     {% else %}
-                      <p>No notes for this server.</p>
-                    {%  endif %}
+                      <p>There are no notes for this server.</p>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
@@ -873,18 +817,20 @@
               <tr class="hidden-row">
                 <td colspan=8>
                   <div id="hidden-vps-data-{{ server.id }}" class="hidden-div">
-                    {%  if server.note %}
+                    {% if server.note %}
                       {{ server.note|bleach }}
                     {% else %}
-                      <p>No notes for this server.</p>
-                    {%  endif %}
+                      <p>There are no notes for this server.</p>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
             {% endfor %}
           </table>
         {% else %}
-          <p>There are no servers tied to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no servers tied to this
+            project yet.
+          </div>
         {% endif %}
 
         {% comment %} DNS Section {% endcomment %}
@@ -1073,7 +1019,9 @@
             </div>
           {% endfor %}
         {% else %}
-          <p>No deconfliction events for this project.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no deconfliction events for
+            this project.
+          </div>
         {% endif %}
 
       </div>
@@ -1115,7 +1063,8 @@
             {% endif %}
           {% endfor %}
         {% else %}
-          <p>No notes for this project.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this project.
+          </div>
         {% endif %}
       </div>
     </div>
@@ -1920,6 +1869,50 @@
       "use strict";
 
       prepareTodoList();
+    });
+
+    {% comment %} Create a new project point of contact from a client contact {% endcomment %}
+    $(document).ready(function () {
+      $('#id_client_contact').change(function () {
+        let option =$(this).val();
+        if(option === -1) {
+          $('#assign-btn').prop('disabled', true);
+        } else {
+          $('#assign-btn').prop('disabled',false);
+        }
+      });
+      $('#assign-project-contact-form').submit(function (e) {
+        e.preventDefault();
+        let url = $(this).attr('action');
+        let $contact = $('#id_client_contact')
+        let contactId = $contact.val();
+        let csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+        if ($contact.val() === '') {
+          contactId = -1
+        }
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
+        });
+        $.ajax({
+          url: url,
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            'contact': contactId,
+            'csrfmiddlewaretoken': csrftoken,
+          },
+          success: function (data) {
+            if (data['message']) {
+              displayToastTop({type: data['result'], string: data['message'], title: 'Contacts Update'});
+            }
+            update_project_contacts();
+          },
+        });
+      });
     });
   </script>
 
