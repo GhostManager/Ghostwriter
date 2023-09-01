@@ -990,6 +990,11 @@ p.severity-box.info {
   border-color: var(--button-primary-color);
 }
 
+.btn.btn-primary[disabled] {
+  background-color: var(--neutral-color);
+  border-color: var(--neutral-color);
+}
+
 .btn-outline-primary {
   border-color: var(--button-primary-color);
   color: var(--button-primary-color);
