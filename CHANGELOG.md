@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.0-rc2] - 21 August 2023
+
+## [4.0.0-rc2] - 1 September 2023
 
 ### Added
 
@@ -14,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `SESSION_EXPIRE_AT_BROWSER_CLOSE` sets whether the session cookie will expire when the browser is closed
   * `SESSION_SAVE_EVERY_REQUEST` sets whether the session cookie will be saved on every request
 * Added support for two-factor authentication using TOTP
+* Added support for adding contacts to projects
+  * Supports creating project-specific contacts and adding contacts from the client
+  * Project contacts appear under the new `contacts` key in the report data
+  * A project contact can be flagged as the primary contact and mark the contact as the report recipient
+  * The primary contact appears under the new `recipient` key in the report data 
 
 ### Changed
 
@@ -30,10 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 * Removed the unused `restricted` account role
-  * This is clean-up for the release candidate; the `restricted` role was experimental and never implemented in the access controls
-* Removed the `user` role's privileges to create, edit, and delete project assignments and client contacts to better adhere with the role's intended permissions
+  * This is a clean-up for the release candidate; the `restricted` role was experimental and never implemented in the access controls
+* Removed the `user` role's privileges to create, edit, and delete project assignments and client contacts to better adhere to the role's intended permissions
 * Removed permissions for updating report templates via the GraphQL API
-  * This option will return in a future release when it will be possible to upload a template file via the API
+  * This option will return in a future release when it is possible to upload a template file via the API
 
 ## [4.0.0-rc1] - 30 June 2023
 
