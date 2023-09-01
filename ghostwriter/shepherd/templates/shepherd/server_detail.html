@@ -89,7 +89,7 @@
             {% if staticserver.note %}
               {{ staticserver.note|strip_empty_tags|bleach }}
             {% else %}
-              <p>No additional information provided for this server.</p>
+              <p class="mb-0">There are no additional information provided for this server.</p>
             {% endif %}
           </div>
         </div>
@@ -198,7 +198,7 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>This server has no history.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This server has no history.</div>
         {% endif %}
       </div>
 
@@ -240,7 +240,7 @@
             {% endif %}
           {% endfor %}
         {% else %}
-          <p>No notes for this staticserver.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this server.</div>
         {% endif %}
       </div>
     </div>

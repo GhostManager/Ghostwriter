@@ -70,15 +70,16 @@
           </div>
         {% endif %}
 
-        <div id="domainDescription" class="d-flex justify-content-center description-block">
-          <div>
-            {% if domain.note %}
+
+        {% if domain.note %}
+          <div id="domainDescription" class="d-flex justify-content-center description-block">
+            <div>
               {{ domain.note|strip_empty_tags|bleach }}
-            {% else %}
-              <p>No additional information provided for this domain.</p>
-            {% endif %}
+            </div>
           </div>
-        </div>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is no additional information provided for this domain.</div>
+        {% endif %}
 
         <table class="table">
           <tr>
@@ -121,7 +122,7 @@
         {% endif %}
 
         {% if domain.reset_dns %}
-          <div class="alert alert-secondary" role="alert">
+          <div class="alert alert-secondary offset-md-2 col-md-8" role="alert">
             Domain is configured to reset DNS records after use (if possible with the registrar).
           </div>
         {% else %}
@@ -157,7 +158,7 @@
             {% endif %}
           </table>
         {% else %}
-          <p>No DNS records have been found for this domain. Refresh DNS records to populate this area.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No DNS records have been found for this domain. Refresh DNS records to populate this area.</div>
         {% endif %}
       </div>
 
@@ -322,7 +323,7 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>This domain has no history.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This domain has no history.</div>
         {% endif %}
       </div>
 
@@ -364,7 +365,7 @@
             {% endif %}
           {% endfor %}
         {% else %}
-          <p>No notes for this domain.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this domain.</div>
         {% endif %}
       </div>
     </div>

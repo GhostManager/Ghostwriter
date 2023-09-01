@@ -98,7 +98,7 @@
                     {% if client.address %}
                         {{ client.address|bleach }}
                     {% else %}
-                        <p>No address provided for this client.</p>
+                        <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No address provided for this client.</div>
                     {% endif %}
                 </div>
             </div>
@@ -147,7 +147,7 @@
                         {% endfor %}
                     </table>
                 {% else %}
-                    <p class="mt-3">There is nothing to see here yet.</p>
+                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.</div>
                 {% endif %}
             </div>
 
@@ -187,7 +187,7 @@
                         {% endfor %}
                     </table>
                 {% else %}
-                    <p class="mt-3">This client has no project history.</p>
+                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This client has no project history.</div>
                 {% endif %}
             </div>
 
@@ -251,7 +251,7 @@
                         </table>
                     {% endif %}
                 {% else %}
-                    <p>No infrastructure history for this client yet.</p>
+                  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No infrastructure history for this client yet.</div>
                 {% endif %}
             </div>
 
@@ -285,7 +285,7 @@
                         {% endif %}
                     {% endfor %}
                 {% else %}
-                    <p>No notes for this client.</p>
+                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No notes for this client.</div>
                 {% endif %}
             </div>
         </div>

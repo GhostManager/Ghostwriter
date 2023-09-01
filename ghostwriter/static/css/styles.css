@@ -87,6 +87,7 @@ hr {
 
 .description-block p {
   text-align: justify;
+  margin-bottom: 0;
 }
 
 .blurry {
