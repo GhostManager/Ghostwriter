@@ -151,6 +151,10 @@ class UserLoginForm(LoginForm):
                 Column("password", css_class="form-group col-12 mb-0"),
                 css_class="form-row",
             ),
+            Row(
+                Column("remember", css_class="form-group col-12 mb-0"),
+                css_class="form-row",
+            ),
         )
 
 
