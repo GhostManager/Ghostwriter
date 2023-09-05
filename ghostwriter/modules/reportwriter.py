@@ -898,7 +898,7 @@ class Reportwriter:
         if "{{.project_type}}" in text:
             text = text.replace(
                 "{{.project_type}}",
-                self.report_json["project"]["project_type"].lower(),
+                self.report_json["project"]["type"].lower(),
             )
 
         # Use regex to search for expressions to process
@@ -1685,7 +1685,7 @@ class Reportwriter:
         if "{{.project_end}}" in text:
             text = text.replace("{{.project_end}}", self.report_json["project"]["end_date"])
         if "{{.project_type}}" in text:
-            text = text.replace("{{.project_type}}", self.report_json["project"]["project_type"].lower())
+            text = text.replace("{{.project_type}}", self.report_json["project"]["type"].lower())
 
         # No evidence or captions in workbook cells
         text = text.replace("{{.caption}}", "Caption \u2013 ")
