@@ -19,6 +19,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView, View
 
 # 3rd Party Libraries
+from allauth_2fa.utils import user_has_valid_totp_device
 from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
@@ -421,8 +422,15 @@ class GraphqlLoginAction(HasuraActionView):
         user = authenticate(**self.input)
         # A successful auth will return a ``User`` object
         if user:
-            payload, jwt_token = utils.generate_jwt(user)
-            data = {"token": f"{jwt_token}", "expires": payload["exp"]}
+            # User's required to use 2FA or with 2FA enabled will not be able to log in via the mutation
+            if user_has_valid_totp_device(user) or user.require_2fa:
+                self.status = 401
+                data = utils.generate_hasura_error_payload(
+                    "Login and generate a token from your user profile", "2FARequired"
+                )
+            else:
+                payload, jwt_token = utils.generate_jwt(user)
+                data = {"token": f"{jwt_token}", "expires": payload["exp"]}
         else:
             self.status = 401
             data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")

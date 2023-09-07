@@ -9,6 +9,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+# 3rd Party Libraries
+from django_otp.plugins.otp_static.models import StaticToken
+
 # Ghostwriter Libraries
 from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
@@ -364,6 +367,13 @@ class HasuraLoginTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+
+        cls.user_2fa = UserFactory(password=PASSWORD)
+        cls.user_2fa_required = UserFactory(password=PASSWORD, require_2fa=True)
+        cls.user_2fa.totpdevice_set.create()
+        static_model = cls.user_2fa.staticdevice_set.create()
+        static_model.token_set.create(token=StaticToken.random_token())
+
         cls.uri = reverse("api:graphql_login")
 
     def setUp(self):
@@ -391,6 +401,38 @@ class HasuraLoginTests(TestCase):
                 "code": "InvalidCredentials",
             },
         }
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_login_with_2fa(self):
+        result = {
+            "message": "Login and generate a token from your user profile",
+            "extensions": {
+                "code": "2FARequired",
+            },
+        }
+
+        data = {"input": {"username": f"{self.user_2fa.username}", "password": f"{PASSWORD}"}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(force_str(response.content), result)
+
+        data = {"input": {"username": f"{self.user_2fa_required.username}", "password": f"{PASSWORD}"}}
         response = self.client.post(
             self.uri,
             data=data,
