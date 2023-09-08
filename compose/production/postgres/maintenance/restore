@@ -43,6 +43,12 @@ export PGUSER="${POSTGRES_USER}"
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 export PGDATABASE="${POSTGRES_DB}"
 
+
+### It's Required to terminate current connections to delete the database
+message_info "Cleaning connections to the database..."
+
+psql -c "REVOKE CONNECT ON DATABASE ${PGDATABASE} FROM public; ALTER database ${POSTGRES_DB} allow_connections = off; SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE pg_stat_activity.datname = '${PGDATABASE}';" postgres
+
 message_info "Dropping the database..."
 dropdb "${PGDATABASE}"
 
