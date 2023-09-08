@@ -22,7 +22,7 @@
   </div>
 
   {% if filter.qs|length == 0 %}
-    <p class="mt-3">There are no projects yet, or your search returned no results. Create one up above or from a
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no projects to see here yet, or your search returned no results. Create a project above or adjust your filters.</div>
       client's page.</p>
   {% else %}
     <table id="projectTable" class="tablesorter table table-sm table-hover">
