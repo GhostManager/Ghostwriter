@@ -116,7 +116,7 @@
           <div class="input-group-prepend">
             <span class="input-group-text fa fa-search" id="report-findings-search"></span>
           </div>
-          <input autocomplete="off" type="text" class="form-control" name="finding"
+          <input id="id_search" autocomplete="off" type="text" class="form-control" name="finding"
                  placeholder="Search Findings..." aria-label="findings" aria-describedby="report-findings-search">
         </div>
         <input type="submit" style="display: none"/>
@@ -725,6 +725,18 @@
             }
           }
         });
+      });
+    });
+
+    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
+    $(function () {
+      let availableTitles = [
+        {% for entry in autocomplete %}
+          '{{ entry|bleach }}',
+        {% endfor %}
+      ];
+      $("#id_search").autocomplete({
+        source: availableTitles
       });
     });
   </script>

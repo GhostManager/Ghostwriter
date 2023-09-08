@@ -1362,6 +1362,10 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
     model = Report
 
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
     def test_func(self):
         return verify_access(self.request.user, self.get_object().project)
 
@@ -1387,6 +1391,17 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
             "client",
         )
         ctx["form"] = form
+
+        # Build autocomplete list
+        findings = (
+            Finding.objects.select_related("severity", "finding_type")
+            .all()
+            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
+        )
+        for finding in findings:
+            self.autocomplete.append(finding.title)
+        ctx["autocomplete"] = self.autocomplete
+
         return ctx
 
 
