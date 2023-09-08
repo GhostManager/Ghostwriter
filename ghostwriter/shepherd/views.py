@@ -19,6 +19,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from django.views.generic.list import ListView
 
 # 3rd Party Libraries
@@ -872,6 +873,8 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
 
     ``filter``
         Instance of :filter:`shepherd.DomainFilter`
+    ``autocomplete``
+        List of all :model:`shepherd.Domain` names and categorization entries
 
     **Template**
 
@@ -881,8 +884,28 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
     model = Domain
     template_name = "shepherd/domain_list.html"
 
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
     def get_queryset(self):
         search_term = ""
+        domains = Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
+
+        # Build autocomplete list
+        for domain in domains:
+            self.autocomplete.append(domain.name)
+            if domain.categorization:
+                try:
+                    for key, value in domain.categorization.items():
+                        if "," in value:
+                            for item in value.split(","):
+                                self.autocomplete.append(item.strip().lower())
+                        else:
+                            self.autocomplete.append(value.lower())
+                except Exception as e:
+                    logger.error("Failed to parse categorization autocomplete entries for %s: %s", domain.name, e)
+
         if "domain" in self.request.GET:
             search_term = self.request.GET.get("domain").strip()
             if search_term is None or search_term == "":
@@ -893,13 +916,11 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
                 "Showing search results for: {}".format(search_term),
                 extra_tags="alert-success",
             )
-            return (
-                Domain.objects.select_related("domain_status", "whois_status", "health_status")
-                .filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term))
-                .order_by("name")
+            return domains.filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term)).order_by(
+                "name"
             )
         else:
-            return Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
+            return domains
 
     def get(self, request, *args, **kwarg):
         # If user has not submitted a filter, default showing available domains with expiry dates in the future
@@ -908,7 +929,9 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
             data["domain_status"] = 1
             data["exclude_expired"] = True
         domains_filter = DomainFilter(data, queryset=self.get_queryset())
-        return render(request, "shepherd/domain_list.html", {"filter": domains_filter})
+        return render(
+            request, "shepherd/domain_list.html", {"filter": domains_filter, "autocomplete": self.autocomplete}
+        )
 
 
 class ServerListView(RoleBasedAccessControlMixin, ListView):
@@ -919,6 +942,8 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
 
     ``filter``
         Instance of :filter:`shepherd.ServerFilter.
+    ``autocomplete``
+        List of all :model:`shepherd.StaticServer` names and IP addresses
 
     **Template**
 
@@ -928,8 +953,25 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
     model = StaticServer
     template_name = "shepherd/server_list.html"
 
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
     def get_queryset(self):
         search_term = ""
+        servers = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+
+        # Build autocomplete list
+        for server in servers:
+            self.autocomplete.append(server.ip_address)
+            if server.name:
+                self.autocomplete.append(server.name)
+            try:
+                for address in server.auxserveraddress_set.all():
+                    self.autocomplete.append(address.ip_address)
+            except Exception as e:
+                logger.error("Failed to parse aux addresses entries for %s: %s", server, e)
+
         if "server" in self.request.GET:
             search_term = self.request.GET.get("server").strip()
             if search_term is None or search_term == "":
@@ -940,17 +982,13 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
                 f"Showing search results for: {search_term}",
                 extra_tags="alert-success",
             )
-            return (
-                StaticServer.objects.select_related("server_status")
-                .filter(
-                    Q(ip_address__icontains=search_term)
-                    | Q(name__icontains=search_term)
-                    | Q(auxserveraddress__ip_address__icontains=search_term)
-                )
-                .order_by("ip_address")
-            )
+            return servers.filter(
+                Q(ip_address__icontains=search_term)
+                | Q(name__icontains=search_term)
+                | Q(auxserveraddress__ip_address__icontains=search_term)
+            ).order_by("ip_address")
         else:
-            return StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+            return servers
 
     def get(self, request, *args, **kwarg):
         # If user has not submitted their own filter, default to showing only available servers
@@ -958,7 +996,9 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
         if len(data) == 0:
             data["server_status"] = 1
         servers_filter = ServerFilter(data, queryset=self.get_queryset())
-        return render(request, "shepherd/server_list.html", {"filter": servers_filter})
+        return render(
+            request, "shepherd/server_list.html", {"filter": servers_filter, "autocomplete": self.autocomplete}
+        )
 
 
 class BurnDomain(RoleBasedAccessControlMixin, SingleObjectMixin, View):

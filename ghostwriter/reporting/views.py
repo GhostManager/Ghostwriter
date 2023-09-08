@@ -36,6 +36,7 @@ from django.utils import dateformat, timezone
 from django.views import generic
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.views.generic.list import ListView
 
 # 3rd Party Libraries
 from channels.layers import get_channel_layer
@@ -956,60 +957,6 @@ def index(request):
 
 
 @login_required
-def findings_list(request):
-    """
-    Display a list of all :model:`reporting.Finding`.
-
-    **Context**
-
-    ``filter``
-        Instance of :filter:`reporting.FindingFilter`
-
-    **Template**
-
-    :template:`reporting/finding_list.html`
-    """
-    search_term = ""
-    if "finding" in request.GET:
-        search_term = request.GET.get("finding").strip()
-        if search_term is None or search_term == "":
-            search_term = ""
-    if search_term:
-        messages.success(
-            request,
-            "Displaying search results for: {}".format(search_term),
-            extra_tags="alert-success",
-        )
-        findings = (
-            Finding.objects.select_related("severity", "finding_type")
-            .filter(Q(title__icontains=search_term) | Q(description__icontains=search_term))
-            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
-        )
-    else:
-        findings = (
-            Finding.objects.select_related("severity", "finding_type")
-            .all()
-            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
-        )
-    findings_filter = FindingFilter(request.GET, queryset=findings)
-    return render(request, "reporting/finding_list.html", {"filter": findings_filter})
-
-
-@login_required
-def reports_list(request):
-    """
-    Display a list of all :model:`reporting.Report`.
-
-    **Template**
-
-    :template:`reporting/report_list.html`
-    """
-    reports = get_reports_list(request.user)
-    reports_filter = ReportFilter(request.GET, queryset=reports)
-    return render(request, "reporting/report_list.html", {"filter": reports_filter})
-
-
-@login_required
 def archive_list(request):
     """
     Display a list of all :model:`reporting.Report` marked as archived.
@@ -1058,6 +1005,62 @@ def export_findings_to_csv(request):
 ################
 
 # CBVs related to :model:`reporting.Finding`
+
+
+class FindingListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`reporting.Finding`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`reporting.FindingFilter`
+
+    **Template**
+
+    :template:`reporting/finding_list.html`
+    """
+
+    model = Finding
+    template_name = "reporting/finding_list.html"
+
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
+    def get_queryset(self):
+        search_term = ""
+        findings = (
+            Finding.objects.select_related("severity", "finding_type")
+            .all()
+            .order_by("severity__weight", "-cvss_score", "finding_type", "title")
+        )
+
+        # Build autocomplete list
+        for finding in findings:
+            self.autocomplete.append(finding.title)
+
+        if "finding" in self.request.GET:
+            search_term = self.request.GET.get("finding").strip()
+            if search_term is None or search_term == "":
+                search_term = ""
+        if search_term:
+            messages.success(
+                self.request,
+                "Displaying search results for: {}".format(search_term),
+                extra_tags="alert-success",
+            )
+            return findings.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
+                "severity__weight", "-cvss_score", "finding_type", "title"
+            )
+        else:
+            return findings
+
+    def get(self, request, *args, **kwarg):
+        findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())
+        return render(
+            request, "reporting/finding_list.html", {"filter": findings_filter, "autocomplete": self.autocomplete}
+        )
 
 
 class FindingDetailView(RoleBasedAccessControlMixin, DetailView):
@@ -1194,6 +1197,26 @@ class FindingDelete(RoleBasedAccessControlMixin, DeleteView):
 
 
 # CBVs related to :model:`reporting.Report`
+
+
+class ReportListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`reporting.Report`.
+
+    **Template**
+
+    :template:`reporting/report_list.html`
+    """
+
+    model = Finding
+    template_name = "reporting/report_list.html"
+
+    def get_queryset(self):
+        return get_reports_list(self.request.user)
+
+    def get(self, request, *args, **kwarg):
+        reports_filter = ReportFilter(request.GET, queryset=self.get_queryset())
+        return render(request, "reporting/report_list.html", {"filter": reports_filter})
 
 
 class ArchiveView(RoleBasedAccessControlMixin, SingleObjectMixin, View):

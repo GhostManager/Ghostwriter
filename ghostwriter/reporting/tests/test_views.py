@@ -393,7 +393,7 @@ class ReportCloneTests(TestCase):
 
 
 class FindingsListViewTests(TestCase):
-    """Collection of tests for :view:`reporting.findings_list`."""
+    """Collection of tests for :view:`reporting.FindingsListView`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -426,6 +426,11 @@ class FindingsListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/finding_list.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("filter", response.context)
+        self.assertIn("autocomplete", response.context)
 
     def test_lists_all_findings(self):
         response = self.client_auth.get(self.uri)
@@ -658,7 +663,7 @@ class FindingExportViewTests(TestCase):
 
 
 class ReportsListViewTests(TestCase):
-    """Collection of tests for :view:`reporting.reports_list`."""
+    """Collection of tests for :view:`reporting.ReportListView`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -692,6 +697,10 @@ class ReportsListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_list.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("filter", response.context)
 
     def test_lists_all_reports(self):
         response = self.client_mgr.get(self.uri)
@@ -1893,7 +1902,9 @@ class ReportTemplateSwapViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
         ProjectAssignmentFactory(operator=self.user, project=self.report.project)
-        response = self.client_auth.post(self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk})
+        response = self.client_auth.post(
+            self.uri, {"docx_template": self.docx_template.pk, "pptx_template": self.pptx_template.pk}
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_templates_with_linting_errors(self):

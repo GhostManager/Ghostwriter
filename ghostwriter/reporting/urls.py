@@ -11,8 +11,8 @@ app_name = "reporting"
 # URLs for the basic views
 urlpatterns = [
     path("", views.index, name="index"),
-    path("findings/", views.findings_list, name="findings"),
-    path("reports/", views.reports_list, name="reports"),
+    path("findings/", views.FindingListView.as_view(), name="findings"),
+    path("reports/", views.ReportListView.as_view(), name="reports"),
     path("templates/", views.ReportTemplateListView.as_view(), name="templates"),
     path("reports/archive", views.archive_list, name="archived_reports"),
     path(

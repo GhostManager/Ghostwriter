@@ -96,6 +96,7 @@ class DomainFilter(django_filters.FilterSet):
                     <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:domains' %}">Reset</a>
                     """
                 ),
+                css_class="mt-3",
             ),
         )
 
@@ -171,6 +172,7 @@ class ServerFilter(django_filters.FilterSet):
                     <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'shepherd:servers' %}">Reset</a>
                     """
                 ),
+                css_class="mt-3",
             ),
         )
 

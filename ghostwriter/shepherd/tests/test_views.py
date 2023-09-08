@@ -238,6 +238,11 @@ class DomainListViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_list.html")
 
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("filter", response.context)
+        self.assertIn("autocomplete", response.context)
+
     def test_domain_filtering(self):
         # Filter defaults to only showing available domains (id 1), so we should only see 3
         response = self.client_auth.get(self.uri)
@@ -736,6 +741,11 @@ class ServerListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_list.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("filter", response.context)
+        self.assertIn("autocomplete", response.context)
 
     def test_server_filtering(self):
         # Filter defaults to only showing available servers (id 1), so we should only see 2
