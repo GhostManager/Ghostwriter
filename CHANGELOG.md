@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [4.0.0-rc2] - 1 September 2023
+## [4.0.0-rc2] - 8 September 2023
 
 ### Added
 
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Project contacts appear under the new `contacts` key in the report data
   * A project contact can be flagged as the primary contact and mark the contact as the report recipient
   * The primary contact appears under the new `recipient` key in the report data 
+* Added autocomplete options to filter forms for the finding, domain, and server libraries
 
 ### Changed
 
