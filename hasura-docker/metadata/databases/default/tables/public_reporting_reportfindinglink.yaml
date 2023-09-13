@@ -277,3 +277,34 @@ delete_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
+event_triggers:
+  - name: CreateReportFinding
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+      update:
+        columns:
+          - severity_id
+          - position
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/report/finding/change'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET
+  - name: DeleteReportFinding
+    definition:
+      enable_manual: false
+      delete:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/report/finding/delete'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET

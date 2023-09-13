@@ -12,6 +12,7 @@ from json import JSONDecodeError
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -28,7 +29,7 @@ from dateutil.parser._parser import ParserError
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
-from ghostwriter.modules.model_utils import to_dict
+from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter import Reportwriter
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
@@ -780,6 +781,47 @@ class GraphqlOplogEntryDeleteEvent(HasuraEventView):
             str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
         )
         return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlReportFindingChangeEvent(HasuraEventView):
+    """
+    After inserting or updating a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
+    of entries tied to the same :model:`reporting.Report`.
+    """
+
+    def post(self, request, *args, **kwargs):
+        instance = ReportFindingLink.objects.get(id=self.new_data["id"])
+        if self.event["op"] == "UPDATE":
+            set_finding_positions(
+                instance,
+                self.old_data["position"],
+                self.old_data["severity_id"],
+                self.new_data["position"],
+                self.new_data["severity_id"],
+            )
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlReportFindingDeleteEvent(HasuraEventView):
+    """
+    After deleting a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
+    of entries tied to the same :model:`reporting.Report`.
+    """
+
+    def post(self, request, *args, **kwargs):
+        try:
+            findings_queryset = ReportFindingLink.objects.filter(
+                Q(report=self.old_data["report_id"]) & Q(severity=self.old_data["severity_id"])
+            )
+            if findings_queryset:
+                counter = 1
+                for finding in findings_queryset:
+                    # Adjust position to close gap created by the removed finding
+                    findings_queryset.filter(id=finding.id).update(position=counter)
+                    counter += 1
+        except Report.DoesNotExist:
+            # Report was deleted, so no need to adjust positions
+            pass
 
 
 ##################
