@@ -183,14 +183,18 @@ hr {
     background: var(--primary-color);
 }
 
-.tooltip .arrow:before {
+.bs-tooltip-auto[x-placement^=bottom] .arrow::before, .bs-tooltip-bottom .arrow::before {
     border-bottom-color: var(--primary-color);
 }
-
-.tooltip.top .tooltip-arrow { border-top-color: var(--primary-color); }
-.tooltip.right .tooltip-arrow { border-right-color: var(--primary-color); }
-.tooltip.bottom .tooltip-arrow { border-bottom-color: var(--primary-color); }
-.tooltip.left .tooltip-arrow { border-left-color: var(--primary-color); }
+.bs-tooltip-auto[x-placement^=top] .arrow::before, .bs-tooltip-top .arrow::before {
+    border-top-color: var(--primary-color);
+}
+.bs-tooltip-auto[x-placement^=left] .arrow::before, .bs-tooltip-left .arrow::before {
+    border-left-color: var(--primary-color);
+}
+.bs-tooltip-auto[x-placement^=right] .arrow::before, .bs-tooltip-right .arrow::before {
+    border-right-color: var(--primary-color);
+}
 
 /* ---------------------------------------------------
     IMAGE STYLES
@@ -941,6 +945,8 @@ p.severity-box.info {
   transition-duration: 0.4s;
 }
 
+.btn:focus{ box-shadow: 0 0 0 0.1rem var(--primary-color) }
+
 .button:hover {
   background-color: var(--button-hover-color);
   color: #fff;
@@ -1245,18 +1251,18 @@ table.table-oplog tbody tr:hover>td {
   transition: all .15s ease;
 }
 
-table.table-oplog tbody tr>td .btn i.fa-copy:hover {
+table.table-oplog tbody tr>td .btn:hover {
+  cursor: pointer;
+  /*transform: scale(1.5);*/
+  /*transition: all .15s ease;*/
   color: var(--primary-color);
 }
 
-table.table-oplog tbody tr>td .btn i.fa-trash:hover {
-  color: var(--blocked-color);
-}
-
-table.table-oplog tbody tr>td .btn:hover {
+table.table-oplog tbody tr>td .btn.danger:hover {
   cursor: pointer;
-  transform: scale(1.5);
-  transition: all .15s ease;
+  /*transform: scale(1.5);*/
+  /*transition: all .15s ease;*/
+  color: var(--blocked-color);
 }
 
 ::-webkit-scrollbar {
