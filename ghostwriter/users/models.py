@@ -89,3 +89,14 @@ class User(AbstractUser):
         display the user's name in different places in the admin site.
         """
         return self.name
+
+    def save(self, *args, **kwargs):
+        # Set the role to admin if the user is a superuser or staff
+        if self.is_superuser or self.is_staff:
+            self.role = "admin"
+
+        # Set the `is_staff` and `is_superuser` flags based on the role
+        if self.role == "admin":
+            self.is_staff = True
+            self.is_superuser = True
+        super().save(*args, **kwargs)
