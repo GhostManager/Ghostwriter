@@ -17,6 +17,7 @@ from django.urls import reverse
 from taggit.managers import TaggableManager
 
 # Ghostwriter Libraries
+from ghostwriter.modules.model_utils import set_finding_positions
 from ghostwriter.reporting.validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
@@ -482,6 +483,7 @@ class ReportFindingLink(models.Model):
     added_as_blank = models.BooleanField(
         "Added as Blank",
         default=False,
+        null=True,
         help_text="Identify a finding that was created for this report instead of copied from the library",
     )
     tags = TaggableManager(blank=True)
@@ -515,6 +517,7 @@ class ReportFindingLink(models.Model):
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
+        null=True,
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
@@ -526,77 +529,6 @@ class ReportFindingLink(models.Model):
 
     def __str__(self):
         return self.title
-
-    def clean(self):
-        # Check if this is a new entry or updated
-        if self.pk:
-            old_entry = self.__class__.objects.get(pk=self.pk)
-        else:
-            old_entry = None
-
-        # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
-        # whenever ``save()`` is called
-
-        # The following adjustments use the queryset ``update()`` method (direct SQL statement)
-        # instead of calling ``save()`` on the individual model instance
-        # This avoids forever looping through position changes
-
-        # Adjust model based on updated values
-        if old_entry:
-            # Save the old values for reference
-            old_position = old_entry.position
-            old_severity = old_entry.severity
-            # Only run db queries if ``position`` or ``severity`` changed
-            if old_position != self.position or old_severity != self.severity:
-                # Get all findings in report that share the instance's severity rating
-                finding_queryset = ReportFindingLink.objects.filter(
-                    Q(report__pk=self.report.pk) & Q(severity=self.severity)
-                ).order_by("position")
-
-                # If severity rating changed, adjust positioning in the previous severity group
-                if old_severity != self.severity:
-                    # Get a list of findings for the old severity rating
-                    old_severity_queryset = ReportFindingLink.objects.filter(
-                        Q(report__pk=self.report.pk) & Q(severity=old_severity)
-                    ).order_by("position")
-                    if old_severity_queryset:
-                        for finding in old_severity_queryset:
-                            # Adjust position to close gap created by moved finding
-                            if finding.position > old_position:
-                                new_pos = finding.position - 1
-                                old_severity_queryset.filter(id=finding.id).order_by("position").update(
-                                    position=new_pos
-                                )
-
-                # The ``ReportFindingLinkUpdateForm`` sets minimum number to 0, but check again for funny business
-                self.position = max(self.position, 1)
-
-                # The ``position`` value should not be larger than total findings
-                if self.position > finding_queryset.count():
-                    self.position = finding_queryset.count()
-
-                counter = 1
-                if finding_queryset:
-                    # Loop from top position down and look for a match
-                    for finding in finding_queryset:
-                        # Check if finding in loop is the finding being updated
-                        if not self.pk == finding.pk:
-                            # Increment position counter when counter equals new value
-                            if self.position == counter:
-                                counter += 1
-                            finding_queryset.filter(id=finding.id).update(position=counter)
-                            counter += 1
-                        else:
-                            pass
-                # No other findings with the chosen severity, so set ``position`` to ``1``
-                else:
-                    self.position = 1
-        # Place newly created findings at the end of the current list
-        else:
-            finding_queryset = ReportFindingLink.objects.filter(
-                Q(report__pk=self.report.pk) & Q(severity=self.severity)
-            )
-            self.position = finding_queryset.count() + 1
 
 
 class Evidence(models.Model):
