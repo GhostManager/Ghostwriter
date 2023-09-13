@@ -483,7 +483,6 @@ class ReportFindingLink(models.Model):
     added_as_blank = models.BooleanField(
         "Added as Blank",
         default=False,
-        null=True,
         help_text="Identify a finding that was created for this report instead of copied from the library",
     )
     tags = TaggableManager(blank=True)
