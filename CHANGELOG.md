@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [4.0.0-rc2] - 15 September 2023
+## [4.0.0-rc3] - 15 September 2023
 
 ### Added
 
@@ -43,35 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Removed the `user` role's privileges to create, edit, and delete project assignments and client contacts to better adhere to the role's intended permissions
 * Removed permissions for updating report templates via the GraphQL API
   * This option will return in a future release when it is possible to upload a template file via the API
-
-## [4.0.0-rc1] - 30 June 2023
-
-### Added
-
-* Added the option for admins to control who can create, edit, and delete findings in the global library
-  * Admins can control each of these permissions separately via the admin panel
-
-### Changed
-
-* Applied the authorization model to the user interface for role-based access control
-  * Accounts with the `manager` role will not notice a difference
-  * For more information: [https://www.ghostwriter.wiki/features/graphql-api/authorization](https://www.ghostwriter.wiki/features/graphql-api/authorization)
-* When viewing server and domain history, if a user does not have access to the client or project, the client and project names will be hidden
-* Changed the activity log import to make it possible to select the log to update
-  * The `oplog_id` header is no longer required in the csv and will be ignored
-* Refined the domain and server view pages to match the user interface and experience of the project dashboard
-* Updated the Hasura GraphQL Engine to v2.28.0
-
-### Removed
-
-* Removed the legacy REST API endpoints for activity logs
-  * The GraphQL API has been the primary API for activity logs since v3.0.0
-  * Legacy API keys will no longer work for activity logs
-  * The current release of the `cobalt_sync` project will not work with Ghostwriter v4.0.0-beta (look for `cobalt_sync` v2.0 to be released later this year)
-
-### Security
-
-* Increased the versions of several dependencies to address security vulnerabilities in these packages
 
 ## [3.2.9] - 13 June 2023
 

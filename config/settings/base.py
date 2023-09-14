@@ -11,7 +11,7 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "4.0.0-rc2"
+__version__ = "4.0.0-rc3"
 VERSION = __version__
 RELEASE_DATE = "15 September 2023"
 
