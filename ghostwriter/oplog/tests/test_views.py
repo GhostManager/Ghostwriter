@@ -341,7 +341,6 @@ class OplogMuteToggleViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
         cls.uri = reverse("oplog:ajax_oplog_mute_toggle", kwargs={"pk": cls.log.pk})
 
     def setUp(self):
@@ -349,15 +348,12 @@ class OplogMuteToggleViewTests(TestCase):
         self.client_auth = Client()
         self.client_mgr = Client()
         self.client_admin = Client()
-        self.client_staff = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD)
         self.assertTrue(self.client_admin.login(username=self.mgr_user.username, password=PASSWORD))
         self.client_admin.login(username=self.admin_user.username, password=PASSWORD)
         self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
-        self.client_staff.login(username=self.staff_user.username, password=PASSWORD)
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {
@@ -368,7 +364,7 @@ class OplogMuteToggleViewTests(TestCase):
         self.log.mute_notifications = False
         self.log.save()
 
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
@@ -380,7 +376,7 @@ class OplogMuteToggleViewTests(TestCase):
             "message": "Log monitor notifications have been unmuted.",
             "toggle": 0,
         }
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertJSONEqual(force_str(response.content), data)
 
         self.log.refresh_from_db()
@@ -407,7 +403,7 @@ class OplogMuteToggleViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("success", force_str(response.content))
 
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertIn("success", force_str(response.content))
 

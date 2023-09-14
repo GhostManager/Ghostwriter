@@ -1549,7 +1549,7 @@ class ReportTemplateDetailViewTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory(protected=True)
         cls.user = UserFactory(password=PASSWORD)
-        cls.admin_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.admin_user = UserFactory(password=PASSWORD, role="admin")
         cls.uri = reverse("reporting:template_detail", kwargs={"pk": cls.template.pk})
 
     def setUp(self):
@@ -1636,7 +1636,6 @@ class ReportTemplateUpdateViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
         cls.uri = reverse("reporting:template_update", kwargs={"pk": cls.template.pk})
 
     def setUp(self):
@@ -1644,14 +1643,12 @@ class ReportTemplateUpdateViewTests(TestCase):
         self.client_auth = Client()
         self.client_mgr = Client()
         self.client_admin = Client()
-        self.client_staff = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
         self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -1659,12 +1656,12 @@ class ReportTemplateUpdateViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_view_uses_correct_template(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_template_form.html")
 
     def test_custom_context_exists(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(response.context["cancel_link"], reverse("reporting:templates"))
 
@@ -1686,7 +1683,6 @@ class ReportTemplateDeleteViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.admin_user = UserFactory(password=PASSWORD, role="admin")
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
         cls.uri = reverse("reporting:template_delete", kwargs={"pk": cls.template.pk})
 
     def setUp(self):
@@ -1694,14 +1690,12 @@ class ReportTemplateDeleteViewTests(TestCase):
         self.client_auth = Client()
         self.client_mgr = Client()
         self.client_admin = Client()
-        self.client_staff = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
         self.assertTrue(self.client_admin.login(username=self.admin_user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -1709,12 +1703,12 @@ class ReportTemplateDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_view_uses_correct_template(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "confirm_delete.html")
 
     def test_custom_context_exists(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertIn("object_type", response.context)
         self.assertIn("object_to_be_deleted", response.context)
