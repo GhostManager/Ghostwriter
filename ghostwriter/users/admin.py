@@ -38,17 +38,10 @@ class UserAdmin(auth_admin.UserAdmin):
         "email",
         "role",
         "require_2fa",
-        "is_staff",
-        "is_superuser",
         "last_login",
         "is_active",
     )
-    list_filter = (
-        "role",
-        "is_active",
-        "is_staff",
-        "is_superuser",
-    )
+    list_filter = ("role",)
 
     fieldsets = (
         (_("User Information"), {"fields": ("username", "password", "require_2fa")}),
