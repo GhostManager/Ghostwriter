@@ -791,6 +791,16 @@ class GraphqlReportFindingChangeEvent(HasuraEventView):
 
     def post(self, request, *args, **kwargs):
         instance = ReportFindingLink.objects.get(id=self.new_data["id"])
+
+        if self.event["op"] == "INSERT":
+            set_finding_positions(
+                instance,
+                None,
+                None,
+                self.new_data["position"],
+                self.new_data["severity_id"],
+            )
+
         if self.event["op"] == "UPDATE":
             set_finding_positions(
                 instance,
@@ -799,6 +809,7 @@ class GraphqlReportFindingChangeEvent(HasuraEventView):
                 self.new_data["position"],
                 self.new_data["severity_id"],
             )
+
         return JsonResponse(self.data, status=self.status)
 
 
@@ -822,6 +833,7 @@ class GraphqlReportFindingDeleteEvent(HasuraEventView):
         except Report.DoesNotExist:
             # Report was deleted, so no need to adjust positions
             pass
+        return JsonResponse(self.data, status=self.status)
 
 
 ##################
