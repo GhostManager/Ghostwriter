@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [4.0.0-rc2] - 8 September 2023
+## [4.0.0-rc2] - 15 September 2023
 
 ### Added
 
@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * A project contact can be flagged as the primary contact and mark the contact as the report recipient
   * The primary contact appears under the new `recipient` key in the report data 
 * Added autocomplete options to filter forms for the finding, domain, and server libraries
+* Added an option to copy an activity log entry to your clipboard as JSON for easier sharing
 
 ### Changed
 
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Moved project assignments to the new "People" tab on the project dashboard
 * Hid menus and buttons for features that are not available to the current user
 * Access to the admin console is now routed through the main login form to require 2FA (if enabled for the user)
+* The CVSS Vector and "added as blank" fields on report findings are now optional as they were meant to be
 
 ### Fixed
 
