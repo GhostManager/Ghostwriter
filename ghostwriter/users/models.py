@@ -91,12 +91,18 @@ class User(AbstractUser):
         return self.name
 
     def save(self, *args, **kwargs):
+        # Align Django's permissions flags with the chosen role
+        if self.role == "user":
+            self.is_staff = False
+            self.is_superuser = False
+
+        # Set the `is_staff` and `is_superuser` flags based on the role
+        if self.role in ["admin"]:
+            self.is_staff = True
+            self.is_superuser = True
+
         # Set the role to admin if the user is a superuser or staff
         if self.is_superuser or self.is_staff:
             self.role = "admin"
 
-        # Set the `is_staff` and `is_superuser` flags based on the role
-        if self.role == "admin":
-            self.is_staff = True
-            self.is_superuser = True
         super().save(*args, **kwargs)
