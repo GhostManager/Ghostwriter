@@ -1,28 +1,26 @@
 # Standard Libraries
 import logging
 from datetime import datetime
+from urllib.parse import urlparse
 
 # Django Imports
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import AccessMixin
+from django.contrib.auth.views import redirect_to_login
+from django.core.exceptions import PermissionDenied
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import Q
-from django.contrib.auth.views import redirect_to_login
 from django.http import JsonResponse
 from django.shortcuts import resolve_url
 
 # 3rd Party Libraries
 import jwt
-from urllib.parse import urlparse
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import Archive, Report, ReportTemplate
-from ghostwriter.rolodex.models import (
-    Client,
-    Project,
-)
+from ghostwriter.rolodex.models import Client, Project
 
 # Using __name__ resolves to ghostwriter.utils
 logger = logging.getLogger(__name__)
