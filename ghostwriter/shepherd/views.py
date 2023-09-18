@@ -1019,6 +1019,7 @@ class BurnDomain(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Domain
 
     def __init__(self):
+        self.domain = None
         super().__init__()
 
     def setup(self, request, *args, **kwargs):
