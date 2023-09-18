@@ -17,6 +17,7 @@ from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
 from ghostwriter.factories import (
     ActivityTypeFactory,
+    ClientFactory,
     DomainFactory,
     DomainStatusFactory,
     EvidenceFactory,
@@ -1046,6 +1047,8 @@ class GraphqlDeleteReportTemplateAction(TestCase):
 
         cls.template = ReportTemplateFactory()
         cls.protected_template = ReportTemplateFactory(protected=True)
+        cls.client = ClientFactory()
+        cls.client_template = ReportTemplateFactory(client=cls.client)
 
     def setUp(self):
         self.client = Client()
@@ -1093,6 +1096,14 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
             content_type="application/json",
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
