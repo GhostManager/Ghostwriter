@@ -2419,10 +2419,6 @@ th.icon {
   display: block;
 }
 
-.finding-accordion .card-header {
-  cursor: pointer;
-}
-
 .finding-accordion {
   max-width: 100%;
   margin: 10px auto;
