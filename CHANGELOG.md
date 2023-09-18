@@ -5,8 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [4.0.0-rc3] - 15 September 2023
-
+## [4.0.0] - Unreleased
 ### Added
 
 * Added a "People" tab to the project dashboard that shows the project's assignments and client contacts
@@ -32,10 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Access to the admin console is now routed through the main login form to require 2FA (if enabled for the user)
 * The CVSS Vector and "added as blank" fields on report findings are now optional as they were meant to be
 
-### Fixed
-
-* Fixed an issue that would prevent new projects from saving properly
-
 ### Removed
 
 * Removed the unused `restricted` account role
@@ -43,6 +38,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Removed the `user` role's privileges to create, edit, and delete project assignments and client contacts to better adhere to the role's intended permissions
 * Removed permissions for updating report templates via the GraphQL API
   * This option will return in a future release when it is possible to upload a template file via the API
+
+## [3.2.12] - 18 September 2023
+
+### Added
+
+* Added the option to configure a default paragraph style for when you do not want to use the built-in default `Normal` style (PR #307)
+  * Thanks to @federicodotta  for the submission!
+
+### Changed
+
+* The `restore` command will now revoke open database connections to prevent errors when restoring a database backup (PR #335)
+  * Thanks to @marcioalm for the submission!
+
+## [3.2.11] - 5 September 2023
+
+### Added
+
+* Added CVSS and tags to the finding rows in the Excel workbook report (xlsx)
+
+### Fixed
+
+* Fixed the `project_type` keyword not working in report generation
+
+## [3.2.10] - 13 July 2023
+
+### Fixed
+
+* Adjusted logic for marking a domain as expired when syncing with Namecheap
+  * A domain marked as auto-renewable can expire, so Ghostwriter will now also mark a domain as expired and disable auto-renew if the API response has `AutoRenew` and `IsExpired` both set to `true`
 
 ## [3.2.9] - 13 June 2023
 

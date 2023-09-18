@@ -1,5 +1,4 @@
-This file contains a list of people who have made large contributions to the public
-version of Ghostwriter.
+This file contains a list of people who have made large contributions to the public version of Ghostwriter.
 
 Original Ghostwriter design and implementation:
   Christopher Maddalena (@cmaddalena)
@@ -9,4 +8,10 @@ Docker container and deployment design:
     Derek Rush (@covertgeek)
 
 Original operation logging API design:
-    Daniel heinsen (@hotnops)
+    Daniel Heinsen (@hotnops)
+
+Various enhancements and bug fixes:
+    Lorenzo Bernardi (@fastlorenzo)
+
+Support for alternate default paragraph styles:
+    @federicodotta

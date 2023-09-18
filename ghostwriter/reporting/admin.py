@@ -234,6 +234,7 @@ class ReportTemplateAdmin(admin.ModelAdmin):
                     "description",
                     "client",
                     "doc_type",
+                    "p_style",
                 )
             },
         ),

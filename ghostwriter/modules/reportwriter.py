@@ -1325,7 +1325,7 @@ class Reportwriter:
         # Return last paragraph created
         return p
 
-    def _process_text_xml(self, text, finding=None):
+    def _process_text_xml(self, text, finding=None, p_style=None):
         """
         Process the provided text from the specified finding to parse keywords for
         evidence placement and formatting for Office XML.
@@ -1379,7 +1379,7 @@ class Reportwriter:
                         p = self.finding_body_shape.text_frame.add_paragraph()
                         ALIGNMENT = PP_ALIGN
                     else:
-                        p = self.sacrificial_doc.add_paragraph()
+                        p = self.sacrificial_doc.add_paragraph(style=p_style)
                         ALIGNMENT = WD_ALIGN_PARAGRAPH
 
                     # Check for alignment classes on the ``p`` tag
@@ -1565,92 +1565,129 @@ class Reportwriter:
             Pre-defined template context
         """
 
-        def render_subdocument(section, finding):
+        def render_subdocument(section, finding, p_style=None):
             if section:
                 self.sacrificial_doc = self.word_doc.new_subdoc()
-                self._process_text_xml(section, finding)
+                self._process_text_xml(section, finding, p_style)
                 return self.sacrificial_doc
             return None
 
         # Findings
         for finding in context["findings"]:
+
             logger.info("Processing %s", finding["title"])
             # Create ``RichText()`` object for a colored severity category
             finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
             finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
             finding["cvss_vector_rt"] = RichText(finding["cvss_vector"], color=finding["severity_color"])
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding)
-            finding["description_rt"] = render_subdocument(finding["description"], finding)
-            finding["impact_rt"] = render_subdocument(finding["impact"], finding)
+            finding["affected_entities_rt"] = render_subdocument(
+                finding["affected_entities"], finding, self.report_queryset.docx_template.p_style
+            )
+            finding["description_rt"] = render_subdocument(
+                finding["description"], finding, self.report_queryset.docx_template.p_style
+            )
+            finding["impact_rt"] = render_subdocument(
+                finding["impact"], finding, self.report_queryset.docx_template.p_style
+            )
 
             # Include a copy of ``mitigation`` as ``recommendation`` to match legacy context
-            mitigation_section = render_subdocument(finding["mitigation"], finding)
+            mitigation_section = render_subdocument(
+                finding["mitigation"], finding, self.report_queryset.docx_template.p_style
+            )
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding)
-            finding["host_detection_techniques_rt"] = render_subdocument(finding["host_detection_techniques"], finding)
-            finding["network_detection_techniques_rt"] = render_subdocument(
-                finding["network_detection_techniques"], finding
+            finding["replication_steps_rt"] = render_subdocument(
+                finding["replication_steps"], finding, self.report_queryset.docx_template.p_style
             )
-            finding["references_rt"] = render_subdocument(finding["references"], finding)
+            finding["host_detection_techniques_rt"] = render_subdocument(
+                finding["host_detection_techniques"], finding, self.report_queryset.docx_template.p_style
+            )
+            finding["network_detection_techniques_rt"] = render_subdocument(
+                finding["network_detection_techniques"], finding, self.report_queryset.docx_template.p_style
+            )
+            finding["references_rt"] = render_subdocument(
+                finding["references"], finding, self.report_queryset.docx_template.p_style
+            )
 
         # Client Notes
-        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None)
-        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], finding=None)
+        context["client"]["note_rt"] = render_subdocument(
+            context["client"]["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
+        )
+        context["client"]["address_rt"] = render_subdocument(
+            context["client"]["address"], finding=None, p_style=self.report_queryset.docx_template.p_style
+        )
 
         # Project Notes
-        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None)
+        context["project"]["note_rt"] = render_subdocument(
+            context["project"]["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
+        )
 
         # Assignments
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = render_subdocument(assignment["note"], finding=None)
+                    assignment["note_rt"] = render_subdocument(
+                        assignment["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                    )
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = render_subdocument(contact["note"], finding=None)
+                    contact["note_rt"] = render_subdocument(
+                        contact["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                    )
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = render_subdocument(objective["description"], finding=None)
+                    objective["description_rt"] = render_subdocument(
+                        objective["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                    )
 
         # Scope Lists
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = render_subdocument(scope_list["description"], finding=None)
+                    scope_list["description_rt"] = render_subdocument(
+                        scope_list["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                    )
 
         # Targets
         for target in context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = render_subdocument(target["note"], finding=None)
+                    target["note_rt"] = render_subdocument(
+                        target["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                    )
 
         # Deconfliction Events
         for event in context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = render_subdocument(event["description"], finding=None)
+                    event["description_rt"] = render_subdocument(
+                        event["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                    )
 
         # White Cards
         for card in context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = render_subdocument(card["description"], finding=None)
+                    card["description_rt"] = render_subdocument(
+                        card["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                    )
 
         # Infrastructure
         for asset_type in context["infrastructure"]:
             for asset in context["infrastructure"][asset_type]:
                 if isinstance(asset, dict):
                     if asset["note"]:
-                        asset["note_rt"] = render_subdocument(asset["note"], finding=None)
+                        asset["note_rt"] = render_subdocument(
+                            asset["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                        )
 
         return context
 

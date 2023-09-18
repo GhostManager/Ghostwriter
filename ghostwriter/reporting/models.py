@@ -321,6 +321,16 @@ class ReportTemplate(models.Model):
         help_text="Select the filetype for this template",
     )
 
+    p_style = models.CharField(
+        "Style of new paragraphs - Word only (leave empty for default - Normal)",
+        max_length=255,
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Provide the name of the style of new paragraphs. The style must be present in the template. " + \
+                  "Leave empty to use default Normal style (Word only).",
+    )
+
     class Meta:
         ordering = ["doc_type", "client", "name"]
         verbose_name = "Report template"
