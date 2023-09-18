@@ -6,7 +6,7 @@ import logging
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import ListView
@@ -14,27 +14,18 @@ from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 
 # 3rd Party Libraries
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework_api_key.models import APIKey
-from rest_framework_api_key.permissions import HasAPIKey
 from tablib import Dataset
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
-    ForbiddenJsonResponse,
     RoleBasedAccessControlMixin,
-    get_client_list,
     get_logs_list,
-    get_project_list,
     verify_access,
     verify_user_is_privileged,
 )
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry
-from ghostwriter.oplog.serializers import OplogEntrySerializer, OplogSerializer
 from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.views

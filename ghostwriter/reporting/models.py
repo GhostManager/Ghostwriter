@@ -10,14 +10,12 @@ from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Q
 from django.urls import reverse
 
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
 
 # Ghostwriter Libraries
-from ghostwriter.modules.model_utils import set_finding_positions
 from ghostwriter.reporting.validators import validate_evidence_extension
 
 # Using __name__ resolves to ghostwriter.reporting.models
@@ -327,8 +325,8 @@ class ReportTemplate(models.Model):
         null=True,
         blank=True,
         default=None,
-        help_text="Provide the name of the style of new paragraphs. The style must be present in the template. " + \
-                  "Leave empty to use default Normal style (Word only).",
+        help_text="Provide the name of the style of new paragraphs. The style must be present in the template. "
+        + "Leave empty to use default Normal style (Word only).",
     )
 
     class Meta:
@@ -537,7 +535,7 @@ class ReportFindingLink(models.Model):
         verbose_name_plural = "Report findings"
 
     def __str__(self):
-        return self.title
+        return f"{self.title}"
 
 
 class Evidence(models.Model):
@@ -591,7 +589,7 @@ class Evidence(models.Model):
         return reverse("reporting:evidence_detail", args=[str(self.id)])
 
     def __str__(self):
-        return self.document.name
+        return f"{self.document.name}"
 
     @property
     def filename(self):
@@ -614,7 +612,7 @@ class Archive(models.Model):
         verbose_name_plural = "Archived reports"
 
     def __str__(self):
-        return self.report_archive.name
+        return f"{self.report_archive.name}"
 
 
 class FindingNote(models.Model):

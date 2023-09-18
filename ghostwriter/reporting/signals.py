@@ -5,7 +5,6 @@ import logging
 import os
 
 # Django Imports
-from django.db.models import Q
 from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
 
@@ -13,7 +12,6 @@ from django.dispatch import receiver
 from ghostwriter.modules.reportwriter import TemplateLinter
 from ghostwriter.reporting.models import (
     Evidence,
-    Report,
     ReportFindingLink,
     ReportTemplate,
     Severity,

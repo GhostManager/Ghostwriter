@@ -1,8 +1,5 @@
 # Django Imports
-from django.conf import settings
 from django.http import HttpRequest
-
-from ghostwriter.api.utils import verify_user_is_privileged
 
 # 3rd Party Libraries
 from allauth_2fa.middleware import BaseRequire2FAMiddleware

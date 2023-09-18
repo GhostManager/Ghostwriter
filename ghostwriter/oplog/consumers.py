@@ -7,7 +7,6 @@ from copy import deepcopy
 from datetime import datetime
 
 # Django Imports
-from django.db.utils import IntegrityError
 from django.utils.timezone import make_aware
 
 # 3rd Party Libraries

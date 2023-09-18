@@ -17,7 +17,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.db.models import Q
@@ -25,7 +24,6 @@ from django.http import (
     FileResponse,
     Http404,
     HttpResponse,
-    HttpResponseForbidden,
     HttpResponseRedirect,
     JsonResponse,
 )
@@ -1053,8 +1051,7 @@ class FindingListView(RoleBasedAccessControlMixin, ListView):
             return findings.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
                 "severity__weight", "-cvss_score", "finding_type", "title"
             )
-        else:
-            return findings
+        return findings
 
     def get(self, request, *args, **kwarg):
         findings_filter = FindingFilter(request.GET, queryset=self.get_queryset())

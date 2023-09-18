@@ -72,7 +72,7 @@ class Client(models.Model):
         return reverse("rolodex:client_detail", args=[str(self.id)])
 
     def __str__(self):
-        return self.name
+        return f"{self.name}"
 
 
 class ClientContact(models.Model):
@@ -143,7 +143,7 @@ class ProjectType(models.Model):
         verbose_name_plural = "Project types"
 
     def __str__(self):
-        return self.project_type
+        return f"{self.project_type}"
 
 
 class Project(models.Model):
@@ -250,7 +250,7 @@ class ProjectRole(models.Model):
         verbose_name_plural = "Project roles"
 
     def __str__(self):
-        return self.project_role
+        return f"{self.project_role}"
 
 
 class ProjectAssignment(models.Model):
@@ -379,7 +379,7 @@ class ObjectiveStatus(models.Model):
         verbose_name_plural = "Objective status"
 
     def __str__(self):
-        return self.objective_status
+        return f"{self.objective_status}"
 
 
 class ObjectivePriority(models.Model):
@@ -403,7 +403,7 @@ class ObjectivePriority(models.Model):
         verbose_name_plural = "Objective priorities"
 
     def __str__(self):
-        return self.priority
+        return f"{self.priority}"
 
 
 class ProjectObjective(models.Model):

@@ -21,10 +21,7 @@ from ghostwriter.oplog.models import Oplog
 from ghostwriter.reporting.models import Archive, Report, ReportTemplate
 from ghostwriter.rolodex.models import (
     Client,
-    ClientInvite,
     Project,
-    ProjectAssignment,
-    ProjectInvite,
 )
 
 # Using __name__ resolves to ghostwriter.utils
@@ -286,10 +283,10 @@ def verify_finding_access(user, mode):
     if mode == "create" and user.enable_finding_create:
         return True
 
-    elif mode == "edit" and user.enable_finding_edit:
+    if mode == "edit" and user.enable_finding_edit:
         return True
 
-    elif mode == "delete" and user.enable_finding_delete:
+    if mode == "delete" and user.enable_finding_delete:
         return True
 
     return False

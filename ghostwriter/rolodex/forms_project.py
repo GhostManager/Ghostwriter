@@ -1425,7 +1425,6 @@ class ProjectComponentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        general_config = GeneralConfiguration.get_solo()
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
         # Design form layout with Crispy FormHelper

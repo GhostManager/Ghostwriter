@@ -19,7 +19,6 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
-from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
 from django.views.generic.list import ListView
 
 # 3rd Party Libraries
@@ -30,10 +29,8 @@ from django_q.tasks import async_task
 from ghostwriter.api.utils import (
     ForbiddenJsonResponse,
     RoleBasedAccessControlMixin,
-    get_client_list,
     get_project_list,
     verify_access,
-    verify_user_is_privileged,
 )
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
@@ -919,8 +916,7 @@ class DomainListView(RoleBasedAccessControlMixin, ListView):
             return domains.filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term)).order_by(
                 "name"
             )
-        else:
-            return domains
+        return domains
 
     def get(self, request, *args, **kwarg):
         # If user has not submitted a filter, default showing available domains with expiry dates in the future
@@ -987,8 +983,7 @@ class ServerListView(RoleBasedAccessControlMixin, ListView):
                 | Q(name__icontains=search_term)
                 | Q(auxserveraddress__ip_address__icontains=search_term)
             ).order_by("ip_address")
-        else:
-            return servers
+        return servers
 
     def get(self, request, *args, **kwarg):
         # If user has not submitted their own filter, default to showing only available servers
