@@ -244,10 +244,6 @@ def verify_access(user, obj):
     if verify_user_is_privileged(user):
         return True
 
-    assignments = None
-    client_invites = None
-    project_invites = None
-
     if isinstance(obj, Project):
         projects = get_project_list(user)
         if obj in projects:
@@ -257,9 +253,6 @@ def verify_access(user, obj):
         clients = get_client_list(user)
         if obj in clients:
             return True
-
-    if any([assignments, client_invites, project_invites]):
-        return True
 
     return False
 
