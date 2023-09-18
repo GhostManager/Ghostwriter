@@ -101,6 +101,8 @@ hr {
 
 .custom-file-label::after {
   min-width:20%;
+  content: 'Browse';
+  width: 10%;
 }
 
 .form-check-label {
@@ -1212,10 +1214,6 @@ table.scroll {
   width: 100%;
 }
 
-table.scroll tbody {
-  display: block;
-}
-
 table.scroll thead,
 table.scroll tr {
   display: table;
@@ -1225,6 +1223,7 @@ table.scroll tr {
 }
 
 table.scroll tbody {
+  display: block;
   height: 80.5vh;
   overflow-y: auto;
   overflow-x: hidden;
@@ -2756,11 +2755,6 @@ ol {
 .dashboard__item--col {
   flex-basis: calc(100% / var(--column-count));
   grid-column-end: span 1;
-}
-
-.custom-file-label::after {
-  content: 'Browse';
-  width: 10%;
 }
 
 .dragging {
