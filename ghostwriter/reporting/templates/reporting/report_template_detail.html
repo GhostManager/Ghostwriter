@@ -85,6 +85,10 @@
                 <td class="text-left bold">Orientation</td>
                 <td class="text-center">{% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}</td>
             </tr>
+            <tr>
+                <td class="text-left bold">Style of new paragraph (Word only)</td>
+                <td class="text-center">{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</td>
+            </tr>
         </table>
     </div>
 

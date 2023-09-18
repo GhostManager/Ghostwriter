@@ -765,6 +765,7 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
+        self.fields["p_style"].widget.attrs["placeholder"] = "Style for new paragraph (Optional, Word only)"
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_method = "post"
@@ -785,6 +786,10 @@ class ReportTemplateForm(forms.ModelForm):
             Row(
                 Column("doc_type", css_class="form-group col-md-6 mb-0"),
                 Column("client", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("p_style", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
