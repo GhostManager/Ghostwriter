@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.12] - 18 September 2023
+
+### Added
+
+* Added the option to configure a default paragraph style for when you do not want to use the built-in default `Normal` style (PR #307)
+  * Thanks to @federicodotta  for the submission!
+
+### Changed
+
+* The `restore` command will now revoke open database connections to prevent errors when restoring a database backup (PR #335)
+  * Thanks to @marcioalm for the submission!
+
 ## [3.2.11] - 5 September 2023
 
 ### Added
