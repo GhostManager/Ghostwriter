@@ -7,6 +7,7 @@ from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
 from json import JSONDecodeError
+from socket import gaierror
 
 # Django Imports
 from django.contrib import messages
@@ -775,11 +776,15 @@ class GraphqlOplogEntryDeleteEvent(HasuraEventView):
     """Event webhook to fire :model:`oplog.OplogEntry` delete signals."""
 
     def post(self, request, *args, **kwargs):
-        channel_layer = get_channel_layer()
-        json_message = json.dumps({"action": "delete", "data": self.old_data["id"]})
-        async_to_sync(channel_layer.group_send)(
-            str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
-        )
+        try:
+            channel_layer = get_channel_layer()
+            json_message = json.dumps({"action": "delete", "data": self.old_data["id"]})
+            async_to_sync(channel_layer.group_send)(
+                str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
+            )
+        except gaierror:
+            # WebSocket are unavailable (unit testing)
+            pass
         return JsonResponse(self.data, status=self.status)
 
 
