@@ -1018,6 +1018,9 @@ class BurnDomain(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     model = Domain
 
+    def __init__(self):
+        super().__init__()
+
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
         self.domain = self.get_object()
@@ -1031,9 +1034,9 @@ class BurnDomain(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             self.domain.last_used_by = request.user
             self.domain.save()
             messages.warning(request, "Domain has been marked as burned.", extra_tags="alert-warning")
-            return HttpResponseRedirect(
-                "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk}))
-            )
+        return HttpResponseRedirect(
+            "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk}))
+        )
 
     def get(self, request, *args, **kwargs):
         form = BurnForm()
