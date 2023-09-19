@@ -113,9 +113,10 @@
       "name": "Default Word Template",
       "document": "/app/ghostwriter/media/templates/template.docx",
       "description": "A sample Word template provided by Ghostwriter.",
-      "upload_date": "2020-11-12",
-      "last_update": "2020-11-12",
+      "upload_date": "2023-09-19",
+      "last_update": "2023-09-19",
       "doc_type": 1,
+      "p_style": "Normal",
       "lint_result": "{\"result\": \"success\", \"warnings\": [], \"errors\": []}"
     }
   },
@@ -126,8 +127,8 @@
       "name": "Default PowerPoint Template",
       "document": "/app/ghostwriter/media/templates/template.pptx",
       "description": "A sample PowerPoint presentation template provided by Ghostwriter.",
-      "upload_date": "2020-11-12",
-      "last_update": "2020-11-12",
+      "upload_date": "2023-09-19",
+      "last_update": "2023-09-19",
       "doc_type": 2,
       "lint_result": "{\"result\": \"success\", \"warnings\": [], \"errors\": []}"
     }
