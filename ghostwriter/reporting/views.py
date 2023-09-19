@@ -2415,8 +2415,8 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
                 temp = self.object.document.read().splitlines()
                 for line in temp:
                     try:
-                        file_content.append(line.decode())
-                    except Exception:
+                        file_content.append(line.decode("utf-8", errors="replace"))
+                    except UnicodeError:
                         file_content.append(line)
             elif (
                 self.object.document.name.lower().endswith(".jpg")
