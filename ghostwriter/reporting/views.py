@@ -2511,7 +2511,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     def get_success_url(self):
         if "modal" in self.kwargs:
             return reverse("reporting:upload_evidence_modal_success")
-        return reverse("reporting:report_detail", args=(self.object.finding.report.pk,))
+        return reverse("reporting:report_detail", args=(self.finding_instance.report.pk,))
 
 
 class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
