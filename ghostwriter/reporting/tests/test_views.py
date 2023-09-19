@@ -638,9 +638,10 @@ class FindingExportViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.num_of_findings = 10
         cls.findings = []
+        cls.tags = ["severity:high, att&ck:t1159"]
         for finding_id in range(cls.num_of_findings):
             title = f"Finding {finding_id}"
-            cls.findings.append(FindingFactory(title=title))
+            cls.findings.append(FindingFactory(title=title, tags=cls.tags))
         cls.uri = reverse("reporting:export_findings_to_csv")
 
     def setUp(self):

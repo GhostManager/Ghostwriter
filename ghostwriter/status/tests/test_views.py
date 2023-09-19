@@ -29,6 +29,22 @@ class HealthCheckCustomViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "health_check.html")
 
+    def test_format_options(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"{self.uri}?format=json")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response["content-type"], "application/json")
+
+        response = self.client.get(self.uri, HTTP_ACCEPT="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response["content-type"], "application/json")
+
+        response = self.client.get(self.uri, HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response["content-type"], "text/html")
+
 
 class HealthCheckSimpleViewTests(TestCase):
     """Collection of tests for :view:`status.HealthCheckSimpleView`."""

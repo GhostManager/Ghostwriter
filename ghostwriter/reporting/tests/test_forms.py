@@ -424,6 +424,7 @@ class ReportTemplateFormTests(TestCase):
         changelog=None,
         client_id=None,
         doc_type=None,
+        p_type=None,
         user=None,
         **kwargs,
     ):
@@ -436,6 +437,7 @@ class ReportTemplateFormTests(TestCase):
                 "changelog": changelog,
                 "client": client_id,
                 "doc_type": doc_type,
+                "p_type": p_type,
             },
             user=user,
             files={
@@ -572,9 +574,24 @@ class SeverityFormTests(TestCase):
         errors = form["color"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+        self.assertEqual(
+            errors[0].message,
+            "Do not include the # symbol in the color field.",
+        )
 
         severity["color"] = "F4B08G"
         form = self.form_data(**severity)
         errors = form["color"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+        self.assertEqual(
+            errors[0].message,
+            "Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A).",
+        )
+
+        severity["color"] = "FFFFF"
+        form = self.form_data(**severity)
+        errors = form["color"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid")
+        self.assertEqual(errors[0].message, "Your hex color code should be six characters in length.")

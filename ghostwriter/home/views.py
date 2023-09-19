@@ -110,7 +110,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             cache_status = healthcheck.get_cache_status()
             if not db_status["default"] or not cache_status["default"]:
                 system_health = "WARNING"
-        except Exception:
+        except Exception:  # pragma: no cover
             system_health = "ERROR"
 
         # Assemble the context dictionary to pass to the dashboard

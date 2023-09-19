@@ -460,8 +460,9 @@ class DomainExportViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.num_of_domains = 10
         cls.domains = []
+        cls.tags = ["tag1", "tag2", "tag3"]
         for domain_id in range(cls.num_of_domains):
-            cls.domains.append(DomainFactory())
+            cls.domains.append(DomainFactory(tags=cls.tags))
         cls.uri = reverse("shepherd:export_domains_to_csv")
 
     def setUp(self):
@@ -925,8 +926,9 @@ class ServerExportViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.num_of_servers = 10
         cls.servers = []
+        cls.tags = ["tag1", "tag2", "tag3"]
         for server_id in range(cls.num_of_servers):
-            cls.servers.append(StaticServerFactory())
+            cls.servers.append(StaticServerFactory(tags=cls.tags))
         cls.uri = reverse("shepherd:export_servers_to_csv")
 
     def setUp(self):

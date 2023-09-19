@@ -1648,7 +1648,7 @@ class ApiKeyRevokeTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_revoking_another_users_token(self):
-        response = self.client.post(self.other_uri)
+        response = self.client_auth.post(self.other_uri)
         self.assertEqual(response.status_code, 302)
 
 

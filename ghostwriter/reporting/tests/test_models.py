@@ -135,6 +135,12 @@ class SeverityModelTests(TestCase):
         self.assertEqual(medium.color, "000FFF")
         self.assertEqual(medium.weight, 3)
 
+        low = SeverityFactory(severity="Low", weight=50, color="000FFF")
+        self.assertEqual(low.weight, 4)
+
+        info = SeverityFactory(severity="Info", weight=-1, color="000FFF")
+        self.assertEqual(info.weight, 5)
+
         critical.weight = 2
         critical.save()
 

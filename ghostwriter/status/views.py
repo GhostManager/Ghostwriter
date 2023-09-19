@@ -86,4 +86,4 @@ class HealthCheckCustomView(MainView):
             "Not Acceptable: Supported content types: text/html, application/json",
             status=406,
             content_type="text/plain",
-        )
+        )  # pragma: no cover

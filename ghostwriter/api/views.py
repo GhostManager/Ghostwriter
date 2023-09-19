@@ -782,7 +782,7 @@ class GraphqlOplogEntryDeleteEvent(HasuraEventView):
             async_to_sync(channel_layer.group_send)(
                 str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
             )
-        except gaierror:
+        except gaierror:  # pragma: no cover
             # WebSocket are unavailable (unit testing)
             pass
         return JsonResponse(self.data, status=self.status)
@@ -835,7 +835,7 @@ class GraphqlReportFindingDeleteEvent(HasuraEventView):
                     # Adjust position to close gap created by the removed finding
                     findings_queryset.filter(id=finding.id).update(position=counter)
                     counter += 1
-        except Report.DoesNotExist:
+        except Report.DoesNotExist:  # pragma: no cover
             # Report was deleted, so no need to adjust positions
             pass
         return JsonResponse(self.data, status=self.status)
@@ -857,7 +857,7 @@ class ApiKeyRevoke(utils.RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return self.get_object().user.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
