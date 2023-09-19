@@ -200,6 +200,7 @@ class Finding(models.Model):
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
+        null=True,
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
@@ -207,14 +208,14 @@ class Finding(models.Model):
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a severity rating for this finding that reflects its role in a system compromise",
     )
     finding_type = models.ForeignKey(
         "FindingType",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a finding category that fits",
     )
 
@@ -318,15 +319,13 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Select the filetype for this template",
     )
-
     p_style = models.CharField(
-        "Style of new paragraphs - Word only (leave empty for default - Normal)",
+        "New Paragraph Style",
         max_length=255,
         null=True,
         blank=True,
         default=None,
-        help_text="Provide the name of the style of new paragraphs. The style must be present in the template. "
-        + "Leave empty to use default Normal style (Word only).",
+        help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
     )
 
     class Meta:
@@ -497,14 +496,14 @@ class ReportFindingLink(models.Model):
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a severity rating for this finding that reflects its role in a system compromise",
     )
     finding_type = models.ForeignKey(
         "FindingType",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a finding category that fits",
     )
     report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True)
