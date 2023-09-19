@@ -1574,78 +1574,58 @@ class Reportwriter:
 
         # Findings
         for finding in context["findings"]:
-
             logger.info("Processing %s", finding["title"])
+            p_style = self.report_queryset.docx_template.p_style
             # Create ``RichText()`` object for a colored severity category
             finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
             finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
             finding["cvss_vector_rt"] = RichText(finding["cvss_vector"], color=finding["severity_color"])
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = render_subdocument(
-                finding["affected_entities"], finding, self.report_queryset.docx_template.p_style
-            )
-            finding["description_rt"] = render_subdocument(
-                finding["description"], finding, self.report_queryset.docx_template.p_style
-            )
-            finding["impact_rt"] = render_subdocument(
-                finding["impact"], finding, self.report_queryset.docx_template.p_style
-            )
+            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding, p_style)
+            finding["description_rt"] = render_subdocument(finding["description"], finding, p_style)
+            finding["impact_rt"] = render_subdocument(finding["impact"], finding, p_style)
 
             # Include a copy of ``mitigation`` as ``recommendation`` to match legacy context
-            mitigation_section = render_subdocument(
-                finding["mitigation"], finding, self.report_queryset.docx_template.p_style
-            )
+            mitigation_section = render_subdocument(finding["mitigation"], finding, p_style)
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = render_subdocument(
-                finding["replication_steps"], finding, self.report_queryset.docx_template.p_style
-            )
+            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding, p_style)
             finding["host_detection_techniques_rt"] = render_subdocument(
-                finding["host_detection_techniques"], finding, self.report_queryset.docx_template.p_style
+                finding["host_detection_techniques"], finding, p_style
             )
             finding["network_detection_techniques_rt"] = render_subdocument(
-                finding["network_detection_techniques"], finding, self.report_queryset.docx_template.p_style
+                finding["network_detection_techniques"], finding, p_style
             )
-            finding["references_rt"] = render_subdocument(
-                finding["references"], finding, self.report_queryset.docx_template.p_style
-            )
+            finding["references_rt"] = render_subdocument(finding["references"], finding, p_style)
 
         # Client Notes
-        context["client"]["note_rt"] = render_subdocument(
-            context["client"]["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
-        )
+        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None, p_style=p_style)
         context["client"]["address_rt"] = render_subdocument(
-            context["client"]["address"], finding=None, p_style=self.report_queryset.docx_template.p_style
+            context["client"]["address"], finding=None, p_style=p_style
         )
 
         # Project Notes
-        context["project"]["note_rt"] = render_subdocument(
-            context["project"]["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
-        )
+        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None, p_style=p_style)
 
         # Assignments
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = render_subdocument(
-                        assignment["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
-                    )
+                    assignment["note_rt"] = render_subdocument(assignment["note"], finding=None, p_style=p_style)
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = render_subdocument(
-                        contact["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
-                    )
+                    contact["note_rt"] = render_subdocument(contact["note"], finding=None, p_style=p_style)
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
                     objective["description_rt"] = render_subdocument(
-                        objective["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                        objective["description"], finding=None, p_style=p_style
                     )
 
         # Scope Lists
@@ -1653,41 +1633,33 @@ class Reportwriter:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
                     scope_list["description_rt"] = render_subdocument(
-                        scope_list["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
+                        scope_list["description"], finding=None, p_style=p_style
                     )
 
         # Targets
         for target in context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = render_subdocument(
-                        target["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
-                    )
+                    target["note_rt"] = render_subdocument(target["note"], finding=None, p_style=p_style)
 
         # Deconfliction Events
         for event in context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = render_subdocument(
-                        event["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
-                    )
+                    event["description_rt"] = render_subdocument(event["description"], finding=None, p_style=p_style)
 
         # White Cards
         for card in context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = render_subdocument(
-                        card["description"], finding=None, p_style=self.report_queryset.docx_template.p_style
-                    )
+                    card["description_rt"] = render_subdocument(card["description"], finding=None, p_style=p_style)
 
         # Infrastructure
         for asset_type in context["infrastructure"]:
             for asset in context["infrastructure"][asset_type]:
                 if isinstance(asset, dict):
                     if asset["note"]:
-                        asset["note_rt"] = render_subdocument(
-                            asset["note"], finding=None, p_style=self.report_queryset.docx_template.p_style
-                        )
+                        asset["note_rt"] = render_subdocument(asset["note"], finding=None, p_style=p_style)
 
         return context
 
@@ -2225,8 +2197,9 @@ class Reportwriter:
 class TemplateLinter:
     """Lint template files to catch undefined variables and syntax errors."""
 
-    def __init__(self, template_loc):
-        self.template_loc = template_loc
+    def __init__(self, template):
+        self.template = template
+        self.template_loc = template.document.path
         self.jinja_template_env = prepare_jinja2_env(debug=True)
 
     def lint_docx(self):
@@ -2272,6 +2245,11 @@ class TemplateLinter:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): Blockquote"
                         )
+                    if self.template.p_style:
+                        if self.template.p_style not in document_styles:
+                            results["warnings"].append(
+                                f"Template is missing your configured default paragraph style: {self.template.p_style}"
+                            )
                     logger.info("Completed Word style checks")
 
                     # Step 3: Test rendering the document
