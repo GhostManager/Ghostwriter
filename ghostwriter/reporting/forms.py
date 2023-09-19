@@ -777,7 +777,8 @@ class ReportTemplateForm(forms.ModelForm):
         self.fields["doc_type"].empty_label = "-- Select a Matching Filetype --"
         self.fields["client"].empty_label = "-- Attach to a Client (Optional) --"
         self.fields["tags"].widget.attrs["placeholder"] = "language:en_US, cvss, ..."
-        self.fields["p_style"].widget.attrs["placeholder"] = "Style for new paragraph (Optional, Word only)"
+        self.fields["p_style"].widget.attrs["placeholder"] = "Normal"
+        self.fields["p_style"].initial = "Normal"
 
         clients = get_client_list(user)
         self.fields["client"].queryset = clients
@@ -796,16 +797,16 @@ class ReportTemplateForm(forms.ModelForm):
             ),
             Row(
                 Column("name", css_class="form-group col-md-6 mb-0"),
-                Column("tags", css_class="form-group col-md-6 mb-0"),
-                css_class="form-row",
-            ),
-            Row(
-                Column("doc_type", css_class="form-group col-md-6 mb-0"),
                 Column("client", css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
             Row(
+                Column("doc_type", css_class="form-group col-md-6 mb-0"),
                 Column("p_style", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("tags", css_class="form-group col-md-12 mb-0"),
                 css_class="form-row",
             ),
             Row(
