@@ -18,6 +18,7 @@ from rest_framework.renderers import JSONRenderer
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
+    ClientFactory,
     CompanyInformationFactory,
     EvidenceFactory,
     FindingFactory,
@@ -1489,26 +1490,39 @@ class ReportTemplateListViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.client = ClientFactory()
 
         cls.num_of_templates = 10
         cls.templates = []
         for template_id in range(cls.num_of_templates):
             cls.templates.append(ReportTemplateFactory())
+        cls.templates.append(ReportTemplateFactory(client=cls.client))
 
         cls.uri = reverse("reporting:templates")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["reporttemplate_list"]), self.num_of_templates)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.context["reporttemplate_list"]), self.num_of_templates + 1)
 
     def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
