@@ -1772,12 +1772,9 @@ class ReportTemplateDelete(RoleBasedAccessControlMixin, DeleteView):
         )
 
     def get_success_url(self):
-        message = "Successfully deleted the template and associated file."
-        if os.path.isfile(self.object.document.path):
-            message = "Successfully deleted the template, but could not delete the associated file."
         messages.success(
             self.request,
-            message,
+            "Successfully deleted the template and associated file.",
             extra_tags="alert-success",
         )
         return reverse("reporting:templates")
