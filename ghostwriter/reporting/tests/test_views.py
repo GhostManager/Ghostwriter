@@ -1771,6 +1771,22 @@ class ReportTemplateLintViewTests(TestCase):
         response = self.client.get(self.docx_uri)
         self.assertEqual(response.status_code, 302)
 
+    def test_linting_with_bad_style(self):
+        data = {
+            "result": "warning",
+            "warnings": ["Template is missing your configured default paragraph style: bad_style"],
+            "errors": [],
+            "message": "Template linter returned results with issues that require attention.",
+        }
+
+        self.docx_template.p_style = "bad_style"
+        self.docx_template.save()
+        response = self.client_auth.post(self.docx_uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+        self.docx_template.p_style = "Normal"
+        self.docx_template.save()
+
 
 class UpdateTemplateLintResultsViewTests(TestCase):
     """Collection of tests for :view:`reporting.UpdateTemplateLintResults`."""
