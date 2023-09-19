@@ -167,8 +167,7 @@ def clean_template(sender, instance, created, **kwargs):
             instance.document.path,
         )
         try:
-            template_loc = instance.document.path
-            linter = TemplateLinter(template_loc=template_loc)
+            linter = TemplateLinter(template=instance)
             if instance.doc_type.doc_type == "docx":
                 results = linter.lint_docx()
             elif instance.doc_type.doc_type == "pptx":

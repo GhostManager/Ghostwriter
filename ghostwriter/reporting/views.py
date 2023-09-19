@@ -719,8 +719,7 @@ class ReportTemplateLint(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         template = self.get_object()
-        template_loc = template.document.path
-        linter = reportwriter.TemplateLinter(template_loc=template_loc)
+        linter = reportwriter.TemplateLinter(template=template)
         if template.doc_type.doc_type == "docx":
             results = linter.lint_docx()
         elif template.doc_type.doc_type == "pptx":
@@ -1652,7 +1651,7 @@ class ReportTemplateCreate(RoleBasedAccessControlMixin, CreateView):
     def get_initial(self):
         date = datetime.now().strftime("%d %B %Y")
         initial_upload = f'<p><span class="bold">{date}</span></p><p>Initial upload</p>'
-        return {"changelog": initial_upload}
+        return {"changelog": initial_upload, "p_style": "Normal"}
 
     def get_success_url(self):
         messages.success(
