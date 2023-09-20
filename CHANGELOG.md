@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [4.0.0] - 20 September 2023
+
 ### Added
 
 * Added a "People" tab to the project dashboard that shows the project's assignments and client contacts
@@ -34,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+* Removed the legacy REST API deprecated in Ghostwriter v3
 * Removed the unused `restricted` account role
   * This is a clean-up for the release candidate; the `restricted` role was experimental and never implemented in the access controls
 * Removed the `user` role's privileges to create, edit, and delete project assignments and client contacts to better adhere to the role's intended permissions
