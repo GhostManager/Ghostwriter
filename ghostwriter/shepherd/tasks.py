@@ -918,7 +918,7 @@ def json_datetime_converter(dt):
     return None
 
 
-def review_cloud_infrastructure(aws_only_running=False):
+def review_cloud_infrastructure(aws_only_running=False, do_only_running=False):
     """
     Fetch active virtual machines/instances in Digital Ocean, Azure, and AWS and
     compare IP addresses to project infrastructure. Send a report to Slack if any
@@ -931,6 +931,8 @@ def review_cloud_infrastructure(aws_only_running=False):
 
     ``aws_only_running``
         Filter out any shutdown AWS resources, where possible (Default: False)
+    ``do_only_running``
+        Filter out any shutdown Digital Ocean resources, where possible (Default: False)
     """
     # Fetch cloud API keys and tokens
     cloud_config = CloudServicesConfiguration.get_solo()
@@ -990,7 +992,7 @@ def review_cloud_infrastructure(aws_only_running=False):
     ###############
 
     logger.info("Checking Digital Ocean droplets")
-    do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags)
+    do_results = fetch_digital_ocean(cloud_config.do_api_key, ignore_tags, do_only_running)
     if do_results["message"]:
         vps_info["errors"]["digital_ocean"] = do_results["message"]
     else:
