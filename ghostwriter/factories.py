@@ -34,6 +34,12 @@ class UserFactory(factory.django.DjangoModelFactory):
     timezone = random.choice(TIMEZONES)
     password = factory.PostGenerationMethodCall("set_password", "mysecret")
     role = "user"
+    is_active = True
+    is_staff = False
+    is_superuser = False
+    enable_finding_create = False
+    enable_finding_edit = False
+    enable_finding_delete = False
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):
@@ -208,6 +214,20 @@ class ProjectTargetFactory(factory.django.DjangoModelFactory):
     hostname = Faker("hostname")
     note = Faker("sentence")
     compromised = Faker("boolean")
+    project = factory.SubFactory(ProjectFactory)
+
+
+class ProjectContactFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "rolodex.ProjectContact"
+
+    name = Faker("name")
+    job_title = Faker("job")
+    email = Faker("email")
+    phone = Faker("phone_number")
+    note = Faker("paragraph")
+    primary = False
+    timezone = random.choice(TIMEZONES)
     project = factory.SubFactory(ProjectFactory)
 
 

@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, timedelta, datetime
+from datetime import date, datetime, timedelta
 
 # Django Imports
 from django.test import Client, TestCase
@@ -12,6 +12,7 @@ from django.utils.encoding import force_str
 from ghostwriter.factories import (
     AuxServerAddressFactory,
     ClientFactory,
+    ClientInviteFactory,
     CloudServicesConfigurationFactory,
     DomainFactory,
     DomainNoteFactory,
@@ -20,6 +21,7 @@ from ghostwriter.factories import (
     HistoryFactory,
     NamecheapConfigurationFactory,
     ProjectFactory,
+    ProjectAssignmentFactory,
     ServerHistoryFactory,
     ServerNoteFactory,
     ServerStatusFactory,
@@ -136,7 +138,7 @@ class UpdateViewTests(TestCase):
 
 
 class DomainOverwatchViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.ajax_domain_overwatch`."""
+    """Collection of tests for :view:`shepherd.AjaxDomainOverwatch`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -145,50 +147,52 @@ class DomainOverwatchViewTests(TestCase):
         cls.unused_domain = DomainFactory()
         cls.checkout = HistoryFactory(client=cls.client_org, domain=cls.domain)
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("shepherd:ajax_domain_overwatch")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
-    def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
+        parameters = {"client": self.client_org.pk, "domain": self.domain.pk}
+        response = self.client_auth.get(self.uri, parameters)
+        self.assertEqual(response.status_code, 403)
+
     def test_overwatch_warning_positive(self):
-        post_data = {"client": self.client_org.pk, "domain": self.domain.pk}
-        response = self.client_auth.get(self.uri, post_data)
+        parameters = {"client": self.client_org.pk, "domain": self.domain.pk}
+        response = self.client_mgr.get(self.uri, parameters)
 
         self.assertEqual(response.status_code, 200)
         data = {
             "result": "warning",
-            "message": "Domain has been used with this client in the past",
+            "message": "Domain has been used with this client in the past!",
         }
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_overwatch_warning_negative(self):
-        post_data = {"client": self.client_org.pk, "domain": self.unused_domain.pk}
-        response = self.client_auth.get(self.uri, post_data)
+        parameters = {"client": self.client_org.pk, "domain": self.unused_domain.pk}
+        response = self.client_mgr.get(self.uri, parameters)
         self.assertEqual(response.status_code, 200)
         data = {"result": "success", "message": ""}
         self.assertJSONEqual(force_str(response.content), data)
 
     def test_missing_values(self):
-        post_data = {"domain": self.unused_domain.pk}
-        response = self.client_auth.get(self.uri, post_data)
-        self.assertEqual(response.status_code, 200)
-        data = {"result": "error"}
+        parameters = {"domain": self.unused_domain.pk}
+        response = self.client_mgr.get(self.uri, parameters)
+        self.assertEqual(response.status_code, 400)
+        data = {"result": "error", "message": "Bad request"}
         self.assertJSONEqual(force_str(response.content), data)
 
 
 class DomainListViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.domain_list`."""
+    """Collection of tests for :view:`shepherd.DomainListView`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -222,7 +226,7 @@ class DomainListViewTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -233,6 +237,11 @@ class DomainListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/domain_list.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("filter", response.context)
+        self.assertIn("autocomplete", response.context)
 
     def test_domain_filtering(self):
         # Filter defaults to only showing available domains (id 1), so we should only see 3
@@ -451,8 +460,9 @@ class DomainExportViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.num_of_domains = 10
         cls.domains = []
+        cls.tags = ["tag1", "tag2", "tag3"]
         for domain_id in range(cls.num_of_domains):
-            cls.domains.append(DomainFactory())
+            cls.domains.append(DomainFactory(tags=cls.tags))
         cls.uri = reverse("shepherd:export_domains_to_csv")
 
     def setUp(self):
@@ -480,30 +490,42 @@ class HistoryCreateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.domain = DomainFactory()
+        cls.test_client = ClientFactory()
         cls.uri = reverse("shepherd:history_create", kwargs={"pk": cls.domain.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["client"].queryset), 0)
+
+        ClientInviteFactory(client=self.test_client, user=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["client"].queryset), 1)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/checkout.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertIn("domain", response.context)
         self.assertIn("domain_name", response.context)
@@ -521,30 +543,39 @@ class HistoryUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.entry = HistoryFactory()
         cls.uri = reverse("shepherd:history_update", kwargs={"pk": cls.entry.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(project=self.entry.project, operator=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/checkout.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertIn("domain_name", response.context)
         self.assertEqual(
@@ -560,6 +591,7 @@ class HistoryDeleteViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.domain = DomainFactory()
         cls.entry = HistoryFactory(domain=cls.domain)
         cls.uri = reverse("shepherd:history_delete", kwargs={"pk": cls.entry.pk})
@@ -567,24 +599,32 @@ class HistoryDeleteViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(project=self.entry.project, operator=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "confirm_delete.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertIn("object_type", response.context)
         self.assertIn("object_to_be_deleted", response.context)
@@ -603,8 +643,6 @@ class DomainReleaseViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
 
-        cls.client_org = ClientFactory()
-
         cls.available_status = DomainStatusFactory(domain_status="Available")
         cls.unavailable_status = DomainStatusFactory(domain_status="Unavailable")
         cls.domain = DomainFactory(reset_dns=False, domain_status=cls.unavailable_status)
@@ -617,6 +655,7 @@ class DomainReleaseViewTests(TestCase):
             start_date=cls.start_date,
             end_date=cls.end_date,
         )
+        ProjectAssignmentFactory(project=cls.checkout.project, operator=cls.user)
         cls.other_user_checkout = HistoryFactory(domain=cls.domain, start_date=cls.start_date, end_date=cls.end_date)
 
         cls.uri = reverse("shepherd:ajax_domain_release", kwargs={"pk": cls.checkout.id})
@@ -625,7 +664,6 @@ class DomainReleaseViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def tearDown(self):
@@ -643,7 +681,7 @@ class DomainReleaseViewTests(TestCase):
         self.checkout.refresh_from_db()
 
         self.assertEqual(response.status_code, 200)
-        data = {"result": "success", "message": "Domain successfully released"}
+        data = {"result": "success", "message": "Domain successfully released."}
         self.assertJSONEqual(force_str(response.content), data)
         self.assertEqual(self.domain.domain_status, self.available_status)
         self.assertEqual(self.checkout.end_date, date.today())
@@ -654,10 +692,10 @@ class DomainReleaseViewTests(TestCase):
 
     def test_domain_release_failure(self):
         response = self.client_auth.post(self.failure_uri)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         data = {
             "result": "error",
-            "message": "You are not authorized to release this domain",
+            "message": "You do not have permission to release this domain.",
         }
         self.assertJSONEqual(force_str(response.content), data)
         self.assertFalse(self.domain.domain_status == self.available_status)
@@ -668,7 +706,7 @@ class DomainReleaseViewTests(TestCase):
 
 
 class ServerListViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.server_list`."""
+    """Collection of tests for :view:`shepherd.ServerListView`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -693,7 +731,7 @@ class ServerListViewTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -704,6 +742,11 @@ class ServerListViewTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_list.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_auth.get(self.uri)
+        self.assertIn("filter", response.context)
+        self.assertIn("autocomplete", response.context)
 
     def test_server_filtering(self):
         # Filter defaults to only showing available servers (id 1), so we should only see 2
@@ -883,8 +926,9 @@ class ServerExportViewTests(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.num_of_servers = 10
         cls.servers = []
+        cls.tags = ["tag1", "tag2", "tag3"]
         for server_id in range(cls.num_of_servers):
-            cls.servers.append(StaticServerFactory())
+            cls.servers.append(StaticServerFactory(tags=cls.tags))
         cls.uri = reverse("shepherd:export_servers_to_csv")
 
     def setUp(self):
@@ -912,37 +956,49 @@ class ServerHistoryCreateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.server = StaticServerFactory()
+        cls.test_client = ClientFactory()
         cls.uri = reverse("shepherd:server_history_create", kwargs={"pk": cls.server.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["client"].queryset), 0)
+
+        ClientInviteFactory(client=self.test_client, user=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["form"].fields["client"].queryset), 1)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_checkout.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
-        self.assertIn("server_instance", response.context)
+        self.assertIn("server", response.context)
         self.assertEqual(
             response.context["cancel_link"],
             reverse("shepherd:server_detail", kwargs={"pk": self.server.id}),
         )
-        self.assertEqual(response.context["server_instance"], self.server)
+        self.assertEqual(response.context["server"], self.server)
 
 
 class ServerHistoryUpdateViewTests(TestCase):
@@ -951,30 +1007,39 @@ class ServerHistoryUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.entry = ServerHistoryFactory()
         cls.uri = reverse("shepherd:server_history_update", kwargs={"pk": cls.entry.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(project=self.entry.project, operator=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/server_checkout.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
@@ -988,30 +1053,39 @@ class ServerHistoryDeleteViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.entry = ServerHistoryFactory()
         cls.uri = reverse("shepherd:server_history_delete", kwargs={"pk": cls.entry.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(project=self.entry.project, operator=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "confirm_delete.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertIn("object_type", response.context)
         self.assertIn("object_to_be_deleted", response.context)
@@ -1030,8 +1104,6 @@ class ServerReleaseViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
 
-        cls.client_org = ClientFactory()
-
         cls.available_status = ServerStatusFactory(server_status="Available")
         cls.unavailable_status = ServerStatusFactory(server_status="Unavailable")
         cls.server = StaticServerFactory(server_status=cls.unavailable_status)
@@ -1044,6 +1116,7 @@ class ServerReleaseViewTests(TestCase):
             start_date=cls.start_date,
             end_date=cls.end_date,
         )
+        ProjectAssignmentFactory(project=cls.checkout.project, operator=cls.user)
         cls.other_user_checkout = ServerHistoryFactory(
             server=cls.server, start_date=cls.start_date, end_date=cls.end_date
         )
@@ -1054,7 +1127,6 @@ class ServerReleaseViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def tearDown(self):
@@ -1072,7 +1144,7 @@ class ServerReleaseViewTests(TestCase):
         self.checkout.refresh_from_db()
 
         self.assertEqual(response.status_code, 200)
-        data = {"result": "success", "message": "Server successfully released"}
+        data = {"result": "success", "message": "Server successfully released."}
         self.assertJSONEqual(force_str(response.content), data)
         self.assertEqual(self.server.server_status, self.available_status)
         self.assertEqual(self.checkout.end_date, date.today())
@@ -1081,12 +1153,12 @@ class ServerReleaseViewTests(TestCase):
         response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_domain_release_failure(self):
+    def test_server_release_failure(self):
         response = self.client_auth.post(self.failure_uri)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         data = {
             "result": "error",
-            "message": "You are not authorized to release this server",
+            "message": "You do not have permission to release this server.",
         }
         self.assertJSONEqual(force_str(response.content), data)
         self.assertFalse(self.server.server_status == self.available_status)
@@ -1102,30 +1174,39 @@ class TransientServerCreateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.project = ProjectFactory()
         cls.uri = reverse("shepherd:vps_create", kwargs={"pk": cls.project.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.project)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/vps_form.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
@@ -1139,30 +1220,39 @@ class TransientServerUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.server = TransientServerFactory()
         cls.uri = reverse("shepherd:vps_update", kwargs={"pk": cls.server.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.server.project)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/vps_form.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
@@ -1176,6 +1266,7 @@ class TransientServerDeleteViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.server = TransientServerFactory()
         cls.TransientServer = TransientServerFactory._meta.model
         cls.uri = reverse("shepherd:ajax_delete_vps", kwargs={"pk": cls.server.pk})
@@ -1183,19 +1274,27 @@ class TransientServerDeleteViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(self.TransientServer.objects.all().exists())
         data = {"result": "success", "message": "VPS successfully deleted!"}
         self.assertJSONEqual(force_str(response.content), data)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.server.project)
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
 
 
 # Tests related to :model:`shepherd.DomainServerConnection`
@@ -1207,30 +1306,39 @@ class DomainServerConnectionCreateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.project = ProjectFactory()
         cls.uri = reverse("shepherd:link_create", kwargs={"pk": cls.project.id})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.project)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/connect_form.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
@@ -1244,30 +1352,39 @@ class DomainServerConnectionUpdateViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.entry = DomainServerConnectionFactory()
         cls.uri = reverse("shepherd:link_update", kwargs={"pk": cls.entry.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.entry.project)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "shepherd/connect_form.html")
 
     def test_custom_context_exists(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
@@ -1281,6 +1398,7 @@ class DomainServerConnectionDeleteViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.entry = DomainServerConnectionFactory()
         cls.DomainServerConnection = DomainServerConnectionFactory._meta.model
         cls.uri = reverse("shepherd:ajax_delete_domain_link", kwargs={"pk": cls.entry.pk})
@@ -1288,19 +1406,27 @@ class DomainServerConnectionDeleteViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(self.DomainServerConnection.objects.all().exists())
         data = {"result": "success", "message": "Link successfully deleted!"}
         self.assertJSONEqual(force_str(response.content), data)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.post(self.uri)
         self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.entry.project)
+        response = self.client_auth.post(self.uri)
+        self.assertEqual(response.status_code, 200)
 
 
 # Tests related to multi-model views
@@ -1447,7 +1573,7 @@ class InfrastructureSearchViewTests(TestCase):
 
 
 class UpdateDomainBadgesViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.update_domain_badges`."""
+    """Collection of tests for :view:`shepherd.AjaxUpdateDomainBadges`."""
 
     @classmethod
     def setUpTestData(cls):
@@ -1458,7 +1584,29 @@ class UpdateDomainBadgesViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+
+class UpdateServerBadgesViewTests(TestCase):
+    """Collection of tests for :view:`shepherd.AjaxUpdateServerBadges`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.server = StaticServerFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("shepherd:ajax_update_server_badges", kwargs={"pk": cls.server.id})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -1471,94 +1619,82 @@ class UpdateDomainBadgesViewTests(TestCase):
 
 
 class LoadProjectsViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.ajax_load_projects`."""
+    """Collection of tests for :view:`shepherd.AjaxLoadProjects`."""
 
     @classmethod
     def setUpTestData(cls):
         cls.org = ClientFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("shepherd:ajax_load_projects") + "?client=%s" % cls.org.id
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        ClientInviteFactory(client=self.org, user=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_bad_parameters(self):
+        response = self.client_mgr.get(f"{self.uri}foo")
+        self.assertEqual(response.status_code, 400)
+
 
 class LoadProjectViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.ajax_load_project`."""
+    """Collection of tests for :view:`shepherd.AjaxLoadProject`."""
 
     @classmethod
     def setUpTestData(cls):
         cls.project = ProjectFactory()
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("shepherd:ajax_load_project") + "?project=%s" % cls.project.id
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_project_data_access(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_project_data_access(self):
+        response = self.client_mgr.get(self.uri)
         json_data = response.json()[0]
         self.assertEqual(json_data["fields"]["codename"], self.project.codename)
 
-
-class ProjectDomainsViewTests(TestCase):
-    """Collection of tests for :view:`shepherd.ajax_project_domains`."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.History = HistoryFactory._meta.model
-        cls.project = ProjectFactory()
-        cls.no_checkout_project = ProjectFactory()
-        HistoryFactory.create_batch(3, project=cls.project)
-
-        cls.user = UserFactory(password=PASSWORD)
-
-        cls.uri = reverse("shepherd:ajax_project_domains", kwargs={"pk": cls.project.id})
-        cls.no_checkout_uri = reverse("shepherd:ajax_project_domains", kwargs={"pk": cls.no_checkout_project.id})
-
-    def setUp(self):
-        self.client = Client()
-        self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
-        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-
-    def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_with_no_history(self):
-        response = self.client_auth.get(self.no_checkout_uri)
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_requires_login(self):
-        response = self.client.get(self.uri)
-        self.assertEqual(response.status_code, 302)
-
-    def test_with_no_checkout_records(self):
-        response = self.client_auth.get(self.no_checkout_uri)
-        self.assertEqual(response.status_code, 200)
+    def test_bad_parameters(self):
+        response = self.client_mgr.get(f"{self.uri}foo")
+        self.assertEqual(response.status_code, 400)
 
 
 class DomainNoteUpdateTests(TestCase):

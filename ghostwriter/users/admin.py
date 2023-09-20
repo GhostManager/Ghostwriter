@@ -5,6 +5,7 @@ from django.contrib import admin
 from django.contrib.auth import admin as auth_admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.contrib.sessions.models import Session
 from django.utils.translation import gettext_lazy as _
 
 # Ghostwriter Libraries
@@ -12,6 +13,16 @@ from ghostwriter.home.models import UserProfile
 from ghostwriter.users.forms import GroupAdminForm
 
 User = get_user_model()
+
+
+class SessionAdmin(admin.ModelAdmin):
+    def _session_data(self, obj):
+        return obj.get_decoded()
+
+    list_display = ["session_key", "_session_data", "expire_date"]
+
+
+admin.site.register(Session, SessionAdmin)
 
 
 class AdminProfileInline(admin.StackedInline):
@@ -24,22 +35,16 @@ class UserAdmin(auth_admin.UserAdmin):
     list_display = (
         "name",
         "username",
-        "role",
         "email",
-        "is_active",
-        "is_staff",
-        "is_superuser",
-        "last_login",
-    )
-    list_filter = (
         "role",
+        "require_2fa",
+        "last_login",
         "is_active",
-        "is_staff",
-        "is_superuser",
     )
+    list_filter = ("role",)
 
     fieldsets = (
-        (_("User Information"), {"fields": ("username", "password")}),
+        (_("User Information"), {"fields": ("username", "password", "require_2fa")}),
         (_("Personal Information"), {"fields": ("name", "email", "phone", "timezone")}),
         (
             _("User Permissions"),
@@ -49,6 +54,16 @@ class UserAdmin(auth_admin.UserAdmin):
                     "is_active",
                     "is_staff",
                     "is_superuser",
+                ),
+            },
+        ),
+        (
+            _("Permission Augmentation"),
+            {
+                "fields": (
+                    "enable_finding_create",
+                    "enable_finding_edit",
+                    "enable_finding_delete",
                 ),
             },
         ),
@@ -64,7 +79,10 @@ class UserAdmin(auth_admin.UserAdmin):
         ),
     )
     search_fields = ("username", "name", "email")
-    list_editable = ("is_active",)
+    list_editable = (
+        "is_active",
+        "require_2fa",
+    )
     list_display_links = ("name", "username", "email")
     inlines = (AdminProfileInline,)
 

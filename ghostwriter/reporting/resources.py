@@ -12,9 +12,7 @@ from ghostwriter.reporting.models import Finding, FindingType, Severity
 
 
 class FindingResource(resources.ModelResource):
-    """
-    Import and export :model:`reporting.Finding`.
-    """
+    """Import and export :model:`reporting.Finding`."""
 
     severity = Field(
         attribute="severity",

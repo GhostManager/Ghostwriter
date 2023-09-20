@@ -55,20 +55,6 @@ select_permissions:
         - prefix_figure
         - prefix_table
       filter: {}
-  - role: restricted
-    permission:
-      columns:
-        - border_color
-        - border_weight
-        - default_docx_template_id
-        - default_pptx_template_id
-        - enable_borders
-        - id
-        - label_figure
-        - label_table
-        - prefix_figure
-        - prefix_table
-      filter: {}
   - role: user
     permission:
       columns:

@@ -24,22 +24,6 @@ select_permissions:
         - id
         - project_id
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-            - client:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns: '*'
@@ -64,37 +48,6 @@ update_permissions:
         - report_archive
       filter: {}
       check: {}
-  - role: restricted
-    permission:
-      columns:
-        - project_id
-        - report_archive
-      filter:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-            - client:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-      check:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-            - client:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:
@@ -130,21 +83,6 @@ delete_permissions:
   - role: manager
     permission:
       filter: {}
-  - role: restricted
-    permission:
-      filter:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-            - client:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
   - role: user
     permission:
       filter:

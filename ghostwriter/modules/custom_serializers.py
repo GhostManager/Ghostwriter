@@ -35,6 +35,7 @@ from ghostwriter.rolodex.models import (
     Deconfliction,
     Project,
     ProjectAssignment,
+    ProjectContact,
     ProjectNote,
     ProjectObjective,
     ProjectScope,
@@ -569,6 +570,16 @@ class TransientServerSerializer(CustomModelSerializer):
         ]
 
 
+class ProjectContactSerializer(CustomModelSerializer):
+    """Serialize :model:`rolodex:ProjectContact` entries."""
+
+    timezone = TimeZoneSerializerField()
+
+    class Meta:
+        model = ProjectContact
+        fields = "__all__"
+
+
 class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`rolodex:Project` entries."""
 
@@ -705,6 +716,8 @@ class ReportDataSerializer(CustomModelSerializer):
         ]
     )
     client = ClientSerializer(source="project.client")
+    recipient = SerializerMethodField("get_recipient")
+    contacts = ProjectContactSerializer(source="project.projectcontact_set", many=True, exclude=["id", "project"])
     team = ProjectAssignmentSerializer(source="project.projectassignment_set", many=True, exclude=["id", "project"])
     objectives = ProjectObjectiveSerializer(source="project.projectobjective_set", many=True, exclude=["id", "project"])
     targets = ProjectTargetSerializer(source="project.projecttarget_set", many=True, exclude=["id", "project"])
@@ -766,6 +779,14 @@ class ReportDataSerializer(CustomModelSerializer):
                 if entry.tool and entry.tool.lower() not in tools:
                     tools.append(entry.tool.lower())
         return tools
+
+    def get_recipient(self, obj):
+        primary = None
+        for contact in obj.project.projectcontact_set.all():
+            if contact.primary:
+                primary = contact
+                break
+        return ProjectContactSerializer(primary, exclude=["id", "project"]).data
 
     def to_representation(self, instance):
         # Get the standard JSON from ``super()``

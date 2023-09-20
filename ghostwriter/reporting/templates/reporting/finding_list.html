@@ -1,60 +1,67 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags bleach_tags %}
 
 {% block pagetitle %}Findings Library{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Findings</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Findings</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <!-- Filter Section -->
-    <div class="filter-form">
-        {% crispy filter.form filter.helper %}
+  <!-- Filter Section -->
+  <div class="filter-form">
+    {% crispy filter.form filter.helper %}
+  </div>
+
+  {% if filter.qs|length == 0 %}
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no findings yet, or your search
+      returned no results. Create a finding above or adjust your filters.
     </div>
+  {% else %}
+    <!-- Instructions Section -->
+    <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>current report</em>
+      displayed at the top of the page.</p>
 
-    {% if filter.qs|length == 0 %}
-        <p class="mt-3">There are no findings to see here yet, or your search returned no results. Create a new finding up above.</p>
-    {% else %}
-        <!-- Instructions Section -->
-        <p class="mt-3">Click the <span class="add-icon"></span> icon to add a finding to the <em>current report</em> displayed at the top of the page.</p>
-
-        <!-- Findings Table Section -->
-        <div id="findings_table">
-            <table id="findingsTable" class="tablesorter table table-striped table-sm">
-                <thead>
-                    <tr>
-                        <th class="sortable pr-4">Severity</th>
-                        <th class="sortable pr-4">Type</span></th>
-                        <th class="sortable pr-4">Title</th>
-                        <th class="sorter-false align-middle">
-                            <div class="dropdown dropleft">
-                                <span id="finding-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Add Report</span>
-                                <div id="finding-info" class="dropdown-menu dropdown-info-content" aria-labelledby="finding-info-btn">
-                                    <p>Clicking <span class="add-icon"></span> will add the finding to your active report displayed at the top of the screen.</p>
-                                </div>
-                            </div>
-                        </th>
-                        <th class="sorter-false align-middle">
-                            <div class="dropdown dropleft">
-                                <span id="edit-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Edit Finding</span>
-                                <div id="edit-info" class="dropdown-menu dropdown-info-content" aria-labelledby="edit-info-btn">
-                                    <p>Editing a finding here edits the <em>master record</em> for every other user. Only customize a finding after adding it to your report.</p>
-                                </div>
-                            </div>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="list">
-                    {% for finding in filter.qs %}
-                        <tr>
-                            <!-- Severity Column -->
-                            <td class="align-middle
+    <!-- Findings Table Section -->
+    <div id="findings_table">
+      <table id="findingsTable" class="tablesorter table table-striped table-sm">
+        <thead>
+        <tr>
+          <th class="sortable pr-4">Severity</th>
+          <th class="sortable pr-4">Type</span></th>
+          <th class="sortable pr-4">Title</th>
+          <th class="sorter-false align-middle">
+            <div class="dropdown dropleft">
+              <span id="finding-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">Add Report</span>
+              <div id="finding-info" class="dropdown-menu dropdown-info-content" aria-labelledby="finding-info-btn">
+                <p>Clicking <span class="add-icon"></span> will add the finding to your active report displayed at the
+                  top of the screen.</p>
+              </div>
+            </div>
+          </th>
+          <th class="sorter-false align-middle">
+            <div class="dropdown dropleft">
+              <span id="edit-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
+                    aria-expanded="false">Edit Finding</span>
+              <div id="edit-info" class="dropdown-menu dropdown-info-content" aria-labelledby="edit-info-btn">
+                <p>Editing a finding here edits the <em>master record</em> for every other user. Only customize a
+                  finding after adding it to your report.</p>
+              </div>
+            </div>
+          </th>
+        </tr>
+        </thead>
+        <tbody class="list">
+        {% for finding in filter.qs %}
+          <tr>
+            <!-- Severity Column -->
+            <td class="align-middle
                                 {% if finding.severity.weight == 1 %}
                                     critical
                                 {% elif finding.severity.weight == 2 %}
@@ -67,104 +74,119 @@
                                     info
                                 {% endif %}
                             ">
-                                <span style="display: none">{{ finding.severity.weight }}{{ cvss_score }}</span>{{ finding.severity.severity }} {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
-                            </td>
-                            <!-- Finding Type (e.g. Network) -->
-                            <td class="align-middle icon
+              <span
+                style="display: none">{{ finding.severity.weight }}{{ cvss_score }}</span>{{ finding.severity.severity }}
+              {% if finding.cvss_score %}({{ finding.cvss_score }}){% endif %}
+            </td>
+            <!-- Finding Type (e.g. Network) -->
+            <td class="align-middle icon
                                 {% if finding.finding_type.finding_type == "Network" %}
                                     network-icon"
-                                    title="Network Finding"
-                                {% elif finding.finding_type.finding_type == "Wireless" %}
-                                    wireless-icon"
-                                    title="Wireless Finding"
-                                {% elif finding.finding_type.finding_type == "Physical" %}
-                                    physical-icon"
-                                    title="Physical Security Finding"
-                                {% elif finding.finding_type.finding_type == "Web" %}
-                                    code-icon"
-                                    title="Web App Finding"
-                                {% elif finding.finding_type.finding_type == "Mobile Application" %}
-                                    mobile-icon"
-                                    title="Mobile Finding"
-                                {% elif finding.finding_type.finding_type == "Cloud" %}
-                                    cloud-icon"
-                                    title="Cloud Finding"
-                                {% elif finding.finding_type.finding_type == "Host" %}
-                                    host-icon"
-                                    title="Local Host Finding"
-                                {% else %}
-                                    host-icon"
-                                    title="other Finding"
-                                {% endif %}
-                            >
-                                <span style="display: none;">{{ finding.finding_type.finding_type }}</span>
-                            </td>
+                title="Network Finding"
+            {% elif finding.finding_type.finding_type == "Wireless" %}
+                wireless-icon"
+              title="Wireless Finding"
+            {% elif finding.finding_type.finding_type == "Physical" %}
+              physical-icon"
+              title="Physical Security Finding"
+            {% elif finding.finding_type.finding_type == "Web" %}
+              code-icon"
+              title="Web App Finding"
+            {% elif finding.finding_type.finding_type == "Mobile Application" %}
+              mobile-icon"
+              title="Mobile Finding"
+            {% elif finding.finding_type.finding_type == "Cloud" %}
+              cloud-icon"
+              title="Cloud Finding"
+            {% elif finding.finding_type.finding_type == "Host" %}
+              host-icon"
+              title="Local Host Finding"
+            {% else %}
+              host-icon"
+              title="other Finding"
+            {% endif %}
+            >
+            <span style="display: none;">{{ finding.finding_type.finding_type }}</span>
+            </td>
 
-                            <!-- Other Information -->
-                            <td class="text-justify"><a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.title }}</a></td>
-                            <td class="align-middle"><a class="js-assign-finding icon add-icon" assign-finding-id="{{ finding.id }}" href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}" assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"></a></td>
-                            <td class="align-middle"><a class="icon edit-icon" href="{% url 'reporting:finding_update' finding.id %}"></a></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endif %}
+            <!-- Other Information -->
+            <td class="text-justify"><a class="clickable" href="{{ finding.get_absolute_url }}">{{ finding.title }}</a>
+            </td>
+            <td class="align-middle"><a class="js-assign-finding icon add-icon" assign-finding-id="{{ finding.id }}"
+                                        href="javascript:void(0);" assign-finding-csrftoken="{{ csrf_token }}"
+                                        assign-finding-url="{% url 'reporting:ajax_assign_finding' finding.id %}"></a>
+            </td>
+            <td class="align-middle"><a class="icon edit-icon"
+                                        href="{% url 'reporting:finding_update' finding.id %}"></a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $("#findingsTable").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-        });
-    </script>
+  {%  comment %} jQuery Tablesorter Script {% endcomment %}
+  <script>
+    $(document).ready(function () {
+      $("#findingsTable").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('.tablesorter').trigger('update');
+    });
 
-    <!-- Assign Finding with AJAX -->
-    <script>
-        $('.js-assign-finding').click(function () {
-            var url = $(this).attr('assign-finding-url');
-            var findingId = $(this).attr('assign-finding-id');
-            var csrftoken = $(this).attr('assign-finding-csrftoken')
-            // Prep AJAX request with CSRF token
-            $.ajaxSetup({
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                    }
-                }
-            });
-            // Send AJAX POST request
-            $.ajax({
-                url: url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    'finding': findingId
-                },
-                success: function (data) {
-                    if (data['result'] == 'success') {
-                        // Something
-                    }
-                    if (data['message']) {
-                        displayToastTop({type:data['result'], string:data['message'], title:'Finding Assigned'});
-                    }
-                }
-            });
-        });
-    </script>
+    {%  comment %} Assign Finding with AJAX {% endcomment %}
+    $('.js-assign-finding').click(function () {
+      var url = $(this).attr('assign-finding-url');
+      var findingId = $(this).attr('assign-finding-id');
+      var csrftoken = $(this).attr('assign-finding-csrftoken')
+      // Prep AJAX request with CSRF token
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      // Send AJAX POST request
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'finding': findingId
+        },
+        success: function (data) {
+          if (data['result'] == 'success') {
+            // Do something
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Finding Assigned'});
+          }
+        }
+      });
+    });
 
-    <!-- Submit Filter when Clicking Bootstrap Icon -->
-    <script>
-        $('.input-group-text').on('click', function (event) {
-            $('.input-group-text').closest('form').submit();
-        });
-    </script>
+    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
+    $(function () {
+      let availableTitles = [
+        {% for entry in autocomplete %}
+          '{{ entry|bleach }}',
+        {% endfor %}
+      ];
+      $("#id_title").autocomplete({
+        source: availableTitles
+      });
+    });
+
+    {%  comment %} Submit Filter when Clicking Bootstrap Icon {% endcomment %}
+    $('.input-group-text').on('click', function (event) {
+      $('.input-group-text').closest('form').submit();
+    });
+  </script>
 {% endblock %}

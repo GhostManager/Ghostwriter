@@ -43,9 +43,9 @@
     {% if reporttemplate.protected %}
         <div
             {% if request.user.is_staff or request.user.role == "manager" or request.user.role == "admin" %}
-                class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template
+                class="alert alert-secondary icon unlock-icon" role="alert">You may edit this protected template.
             {% else %}
-                class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it
+                class="alert alert-danger icon lock-icon" role="alert">This template is protected – only admins and managers may edit it.
             {% endif %}
         </div>
     {% endif %}
@@ -85,10 +85,12 @@
                 <td class="text-left bold">Orientation</td>
                 <td class="text-center">{% if reporttemplate.landscape %}Landscape{% else %}Portrait{% endif %}</td>
             </tr>
-            <tr>
-                <td class="text-left bold">Style of new paragraph (Word only)</td>
-                <td class="text-center">{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</td>
-            </tr>
+            {% if reporttemplate.doc_type.doc_type == "docx" %}
+              <tr>
+                  <td class="text-left bold">New Paragraph Style</td>
+                  <td class="text-center">{% if reporttemplate.p_style %}{{ reporttemplate.p_style }}{% else %}Normal{% endif %}</td>
+              </tr>
+            {% endif %}
         </table>
     </div>
 

@@ -35,7 +35,51 @@ function generateTableHeaders() {
             <th class="${columnInfo[9][1]} align-middle">${columnInfo[9][2]}</th>
             <th class="${columnInfo[10][1]} align-middle">${columnInfo[10][2]}</th>
             <th class="${columnInfo[11][1]} align-middle">${columnInfo[11][2]}</th>
-            <th class="${columnInfo[12][1]} align-middle"><span class="mr-4">${columnInfo[12][2]}</span></th>`
+            <th class="${columnInfo[12][1]} align-middle">${columnInfo[12][2]}</th>`
+}
+
+// Convert a table row to JSON and copy it to the clipboard
+function convertRowToJSON(row_id) {
+    let $row = document.getElementById(row_id);
+    let header = [];
+    let rows = [];
+
+    $('#oplogTable > thead > th').each(function () {
+        header.push($(this).text())
+    })
+
+    for (let j = 0; j < $row.cells.length - 1; j++) {
+        $row[header[j]] = $row.cells[j].innerText;
+    }
+    rows.push($row);
+
+    // Convert the array of row values to JSON
+    let json = JSON.stringify(rows)
+
+    // Create a temporary input element to copy the JSON to the clipboard
+    let $temp = $('<input>');
+    $('body').append($temp);
+    $temp.val(json).select();
+    // If Clipboard API is unavailable, use the deprecated `execCommand`
+    if (!navigator.clipboard) {
+        document.execCommand('copy');
+    // Otherwise, use the Clipboard API
+    } else {
+        navigator.clipboard.writeText(json).then(
+            function () {
+                console.log('Copied row JSON to clipboard')
+                displayToastTop({
+                    type: 'success',
+                    string: 'Copied the row to the clipboard as JSON.',
+                    title: 'Row Copied'
+                });
+            })
+            .catch(
+                function () {
+                    console.log('Failed to copy row JSON to clipboard')
+                });
+    }
+    $temp.remove();
 }
 
 // Generate a table row based on a log entry
@@ -54,8 +98,9 @@ function generateRow(entry) {
             <td class="${columnInfo[10][1]} align-middle">${jsEscape(entry["operator_name"])}</td>
             <td class="${columnInfo[11][1]} align-middle">${stylizeTags(jsEscape(entry["tags"]))}</td>
             <td class="${columnInfo[12][1]} align-middle">
-                <button class="btn" onClick="javascript:copyEntry(this);" entry-id="${entry['id']}"><i class="fa fa-copy"></i></button>
-                <button class="btn" onClick="javascript:deleteEntry(this);" entry-id="${entry['id']}"><i class="fa fa-trash"></i></button>
+                <button class="btn" data-toggle="tooltip" data-placement="left" title="Create a copy of this log entry" onClick="copyEntry(this);" entry-id="${entry['id']}"><i class="fa fa-copy"></i></button>
+                <button class="btn" data-toggle="tooltip" data-placement="left" title="Copy this entry to your clipboard as JSON" onClick="convertRowToJSON(${entry["id"]});"><i class="fas fa-clipboard"></i></button>
+                <button class="btn danger" data-toggle="tooltip" data-placement="left" title="Delete this log entry" onClick="deleteEntry(this);" entry-id="${entry['id']}"><i class="fa fa-trash"></i></button>
             </td>
             </tr>`
 }
@@ -156,7 +201,7 @@ function createEntry(id) {
         'action': 'create',
         'oplog_id': id
     }))
-    displayToastTop({type: 'success', string: 'Successfully added a log entry', title: 'Oplog Update'});
+    displayToastTop({type: 'success', string: 'Successfully added a log entry.', title: 'Oplog Update'});
 }
 
 // Delete an entry when the delete button is clicked
@@ -166,7 +211,7 @@ function deleteEntry($ele) {
         'action': 'delete',
         'oplogEntryId': id
     }))
-    displayToastTop({type: 'success', string: 'Successfully deleted a log entry', title: 'Oplog Update'});
+    displayToastTop({type: 'success', string: 'Successfully deleted a log entry.', title: 'Oplog Update'});
 }
 
 // Create a copy of an entry when the copy button is clicked
@@ -176,7 +221,7 @@ function copyEntry($ele) {
         'action': 'copy',
         'oplogEntryId': id
     }))
-    displayToastTop({type: 'success', string: 'Successfully cloned a log entry', title: 'Oplog Update'});
+    displayToastTop({type: 'success', string: 'Successfully cloned a log entry.', title: 'Oplog Update'});
 }
 
 // Stylize the tags for display in the table

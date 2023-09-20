@@ -60,15 +60,6 @@ insert_permissions:
         - note
         - server_provider_id
         - server_status_id
-  - role: restricted
-    permission:
-      check: {}
-      columns:
-        - ip_address
-        - name
-        - note
-        - server_provider_id
-        - server_status_id
   - role: user
     permission:
       check: {}
@@ -90,26 +81,12 @@ select_permissions:
         - server_provider_id
         - server_status_id
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'
       filter: {}
 update_permissions:
   - role: manager
-    permission:
-      columns:
-        - ip_address
-        - name
-        - note
-        - server_provider_id
-        - server_status_id
-      filter: {}
-      check: {}
-  - role: restricted
     permission:
       columns:
         - ip_address
@@ -131,9 +108,6 @@ update_permissions:
       check: {}
 delete_permissions:
   - role: manager
-    permission:
-      filter: {}
-  - role: restricted
     permission:
       filter: {}
   - role: user

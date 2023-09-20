@@ -6,7 +6,7 @@
 <h4>Project Objectives</h4>
 <hr />
 
-<p><a class="icon edit-icon btn btn-primary col-3" href="{% url 'rolodex:project_update' project.id %}#objectives">Add & Edit Objectives</a></p>
+<p><a class="icon edit-icon btn btn-primary col-3" href="{% url 'rolodex:project_component_update' project.id %}#objectives">Add & Edit Objectives</a></p>
 
 <p>Create specific objectives to pursue, track their status, and view deadlines in the calendar.</p>
 
@@ -58,5 +58,5 @@
         </tbody>
     </table>
 {% else %}
-    <p>No objectives have been set for this project yet.</p>
+   <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No objectives have been set for this project yet.</div>
 {% endif %}

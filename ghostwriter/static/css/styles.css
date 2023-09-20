@@ -87,6 +87,12 @@ hr {
 
 .description-block p {
   text-align: justify;
+  margin-bottom: 0;
+}
+
+.blurry {
+  color: transparent;
+  text-shadow: 0 0 8px #000;
 }
 
 /* ---------------------------------------------------
@@ -95,6 +101,8 @@ hr {
 
 .custom-file-label::after {
   min-width:20%;
+  content: 'Browse';
+  width: 10%;
 }
 
 .form-check-label {
@@ -170,6 +178,24 @@ hr {
 .form-select:disabled:hover,
 .form-select[aria-disabled=true] {
   border-color: #aaa;
+}
+
+.tooltip-inner {
+    color: #fff;
+    background: var(--primary-color);
+}
+
+.bs-tooltip-auto[x-placement^=bottom] .arrow::before, .bs-tooltip-bottom .arrow::before {
+    border-bottom-color: var(--primary-color);
+}
+.bs-tooltip-auto[x-placement^=top] .arrow::before, .bs-tooltip-top .arrow::before {
+    border-top-color: var(--primary-color);
+}
+.bs-tooltip-auto[x-placement^=left] .arrow::before, .bs-tooltip-left .arrow::before {
+    border-left-color: var(--primary-color);
+}
+.bs-tooltip-auto[x-placement^=right] .arrow::before, .bs-tooltip-right .arrow::before {
+    border-right-color: var(--primary-color);
 }
 
 /* ---------------------------------------------------
@@ -921,6 +947,8 @@ p.severity-box.info {
   transition-duration: 0.4s;
 }
 
+.btn:focus{ box-shadow: 0 0 0 0.1rem var(--primary-color) }
+
 .button:hover {
   background-color: var(--button-hover-color);
   color: #fff;
@@ -969,6 +997,11 @@ p.severity-box.info {
 .btn-primary {
   background-color: var(--button-primary-color);
   border-color: var(--button-primary-color);
+}
+
+.btn.btn-primary[disabled] {
+  background-color: var(--neutral-color);
+  border-color: var(--neutral-color);
 }
 
 .btn-outline-primary {
@@ -1181,10 +1214,6 @@ table.scroll {
   width: 100%;
 }
 
-table.scroll tbody {
-  display: block;
-}
-
 table.scroll thead,
 table.scroll tr {
   display: table;
@@ -1194,6 +1223,7 @@ table.scroll tr {
 }
 
 table.scroll tbody {
+  display: block;
   height: 80.5vh;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1220,18 +1250,18 @@ table.table-oplog tbody tr:hover>td {
   transition: all .15s ease;
 }
 
-table.table-oplog tbody tr>td .btn i.fa-copy:hover {
+table.table-oplog tbody tr>td .btn:hover {
+  cursor: pointer;
+  /*transform: scale(1.5);*/
+  /*transition: all .15s ease;*/
   color: var(--primary-color);
 }
 
-table.table-oplog tbody tr>td .btn i.fa-trash:hover {
-  color: var(--blocked-color);
-}
-
-table.table-oplog tbody tr>td .btn:hover {
+table.table-oplog tbody tr>td .btn.danger:hover {
   cursor: pointer;
-  transform: scale(1.5);
-  transition: all .15s ease;
+  /*transform: scale(1.5);*/
+  /*transition: all .15s ease;*/
+  color: var(--blocked-color);
 }
 
 ::-webkit-scrollbar {
@@ -1262,6 +1292,10 @@ tr.hidden-row td>div {
 /* ---------------------------------------------------
     CALENDAR STYLES
 ----------------------------------------------------- */
+
+.popover-header {
+  font-weight: 600;
+}
 
 .fc .fc-toolbar.fc-header-toolbar {
   margin-bottom: 0 !important;
@@ -1694,7 +1728,11 @@ th.icon {
   padding: 0;
 }
 
-.tint-icon {
+.2fa-icon:before {
+  content: '\f577';
+}
+
+.tint-icon:before {
   content: '\f043';
 }
 
@@ -2381,10 +2419,6 @@ th.icon {
   display: block;
 }
 
-.finding-accordion .card-header {
-  cursor: pointer;
-}
-
 .finding-accordion {
   max-width: 100%;
   margin: 10px auto;
@@ -2717,11 +2751,6 @@ ol {
 .dashboard__item--col {
   flex-basis: calc(100% / var(--column-count));
   grid-column-end: span 1;
-}
-
-.custom-file-label::after {
-  content: 'Browse';
-  width: 10%;
 }
 
 .dragging {
@@ -3347,6 +3376,91 @@ input:checked+.slider:before {
 /* ---------------------------------------------------
     SOCIAL ACCOUNT BUTTONS
 ----------------------------------------------------- */
+
 .socialaccount_providers {
   padding: 0px;
 }
+
+/* ---------------------------------------------------
+    JQUERY AUTOCOMPLETE STYLES
+----------------------------------------------------- */
+
+.ui-menu {
+  list-style: none;
+}
+
+.ui-autocomplete {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  float: left;
+  display: none;
+  min-width: 160px;
+  padding: 4px 0;
+  margin: 0 0 10px 25px;
+  list-style: none;
+  background-color: #ffffff;
+  border-color: #ccc;
+  border-color: rgba(0, 0, 0, 0.2);
+  border-style: solid;
+  border-width: 1px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  -webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  -moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
+  *border-right-width: 2px;
+  *border-bottom-width: 2px;
+}
+
+.ui-menu-item {
+  padding-left: .2em;
+  padding-right: .2em;
+}
+
+.ui-menu-item > a.ui-corner-all {
+  display: block;
+  padding: 3px 15px;
+  clear: both;
+  font-weight: normal;
+  line-height: 18px;
+  color: #555555;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.ui-state-hover, .ui-state-active {
+  color: #ffffff;
+  text-decoration: none;
+  background-color: var(--primary-color);
+  border-radius: .2em;
+  -webkit-border-radius: .2em;
+  -moz-border-radius: .2em;
+}
+
+textarea:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="datetime"]:focus,
+input[type="datetime-local"]:focus,
+input[type="date"]:focus,
+input[type="month"]:focus,
+input[type="time"]:focus,
+input[type="week"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="color"]:focus,
+.uneditable-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(126, 239, 104, 0.6);
+  outline: 0 none;
+}
+

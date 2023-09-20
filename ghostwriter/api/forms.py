@@ -15,9 +15,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, 
 
 
 class ApiKeyForm(forms.Form):
-    """
-    Save an individual :model:`oplog.Oplog`.
-    """
+    """Save an individual :model:`api.APIKey`."""
 
     name = forms.CharField()
     expiry_date = forms.DateTimeField(

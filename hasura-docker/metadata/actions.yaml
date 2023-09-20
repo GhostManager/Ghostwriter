@@ -104,7 +104,6 @@ actions:
           value_from_env: HASURA_ACTION_SECRET
     permissions:
       - role: manager
-      - role: restricted
       - role: user
       - role: public
   - name: whoami
@@ -117,7 +116,6 @@ actions:
           value_from_env: HASURA_ACTION_SECRET
     permissions:
       - role: user
-      - role: restricted
       - role: manager
     comment: User `whoami` query for JWT
 custom_types:

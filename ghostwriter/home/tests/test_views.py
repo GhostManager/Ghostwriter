@@ -11,6 +11,9 @@ from django.test import Client, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 
+# 3rd Party Libraries
+from django_otp.plugins.otp_static.models import StaticToken
+
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     GroupFactory,
@@ -72,7 +75,7 @@ class TemplateTagTests(TestCase):
     def setUpTestData(cls):
         cls.group_1 = GroupFactory(name="Group 1")
         cls.group_2 = GroupFactory(name="Group 2")
-        cls.user = UserFactory(password=PASSWORD, groups=(cls.group_1,))
+        cls.user = UserFactory(password=PASSWORD, groups=(cls.group_1,), role="user")
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
         cls.assignment = ProjectAssignmentFactory(project=cls.project, operator=cls.user)
@@ -124,6 +127,25 @@ class TemplateTagTests(TestCase):
         self.assertEqual(result, 1.0)
         result = custom_tags.divide(12700, 0)
         self.assertEqual(result, None)
+
+        result = custom_tags.has_access(self.project, self.user)
+        self.assertTrue(result)
+
+        self.assertFalse(custom_tags.can_create_finding(self.user))
+        self.user.enable_finding_create = True
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_finding(self.user))
+
+        self.assertFalse(custom_tags.is_privileged(self.user))
+        self.user.role = "manager"
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_finding(self.user))
+
+        self.assertFalse(custom_tags.has_2fa(self.user))
+        self.user.totpdevice_set.create()
+        static_model = self.user.staticdevice_set.create()
+        static_model.token_set.create(token=StaticToken.random_token())
+        self.assertTrue(custom_tags.has_2fa(self.user))
 
 
 class DashboardTests(TestCase):
@@ -211,19 +233,19 @@ class ManagementTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
         cls.uri = reverse("home:management")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_staff = Client()
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -234,16 +256,16 @@ class ManagementTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_uses_correct_template(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "home/management.html")
 
     def test_custom_context_exists(self):
-        response = self.client_staff.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertIn("timezone", response.context)
 
 
@@ -285,19 +307,19 @@ class TestAWSConnectionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
         cls.uri = reverse("home:ajax_test_aws")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_staff = Client()
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -315,19 +337,19 @@ class TestDOConnectionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
         cls.uri = reverse("home:ajax_test_do")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_staff = Client()
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -345,19 +367,19 @@ class TestNamecheapConnectionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
         cls.uri = reverse("home:ajax_test_namecheap")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_staff = Client()
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -375,19 +397,19 @@ class TestSlackConnectionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
         cls.uri = reverse("home:ajax_test_slack")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_staff = Client()
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -405,19 +427,19 @@ class TestVirusTotalConnectionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
         cls.uri = reverse("home:ajax_test_virustotal")
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_staff = Client()
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
-        self.assertTrue(self.client_staff.login(username=self.staff_user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_post(self):
-        response = self.client_staff.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -435,7 +457,7 @@ class ProtectedServeTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
-        cls.staff_user = UserFactory(password=PASSWORD, is_staff=True)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
         cls.uri = "/media/templates"
 

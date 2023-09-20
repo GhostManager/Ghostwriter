@@ -361,7 +361,7 @@ def fetch_aws_s3(aws_key, aws_secret, ignore_tags=None):
     return {"buckets": buckets, "message": message}
 
 
-def fetch_digital_ocean(api_key, ignore_tags=None):
+def fetch_digital_ocean(api_key, ignore_tags=None, do_only_running=False):
     """
     Authenticate to Digital Ocean and fetch all droplets.
 
@@ -391,6 +391,11 @@ def fetch_digital_ocean(api_key, ignore_tags=None):
             capable = True
             active_droplets = active_droplets.json()
             logger.info("Digital Ocean credentials are functional, beginning droplet review")
+
+            if do_only_running:
+                active_droplets["droplets"] = [
+                    droplet for droplet in active_droplets["droplets"] if droplet["status"] == "active"
+                ]
         else:
             logger.info(
                 "Digital Ocean denied access with HTTP code %s and this message: %s",

@@ -5,7 +5,6 @@ import logging
 import os
 
 # Django Imports
-from django.db.models import Q
 from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
 
@@ -13,7 +12,6 @@ from django.dispatch import receiver
 from ghostwriter.modules.reportwriter import TemplateLinter
 from ghostwriter.reporting.models import (
     Evidence,
-    Report,
     ReportFindingLink,
     ReportTemplate,
     Severity,
@@ -169,8 +167,7 @@ def clean_template(sender, instance, created, **kwargs):
             instance.document.path,
         )
         try:
-            template_loc = instance.document.path
-            linter = TemplateLinter(template_loc=template_loc)
+            linter = TemplateLinter(template=instance)
             if instance.doc_type.doc_type == "docx":
                 results = linter.lint_docx()
             elif instance.doc_type.doc_type == "pptx":
@@ -205,36 +202,6 @@ def remove_template_on_delete(sender, instance, **kwargs):
                     instance.id,
                     instance.document.path,
                 )
-
-
-@receiver(pre_save, sender=ReportFindingLink)
-def adjust_finding_positions_with_changes(sender, instance, **kwargs):
-    """
-    Execute the :model:`reporting.ReportFindingLink` ``clean()`` function prior to ``save()``
-    to adjust the ``position`` values of entries tied to the same :model:`reporting.Report`.
-    """
-    instance.clean()
-
-
-@receiver(post_delete, sender=ReportFindingLink)
-def adjust_finding_positions_after_delete(sender, instance, **kwargs):
-    """
-    After deleting a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
-    of entries tied to the same :model:`reporting.Report`.
-    """
-    try:
-        findings_queryset = ReportFindingLink.objects.filter(
-            Q(report=instance.report.pk) & Q(severity=instance.severity)
-        )
-        if findings_queryset:
-            counter = 1
-            for finding in findings_queryset:
-                # Adjust position to close gap created by the removed finding
-                findings_queryset.filter(id=finding.id).update(position=counter)
-                counter += 1
-    except Report.DoesNotExist:
-        # Report was deleted, so no need to adjust positions
-        pass
 
 
 @receiver(pre_save, sender=Severity)

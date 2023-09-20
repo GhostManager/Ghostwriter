@@ -5,371 +5,428 @@
 {% block pagetitle %}{{ domain.name }} Details{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ domain.name }}</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'shepherd:domains' %}">Domains</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ domain.name }}</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
-    <div class="dropdown">
-        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-            <div class="bar1"></div>
-            <div class="bar2"></div>
-            <div class="bar3"></div>
-        </div>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="domain-dropdown-btn">
+  <div class="dropdown">
+    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+         onclick="hamburger(this)">
+      <div class="bar1"></div>
+      <div class="bar2"></div>
+      <div class="bar3"></div>
+    </div>
+    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="domain-dropdown-btn">
+      {% if domain.is_expired is False %}
+        <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
+        {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
+          <a class="dropdown-item icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}">Checkout Domain</a>
+        {% else %}
+          <a class="dropdown-item icon block-icon" href="#">Domain Unavailable</a>
+        {% endif %}
+        {% if domain.health_status.health_status == "Healthy" %}
+          <a class="dropdown-item icon burn-icon" href="{% url 'shepherd:burn' domain.id %}">Mark Burned</a>
+        {% endif %}
+      {%  else %}
+        {%  if request.user.role in 'manager, admin' %}
             <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:domain_update' domain.id %}">Edit</a>
+        {% endif %}
+      {% endif %}
+      <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:domain_delete' domain.id %}">Delete</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>{{ domain.name }}</h2>
+  </div>
+  {% for tag in domain.tags.names %}
+    <span class="badge badge-secondary">{{ tag|bleach }}</span>
+  {% endfor %}
+  <hr/>
+
+  <div>
+    <!-- Navigation Tabs -->
+    {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
+    <ul id="tab-bar" class="nav nav-tabs nav-justified"
+        js-update-tabs-url="{% url 'shepherd:ajax_update_domain_badges' domain.id %}">
+      {% include "snippets/domain_nav_tabs.html" %}
+    </ul>
+
+    <!-- General Tab -->
+    <div class="tab-content">
+      <div id="details" class="tab-pane in active">
+        <h4>Domain Details</h4>
+        <hr>
+
+        {% if domain.is_expired %}
+          <div class="alert alert-danger" role="alert">
+            This domain is <strong>Expired</strong>, so it cannot be checked out, and the data is now read-only. Managers and admins can edit this domain to update the expiration date.
+          </div>
+        {% endif %}
+
+
+        {% if domain.note %}
+          <div id="domainDescription" class="d-flex justify-content-center description-block">
+            <div>
+              {{ domain.note|strip_empty_tags|bleach }}
+            </div>
+          </div>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is no additional information provided for this domain.</div>
+        {% endif %}
+
+        <table class="table">
+          <tr>
+            <th>Registrar</th>
+            <th>Purchase Date</th>
+            <th>Expiration Date</th>
+            <th>Auto Renew Status</th>
+            <th>Domain Age</th>
+          </tr>
+          <tr>
+            <td>{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
+            <td>{{ domain.creation }}</td>
             {% if domain.is_expired %}
-                <a class="dropdown-item icon skull-icon" href="#">Domain Expired</a>
+              <td class="high">{{ domain.expiration }}</td>
             {% else %}
-                {% if domain.domain_status.domain_status == "Available" or domain.domain_status.domain_status == "Burned" %}
-                    <a class="dropdown-item icon checkout-icon" href="{% url 'shepherd:checkout' domain.id %}">Checkout Domain</a>
-                {% else %}
-                    <a class="dropdown-item icon block-icon" href="#">Domain Unavailable</a>
-                {% endif %}
+              <td>{{ domain.expiration }}</td>
             {% endif %}
+            {% if domain.auto_renew %}
+              <td class="icon check-icon healthy"></td>
+            {% else %}
+              <td class="icon cross-icon burned"></td>
+            {% endif %}
+            <td>{{ domain.get_domain_age|intcomma }}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- DNS Records Tab -->
+      <div id="dns" class="tab-pane">
+        <h4>DNS Records</h4>
+        <hr/>
+
+        {% if not domain.is_expired %}
+          <p>
+            <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3"
+               domain-update-csrftoken="{{ csrf_token }}"
+               domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}"
+               domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
+          </p>
+        {% endif %}
+
+        {% if domain.reset_dns %}
+          <div class="alert alert-secondary offset-md-2 col-md-8" role="alert">
+            Domain is configured to reset DNS records after use (if possible with the registrar).
+          </div>
+        {% else %}
+          <div class="alert alert-warning" role="alert">
+            Domain is NOT configured to reset DNS records after use, so operators should manually clean-up records.
+          </div>
+        {% endif %}
+
+        {% if domain.dns %}
+          <table class="table">
+            <tr>
+              <th>Record</th>
+              <th>Value</th>
+            </tr>
+            {% if domain.dns.items %}
+              {% for record, value in domain.dns.items %}
+                <tr>
+                  <td class="text-center">{{ record|upper }}</td>
+                  <td class="table-note">
+                    {% if value != "NoAnswer" and value != "NXDOMAIN" %}
+                      {{ value }}
+                    {% else %}
+                      --
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td class="text-center">Record Dictionary</td>
+                <td class="table-note">{{ domain.dns }}</td>
+              </tr>
+            {% endif %}
+          </table>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No DNS records have been found for this domain. Refresh DNS records to populate this area.</div>
+        {% endif %}
+      </div>
+
+      <!-- Domain Health Tab -->
+      <div id="health" class="tab-pane">
+        <h4>Domain Health</h4>
+        <hr/>
+
+        {% if not domain.is_expired %}
+          <p>
+            <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3"
+               domain-update-csrftoken="{{ csrf_token }}"
+               domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}"
+               domain-update-id="{{ domain.id }}">Refresh Categorization</a>
+          </p>
+        {% endif %}
+
+        <p>The health of a domain changes if a third-party labels the domain with an undesirable category or the domain
+          has positive detections in VirusTotal.</em>
+        <p>
+
+          {% if domain.health_status.health_status == "Burned" %}
+            {% if domain.burned_explanation %}
+              <h4>Domain Flagged as <em class="burned">Burned</em> for the Following Reason(s):</h4>
+              <hr>
+              <p>{{ domain.burned_explanation|bleach|linebreaks }}</p>
+
+            {% else %}
+              <p>This domain has been flagged as <em>Burned</em> with no explanation. <a class="clickable"
+                                                                                         href="{% url 'shepherd:burn' domain.id %}">Click
+                here</a> to provide one.</p>
+            {% endif %}
+          {% endif %}
+
+        <table class="table">
+          <tr>
+            <th>Status</th>
+            <th>Health</th>
+            <th>Whois Privacy</th>
+            <th>Last Update</th>
+          </tr>
+          <tr>
+            {% if domain.domain_status.domain_status == "Available" %}
+              <td class="healthy">{{ domain.domain_status }}</td>
+            {% else %}
+              <td class="burned">{{ domain.domain_status }}</td>
+            {% endif %}
+
             {% if domain.health_status.health_status == "Healthy" %}
-                <a class="dropdown-item icon burn-icon" href="{% url 'shepherd:burn' domain.id %}">Mark Burned</a>
+              <td class="healthy">{{ domain.health_status }}</td>
+            {% else %}
+              <td class="burned">{{ domain.health_status }}</td>
             {% endif %}
-            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:domain_delete' domain.id %}">Delete</a>
-        </div>
-    </div>
 
-    <div class="container">
-        <h2>{{ domain.name }}</h2>
-    </div>
-    {% for tag in domain.tags.names %}
-        <span class="badge badge-secondary">{{ tag|bleach }}</span>
-    {% endfor %}
-    <hr />
+            {% if domain.whois_status.whois_status == "Enabled" %}
+              <td class="healthy">{{ domain.whois_status }}</td>
+            {% else %}
+              <td class="burned">{{ domain.whois_status }}</td>
+            {% endif %}
 
-    <div>
-        <!-- Navigation Tabs -->
-        {% comment %} Load tabs via AJAX so badges update with delete actions {% endcomment %}
-        <ul id="tab-bar" class="nav nav-tabs nav-justified" js-update-tabs-url="{% url 'shepherd:ajax_update_domain_badges' domain.id %}">
-            {% include "snippets/domain_nav_tabs.html" %}
-        </ul>
+            <td>
+              {% if domain.last_health_check %}
+                {{ domain.last_health_check|naturalday:"DATE_FORMAT" }}
+              {% else %}
+                No Record
+              {% endif %}
+            </td>
+          </tr>
+        </table>
 
-        <!-- General Tab -->
-        <div class="tab-content">
-            <div id="details" class="tab-pane in active">
-                <h4>Domain Details</h4>
-                <hr>
+        <!-- Health Tab -->
+        <p>The following third-parties have categorized this domain:</p>
+        <table class="table">
+          <tr>
+            <th>Categorizer</th>
+            <th>Category</th>
+          </tr>
+          <tr>
+            {% if domain.categorization.items %}
+              {% for source, cat in domain.categorization.items %}
+                <tr>
+                  <td>{{ source }}</td>
+                  <td>{{ cat|title }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <td>No Results</td>
+              <td>Refresh categories to poll VirusTotal</td>
+            {% endif %}
+          </tr>
+        </table>
+      </div>
 
-                {% if domain.is_expired %}
-                    <div class="alert alert-danger" role="alert">
-                        Domain is <strong>Expired</strong>, so this data is now read-only.
+      <!-- History Tab -->
+      <div id="history" class="tab-pane">
+        <h4>Domain History</h4>
+        <hr/>
+
+        <p>If you do not have access to the related client or project, the history entry will be partially redacted.</p>
+
+        {% if domain.history_set.all %}
+          <table id="project-table" class="tablesorter table table-striped">
+            <thead>
+            <tr>
+              <th>Client</th>
+              <th>Activity Type</th>
+              <th>Project Type</th>
+              <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
+              <th class="sorter-false">Additional Info</th>
+              <th class="sorter-false">Options</th>
+            </tr>
+            </thead>
+            {% for checkout in domain.history_set.all %}
+              <tr>
+                <td class="align-middle">
+                  {% if checkout.project|has_access:request.user %}
+                    <a class="clickable"
+                       href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.client }}</i></a>
+                  {% else %}
+                    <span class="blurry">REDACTED</span>
+                  {% endif %}
+                </td>
+                <td class="align-middle">{{ checkout.activity_type }}</td>
+                <td class="align-middle">{{ checkout.project.project_type }}</td>
+                <td class="align-middle">{{ checkout.start_date|date:"d M Y" }}
+                  – {{ checkout.end_date|date:"d M Y" }}</td>
+                <td class="align-middle">
+                  {% if checkout.project|has_access:request.user %}
+                    <button
+                      class="expandme btn btn-transparent"
+                      onclick="showHideRow($(this), 'hidden-domain-data-{{ checkout.id }}');"
+                      title="Expand to view additional information"
+                    ></button>
+                  {% endif %}
+                </td>
+                <td class="align-middle">
+                  {% if checkout.project|has_access:request.user %}
+                    <div class="dropdown dropleft">
+                      <button id="history-dropdown-btn_{{ checkout.id }}" class="dropdown-menu-btn-table"
+                              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                      <div class="dropdown-menu" aria-labelledby="history-dropdown-btn_{{ checkout.id }}">
+                        <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' checkout.id %}">Edit</a>
+                        <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' checkout.id %}">Delete</a>
+                      </div>
                     </div>
-                {% endif %}
-
-                <div id="domainDescription" class="d-flex justify-content-center description-block">
-                    <div>
-                        {% if domain.note %}
-                            {{ domain.note|strip_empty_tags|bleach }}
-                        {% else %}
-                            <p>No additional information provided for this domain.</p>
-                        {% endif %}
+                  {% endif %}
+                </td>
+              </tr>
+              {% if checkout.project|has_access:request.user %}
+                <tr class="hidden-row">
+                  <td colspan=5>
+                    <div id="hidden-domain-data-{{ checkout.id }}" class="hidden-div">
+                      {%  if checkout.note %}
+                        {{ checkout.note|bleach }}
+                      {% else %}
+                        <p>No notes for this checkout.</p>
+                      {%  endif %}
                     </div>
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </table>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This domain has no history.</div>
+        {% endif %}
+      </div>
+
+      <!-- Notes Tab -->
+      <div id="notes" class="tab-pane">
+        <h4>Domain Notes</h4>
+        <hr/>
+
+        <p>
+          <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a
+            Note</a>
+        </p>
+        {% if domain.domainnote_set.all %}
+          {% for note in domain.domainnote_set.all reversed %}
+            <div id="note-container-{{ note.id }}">
+              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                <div class="float-left col-10 col-md-10 col-sm-8">
+                  {{ note.note|bleach }}
                 </div>
 
-                <table class="table">
-                    <tr>
-                        <th>Registrar</th>
-                        <th>Purchase Date</th>
-                        <th>Expiration Date</th>
-                        <th>Auto Renew Status</th>
-                        <th>Domain Age</th>
-                    </tr>
-                    <tr>
-                        <td>{% if domain.registrar %}{{ domain.registrar }}{% else %}Unavailable{% endif %}</td>
-                        <td>{{ domain.creation }}</td>
-                        {% if domain.is_expired %}
-                            <td class="high">{{ domain.expiration }}</td>
-                        {% else %}
-                            <td>{{ domain.expiration }}</td>
-                        {% endif %}
-                        {% if domain.auto_renew %}
-                            <td class="icon check-icon healthy"></td>
-                        {% else %}
-                            <td class="icon cross-icon burned"></td>
-                        {% endif %}
-                        <td>{{ domain.get_domain_age|intcomma }}</td>
-                    </tr>
-                </table>
+                <div class="float-right col-2 col-md-2 col-sm-4">
+                  <div>{% if note.operator %}<a class="note-link"
+                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
+                    <span class="note-link">Deleted</span>{% endif %}</div>
+                  <div><p class="note-time">{{ note.timestamp }}</p></div>
+                </div>
+              </div>
             </div>
 
-            <!-- DNS Records Tab -->
-            <div id="dns" class="tab-pane">
-                <h4>DNS Records</h4>
-                <hr />
-
-                {% if not domain.is_expired %}
-                    <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_dns_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh DNS Records</a>
-                    </p>
-                {% endif %}
-
-                {% if domain.reset_dns %}
-                    <div class="alert alert-secondary" role="alert">
-                        Domain is configured to reset DNS records after use (if possible with the registrar).
-                    </div>
-                {% else %}
-                    <div class="alert alert-warning" role="alert">
-                        Domain is NOT configured to reset DNS records after use, so operators should manually clean-up records.
-                    </div>
-                {% endif %}
-
-                {% if domain.dns %}
-                    <table class="table">
-                        <tr>
-                            <th>Record</th>
-                            <th>Value</th>
-                        </tr>
-                        {% if domain.dns.items %}
-                            {% for record, value in domain.dns.items %}
-                                <tr>
-                                    <td class="text-center">{{ record|upper }}</td>
-                                    <td class="table-note">
-                                        {% if value != "NoAnswer" and value != "NXDOMAIN" %}
-                                            {{ value }}
-                                        {% else %}
-                                            --
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td class="text-center">Record Dictionary</td>
-                                <td class="table-note">{{ domain.dns }}</td>
-                            </tr>
-                        {% endif %}
-                    </table>
-                {% else %}
-                    <p>No DNS records have been found for this domain. Refresh DNS records to populate this area.</p>
-                {% endif %}
-            </div>
-
-            <!-- Domain Health Tab -->
-            <div id="health" class="tab-pane">
-                <h4>Domain Health</h4>
-                <hr />
-
-                {% if not domain.is_expired %}
-                    <p>
-                        <a href="javascript:void(0)" class="icon redo-icon clickable-link js-domain-update btn btn-primary col-3" domain-update-csrftoken="{{ csrf_token }}" domain-update-url="{% url 'shepherd:ajax_update_cat_single' domain.id %}" domain-update-id="{{ domain.id }}">Refresh Categorization</a>
-                    </p>
-                {% endif %}
-
-                <p>The health of a domain changes if a third-party labels the domain with an undesirable category or the domain has positive detections in VirusTotal.</em><p>
-
-                {% if domain.health_status.health_status == "Burned"%}
-                    {% if domain.burned_explanation %}
-                        <h4>Domain Flagged as <em class="burned">Burned</em> for the Following Reason(s):</h4>
-                        <hr>
-                        <p>{{ domain.burned_explanation|bleach|linebreaks }}</p>
-
-                    {% else %}
-                        <p>This domain has been flagged as <em>Burned</em> with no explanation. <a class="clickable" href="{% url 'shepherd:burn' domain.id %}">Click here</a> to provide one.</p>
-                    {% endif %}
-                {% endif %}
-
-                <table class="table">
-                    <tr>
-                        <th>Status</th>
-                        <th>Health</th>
-                        <th>Whois Privacy</th>
-                        <th>Last Update</th>
-                    </tr>
-                    <tr>
-                        {% if domain.domain_status.domain_status == "Available" %}
-                            <td class="healthy">{{ domain.domain_status }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.domain_status }}</td>
-                        {% endif %}
-
-                        {% if domain.health_status.health_status == "Healthy" %}
-                            <td class="healthy">{{ domain.health_status }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.health_status }}</td>
-                        {% endif %}
-
-                        {% if domain.whois_status.whois_status == "Enabled" %}
-                            <td class="healthy">{{ domain.whois_status }}</td>
-                        {% else %}
-                            <td class="burned">{{ domain.whois_status }}</td>
-                        {% endif %}
-
-                        <td>
-                            {% if domain.last_health_check %}
-                                {{ domain.last_health_check|naturalday:"DATE_FORMAT" }}
-                            {% else %}
-                                No Record
-                            {% endif %}
-                        </td>
-                    </tr>
-                </table>
-
-                <!-- Health Tab -->
-                <p>The following third-parties have categorized this domain:</p>
-                <table class="table">
-                    <tr>
-                        <th>Categorizer</th>
-                        <th>Category</th>
-                    </tr>
-                    <tr>
-                        {% if domain.categorization.items %}
-                            {% for source, cat in domain.categorization.items %}
-                                <tr>
-                                    <td>{{ source }}</td>
-                                    <td>{{ cat|title }}</td>
-                                </tr>
-                            {% endfor %}
-                        {% else %}
-                            <td>No Results</td><td>Refresh categories to poll VirusTotal</td>
-                        {% endif %}
-                    </tr>
-                </table>
-            </div>
-
-            <!-- History Tab -->
-            <div id="history" class="tab-pane">
-                <h4>Domain History</h4>
-                <hr />
-
-                {% if domain.history_set.all %}
-                    <table id="project-table" class="tablesorter table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Client</th>
-                                <th>Activity Type</th>
-                                <th>Project Type</th>
-                                <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
-                                <th class="sorter-false">Notes</th>
-                                <th class="sorter-false">Options</th>
-                            </tr>
-                        </thead>
-                        {% for project in domain.history_set.all %}
-                            <tr>
-                                <td class="align-middle"><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.client }}</i></a></td>
-                                <td class="align-middle">{{ project.activity_type }}</td>
-                                <td class="align-middle">{{ project.project.project_type }}</td>
-                                <td class="align-middle">{{ project.start_date|date:"d M Y" }} – {{ project.end_date|date:"d M Y" }}</td>
-                                <td class="table-note align-middle">{{ project.note|bleach|truncatewords:35 }}</td>
-                                <td class="align-middle">
-                                    <div class="dropdown dropleft">
-                                        <button id="history-dropdown-btn_{{ project.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                                        <div class="dropdown-menu" aria-labelledby="history-dropdown-btn_{{ project.id }}">
-                                            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:history_update' project.id %}">Edit</a>
-                                            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:history_delete' project.id %}">Delete</a>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>This domain has no history.</p>
-                {% endif %}
-            </div>
-
-            <!-- Notes Tab -->
-            <div id="notes" class="tab-pane">
-                <h4>Domain Notes</h4>
-                <hr />
-
-                <p>
-                    <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:domain_note_add' domain.id %}">Add a Note</a>
-                </p>
-                {% if domain.domainnote_set.all %}
-                    {% for note in domain.domainnote_set.all reversed %}
-                        <div id="note-container-{{ note.id }}">
-                            <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                <div class="float-left col-10 col-md-10 col-sm-8">
-                                    {{ note.note|bleach }}
-                                </div>
-
-                                <div class="float-right col-2 col-md-2 col-sm-4">
-                                    <div>{% if note.operator %}<a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}<span class="note-link">Deleted</span>{% endif %}</div>
-                                    <div><p class="note-time">{{ note.timestamp }}</p></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {% if request.user == note.operator or request.user.is_staff %}
-                            <div class="pb-3">
-                                <a class="note-link" href="{% url 'shepherd:domain_note_edit' note.id %}">Edit</a> |
-                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <p>No notes for this domain.</p>
-                {% endif %}
-            </div>
-        </div>
+            {% if request.user == note.operator or request.user.is_staff %}
+              <div class="pb-3">
+                <a class="note-link" href="{% url 'shepherd:domain_note_edit' note.id %}">Edit</a> |
+                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
+                   data-target="#confirm-delete-modal" href="javascript:void(0);"
+                   delete-target-csrftoken="{{ csrf_token }}"
+                   delete-target-url="{% url 'shepherd:ajax_delete_domain_note' note.id %}"
+                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this domain.</div>
+        {% endif %}
+      </div>
     </div>
+  </div>
 {% endblock %}
 
 {% block tabs %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $("#project-table").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-        });
-    </script>
+  <!-- jQuery Tablesorter Script -->
+  <script>
+    $(document).ready(function () {
+      $("#project-table").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('.tablesorter').trigger('update');
+    });
+  </script>
 
-    <!-- Submit Update Tasks with AJAX -->
-    <script>
-        $('.js-domain-update').each(function(index) {
-            $(this).click(function () {
-                var url = $(this).attr('domain-update-url');
-                var domainId = $(this).attr('domain-update-id');
-                var csrftoken = $(this).attr('domain-update-csrftoken');
-                // Prep AJAX request with CSRF token
-                $.ajaxSetup({
-                    beforeSend: function(xhr, settings) {
-                        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-                            xhr.setRequestHeader('X-CSRFToken', csrftoken);
-                        }
-                    }
-                });
-                // Send AJAX POST request
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    dataType: 'json',
-                    data: {
-                        'domain': domainId,
-                    },
-                    success: function (data) {
-                        if (data['result'] == 'success') {
-                            // Do something
-                        }
-                        if (data['message']) {
-                            displayToastTop({type:data['result'], string:data['message'], title:'Domain Update'});
-                        }
-                    }
-                });
-            });
+  <!-- Submit Update Tasks with AJAX -->
+  <script>
+    $('.js-domain-update').each(function (index) {
+      $(this).click(function () {
+        var url = $(this).attr('domain-update-url');
+        var domainId = $(this).attr('domain-update-id');
+        var csrftoken = $(this).attr('domain-update-csrftoken');
+        // Prep AJAX request with CSRF token
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
         });
-    </script>
+        // Send AJAX POST request
+        $.ajax({
+          url: url,
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            'domain': domainId,
+          },
+          success: function (data) {
+            if (data['result'] == 'success') {
+              // Do something
+            }
+            if (data['message']) {
+              displayToastTop({type: data['result'], string: data['message'], title: 'Domain Update'});
+            }
+          }
+        });
+      });
+    });
+  </script>
 
-    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
-    {% include "confirm_delete_modal.html" %}
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
 {% endblock %}

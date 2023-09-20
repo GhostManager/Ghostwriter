@@ -67,35 +67,20 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - protected
+        - changelog
+        - client_id
+        - description
+        - doc_type_id
         - document
-        - name
-        - last_update
-        - upload_date
-        - client_id
-        - doc_type_id
         - id
-        - uploaded_by_id
-        - changelog
-        - description
+        - landscape
+        - last_update
         - lint_result
+        - name
+        - protected
+        - upload_date
+        - uploaded_by_id
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter:
-        _or:
-          - client_id:
-              _is_null: true
-          - client:
-              invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-          - client:
-              projects:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns: '*'
@@ -112,85 +97,8 @@ select_permissions:
                 invites:
                   user_id:
                     _eq: X-Hasura-User-Id
-update_permissions:
-  - role: manager
-    permission:
-      columns:
-        - changelog
-        - client_id
-        - description
-        - doc_type_id
-        - name
-        - protected
-      filter: {}
-      check: {}
-  - role: restricted
-    permission:
-      columns:
-        - changelog
-        - client_id
-        - description
-        - doc_type_id
-        - name
-        - protected
-      filter:
-        _and:
-          - protected:
-              _eq: false
           - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-      check:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-  - role: user
-    permission:
-      columns:
-        - changelog
-        - client_id
-        - description
-        - doc_type_id
-        - name
-        - protected
-      filter:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
-      check:
-        _and:
-          - protected:
-              _eq: false
-          - client:
-              _or:
-                - invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-                - projects:
-                    invites:
-                      user_id:
-                        _eq: X-Hasura-User-Id
+              projects:
+                assignments:
+                  operator_id:
+                    _eq: X-Hasura-User-Id

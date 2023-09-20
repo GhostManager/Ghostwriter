@@ -132,6 +132,17 @@
       tinymce.execCommand('mceAddEditor', false, target);
     });
 
+    $('.formset-add-{{ contacts.prefix }}').click(function () {
+      let form_idx = $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val();
+      $('#formset-{{ contacts.prefix }}').append($('#empty-form-{{ contacts.prefix }}').html().replace(/__prefix__/g, form_idx));
+      $('#id_{{ contacts.prefix }}-TOTAL_FORMS').val(parseInt(form_idx) + 1);
+      let new_form = $('#formset-{{ contacts.prefix }}').find('div.formset-container').last()
+      new_form.find('span.counter').html(parseInt(form_idx) + 1);
+      new_form.fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
+      let target = 'id_{{ contacts.prefix }}-' + parseInt(form_idx) + '-description'
+      tinymce.execCommand('mceAddEditor', false, target);
+    });
+
     {% comment %} Roll Codename with AJAX {% endcomment %}
     $('.js-roll-codename').click(function () {
       let url = $(this).attr('roll-codename-url');
@@ -146,6 +157,7 @@
     });
 
     {% comment %} Split and trim scope list {% endcomment %}
+
     function formatScope($field) {
       let scope = $field.val();
       let scope_list = scope.split(',');
@@ -154,6 +166,22 @@
         scope_list_trimmed.push(scope_list[i].trim() + '\n');
       }
       $field.val(scope_list_trimmed.join(''));
+    }
+
+    {% comment %} Set objective deadline to project end date {% endcomment %}
+
+    function setObjectiveDeadline(deadline_field) {
+      let project_date = new Date('{{ project.end_date }}').toISOString().split('T')[0];
+      deadline_field.val(project_date);
+    }
+
+    function cbChange(obj) {
+      let cbs = document.getElementsByClassName('js-cb-toggle');
+      for (let i = 0; i < cbs.length; i++) {
+        cbs[i].checked = false;
+      }
+      displayToastTop({type: 'success', string: 'Updated the primary contact (there must be one and only one).', title: 'Contacts Updated'})
+      obj.checked = true;
     }
   </script>
 {% endblock %}

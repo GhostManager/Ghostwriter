@@ -5,7 +5,13 @@ import logging
 from django.test import TestCase
 
 # Ghostwriter Libraries
-from ghostwriter.factories import OplogEntryFactory, OplogFactory, ProjectFactory
+from ghostwriter.factories import (
+    OplogEntryFactory,
+    OplogFactory,
+    ProjectAssignmentFactory,
+    ProjectFactory,
+    UserFactory,
+)
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 
@@ -19,18 +25,20 @@ class OplogFormTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        pass
+        cls.user = UserFactory(password=PASSWORD)
 
     def setUp(self):
         pass
 
     def form_data(
         self,
+        user=None,
         name=None,
         project_id=None,
         **kwargs,
     ):
         return OplogForm(
+            user=user,
             data={
                 "name": name,
                 "project": project_id,
@@ -40,7 +48,12 @@ class OplogFormTests(TestCase):
     def test_valid_data(self):
         project = ProjectFactory()
         oplog = OplogFactory.build(project=project)
-        form = self.form_data(**oplog.__dict__)
+        form = self.form_data(user=self.user, **oplog.__dict__)
+        self.assertFalse(form.is_valid())
+        self.assertTrue(form.errors.as_data()["project"][0].code == "invalid_choice")
+
+        ProjectAssignmentFactory(operator=self.user, project=project)
+        form = self.form_data(user=self.user, **oplog.__dict__)
         self.assertTrue(form.is_valid())
 
 

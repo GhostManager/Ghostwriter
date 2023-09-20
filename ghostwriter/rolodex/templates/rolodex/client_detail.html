@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags %}
+{% load bleach_tags custom_tags %}
 
 {% load i18n %}
 {% get_current_language as LANGUAGE_CODE %}
@@ -19,17 +19,19 @@
 
 {% block content %}
     <!-- Current language: {{ LANGUAGE_CODE }} -->
-    <div class="dropdown">
-        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-            <div class="bar1"></div>
-            <div class="bar2"></div>
-            <div class="bar3"></div>
-        </div>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
-            <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:client_update' client.id %}"> Edit</a>
-            <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:client_delete' client.id %}"> Delete</a>
-        </div>
-    </div>
+    {% if request.user|is_privileged %}
+      <div class="dropdown">
+          <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
+              <div class="bar1"></div>
+              <div class="bar2"></div>
+              <div class="bar3"></div>
+          </div>
+          <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
+              <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:client_update' client.id %}"> Edit</a>
+              <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:client_delete' client.id %}"> Delete</a>
+          </div>
+      </div>
+    {% endif %}
 
     <div class="container">
         <h2>{{ client.name }}</h2>
@@ -96,7 +98,7 @@
                     {% if client.address %}
                         {{ client.address|bleach }}
                     {% else %}
-                        <p>No address provided for this client.</p>
+                        <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No address provided for this client.</div>
                     {% endif %}
                 </div>
             </div>
@@ -145,7 +147,7 @@
                         {% endfor %}
                     </table>
                 {% else %}
-                    <p class="mt-3">There is nothing to see here yet.</p>
+                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There is nothing to see here yet.</div>
                 {% endif %}
             </div>
 
@@ -185,7 +187,7 @@
                         {% endfor %}
                     </table>
                 {% else %}
-                    <p class="mt-3">This client has no project history.</p>
+                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This client has no project history.</div>
                 {% endif %}
             </div>
 
@@ -249,7 +251,7 @@
                         </table>
                     {% endif %}
                 {% else %}
-                    <p>No infrastructure history for this client yet.</p>
+                  <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No infrastructure history for this client yet.</div>
                 {% endif %}
             </div>
 
@@ -283,7 +285,7 @@
                         {% endif %}
                     {% endfor %}
                 {% else %}
-                    <p>No notes for this client.</p>
+                    <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No notes for this client.</div>
                 {% endif %}
             </div>
         </div>

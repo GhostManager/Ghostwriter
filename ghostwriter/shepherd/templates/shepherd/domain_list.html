@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load crispy_forms_tags humanize %}
+{% load crispy_forms_tags humanize bleach_tags %}
 
 {% block pagetitle %}Domain Catalog{% endblock %}
 
@@ -20,8 +20,9 @@
   </div>
 
   {% if filter.qs|length == 0 %}
-    <p class="mt-3">There are no domains to see here yet, or your search returned no results. Create a new domain up
-      above.</p>
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains to see here yet, or
+      your search returned no results. Create a domain above or adjust your filters.
+    </div>
   {% else %}
     <!-- Domain Table Section -->
     <div id="domains_table">
@@ -68,7 +69,7 @@
             {% if domain.categorization.items %}
               <td class="align-middle">
                 {% for source, cat in domain.categorization.items %}
-                  {{ cat }}{% if not forloop.last %},&nbsp;{% endif %}
+                  {{ cat|bleach|title }}{% if not forloop.last %},&nbsp;{% endif %}
                 {% endfor %}
               </td>
             {% else %}
@@ -93,7 +94,7 @@
 {% endblock %}
 
 {% block morescripts %}
-  <!-- jQuery Tablesorter Script -->
+  {%  comment %} jQuery Tablesorter Script {% endcomment %}
   <script>
     $(document).ready(function () {
       $("#domainTable").tablesorter(
@@ -109,20 +110,28 @@
       );
       $('.tablesorter').trigger('update');
     });
-  </script>
 
-  <!-- Fix for Accordion Markers -->
-  <script>
+    {%  comment %} Fix for Accordion Markers {% endcomment %}
     // Fix second accordion being marked as expanded from crispy forms
     $(document).ready(function () {
       $('h5 a:eq(1)').attr('aria-expanded', 'false');
     });
-  </script>
 
-  <!-- Submit Filter when Clicking Bootstrap Icon -->
-  <script>
+    {%  comment %} Submit Filter when Clicking Bootstrap Icon {% endcomment %}
     $('.input-group-text').on('click', function (event) {
       $('.input-group-text').closest('form').submit();
+    });
+
+    {%  comment %} Enable autocomplete for the filter form {% endcomment %}
+    $(function () {
+      let availableDomains = [
+        {% for entry in autocomplete %}
+          '{{ entry|bleach }}',
+        {% endfor %}
+      ];
+      $("#id_domain").autocomplete({
+        source: availableDomains
+      });
     });
   </script>
 {% endblock %}

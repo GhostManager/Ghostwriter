@@ -1,0 +1,32 @@
+{% extends "base_generic.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+  <h2>
+    {% trans "Two-Factor Authentication" %}
+  </h2>
+
+  <!-- Form Error Section -->
+  {% if form.errors %}
+    <script>
+      {% for field in form %}
+        {% for error in field.errors %}
+          displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+        {% endfor %}
+      {% endfor %}
+      {% for error in form.non_field_errors %}
+        displayToastTop({type: 'error', string: '{{ error }}', context: 'form'});
+      {% endfor %}
+    </script>
+  {% endif %}
+
+  <!-- Form Section -->
+  <form class="validate" method="POST" action="{% url 'two-factor-authenticate' %}" novalidate>
+    {% csrf_token %}
+    {% crispy form form.helper %}
+    {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+    {% endif %}
+  </form>
+{% endblock %}

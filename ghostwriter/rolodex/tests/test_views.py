@@ -10,11 +10,15 @@ from django.utils.encoding import force_str
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     AuxServerAddressFactory,
+    ClientContactFactory,
     ClientFactory,
+    ClientInviteFactory,
     ClientNoteFactory,
     ObjectiveStatusFactory,
     ProjectFactory,
+    ProjectInviteFactory,
     ProjectNoteFactory,
+    ProjectAssignmentFactory,
     ProjectObjectiveFactory,
     ProjectScopeFactory,
     StaticServerFactory,
@@ -46,7 +50,6 @@ class IndexViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -119,7 +122,6 @@ class RollCodenameViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
@@ -144,16 +146,20 @@ class ProjectObjectiveStatusUpdateViewTests(TestCase):
         cls.missed = ObjectiveStatusFactory(objective_status="Missed")
         cls.objective = ProjectObjectiveFactory(status=cls.active)
         cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("rolodex:ajax_set_objective_status", kwargs={"pk": cls.objective.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_mgr = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD)
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
             force_str(response.content),
@@ -166,7 +172,7 @@ class ProjectObjectiveStatusUpdateViewTests(TestCase):
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.in_progress)
 
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
             force_str(response.content),
@@ -179,7 +185,7 @@ class ProjectObjectiveStatusUpdateViewTests(TestCase):
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.missed)
 
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(
             force_str(response.content),
@@ -192,9 +198,12 @@ class ProjectObjectiveStatusUpdateViewTests(TestCase):
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.status, self.active)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
 
 
 class ProjectObjectiveToggleViewTests(TestCase):
@@ -204,24 +213,28 @@ class ProjectObjectiveToggleViewTests(TestCase):
     def setUpTestData(cls):
         cls.objective = ProjectObjectiveFactory(complete=False)
         cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("rolodex:ajax_toggle_project_objective", kwargs={"pk": cls.objective.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_mgr = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD)
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {
             "result": "success",
-            "message": "Objective successfully marked as complete",
+            "message": "Objective successfully marked as complete.",
             "toggle": 1,
         }
         self.objective.complete = False
         self.objective.save()
 
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
@@ -230,18 +243,21 @@ class ProjectObjectiveToggleViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Objective successfully marked as incomplete",
+            "message": "Objective successfully marked as incomplete.",
             "toggle": 0,
         }
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertJSONEqual(force_str(response.content), data)
 
         self.objective.refresh_from_db()
         self.assertEqual(self.objective.complete, False)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
 
 
 # Tests related to :model:`rolodex.Project`
@@ -254,25 +270,29 @@ class ProjectStatusToggleViewTests(TestCase):
     def setUpTestData(cls):
         cls.project = ProjectFactory(complete=False)
         cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("rolodex:ajax_toggle_project", kwargs={"pk": cls.project.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_mgr = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD)
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
         data = {
             "result": "success",
-            "message": "Project successfully marked as complete",
+            "message": "Project successfully marked as complete.",
             "status": "Complete",
             "toggle": 1,
         }
         self.project.complete = False
         self.project.save()
 
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
@@ -281,19 +301,22 @@ class ProjectStatusToggleViewTests(TestCase):
 
         data = {
             "result": "success",
-            "message": "Project successfully marked as incomplete",
+            "message": "Project successfully marked as incomplete.",
             "status": "In Progress",
             "toggle": 0,
         }
-        response = self.client_auth.post(self.uri)
+        response = self.client_mgr.post(self.uri)
         self.assertJSONEqual(force_str(response.content), data)
 
         self.project.refresh_from_db()
         self.assertEqual(self.project.complete, False)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
 
 
 # Tests related to :model:`rolodex.ProjectScope`
@@ -305,25 +328,32 @@ class ProjectScopeExportViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
         cls.scope = ProjectScopeFactory(name="TestScope")
         cls.uri = reverse("rolodex:ajax_export_project_scope", kwargs={"pk": cls.scope.pk})
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
+        self.client_mgr = Client()
         self.client_auth.login(username=self.user.username, password=PASSWORD)
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD)
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_download_success(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 403)
+
+    def test_download_success(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
         self.assertEqual(response.get("Content-Disposition"), f"attachment; filename={self.scope.name}_scope.txt")
@@ -480,12 +510,13 @@ class ProjectNoteDeleteTests(TestCase):
 
 
 class ProjectCreateTests(TestCase):
-    """Collection of tests for :view:`rolodex.ProjectNoteDelete`."""
+    """Collection of tests for :view:`rolodex.ProjectCreate`."""
 
     @classmethod
     def setUpTestData(cls):
         cls.Project = ProjectFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.project_client = ClientFactory()
         cls.uri = reverse("rolodex:project_create", kwargs={"pk": cls.project_client.pk})
         cls.no_client_uri = reverse("rolodex:project_create_no_client")
@@ -495,84 +526,137 @@ class ProjectCreateTests(TestCase):
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        response = self.client_auth.get(self.no_client_uri)
+        response = self.client_mgr.get(self.no_client_uri)
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(self.no_client_uri)
-        self.assertEqual(response.status_code, 302)
-        response = self.client.get(self.no_client_uri)
-        self.assertEqual(response.status_code, 302)
-
-    def test_view_requires_login(self):
+    def test_view_requires_login_and_permissions(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
         response = self.client.get(self.no_client_uri)
         self.assertEqual(response.status_code, 302)
 
-    def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        response = self.client_auth.get(self.no_client_uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "rolodex/project_form.html")
 
     def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn("assignments", response.context)
+        self.assertIn("cancel_link", response.context)
+
+        self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
+        self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
+        self.assertEqual(response.context["cancel_link"], self.client_cancel_uri)
+
+        response = self.client_mgr.get(self.no_client_uri)
+        self.assertEqual(response.context["cancel_link"], self.no_client_cancel_uri)
+
+    def test_initial_form_values(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("client", response.context["form"].initial)
+        self.assertIn("codename", response.context["form"].initial)
+        self.assertEqual(response.context["client"], self.project_client)
+
+        response = self.client_mgr.get(self.no_client_uri)
+        self.assertIn("client", response.context["form"].initial)
+        self.assertEqual(response.context["client"], "")
+
+
+class ProjectComponentsUpdateTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectComponentsUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.Project = ProjectFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.uri = reverse("rolodex:project_component_update", kwargs={"pk": cls.project.pk})
+        cls.cancel_uri = reverse("rolodex:project_detail", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
         response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "rolodex/project_form.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
         self.assertIn("objectives", response.context)
-        self.assertIn("assignments", response.context)
         self.assertIn("scopes", response.context)
         self.assertIn("targets", response.context)
         self.assertIn("whitecards", response.context)
         self.assertIn("cancel_link", response.context)
 
         self.assertTrue(isinstance(response.context["objectives"], ProjectObjectiveFormSet))
-        self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
         self.assertTrue(isinstance(response.context["scopes"], ProjectScopeFormSet))
         self.assertTrue(isinstance(response.context["targets"], ProjectTargetFormSet))
         self.assertTrue(isinstance(response.context["whitecards"], WhiteCardFormSet))
-        self.assertTrue(isinstance(response.context["assignments"], ProjectAssignmentFormSet))
-        self.assertEqual(response.context["cancel_link"], self.client_cancel_uri)
-
-        response = self.client_auth.get(self.no_client_uri)
-        self.assertEqual(response.context["cancel_link"], self.no_client_cancel_uri)
-
-    def test_initial_form_values(self):
-        response = self.client_auth.get(self.uri)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("client", response.context["form"].initial)
-        self.assertIn("codename", response.context["form"].initial)
-        self.assertEqual(response.context["client"], self.project_client)
-
-        response = self.client_auth.get(self.no_client_uri)
-        self.assertIn("client", response.context["form"].initial)
-        self.assertEqual(response.context["client"], "")
+        self.assertEqual(response.context["cancel_link"], self.cancel_uri)
 
 
 class ClientListViewTests(TestCase):
-    """Collection of tests for :view:`rolodex.client_list`."""
+    """Collection of tests for :view:`rolodex.ClientListView`."""
 
     @classmethod
     def setUpTestData(cls):
-        ClientFactory(name="SpecterOps", short_name="SO", codename="BloodHound")
-        ClientFactory(name="SpecterPops", short_name="SP", codename="Ghost")
+        client_1 = ClientFactory(name="SpecterOps", short_name="SO", codename="BloodHound")
+        client_2 = ClientFactory(name="SpecterPops", short_name="SP", codename="Ghost")
         ClientFactory(name="Test", short_name="TST", codename="Popsicle")
         cls.user = UserFactory(password=PASSWORD)
+        cls.assign_user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("rolodex:clients")
+        ClientInviteFactory(user=cls.user, client=client_1)
+        p = ProjectFactory(client=client_2)
+        ProjectAssignmentFactory(project=p, operator=cls.assign_user)
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
+        self.client_assign = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertTrue(self.client_assign.login(username=self.assign_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -585,41 +669,59 @@ class ClientListViewTests(TestCase):
         self.assertTemplateUsed(response, "rolodex/client_list.html")
 
     def test_client_filtering(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 3)
 
-        response = self.client_auth.get(f"{self.uri}?name=SpecterOps")
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+        self.assertEqual(response.context["filter"].qs[0].name, "SpecterOps")
+
+        response = self.client_assign.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+        self.assertEqual(response.context["filter"].qs[0].name, "SpecterPops")
+
+        response = self.client_mgr.get(f"{self.uri}?name=SpecterOps")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
 
-        response = self.client_auth.get(f"{self.uri}?name=pops")
+        response = self.client_mgr.get(f"{self.uri}?name=pops")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 2)
 
 
 class ProjectListViewTests(TestCase):
-    """Collection of tests for :view:`rolodex.project_list`."""
+    """Collection of tests for :view:`rolodex.ProjectListView`."""
 
     @classmethod
     def setUpTestData(cls):
         client_1 = ClientFactory(name="SpecterOps", short_name="SO", codename="BloodHound")
         client_2 = ClientFactory(name="SpecterPops", short_name="SP", codename="Ghost")
         client_3 = ClientFactory(name="Test", short_name="TST", codename="Popsicle")
-        ProjectFactory(codename="P1", client=client_1)
-        ProjectFactory(codename="P2", client=client_2)
+        project_1 = ProjectFactory(codename="P1", client=client_1)
+        project_2 = ProjectFactory(codename="P2", client=client_2)
         ProjectFactory(codename="P2", client=client_3)
         cls.user = UserFactory(password=PASSWORD)
+        cls.assign_user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("rolodex:projects")
+        ClientInviteFactory(user=cls.user, client=client_1)
+        ProjectInviteFactory(user=cls.user, project=project_2)
+        ProjectAssignmentFactory(project=project_1, operator=cls.assign_user)
 
     def setUp(self):
         self.client = Client()
         self.client_auth = Client()
-        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.client_mgr = Client()
+        self.client_assign = Client()
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+        self.assertTrue(self.client_assign.login(username=self.assign_user.username, password=PASSWORD))
 
     def test_view_uri_exists_at_desired_location(self):
-        response = self.client_auth.post(self.uri)
+        response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
     def test_view_requires_login(self):
@@ -632,27 +734,97 @@ class ProjectListViewTests(TestCase):
         self.assertTemplateUsed(response, "rolodex/project_list.html")
 
     def test_client_filtering(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 3)
 
-        response = self.client_auth.get(f"{self.uri}?client=SpecterOps")
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 2)
+
+        response = self.client_assign.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+        self.assertEqual(response.context["filter"].qs[0].codename, "P1")
+
+        response = self.client_mgr.get(f"{self.uri}?client=SpecterOps")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
 
-        response = self.client_auth.get(f"{self.uri}?client=pops")
+        response = self.client_mgr.get(f"{self.uri}?client=pops")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 2)
 
     def test_codename_filtering(self):
-        response = self.client_auth.get(self.uri)
+        response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 3)
 
-        response = self.client_auth.get(f"{self.uri}?codename=p")
+        response = self.client_mgr.get(f"{self.uri}?codename=p")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 3)
 
-        response = self.client_auth.get(f"{self.uri}?codename=p1")
+        response = self.client_mgr.get(f"{self.uri}?codename=p1")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["filter"].qs), 1)
+
+
+class AssignProjectContactViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.AssignProjectContact`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory()
+        cls.contact = ClientContactFactory(client=cls.project.client)
+        cls.other_contact = ClientContactFactory()
+        cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("rolodex:ajax_assign_project_contact", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD)
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        data = {
+            "result": "success",
+            "message": f"{self.contact.name} successfully added to your project.",
+        }
+        response = self.client_mgr.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 403)
+
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        response = self.client_auth.post(self.uri, {"contact": self.other_contact.pk})
+        self.assertEqual(response.status_code, 403)
+        response = self.client_auth.post(self.uri, {"contact": self.contact.pk})
+        self.assertEqual(response.status_code, 200)
+
+    def test_invalid_contact_id(self):
+        data = {
+            "result": "error",
+            "message": "Submitted contact ID was not an integer.",
+        }
+        response = self.client_mgr.post(self.uri, {"contact": "foo"})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)
+
+        data = {
+            "result": "error",
+            "message": "You must choose a contact.",
+        }
+        response = self.client_mgr.post(self.uri, {"contact": -1})
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(force_str(response.content), data)

@@ -1,8 +1,9 @@
-"""This contains all of the base URL mappings used by Ghostwriter."""
+"""This contains the base URL mappings used by Ghostwriter."""
 
 # Django Imports
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path, re_path
 from django.views import defaults as default_views
@@ -14,6 +15,11 @@ from ghostwriter.users.views import (
     account_change_password,
     account_reset_password_from_key,
 )
+
+# Ensure users go through the allauth workflow when logging into admin
+admin.site.login = staff_member_required(admin.site.login, login_url="/accounts/login")
+# Run the standard admin set-up
+admin.autodiscover()
 
 urlpatterns = [
     path("admin/doc/", include("django.contrib.admindocs.urls")),
@@ -32,6 +38,7 @@ urlpatterns = [
         account_reset_password_from_key,
         name="account_reset_password_from_key",
     ),
+    path("accounts/two-factor/", include("allauth_2fa.urls")),
     path("accounts/", include("allauth.urls")),
     # path("accounts/", include("django.contrib.auth.urls")),
     path("rolodex/", include("ghostwriter.rolodex.urls", namespace="rolodex")),

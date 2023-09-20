@@ -28,29 +28,6 @@ insert_permissions:
       columns:
         - finding_id
         - note
-  - role: restricted
-    permission:
-      check:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - client:
-                        invites:
-                          user_id:
-                            _eq: X-Hasura-User-Id
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
-      set:
-        operator_id: x-hasura-User-Id
-      columns:
-        - finding_id
-        - note
   - role: user
     permission:
       check:
@@ -84,25 +61,6 @@ select_permissions:
         - timestamp
         - note
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - client:
-                        invites:
-                          user_id:
-                            _eq: X-Hasura-User-Id
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns: '*'
@@ -135,43 +93,6 @@ update_permissions:
       check:
         note:
           _neq: '""'
-  - role: restricted
-    permission:
-      columns:
-        - finding_id
-        - note
-      filter:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - client:
-                        invites:
-                          user_id:
-                            _eq: X-Hasura-User-Id
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
-      check:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - client:
-                        invites:
-                          user_id:
-                            _eq: X-Hasura-User-Id
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:
@@ -216,24 +137,6 @@ delete_permissions:
         user:
           id:
             _eq: X-Hasura-User-Id
-  - role: restricted
-    permission:
-      filter:
-        _or:
-          - finding:
-              report:
-                project:
-                  _or:
-                    - client:
-                        invites:
-                          user_id:
-                            _eq: X-Hasura-User-Id
-                    - invites:
-                        user_id:
-                          _eq: X-Hasura-User-Id
-                    - assignments:
-                        operator_id:
-                          _eq: X-Hasura-User-Id
   - role: user
     permission:
       filter:

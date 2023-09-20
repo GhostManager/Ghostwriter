@@ -16,9 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Oplog(models.Model):
-    """
-    Stores an individual operation log.
-    """
+    """Stores an individual operation log."""
 
     name = models.CharField(max_length=255)
     project = models.ForeignKey(
@@ -44,9 +42,7 @@ class Oplog(models.Model):
 
 # Create your models here.
 class OplogEntry(models.Model):
-    """
-    Stores an individual log entry, related to :model:`oplog.Oplog`.
-    """
+    """Stores an individual log entry, related to :model:`oplog.Oplog`."""
 
     start_date = models.DateTimeField(
         "Start Date",

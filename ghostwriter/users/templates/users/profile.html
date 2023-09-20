@@ -115,6 +115,18 @@
       <a class="btn btn-info" href="{% url 'users:userprofile_update' request.user.username %}">Update Avatar</a>
     </div>
 
+    <h4 class="icon 2fa-icon pt-4">Manage Multi-Factor Authentication</h4>
+    <hr>
+
+    <div class="btn-group" role="group" aria-label="profile-mgmt">
+      {%  if request.user|has_2fa %}
+        <a class="btn btn-secondary" href="{% url 'two-factor-backup-tokens' %}">Backup Codes</a>
+        <a class="btn btn-danger" href="{% url 'two-factor-remove' %}">Remove 2FA</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'two-factor-setup' %}">Set Up 2FA</a>
+      {% endif %}
+    </div>
+
     <div class="col-md-12 pt-4 d-flex text-center position-relative justify-content-center">
       <form class="form-inline">
         <div class="form-group">

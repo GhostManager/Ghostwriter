@@ -5,226 +5,283 @@
 {% block pagetitle %}{{ primary_address }}{% endblock %}
 
 {% block breadcrumbs %}
-    <nav aria-label="breadcrumb">
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item truncate"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item truncate"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
-            <li class="breadcrumb-item active truncate" aria-current="page">{{ primary_address }}</li>
-        </ul>
-    </nav>
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item truncate"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item truncate"><a href="{% url 'shepherd:servers' %}">Servers</a></li>
+      <li class="breadcrumb-item active truncate" aria-current="page">{{ primary_address }}</li>
+    </ul>
+  </nav>
 {% endblock %}
 
 {% block content %}
 
-    <div class="dropdown">
-        <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="hamburger(this)">
-            <div class="bar1"></div>
-            <div class="bar2"></div>
-            <div class="bar3"></div>
-        </div>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
-            <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_update' staticserver.id %}">Edit Details</a>
-            <a class="dropdown-item icon add-icon" href="{% url 'shepherd:server_update' staticserver.id %}#addresses">Add Aux IP Address</a>
-            {% if staticserver.server_status.server_status == "Available" %}
-                <a class="dropdown-item icon checkout-icon" href="{% url 'shepherd:server_checkout' staticserver.id %}">Checkout Server</a>
+  <div class="dropdown">
+    <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+         onclick="hamburger(this)">
+      <div class="bar1"></div>
+      <div class="bar2"></div>
+      <div class="bar3"></div>
+    </div>
+    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="client-dropdown-btn">
+      <a class="dropdown-item icon edit-icon" href="{% url 'shepherd:server_update' staticserver.id %}">Edit Details</a>
+      <a class="dropdown-item icon add-icon" href="{% url 'shepherd:server_update' staticserver.id %}#addresses">Add Aux
+        IP Address</a>
+      {% if staticserver.server_status.server_status == "Available" %}
+        <a class="dropdown-item icon checkout-icon" href="{% url 'shepherd:server_checkout' staticserver.id %}">Checkout
+          Server</a>
+      {% else %}
+        <a class="dropdown-item icon block-icon" href="#">Server Unavailable</a>
+      {% endif %}
+      <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_delete' staticserver.id %}">Delete</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
+  </div>
+  {% for tag in staticserver.tags.names %}
+    <span class="badge badge-secondary">{{ tag|bleach }}</span>
+  {% endfor %}
+  <hr>
+
+  <div>
+    <!-- Navigation Tabs -->
+    <ul id="tab-bar" class="nav nav-tabs nav-justified"
+        js-update-tabs-url="{% url 'shepherd:ajax_update_server_badges' staticserver.id %}">
+      {% include "snippets/server_nav_tabs.html" %}
+    </ul>
+
+    <!-- General Tab -->
+    <div class="tab-content">
+      <div id="details" class="tab-pane in active">
+        <h4>Server Details</h4>
+        <hr>
+
+        <table class="table table-borderless table-centered project-details-table">
+          <tr>
+            <td class="text-left bold">Hostname</td>
+            <td class="text-left">
+              {% if staticserver.name %} {{ staticserver.name }} {% else %} No Hostname {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Hosting Provider</td>
+            <td class="text-left">{{ staticserver.server_provider }}</td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Current Status</td>
+            <td class="text-left">
+              {{ staticserver.server_status }}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left bold">Additional Info</td>
+            <td class="text-left">
+              <a href="javascript:void(0);" id="serverDescriptionDropdown" class="align-icon icon add-icon">Show
+                More</a>
+            </td>
+          </tr>
+        </table>
+
+        <div id="serverDescription" class="d-flex justify-content-center">
+          <div class="description-block">
+            {% if staticserver.note %}
+              {{ staticserver.note|strip_empty_tags|bleach }}
             {% else %}
-                <a class="dropdown-item icon block-icon" href="#">Server Unavailable</a>
+              <p class="mb-0">There are no additional information provided for this server.</p>
             {% endif %}
-            <a class="dropdown-item icon trash-icon" href="{% url 'shepherd:server_delete' staticserver.id %}">Delete</a>
+          </div>
         </div>
-    </div>
 
-    <div class="container">
-        <h2>{{ primary_address }} {% if staticserver.name %}({{ staticserver.name }}){% endif %}</h2>
-    </div>
-    {% for tag in staticserver.tags.names %}
-        <span class="badge badge-secondary">{{ tag|bleach }}</span>
-    {% endfor %}
-    <hr>
+        <div class="hidden-element"></div>
 
-    <div>
-        <!-- Navigation Tabs -->
-        <ul id="tab-bar" class="nav nav-tabs nav-justified">
-            {% include "snippets/server_nav_tabs.html" %}
-        </ul>
+        <!-- Address Table -->
+        <table id="address-table" class="tablesorter table table-striped">
+          <thead>
+          <tr>
+            <th>IP Address</th>
+            <th>Primary</th>
+          </tr>
+          </thead>
+          <tr>
+            <td>{{ staticserver.ip_address }}</td>
+            <td>Assigned to Server</td>
+          </tr>
+          {% if staticserver.auxserveraddress_set %}
+            {% for addy in staticserver.auxserveraddress_set.all %}
+              <tr>
+                <td>{{ addy }}</td>
+                <td>
+                  {% if addy.primary %}
+                    Yes
+                  {% else %}
+                    No
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        </table>
+      </div>
 
-        <!-- General Tab -->
-        <div class="tab-content">
-            <div id="details" class="tab-pane in active">
-                <h4>Server Details</h4>
-                <hr>
+      <!-- History Tab -->
+      <div id="history" class="tab-pane">
+        <h4 class="icon history-icon">Server History</h4>
+        <hr/>
 
-                <table class="table table-borderless table-centered project-details-table">
-                    <tr>
-                        <td class="text-left bold">Hostname</td>
-                        <td class="text-left">
-                            {% if staticserver.name %} {{ staticserver.name }} {% else %} No Hostname {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Hosting Provider</td>
-                        <td class="text-left">{{ staticserver.server_provider }}</td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Current Status</td>
-                        <td class="text-left">
-                            {{ staticserver.server_status }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-left bold">Additional Info</td>
-                        <td class="text-left">
-                            <a href="javascript:void(0);" id="serverDescriptionDropdown" class="align-icon icon add-icon">Show More</a>
-                        </td>
-                    </tr>
-                </table>
+        <p>If you do not have access to the related client or project, the history entry will be partially redacted.</p>
 
-                <div id="serverDescription" class="d-flex justify-content-center">
-                    <div class="description-block">
-                        {% if staticserver.note %}
-                            {{ staticserver.note|strip_empty_tags|bleach }}
-                        {% else %}
-                            <p>No additional information provided for this server.</p>
-                        {% endif %}
+        {% if staticserver.serverhistory_set.all %}
+          <table id="project-table" class="tablesorter table table-striped">
+            <thead>
+            <tr>
+              <th class="align-middle">Project</th>
+              <th class="align-middle">Activity Type</th>
+              <th class="align-middle">Server Role</th>
+              <th class="align-middle sorter-date-range-dMMMyyyy">Execution Window</th>
+              <th class="align-middle sorter-false">Additional Info</th>
+              <th class="align-middle sorter-false">Options</th>
+            </tr>
+            </thead>
+            {% for checkout in staticserver.serverhistory_set.all %}
+              <tr>
+                <td class="align-middle">
+                  {% if checkout.project|has_access:request.user %}
+                    <a class="clickable"
+                       href="{% url 'rolodex:project_detail' checkout.project.id %}">{{ checkout.client }}</a>
+                  {% else %}
+                    <span class="blurry">REDACTED</span>
+                  {% endif %}
+                </td>
+                <td class="align-middle">{{ checkout.activity_type }}</td>
+                <td class="align-middle">{{ checkout.server_role }}</td>
+                <td class="align-middle">{{ checkout.start_date|date:"d M Y" }}
+                  - {{ checkout.end_date|date:"d M Y" }}</td>
+                <td class="align-middle">
+                  {% if checkout.project|has_access:request.user %}
+                    <button
+                      class="expandme btn btn-transparent"
+                      onclick="showHideRow($(this), 'hidden-server-data-{{ checkout.id }}');"
+                      title="Expand to view additional information"
+                    ></button>
+                  {% endif %}
+                </td>
+                <td class="align-middle">
+                  {% if checkout.project|has_access:request.user %}
+                    <div class="dropdown dropleft">
+                      <button id="history-dropdown-btn_{{ checkout.id }}" class="dropdown-menu-btn-table"
+                              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                      <div class="dropdown-menu" aria-labelledby="history-dropdown-btn_{{ checkout.id }}">
+                        <a class="dropdown-item icon edit-icon"
+                           href="{% url 'shepherd:server_history_update' checkout.id %}">Edit</a>
+                        <a class="dropdown-item icon trash-icon"
+                           href="{% url 'shepherd:server_history_delete' checkout.id %}">Delete</a>
+                      </div>
                     </div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% if checkout.project|has_access:request.user %}
+                <tr class="hidden-row">
+                  <td colspan=5>
+                    <div id="hidden-server-data-{{ checkout.id }}" class="hidden-div">
+                      {%  if checkout.note %}
+                        {{ checkout.note|bleach }}
+                      {% else %}
+                        <p>No notes for this checkout.</p>
+                      {%  endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </table>
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This server has no history.</div>
+        {% endif %}
+      </div>
+
+      <!-- Notes Tab -->
+      <div id="notes" class="tab-pane">
+        <h4>Server Notes</h4>
+        <hr/>
+
+        <p>
+          <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:server_note_add' staticserver.id %}">Add
+            a Note</a>
+        </p>
+        {% if staticserver.servernote_set.all %}
+          {% for note in staticserver.servernote_set.all reversed %}
+            <div id="note-container-{{ note.id }}">
+              <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
+                <div class="float-left col-10 col-md-10 col-sm-8">
+                  {{ note.note|bleach }}
                 </div>
 
-                <div class="hidden-element"></div>
-
-                <!-- Address Table -->
-                <table id="address-table" class="tablesorter table table-striped">
-                    <thead>
-                        <tr>
-                            <th>IP Address</th>
-                            <th>Primary</th>
-                        </tr>
-                    </thead>
-                    <tr>
-                        <td>{{ staticserver.ip_address }}</td>
-                        <td>Assigned to Server</td>
-                    </tr>
-                    {% if staticserver.auxserveraddress_set %}
-                        {% for addy in staticserver.auxserveraddress_set.all %}
-                            <tr>
-                                <td>{{ addy }}</td>
-                                <td>
-                                    {% if addy.primary %}
-                                        Yes
-                                    {% else %}
-                                        No
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    {% endif %}
-                </table>
+                <div class="float-right col-2 col-md-2 col-sm-4">
+                  <div>{% if note.operator %}<a class="note-link"
+                                                href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}
+                    <span class="note-link">Deleted</span>{% endif %}</div>
+                  <div><p class="note-time">{{ note.timestamp }}</p></div>
+                </div>
+              </div>
             </div>
 
-            <!-- History Tab -->
-            <div id="history" class="tab-pane">
-                <h4 class="icon history-icon">Server History</h4>
-                <hr />
-                {% if staticserver.serverhistory_set.all %}
-                    <table id="project-table" class="tablesorter table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Project</th>
-                                <th>Activity Type</th>
-                                <th>Server Role</th>
-                                <th class="sorter-date-range-dMMMyyyy">Execution Window</th>
-                                <th class="sorter-false">Edit</th>
-                            </tr>
-                        </thead>
-                        {% for project in staticserver.serverhistory_set.all %}
-                            <tr>
-                                <td><a class="clickable" href="{% url 'rolodex:project_detail' project.project.id %}">{{ project.project }}</i></a></td>
-                                <td>{{ project.activity_type }}</td>
-                                <td>{{ project.server_role }}</td>
-                                <td>{{ project.start_date|date:"d M Y" }} - {{ project.end_date|date:"d M Y" }}</td>
-                                <td>
-                                    <a class="icon edit-icon" href="{% url 'shepherd:server_history_update' project.id %}"></a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% else %}
-                    <p>This server has no history.</p>
-                {% endif %}
-            </div>
-
-            <!-- Notes Tab -->
-            <div id="notes" class="tab-pane">
-                <h4>Server Notes</h4>
-                <hr />
-
-                <p>
-                    <a class="icon add-icon btn btn-primary col-3" href="{% url 'shepherd:server_note_add' staticserver.id %}">Add a Note</a>
-                </p>
-                {% if staticserver.servernote_set.all %}
-                    {% for note in staticserver.servernote_set.all reversed %}
-                        <div id="note-container-{{ note.id }}">
-                            <div class="container note-container {% if forloop.counter|divisibleby:2 %}darker{% endif %}">
-                                <div class="float-left col-10 col-md-10 col-sm-8">
-                                    {{ note.note|bleach }}
-                                </div>
-
-                                <div class="float-right col-2 col-md-2 col-sm-4">
-                                    <div>{% if note.operator %}<a class="note-link" href="{% url 'users:user_detail' note.operator.username %}">{{ note.operator.username }}</a>{% else %}<span class="note-link">Deleted</span>{% endif %}</div>
-                                    <div><p class="note-time">{{ note.timestamp }}</p></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {% if request.user == note.operator or request.user.is_staff %}
-                            <div class="pb-3">
-                                <a class="note-link" href="{% url 'shepherd:server_note_edit' note.id %}">Edit</a> |
-                                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal" data-target="#confirm-delete-modal" href="javascript:void(0);" delete-target-csrftoken="{{ csrf_token }}" delete-target-url="{% url 'shepherd:ajax_delete_server_note' note.id%}" delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                    <p>No notes for this staticserver.</p>
-                {% endif %}
-            </div>
-        </div>
+            {% if request.user == note.operator or request.user.is_staff %}
+              <div class="pb-3">
+                <a class="note-link" href="{% url 'shepherd:server_note_edit' note.id %}">Edit</a> |
+                <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"
+                   data-target="#confirm-delete-modal" href="javascript:void(0);"
+                   delete-target-csrftoken="{{ csrf_token }}"
+                   delete-target-url="{% url 'shepherd:ajax_delete_server_note' note.id %}"
+                   delete-target-id="{{ note.id }}" delete-target-type="note">Delete</a>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this server.</div>
+        {% endif %}
+      </div>
     </div>
+  </div>
 {% endblock %}
 
 {% block collapse_js %}
-    {{ block.super }}
+  {{ block.super }}
 {% endblock %}
 
 {% block morescripts %}
-    <!-- jQuery Tablesorter Script -->
-    <script>
-        $(document).ready(function()  {
-            $("#project-table").tablesorter(
-                            {
-                                cssAsc: 'down',
-                                cssDesc: 'up',
-                                cssNone: 'none',
-                            }
-                        );
-            $('.tablesorter').trigger('update');
-        });
-    </script>
+  <!-- jQuery Tablesorter Script -->
+  <script>
+    $(document).ready(function () {
+      $("#project-table").tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
+      $('.tablesorter').trigger('update');
+    });
+  </script>
 
-    <!-- Hide Project Description -->
-    <script>
-        $('div.description-block').each(function(){
-            $(this).css('height', $(this).height()+'px');
-            $(this).hide();
-        });
-    </script>
+  <!-- Hide Project Description -->
+  <script>
+    $('div.description-block').each(function () {
+      $(this).css('height', $(this).height() + 'px');
+      $(this).hide();
+    });
+  </script>
 
-    <!-- Expand Hidden Server Information -->
-    <script>
-        $('#serverDescriptionDropdown').click(function (e) {
-            $('div.description-block').slideToggle('slow');
-            $('#serverDescriptionDropdown').toggleClass('add-icon sub-icon')
-        });
-    </script>
+  <!-- Expand Hidden Server Information -->
+  <script>
+    $('#serverDescriptionDropdown').click(function (e) {
+      $('div.description-block').slideToggle('slow');
+      $('#serverDescriptionDropdown').toggleClass('add-icon sub-icon')
+    });
+  </script>
 
-    {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
-    {% include "confirm_delete_modal.html" %}
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
 {% endblock %}

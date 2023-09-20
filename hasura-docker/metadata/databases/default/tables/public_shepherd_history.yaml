@@ -65,22 +65,6 @@ select_permissions:
         - project_id
         - start_date
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-            - client:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns: '*'
@@ -112,42 +96,6 @@ update_permissions:
         operator_id:
           _eq: X-Hasura-User-Id
       check: {}
-  - role: restricted
-    permission:
-      columns:
-        - activity_type_id
-        - client_id
-        - domain_id
-        - end_date
-        - note
-        - project_id
-        - start_date
-      filter:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-            - client:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-      check:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
-            - client:
-                invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:

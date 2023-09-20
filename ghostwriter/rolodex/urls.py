@@ -2,6 +2,7 @@
 
 # Django Imports
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 # Ghostwriter Libraries
 from ghostwriter.rolodex import views
@@ -11,8 +12,8 @@ app_name = "rolodex"
 # URLs for the basic views
 urlpatterns = [
     path("", views.index, name="index"),
-    path("clients/", views.client_list, name="clients"),
-    path("projects/", views.project_list, name="projects"),
+    path("clients/", views.ClientListView.as_view(), name="clients"),
+    path("projects/", views.ProjectListView.as_view(), name="projects"),
 ]
 
 # URLs for AJAX requests – deletion and toggle views
@@ -81,6 +82,16 @@ urlpatterns += [
         "ajax/project/refresh/<int:pk>",
         views.update_project_badges,
         name="ajax_update_project_badges",
+    ),
+    path(
+        "ajax/project/contacts/refresh/<int:pk>",
+        views.update_project_contacts,
+        name="ajax_update_project_contacts",
+    ),
+    path(
+        "ajax/contact/assign/<int:pk>",
+        csrf_exempt(views.AssignProjectContact.as_view()),
+        name="ajax_assign_project_contact",
     ),
     path(
         "ajax/client/refresh/<int:pk>",
@@ -190,5 +201,10 @@ urlpatterns += [
         "projects/deconfliction/update/<int:pk>",
         views.DeconflictionUpdate.as_view(),
         name="project_deconfliction_update",
+    ),
+    path(
+        "projects/update/components/<int:pk>",
+        views.ProjectComponentsUpdate.as_view(),
+        name="project_component_update",
     ),
 ]

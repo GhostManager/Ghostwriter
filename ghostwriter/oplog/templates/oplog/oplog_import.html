@@ -18,6 +18,14 @@
   <p>Upload a csv file containing log entries to be imported:</p>
   <form action="{% url 'oplog:oplog_import' %}" method="POST" enctype="multipart/form-data" class="form-horizontal">
     {% csrf_token %}
+    <div class="input-group mb-3 offset-2 col-8">
+      <label for="oplog_id"></label>
+      <select class="form-control" id="oplog_log" name="oplog_id" required>
+        {% for log in logs %}
+          <option value="{{ log.id }}"> {{ log.name }} (ID {{ log.id }})</option>
+        {% endfor %}
+      </select>
+    </div>
     <div class="input-group input-group-lg mb-3 offset-2 col-8">
       <div class="custom-file">
         <input type="file" class="custom-file-input" id="csv_file" name="csv_file">
@@ -39,7 +47,7 @@
         <p>Your csv file must have these headers:</p>
         <em>
           start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
-          comments, operator_name, tags, oplog_id
+          comments, operator_name, tags
         </em>
       </div>
     </div>

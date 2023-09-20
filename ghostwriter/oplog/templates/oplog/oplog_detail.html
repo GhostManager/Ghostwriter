@@ -179,6 +179,7 @@
             }
             hideColumns()
             $spinnerModal.modal('hide');
+            $('[data-toggle="tooltip"]').tooltip();
           }
 
           {% comment %} Handle the `create` action that is received whenever a new entry is created {% endcomment %}
@@ -210,6 +211,7 @@
               $newRow.fadeIn(500)
             }
             $('#oplogTableNoEntries').hide()
+            $('[data-toggle="tooltip"]').tooltip();
           }
 
           {% comment %} Handle the `delete` action that is received whenever an entry is deleted {% endcomment %}
@@ -218,6 +220,7 @@
             $('#oplogTable tbody tr').each(function () {
               if ($(this).attr('id') === id.toString()) {
                 $(this).fadeOut('slow', function () {
+                  $('.tooltip').tooltip('hide');
                   $(this).remove()
                   if ($('#oplogTableBody tr').length === 0){
                     addPlaceholderRow($table)
@@ -374,7 +377,7 @@
             $toggleLink.text('Notifications: On')
           }
           if (data['message']) {
-            displayToastTop({type:data['result'], string:data['message'], title:'Oplog Update'});
+            displayToastTop({type:data['result'], string:data['message'], title:'Log Update'});
           }
         },
       });

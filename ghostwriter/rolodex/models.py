@@ -15,16 +15,14 @@ from timezone_field import TimeZoneField
 
 # Ghostwriter Libraries
 from ghostwriter.oplog.models import OplogEntry
-from ghostwriter.rolodex.validators import validate_ip_range
 from ghostwriter.reporting.models import ReportFindingLink
+from ghostwriter.rolodex.validators import validate_ip_range
 
 User = get_user_model()
 
 
 class Client(models.Model):
-    """
-    Stores an individual client.
-    """
+    """Stores an individual client."""
 
     name = models.CharField(
         "Client Name",
@@ -74,13 +72,11 @@ class Client(models.Model):
         return reverse("rolodex:client_detail", args=[str(self.id)])
 
     def __str__(self):
-        return self.name
+        return f"{self.name}"
 
 
 class ClientContact(models.Model):
-    """
-    Stores an individual point of contact, related to :model:`rolodex.Client`.
-    """
+    """Stores an individual point of contact, related to :model:`rolodex.Client`."""
 
     name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
     job_title = models.CharField(
@@ -114,7 +110,7 @@ class ClientContact(models.Model):
         help_text="The contact's timezone",
     )
     note = models.TextField(
-        "Client Note",
+        "Contact Note",
         null=True,
         blank=True,
         help_text="Provide additional information about the contact",
@@ -132,9 +128,7 @@ class ClientContact(models.Model):
 
 
 class ProjectType(models.Model):
-    """
-    Stores an individual project type, related to :model:`rolodex.Project`.
-    """
+    """Stores an individual project type, related to :model:`rolodex.Project`."""
 
     project_type = models.CharField(
         "Project Type",
@@ -149,7 +143,7 @@ class ProjectType(models.Model):
         verbose_name_plural = "Project types"
 
     def __str__(self):
-        return self.project_type
+        return f"{self.project_type}"
 
 
 class Project(models.Model):
@@ -241,9 +235,7 @@ class Project(models.Model):
 
 
 class ProjectRole(models.Model):
-    """
-    Stores an individual project role.
-    """
+    """Stores an individual project role."""
 
     project_role = models.CharField(
         "Project Role",
@@ -258,7 +250,7 @@ class ProjectRole(models.Model):
         verbose_name_plural = "Project roles"
 
     def __str__(self):
-        return self.project_role
+        return f"{self.project_role}"
 
 
 class ProjectAssignment(models.Model):
@@ -314,10 +306,65 @@ class ProjectAssignment(models.Model):
         return f"{self.operator} - {self.project} {self.end_date})"
 
 
+class ProjectContact(models.Model):
+    """Stores an individual point of contact, related to :model:`rolodex.Project`."""
+
+    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
+    job_title = models.CharField(
+        "Title or Role",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Enter the contact's job title or project role as you want it to appear in a report",
+    )
+    email = models.CharField(
+        "Email",
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Enter an email address for this contact",
+    )
+    # The ITU E.164 states phone numbers should not exceed 15 characters
+    # We want valid phone numbers, but validating them (here or in forms) is unnecessary
+    # Numbers are not used for anything – and any future use would involve human involvement
+    # The `max_length` allows for people adding spaces, other chars, and extension numbers
+    phone = models.CharField(
+        "Phone",
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Enter a phone number for this contact",
+    )
+    timezone = TimeZoneField(
+        "Timezone",
+        default="America/Los_Angeles",
+        help_text="The contact's timezone",
+    )
+    note = models.TextField(
+        "Contact Note",
+        null=True,
+        blank=True,
+        help_text="Provide additional information about the contact",
+    )
+    primary = models.BooleanField(
+        "Primary Contact",
+        default=False,
+        help_text="Flag this contact as the primary point of contact / report recipient for the project",
+    )
+    # Foreign keys
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False, blank=False)
+
+    class Meta:
+        ordering = ["project", "id"]
+        verbose_name = "Project POC"
+        verbose_name_plural = "Project POCs"
+
+    def __str__(self):
+        return f"{self.name}"
+
+
 class ObjectiveStatus(models.Model):
-    """
-    Stores an individual objective status.
-    """
+    """Stores an individual objective status."""
 
     objective_status = models.CharField(
         "Objective Status",
@@ -332,13 +379,11 @@ class ObjectiveStatus(models.Model):
         verbose_name_plural = "Objective status"
 
     def __str__(self):
-        return self.objective_status
+        return f"{self.objective_status}"
 
 
 class ObjectivePriority(models.Model):
-    """
-    Stores an individual objective priority category.
-    """
+    """Stores an individual objective priority category."""
 
     weight = models.IntegerField(
         "Priority Weight",
@@ -358,7 +403,7 @@ class ObjectivePriority(models.Model):
         verbose_name_plural = "Objective priorities"
 
     def __str__(self):
-        return self.priority
+        return f"{self.priority}"
 
 
 class ProjectObjective(models.Model):
@@ -508,9 +553,7 @@ class ProjectSubTask(models.Model):
 
 
 class ClientNote(models.Model):
-    """
-    Stores an individual note, related to an individual :model:`rolodex.Client` and :model:`users.User`.
-    """
+    """Stores an individual note, related to an individual :model:`rolodex.Client` and :model:`users.User`."""
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
@@ -534,9 +577,7 @@ class ClientNote(models.Model):
 
 
 class ProjectNote(models.Model):
-    """
-    Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`.
-    """
+    """Stores an individual note, related to :model:`rolodex.Project` and :model:`users.User`."""
 
     # This field is automatically filled with the current date
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
@@ -560,9 +601,7 @@ class ProjectNote(models.Model):
 
 
 class ProjectScope(models.Model):
-    """
-    Stores an individual scope list, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual scope list, related to an individual :model:`rolodex.Project`."""
 
     name = models.CharField(
         "Scope Name",
@@ -617,9 +656,7 @@ class ProjectScope(models.Model):
 
 
 class ProjectTarget(models.Model):
-    """
-    Stores an individual target host, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual target host, related to an individual :model:`rolodex.Project`."""
 
     ip_address = models.CharField(
         "IP Address",
@@ -706,9 +743,7 @@ class ProjectInvite(models.Model):
 
 
 class DeconflictionStatus(models.Model):
-    """
-    Stores an individual deconfliction status.
-    """
+    """Stores an individual deconfliction status."""
 
     status = models.CharField(
         "Status",
@@ -732,9 +767,7 @@ class DeconflictionStatus(models.Model):
 
 
 class Deconfliction(models.Model):
-    """
-    Stores an individual deconfliction, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual deconfliction, related to an individual :model:`rolodex.Project`."""
 
     created_at = models.DateTimeField(
         "Timestamp",
@@ -806,9 +839,7 @@ class Deconfliction(models.Model):
 
 
 class WhiteCard(models.Model):
-    """
-    Stores an individual white card, related to an individual :model:`rolodex.Project`.
-    """
+    """Stores an individual white card, related to an individual :model:`rolodex.Project`."""
 
     issued = models.DateTimeField(
         "Issued",

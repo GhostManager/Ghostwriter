@@ -3,6 +3,7 @@
 # Django Imports
 from django.urls import path
 
+# Ghostwriter Libraries
 from ghostwriter.reporting import views
 
 app_name = "reporting"
@@ -10,13 +11,13 @@ app_name = "reporting"
 # URLs for the basic views
 urlpatterns = [
     path("", views.index, name="index"),
-    path("findings/", views.findings_list, name="findings"),
-    path("reports/", views.reports_list, name="reports"),
+    path("findings/", views.FindingListView.as_view(), name="findings"),
+    path("reports/", views.ReportListView.as_view(), name="reports"),
     path("templates/", views.ReportTemplateListView.as_view(), name="templates"),
     path("reports/archive", views.archive_list, name="archived_reports"),
     path(
         "reports/archive/download/<int:pk>/",
-        views.download_archive,
+        views.ArchiveDownloadView.as_view(),
         name="download_archive",
     ),
 ]
@@ -114,7 +115,7 @@ urlpatterns += [
     ),
     path("reports/update/<int:pk>", views.ReportUpdate.as_view(), name="report_update"),
     path("reports/delete/<int:pk>", views.ReportDelete.as_view(), name="report_delete"),
-    path("reports/archive/<int:pk>", views.archive, name="archive"),
+    path("reports/archive/<int:pk>", views.ArchiveView.as_view(), name="archive"),
     path("reports/clone/<int:pk>", views.ReportClone.as_view(), name="report_clone"),
     path(
         "reports/create/blank/<int:pk>",

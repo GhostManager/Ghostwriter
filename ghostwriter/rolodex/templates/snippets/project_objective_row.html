@@ -3,31 +3,44 @@
 {% load determine_primary %}
 
 <tr id="objective-row-{{ objective.id }}" data-id="{{ objective.id }}" class="accordion-row {% if objective.complete %}complete{% endif %}" objective-id="{{ objective.id }}" data-id="{{ objective.id }}" toggle-objective-url="{% url 'rolodex:ajax_toggle_project_objective' objective.id %}" objective-csrftoken="{{ csrf_token }}" refresh-objective-url="{% url 'rolodex:ajax_update_objective_row' objective.id %}" deadline-date="{{ objective.deadline|date:"Y-m-d" }}">
-    <td class="align-middle">
+    <td
+      data-toggle="tooltip"
+      data-placement="bottom"
+      title="Toggle objective's completed status"
+      class="align-middle"
+    >
         <span>
             <input
                 type="checkbox"
                 onclick="$(this).tooltip('hide'); toggleObjective($(this).parent().parent().parent());"
-                data-toggle="tooltip"
-                data-placement="bottom"
-                title="Toggle objective's completed status"
                 {% if objective.complete %}checked{% endif %}
             >
         </span>
     </td>
     <td
         class="holdme align-middle"
+        data-toggle="tooltip"
+        data-placement="bottom"
         title="Click-n-drag to reposition or categorize"
     ></td>
-    <td class="align-middle">
+    <td
+      data-toggle="tooltip"
+      data-placement="bottom"
+      title="Expand to view task list"
+      class="align-middle"
+    >
         <button
-            class="expandme btn btn-transaprent"
+            class="expandme btn btn-transparent"
             onclick="expandObjective($(this))"
-            title="Expand to view task list"
         ></button>
     </td>
     <td class="align-middle">{{ objective.objective|striptags }}</td>
-    <td class="align-middle">
+    <td
+      data-toggle="tooltip"
+      data-placement="bottom"
+      title="Click to cycle the status"
+      class="align-middle"
+    >
         <div
             id="objective-status-{{ objective.id }}"
             status-id="{{ objective.status.id }}"
@@ -35,13 +48,17 @@
             obj-status-update-url="{% url 'rolodex:ajax_set_objective_status' objective.id %}"
             obj-status-csrftoken="{{ csrf_token }}"
             class="objective-badge badge badge-secondary"
-            title="Click to change the status"
             onclick="cycleStatus($(this))"
         >
             {{ objective.status }}
         </div>
     </td>
-    <td class="align-middle">
+    <td
+      data-toggle="tooltip"
+      data-placement="bottom"
+      title="The objective's completion progress base don subtask completion"
+      class="align-middle"
+    >
         {% with percentage=objective.calculate_status %}
         <div class="progress">
             <div class="progress-bar progress-bar-striped todo-progressbar" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>

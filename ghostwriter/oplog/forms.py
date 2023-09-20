@@ -13,46 +13,45 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, Submit
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import get_project_list
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.rolodex.models import Project
 
 
 class OplogForm(forms.ModelForm):
-    """
-    Save an individual :model:`oplog.Oplog`.
-    """
+    """Save an individual :model:`oplog.Oplog`."""
 
     class Meta:
         model = Oplog
         fields = "__all__"
 
-    def __init__(self, project=None, *args, **kwargs):
+    def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # If this is an update, mark the project field as read-only
         instance = getattr(self, "instance", None)
         if instance and instance.pk:
             self.fields["project"].disabled = True
 
-        for field in self.fields:
-            self.fields[field].widget.attrs["autocomplete"] = "off"
-        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name for Identification"
-        self.fields["name"].label = "Name for the Log"
-        self.fields["name"].help_text = "Enter a name for this log that will help you identify it"
-
-        # Limit the list to the selected project and disable the field if this is log created for a specific project
-        self.project_instance = project
+        # Limit the list to the pre-selected project and disable the field
         if project:
             self.fields["project"].queryset = Project.objects.filter(pk=project.pk)
             self.fields["project"].disabled = True
 
         # Limit the list to active projects if this is a new log made from the sidebar
         if not project:
-            active_projects = Project.objects.filter(complete=False).order_by("-start_date")
+            projects = get_project_list(user)
+            active_projects = projects.filter(complete=False).order_by("-start_date")
             if active_projects:
                 self.fields["project"].empty_label = "-- Select an Active Project --"
             else:
                 self.fields["project"].empty_label = "-- No Active Projects --"
             self.fields["project"].queryset = active_projects
+
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["name"].widget.attrs["placeholder"] = "Descriptive Name for Identification"
+        self.fields["name"].label = "Name for the Log"
+        self.fields["name"].help_text = "Enter a name for this log that will help you identify it"
 
         # Design form layout with Crispy's ``FormHelper``
         self.helper = FormHelper()
@@ -73,9 +72,7 @@ class OplogForm(forms.ModelForm):
 
 
 class OplogEntryForm(forms.ModelForm):
-    """
-    Save an individual :model:`oplog.OplogEntry`.
-    """
+    """Save an individual :model:`oplog.OplogEntry`."""
 
     start_date = forms.DateTimeField(
         input_formats=["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M"],
@@ -124,12 +121,16 @@ class OplogEntryForm(forms.ModelForm):
         self.helper.form_id = "oplog-entry-form"
 
         # Set form action based on whether this is a new or existing entry
-        # For now, this form is only used for updates so there should always be an instance available
+        # This form is only used for updates via AJAX so there should always be an instance available, but we handle
+        # other possibilities to avoid a server error if someone tries browsing to the URL directly
+        post_url = None
         if self.instance.pk:
             post_url = reverse("oplog:oplog_entry_update", kwargs={"pk": self.instance.pk})
         else:
-            post_url = reverse("oplog:oplog_entry_create", kwargs={"pk": self.oplog.pk})
-        self.helper.form_action = post_url
+            if self.oplog:
+                post_url = reverse("oplog:oplog_entry_create", kwargs={"pk": self.oplog.pk})
+        if post_url:
+            self.helper.form_action = post_url
 
         self.helper.layout = Layout(
             Row(

@@ -8,7 +8,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.http import HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import redirect, render
@@ -20,7 +19,7 @@ from django_q.models import Task
 from django_q.tasks import async_task
 
 # Ghostwriter Libraries
-from ghostwriter.api.utils import verify_user_is_privileged
+from ghostwriter.api.utils import RoleBasedAccessControlMixin, verify_user_is_privileged
 from ghostwriter.modules.health_utils import DjangoHealthChecks
 from ghostwriter.reporting.models import ReportFindingLink
 from ghostwriter.rolodex.models import ProjectAssignment
@@ -38,9 +37,7 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def update_session(request):
-    """
-    Update the requesting user's session variable based on ``session_data`` in POST.
-    """
+    """Update the requesting user's session variable based on ``session_data`` in POST."""
     if request.method == "POST":
         req_data = request.POST.get("session_data", None)
         if req_data:
@@ -62,13 +59,11 @@ def update_session(request):
 
 @login_required
 def protected_serve(request, path, document_root=None, show_indexes=False):
-    """
-    Serve static files from ``MEDIA_ROOT`` for authenticated requests.
-    """
+    """Serve static files from ``MEDIA_ROOT`` for authenticated requests."""
     return serve(request, path, document_root, show_indexes)
 
 
-class Dashboard(LoginRequiredMixin, View):
+class Dashboard(RoleBasedAccessControlMixin, View):
     """
     Display the home page.
 
@@ -115,7 +110,7 @@ class Dashboard(LoginRequiredMixin, View):
             cache_status = healthcheck.get_cache_status()
             if not db_status["default"] or not cache_status["default"]:
                 system_health = "WARNING"
-        except Exception:
+        except Exception:  # pragma: no cover
             system_health = "ERROR"
 
         # Assemble the context dictionary to pass to the dashboard
@@ -130,7 +125,7 @@ class Dashboard(LoginRequiredMixin, View):
         return render(request, "index.html", context=context)
 
 
-class Management(LoginRequiredMixin, UserPassesTestMixin, View):
+class Management(RoleBasedAccessControlMixin, View):
     """
     Display the current Ghostwriter settings.
 
@@ -148,7 +143,7 @@ class Management(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get(self, request, *args, **kwargs):
@@ -158,7 +153,7 @@ class Management(LoginRequiredMixin, UserPassesTestMixin, View):
         return render(request, "home/management.html", context=context)
 
 
-class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestAWSConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``AWS Test`` with
     :task:`shepherd.tasks.test_aws_keys` to test AWS keys in
@@ -169,7 +164,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -181,7 +176,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="AWS Test",
             )
-            message = "AWS access key test has been successfully queued"
+            message = "AWS access key test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
             message = "AWS access key test could not be queued"
@@ -193,7 +188,7 @@ class TestAWSConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestDOConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Digital Ocean Test`` with
     :task:`shepherd.tasks.test_digital_ocean` to test the Digital Ocean API key stored in
@@ -204,7 +199,7 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -216,10 +211,10 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Digital Ocean Test",
             )
-            message = "Digital Ocean API key test has been successfully queued"
+            message = "Digital Ocean API key test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "Digital Ocean API key test could not be queued"
+            message = "Digital Ocean API key test could not be queued."
 
         data = {
             "result": result,
@@ -228,7 +223,7 @@ class TestDOConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestNamecheapConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Namecheap Test`` with
     :task:`shepherd.tasks.test_namecheap` to test the Namecheap API configuration stored
@@ -239,7 +234,7 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -251,10 +246,10 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Namecheap Test",
             )
-            message = "Namecheap API test has been successfully queued"
+            message = "Namecheap API test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "Namecheap API test could not be queued"
+            message = "Namecheap API test could not be queued."
 
         data = {
             "result": result,
@@ -263,7 +258,7 @@ class TestNamecheapConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestSlackConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Slack Test`` with
     :task:`shepherd.tasks.test_slack_webhook` to test the Slack Webhook configuration
@@ -274,7 +269,7 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -286,10 +281,10 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Slack Test",
             )
-            message = "Slack Webhook test has been successfully queued"
+            message = "Slack Webhook test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "Slack Webhook test could not be queued"
+            message = "Slack Webhook test could not be queued."
 
         data = {
             "result": result,
@@ -298,7 +293,7 @@ class TestSlackConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return JsonResponse(data)
 
 
-class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
+class TestVirusTotalConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``VirusTotal Test`` with
     :task:`shepherd.tasks.test_virustotal` to test the VirusTotal API key stored in
@@ -309,7 +304,7 @@ class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
         return verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
@@ -321,10 +316,10 @@ class TestVirusTotalConnection(LoginRequiredMixin, UserPassesTestMixin, View):
                 self.request.user,
                 group="Slack Test",
             )
-            message = "VirusTotal API test has been successfully queued"
+            message = "VirusTotal API test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "VirusTotal API test could not be queued"
+            message = "VirusTotal API test could not be queued."
 
         data = {
             "result": result,

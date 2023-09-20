@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags %}
+{% load determine_primary bleach_tags custom_tags %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -18,7 +18,7 @@
 {% endblock %}
 
 {% block content %}
-  <div>
+  {% if request.user|is_privileged %}
     <div class="dropdown">
       <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
            onclick="hamburger(this)">
@@ -28,12 +28,10 @@
       </div>
       <div class="dropdown-menu dropdown-menu-right" aria-labelledby="project-dropdown-btn">
         <a class="dropdown-item icon edit-icon" href="{% url 'rolodex:project_update' project.id %}">Edit</a>
-        <a class="dropdown-item icon company-icon" href="{% url 'rolodex:client_detail' project.client.id %}">Jump to
-          Client</a>
         <a class="dropdown-item icon trash-icon" href="{% url 'rolodex:project_delete' project.id %}">Delete</a>
       </div>
     </div>
-  </div>
+  {% endif %}
 
   {% comment %} Project title constructed from attributes {% endcomment %}
   <div class="container">
@@ -126,8 +124,9 @@
             {{ project.note|bleach }}
           {% else %}
             <p class="text-center">No one has added a description of this project. <a class="clickable"
-                                                                                      href="{% url 'rolodex:project_update' project.id %}">Fix that here.
-                                                                                   </a>
+                                                                                      href="{% url 'rolodex:project_update' project.id %}">Fix
+              that here.
+            </a>
             </p>
           {% endif %}
         </div>
@@ -135,12 +134,23 @@
         {% comment %} This element prevents the "jump" that happens when the description is toggled {% endcomment %}
         <div class="hidden-element"></div>
 
-        {% comment %} Assignment Section {% endcomment %}
-        <h4>Project Assignments</h4>
+        {% comment %} Calendar Section {% endcomment %}
+        <h4>Project Calendar</h4>
         <hr/>
 
-        <a class="icon edit-icon btn btn-primary mb-1 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+        <div id="calendar"></div>
+      </div>
+
+      {% comment %} People Tab {% endcomment %}
+      <div id="people" class="tab-pane">
+        {% comment %} Assignment Section {% endcomment %}
+        <h4>Project Team Assignments</h4>
+        <hr/>
+
+        {% if request.user|is_privileged %}
+          <a class="icon edit-icon btn btn-primary mb-1 col-3"
+             href="{% url 'rolodex:project_update' project.id %}#assignments">Add & Edit Assignments</a>
+        {% endif %}
         {% if project.projectassignment_set.all %}
           <table id="assignmentTable" class="tablesorter table">
             <thead>
@@ -148,7 +158,8 @@
             <th class="align-middle pr-4">Role</th>
             <th class="sorter-date-range-dMMMyyyy align-middle pr-4">Dates</th>
             <th class="sorter-false align-middle">Note</th>
-            <th class="sorter-false text-center align-middle">Options</th>
+            {% if request.user|is_privileged %}
+              <th class="sorter-false text-center align-middle">Options</th>{% endif %}
             </thead>
             {% for operator in project.projectassignment_set.all %}
               <tr>
@@ -165,35 +176,38 @@
                 <td class="align-middle">{{ operator.start_date|date:"d M Y" }} –
                   <br/> {{ operator.end_date|date:"d M Y" }}</td>
                 <td class="text-justify align-middle">{{ operator.note|bleach }}</td>
-                <td class="align-middle">
-                  <div class="dropdown dropleft">
-                    <button id="assignment-dropdown-btn-{{ assignment.id }}" class="dropdown-menu-btn-table"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
-                    <div id="assignment-dropdown-menu-{{ assignment.id }}" class="dropdown-menu"
-                         aria-labelledby="assignment-dropdown-btn_{{ assignment.id }}">
-                      <a class="dropdown-item icon edit-icon"
-                         href="{% url 'rolodex:project_update' project.id %}#assignments">Edit Assignment</a>
-                      <a id="assignment-delete-button-{{ operator.id }}"
-                         class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal"
-                         data-target="#confirm-delete-modal" href="javascript:void(0);"
-                         delete-target-csrftoken="{{ csrf_token }}"
-                         delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}"
-                         delete-target-id="{{ operator.id }}" delete-target-type="assignment">Unassign</a>
+                {% if request.user|is_privileged %}
+                  <td class="align-middle">
+                    <div class="dropdown dropleft">
+                      <button id="assignment-dropdown-btn-{{ assignment.id }}" class="dropdown-menu-btn-table"
+                              data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                      <div id="assignment-dropdown-menu-{{ assignment.id }}" class="dropdown-menu"
+                           aria-labelledby="assignment-dropdown-btn_{{ assignment.id }}">
+                        <a class="dropdown-item icon edit-icon"
+                           href="{% url 'rolodex:project_update' project.id %}#assignments">Edit Assignment</a>
+                        <a id="assignment-delete-button-{{ operator.id }}"
+                           class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal"
+                           data-target="#confirm-delete-modal" href="javascript:void(0);"
+                           delete-target-csrftoken="{{ csrf_token }}"
+                           delete-target-url="{% url 'rolodex:ajax_delete_project_assignment' operator.id %}"
+                           delete-target-id="{{ operator.id }}" delete-target-type="assignment">Unassign</a>
+                      </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
+                {% endif %}
               </tr>
             {% endfor %}
           </table>
         {% else %}
-          <p>No operators have been assigned to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no operators assigned to
+            this project yet.
+          </div>
         {% endif %}
 
-        {% comment %} Calendar Section {% endcomment %}
-        <h4>Project Calendar</h4>
-        <hr/>
-
-        <div id="calendar"></div>
+        <div id="project-contacts"
+             js-update-contacts-url="{% url 'rolodex:ajax_update_project_contacts' project.id %}">
+          {% include "snippets/project_contacts_table.html" %}
+        </div>
       </div>
 
       {% comment %} White Cards Tab {% endcomment %}
@@ -202,7 +216,7 @@
         <hr/>
 
         <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#whitecards">Add & Edit White Cards</a>
+           href="{% url 'rolodex:project_component_update' project.id %}#whitecards">Add & Edit White Cards</a>
         {% if project.whitecard_set.all %}
           {% for card in project.whitecard_set.all %}
             <div id="whitecard-card-{{ card.id }}" class="card card-project text-center mb-3">
@@ -235,7 +249,9 @@
             </div>
           {% endfor %}
         {% else %}
-          <p>No white cards have been added to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no white cards attached to
+            this project yet.
+          </div>
         {% endif %}
       </div>
 
@@ -245,7 +261,7 @@
         <hr/>
 
         <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#scopes">Add & Edit Scope Lists</a>
+           href="{% url 'rolodex:project_component_update' project.id %}#scopes">Add & Edit Scope Lists</a>
 
         <p>Create as many scope lists as you desire. Break-up large scopes into categories (e.g., External) or by
           objectives.</p>
@@ -328,7 +344,9 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>No scope lists have been set up to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no scope lists attached to
+            this project yet.
+          </div>
         {% endif %}
       </div>
 
@@ -342,7 +360,7 @@
         <hr/>
 
         <a class="icon edit-icon btn btn-primary mb-3 col-3"
-           href="{% url 'rolodex:project_update' project.id %}#targets">Add & Edit Targets</a>
+           href="{% url 'rolodex:project_component_update' project.id %}#targets">Add & Edit Targets</a>
 
         <p>Call-out specific targets to pursue, mark them as compromised, and make notes to remind you why they are
           interesting.</p>
@@ -397,7 +415,9 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>No targets have been set for this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no targets attached to this
+            project yet.
+          </div>
         {% endif %}
       </div>
 
@@ -441,7 +461,9 @@
             {% endfor %}
           </table>
         {% else %}
-          <p>An operation logs has not been started for this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no activity logs started for
+            this project yet.
+          </div>
         {% endif %}
       </div>
       <div id="documents" class="tab-pane ">
@@ -549,11 +571,13 @@
                 {% endfor %}
               </table>
             {% else %}
-              <p>No findings have been added to this project's reports yet.</p>
+              <p>There are no findings for this project yet.</p>
             {% endif %}
           {% endfor %}
         {% else %}
-          <p>No reports have been created for this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no reports attached to this
+            project yet.
+          </div>
         {% endif %}
 
       </div>
@@ -577,7 +601,8 @@
                 <span class="input-group-text" id="inner-domain-search-addon"><span class="fa fa-search"></span></span>
               </div>
               <input autocomplete="off" type="text" class="form-control" name="domain"
-                     placeholder="Search domains by name or category..." aria-label="domains" aria-describedby="inner-domain-search-addon">
+                     placeholder="Search domains by name or category..." aria-label="domains"
+                     aria-describedby="inner-domain-search-addon">
             </div>
             <input type="submit" style="display: none"/>
           </form>
@@ -602,10 +627,11 @@
                                     </span>
                 </td>
                 <td class="align-middle">{{ domain.activity_type }}</td>
-                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}</td>
+                <td class="align-middle">{{ domain.start_date|date:"d M Y" }} – <br/>{{ domain.end_date|date:"d M Y" }}
+                </td>
                 <td>
                   <button
-                    class="expandme btn btn-transaprent"
+                    class="expandme btn btn-transparent"
                     onclick="showHideRow($(this), 'hidden-domain-data-{{ domain.id }}');"
                     title="Expand to view additional information"
                   ></button>
@@ -629,14 +655,20 @@
               <tr class="hidden-row">
                 <td colspan=5>
                   <div id="hidden-domain-data-{{ domain.id }}" class="hidden-div">
-                    {{ domain.note|bleach }}
+                    {% if domain.note %}
+                      {{ domain.note|bleach }}
+                    {% else %}
+                      <p>There are no notes for this domain.</p>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
             {% endfor %}
           </table>
         {% else %}
-          <p>There are no domains tied to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no domains tied to this
+            project yet.
+          </div>
         {% endif %}
 
         {% comment %} Server Section {% endcomment %}
@@ -658,8 +690,8 @@
           </form>
         </div>
 
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-3"
-                           href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a></p>
+        <a class="icon add-icon btn btn-primary col-3 mt-3"
+           href="{% url 'shepherd:vps_create' project.id %}">Add a Cloud Server</a>
         {% if project.serverhistory_set.all or project.transientserver_set.all %}
           <table id="serverTable" class="tablesorter table">
             <thead>
@@ -710,7 +742,7 @@
                 <td class="align-middle">{{ server.server.server_provider }}</td>
                 <td>
                   <button
-                    class="expandme btn btn-transaprent"
+                    class="expandme btn btn-tranapprent"
                     onclick="showHideRow($(this), 'hidden-server-data-{{ server.id }}');"
                     title="Expand to view additional information"
                   ></button>
@@ -734,7 +766,11 @@
               <tr class="hidden-row">
                 <td colspan=8>
                   <div id="hidden-server-data-{{ server.id }}" class="hidden-div">
-                    {{ server.note|bleach }}
+                    {% if server.note %}
+                      {{ server.note|bleach }}
+                    {% else %}
+                      <p>There are no notes for this server.</p>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
@@ -753,6 +789,13 @@
                 <td class="align-middle">{{ server.activity_type }}</td>
                 <td class="align-middle">{{ server.server_role }}</td>
                 <td class="align-middle">{{ server.server_provider }}</td>
+                <td>
+                  <button
+                    class="expandme btn btn-transparent"
+                    onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
+                    title="Expand to view additional information"
+                  ></button>
+                </td>
                 <td class="align-middle">
                   <div class="dropdown dropleft">
                     <button id="vps-dropdown-btn-{{ server.id }}" class="dropdown-menu-btn-table" data-toggle="dropdown"
@@ -770,25 +813,24 @@
                     </div>
                   </div>
                 </td>
-                <td>
-                  <button
-                    class="expandme btn btn-transaprent"
-                    onclick="showHideRow($(this), 'hidden-vps-data-{{ server.id }}');"
-                    title="Expand to view additional information"
-                  ></button>
-                </td>
               </tr>
               <tr class="hidden-row">
                 <td colspan=8>
                   <div id="hidden-vps-data-{{ server.id }}" class="hidden-div">
-                    {{ server.note|bleach }}
+                    {% if server.note %}
+                      {{ server.note|bleach }}
+                    {% else %}
+                      <p>There are no notes for this server.</p>
+                    {% endif %}
                   </div>
                 </td>
               </tr>
             {% endfor %}
           </table>
         {% else %}
-          <p>There are no servers tied to this project yet.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no servers tied to this
+            project yet.
+          </div>
         {% endif %}
 
         {% comment %} DNS Section {% endcomment %}
@@ -977,7 +1019,9 @@
             </div>
           {% endfor %}
         {% else %}
-          <p>No deconfliction events for this project.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no deconfliction events for
+            this project.
+          </div>
         {% endif %}
 
       </div>
@@ -1019,7 +1063,8 @@
             {% endif %}
           {% endfor %}
         {% else %}
-          <p>No notes for this project.</p>
+          <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">There are no notes for this project.
+          </div>
         {% endif %}
       </div>
     </div>
@@ -1040,6 +1085,13 @@
       new ClipboardJS('.js-copy-scope');
 
       {% comment %} jQuery Tablesorter {% endcomment %}
+      $('#contactTable').tablesorter(
+        {
+          cssAsc: 'down',
+          cssDesc: 'up',
+          cssNone: 'none',
+        }
+      );
       $('#assignmentTable').tablesorter(
         {
           cssAsc: 'down',
@@ -1104,6 +1156,7 @@
     });
 
     {% comment %} Toggle task lists under objectives {% endcomment %}
+
     function expandObjective(ele) {
       ele.parent().parent().toggleClass('open');
       let accordionRow = ele.parent().parent().next('.accordion');
@@ -1139,7 +1192,7 @@
             dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
           },
 
-        {% comment %} Element is chosen {% endcomment %}
+          {% comment %} Element is chosen {% endcomment %}
           onChoose: function (event) {
             {% comment %} Close the tasks view on pick-up {% endcomment %}
             let $eventItem = $('#' + event.item.id)
@@ -1158,16 +1211,16 @@
             }
           },
 
-        {% comment %} Element is unchosen {% endcomment %}
+          {% comment %} Element is unchosen {% endcomment %}
           onUnchoose: function (event) {
           },
 
-        {% comment %} Element dragging started {% endcomment %}
+          {% comment %} Element dragging started {% endcomment %}
           onStart: function (event) {
             event.item.startPos = event.oldIndex;
           },
 
-        {% comment %} Element dragging started {% endcomment %}
+          {% comment %} Element dragging started {% endcomment %}
           onEnd: function (event) {
             let $eventItem = $('#' + event.item.id)
             let $tasksEventItem = $('#tasks-' + event.item.id)
@@ -1188,7 +1241,7 @@
             prepareTodoList();
           },
 
-        {% comment %} Element is dropped into the list from another list {% endcomment %}
+          {% comment %} Element is dropped into the list from another list {% endcomment %}
           onAdd: function (event) {
             let placeholder = event.to.getElementsByClassName('priority-row-placeholder')[0];
             let positions = {{ group | lower }}_sortable.toArray();
@@ -1228,7 +1281,7 @@
             });
           },
 
-        {% comment %} Changed sorting within list {% endcomment %}
+          {% comment %} Changed sorting within list {% endcomment %}
           onUpdate: function (event) {
             let positions = {{ group | lower }}_sortable.toArray();
             $.ajaxSetup({
@@ -1251,7 +1304,7 @@
             });
           },
 
-        {% comment %} Element is removed from the list into another list {% endcomment %}
+          {% comment %} Element is removed from the list into another list {% endcomment %}
           onRemove: function (event) {
             let placeholder = event.from.getElementsByClassName('priority-row-placeholder')[0];
             let positions = {{ group | lower }}_sortable.toArray();
@@ -1296,16 +1349,20 @@
           },
 
           {% comment %} Event when you move an item in the list or between lists {% endcomment %}
-          onMove: function (event, originalEvent) {},
+          onMove: function (event, originalEvent) {
+          },
 
           {% comment %} Attempt to drag a filtered element {% endcomment %}
-          onFilter: function (event) {},
+          onFilter: function (event) {
+          },
 
           {% comment %} Called when creating a clone of element {% endcomment %}
-          onClone: function (event) {},
+          onClone: function (event) {
+          },
 
           {% comment %} Called when dragging element changes position {% endcomment %}
-          onChange: function (event) {},
+          onChange: function (event) {
+          },
         });
       } catch (error) {
         console.log('No objectives found for the "{{ group | lower }}" group, so the sortable list is not initialized.');
@@ -1313,6 +1370,7 @@
     {% endfor %}
 
     {% comment %} Cycle Project Objective Status with AJAX {% endcomment %}
+
     function cycleStatus(ele) {
       let badge = ele;
       let url = ele.attr('obj-status-update-url');
@@ -1494,7 +1552,7 @@
 
       {% comment %} Add project assignments {% endcomment %}
       {% for operator in project.projectassignment_set.all %}
-        let operator_{{ operator.id }}  = {
+        let operator_{{ operator.id }} = {
           title: {% if operator.operator.name %}'{{ operator.operator.name|bleach }}'
             {% else %}'{{ operator.operator.username|bleach }}'{% endif %},
           allDay: true,
@@ -1537,6 +1595,7 @@
     });
 
     {% comment %} Objective and task status management {% endcomment %}
+
     function toggleObjective(ele) {
       let url = ele.attr('toggle-objective-url');
       let objectiveId = ele.attr('objective-id');
@@ -1810,6 +1869,50 @@
       "use strict";
 
       prepareTodoList();
+    });
+
+    {% comment %} Create a new project point of contact from a client contact {% endcomment %}
+    $(document).ready(function () {
+      $('#id_client_contact').change(function () {
+        let option =$(this).val();
+        if(option === -1) {
+          $('#assign-btn').prop('disabled', true);
+        } else {
+          $('#assign-btn').prop('disabled',false);
+        }
+      });
+      $('#assign-project-contact-form').submit(function (e) {
+        e.preventDefault();
+        let url = $(this).attr('action');
+        let $contact = $('#id_client_contact')
+        let contactId = $contact.val();
+        let csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+        if ($contact.val() === '') {
+          contactId = -1
+        }
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
+        });
+        $.ajax({
+          url: url,
+          type: 'POST',
+          dataType: 'json',
+          data: {
+            'contact': contactId,
+            'csrfmiddlewaretoken': csrftoken,
+          },
+          success: function (data) {
+            if (data['message']) {
+              displayToastTop({type: data['result'], string: data['message'], title: 'Contacts Update'});
+            }
+            update_project_contacts();
+          },
+        });
+      });
     });
   </script>
 

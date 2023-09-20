@@ -15,6 +15,7 @@ from ghostwriter.factories import (
     DeconflictionFactory,
     DeconflictionStatusFactory,
     ProjectAssignmentFactory,
+    ProjectContactFactory,
     ProjectFactory,
     ProjectNoteFactory,
     ProjectObjectiveFactory,
@@ -33,6 +34,8 @@ from ghostwriter.rolodex.forms_project import (
     DeconflictionForm,
     ProjectAssignmentForm,
     ProjectAssignmentFormSet,
+    ProjectContactForm,
+    ProjectContactFormSet,
     ProjectForm,
     ProjectNoteForm,
     ProjectObjectiveForm,
@@ -1056,3 +1059,143 @@ class DeconflictionFormTests(TestCase):
         self.assertEqual(error[0].code, "invalid_datetime")
         error = form["response_timestamp"].errors.as_data()
         self.assertEqual(error[0].code, "invalid_datetime")
+
+
+class ProjectContactFormTests(TestCase):
+    """Collection of tests for :form:`rolodex.ProjectContactForm`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.contact = ProjectContactFactory()
+
+    def setUp(self):
+        pass
+
+    def form_data(
+        self,
+        name=None,
+        email=None,
+        job_title=None,
+        phone=None,
+        note=None,
+        client_id=None,
+        timezone=None,
+        primary=None,
+        **kwargs,
+    ):
+        return ProjectContactForm(
+            data={
+                "name": name,
+                "email": email,
+                "job_title": job_title,
+                "phone": phone,
+                "note": note,
+                "client": client_id,
+                "timezone": timezone,
+                "primary": primary,
+            },
+        )
+
+    def test_valid_data(self):
+        form = self.form_data(**self.contact.__dict__)
+        self.assertTrue(form.is_valid())
+
+
+class ProjectContactFormSetTests(TestCase):
+    """Collection of tests for :form:`rolodex.ProjectContactFormSet`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.project = ProjectFactory()
+        cls.contact_1 = ProjectContactFactory(project=cls.project)
+        cls.contact_2 = ProjectContactFactory(project=cls.project)
+        cls.to_be_deleted = ProjectContactFactory(project=cls.project)
+
+    def form_data(self, data, **kwargs):
+        return instantiate_formset(ProjectContactFormSet, data=data, instance=self.project)
+
+    def test_valid_data(self):
+        data = [self.contact_1.__dict__, self.contact_2.__dict__]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+    def test_duplicate_contacts(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_2["name"] = contact_1["name"]
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        errors = form.errors[1]["name"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
+
+    def test_incomplete_contact_form_name(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["name"] = ""
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        errors = form.errors[0]["name"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "required")
+
+    def test_incomplete_contact_form_job_title(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["job_title"] = ""
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        errors = form.errors[0]["job_title"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "incomplete")
+
+    def test_incomplete_contact_form_email(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["email"] = ""
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        errors = form.errors[0]["email"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "incomplete")
+
+    def test_invalid_email_address(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["email"] = "foo#bar"
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        errors = form.errors[0]["email"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid")
+
+    def test_two_primary_contacts(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["primary"] = True
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())
+
+        contact_2["primary"] = True
+        form = self.form_data(data)
+        errors = form.errors[1]["primary"].as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "duplicate")
+
+    def test_contact_delete(self):
+        contact_1 = self.contact_1.__dict__.copy()
+        contact_2 = self.contact_2.__dict__.copy()
+        contact_1["name"] = ""
+        contact_1["email"] = "foo#bar"
+        contact_1["DELETE"] = True
+
+        data = [contact_1, contact_2]
+        form = self.form_data(data)
+        self.assertTrue(form.is_valid())

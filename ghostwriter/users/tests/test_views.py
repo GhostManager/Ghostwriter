@@ -234,3 +234,45 @@ class UserLoginViewTests(TestCase):
         response = self.client.post(self.uri, {"login": self.user.username, "password": "invalid"})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/login.html")
+
+
+class Require2FAMiddlewareTests(TestCase):
+    """Collection of tests for `Require2FAMiddleware` authentication middleware."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("home:dashboard")
+        cls.setup_uri = reverse("two-factor-setup")
+        cls.change_pwd_uri = reverse("account_change_password")
+        cls.logout_uri = reverse("account_logout")
+        cls.reset_pwd_uri = reverse("account_reset_password")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_2fa_required(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        self.user.require_2fa = True
+        self.user.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, self.setup_uri)
+
+        response = self.client_auth.get(self.setup_uri)
+        self.assertEqual(response.status_code, 200)
+        response = self.client_auth.get(self.change_pwd_uri)
+        self.assertEqual(response.status_code, 200)
+        response = self.client_auth.get(self.reset_pwd_uri)
+        self.assertEqual(response.status_code, 200)
+        response = self.client_auth.get(self.logout_uri)
+        self.assertEqual(response.status_code, 200)
+
+        self.user.require_2fa = False
+        self.user.save()

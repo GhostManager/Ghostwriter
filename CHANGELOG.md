@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [4.0.0] - 20 September 2023
+
+### Added
+
+* Added a "People" tab to the project dashboard that shows the project's assignments and client contacts
+* Added configuration options for managing browser sessions
+  * `SESSION_COOKIE_AGE` sets the number of seconds a session cookie will last before expiring
+  * `SESSION_EXPIRE_AT_BROWSER_CLOSE` sets whether the session cookie will expire when the browser is closed
+  * `SESSION_SAVE_EVERY_REQUEST` sets whether the session cookie will be saved on every request
+* Added support for two-factor authentication using TOTP
+* Added support for adding contacts to projects
+  * Supports creating project-specific contacts and adding contacts from the client
+  * Project contacts appear under the new `contacts` key in the report data
+  * A project contact can be flagged as the primary contact and mark the contact as the report recipient
+  * The primary contact appears under the new `recipient` key in the report data 
+* Added autocomplete options to filter forms for the finding, domain, and server libraries
+* Added an option to copy an activity log entry to your clipboard as JSON for easier sharing
+* Added an option to the `review_cloud_infrastructure()` task to only report Digital Ocean droplets that are currently running
+
+### Changed
+
+* Separated the project form into two forms: one for the project details and assignments and one for project components (e.g., white cards, objectives)
+  * This allows accounts with the `user` role to edit project components without permission to edit the project or its assignments
+* Moved project assignments to the new "People" tab on the project dashboard
+* Hid menus and buttons for features that are not available to the current user
+* Access to the admin console is now routed through the main login form to require 2FA (if enabled for the user)
+* The CVSS Vector and "added as blank" fields on report findings are now optional as they were meant to be
+
+### Removed
+
+* Removed the legacy REST API deprecated in Ghostwriter v3
+* Removed the unused `restricted` account role
+  * This is a clean-up for the release candidate; the `restricted` role was experimental and never implemented in the access controls
+* Removed the `user` role's privileges to create, edit, and delete project assignments and client contacts to better adhere to the role's intended permissions
+* Removed permissions for updating report templates via the GraphQL API
+  * This option will return in a future release when it is possible to upload a template file via the API
+
 ## [3.2.12] - 18 September 2023
 
 ### Added

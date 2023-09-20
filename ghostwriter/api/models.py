@@ -72,9 +72,7 @@ class APIKeyManager(BaseAPIKeyManager):
 
 
 class AbstractAPIKey(models.Model):
-    """
-    Stores a specialized JSON Web Token associated with an individual :model:`users.User`.
-    """
+    """Stores a specialized JSON Web Token associated with an individual :model:`users.User`."""
 
     objects = APIKeyManager()
 
@@ -145,6 +143,4 @@ class AbstractAPIKey(models.Model):
 
 
 class APIKey(AbstractAPIKey):
-    """
-    Stores a specialized JSON Web Token associated with an individual :model:`users.User`.
-    """
+    """Stores a specialized JSON Web Token associated with an individual :model:`users.User`."""

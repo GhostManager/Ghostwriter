@@ -24,10 +24,6 @@ select_permissions:
         - id
         - project_role
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'

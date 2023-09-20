@@ -24,10 +24,10 @@ from crispy_forms.layout import (
 )
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import get_client_list
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.rolodex.models import Project
-
-from .models import (
+from ghostwriter.shepherd.models import (
     AuxServerAddress,
     ServerHistory,
     ServerNote,
@@ -65,7 +65,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "ip_address",
                             ValidationError(
-                                _("This address entry is incomplete"),
+                                _("This address entry is incomplete."),
                                 code="incomplete",
                             ),
                         )
@@ -78,7 +78,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "ip_address",
                             ValidationError(
-                                _("This address is already assigned to this server"),
+                                _("This address is already assigned to this server."),
                                 code="duplicate",
                             ),
                         )
@@ -90,7 +90,7 @@ class BaseServerAddressInlineFormSet(BaseInlineFormSet):
                         form.add_error(
                             "primary",
                             ValidationError(
-                                _("You can not mark two addresses as the primary address"),
+                                _("You can not mark two addresses as the primary address."),
                                 code="duplicate",
                             ),
                         )
@@ -286,10 +286,7 @@ class TransientServerForm(forms.ModelForm):
 
     class Meta:
         model = TransientServer
-        fields = "__all__"
-        widgets = {
-            "project": forms.HiddenInput(),
-        }
+        exclude = ("project",)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -344,7 +341,6 @@ class TransientServerForm(forms.ModelForm):
                 """
             ),
             "note",
-            "project",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -390,7 +386,7 @@ class ServerNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"),
+                _("You must provide some content for the note."),
                 code="required",
             )
         return note
@@ -415,13 +411,19 @@ class ServerCheckoutForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, user=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
+
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+
+        clients = get_client_list(user)
+        self.fields["client"].queryset = clients
         self.fields["client"].empty_label = "-- Select a Client --"
+        self.fields["client"].label = ""
+
         self.fields["activity_type"].empty_label = "-- Select Activity --"
         self.fields["activity_type"].label = "Activity Type"
         self.fields["server_role"].empty_label = "-- Select Role --"

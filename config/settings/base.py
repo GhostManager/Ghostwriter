@@ -11,9 +11,9 @@ from django.contrib.messages import constants as messages
 # 3rd Party Libraries
 import environ
 
-__version__ = "3.2.12"
+__version__ = "4.0.0"
 VERSION = __version__
-RELEASE_DATE = "18 September 2023"
+RELEASE_DATE = "20 September 2023"
 
 ROOT_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 APPS_DIR = ROOT_DIR / "ghostwriter"
@@ -91,6 +91,10 @@ THIRD_PARTY_APPS = [
     "crispy_forms",
     "allauth",
     "allauth.account",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
+    "allauth_2fa",
     "allauth.socialaccount",
     "rest_framework",
     "rest_framework_api_key",
@@ -188,6 +192,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_otp.middleware.OTPMiddleware",
+    "allauth_2fa.middleware.AllauthTwoFactorMiddleware",
+    "ghostwriter.middleware.Require2FAMiddleware",
 ]
 
 # STATIC
@@ -256,8 +263,18 @@ FIXTURE_DIRS = (str(APPS_DIR / "fixtures"),)
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#session-cookie-httponly
 SESSION_COOKIE_HTTPONLY = True
+# https://docs.djangoproject.com/en/3.2/ref/settings/#session-cookie-age
+SESSION_COOKIE_AGE = env("DJANGO_SESSION_COOKIE_AGE", default=60 * 60 * 2)
+# https://docs.djangoproject.com/en/3.2/ref/settings/#session-expire-at-browser-close
+SESSION_EXPIRE_AT_BROWSER_CLOSE = env("DJANGO_SESSION_EXPIRE_AT_BROWSER_CLOSE", default=True)
+# https://docs.djangoproject.com/en/3.2/topics/http/sessions/#when-sessions-are-saved
+SESSION_SAVE_EVERY_REQUEST = env("DJANGO_SESSION_SAVE_EVERY_REQUEST", default=True)
+# https://docs.djangoproject.com/en/3.2/ref/settings/#session-cookie-secure
+SESSION_COOKIE_SECURE = env("DJANGO_SESSION_COOKIE_SECURE", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-cookie-httponly
 CSRF_COOKIE_HTTPONLY = True
+# https://docs.djangoproject.com/en/3.2/ref/settings/#csrf-cookie-secure
+CSRF_COOKIE_SECURE = env("DJANGO_CSRF_COOKIE_SECURE", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-browser-xss-filter
 SECURE_BROWSER_XSS_FILTER = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#x-frame-options
@@ -311,13 +328,22 @@ ACCOUNT_EMAIL_REQUIRED = True
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 ACCOUNT_EMAIL_VERIFICATION = env.bool("DJANGO_ACCOUNT_EMAIL_VERIFICATION", "mandatory")
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
-ACCOUNT_ADAPTER = "ghostwriter.users.adapters.AccountAdapter"
+ACCOUNT_ADAPTER = "allauth_2fa.adapter.OTPAdapter"
 # https://django-allauth.readthedocs.io/en/latest/configuration.html
 SOCIALACCOUNT_ADAPTER = "ghostwriter.users.adapters.SocialAccountAdapter"
 ACCOUNT_SIGNUP_FORM_CLASS = "ghostwriter.home.forms.SignupForm"
 ACCOUNT_FORMS = {
     "login": "ghostwriter.users.forms.UserLoginForm",
 }
+ALLAUTH_2FA_FORMS = {
+    "authenticate": "ghostwriter.users.forms.User2FAAuthenticateForm",
+    "setup": "ghostwriter.users.forms.User2FADeviceForm",
+    "remove": "ghostwriter.users.forms.User2FADeviceRemoveForm",
+}
+ALLAUTH_2FA_ALWAYS_REVEAL_BACKUP_TOKENS = env("DJANGO_2FA_ALWAYS_REVEAL_BACKUP_TOKENS", default=False)
+ALLAUTH_2FA_SETUP_SUCCESS_URL = "users:redirect"
+ALLAUTH_2FA_REMOVE_SUCCESS_URL = "users:redirect"
+
 # django-compressor
 # ------------------------------------------------------------------------------
 # https://django-compressor.readthedocs.io/en/latest/quickstart/#installation

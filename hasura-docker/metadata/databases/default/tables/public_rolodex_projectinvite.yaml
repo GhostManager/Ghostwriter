@@ -46,22 +46,6 @@ select_permissions:
         - user_id
         - comment
       filter: {}
-  - role: restricted
-    permission:
-      columns:
-        - id
-        - project_id
-        - user_id
-        - comment
-      filter:
-        project:
-          _or:
-            - assignments:
-                operator_id:
-                  _eq: X-Hasura-User-Id
-            - invites:
-                user_id:
-                  _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:

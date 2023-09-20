@@ -9,7 +9,6 @@ from datetime import date, datetime
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core import serializers
 from django.db import transaction
 from django.db.models import Q
@@ -20,18 +19,25 @@ from django.urls import reverse, reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from django.views.generic.list import ListView
 
 # 3rd Party Libraries
 from django_q.models import Task
 from django_q.tasks import async_task
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import (
+    ForbiddenJsonResponse,
+    RoleBasedAccessControlMixin,
+    get_project_list,
+    verify_access,
+)
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
     NamecheapConfiguration,
     VirusTotalConfiguration,
 )
-from ghostwriter.rolodex.models import Project
+from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.filters import DomainFilter, ServerFilter
 from ghostwriter.shepherd.forms import (
     BurnForm,
@@ -72,26 +78,7 @@ logger = logging.getLogger(__name__)
 ##################
 
 
-@login_required
-def update_domain_badges(request, pk):
-    """
-    Return an updated version of the template following a delete action related to
-    an individual :model:`rolodex.Domain`.
-
-    **Template**
-
-    :template:`snippets/domain_nav_tabs.html`
-    """
-    domain_instance = get_object_or_404(Domain, pk=pk)
-    html = render_to_string(
-        "snippets/domain_nav_tabs.html",
-        {"domain": domain_instance},
-    )
-    return HttpResponse(html)
-
-
-@login_required
-def ajax_load_projects(request):
+class AjaxLoadProjects(RoleBasedAccessControlMixin, View):
     """
     Filter :model:`rolodex.Project` when user changes :model:`rolodex.Client` selection.
 
@@ -104,14 +91,24 @@ def ajax_load_projects(request):
 
     :template:`shepherd/project_dropdown_list.html`
     """
-    client_id = request.GET.get("client")
-    projects = Project.objects.filter(Q(client_id=client_id) & Q(complete=False)).order_by("codename")
 
-    return render(request, "shepherd/project_dropdown_list.html", {"projects": projects})
+    def get(self, request, *args, **kwargs):
+        client_id = request.GET.get("client", None)
+        if client_id:
+            try:
+                client_id = int(client_id)
+                client = Client.objects.get(id=client_id)
+                if verify_access(request.user, client):
+                    projects = get_project_list(request.user)
+                    projects = projects.filter(Q(client_id=client_id) & Q(complete=False)).order_by("codename")
+                    return render(request, "shepherd/project_dropdown_list.html", {"projects": projects})
+                return HttpResponse(status=403)
+            except ValueError:
+                logger.error("Received bad primary key value for client: %s", client_id)
+        return HttpResponse(status=400)
 
 
-@login_required
-def ajax_load_project(request):
+class AjaxLoadProject(RoleBasedAccessControlMixin, View):
     """
     Retrieve individual :model:`rolodex.Project` and return it as JSON.
 
@@ -120,60 +117,96 @@ def ajax_load_project(request):
     ``project``
         Individual :model:`rolodex.Project`
     """
-    project_id = request.GET.get("project")
-    project = Project.objects.get(id=project_id)
-    data = serializers.serialize("json", [project])
-    return JsonResponse(json.loads(data), safe=False)
+
+    def get(self, request, *args, **kwargs):
+        project_id = request.GET.get("project", None)
+        if project_id:
+            try:
+                project_id = int(project_id)
+                project = Project.objects.get(id=project_id)
+                if verify_access(request.user, project):
+                    data = serializers.serialize("json", [project])
+                    return JsonResponse(json.loads(data), safe=False)
+                return ForbiddenJsonResponse()
+            except (Project.DoesNotExist, ValueError):
+                logger.error("Received bad primary key value for project: %s", project_id)
+        return JsonResponse({"error": "Bad request"}, status=400)
 
 
-@login_required
-def ajax_domain_overwatch(request):
+class AjaxDomainOverwatch(RoleBasedAccessControlMixin, View):
     """
     Retrieve an individual :model:`shepherd.History` to check domain's past history
     prior to checkout.
     """
-    client_id = None
-    domain_id = None
-    try:
-        client_id = int(request.GET.get("client"))
-        domain_id = int(request.GET.get("domain"))
-    except TypeError:
-        logger.exception("Received bad primary key values: %s and %s", client_id, domain_id)
-    except Exception:
-        logger.exception(
-            "Encountered an unexpected issue with submitted values: %s and %s",
-            client_id,
-            domain_id,
+
+    def get(self, request, *args, **kwargs):
+        domain_id = request.GET.get("domain", None)
+        client_id = request.GET.get("client", None)
+
+        if client_id and domain_id:
+            try:
+                domain_id = int(domain_id)
+                client_id = int(client_id)
+
+                client = Client.objects.get(id=client_id)
+                if verify_access(request.user, client):
+                    domain_history = History.objects.filter(Q(domain=domain_id) & Q(client=client_id))
+                    if domain_history:
+                        data = {
+                            "result": "warning",
+                            "message": "Domain has been used with this client in the past!",
+                        }
+                    else:
+                        data = {"result": "success", "message": ""}
+                    return JsonResponse(data)
+                return ForbiddenJsonResponse()
+            except (Client.DoesNotExist, ValueError):
+                logger.error("Received bad primary key values for client and domain: %s and %s", client_id, domain_id)
+
+        return JsonResponse({"result": "error", "message": "Bad request"}, status=400)
+
+
+class AjaxUpdateDomainBadges(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Return an updated version of the template following a delete action related to
+    an individual :model:`rolodex.Domain`.
+
+    **Template**
+
+    :template:`snippets/domain_nav_tabs.html`
+    """
+
+    model = Domain
+
+    def get(self, *args, **kwargs):
+        html = render_to_string(
+            "snippets/domain_nav_tabs.html",
+            {"domain": self.get_object()},
         )
-
-    if client_id and domain_id:
-        domain_history = History.objects.filter(Q(domain=domain_id) & Q(client=client_id))
-        if domain_history:
-            data = {
-                "result": "warning",
-                "message": "Domain has been used with this client in the past",
-            }
-        else:
-            data = {"result": "success", "message": ""}
-    else:
-        data = {"result": "error"}
-
-    return JsonResponse(data)
+        return HttpResponse(html)
 
 
-@login_required
-def ajax_project_domains(request, pk):
+class AjaxUpdateServerBadges(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
-    Retrieve all :model:`shepherd.History` related to an individual
-    :model:`rolodex.Project`.
+    Return an updated version of the template following a delete action related to
+    an individual :model:`rolodex.StaticServer`.
+
+    **Template**
+
+    :template:`snippets/server_nav_tabs.html`
     """
-    domain_history = History.objects.filter(project=pk)
-    data = serializers.serialize("json", domain_history, use_natural_foreign_keys=True)
 
-    return JsonResponse(data, safe=False)
+    model = StaticServer
+
+    def get(self, *args, **kwargs):
+        html = render_to_string(
+            "snippets/server_nav_tabs.html",
+            {"staticserver": self.get_object()},
+        )
+        return HttpResponse(html)
 
 
-class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
+class DomainRelease(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Set the ``domain_status`` field of an individual :model:`shepherd.Domain` to
     the ``Available`` entry in :model:`shepherd.DomainStatus` and update the
@@ -182,45 +215,51 @@ class DomainRelease(LoginRequiredMixin, SingleObjectMixin, View):
 
     model = History
 
+    def test_func(self):
+        if self.request.user == self.get_object().operator and verify_access(
+            self.request.user, self.get_object().project
+        ):
+            return True
+        return False
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse(
+            data={"result": "error", "message": "You do not have permission to release this domain."}
+        )
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        if self.request.user == self.object.operator:
-            # Reset domain status to ``Available`` and commit the change
-            domain_instance = Domain.objects.get(pk=self.object.domain.id)
-            domain_instance.domain_status = DomainStatus.objects.get(domain_status="Available")
-            domain_instance.save()
-            # Set the release date to now so historical record is accurate
-            self.object.end_date = date.today()
-            self.object.save()
-            data = {"result": "success", "message": "Domain successfully released"}
-            logger.info(
-                "Released %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                self.request.user,
-            )
-            # If domain is set to be reset on release get the necessary API config and task
-            if domain_instance.reset_dns and domain_instance.registrar:
-                # Namecheap
-                if domain_instance.registrar.lower() == "namecheap":
-                    namecheap_config = NamecheapConfiguration.get_solo()
-                    if namecheap_config.enable:
-                        async_task(
-                            "ghostwriter.shepherd.tasks.namecheap_reset_dns",
-                            namecheap_config=namecheap_config,
-                            domain=domain_instance,
-                            group="Individual Domain Update",
-                            hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
-                        )
-        else:
-            data = {
-                "result": "error",
-                "message": "You are not authorized to release this domain",
-            }
+        obj = self.get_object()
+        # Reset domain status to ``Available`` and commit the change
+        domain_instance = Domain.objects.get(pk=obj.domain.id)
+        domain_instance.domain_status = DomainStatus.objects.get(domain_status="Available")
+        domain_instance.save()
+        # Set the release date to now so historical record is accurate
+        obj.end_date = date.today()
+        obj.save()
+        data = {"result": "success", "message": "Domain successfully released."}
+        logger.info(
+            "Released %s %s by request of %s",
+            obj.__class__.__name__,
+            obj.id,
+            self.request.user,
+        )
+        # If domain is set to be reset on release get the necessary API config and task
+        if domain_instance.reset_dns and domain_instance.registrar:
+            # Namecheap
+            if domain_instance.registrar.lower() == "namecheap":
+                namecheap_config = NamecheapConfiguration.get_solo()
+                if namecheap_config.enable:
+                    async_task(
+                        "ghostwriter.shepherd.tasks.namecheap_reset_dns",
+                        namecheap_config=namecheap_config,
+                        domain=domain_instance,
+                        group="Individual Domain Update",
+                        hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
+                    )
         return JsonResponse(data)
 
 
-class ServerRelease(LoginRequiredMixin, SingleObjectMixin, View):
+class ServerRelease(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Set the ``server_status`` field of an individual :model:`shepherd.StaticServer` to
     the ``Available`` entry in :model:`shepherd.ServerStatus` and update the
@@ -229,32 +268,38 @@ class ServerRelease(LoginRequiredMixin, SingleObjectMixin, View):
 
     model = ServerHistory
 
+    def test_func(self):
+        if self.request.user == self.get_object().operator and verify_access(
+            self.request.user, self.get_object().project
+        ):
+            return True
+        return False
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse(
+            data={"result": "error", "message": "You do not have permission to release this server."}
+        )
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        if self.request.user == self.object.operator:
-            # Reset server status to ``Available`` and commit the change
-            server_instance = StaticServer.objects.get(pk=self.object.server.id)
-            server_instance.server_status = ServerStatus.objects.get(server_status="Available")
-            server_instance.save()
-            # Set the release date to now so historical record is accurate
-            self.object.end_date = date.today()
-            self.object.save()
-            data = {"result": "success", "message": "Server successfully released"}
-            logger.info(
-                "Released %s %s by request of %s",
-                self.object.__class__.__name__,
-                self.object.id,
-                self.request.user,
-            )
-        else:
-            data = {
-                "result": "error",
-                "message": "You are not authorized to release this server",
-            }
+        obj = self.get_object()
+        # Reset server status to ``Available`` and commit the change
+        server_instance = StaticServer.objects.get(pk=obj.server.id)
+        server_instance.server_status = ServerStatus.objects.get(server_status="Available")
+        server_instance.save()
+        # Set the release date to now so historical record is accurate
+        obj.end_date = date.today()
+        obj.save()
+        data = {"result": "success", "message": "Server successfully released."}
+        logger.info(
+            "Released %s %s by request of %s",
+            obj.__class__.__name__,
+            obj.id,
+            self.request.user,
+        )
         return JsonResponse(data)
 
 
-class DomainUpdateHealth(LoginRequiredMixin, View):
+class DomainUpdateHealth(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Domain Updates`` with
     :task:`shepherd.tasks.check_domains` for one or more :model:`shepherd.Domain`.
@@ -287,10 +332,10 @@ class DomainUpdateHealth(LoginRequiredMixin, View):
                     group="Domain Updates",
                     hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
                 )
-            message = "Successfully queued domain category update task (Task ID {task}) ".format(task=task_id)
+            message = "Successfully queued domain category update task (Task ID {task}).".format(task=task_id)
         except Exception:
             result = "error"
-            message = "Domain category update task could not be queued"
+            message = "Domain category update task could not be queued!"
 
         data = {
             "result": result,
@@ -299,7 +344,7 @@ class DomainUpdateHealth(LoginRequiredMixin, View):
         return JsonResponse(data)
 
 
-class DomainUpdateDNS(LoginRequiredMixin, View):
+class DomainUpdateDNS(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``DNS Updates`` with
     :task:`shepherd.tasks.update_dns` for one or more :model:`shepherd.Domain`.
@@ -332,10 +377,10 @@ class DomainUpdateDNS(LoginRequiredMixin, View):
                     group="DNS Updates",
                     hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
                 )
-            message = "Successfully queued DNS update task (Task ID {task})".format(task=task_id)
+            message = "Successfully queued DNS update task (Task ID {task}).".format(task=task_id)
         except Exception:
             result = "error"
-            message = "DNS update task could not be queued"
+            message = "DNS update task could not be queued!"
             logger.exception(message)
 
         data = {
@@ -345,7 +390,7 @@ class DomainUpdateDNS(LoginRequiredMixin, View):
         return JsonResponse(data)
 
 
-class RegistrarSyncNamecheap(LoginRequiredMixin, View):
+class RegistrarSyncNamecheap(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Namecheap Update`` with
     :task:`shepherd.tasks.fetch_namecheap_domains` to create or update one or more
@@ -360,10 +405,10 @@ class RegistrarSyncNamecheap(LoginRequiredMixin, View):
                 "ghostwriter.shepherd.tasks.fetch_namecheap_domains",
                 group="Namecheap Update",
             )
-            message = "Successfully queued Namecheap update task (Task ID {task})".format(task=task_id)
+            message = "Successfully queued Namecheap update task (Task ID {task}).".format(task=task_id)
         except Exception:
             result = "error"
-            message = "Namecheap update task could not be queued"
+            message = "Namecheap update task could not be queued!"
 
         data = {
             "result": result,
@@ -372,7 +417,7 @@ class RegistrarSyncNamecheap(LoginRequiredMixin, View):
         return JsonResponse(data)
 
 
-class MonitorCloudInfrastructure(LoginRequiredMixin, View):
+class MonitorCloudInfrastructure(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``Cloud Infrastructure Review``
     with :task:`shepherd.tasks.review_cloud_infrastructure`.
@@ -386,10 +431,10 @@ class MonitorCloudInfrastructure(LoginRequiredMixin, View):
                 "ghostwriter.shepherd.tasks.review_cloud_infrastructure",
                 group="Cloud Infrastructure Review",
             )
-            message = "Successfully queued the cloud monitor task (Task ID {task})".format(task=task_id)
+            message = "Successfully queued the cloud monitor task (Task ID {task}).".format(task=task_id)
         except Exception:
             result = "error"
-            message = "Cloud monitor task could not be queued"
+            message = "Cloud monitor task could not be queued!"
 
         data = {
             "result": result,
@@ -398,97 +443,99 @@ class MonitorCloudInfrastructure(LoginRequiredMixin, View):
         return JsonResponse(data)
 
 
-class ServerNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
-    """
-    Delete an individual :model:`shepherd.ServerNote`.
-    """
+class ServerNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`shepherd.ServerNote`."""
 
     model = ServerNote
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        return self.request.user.id == self.get_object().operator.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
+        obj = self.get_object()
+        obj.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            obj.__class__.__name__,
+            obj.id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class DomainNoteDelete(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
-    """
-    Delete an individual :model:`shepherd.DomainNote`.
-    """
+class DomainNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`shepherd.DomainNote`."""
 
     model = DomainNote
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        return self.request.user.id == self.get_object().operator.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
+        obj = self.get_object()
+        obj.delete()
         data = {"result": "success", "message": "Note successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            obj.__class__.__name__,
+            obj.id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class TransientServerDelete(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Delete an individual :model:`shepherd.TransientServer`.
-    """
+class TransientServerDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`shepherd.TransientServer`."""
 
     model = TransientServer
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
+        obj = self.get_object()
+        obj.delete()
         data = {"result": "success", "message": "VPS successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            obj.__class__.__name__,
+            obj.id,
             self.request.user,
         )
         return JsonResponse(data)
 
 
-class DomainServerConnectionDelete(LoginRequiredMixin, SingleObjectMixin, View):
-    """
-    Delete an individual :model:`shepherd.DomainServerConnection`.
-    """
+class DomainServerConnectionDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`shepherd.DomainServerConnection`."""
 
     model = DomainServerConnection
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
     def post(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
+        obj = self.get_object()
+        obj.delete()
         data = {"result": "success", "message": "Link successfully deleted!"}
         logger.info(
             "Deleted %s %s by request of %s",
-            self.object.__class__.__name__,
-            self.object.id,
+            obj.__class__.__name__,
+            obj.id,
             self.request.user,
         )
         return JsonResponse(data)
@@ -501,97 +548,8 @@ class DomainServerConnectionDelete(LoginRequiredMixin, SingleObjectMixin, View):
 
 @login_required
 def index(request):
-    """
-    Redirect empty requests to the user dashboard.
-    """
+    """Redirect empty requests to the user dashboard."""
     return HttpResponseRedirect(reverse("home:dashboard"))
-
-
-@login_required
-def domain_list(request):
-    """
-    Display a list of all :model:`shepherd.Domain`.
-
-    **Context**
-
-    ``filter``
-        Instance of :filter:`shepherd.DomainFilter`
-
-    **Template**
-
-    :template:`shepherd/domain_list.html`
-    """
-    search_term = ""
-    if "domain" in request.GET:
-        search_term = request.GET.get("domain").strip()
-        if search_term is None or search_term == "":
-            search_term = ""
-    if search_term:
-        messages.success(
-            request,
-            "Showing search results for: {}".format(search_term),
-            extra_tags="alert-success",
-        )
-        domains_list = (
-            Domain.objects.select_related("domain_status", "whois_status", "health_status")
-            .filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term))
-            .order_by("name")
-        )
-    else:
-        domains_list = Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
-
-    # If user has not submitted a filter, default showing available domains with expiry dates in the future
-    data = request.GET.copy()
-    if len(data) == 0:
-        data["domain_status"] = 1
-        data["exclude_expired"] = True
-    domains_filter = DomainFilter(data, queryset=domains_list)
-    return render(request, "shepherd/domain_list.html", {"filter": domains_filter})
-
-
-@login_required
-def server_list(request):
-    """
-    Display a list of all :model:`shepherd.StaticServer`.
-
-    **Context**
-
-    ``filter``
-        Instance of :filter:`shepherd.ServerFilter.
-
-    **Template**
-
-    :template:`shepherd/server_list.html`
-    """
-    search_term = ""
-    if "server" in request.GET:
-        search_term = request.GET.get("server").strip()
-        if search_term is None or search_term == "":
-            search_term = ""
-    if search_term:
-        messages.success(
-            request,
-            f"Showing search results for: {search_term}",
-            extra_tags="alert-success",
-        )
-        servers_list = (
-            StaticServer.objects.select_related("server_status")
-            .filter(
-                Q(ip_address__icontains=search_term)
-                | Q(name__icontains=search_term)
-                | Q(auxserveraddress__ip_address__icontains=search_term)
-            )
-            .order_by("ip_address")
-        )
-    else:
-        servers_list = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
-
-    # If user has not submitted their own filter, default to showing only available servers
-    data = request.GET.copy()
-    if len(data) == 0:
-        data["server_status"] = 1
-    servers_filter = ServerFilter(data, queryset=servers_list)
-    return render(request, "shepherd/server_list.html", {"filter": servers_filter})
 
 
 @login_required
@@ -611,11 +569,12 @@ def infrastructure_search(request):
                     search_term = ""
 
                 if search_term:
+                    projects = get_project_list(request.user)
                     server_qs = StaticServer.objects.filter(
                         Q(ip_address__contains=search_term) | Q(name__icontains=search_term)
                     )
                     vps_qs = TransientServer.objects.select_related("project").filter(
-                        Q(ip_address__contains=search_term) | Q(name__icontains=search_term)
+                        Q(ip_address__contains=search_term) | Q(name__icontains=search_term) & Q(project__in=projects)
                     )
                     aux_qs = AuxServerAddress.objects.select_related("static_server").filter(
                         ip_address__contains=search_term
@@ -647,7 +606,7 @@ def infrastructure_search(request):
                 f"Failed searching for: {search_term}",
                 extra_tags="alert-danger",
             )
-            logger.exception("Encountered error with search query")
+            logger.exception("Encountered error with search query: %s", search_term)
 
     return render(request, "shepherd/server_search.html", context)
 
@@ -692,57 +651,6 @@ def user_assets(request):
     # Pass the context on to the custom HTML
     context = {"domains": domains, "servers": servers}
     return render(request, "shepherd/checkouts_for_user.html", context)
-
-
-@login_required
-def burn(request, pk):
-    """
-    Update the ``health_status``, ``domain_status``, and ``burned_explanation`` fields
-    for an individual :model:`shepherd.Domain`.
-
-    **Context**
-
-    ``form``
-        Instance of :form:`shepherd.BurnForm`
-    ``domain_instance``
-        Instance of :model:`shepherd.Domain` to be updated
-    ``domain_name``
-        Value of name field for instance of :model:`shepherd.Domain` to be updated
-    ``cancel_link``
-
-    **Template**
-
-    :template:`shepherd/burn.html`
-    """
-    # Fetch the domain for the provided primary key
-    domain_instance = get_object_or_404(Domain, pk=pk)
-    # If this is a POST request then process the form data
-    if request.method == "POST":
-        # Create a form instance and populate it with data from the request
-        form = BurnForm(request.POST)
-        # Check if the form is valid
-        if form.is_valid():
-            # Update the domain status and commit it
-            domain_instance.domain_status = DomainStatus.objects.get(domain_status="Burned")
-            domain_instance.health_status = HealthStatus.objects.get(health_status="Burned")
-            domain_instance.burned_explanation = form.cleaned_data["burned_explanation"]
-            domain_instance.last_used_by = request.user
-            domain_instance.save()
-            # Redirect to the user's checked-out domains
-            messages.warning(request, "Domain has been marked as burned", extra_tags="alert-warning")
-            return HttpResponseRedirect("{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": pk})))
-    # If this is a GET (or any other method) create the default form
-    else:
-        form = BurnForm()
-    # Prepare the context for the burn form
-    context = {
-        "form": form,
-        "domain_instance": domain_instance,
-        "domain_name": domain_instance.name,
-        "cancel_link": reverse("shepherd:domain_detail", kwargs={"pk": pk}),
-    }
-    # Render the burn form page
-    return render(request, "shepherd/burn.html", context)
 
 
 @login_required
@@ -954,7 +862,195 @@ def export_servers_to_csv(request):
 ################
 
 
-class DomainDetailView(LoginRequiredMixin, DetailView):
+class DomainListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`shepherd.Domain`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`shepherd.DomainFilter`
+    ``autocomplete``
+        List of all :model:`shepherd.Domain` names and categorization entries
+
+    **Template**
+
+    :template:`shepherd/domain_list.html`
+    """
+
+    model = Domain
+    template_name = "shepherd/domain_list.html"
+
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
+    def get_queryset(self):
+        search_term = ""
+        domains = Domain.objects.select_related("domain_status", "whois_status", "health_status").all()
+
+        # Build autocomplete list
+        for domain in domains:
+            self.autocomplete.append(domain.name)
+            if domain.categorization:
+                try:
+                    for key, value in domain.categorization.items():
+                        if "," in value:
+                            for item in value.split(","):
+                                self.autocomplete.append(item.strip().lower())
+                        else:
+                            self.autocomplete.append(value.lower())
+                except Exception as e:
+                    logger.error("Failed to parse categorization autocomplete entries for %s: %s", domain.name, e)
+
+        if "domain" in self.request.GET:
+            search_term = self.request.GET.get("domain").strip()
+            if search_term is None or search_term == "":
+                search_term = ""
+        if search_term:
+            messages.success(
+                self.request,
+                "Showing search results for: {}".format(search_term),
+                extra_tags="alert-success",
+            )
+            return domains.filter(Q(name__icontains=search_term) | Q(categorization__icontains=search_term)).order_by(
+                "name"
+            )
+        return domains
+
+    def get(self, request, *args, **kwarg):
+        # If user has not submitted a filter, default showing available domains with expiry dates in the future
+        data = request.GET.copy()
+        if len(data) == 0:
+            data["domain_status"] = 1
+            data["exclude_expired"] = True
+        domains_filter = DomainFilter(data, queryset=self.get_queryset())
+        return render(
+            request, "shepherd/domain_list.html", {"filter": domains_filter, "autocomplete": self.autocomplete}
+        )
+
+
+class ServerListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`shepherd.StaticServer`.
+
+    **Context**
+
+    ``filter``
+        Instance of :filter:`shepherd.ServerFilter.
+    ``autocomplete``
+        List of all :model:`shepherd.StaticServer` names and IP addresses
+
+    **Template**
+
+    :template:`shepherd/server_list.html`
+    """
+
+    model = StaticServer
+    template_name = "shepherd/server_list.html"
+
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
+    def get_queryset(self):
+        search_term = ""
+        servers = StaticServer.objects.select_related("server_status").all().order_by("ip_address")
+
+        # Build autocomplete list
+        for server in servers:
+            self.autocomplete.append(server.ip_address)
+            if server.name:
+                self.autocomplete.append(server.name)
+            try:
+                for address in server.auxserveraddress_set.all():
+                    self.autocomplete.append(address.ip_address)
+            except Exception as e:
+                logger.error("Failed to parse aux addresses entries for %s: %s", server, e)
+
+        if "server" in self.request.GET:
+            search_term = self.request.GET.get("server").strip()
+            if search_term is None or search_term == "":
+                search_term = ""
+        if search_term:
+            messages.success(
+                self.request,
+                f"Showing search results for: {search_term}",
+                extra_tags="alert-success",
+            )
+            return servers.filter(
+                Q(ip_address__icontains=search_term)
+                | Q(name__icontains=search_term)
+                | Q(auxserveraddress__ip_address__icontains=search_term)
+            ).order_by("ip_address")
+        return servers
+
+    def get(self, request, *args, **kwarg):
+        # If user has not submitted their own filter, default to showing only available servers
+        data = request.GET.copy()
+        if len(data) == 0:
+            data["server_status"] = 1
+        servers_filter = ServerFilter(data, queryset=self.get_queryset())
+        return render(
+            request, "shepherd/server_list.html", {"filter": servers_filter, "autocomplete": self.autocomplete}
+        )
+
+
+class BurnDomain(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Update the ``health_status``, ``domain_status``, and ``burned_explanation`` fields
+    for an individual :model:`shepherd.Domain`.
+
+    **Context**
+
+    ``form``
+        Instance of :form:`shepherd.BurnForm`
+    ``domain_instance``
+        Instance of :model:`shepherd.Domain` to be updated
+    ``domain_name``
+        Value of name field for instance of :model:`shepherd.Domain` to be updated
+    ``cancel_link``
+
+    **Template**
+
+    :template:`shepherd/burn.html`
+    """
+
+    model = Domain
+
+    def __init__(self):
+        self.domain = None
+        super().__init__()
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.domain = self.get_object()
+
+    def post(self, request, *args, **kwargs):
+        form = BurnForm(request.POST)
+        if form.is_valid():
+            self.domain.domain_status = DomainStatus.objects.get(domain_status="Burned")
+            self.domain.health_status = HealthStatus.objects.get(health_status="Burned")
+            self.domain.burned_explanation = form.cleaned_data["burned_explanation"]
+            self.domain.last_used_by = request.user
+            self.domain.save()
+            messages.warning(request, "Domain has been marked as burned.", extra_tags="alert-warning")
+        return HttpResponseRedirect(
+            "{}#health".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk}))
+        )
+
+    def get(self, request, *args, **kwargs):
+        form = BurnForm()
+        context = {
+            "form": form,
+            "domain_instance": self.domain,
+            "domain_name": self.domain.name,
+            "cancel_link": reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk}),
+        }
+        return render(request, "shepherd/burn.html", context)
+
+
+class DomainDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`shepherd.Domain`.
 
@@ -966,7 +1062,7 @@ class DomainDetailView(LoginRequiredMixin, DetailView):
     model = Domain
 
 
-class HistoryCreate(LoginRequiredMixin, CreateView):
+class HistoryCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.History`.
 
@@ -986,16 +1082,18 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
     form_class = CheckoutForm
     template_name = "shepherd/checkout.html"
 
-    def get_initial(self):
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
         self.domain = get_object_or_404(Domain, pk=self.kwargs.get("pk"))
-        return {
-            "domain": self.domain,
-        }
+
+    def get_initial(self):
+        return {"domain": self.domain}
 
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.operator = self.request.user
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.domain = self.domain
+        obj.operator = self.request.user
+        obj.save()
 
         # Update the domain status and commit it
         self.domain.last_used_by = self.request.user
@@ -1004,18 +1102,23 @@ class HistoryCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        messages.success(self.request, "Domain successfully checked-out", extra_tags="alert-success")
+        messages.success(self.request, "Domain successfully checked-out.", extra_tags="alert-success")
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["domain_name"] = self.domain.name.upper()
         ctx["domain"] = self.domain
-        ctx["cancel_link"] = reverse("shepherd:domain_detail", kwargs={"pk": self.kwargs.get("pk")})
+        ctx["cancel_link"] = reverse("shepherd:domain_detail", kwargs={"pk": self.domain.pk})
         return ctx
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
-class HistoryUpdate(LoginRequiredMixin, UpdateView):
+
+class HistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.History`.
 
@@ -1035,10 +1138,17 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
     form_class = CheckoutForm
     template_name = "shepherd/checkout.html"
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Domain history successfully updated",
+            "Domain history successfully updated.",
             extra_tags="alert-success",
         )
         return "{}#history".format(reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id}))
@@ -1046,13 +1156,19 @@ class HistoryUpdate(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["domain_name"] = self.object.domain.name.upper()
+        ctx["domain"] = self.get_object()
         ctx["cancel_link"] = "{}#history".format(
             reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id})
         )
         return ctx
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
-class HistoryDelete(LoginRequiredMixin, DeleteView):
+
+class HistoryDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.History`.
 
@@ -1073,10 +1189,17 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
     model = History
     template_name = "confirm_delete.html"
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_success_url(self):
         messages.warning(
             self.request,
-            "Project history successfully deleted",
+            "Domain history successfully deleted!",
             extra_tags="alert-warning",
         )
         return "{}#history".format(reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id}))
@@ -1092,7 +1215,7 @@ class HistoryDelete(LoginRequiredMixin, DeleteView):
         return ctx
 
 
-class DomainCreate(LoginRequiredMixin, CreateView):
+class DomainCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.Domain`.
 
@@ -1119,7 +1242,7 @@ class DomainCreate(LoginRequiredMixin, CreateView):
         return ctx
 
 
-class DomainUpdate(LoginRequiredMixin, UpdateView):
+class DomainUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.Domain`.
 
@@ -1146,7 +1269,7 @@ class DomainUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class DomainDelete(LoginRequiredMixin, DeleteView):
+class DomainDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.Domain`.
 
@@ -1168,7 +1291,7 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        messages.warning(self.request, "Domain successfully deleted", extra_tags="alert-warning")
+        messages.warning(self.request, "Domain successfully deleted!", extra_tags="alert-warning")
         return reverse("shepherd:domains")
 
     def get_context_data(self, **kwargs):
@@ -1180,7 +1303,7 @@ class DomainDelete(LoginRequiredMixin, DeleteView):
         return ctx
 
 
-class ServerDetailView(LoginRequiredMixin, DetailView):
+class ServerDetailView(RoleBasedAccessControlMixin, DetailView):
     """
     Display an individual :model:`shepherd.StaticServer`.
 
@@ -1208,7 +1331,7 @@ class ServerDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
-class ServerCreate(LoginRequiredMixin, CreateView):
+class ServerCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.StaticServer`.
 
@@ -1229,7 +1352,7 @@ class ServerCreate(LoginRequiredMixin, CreateView):
     form_class = ServerForm
 
     def get_success_url(self):
-        messages.success(self.request, "Server successfully created", extra_tags="alert-success")
+        messages.success(self.request, "Server successfully created.", extra_tags="alert-success")
         return reverse("shepherd:server_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -1251,14 +1374,14 @@ class ServerCreate(LoginRequiredMixin, CreateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                obj = form.save()
 
                 addresses_valid = addresses.is_valid()
                 if addresses_valid:
-                    addresses.instance = self.object
+                    addresses.instance = obj
                     addresses.save()
                 if form.is_valid() and addresses_valid:
-                    self.object.save()
+                    obj.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1275,7 +1398,7 @@ class ServerCreate(LoginRequiredMixin, CreateView):
         }
 
 
-class ServerUpdate(LoginRequiredMixin, UpdateView):
+class ServerUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.StaticServer`.
 
@@ -1296,7 +1419,7 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
     form_class = ServerForm
 
     def get_success_url(self):
-        messages.success(self.request, "Server successfully updated", extra_tags="alert-success")
+        messages.success(self.request, "Server successfully updated.", extra_tags="alert-success")
         return reverse("shepherd:server_detail", kwargs={"pk": self.object.pk})
 
     def get_context_data(self, **kwargs):
@@ -1318,14 +1441,14 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
         try:
             with transaction.atomic():
                 # Save the parent form – will rollback if a child fails validation
-                self.object = form.save()
+                obj = form.save()
 
                 addresses_valid = addresses.is_valid()
                 if addresses_valid:
-                    addresses.instance = self.object
+                    addresses.instance = obj
                     addresses.save()
                 if form.is_valid() and addresses_valid:
-                    self.object.save()
+                    obj.save()
                     return super().form_valid(form)
                 # Raise an error to rollback transactions
                 raise forms.ValidationError(_("Invalid form data"))
@@ -1337,7 +1460,7 @@ class ServerUpdate(LoginRequiredMixin, UpdateView):
             return super().form_invalid(form)
 
 
-class ServerDelete(LoginRequiredMixin, DeleteView):
+class ServerDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.StaticServer`.
 
@@ -1359,7 +1482,7 @@ class ServerDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def get_success_url(self):
-        messages.warning(self.request, "Server successfully deleted", extra_tags="alert-warning")
+        messages.warning(self.request, "Server successfully deleted!", extra_tags="alert-warning")
         return reverse("shepherd:servers")
 
     def get_context_data(self, **kwargs):
@@ -1371,7 +1494,7 @@ class ServerDelete(LoginRequiredMixin, DeleteView):
         return ctx
 
 
-class ServerHistoryCreate(LoginRequiredMixin, CreateView):
+class ServerHistoryCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.ServerHistory`.
 
@@ -1389,16 +1512,18 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
     form_class = ServerCheckoutForm
     template_name = "shepherd/server_checkout.html"
 
-    def get_initial(self):
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
         self.server = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
-        return {
-            "server": self.server,
-        }
+
+    def get_initial(self):
+        return {"server": self.server}
 
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.operator = self.request.user
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.server = self.server
+        obj.operator = self.request.user
+        obj.save()
 
         # Update the server status and commit it
         server_instance = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
@@ -1408,17 +1533,22 @@ class ServerHistoryCreate(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        messages.success(self.request, "Server successfully checked-out", extra_tags="alert-success")
+        messages.success(self.request, "Server successfully checked-out.", extra_tags="alert-success")
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["server_instance"] = self.server
-        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.kwargs.get("pk")})
+        ctx["server"] = self.server
+        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.server.pk})
         return ctx
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
-class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
+
+class ServerHistoryUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.ServerHistory`.
 
@@ -1436,23 +1566,36 @@ class ServerHistoryUpdate(LoginRequiredMixin, UpdateView):
     form_class = ServerCheckoutForm
     template_name = "shepherd/server_checkout.html"
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server history successfully updated",
+            "Server history successfully updated.",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["server"] = self.get_object()
         ctx["cancel_link"] = "{}#infrastructure".format(
             reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk})
         )
         return ctx
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs.update({"user": self.request.user})
+        return kwargs
 
-class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
+
+class ServerHistoryDelete(RoleBasedAccessControlMixin, DeleteView):
     """
     Delete an individual :model:`shepherd.ServerHistory`.
 
@@ -1474,10 +1617,17 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
     template_name = "confirm_delete.html"
     success_url = reverse_lazy("shepherd:domains")
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_success_url(self):
         messages.warning(
             self.request,
-            "Server history successfully deleted",
+            "Server history successfully deleted!",
             extra_tags="alert-warning",
         )
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
@@ -1493,7 +1643,7 @@ class ServerHistoryDelete(LoginRequiredMixin, DeleteView):
         return ctx
 
 
-class TransientServerCreate(LoginRequiredMixin, CreateView):
+class TransientServerCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.TransientServer`.
 
@@ -1511,33 +1661,41 @@ class TransientServerCreate(LoginRequiredMixin, CreateView):
     form_class = TransientServerForm
     template_name = "shepherd/vps_form.html"
 
+    def test_func(self):
+        return verify_access(self.request.user, self.project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server successfully added to the project",
+            "Server successfully added to the project.",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
-    def get_initial(self):
-        self.project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        return {"project": self.project_instance}
-
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.operator = self.request.user
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.project = self.project
+        obj.operator = self.request.user
+        obj.save()
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.project_instance.id})
+            reverse("rolodex:project_detail", kwargs={"pk": self.project.id})
         )
         return ctx
 
 
-class TransientServerUpdate(LoginRequiredMixin, UpdateView):
+class TransientServerUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.TransientServer`.
 
@@ -1555,10 +1713,17 @@ class TransientServerUpdate(LoginRequiredMixin, UpdateView):
     form_class = TransientServerForm
     template_name = "shepherd/vps_form.html"
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server information successfully updated",
+            "Server information successfully updated.",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
@@ -1571,7 +1736,7 @@ class TransientServerUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
+class DomainServerConnectionCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.DomainServerConnection`.
 
@@ -1589,32 +1754,45 @@ class DomainServerConnectionCreate(LoginRequiredMixin, CreateView):
     form_class = DomainLinkForm
     template_name = "shepherd/connect_form.html"
 
+    def test_func(self):
+        return verify_access(self.request.user, self.project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.project = get_object_or_404(Project, pk=self.kwargs.get("pk"))
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Server successfully associated with domain",
+            "Server successfully associated with domain.",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_form_kwargs(self, **kwargs):
-        form_kwargs = super().get_form_kwargs(**kwargs)
-        form_kwargs["project"] = self.project_instance
+        form_kwargs = super().get_form_kwargs()
+        form_kwargs["project"] = self.project
         return form_kwargs
 
-    def get_initial(self):
-        self.project_instance = get_object_or_404(Project, pk=self.kwargs.get("pk"))
-        return {"project": self.project_instance}
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.project = self.project
+        obj.save()
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["cancel_link"] = "{}#infrastructure".format(
-            reverse("rolodex:project_detail", kwargs={"pk": self.project_instance.id})
+            reverse("rolodex:project_detail", kwargs={"pk": self.project.id})
         )
         return ctx
 
 
-class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
+class DomainServerConnectionUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.DomainServerConnection`.
 
@@ -1632,16 +1810,23 @@ class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
     form_class = DomainLinkForm
     template_name = "shepherd/connect_form.html"
 
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Connection information successfully updated",
+            "Connection information successfully updated.",
             extra_tags="alert-success",
         )
         return "{}#infrastructure".format(reverse("rolodex:project_detail", kwargs={"pk": self.object.project.pk}))
 
     def get_form_kwargs(self, **kwargs):
-        form_kwargs = super().get_form_kwargs(**kwargs)
+        form_kwargs = super().get_form_kwargs()
         form_kwargs["project"] = self.object.project
         return form_kwargs
 
@@ -1653,7 +1838,7 @@ class DomainServerConnectionUpdate(LoginRequiredMixin, UpdateView):
         return ctx
 
 
-class DomainNoteCreate(LoginRequiredMixin, CreateView):
+class DomainNoteCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.DomainNote`.
 
@@ -1673,35 +1858,33 @@ class DomainNoteCreate(LoginRequiredMixin, CreateView):
     form_class = DomainNoteForm
     template_name = "note_form.html"
 
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.domain = get_object_or_404(Domain, pk=self.kwargs.get("pk"))
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Note successfully added to this domain",
+            "Note successfully added to this domain.",
             extra_tags="alert-success",
         )
         return "{}#notes".format(reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id}))
 
-    def get_initial(self):
-        self.domain_instance = get_object_or_404(Domain, pk=self.kwargs.get("pk"))
-        return {"domain": self.domain_instance, "operator": self.request.user}
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["note_object"] = self.domain_instance.name.upper()
-        ctx["cancel_link"] = "{}#notes".format(
-            reverse("shepherd:domain_detail", kwargs={"pk": self.domain_instance.id})
-        )
+        ctx["note_object"] = self.domain.name.upper()
+        ctx["cancel_link"] = "{}#notes".format(reverse("shepherd:domain_detail", kwargs={"pk": self.domain.id}))
         return ctx
 
     def form_valid(self, form, **kwargs):
-        self.object = form.save(commit=False)
-        self.object.operator = self.request.user
-        self.object.domain_id = self.kwargs.get("pk")
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.operator = self.request.user
+        obj.domain_id = self.domain.id
+        obj.save()
         return super().form_valid(form)
 
 
-class DomainNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class DomainNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.DomainNote`.
 
@@ -1720,15 +1903,14 @@ class DomainNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        return self.get_object().operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated", extra_tags="alert-success")
+        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
         return "{}#notes".format(reverse("shepherd:domain_detail", kwargs={"pk": self.object.domain.id}))
 
     def get_context_data(self, **kwargs):
@@ -1738,7 +1920,7 @@ class DomainNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return ctx
 
 
-class ServerNoteCreate(LoginRequiredMixin, CreateView):
+class ServerNoteCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`shepherd.ServerNote`.
 
@@ -1758,33 +1940,33 @@ class ServerNoteCreate(LoginRequiredMixin, CreateView):
     form_class = ServerNoteForm
     template_name = "note_form.html"
 
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+        self.server = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
+
     def get_success_url(self):
         messages.success(
             self.request,
-            "Note successfully added to this server",
+            "Note successfully added to this server.",
             extra_tags="alert-success",
         )
         return "{}#notes".format(reverse("shepherd:server_detail", kwargs={"pk": self.object.server.id}))
 
-    def get_initial(self):
-        self.server_instance = get_object_or_404(StaticServer, pk=self.kwargs.get("pk"))
-        return {"server": self.server_instance, "operator": self.request.user}
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["note_object"] = self.server_instance.ip_address
-        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.server_instance.id})
+        ctx["note_object"] = self.server.ip_address
+        ctx["cancel_link"] = reverse("shepherd:server_detail", kwargs={"pk": self.server.id})
         return ctx
 
     def form_valid(self, form, **kwargs):
-        self.object = form.save(commit=False)
-        self.object.operator = self.request.user
-        self.object.server_id = self.kwargs.get("pk")
-        self.object.save()
+        obj = form.save(commit=False)
+        obj.operator = self.request.user
+        obj.server_id = self.server.id
+        obj.save()
         return super().form_valid(form)
 
 
-class ServerNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ServerNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     """
     Update an individual :model:`shepherd.ServerNote`.
 
@@ -1805,15 +1987,14 @@ class ServerNoteUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.operator.id == self.request.user.id
+        return self.get_object().operator.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def get_success_url(self):
-        messages.success(self.request, "Note successfully updated", extra_tags="alert-success")
+        messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
         return "{}#notes".format(reverse("shepherd:server_detail", kwargs={"pk": self.object.server.id}))
 
     def get_context_data(self, **kwargs):

@@ -7,12 +7,13 @@ from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
 from json import JSONDecodeError
+from socket import gaierror
 
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -20,6 +21,7 @@ from django.views.generic.detail import SingleObjectMixin
 from django.views.generic.edit import FormView, View
 
 # 3rd Party Libraries
+from allauth_2fa.utils import user_has_valid_totp_device
 from channels.layers import get_channel_layer
 from dateutil.parser import parse as parse_date
 from dateutil.parser._parser import ParserError
@@ -28,7 +30,7 @@ from dateutil.parser._parser import ParserError
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
-from ghostwriter.modules.model_utils import to_dict
+from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter import Reportwriter
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
@@ -212,7 +214,7 @@ class HasuraCheckoutView(JwtRequiredMixin, HasuraActionView):
             self.project = Project.objects.get(id=project_id)
         except Project.DoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
-        if utils.verify_project_access(self.user_obj, self.project):
+        if utils.verify_access(self.user_obj, self.project):
             # Get the target object – :model:`shepherd.Domain` or :model:`shepherd.StaticServer``
             if "domainId" in self.input:
                 object_id = self.input["domainId"]
@@ -289,7 +291,7 @@ class HasuraCheckoutDeleteView(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Checkout does not exist", f"{self.model.__name__}DoesNotExist"),
                 status=400,
             )
-        if utils.verify_project_access(self.user_obj, instance.project):
+        if utils.verify_access(self.user_obj, instance.project):
             # Delete the checkout which triggers the ``pre_delete`` signal
             instance.delete()
             data = {
@@ -422,8 +424,15 @@ class GraphqlLoginAction(HasuraActionView):
         user = authenticate(**self.input)
         # A successful auth will return a ``User`` object
         if user:
-            payload, jwt_token = utils.generate_jwt(user)
-            data = {"token": f"{jwt_token}", "expires": payload["exp"]}
+            # User's required to use 2FA or with 2FA enabled will not be able to log in via the mutation
+            if user_has_valid_totp_device(user) or user.require_2fa:
+                self.status = 401
+                data = utils.generate_hasura_error_payload(
+                    "Login and generate a token from your user profile", "2FARequired"
+                )
+            else:
+                payload, jwt_token = utils.generate_jwt(user)
+                data = {"token": f"{jwt_token}", "expires": payload["exp"]}
         else:
             self.status = 401
             data = utils.generate_hasura_error_payload("Invalid credentials", "InvalidCredentials")
@@ -470,7 +479,7 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
         except Report.DoesNotExist:
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
-        if utils.verify_project_access(self.user_obj, report.project):
+        if utils.verify_access(self.user_obj, report.project):
             engine = Reportwriter(report, template_loc=None)
             json_report = engine.generate_json()
             report_bytes = json.dumps(json_report).encode("utf-8")
@@ -632,7 +641,7 @@ class GraphqlDeleteEvidenceAction(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Evidence does not exist", "EvidenceDoesNotExist"), status=400
             )
 
-        if utils.verify_project_access(self.user_obj, evidence.finding.report.project):
+        if utils.verify_access(self.user_obj, evidence.finding.report.project):
             evidence.delete()
             data = {
                 "result": "success",
@@ -664,14 +673,13 @@ class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
             )
 
         if template.protected:
-            if not any(
-                [
-                    self.user_obj.is_staff,
-                    self.user_obj.is_superuser,
-                    self.user_obj.role == "manager",
-                    self.user_obj.role == "admin",
-                ]
-            ):
+            if not utils.verify_user_is_privileged(self.user_obj):
+                return JsonResponse(
+                    utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
+                )
+
+        if template.client:
+            if not utils.verify_access(self.user_obj, template.client):
                 return JsonResponse(
                     utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401
                 )
@@ -710,7 +718,7 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
                 utils.generate_hasura_error_payload("Finding does not exist", "FindingDoesNotExist"), status=400
             )
 
-        if utils.verify_project_access(self.user_obj, report.project):
+        if utils.verify_access(self.user_obj, report.project):
             finding_dict = to_dict(finding, resolve_fk=True)
             # Remove the tags from the finding dict to add them later with the ``taggit`` API
             del finding_dict["tags"]
@@ -768,11 +776,68 @@ class GraphqlOplogEntryDeleteEvent(HasuraEventView):
     """Event webhook to fire :model:`oplog.OplogEntry` delete signals."""
 
     def post(self, request, *args, **kwargs):
-        channel_layer = get_channel_layer()
-        json_message = json.dumps({"action": "delete", "data": self.old_data["id"]})
-        async_to_sync(channel_layer.group_send)(
-            str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
-        )
+        try:
+            channel_layer = get_channel_layer()
+            json_message = json.dumps({"action": "delete", "data": self.old_data["id"]})
+            async_to_sync(channel_layer.group_send)(
+                str(self.old_data["oplog_id_id"]), {"type": "send_oplog_entry", "text": json_message}
+            )
+        except gaierror:  # pragma: no cover
+            # WebSocket are unavailable (unit testing)
+            pass
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlReportFindingChangeEvent(HasuraEventView):
+    """
+    After inserting or updating a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
+    of entries tied to the same :model:`reporting.Report`.
+    """
+
+    def post(self, request, *args, **kwargs):
+        instance = ReportFindingLink.objects.get(id=self.new_data["id"])
+
+        if self.event["op"] == "INSERT":
+            set_finding_positions(
+                instance,
+                None,
+                None,
+                self.new_data["position"],
+                self.new_data["severity_id"],
+            )
+
+        if self.event["op"] == "UPDATE":
+            set_finding_positions(
+                instance,
+                self.old_data["position"],
+                self.old_data["severity_id"],
+                self.new_data["position"],
+                self.new_data["severity_id"],
+            )
+
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlReportFindingDeleteEvent(HasuraEventView):
+    """
+    After deleting a :model:`reporting.ReportFindingLink` entry, adjust the ``position`` values
+    of entries tied to the same :model:`reporting.Report`.
+    """
+
+    def post(self, request, *args, **kwargs):
+        try:
+            findings_queryset = ReportFindingLink.objects.filter(
+                Q(report=self.old_data["report_id"]) & Q(severity=self.old_data["severity_id"])
+            )
+            if findings_queryset:
+                counter = 1
+                for finding in findings_queryset:
+                    # Adjust position to close gap created by the removed finding
+                    findings_queryset.filter(id=finding.id).update(position=counter)
+                    counter += 1
+        except Report.DoesNotExist:  # pragma: no cover
+            # Report was deleted, so no need to adjust positions
+            pass
         return JsonResponse(self.data, status=self.status)
 
 
@@ -781,7 +846,7 @@ class GraphqlOplogEntryDeleteEvent(HasuraEventView):
 ##################
 
 
-class ApiKeyRevoke(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, View):
+class ApiKeyRevoke(utils.RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Revoke an individual :model:`users.APIKey`.
     """
@@ -792,7 +857,7 @@ class ApiKeyRevoke(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, V
         return self.get_object().user.id == self.request.user.id
 
     def handle_no_permission(self):
-        messages.error(self.request, "You do not have permission to access that")
+        messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
     def post(self, *args, **kwargs):
@@ -814,7 +879,7 @@ class ApiKeyRevoke(LoginRequiredMixin, SingleObjectMixin, UserPassesTestMixin, V
 ##################
 
 
-class ApiKeyCreate(LoginRequiredMixin, FormView):
+class ApiKeyCreate(utils.RoleBasedAccessControlMixin, FormView):
     """
     Create an individual :model:`api.APIKey`.
 

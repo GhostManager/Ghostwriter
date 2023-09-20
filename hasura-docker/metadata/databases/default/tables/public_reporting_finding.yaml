@@ -54,24 +54,19 @@ insert_permissions:
         - replication_steps
         - severity_id
         - title
-  - role: restricted
-    permission:
-      check: {}
-      columns:
-        - description
-        - finding_guidance
-        - finding_type_id
-        - host_detection_techniques
-        - impact
-        - mitigation
-        - network_detection_techniques
-        - references
-        - replication_steps
-        - severity_id
-        - title
   - role: user
     permission:
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_finding_create:
+                  _eq: true
       columns:
         - cvss_score
         - cvss_vector
@@ -105,10 +100,6 @@ select_permissions:
         - references
         - replication_steps
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'
@@ -132,24 +123,6 @@ update_permissions:
         - title
       filter: {}
       check: null
-  - role: restricted
-    permission:
-      columns:
-        - cvss_score
-        - cvss_vector
-        - description
-        - finding_guidance
-        - finding_type_id
-        - host_detection_techniques
-        - impact
-        - mitigation
-        - network_detection_techniques
-        - references
-        - replication_steps
-        - severity_id
-        - title
-      filter: {}
-      check: {}
   - role: user
     permission:
       columns:
@@ -167,14 +140,31 @@ update_permissions:
         - severity_id
         - title
       filter: {}
-      check: {}
+      check:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_finding_edit:
+                  _eq: true
 delete_permissions:
   - role: manager
     permission:
       filter: {}
-  - role: restricted
-    permission:
-      filter: {}
   - role: user
     permission:
-      filter: {}
+      filter:
+        _exists:
+          _table:
+            name: users_user
+            schema: public
+          _where:
+            _and:
+              - id:
+                  _eq: X-Hasura-User-Id
+              - enable_finding_delete:
+                  _eq: true

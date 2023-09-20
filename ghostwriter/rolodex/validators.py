@@ -8,9 +8,7 @@ from django.core.exceptions import ValidationError
 
 
 def validate_ip_range(value):
-    """
-    Check if the value is a valid IP address or IP range.
-    """
+    """Check if the value is a valid IP address or IP range."""
     try:
         ipaddress.ip_address(value)
     except ValueError:

@@ -10,9 +10,7 @@ from ghostwriter.commandcenter.models import ReportConfiguration
 
 
 class ReportConfigurationForm(forms.ModelForm):
-    """
-    Save settings in :model:`commandcenter.ReportConfiguration`.
-    """
+    """Save settings in :model:`commandcenter.ReportConfiguration`."""
 
     class Meta:
         model = ReportConfiguration

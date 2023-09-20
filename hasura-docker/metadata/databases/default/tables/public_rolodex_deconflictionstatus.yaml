@@ -22,13 +22,6 @@ select_permissions:
         - status
         - weight
       filter: {}
-  - role: restricted
-    permission:
-      columns:
-        - id
-        - status
-        - weight
-      filter: {}
   - role: user
     permission:
       columns:

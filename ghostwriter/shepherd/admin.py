@@ -140,6 +140,7 @@ class DomainAdmin(ImportExportModelAdmin):
                     "domain_status",
                     "creation",
                     "expiration",
+                    "expired",
                     "auto_renew",
                     "tags",
                 )

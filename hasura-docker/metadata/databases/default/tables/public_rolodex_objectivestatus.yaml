@@ -31,10 +31,6 @@ select_permissions:
         - id
         - objective_status
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'

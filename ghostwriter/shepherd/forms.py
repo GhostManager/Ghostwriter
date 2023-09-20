@@ -14,10 +14,10 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
+from ghostwriter.api.utils import get_client_list
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
-
-from .models import (
+from ghostwriter.shepherd.models import (
     Domain,
     DomainNote,
     DomainServerConnection,
@@ -47,15 +47,20 @@ class CheckoutForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, user=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         data_projects_url = reverse("shepherd:ajax_load_projects")
         data_project_url = reverse("shepherd:ajax_load_project")
         overwatch_url = reverse("shepherd:ajax_domain_overwatch")
+
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+
+        clients = get_client_list(user)
+        self.fields["client"].queryset = clients
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["client"].label = ""
+
         self.fields["activity_type"].empty_label = "-- Select Activity --"
         self.fields["activity_type"].label = ""
         self.fields["project"].empty_label = "-- Select a Client First --"
@@ -124,7 +129,7 @@ class CheckoutForm(forms.ModelForm):
 
         # Check if end_date comes before the start_date
         if end_date < start_date:
-            raise ValidationError(_("The provided end date comes before the start date"), code="invalid")
+            raise ValidationError(_("The provided end date comes before the start date."), code="invalid")
         return end_date
 
     def clean_domain(self):
@@ -252,7 +257,7 @@ class DomainForm(forms.ModelForm):
             pass
         if domain and domain.pk != self.instance.pk:
             raise ValidationError(
-                _("Domain names must be unique and this one already exists in the library"),
+                _("Domain names must be unique and this one already exists in the library."),
                 code="unique",
             )
         return name
@@ -264,7 +269,7 @@ class DomainForm(forms.ModelForm):
         # Check if expiration comes before the creation date
         if expiration < creation:
             raise ValidationError(
-                _("The provided expiration date comes before the purchase date"),
+                _("The provided expiration date comes before the purchase date."),
                 code="invalid_date",
             )
 
@@ -278,10 +283,7 @@ class DomainLinkForm(forms.ModelForm):
 
     class Meta:
         model = DomainServerConnection
-        fields = "__all__"
-        widgets = {
-            "project": forms.HiddenInput(),
-        }
+        exclude = ("project",)
 
     def __init__(self, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -351,9 +353,9 @@ class DomainLinkForm(forms.ModelForm):
 
     def clean(self):
         if self.cleaned_data["static_server"] and self.cleaned_data["transient_server"]:
-            raise ValidationError(_("Select only one server"), code="invalid_selection")
+            raise ValidationError(_("Select only one server."), code="invalid_selection")
         if not self.cleaned_data["static_server"] and not self.cleaned_data["transient_server"]:
-            raise ValidationError(_("You must select one server"), code="invalid_selection")
+            raise ValidationError(_("You must select one server."), code="invalid_selection")
 
 
 class DomainNoteForm(forms.ModelForm):
@@ -390,7 +392,7 @@ class DomainNoteForm(forms.ModelForm):
         # Check if note is empty
         if not note:
             raise ValidationError(
-                _("You must provide some content for the note"),
+                _("You must provide some content for the note."),
                 code="required",
             )
         return note

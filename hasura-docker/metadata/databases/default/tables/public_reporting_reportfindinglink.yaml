@@ -84,41 +84,6 @@ insert_permissions:
         - report_id
         - severity_id
         - title
-  - role: restricted
-    permission:
-      check:
-        report:
-          project:
-            _or:
-              - assignments:
-                  operator_id:
-                    _eq: X-Hasura-User-Id
-              - invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-              - client:
-                  invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-      set:
-        added_as_blank: "true"
-        assigned_to_id: x-hasura-User-Id
-      columns:
-        - affected_entities
-        - assigned_to_id
-        - description
-        - finding_guidance
-        - finding_type_id
-        - host_detection_techniques
-        - impact
-        - mitigation
-        - network_detection_techniques
-        - position
-        - references
-        - replication_steps
-        - report_id
-        - severity_id
-        - title
   - role: user
     permission:
       check:
@@ -182,23 +147,6 @@ select_permissions:
         - severity_id
         - title
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter:
-        report:
-          project:
-            _or:
-              - assignments:
-                  operator_id:
-                    _eq: X-Hasura-User-Id
-              - invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-              - client:
-                  invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:
@@ -260,53 +208,6 @@ update_permissions:
         - title
       filter: {}
       check: {}
-  - role: restricted
-    permission:
-      columns:
-        - affected_entities
-        - assigned_to_id
-        - complete
-        - description
-        - finding_guidance
-        - finding_type_id
-        - host_detection_techniques
-        - impact
-        - mitigation
-        - network_detection_techniques
-        - position
-        - references
-        - replication_steps
-        - report_id
-        - severity_id
-        - title
-      filter:
-        report:
-          project:
-            _or:
-              - assignments:
-                  operator_id:
-                    _eq: X-Hasura-User-Id
-              - invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-              - client:
-                  invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
-      check:
-        report:
-          project:
-            _or:
-              - assignments:
-                  operator_id:
-                    _eq: X-Hasura-User-Id
-              - invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-              - client:
-                  invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:
@@ -360,22 +261,6 @@ delete_permissions:
   - role: manager
     permission:
       filter: {}
-  - role: restricted
-    permission:
-      filter:
-        report:
-          project:
-            _or:
-              - assignments:
-                  operator_id:
-                    _eq: X-Hasura-User-Id
-              - invites:
-                  user_id:
-                    _eq: X-Hasura-User-Id
-              - client:
-                  invites:
-                    user_id:
-                      _eq: X-Hasura-User-Id
   - role: user
     permission:
       filter:
@@ -392,3 +277,34 @@ delete_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
+event_triggers:
+  - name: CreateReportFinding
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+      update:
+        columns:
+          - severity_id
+          - position
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/report/finding/change'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET
+  - name: DeleteReportFinding
+    definition:
+      enable_manual: false
+      delete:
+        columns: '*'
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/report/finding/delete'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET

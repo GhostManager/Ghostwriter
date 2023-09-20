@@ -9,11 +9,15 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+# 3rd Party Libraries
+from django_otp.plugins.otp_static.models import StaticToken
+
 # Ghostwriter Libraries
 from ghostwriter.api import utils
 from ghostwriter.api.models import APIKey
 from ghostwriter.factories import (
     ActivityTypeFactory,
+    ClientFactory,
     DomainFactory,
     DomainStatusFactory,
     EvidenceFactory,
@@ -28,6 +32,7 @@ from ghostwriter.factories import (
     ServerHistoryFactory,
     ServerRoleFactory,
     ServerStatusFactory,
+    SeverityFactory,
     StaticServerFactory,
     UserFactory,
 )
@@ -364,6 +369,13 @@ class HasuraLoginTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+
+        cls.user_2fa = UserFactory(password=PASSWORD)
+        cls.user_2fa_required = UserFactory(password=PASSWORD, require_2fa=True)
+        cls.user_2fa.totpdevice_set.create()
+        static_model = cls.user_2fa.staticdevice_set.create()
+        static_model.token_set.create(token=StaticToken.random_token())
+
         cls.uri = reverse("api:graphql_login")
 
     def setUp(self):
@@ -391,6 +403,38 @@ class HasuraLoginTests(TestCase):
                 "code": "InvalidCredentials",
             },
         }
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(force_str(response.content), result)
+
+    def test_graphql_login_with_2fa(self):
+        result = {
+            "message": "Login and generate a token from your user profile",
+            "extensions": {
+                "code": "2FARequired",
+            },
+        }
+
+        data = {"input": {"username": f"{self.user_2fa.username}", "password": f"{PASSWORD}"}}
+        response = self.client.post(
+            self.uri,
+            data=data,
+            content_type="application/json",
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertJSONEqual(force_str(response.content), result)
+
+        data = {"input": {"username": f"{self.user_2fa_required.username}", "password": f"{PASSWORD}"}}
         response = self.client.post(
             self.uri,
             data=data,
@@ -1003,6 +1047,8 @@ class GraphqlDeleteReportTemplateAction(TestCase):
 
         cls.template = ReportTemplateFactory()
         cls.protected_template = ReportTemplateFactory(protected=True)
+        cls.client = ClientFactory()
+        cls.client_template = ReportTemplateFactory(client=cls.client)
 
     def setUp(self):
         self.client = Client()
@@ -1050,6 +1096,14 @@ class GraphqlDeleteReportTemplateAction(TestCase):
         response = self.client.post(
             self.uri,
             data=self.generate_data(self.protected_template.id),
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 401)
+
+        response = self.client.post(
+            self.uri,
+            data=self.generate_data(self.client_template.id),
             content_type="application/json",
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
@@ -1315,6 +1369,248 @@ class GraphqlOplogEntryEventTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
+class GraphqlReportFindingEventTests(TestCase):
+    """
+    Collection of tests for :view:`api:GraphqlReportFindingChangeEvent` and
+    :view:`api:GraphqlReportFindingDeleteEvent`.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+
+        cls.critical_severity = SeverityFactory(severity="Critical", weight=0)
+        cls.high_severity = SeverityFactory(severity="High", weight=1)
+
+        cls.report = ReportFactory()
+
+        cls.change_uri = reverse("api:graphql_reportfinding_change_event")
+        cls.delete_uri = reverse("api:graphql_reportfinding_delete_event")
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_model_cleaning_position(self):
+        self.ReportFindingLink.objects.all().delete()
+        first_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=1)
+        second_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=2)
+        third_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=3)
+
+        # Simulate an event changing the position of the first finding to `3`
+        first_finding.position = 3
+        first_finding.save()
+        sample_data = {
+            "event": {
+                "op": "UPDATE",
+                "data": {
+                    "old": {
+                        "id": first_finding.id,
+                        "position": 1,
+                        "severity_id": first_finding.severity.id,
+                    },
+                    "new": {
+                        "id": first_finding.id,
+                        "position": 3,
+                        "severity_id": first_finding.severity.id,
+                    },
+                },
+            },
+        }
+
+        # Submit the POST request to the event webhook
+        response = self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data=sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first_finding.refresh_from_db()
+        self.assertEqual(first_finding.position, 3)
+        second_finding.refresh_from_db()
+        self.assertEqual(second_finding.position, 1)
+        third_finding.refresh_from_db()
+        self.assertEqual(third_finding.position, 2)
+
+        # Repeat for an `UPDATE` event with a severity change
+        second_finding.severity = self.high_severity
+        second_finding.save()
+        sample_data = {
+            "event": {
+                "op": "UPDATE",
+                "data": {
+                    "old": {
+                        "id": second_finding.id,
+                        "position": second_finding.position,
+                        "severity_id": self.critical_severity.id,
+                    },
+                    "new": {
+                        "id": second_finding.id,
+                        "position": second_finding.position,
+                        "severity_id": self.high_severity.id,
+                    },
+                },
+            },
+        }
+
+        response = self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data=sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first_finding.refresh_from_db()
+        second_finding.refresh_from_db()
+        third_finding.refresh_from_db()
+        self.assertEqual(second_finding.position, 1)
+        self.assertEqual(first_finding.position, 2)
+        self.assertEqual(third_finding.position, 1)
+
+        # Repeat for an `INSERT` event
+        new_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity)
+        sample_data = {
+            "event": {
+                "op": "INSERT",
+                "data": {
+                    "old": None,
+                    "new": {
+                        "id": new_finding.id,
+                        "position": 1,
+                        "severity_id": new_finding.severity.id,
+                    },
+                },
+            },
+        }
+
+        response = self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data=sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        new_finding.refresh_from_db()
+        self.assertEqual(new_finding.position, 3)
+
+    def test_position_set_to_zero(self):
+        self.ReportFindingLink.objects.all().delete()
+        finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=0)
+
+        # Simulate an event changing the position of the first finding to `0`
+        sample_data = {
+            "event": {
+                "op": "INSERT",
+                "data": {
+                    "old": None,
+                    "new": {
+                        "id": finding.id,
+                        "position": 0,
+                        "severity_id": finding.severity.id,
+                    },
+                },
+            },
+        }
+
+        # Submit the POST request to the event webhook
+        response = self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data=sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        finding.refresh_from_db()
+        self.assertEqual(finding.position, 1)
+
+    def test_position_set_higher_than_count(self):
+        self.ReportFindingLink.objects.all().delete()
+        finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=100)
+
+        # Simulate an event changing the position of the first finding to `100`
+        sample_data = {
+            "event": {
+                "op": "INSERT",
+                "data": {
+                    "old": None,
+                    "new": {
+                        "id": finding.id,
+                        "position": 100,
+                        "severity_id": finding.severity.id,
+                    },
+                },
+            },
+        }
+
+        # Submit the POST request to the event webhook
+        response = self.client.post(
+            self.change_uri,
+            content_type="application/json",
+            data=sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        finding.refresh_from_db()
+        total_findings = self.ReportFindingLink.objects.filter(report=self.report).count()
+        self.assertEqual(finding.position, total_findings)
+
+    def test_position_change_on_delete(self):
+        self.ReportFindingLink.objects.all().delete()
+
+        first_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=1)
+        second_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=2)
+        third_finding = ReportFindingLinkFactory(report=self.report, severity=self.critical_severity, position=3)
+
+        # Simulate an event deleting the second finding
+        second_finding.delete()
+        sample_data = {
+            "event": {
+                "op": "DELETE",
+                "data": {
+                    "old": {
+                        "id": second_finding.id,
+                        "position": 2,
+                        "severity_id": second_finding.severity.id,
+                        "report_id": second_finding.report.id,
+                    },
+                    "new": None,
+                },
+            },
+        }
+
+        # Submit the POST request to the event webhook
+        response = self.client.post(
+            self.delete_uri,
+            content_type="application/json",
+            data=sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        first_finding.refresh_from_db()
+        third_finding.refresh_from_db()
+        self.assertEqual(first_finding.position, 1)
+        self.assertEqual(third_finding.position, 2)
+
+
 # Tests related to CBVs for :model:`api:APIKey`
 
 
@@ -1352,7 +1648,7 @@ class ApiKeyRevokeTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_revoking_another_users_token(self):
-        response = self.client.post(self.other_uri)
+        response = self.client_auth.post(self.other_uri)
         self.assertEqual(response.status_code, 302)
 
 

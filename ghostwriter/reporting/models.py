@@ -10,7 +10,6 @@ from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Q
 from django.urls import reverse
 
 # 3rd Party Libraries
@@ -24,9 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class Severity(models.Model):
-    """
-    Stores an individual severity rating.
-    """
+    """Stores an individual severity rating."""
 
     def get_default_weight():
         """
@@ -54,23 +51,17 @@ class Severity(models.Model):
     )
 
     def count_findings(self):
-        """
-        Return the number of :model:`reporting.Finding` associated with an instance.
-        """
+        """Return the number of :model:`reporting.Finding` associated with an instance."""
         return Finding.objects.filter(severity=self).count()
 
     @property
     def color_rgb(self):
-        """
-        Return the severity color code as a list of RGB values.
-        """
+        """Return the severity color code as a list of RGB values."""
         return tuple(int(self.color[i : i + 2], 16) for i in (0, 2, 4))
 
     @property
     def color_hex(self):
-        """
-        Return the severity color code as a list of hexadecimal.
-        """
+        """Return the severity color code as a list of hexadecimal."""
         n = 2
         return tuple(hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n))
 
@@ -124,16 +115,12 @@ class Severity(models.Model):
 
 
 class FindingType(models.Model):
-    """
-    Stores an individual finding type.
-    """
+    """Stores an individual finding type."""
 
     finding_type = models.CharField("Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)")
 
     def count_findings(self):
-        """
-        Return the number of :model:`reporting.Finding` associated with an instance.
-        """
+        """Return the number of :model:`reporting.Finding` associated with an instance."""
         return Finding.objects.filter(finding_type=self).count()
 
     count = property(count_findings)
@@ -148,9 +135,7 @@ class FindingType(models.Model):
 
 
 class Finding(models.Model):
-    """
-    Stores an individual finding, related to :model:`reporting.Severity` and :model:`reporting.FindingType`.
-    """
+    """Stores an individual finding, related to :model:`reporting.Severity` and :model:`reporting.FindingType`."""
 
     title = models.CharField(
         "Title",
@@ -215,6 +200,7 @@ class Finding(models.Model):
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
+        null=True,
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
@@ -222,14 +208,14 @@ class Finding(models.Model):
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a severity rating for this finding that reflects its role in a system compromise",
     )
     finding_type = models.ForeignKey(
         "FindingType",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a finding category that fits",
     )
 
@@ -246,9 +232,7 @@ class Finding(models.Model):
 
 
 class DocType(models.Model):
-    """
-    Stores an individual document type, related to :model:`reporting.ReportTemplate`.
-    """
+    """Stores an individual document type, related to :model:`reporting.ReportTemplate`."""
 
     doc_type = models.CharField(
         "Document Type",
@@ -269,9 +253,7 @@ class DocType(models.Model):
 
 
 class ReportTemplate(models.Model):
-    """
-    Stores an individual report template file, related to :model:`reporting.Report`.
-    """
+    """Stores an individual report template file, related to :model:`reporting.Report`."""
 
     # Direct template uploads to ``TEMPLATE_LOC`` instead of ``MEDIA``
     template_storage = FileSystemStorage(location=settings.TEMPLATE_LOC)
@@ -337,15 +319,13 @@ class ReportTemplate(models.Model):
         blank=True,
         help_text="Select the filetype for this template",
     )
-
     p_style = models.CharField(
-        "Style of new paragraphs - Word only (leave empty for default - Normal)",
+        "New Paragraph Style",
         max_length=255,
         null=True,
         blank=True,
         default=None,
-        help_text="Provide the name of the style of new paragraphs. The style must be present in the template. " + \
-                  "Leave empty to use default Normal style (Word only).",
+        help_text="Provide the name of a style in your template to use for new paragraphs (Word only).",
     )
 
     class Meta:
@@ -379,9 +359,7 @@ class ReportTemplate(models.Model):
 
 
 class Report(models.Model):
-    """
-    Stores an individual report, related to :model:`rolodex.Project` and :model:`users.User`.
-    """
+    """Stores an individual report, related to :model:`rolodex.Project` and :model:`users.User`."""
 
     title = models.CharField(
         "Title",
@@ -518,14 +496,14 @@ class ReportFindingLink(models.Model):
     # Foreign Keys
     severity = models.ForeignKey(
         "Severity",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a severity rating for this finding that reflects its role in a system compromise",
     )
     finding_type = models.ForeignKey(
         "FindingType",
+        default=1,
         on_delete=models.PROTECT,
-        null=True,
         help_text="Select a finding category that fits",
     )
     report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True)
@@ -545,6 +523,7 @@ class ReportFindingLink(models.Model):
     cvss_vector = models.CharField(
         "CVSS Vector v3.0",
         blank=True,
+        null=True,
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
@@ -555,78 +534,7 @@ class ReportFindingLink(models.Model):
         verbose_name_plural = "Report findings"
 
     def __str__(self):
-        return self.title
-
-    def clean(self):
-        # Check if this is a new entry or updated
-        if self.pk:
-            old_entry = self.__class__.objects.get(pk=self.pk)
-        else:
-            old_entry = None
-
-        # A ``pre_save`` Signal is connected to this model and runs this ``clean()`` method
-        # whenever ``save()`` is called
-
-        # The following adjustments use the queryset ``update()`` method (direct SQL statement)
-        # instead of calling ``save()`` on the individual model instance
-        # This avoids forever looping through position changes
-
-        # Adjust model based on updated values
-        if old_entry:
-            # Save the old values for reference
-            old_position = old_entry.position
-            old_severity = old_entry.severity
-            # Only run db queries if ``position`` or ``severity`` changed
-            if old_position != self.position or old_severity != self.severity:
-                # Get all findings in report that share the instance's severity rating
-                finding_queryset = ReportFindingLink.objects.filter(
-                    Q(report__pk=self.report.pk) & Q(severity=self.severity)
-                ).order_by("position")
-
-                # If severity rating changed, adjust positioning in the previous severity group
-                if old_severity != self.severity:
-                    # Get a list of findings for the old severity rating
-                    old_severity_queryset = ReportFindingLink.objects.filter(
-                        Q(report__pk=self.report.pk) & Q(severity=old_severity)
-                    ).order_by("position")
-                    if old_severity_queryset:
-                        for finding in old_severity_queryset:
-                            # Adjust position to close gap created by moved finding
-                            if finding.position > old_position:
-                                new_pos = finding.position - 1
-                                old_severity_queryset.filter(id=finding.id).order_by("position").update(
-                                    position=new_pos
-                                )
-
-                # The ``ReportFindingLinkUpdateForm`` sets minimum number to 0, but check again for funny business
-                self.position = max(self.position, 1)
-
-                # The ``position`` value should not be larger than total findings
-                if self.position > finding_queryset.count():
-                    self.position = finding_queryset.count()
-
-                counter = 1
-                if finding_queryset:
-                    # Loop from top position down and look for a match
-                    for finding in finding_queryset:
-                        # Check if finding in loop is the finding being updated
-                        if not self.pk == finding.pk:
-                            # Increment position counter when counter equals new value
-                            if self.position == counter:
-                                counter += 1
-                            finding_queryset.filter(id=finding.id).update(position=counter)
-                            counter += 1
-                        else:
-                            pass
-                # No other findings with the chosen severity, so set ``position`` to ``1``
-                else:
-                    self.position = 1
-        # Place newly created findings at the end of the current list
-        else:
-            finding_queryset = ReportFindingLink.objects.filter(
-                Q(report__pk=self.report.pk) & Q(severity=self.severity)
-            )
-            self.position = finding_queryset.count() + 1
+        return f"{self.title}"
 
 
 class Evidence(models.Model):
@@ -636,9 +544,7 @@ class Evidence(models.Model):
     """
 
     def set_upload_destination(self, filename):
-        """
-        Sets the `upload_to` destination to the evidence folder for the associated report ID.
-        """
+        """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
         return os.path.join("evidence", str(self.finding.report.id), filename)
 
     document = models.FileField(
@@ -682,7 +588,7 @@ class Evidence(models.Model):
         return reverse("reporting:evidence_detail", args=[str(self.id)])
 
     def __str__(self):
-        return self.document.name
+        return f"{self.document.name}"
 
     @property
     def filename(self):
@@ -690,9 +596,7 @@ class Evidence(models.Model):
 
 
 class Archive(models.Model):
-    """
-    Stores an individual archived report, related to :model:`rolodex.Project.
-    """
+    """Stores an individual archived report, related to :model:`rolodex.Project."""
 
     report_archive = models.FileField()
     project = models.ForeignKey("rolodex.Project", on_delete=models.CASCADE, null=True)
@@ -707,13 +611,11 @@ class Archive(models.Model):
         verbose_name_plural = "Archived reports"
 
     def __str__(self):
-        return self.report_archive.name
+        return f"{self.report_archive.name}"
 
 
 class FindingNote(models.Model):
-    """
-    Stores an individual finding note, related to :model:`reporting.Finding`.
-    """
+    """Stores an individual finding note, related to :model:`reporting.Finding`."""
 
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(
@@ -736,9 +638,7 @@ class FindingNote(models.Model):
 
 
 class LocalFindingNote(models.Model):
-    """
-    Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`.
-    """
+    """Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`."""
 
     timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
     note = models.TextField(

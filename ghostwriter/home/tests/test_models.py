@@ -51,6 +51,14 @@ class UserProfileModelTests(TestCase):
         profile.save()
         self.assertIn("fake.png", profile.avatar.path)
 
+        # Test clean-up Signal on profile change
+        refetch = UserProfile.objects.get(user=user)
+        old_avatar_path = refetch.avatar.path
+        self.assertTrue(os.path.exists(old_avatar_path))
+        refetch.avatar = self.uploaded_image_file
+        refetch.save()
+        self.assertFalse(os.path.exists(old_avatar_path))
+
         # Delete
         user.delete()
         self.assertFalse(UserProfile.objects.all().exists())

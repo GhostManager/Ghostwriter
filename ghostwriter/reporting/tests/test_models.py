@@ -135,6 +135,12 @@ class SeverityModelTests(TestCase):
         self.assertEqual(medium.color, "000FFF")
         self.assertEqual(medium.weight, 3)
 
+        low = SeverityFactory(severity="Low", weight=50, color="000FFF")
+        self.assertEqual(low.weight, 4)
+
+        info = SeverityFactory(severity="Info", weight=-1, color="000FFF")
+        self.assertEqual(info.weight, 5)
+
         critical.weight = 2
         critical.save()
 
@@ -357,165 +363,6 @@ class ReportFindingLinkModelTests(TestCase):
         # Delete
         finding.delete()
         assert not self.ReportFindingLink.objects.all().exists()
-
-    def test_model_cleaning_position(self):
-        report = ReportFactory()
-        num_of_findings = 10
-        findings = []
-        for finding_id in range(num_of_findings):
-            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
-        # New position values
-        first_pos = 1
-        second_pos = 2
-        # Bump first finding from ``1`` to new value
-        findings[0].position = second_pos
-        findings[0].save()
-
-        cleaned_findings = []
-        for f in findings:
-            f.refresh_from_db()
-            cleaned_findings.append(f)
-        # Assert first finding is now in second position
-        self.assertEqual(cleaned_findings[0].position, second_pos)
-        # Assert second finding has moved into first position
-        self.assertEqual(cleaned_findings[1].position, first_pos)
-
-        # Test triggering ``clean()`` method when parent ``Report`` is deleted
-        report.delete()
-
-    def test_model_cleaning_severity_change(self):
-        report = ReportFactory()
-        num_of_findings = 10
-        findings = []
-        for finding_id in range(num_of_findings):
-            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
-        # Bump the first half of the findings to the new severity in reverse order
-        for f in reversed(range(5)):
-            findings[f].severity = self.high_severity
-            findings[f].save()
-
-        cleaned_findings = []
-        for f in findings:
-            f.refresh_from_db()
-            cleaned_findings.append(f)
-        # Assert severity was properly updated
-        self.assertEqual(cleaned_findings[0].severity, self.high_severity)
-        # Assert the positions were set properly
-        self.assertEqual(cleaned_findings[5].position, 1)
-        self.assertEqual(cleaned_findings[9].position, 5)
-        self.assertEqual(cleaned_findings[0].position, 1)
-        self.assertEqual(cleaned_findings[4].position, 5)
-
-    def test_model_cleaning_severity_and_position_changes(self):
-        report = ReportFactory()
-        num_of_findings = 5
-        findings = []
-        for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity),
-            )
-
-        for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.high_severity),
-            )
-
-        # Bounce findings around to shuffle positions several times
-        findings[8].severity = self.critical_severity
-        findings[8].position = 2
-        findings[8].save()
-
-        findings[5].severity = self.critical_severity
-        findings[5].position = 1
-        findings[5].save()
-
-        findings[3].severity = self.high_severity
-        findings[3].position = 2
-        findings[3].save()
-
-        cleaned_findings = []
-        for f in findings:
-            f.refresh_from_db()
-            cleaned_findings.append(f)
-
-        # Assert ``severity`` and ``position`` changes committed correctly
-        self.assertEqual(cleaned_findings[8].severity, self.critical_severity)
-        self.assertEqual(cleaned_findings[8].position, 3)
-        self.assertEqual(cleaned_findings[5].severity, self.critical_severity)
-        self.assertEqual(cleaned_findings[5].position, 1)
-        self.assertEqual(cleaned_findings[3].severity, self.high_severity)
-        self.assertEqual(cleaned_findings[3].position, 2)
-        # Assert the ``position`` values updated properly for "Critical"
-        self.assertEqual(cleaned_findings[5].position, 1)
-        self.assertEqual(cleaned_findings[0].position, 2)
-        self.assertEqual(cleaned_findings[8].position, 3)
-        self.assertEqual(cleaned_findings[1].position, 4)
-        self.assertEqual(cleaned_findings[2].position, 5)
-        self.assertEqual(cleaned_findings[4].position, 6)
-        # Assert the ``position`` values updated properly for "High"
-        self.assertEqual(cleaned_findings[5].position, 1)
-        self.assertEqual(cleaned_findings[3].position, 2)
-        self.assertEqual(cleaned_findings[7].position, 3)
-        self.assertEqual(cleaned_findings[9].position, 4)
-
-    def test_position_set_to_zero(self):
-        report = ReportFactory()
-        finding = ReportFindingLinkFactory(report=report, severity=self.critical_severity)
-        finding.position = -10
-        finding.save()
-        finding.refresh_from_db()
-        # Assert the other ``position`` values updated properly
-        self.assertEqual(finding.position, 1)
-
-    def test_position_set_higher_than_count(self):
-        report = ReportFactory()
-        num_of_findings = 10
-        findings = []
-        for finding_id in range(num_of_findings):
-            findings.append(ReportFindingLinkFactory(report=report, severity=self.critical_severity))
-        findings[0].position = 100
-        findings[0].save()
-        findings[0].refresh_from_db()
-        # Assert the other ``position`` values updated properly
-        self.assertEqual(findings[0].position, num_of_findings)
-
-    def test_position_change_on_delete(self):
-        report = ReportFactory()
-        num_of_findings = 5
-        findings = []
-        for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.critical_severity),
-            )
-        for finding_id in range(num_of_findings):
-            findings.append(
-                ReportFindingLinkFactory(report=report, severity=self.high_severity),
-            )
-
-        # Delete several findings to create gaps in the severity groups
-        # Need to use atomic because ``TestCase`` and a ``post_delete`` Signal
-        with transaction.atomic():
-            findings[3].delete()
-            findings[5].delete()
-            findings[8].delete()
-
-        cleaned_findings = []
-        for f in findings:
-            try:
-                f.refresh_from_db()
-                cleaned_findings.append(f)
-            except self.ReportFindingLink.DoesNotExist:
-                pass
-
-        # Assert the ``position`` values updated properly for "Critical"
-        self.assertEqual(cleaned_findings[0].position, 1)
-        self.assertEqual(cleaned_findings[1].position, 2)
-        self.assertEqual(cleaned_findings[2].position, 3)
-        self.assertEqual(cleaned_findings[3].position, 4)
-        # Assert the ``position`` values updated properly for "High"
-        self.assertEqual(cleaned_findings[4].position, 1)
-        self.assertEqual(cleaned_findings[5].position, 2)
-        self.assertEqual(cleaned_findings[6].position, 3)
 
 
 class EvidenceModelTests(TestCase):

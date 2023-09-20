@@ -10,11 +10,13 @@ from ghostwriter.factories import (
     FindingFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
+    ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
     ReportFindingLinkFactory,
     ReportTemplateFactory,
     SeverityFactory,
+    UserFactory,
 )
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.reporting.forms import (
@@ -30,6 +32,8 @@ from ghostwriter.reporting.forms import (
 )
 
 logging.disable(logging.CRITICAL)
+
+PASSWORD = "SuperNaturalReporting!"
 
 
 class FindingFormTests(TestCase):
@@ -98,12 +102,14 @@ class ReportFormTests(TestCase):
         cls.project = ProjectFactory()
         cls.report = ReportFactory(project=cls.project)
         cls.report_dict = cls.report.__dict__
+        cls.user = UserFactory(password=PASSWORD)
 
     def setUp(self):
         pass
 
     def form_data(
         self,
+        user=None,
         title=None,
         complete=None,
         archived=None,
@@ -115,6 +121,7 @@ class ReportFormTests(TestCase):
         **kwargs,
     ):
         return ReportForm(
+            user=user,
             data={
                 "title": title,
                 "complete": complete,
@@ -129,15 +136,19 @@ class ReportFormTests(TestCase):
 
     def test_valid_data(self):
         report = self.report_dict.copy()
+        form = self.form_data(user=self.user, **report)
+        self.assertFalse(form.is_valid())
+        self.assertTrue(form.errors.as_data()["project"][0].code == "invalid_choice")
 
-        form = self.form_data(**report)
+        ProjectAssignmentFactory(operator=self.user, project=self.project)
+        form = self.form_data(user=self.user, **report)
         self.assertTrue(form.is_valid())
 
     def test_invalid_docx_template(self):
         report = self.report_dict.copy()
         report["docx_template_id"] = report["pptx_template_id"]
 
-        form = self.form_data(**report)
+        form = self.form_data(user=self.user, **report)
         errors = form["docx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid_choice")
@@ -146,7 +157,7 @@ class ReportFormTests(TestCase):
         report = self.report_dict.copy()
         report["pptx_template_id"] = report["docx_template_id"]
 
-        form = self.form_data(**report)
+        form = self.form_data(user=self.user, **report)
         errors = form["pptx_template"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid_choice")
@@ -398,6 +409,7 @@ class ReportTemplateFormTests(TestCase):
     def setUpTestData(cls):
         cls.template = ReportTemplateFactory()
         cls.template_dict = cls.template.__dict__
+        cls.user = UserFactory(password=PASSWORD)
 
     def setUp(self):
         pass
@@ -412,6 +424,8 @@ class ReportTemplateFormTests(TestCase):
         changelog=None,
         client_id=None,
         doc_type=None,
+        p_type=None,
+        user=None,
         **kwargs,
     ):
         return ReportTemplateForm(
@@ -423,7 +437,9 @@ class ReportTemplateFormTests(TestCase):
                 "changelog": changelog,
                 "client": client_id,
                 "doc_type": doc_type,
+                "p_type": p_type,
             },
+            user=user,
             files={
                 "document": document,
             },
@@ -432,14 +448,14 @@ class ReportTemplateFormTests(TestCase):
     def test_valid_data(self):
         template = self.template_dict.copy()
 
-        form = self.form_data(**template)
+        form = self.form_data(**template, user=self.user)
         self.assertTrue(form.is_valid())
 
     def test_blank_template(self):
         template = self.template_dict.copy()
         template["document"] = None
 
-        form = self.form_data(**template)
+        form = self.form_data(**template, user=self.user)
         errors = form["document"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "incomplete")
@@ -558,9 +574,24 @@ class SeverityFormTests(TestCase):
         errors = form["color"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+        self.assertEqual(
+            errors[0].message,
+            "Do not include the # symbol in the color field.",
+        )
 
         severity["color"] = "F4B08G"
         form = self.form_data(**severity)
         errors = form["color"].errors.as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+        self.assertEqual(
+            errors[0].message,
+            "Please enter a valid hex color, three pairs of characters using A-F and 0-9 (e.g., 7A7A7A).",
+        )
+
+        severity["color"] = "FFFFF"
+        form = self.form_data(**severity)
+        errors = form["color"].errors.as_data()
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].code, "invalid")
+        self.assertEqual(errors[0].message, "Your hex color code should be six characters in length.")

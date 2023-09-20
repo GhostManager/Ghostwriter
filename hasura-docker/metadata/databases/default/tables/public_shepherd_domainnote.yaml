@@ -28,14 +28,6 @@ insert_permissions:
       columns:
         - domain_id
         - note
-  - role: restricted
-    permission:
-      check: {}
-      set:
-        operator_id: x-hasura-User-Id
-      columns:
-        - domain_id
-        - note
   - role: user
     permission:
       check: {}
@@ -54,10 +46,6 @@ select_permissions:
         - timestamp
         - note
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'
@@ -74,17 +62,6 @@ update_permissions:
       check:
         note:
           _neq: '""'
-  - role: restricted
-    permission:
-      columns:
-        - domain_id
-        - note
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-      check:
-        operator_id:
-          _eq: X-Hasura-User-Id
   - role: user
     permission:
       columns:
@@ -98,11 +75,6 @@ update_permissions:
           _eq: X-Hasura-User-Id
 delete_permissions:
   - role: manager
-    permission:
-      filter:
-        operator_id:
-          _eq: X-Hasura-User-Id
-  - role: restricted
     permission:
       filter:
         operator_id:

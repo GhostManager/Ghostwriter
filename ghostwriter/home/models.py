@@ -11,9 +11,7 @@ from django.templatetags.static import static
 
 # Create your models here.
 class UserProfile(models.Model):
-    """
-    Stores an individual user profile form, related to :model:`users.User`.
-    """
+    """Stores an individual user profile form, related to :model:`users.User`."""
 
     def set_upload_destination(self, filename):
         """

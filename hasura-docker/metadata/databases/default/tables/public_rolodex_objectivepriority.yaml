@@ -22,10 +22,6 @@ select_permissions:
         - weight
         - priority
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'

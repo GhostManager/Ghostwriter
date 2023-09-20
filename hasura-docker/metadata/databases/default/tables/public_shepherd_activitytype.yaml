@@ -35,10 +35,6 @@ select_permissions:
         - activity
         - id
       filter: {}
-  - role: restricted
-    permission:
-      columns: '*'
-      filter: {}
   - role: user
     permission:
       columns: '*'

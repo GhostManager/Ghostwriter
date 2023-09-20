@@ -24,13 +24,6 @@ insert_permissions:
         - ip_address
         - primary
         - static_server_id
-  - role: restricted
-    permission:
-      check: {}
-      columns:
-        - ip_address
-        - primary
-        - static_server_id
   - role: user
     permission:
       check: {}
@@ -42,14 +35,6 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - ip_address
-        - primary
-        - static_server_id
-      filter: {}
-  - role: restricted
-    permission:
-      columns:
-        - id
         - ip_address
         - primary
         - static_server_id
@@ -71,14 +56,6 @@ update_permissions:
         - static_server_id
       filter: {}
       check: {}
-  - role: restricted
-    permission:
-      columns:
-        - ip_address
-        - primary
-        - static_server_id
-      filter: {}
-      check: {}
   - role: user
     permission:
       columns:
@@ -89,9 +66,6 @@ update_permissions:
       check: {}
 delete_permissions:
   - role: manager
-    permission:
-      filter: {}
-  - role: restricted
     permission:
       filter: {}
   - role: user
