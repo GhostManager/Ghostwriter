@@ -63,7 +63,9 @@ class Severity(models.Model):
     def color_hex(self):
         """Return the severity color code as a list of hexadecimal."""
         n = 2
-        return tuple(hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n))
+        return tuple(
+            hex(int(self.color[i : i + n], 16)) for i in range(0, len(self.color), n)
+        )
 
     count = property(count_findings)
 
@@ -104,7 +106,9 @@ class Severity(models.Model):
                         if not self.pk == category.pk:
                             if self.weight == counter:
                                 counter += 1
-                            severity_queryset.filter(id=category.id).update(weight=counter)
+                            severity_queryset.filter(id=category.id).update(
+                                weight=counter
+                            )
                             counter += 1
                         else:
                             pass
@@ -117,7 +121,9 @@ class Severity(models.Model):
 class FindingType(models.Model):
     """Stores an individual finding type."""
 
-    finding_type = models.CharField("Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)")
+    finding_type = models.CharField(
+        "Type", max_length=255, unique=True, help_text="Type of finding (e.g. network)"
+    )
 
     def count_findings(self):
         """Return the number of :model:`reporting.Finding` associated with an instance."""
@@ -201,7 +207,7 @@ class Finding(models.Model):
         "CVSS Vector v3.0",
         blank=True,
         null=True,
-        max_length=54,
+        max_length=120,
         help_text="Set the CVSS vector for this finding",
     )
     tags = TaggableManager(blank=True)
@@ -304,7 +310,9 @@ class ReportTemplate(models.Model):
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
     client = models.ForeignKey(
         "rolodex.Client",
         on_delete=models.CASCADE,
@@ -349,7 +357,9 @@ class ReportTemplate(models.Model):
             try:
                 result_code = self.lint_result["result"]
             except json.decoder.JSONDecodeError:  # pragma: no cover
-                logger.exception("Could not decode data in model as JSON: %s", self.lint_result)
+                logger.exception(
+                    "Could not decode data in model as JSON: %s", self.lint_result
+                )
             except Exception:  # pragma: no cover
                 logger.exception(
                     "Encountered an exception while trying to decode this as JSON: %s",
@@ -367,10 +377,18 @@ class Report(models.Model):
         default="New Report",
         help_text="Provide a meaningful title for this report - this is only seen in Ghostwriter",
     )
-    creation = models.DateField("Creation Date", auto_now_add=True, help_text="Date the report was created")
-    last_update = models.DateField("Last Update", auto_now=True, help_text="Date the report was last touched")
-    complete = models.BooleanField("Completed", default=False, help_text="Mark the report as complete")
-    archived = models.BooleanField("Archived", default=False, help_text="Mark the report as archived")
+    creation = models.DateField(
+        "Creation Date", auto_now_add=True, help_text="Date the report was created"
+    )
+    last_update = models.DateField(
+        "Last Update", auto_now=True, help_text="Date the report was last touched"
+    )
+    complete = models.BooleanField(
+        "Completed", default=False, help_text="Mark the report as complete"
+    )
+    archived = models.BooleanField(
+        "Archived", default=False, help_text="Mark the report as archived"
+    )
     tags = TaggableManager(blank=True)
     # Foreign Keys
     project = models.ForeignKey(
@@ -397,8 +415,12 @@ class Report(models.Model):
         null=True,
         help_text="Select the PowerPoint template to use for this report",
     )
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    delivered = models.BooleanField("Delivered", default=False, help_text="Delivery status of the report")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    delivered = models.BooleanField(
+        "Delivered", default=False, help_text="Delivery status of the report"
+    )
 
     class Meta:
         ordering = ["-creation", "-last_update", "project"]
@@ -524,7 +546,7 @@ class ReportFindingLink(models.Model):
         "CVSS Vector v3.0",
         blank=True,
         null=True,
-        max_length=54,
+        max_length=120,
         help_text="Set the CVSS vector for this finding",
     )
 
@@ -577,7 +599,9 @@ class Evidence(models.Model):
     tags = TaggableManager(blank=True)
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE)
-    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["finding", "document"]
@@ -617,7 +641,9 @@ class Archive(models.Model):
 class FindingNote(models.Model):
     """Stores an individual finding note, related to :model:`reporting.Finding`."""
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -626,7 +652,9 @@ class FindingNote(models.Model):
     )
     # Foreign Keys
     finding = models.ForeignKey("Finding", on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["finding", "-timestamp"]
@@ -640,7 +668,9 @@ class FindingNote(models.Model):
 class LocalFindingNote(models.Model):
     """Stores an individual finding note in a report, related to :model:`reporting.ReportFindingLink`."""
 
-    timestamp = models.DateField("Timestamp", auto_now_add=True, help_text="Creation timestamp")
+    timestamp = models.DateField(
+        "Timestamp", auto_now_add=True, help_text="Creation timestamp"
+    )
     note = models.TextField(
         "Notes",
         null=True,
@@ -649,7 +679,9 @@ class LocalFindingNote(models.Model):
     )
     # Foreign Keys
     finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=False)
-    operator = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     class Meta:
         ordering = ["finding", "-timestamp"]
