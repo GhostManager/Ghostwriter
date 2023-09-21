@@ -1,10 +1,7 @@
 {
-    "python.linting.pylintEnabled": false,
-    "python.linting.flake8Enabled": true,
-    "python.linting.enabled": true,
-    "python.linting.flake8Args": [
+    "flake8.args": [
         "--max-line-length=240",
-        "--ignore=E203,E722,W503",
+        "--ignore=E203,E722,W503"
     ],
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingImports": "none",
@@ -18,16 +15,16 @@
         "editor.formatOnSave": false
     },
     "files.trimTrailingWhitespace": true,
-    "python.formatting.provider": "black",
-    "python.formatting.blackArgs": [
-        "--line-length",
-        "90"
-    ],
     "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.codeActionsOnSave": {
             "source.organizeImports": true
         }
     },
+    "black-formatter.args": [
+        "--line-length",
+        "90"
+    ],
     "cSpell.words": [
         "apikey",
         "asgi",
