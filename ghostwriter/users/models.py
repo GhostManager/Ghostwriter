@@ -20,6 +20,8 @@ active_roles = (
 class User(AbstractUser):
     """Stores an individual user's information."""
 
+    REQUIRED_FIELDS = ["role"]
+
     # First Name and Last Name do not cover name patterns around the globe
     name = CharField(_("Name of User"), blank=True, max_length=255)
     first_name = None
