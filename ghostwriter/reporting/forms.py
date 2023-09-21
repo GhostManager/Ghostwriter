@@ -212,6 +212,115 @@ class FindingForm(forms.ModelForm):
                         </div>
                         </fieldset>
                         </div>
+
+                        <br>
+
+                        <div class="form-row" style="text-align:center;display:none">
+                        <fieldset id="environmentalMetricGroup">
+                        <legend id="environmentalMetricGroup_Legend" title="These metrics enable the analyst to customize the CVSS score depending on the importance of the affected IT asset to a user's organization, measured in terms of complementary/alternative security controls in place, Confidentiality, Integrity, and Availability. The metrics are the modified equivalent of base metrics and are assigned metrics value based on the component placement in organization infrastructure.">Environmental Score</legend>
+
+                        <div class="column column-left">
+
+                        <div class="metric">
+                        <h3 id="MAV_Heading" title="Used to modify the base attack vector settings.">Attack Vector (MAV)</h3>
+                        <input name="MAV" value="X" id="MAV_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MAV_X" id="MAV_X_Label" title="Modified Attack Vector not defined.">Not Defined (X)</label>
+                        <input name="MAV" value="N" id="MAV_N" type="radio" onclick="CVSSAutoCalc()"><label for="MAV_N" id="MAV_N_Label" title="Modified: A vulnerability exploitable with Network access means the vulnerable component is bound to the network stack and the attacker's path is through OSI layer 3 (the network layer). Such a vulnerability is often termed 'remotely exploitable' and can be thought of as an attack being exploitable one or more network hops away (e.g. across layer 3 boundaries from routers).">Network (N)</label>
+                        <input name="MAV" value="A" id="MAV_A" type="radio" onclick="CVSSAutoCalc()"><label for="MAV_A" id="MAV_A_Label" title="Modified: A vulnerability exploitable with Adjacent Network access means the vulnerable component is bound to the network stack, however the attack is limited to the same shared physical (e.g. Bluetooth, IEEE 802.11), or logical (e.g. local IP subnet) network, and cannot be performed across an OSI layer 3 boundary (e.g. a router).">Adjacent (A)</label>
+                        <input name="MAV" value="L" id="MAV_L" type="radio" onclick="CVSSAutoCalc()"><label for="MAV_L" id="MAV_L_Label" title="Modified: A vulnerability exploitable with Local access means that the vulnerable component is not bound to the network stack, and the attacker's path is via read/write/execute capabilities. In some cases, the attacker may be logged in locally in order to exploit the vulnerability, or may rely on User Interaction to execute a malicious file.">Local (L)</label>
+                        <input name="MAV" value="P" id="MAV_P" type="radio" onclick="CVSSAutoCalc()"><label for="MAV_P" id="MAV_P_Label" title="Modified: A vulnerability exploitable with Physical access requires the attacker to physically touch or manipulate the vulnerable component, such as attaching an peripheral device to a system.">Physical (P)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="MAC_Heading" title="Used to modify the base access complexity settings.">Attack Complexity (MAC)</h3>
+                        <input name="MAC" value="X" id="MAC_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MAC_X" id="MAC_X_Label" title="Modified Access Complexity not defined.">Not Defined (X)</label>
+                        <input name="MAC" value="L" id="MAC_L" type="radio" onclick="CVSSAutoCalc()"><label for="MAC_L" id="MAC_L_Label" title="Modified: Specialized access conditions or extenuating circumstances do not exist. An attacker can expect repeatable success against the vulnerable component.">Low (L)</label>
+                        <input name="MAC" value="H" id="MAC_H" type="radio" onclick="CVSSAutoCalc()"><label for="MAC_H" id="MAC_H_Label" title="Modified: A successful attack depends on conditions beyond the attacker's control. That is, a successful attack cannot be accomplished at will, but requires the attacker to invest in some measurable amount of effort in preparation or execution against the vulnerable component before a successful attack can be expected.">High (H)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="MPR_Heading" title="Used to modify the base privileges required settings.">Privileges Required (MPR)</h3>
+                        <input name="MPR" value="X" id="MPR_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MPR_X" id="MPR_X_Label" title="Modified Privileges Required not defined.">Not Defined (X)</label>
+                        <input name="MPR" value="N" id="MPR_N" type="radio" onclick="CVSSAutoCalc()"><label for="MPR_N" id="MPR_N_Label" title="Modified: The attacker is unauthorized prior to attack, and therefore does not require any access to settings or files to carry out an attack.">None (N)</label>
+                        <input name="MPR" value="L" id="MPR_L" type="radio" onclick="CVSSAutoCalc()"><label for="MPR_L" id="MPR_L_Label" title="Modified: The attacker is authorized with (i.e. requires) privileges that provide basic user capabilities that could normally affect only settings and files owned by a user. Alternatively, an attacker with Low privileges may have the ability to cause an impact only to non-sensitive resources.">Low (L)</label>
+                        <input name="MPR" value="H" id="MPR_H" type="radio" onclick="CVSSAutoCalc()"><label for="MPR_H" id="MPR_H_Label" title="Modified: The attacker is authorized with (i.e. requires) privileges that provide significant (e.g. administrative) control over the vulnerable component that could affect component-wide settings and files.">High (H)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="MUI_Heading" title="Used to modify the base user interaction settings.">User Interaction (MUI)</h3>
+                        <input name="MUI" value="X" id="MUI_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MUI_X" id="MUI_X_Label" title="Modified User Interaction not defined.">Not Defined (X)</label>
+                        <input name="MUI" value="N" id="MUI_N" type="radio" onclick="CVSSAutoCalc()"><label for="MUI_N" id="MUI_N_Label" title="Modified: The vulnerable system can be exploited without interaction from any user.">None (N)</label>
+                        <input name="MUI" value="R" id="MUI_R" type="radio" onclick="CVSSAutoCalc()"><label for="MUI_R" id="MUI_R_Label" title="Modified: Successful exploitation of this vulnerability requires a user to take some action before the vulnerability can be exploited, such as convincing a user to click a link in an email.">Required (R)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="MS_Heading" title="Used to modify the base scope settings.">Scope (MS)</h3>
+                        <input name="MS" value="X" id="MS_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MS_X" id="MS_X_Label" title="Modified Scope not defined.">Not Defined (X)</label>
+                        <input name="MS" value="U" id="MS_U" type="radio" onclick="CVSSAutoCalc()"><label for="MS_U" id="MS_U_Label" title="Modified: An exploited vulnerability can only affect resources managed by the same authority. In this case the vulnerable component and the impacted component are the same.">Unchanged (U)</label>
+                        <input name="MS" value="C" id="MS_C" type="radio" onclick="CVSSAutoCalc()"><label for="MS_C" id="MS_C_Label" title="Modified: An exploited vulnerability can affect resources beyond the authorization privileges intended by the vulnerable component. In this case the vulnerable component and the impacted component are different.">Changed (C)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="MC_Heading" title="Used to modify the base confidentiality requirement settings.">Confidentiality (MC)</h3>
+                        <input name="MC" value="X" id="MC_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MC_X" id="MC_X_Label" title="Modified Confidentiality Impact not defined.">Not Defined (X)</label>
+                        <input name="MC" value="N" id="MC_N" type="radio" onclick="CVSSAutoCalc()"><label for="MC_N" id="MC_N_Label" title="Modified: There is no loss of confidentiality within the impacted component.">None (N)</label>
+                        <input name="MC" value="L" id="MC_L" type="radio" onclick="CVSSAutoCalc()"><label for="MC_L" id="MC_L_Label" title="Modified: There is some loss of confidentiality. Access to some restricted information is obtained, but the attacker does not have control over what information is obtained, or the amount or kind of loss is constrained. The information disclosure does not cause a direct, serious loss to the impacted component.">Low (L)</label>
+                        <input name="MC" value="H" id="MC_H" type="radio" onclick="CVSSAutoCalc()"><label for="MC_H" id="MC_H_Label" title="Modified: There is total loss of confidentiality, resulting in all resources within the impacted component being divulged to the attacker. Alternatively, access to only some restricted information is obtained, but the disclosed information presents a direct, serious impact.">High (H)</label>
+                        </div>
+
+                        </div>
+
+
+                        <div class="column column-right">
+
+                        <div class="metric">
+                        <h3 id="MI_Heading" title="Used to modify the base integrity impact settings.">Integrity (MI)</h3>
+                        <input name="MI" value="X" id="MI_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MI_X" id="MI_X_Label" title="Modified Integrity Impact not defined.">Not Defined (X)</label>
+                        <input name="MI" value="N" id="MI_N" type="radio" onclick="CVSSAutoCalc()"><label for="MI_N" id="MI_N_Label" title="Modified: There is no loss of integrity within the impacted component.">None (N)</label>
+                        <input name="MI" value="L" id="MI_L" type="radio" onclick="CVSSAutoCalc()"><label for="MI_L" id="MI_L_Label" title="Modified: Modification of data is possible, but the attacker does not have control over the consequence of a modification, or the amount of modification is constrained. The data modification does not have a direct, serious impact on the impacted component.">Low (L)</label>
+                        <input name="MI" value="H" id="MI_H" type="radio" onclick="CVSSAutoCalc()"><label for="MI_H" id="MI_H_Label" title="Modified: There is a total loss of integrity, or a complete loss of protection. For example, the attacker is able to modify any/all files protected by the impacted component. Alternatively, only some files can be modified, but malicious modification would present a direct, serious consequence to the impacted component.">High (H)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="MA_Heading" title="Used to modify the base availability impact settings.">Availability (MA)</h3>
+                        <input name="MA" value="X" id="MA_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="MI_X" id="MI_X_Label" title="Modified Availability Impact not defined.">Not Defined (X)</label>
+                        <input name="MA" value="N" id="MA_N" type="radio" onclick="CVSSAutoCalc()"><label for="MA_N" id="MA_N_Label" title="Modified: There is no impact to availability within the impacted component.">None (N)</label>
+                        <input name="MA" value="L" id="MA_L" type="radio" onclick="CVSSAutoCalc()"><label for="MA_L" id="MA_L_Label" title="Modified: There is reduced performance or interruptions in resource availability. Even if repeated exploitation of the vulnerability is possible, the attacker does not have the ability to completely deny service to legitimate users. The resources in the impacted component are either partially available all of the time, or fully available only some of the time, but overall there is no direct, serious consequence to the impacted component.">Low (L)</label>
+                        <input name="MA" value="H" id="MA_H" type="radio" onclick="CVSSAutoCalc()"><label for="MA_H" id="MA_H_Label" title="Modified: There is total loss of availability, resulting in the attacker being able to fully deny access to resources in the impacted component; this loss is either sustained (while the attacker continues to deliver the attack) or persistent (the condition persists even after the attack has completed). Alternatively, the attacker has the ability to deny some availability, but the loss of availability presents a direct, serious consequence to the impacted component (e.g., the attacker cannot disrupt existing connections, but can prevent new connections; the attacker can repeatedly exploit a vulnerability that, in each instance of a successful attack, leaks a only small amount of memory, but after repeated exploitation causes a service to become completely unavailable).">High (H)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="CR_Heading">Confidentiality Requirement (CR)</h3>
+                        <input name="CR" value="X" id="CR_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="CR_X" id="CR_X_Label" title="Assigning this value to the metric will not influence the score. It is a signal to the equation to skip this metric.">Not Defined (X)</label>
+                        <input name="CR" value="L" id="CR_L" type="radio" onclick="CVSSAutoCalc()"><label for="CR_L" id="CR_L_Label" title="Loss of Confidentiality is likely to have only a limited adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">Low (L)</label>
+                        <input name="CR" value="M" id="CR_M" type="radio" onclick="CVSSAutoCalc()"><label for="CR_M" id="CR_M_Label" title="Loss of Confidentiality is likely to have a serious adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">Medium (M)</label>
+                        <input name="CR" value="H" id="CR_H" type="radio" onclick="CVSSAutoCalc()"><label for="CR_H" id="CR_H_Label" title="Loss of Confidentiality is likely to have a catastrophic adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">High (H)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="IR_Heading">Integrity Requirement (IR)</h3>
+                        <input name="IR" value="X" id="IR_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="IR_X" id="IR_X_Label" title="Assigning this value to the metric will not influence the score. It is a signal to the equation to skip this metric.">Not Defined (X)</label>
+                        <input name="IR" value="L" id="IR_L" type="radio" onclick="CVSSAutoCalc()"><label for="IR_L" id="IR_L_Label" title="Loss of Integrity is likely to have only a limited adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">Low (L)</label>
+                        <input name="IR" value="M" id="IR_M" type="radio" onclick="CVSSAutoCalc()"><label for="IR_M" id="IR_M_Label" title="Loss of Integrity is likely to have a serious adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">Medium (M)</label>
+                        <input name="IR" value="H" id="IR_H" type="radio" onclick="CVSSAutoCalc()"><label for="IR_H" id="IR_H_Label" title="Loss of Integrity is likely to have a catastrophic adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">High (H)</label>
+                        </div>
+
+                        <div class="metric">
+                        <h3 id="AR_Heading">Availability Requirement (AR)</h3>
+                        <input name="AR" value="X" id="AR_X" type="radio" onclick="CVSSAutoCalc()" checked="checked"><label for="AR_X" id="AR_X_Label" title="Assigning this value to the metric will not influence the score. It is a signal to the equation to skip this metric.">Not Defined (X)</label>
+                        <input name="AR" value="L" id="AR_L" type="radio" onclick="CVSSAutoCalc()"><label for="AR_L" id="AR_L_Label" title="Loss of availability is likely to have only a limited adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">Low (L)</label>
+                        <input name="AR" value="M" id="AR_M" type="radio" onclick="CVSSAutoCalc()"><label for="AR_M" id="AR_M_Label" title="Loss of availability is likely to have a serious adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">Medium (M)</label>
+                        <input name="AR" value="H" id="AR_H" type="radio" onclick="CVSSAutoCalc()"><label for="AR_H" id="AR_H_Label" title="Loss of availability is likely to have a catastrophic adverse effect on the organization or individuals associated with the organization (e.g., employees, customers).">High (H)</label>
+                        </div>
+
+                        </div>
+
+
+                        <div id="environmentalScoreRating" class="scoreRating">
+                        <span id="environmentalMetricScore"></span>
+                        <span id="environmentalSeverity">Select values for all base metrics</span>
+                        </div>
+                        </fieldset>
+                        </div>
                         """
                     ),
                     active=False,
