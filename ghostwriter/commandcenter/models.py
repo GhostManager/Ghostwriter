@@ -181,6 +181,15 @@ class CompanyInformation(SingletonModel):
         default="SpecterOps",
         help_text="Company name handle to reference in reports",
     )
+    company_short_name = models.CharField(
+        max_length=255,
+        default="SO",
+        help_text="Abbreviated company name to reference in reports",
+    )
+    company_address = models.TextField(
+        default="14 N Moore St, New York, NY 10013",
+        help_text="Company address to reference in reports",
+    )
     company_twitter = models.CharField(
         "Twitter Handle",
         max_length=255,
