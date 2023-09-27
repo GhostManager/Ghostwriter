@@ -442,3 +442,42 @@ class OplogEntryUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri, **{"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/snippets/oplogentry_form_inner.html")
+
+
+class OplogExportViewTests(TestCase):
+    """Collection of tests for :view:`oplog.OplogExport`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.Oplog = OplogFactory._meta.model
+        cls.OplogEntry = OplogEntryFactory._meta.model
+
+        cls.oplog = OplogFactory()
+        OplogEntryFactory.create_batch(5, oplog_id=cls.oplog)
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.uri = reverse("oplog:oplog_export", kwargs={"pk": cls.oplog.id})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.oplog.project)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
