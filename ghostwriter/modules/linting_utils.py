@@ -438,6 +438,8 @@ LINTER_CONTEXT = {
     ],
     "company": {
         "name": "SpecterOps",
+        "short_name": "SO",
+        "address": "14 N Moore St, New York, NY 10013",
         "twitter": "@specterops",
         "email": "info@specterops.io",
     },

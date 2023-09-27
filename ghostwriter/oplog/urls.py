@@ -30,6 +30,7 @@ urlpatterns = [
     ),
     path("<int:pk>/entries", views.OplogListEntries.as_view(), name="oplog_entries"),
     path("import", views.oplog_entries_import, name="oplog_import"),
+    path("export/<int:pk>", views.OplogExport.as_view(), name="oplog_export"),
 ]
 
 # URLs for AJAX requests
