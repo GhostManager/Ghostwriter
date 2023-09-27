@@ -4,11 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 22 September 2023
+## [4.0.1] - 27 September 2023
 
 ### Added
 
 * Added `short_name` and `address` fields to the company information for use in report templates (Closes #339)
+
+### Fixed
+
+* Fixed the activity log export returning incorrect csv files (Fixes #341)
+
+### Changed
+
+* Removed the restriction on backup commands that prevented them from being run on if `postgres` was set as the username (Closes #340)
 
 ## [4.0.0] - 20 September 2023
 
