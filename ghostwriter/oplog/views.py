@@ -431,6 +431,7 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
         writer = csv.writer(response)
         field_names = [field.name for field in opts.fields]
+        field_names.remove("id")
 
         # Add the tags field to the list of fields
         field_names.append("tags")
@@ -444,11 +445,11 @@ class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 # Special case for oplog_id to write the ID of the oplog instead of the object
                 if field == "oplog_id":
                     values.append(getattr(obj, field).id)
+                # Special case for tags to write a comma-separated list of tag names
+                elif field == "tags":
+                    values.append(", ".join([tag.name for tag in obj.tags.all()]))
                 else:
                     values.append(getattr(obj, field))
-                # Special case for tags to write a comma-separated list of tag names
-                if field == "tags":
-                    values.append(", ".join([tag.name for tag in obj.tags.all()]))
             writer.writerow(values)
 
         return response
