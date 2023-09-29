@@ -273,6 +273,16 @@ class Domain(models.Model):
                 expiring_soon = True
         return expiring_soon
 
+    def may_expire_soon(self):
+        """
+        Check if the domain's expiration DateField value is in the near future, ignoring `auto_renew` status.
+        """
+        expiring_soon = False
+        delta = date.today() + datetime.timedelta(days=30)
+        if self.expiration <= delta:
+            expiring_soon = True
+        return expiring_soon
+
     def __str__(self):
         return f"{self.name} ({self.health_status})"
 

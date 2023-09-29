@@ -243,6 +243,24 @@ class DomainModelTests(TestCase):
         except Exception:
             self.fail("Domain model `is_expiring_soon` method failed unexpectedly!")
 
+    def test_method_may_expire_soon(self):
+        creation = date.today() - timedelta(days=345)
+        expiration = date.today() + timedelta(days=15)
+        domain = DomainFactory(creation=creation, expiration=expiration, auto_renew=False)
+
+        try:
+            self.assertEqual(True, domain.may_expire_soon())
+
+            domain.auto_renew = True
+            domain.save()
+            self.assertEqual(True, domain.may_expire_soon())
+
+            domain.expiration = date.today() + timedelta(days=31)
+            domain.save()
+            self.assertEqual(False, domain.may_expire_soon())
+        except Exception:
+            self.fail("Domain model `may_expire_soon` method failed unexpectedly!")
+
 
 class HistoryModelTests(TestCase):
     """Collection of tests for :model:`shepherd.History`."""
