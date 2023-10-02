@@ -330,7 +330,8 @@
       {% comment %} Download the log as a CSV file when the user clicks the "Export Entries" menu item {% endcomment %}
       $('#exportEntries').click(function () {
         let filename = generateDownloadName('{{ oplog.name }}-log-export-{{ id }}.csv');
-        download(`/oplog/api/entries?export=csv&&oplog_id={{ oplog.pk }}`, filename);
+        let export_url = "{% url 'oplog:oplog_export' oplog.pk %}";
+        download(export_url, filename);
       })
 
       {% comment %} Open import form page when user clicks the "Import Entries" menu item {% endcomment %}

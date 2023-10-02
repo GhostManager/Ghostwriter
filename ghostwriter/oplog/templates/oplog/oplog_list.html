@@ -60,7 +60,7 @@
                             <span class="icon notification-bell-icon">Active</span>
                         {% endif %}
                     </td>
-                    <td class="align-middle js-export-oplog" oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}"><a href="javascript:void(0);" class="btn btn-secondary col-md-12">Export</a></td>
+                    <td class="align-middle js-export-oplog" oplog-id="{{ log.pk }}" oplog-name="{{ log.name }}" export_url="{% url 'oplog:oplog_export' log.id %}"><a href="javascript:void(0);" class="btn btn-secondary col-md-12">Export</a></td>
                 </tr>
             {% endfor %}
         </table>
@@ -96,9 +96,10 @@
         $(".js-export-oplog").on("click", function () {
             id = $(this).attr('oplog-id')
             name = $(this).attr('oplog-name')
+            export_url = $(this).attr('export_url')
             base_name = `${name}-log-export-${id}.csv`
             filename = generateDownloadName(base_name);
-            download(`/oplog/api/entries?export=csv&&oplog_id=${id}`, filename);
+            download(export_url, filename);
         });
     </script>
 {% endblock %}

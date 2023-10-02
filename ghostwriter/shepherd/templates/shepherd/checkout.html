@@ -54,6 +54,16 @@
     </script>
   {% endif %}
 
+  {% if not domain.is_expiring_soon and domain.may_expire_soon %}
+    <script>
+      displayToastTop({
+        type: 'warning',
+        string: 'Domain expires within the next 30 days so you should validate (auto)renewal status before use.',
+        delay: 0
+      });
+    </script>
+  {% endif %}
+
   <script>
     $("#id_client").change(function () {
       var url = $('#checkout-form').attr('overwatch-url');

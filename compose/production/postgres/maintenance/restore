@@ -32,11 +32,6 @@ fi
 
 message_welcome "Restoring the '${POSTGRES_DB}' database from the '${backup_filename}' backup..."
 
-if [[ "${POSTGRES_USER}" == "postgres" ]]; then
-    message_error "Restoring as 'postgres' user is not supported. Assign 'POSTGRES_USER' env with another one and try again."
-    exit 1
-fi
-
 export PGHOST="${POSTGRES_HOST}"
 export PGPORT="${POSTGRES_PORT}"
 export PGUSER="${POSTGRES_USER}"

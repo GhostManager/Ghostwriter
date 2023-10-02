@@ -1,12 +1,13 @@
 """This contains all the views used by the Oplog application."""
 
 # Standard Libraries
+import csv
 import logging
 
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import ListView
@@ -403,3 +404,52 @@ class OplogEntryDelete(RoleBasedAccessControlMixin, DeleteView):
 
     def get_success_url(self):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
+
+
+class OplogExport(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Export the :oplog:`oplog.Entries` for an individual :model:`oplog.Oplog` in a csv format."""
+
+    model = Oplog
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("oplog:index")
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+
+        queryset = obj.entries.all()
+        opts = queryset.model._meta
+
+        response = HttpResponse(
+            content_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="export.csv"'},
+        )
+
+        writer = csv.writer(response)
+        field_names = [field.name for field in opts.fields]
+        field_names.remove("id")
+
+        # Add the tags field to the list of fields
+        field_names.append("tags")
+
+        # Write the headers to the csv file
+        writer.writerow(field_names)
+
+        for obj in queryset:
+            values = []
+            for field in field_names:
+                # Special case for oplog_id to write the ID of the oplog instead of the object
+                if field == "oplog_id":
+                    values.append(getattr(obj, field).id)
+                # Special case for tags to write a comma-separated list of tag names
+                elif field == "tags":
+                    values.append(", ".join([tag.name for tag in obj.tags.all()]))
+                else:
+                    values.append(getattr(obj, field))
+            writer.writerow(values)
+
+        return response

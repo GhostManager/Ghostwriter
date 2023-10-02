@@ -124,12 +124,14 @@ class CompanyInfoSerializer(CustomModelSerializer):
     """Serialize :model:`commandcenter:CompanyInformation` entries."""
 
     name = serializers.CharField(source="company_name")
+    short_name = serializers.CharField(source="company_short_name")
+    address = serializers.CharField(source="company_address")
     twitter = serializers.CharField(source="company_twitter")
     email = serializers.CharField(source="company_email")
 
     class Meta:
         model = CompanyInformation
-        exclude = ["id", "company_name", "company_twitter", "company_email"]
+        exclude = ["id", "company_name", "company_short_name", "company_address", "company_twitter", "company_email"]
 
 
 class EvidenceSerializer(TaggitSerializer, CustomModelSerializer):
