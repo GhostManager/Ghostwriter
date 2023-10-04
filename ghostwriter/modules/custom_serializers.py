@@ -20,7 +20,7 @@ from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import CompanyInformation
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
@@ -103,6 +103,40 @@ class CloudServerField(RelatedField):
 
     def to_representation(self, value):
         return value.ip_address
+
+
+class ExtraFieldsSerField(serializers.Field):
+    """Fills out defaults in the `extra_fields` field from the definitions in :model:`commandcenter.ExtraFieldSpec`"""
+
+    def __init__(self, model_name, **kwargs):
+        self.model_name = model_name
+        self.root_ser = None
+        kwargs['read_only'] = True
+        super().__init__(**kwargs)
+
+    def bind(self, field_name, parent):
+        super().bind(field_name, parent)
+        root_ser = parent
+        while getattr(root_ser, "parent", None) is not None:
+            root_ser = root_ser.parent
+        self.root_ser = root_ser
+
+    def to_representation(self, value):
+        if value is None:
+            value = {}
+
+        # Fetch fields, and cache them at the root serializer
+        if not hasattr(self.root_ser, "_extra_fields_specs") or self.root_ser._extra_fields_specs is None:
+            self.root_ser._extra_fields_specs = {}
+        if self.model_name not in self.root_ser._extra_fields_specs:
+            self.root_ser._extra_fields_specs[self.model_name] = ExtraFieldSpec.objects.filter(target_model=self.model_name)
+
+        # Set defaults
+        for field in self.root_ser._extra_fields_specs[self.model_name]:
+            if field.internal_name not in value:
+                value[field.internal_name] = field.default_value()
+
+        return value
 
 
 class UserSerializer(CustomModelSerializer):
@@ -601,6 +635,7 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
     notes = ProjectNoteSerializer(source="projectnote_set", many=True, exclude=["id", "project"])
 
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(Project._meta.label)
 
     class Meta:
         model = Project

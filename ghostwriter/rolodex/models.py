@@ -210,6 +210,8 @@ class Project(models.Model):
         help_text="Select a category for this project that best describes the work being performed",
     )
 
+    extra_fields = models.JSONField(default=dict)
+
     def count_findings(self):
         """
         Count and return the number of findings across all reports associated with

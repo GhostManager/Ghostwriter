@@ -5,6 +5,7 @@ and json using the provided data.
 """
 
 # Standard Libraries
+import copy
 import io
 import json
 import logging
@@ -43,11 +44,12 @@ from rest_framework.renderers import JSONRenderer
 from xlsxwriter.workbook import Workbook
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.reporting.models import Evidence
+from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -1572,10 +1574,11 @@ class Reportwriter:
                 return self.sacrificial_doc
             return None
 
+        p_style = self.report_queryset.docx_template.p_style
+
         # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
-            p_style = self.report_queryset.docx_template.p_style
             # Create ``RichText()`` object for a colored severity category
             finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
             finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
@@ -2252,9 +2255,14 @@ class TemplateLinter:
                             )
                     logger.info("Completed Word style checks")
 
-                    # Step 3: Test rendering the document
+                    # Step 3: Prepare context
+                    context = copy.deepcopy(LINTER_CONTEXT)
+                    for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):
+                        context["project"]["extra_fields"][field.internal_name] = field.default_value()
+
+                    # Step 4: Test rendering the document
                     try:
-                        template_document.render(LINTER_CONTEXT, self.jinja_template_env, autoescape=True)
+                        template_document.render(context, self.jinja_template_env, autoescape=True)
                         undefined_vars = template_document.undeclared_template_variables
                         if undefined_vars:
                             for variable in undefined_vars:

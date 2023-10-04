@@ -1,10 +1,16 @@
 """This contains all the database models for the CommandCenter application."""
 
+from typing import Any, Callable, NamedTuple
+from django import forms
+
 # Django Imports
 from django.db import models
+from django.utils.safestring import SafeString
 
 # 3rd Party Libraries
 from timezone_field import TimeZoneField
+from django_bleach.utils import get_bleach_default_options
+from bleach import clean
 
 # Ghostwriter Libraries
 from ghostwriter.singleton.models import SingletonModel
@@ -276,3 +282,97 @@ class GeneralConfiguration(SingletonModel):
 
     class Meta:
         verbose_name = "General Settings"
+
+
+class ExtraFieldType(NamedTuple):
+    # Name displayed to the user
+    display_name: str
+    # Function to get a default value
+    default_value: Callable[[], Any]
+    # Creates a form field to use for the field
+    form_field: Callable[[], forms.Field]
+    # Creates a form widget to use for the field
+    form_widget: Callable[[], forms.widgets.Widget]
+    # Converts a value in the database to a value to provide to the context for an HTML page.
+    to_html_context: Callable[[Any], Any] = lambda x: x
+
+
+def _clean_rich_text(value):
+    config = get_bleach_default_options()
+    return SafeString(clean(str(value), **config)) if value else ""
+
+
+EXTRA_FIELD_TYPES = {
+    "checkbox": ExtraFieldType(
+        display_name="Checkbox",
+        default_value=bool,
+        form_field=lambda: forms.BooleanField(required=False),
+        form_widget=forms.widgets.CheckboxInput,
+    ),
+    "single_line_text": ExtraFieldType(
+        display_name="Single-Line of Text",
+        default_value=str,
+        form_field=lambda: forms.CharField(required=False),
+        form_widget=forms.widgets.TextInput,
+    ),
+    "rich_text": ExtraFieldType(
+        display_name="Formatted Text",
+        default_value=str,
+        form_field=lambda: forms.CharField(required=False),
+        form_widget=forms.widgets.Textarea,
+        to_html_context=_clean_rich_text,
+    ),
+    "integer": ExtraFieldType(
+        display_name="Integer",
+        default_value=int,
+        form_field=lambda: forms.IntegerField(required=False),
+        form_widget=forms.widgets.NumberInput,
+    ),
+    "float": ExtraFieldType(
+        display_name="Number",
+        default_value=float,
+        form_field=lambda: forms.FloatField(required=False),
+        form_widget=forms.widgets.NumberInput,
+    ),
+}
+
+
+class ExtraFieldModel(models.Model):
+    model_internal_name = models.CharField(max_length=255, primary_key=True)
+    model_display_name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return "Extra fields for {}".format(self.model_display_name)
+
+    class Meta:
+        verbose_name = "Extra Field Configuration"
+
+
+class ExtraFieldSpec(models.Model):
+    target_model = models.ForeignKey(to=ExtraFieldModel, on_delete=models.CASCADE)
+    internal_name = models.CharField(max_length=255)
+    display_name = models.CharField(max_length=255)
+    type = models.CharField(
+        max_length=255,
+        choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
+    )
+
+    def __str__(self):
+        return "Extra Field"
+
+    def form_field(self, *args, **kwargs):
+        return EXTRA_FIELD_TYPES[self.type].form_field(*args, **kwargs)
+
+    def form_widget(self, *args, **kwargs):
+        return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)
+
+    def value_to_html_context(self, value):
+        return EXTRA_FIELD_TYPES[self.type].to_html_context(value)
+
+    def default_value(self):
+        return EXTRA_FIELD_TYPES[self.type].default_value()
+
+    class Meta:
+        verbose_name = "Extra Field"
+        order_with_respect_to = "target_model"
+        unique_together = [("target_model", "internal_name")]

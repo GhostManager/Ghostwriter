@@ -1,0 +1,9 @@
+[
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "rolodex.Project",
+    "fields": {
+      "model_display_name": "Projects"
+    }
+  }
+]
