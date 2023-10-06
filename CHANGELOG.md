@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 6 October 2023
+
+### Changed
+
+* The WYSIWYG editor will now automatically expand the height of the editor to fit the content as you type (up to the height of the browser window) (Closes #344)
+
 ## [4.0.1] - 27 September 2023
 
 ### Added
