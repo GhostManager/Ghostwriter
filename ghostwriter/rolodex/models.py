@@ -62,6 +62,7 @@ class Client(models.Model):
         help_text="An address to be used for reports or shipping",
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
 
     class Meta:
         ordering = ["name"]

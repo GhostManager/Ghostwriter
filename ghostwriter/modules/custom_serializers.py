@@ -317,6 +317,8 @@ class ClientSerializer(TaggitSerializer, CustomModelSerializer):
 
     tags = TagListSerializerField()
 
+    extra_fields = ExtraFieldsSerField(Client._meta.label)
+
     class Meta:
         model = Client
         fields = "__all__"

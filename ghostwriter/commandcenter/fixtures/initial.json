@@ -5,5 +5,12 @@
     "fields": {
       "model_display_name": "Projects"
     }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "rolodex.Client",
+    "fields": {
+      "model_display_name": "Clients"
+    }
   }
 ]

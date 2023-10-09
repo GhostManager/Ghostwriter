@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags custom_tags %}
+{% load bleach_tags custom_tags extra_fields %}
 
 {% load i18n %}
 {% get_current_language as LANGUAGE_CODE %}
@@ -288,6 +288,25 @@
                     <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">No notes for this client.</div>
                 {% endif %}
             </div>
+
+            {% comment %} Extra Fields Tab {% endcomment %}
+            {% if client_extra_fields_spec %}
+                <div id="extra_fields" class="tab-pane">
+                    <h4>Extra Fields</h4>
+                    <hr/>
+
+                    <table class="table table-borderless table-centered project-details-table">
+                        {% for field_spec in client_extra_fields_spec %}
+                            <tr>
+                                <td class="text-left bold">{{ field_spec.display_name }}</td>
+                                <td class="text-left">
+                                    {{ client.extra_fields|display_extra_field:field_spec }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

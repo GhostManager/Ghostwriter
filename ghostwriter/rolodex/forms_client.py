@@ -21,6 +21,7 @@ from crispy_forms.layout import (
     Row,
     Submit,
 )
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import GeneralConfiguration
@@ -203,6 +204,8 @@ class ClientForm(forms.ModelForm):
     Save an individual :model:`rolodex.Client` with instances of :model:`rolodex.ClientContact`.
     """
 
+    extra_fields = ExtraFieldsField(Client._meta.label)
+
     class Meta:
         model = Client
         fields = "__all__"
@@ -262,6 +265,7 @@ class ClientForm(forms.ModelForm):
                     ),
                     "address",
                     "note",
+                    "extra_fields",
                     link_css_class="client-icon",
                     css_id="client",
                 ),

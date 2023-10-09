@@ -1088,6 +1088,9 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["domains"] = client_domains
         ctx["servers"] = client_servers
         ctx["vps"] = client_vps
+
+        ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
+
         return ctx
 
 

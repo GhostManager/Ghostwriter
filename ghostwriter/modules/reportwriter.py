@@ -49,7 +49,7 @@ from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.reporting.models import Evidence
-from ghostwriter.rolodex.models import Project
+from ghostwriter.rolodex.models import Client, Project
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -2259,6 +2259,8 @@ class TemplateLinter:
                     context = copy.deepcopy(LINTER_CONTEXT)
                     for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):
                         context["project"]["extra_fields"][field.internal_name] = field.default_value()
+                    for field in ExtraFieldSpec.objects.filter(target_model=Client._meta.label):
+                        context["client"]["extra_fields"][field.internal_name] = field.default_value()
 
                     # Step 4: Test rendering the document
                     try:

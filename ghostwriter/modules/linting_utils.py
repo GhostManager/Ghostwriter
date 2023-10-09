@@ -57,6 +57,7 @@ LINTER_CONTEXT = {
         "address": "30 Rockefeller Plaza New York City, New York 10112",
         "address_rt": "",
         "tags": ["tag1", "tag2", "tag3"],
+        "extra_fields": {},
     },
     "team": [
         {
