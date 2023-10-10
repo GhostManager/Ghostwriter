@@ -53,7 +53,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
     RoleBasedAccessControlMixin,
 )
-from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import reportwriter
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
@@ -1069,6 +1069,11 @@ class FindingDetailView(RoleBasedAccessControlMixin, DetailView):
     """
 
     model = Finding
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["finding_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Finding._meta.label)
+        return ctx
 
 
 class FindingCreate(RoleBasedAccessControlMixin, CreateView):

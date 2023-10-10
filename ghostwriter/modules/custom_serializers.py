@@ -197,6 +197,7 @@ class FindingSerializer(TaggitSerializer, CustomModelSerializer):
     severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(Finding._meta.label)
 
     class Meta:
         model = Finding

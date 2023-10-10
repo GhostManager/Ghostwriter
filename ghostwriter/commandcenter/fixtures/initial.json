@@ -12,5 +12,12 @@
     "fields": {
       "model_display_name": "Clients"
     }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "reporting.Finding",
+    "fields": {
+      "model_display_name": "Findings"
+    }
   }
 ]

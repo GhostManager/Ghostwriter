@@ -219,6 +219,8 @@ class Finding(models.Model):
         help_text="Select a finding category that fits",
     )
 
+    extra_fields = models.JSONField(default=dict)
+
     class Meta:
         ordering = ["severity", "-cvss_score", "finding_type", "title"]
         verbose_name = "Finding"

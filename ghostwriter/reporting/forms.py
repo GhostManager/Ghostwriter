@@ -25,6 +25,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list, get_project_list
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (
@@ -42,6 +43,8 @@ from ghostwriter.rolodex.models import Project
 
 class FindingForm(forms.ModelForm):
     """Save an individual :model:`reporting.Finding`."""
+
+    extra_fields = ExtraFieldsField(Finding._meta.label)
 
     class Meta:
         model = Finding
@@ -212,6 +215,7 @@ class FindingForm(forms.ModelForm):
             ),
             Field("description"),
             Field("impact"),
+            Field("extra_fields"),
             HTML(
                 """
                 <h4 class="icon shield-icon">Defense</h4>
@@ -232,6 +236,7 @@ class FindingForm(forms.ModelForm):
             ),
             "references",
             "finding_guidance",
+
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

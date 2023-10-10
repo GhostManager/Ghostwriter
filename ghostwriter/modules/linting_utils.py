@@ -354,6 +354,7 @@ LINTER_CONTEXT = {
             "finding_guidance": "",
             "complete": False,
             "tags": ["tag1", "tag2", "tag3"],
+            "extra_fields": {},
         },
     ],
     "docx_template": {

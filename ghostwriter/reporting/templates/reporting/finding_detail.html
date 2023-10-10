@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags %}
+{% load bleach_tags extra_fields %}
 
 {% block pagetitle %}{{ finding.title }} Details{% endblock %}
 
@@ -178,6 +178,22 @@
          {{ finding.finding_guidance|bleach }}
       </div>
     </div>
+  {% endif %}
+
+  {% if finding_extra_fields_spec %}
+    <h4>Extra Fields</h4>
+    <hr>
+
+    <table class="table table-borderless table-centered">
+      {% for field_spec in finding_extra_fields_spec %}
+          <tr>
+              <td class="text-left bold">{{ field_spec.display_name }}</td>
+              <td class="text-left">
+                  {{ finding.extra_fields|display_extra_field:field_spec }}
+              </td>
+          </tr>
+      {% endfor %}
+  </table>
   {% endif %}
 
   <h4 class="icon comment-icon">Notes</h4>
