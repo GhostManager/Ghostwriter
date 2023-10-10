@@ -52,7 +52,7 @@ RUN sed -i 's/\r$//g' /seed_data \
     && chmod +x /seed_data \
     && mkdir -p /app/staticfiles \
     && mkdir -p /app/ghostwriter/media \
-    && chown -R django /app
+    && chown -R django:django /app
 
 USER django
 
