@@ -16,6 +16,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Field, Layout, Row, 
 from ghostwriter.api.utils import get_project_list
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.rolodex.models import Project
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 
 
 class OplogForm(forms.ModelForm):
@@ -81,6 +82,7 @@ class OplogEntryForm(forms.ModelForm):
         input_formats=["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M"],
         required=False,
     )
+    extra_fields = ExtraFieldsField(OplogEntry._meta.label)
 
     class Meta:
         model = OplogEntry
@@ -160,6 +162,7 @@ class OplogEntryForm(forms.ModelForm):
                 css_class="form-row",
             ),
             "tags",
+            "extra_fields",
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

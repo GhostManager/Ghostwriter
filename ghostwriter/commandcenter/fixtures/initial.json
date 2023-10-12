@@ -19,5 +19,12 @@
     "fields": {
       "model_display_name": "Findings"
     }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "oplog.OplogEntry",
+    "fields": {
+      "model_display_name": "Oplog Entries"
+    }
   }
 ]

@@ -129,7 +129,11 @@
         </div>
     </div>
 
+    {{ oplog_entry_extra_fields_spec_ser|json_script:"oplog_entry_extra_fields_spec" }}
+
     <script>
+      const oplog_entry_extra_fields_spec = JSON.parse(document.getElementById('oplog_entry_extra_fields_spec').textContent);
+
       const $table = $('#oplogTable tbody')
       const $tableHeader = $('#oplogTableHeader')
       const $spinnerModal = $('#spinner-modal')
@@ -166,7 +170,7 @@
 
             if (entries.length !== 0) {
               entries.forEach(element => {
-                let newRow = generateRow(element)
+                let newRow = generateRow(oplog_entry_extra_fields_spec, element)
                 $table.append(newRow)
               })
               pendingResult = false
@@ -187,7 +191,7 @@
             let rowFound = false
             let entry = message['data']
             let entryId = entry['id']
-            let newRow = generateRow(entry)
+            let newRow = generateRow(oplog_entry_extra_fields_spec, entry)
 
             {% comment %} Check if the row already exists {% endcomment %}
             $('#oplogTable tbody tr').each(function() {
@@ -262,7 +266,7 @@
       $(document).ready(function () {
         connect()
         buildColumnsCheckboxes()
-        $tableHeader.html(generateTableHeaders())
+        $tableHeader.html(generateTableHeaders(oplog_entry_extra_fields_spec))
       })
 
       {% comment %} Show or hide the table column select options {% endcomment %}

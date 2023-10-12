@@ -21,6 +21,7 @@ from django.utils.dateformat import format as dateformat
 
 # 3rd Party Libraries
 import docx
+from ghostwriter.oplog.models import OplogEntry
 import jinja2
 import jinja2.sandbox
 import pptx
@@ -2264,6 +2265,10 @@ class TemplateLinter:
                     for field in ExtraFieldSpec.objects.filter(target_model=Finding._meta.label):
                         for finding in context["findings"]:
                             finding["extra_fields"][field.internal_name] = field.default_value()
+                    for field in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
+                        for log in context["logs"]:
+                            for entry in log["entries"]:
+                                entry["extra_fields"][field.internal_name] = field.default_value()
 
                     # Step 4: Test rendering the document
                     try:

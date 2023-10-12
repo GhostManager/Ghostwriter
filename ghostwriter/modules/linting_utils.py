@@ -387,6 +387,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
                 {
                     "tags": ["tag1", "tag2", "tag3"],
@@ -401,6 +402,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
             ],
             "name": "SpecterOps Red Team Logs",
@@ -420,6 +422,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
                 {
                     "tags": ["tag1", "tag2", "tag3"],
@@ -434,6 +437,7 @@ LINTER_CONTEXT = {
                     "output": "",
                     "comments": "",
                     "operator_name": "mythic_admin",
+                    "extra_fields": {},
                 },
             ],
             "name": "SpecterOps Red Team Log #2",

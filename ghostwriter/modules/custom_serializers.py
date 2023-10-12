@@ -725,6 +725,7 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`oplog.OplogEntry` entries."""
 
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(OplogEntry._meta.label)
 
     class Meta:
         model = OplogEntry
@@ -882,3 +883,9 @@ class ReportDataSerializer(CustomModelSerializer):
         rep["totals"]["targets"] = total_targets
 
         return rep
+
+
+class ExtraFieldsSpecSerializer(CustomModelSerializer):
+    class Meta:
+        model = ExtraFieldSpec
+        exclude = ["target_model"]

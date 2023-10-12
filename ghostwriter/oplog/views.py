@@ -13,6 +13,8 @@ from django.urls import reverse
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
+from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 
 # 3rd Party Libraries
 from tablib import Dataset
@@ -210,6 +212,14 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("oplog:index")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["oplog_entry_extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
+            ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label),
+            many=True
+        ).data
+        return ctx
 
 
 class OplogCreate(RoleBasedAccessControlMixin, CreateView):
