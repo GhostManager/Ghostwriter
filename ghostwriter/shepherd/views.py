@@ -34,6 +34,7 @@ from ghostwriter.api.utils import (
 )
 from ghostwriter.commandcenter.models import (
     CloudServicesConfiguration,
+    ExtraFieldSpec,
     NamecheapConfiguration,
     VirusTotalConfiguration,
 )
@@ -1060,6 +1061,11 @@ class DomainDetailView(RoleBasedAccessControlMixin, DetailView):
     """
 
     model = Domain
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["domain_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Domain._meta.label)
+        return ctx
 
 
 class HistoryCreate(RoleBasedAccessControlMixin, CreateView):

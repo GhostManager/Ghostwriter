@@ -15,6 +15,7 @@ from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Su
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
@@ -153,6 +154,8 @@ class DomainForm(forms.ModelForm):
     Save an individual :model:`shepherd.Domain`.
     """
 
+    extra_fields = ExtraFieldsField(Domain._meta.label)
+
     class Meta:
         model = Domain
         exclude = (
@@ -219,6 +222,7 @@ class DomainForm(forms.ModelForm):
                 Column(SwitchToggle("reset_dns"), css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
+            "extra_fields",
             HTML(
                 """
                 <h4 class="icon heartbeat-icon">Health & Category Information</h4>

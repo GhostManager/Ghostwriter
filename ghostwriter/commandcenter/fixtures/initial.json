@@ -26,5 +26,12 @@
     "fields": {
       "model_display_name": "Oplog Entries"
     }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "shepherd.Domain",
+    "fields": {
+      "model_display_name": "Domains"
+    }
   }
 ]

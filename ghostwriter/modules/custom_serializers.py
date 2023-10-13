@@ -480,6 +480,7 @@ class DomainSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`shepherd:Domain` entries."""
 
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(Domain._meta.label)
 
     class Meta:
         model = Domain

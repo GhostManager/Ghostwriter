@@ -227,6 +227,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Domain for the first phishing campaign</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
             {
                 "activity": "Command and Control",
@@ -243,6 +244,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Domain for long-haul C2 comms</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
             {
                 "activity": "Command and Control",
@@ -259,6 +261,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Domain for the short-haul C2 comms (phishing)</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
         ],
         "servers": [

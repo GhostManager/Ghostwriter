@@ -195,6 +195,7 @@ class Domain(models.Model):
         help_text="Reset DNS records (if possible) after this domain is used",
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
     # Foreign Keys
     whois_status = models.ForeignKey(
         "WhoisStatus",
