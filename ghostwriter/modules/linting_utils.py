@@ -276,6 +276,7 @@ LINTER_CONTEXT = {
                 "dns": [{"domain": "ghostwriter.wiki", "endpoint": "", "subdomain": "www"}],
                 "note": "<p>Long-haul C2 server</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
             {
                 "name": "CC-02",
@@ -294,6 +295,7 @@ LINTER_CONTEXT = {
                 ],
                 "note": "<p>Short-haul C2 server for phishing</p>",
                 "note_rt": "",
+                "extra_fields": {},
             },
         ],
         "cloud": [

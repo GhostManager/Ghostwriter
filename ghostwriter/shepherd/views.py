@@ -1334,6 +1334,7 @@ class ServerDetailView(RoleBasedAccessControlMixin, DetailView):
         for address in aux_addresses:
             if address.primary:
                 ctx["primary_address"] = address.ip_address
+        ctx["server_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label)
         return ctx
 
 

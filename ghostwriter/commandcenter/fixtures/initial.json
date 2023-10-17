@@ -33,5 +33,12 @@
     "fields": {
       "model_display_name": "Domains"
     }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "shepherd.StaticServer",
+    "fields": {
+      "model_display_name": "Servers"
+    }
   }
 ]

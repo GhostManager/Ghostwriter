@@ -25,6 +25,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.modules.custom_layout_object import CustomTab, Formset, SwitchToggle
 from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import (
@@ -195,6 +196,8 @@ class ServerForm(forms.ModelForm):
     Save an individual :model:`shepherd.StaticServer`.
     """
 
+    extra_fields = ExtraFieldsField(StaticServer._meta.label)
+
     class Meta:
         model = StaticServer
         exclude = ("last_used_by",)
@@ -236,6 +239,7 @@ class ServerForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     "tags",
+                    "extra_fields",
                     "note",
                     link_css_class="icon server-icon",
                     css_id="server",

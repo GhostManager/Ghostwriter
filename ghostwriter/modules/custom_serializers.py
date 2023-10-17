@@ -122,6 +122,7 @@ class ExtraFieldsSerField(serializers.Field):
         self.root_ser = root_ser
 
     def to_representation(self, value):
+        print("DEBUG", self.model_name, repr(value))
         if value is None:
             value = {}
 
@@ -540,6 +541,7 @@ class StaticServerSerializer(TaggitSerializer, CustomModelSerializer):
     status = serializers.CharField(source="server_status")
     last_used_by = StringRelatedField()
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(StaticServer._meta.label)
 
     class Meta:
         model = StaticServer
@@ -562,6 +564,11 @@ class ServerHistorySerializer(CustomModelSerializer):
         source="domainserverconnection_set",
         many=True,
         exclude=["id", "project", "static_server", "transient_server"],
+    )
+
+    extra_fields = ExtraFieldsSerField(
+        StaticServer._meta.label,
+        source="server.extra_fields"
     )
 
     class Meta:

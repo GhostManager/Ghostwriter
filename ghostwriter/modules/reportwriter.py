@@ -51,7 +51,7 @@ from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.reporting.models import Evidence, Finding
 from ghostwriter.rolodex.models import Client, Project
-from ghostwriter.shepherd.models import Domain
+from ghostwriter.shepherd.models import Domain, StaticServer
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -2273,6 +2273,9 @@ class TemplateLinter:
                     for field in ExtraFieldSpec.objects.filter(target_model=Domain._meta.label):
                         for domain in context["infrastructure"]["domains"]:
                             domain["extra_fields"][field.internal_name] = field.default_value()
+                    for field in ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label):
+                        for server in context["infrastructure"]["servers"]:
+                            server["extra_fields"][field.internal_name] = field.default_value()
 
                     # Step 4: Test rendering the document
                     try:
