@@ -42,12 +42,13 @@ var default_config = {
         tools: { title: 'Tools', items: 'code wordcount' },
       },
     toolbar_mode: 'floating',
-    plugins: 'visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case',
+    plugins: 'visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case autoresize',
     toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | evidenceUpload | removeformat save',
     contextmenu: 'bold italic link removeformat',
     paste_as_text: true,
     paste_data_images: false,
     browser_spellcheck: true,
+    resize: true,
     content_style: `
         .left { text-align: left; }
         img.left { float: left; }
