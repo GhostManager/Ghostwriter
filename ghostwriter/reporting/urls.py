@@ -20,6 +20,7 @@ urlpatterns = [
         views.ArchiveDownloadView.as_view(),
         name="download_archive",
     ),
+    path("observations/", views.ObservationListView.as_view(), name="observations"),
 ]
 
 # URLs for AJAX requests – deletion and toggle views
@@ -102,6 +103,14 @@ urlpatterns += [
         views.FindingNoteUpdate.as_view(),
         name="finding_note_edit",
     ),
+]
+
+# URLs for creating, updating, and deleting observations
+urlpatterns += [
+    path("observations/<int:pk>", views.ObservationDetailView.as_view(), name="observation_detail"),
+    path("observations/create/", views.ObservationCreate.as_view(), name="observation_create"),
+    path("observations/update/<int:pk>", views.ObservationUpdate.as_view(), name="observation_update"),
+    path("observations/delete/<int:pk>", views.ObservationDelete.as_view(), name="observation_delete"),
 ]
 
 # URLs for creating, updating, and deleting reports

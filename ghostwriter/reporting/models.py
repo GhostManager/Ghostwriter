@@ -658,3 +658,32 @@ class LocalFindingNote(models.Model):
 
     def __str__(self):
         return f"{self.finding} {self.timestamp}: {self.note}"
+
+
+class Observation(models.Model):
+    """A positive observation"""
+
+    title = models.CharField(
+        "Title",
+        max_length=255,
+        unique=True,
+        help_text="Enter a title for this finding that will appear in reports",
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a description for this observation that introduces it",
+    )
+    tags = TaggableManager(blank=True)
+
+    class Meta:
+        ordering = ["title"]
+        verbose_name = "Observation"
+        verbose_name_plural = "Observations"
+
+    def __str__(self):
+        return str(self.title)
+
+    def get_absolute_url(self):
+        return reverse("reporting:observation_detail", args=[str(self.id)])

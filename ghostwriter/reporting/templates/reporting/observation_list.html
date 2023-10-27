@@ -1,0 +1,42 @@
+{% extends "base_generic.html" %}
+{% load crispy_forms_tags bleach_tags %}
+
+{% block pagetitle %}Observations Library{% endblock %}
+
+{% block breadcrumbs %}
+  <nav aria-label="breadcrumb">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Observations</li>
+    </ul>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  <div class="filter-form">
+    {% crispy filter.form filter.helper %}
+  </div>
+
+  {% if filter.qs|length == 0 %}
+    <div class="alert alert-warning offset-md-2 col-md-8 mt-3" role="alert">There are no observations yet, or your search
+      returned no results. Create an observation above or adjust your filters.
+    </div>
+  {% else %}
+    <div id="observations_table">
+      <table id="observationsTable" class="table table-striped table-sm">
+        <thead>
+          <tr>
+            <th class="pr-4">Title</th>
+          </tr>
+        </thead>
+        <tbody class="list">
+        {% for observation in filter.qs %}
+          <tr>
+            <td class="text-justify"><a class="clickable" href="{{ observation.get_absolute_url }}">{{observation.title}}</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endblock %}

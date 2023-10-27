@@ -32,6 +32,7 @@ from ghostwriter.reporting.models import (
     Finding,
     FindingNote,
     LocalFindingNote,
+    Observation,
     Report,
     ReportFindingLink,
     ReportTemplate,
@@ -995,3 +996,36 @@ class SeverityForm(forms.ModelForm):
                 )
 
         return color
+
+
+class ObservationForm(forms.ModelForm):
+    class Meta:
+        model = Observation
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column(
+                    "tags",
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row",
+            ),
+            Field("description"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
