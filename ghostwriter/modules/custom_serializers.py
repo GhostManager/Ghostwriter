@@ -27,6 +27,7 @@ from ghostwriter.reporting.models import (
     Finding,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
 )
 from ghostwriter.rolodex.models import (
@@ -220,6 +221,16 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
         return obj.severity.color_hex
 
 
+class ObservationLinkSerializer(TaggitSerializer, CustomModelSerializer):
+    """Serialize :model:`reporting:ObservationLinkSerializer` entries."""
+
+    tags = TagListSerializerField()
+
+    class Meta:
+        model = ReportObservationLink
+        fields = "__all__"
+
+
 class ReportTemplateSerializer(CustomModelSerializer):
     """Serialize :model:`reporting:ReportTemplate` entries."""
 
@@ -238,6 +249,7 @@ class ReportSerializer(TaggitSerializer, CustomModelSerializer):
     total_findings = SerializerMethodField("get_total_findings")
 
     findings = FindingLinkSerializer(source="reportfindinglink_set", many=True, exclude=["id", "report"])
+    observations = ObservationLinkSerializer(source="reportobservationlink_set", many=True, exclude=["id", "report"])
 
     tags = TagListSerializerField()
 
@@ -729,6 +741,13 @@ class ReportDataSerializer(CustomModelSerializer):
     infrastructure = ProjectInfrastructureSerializer(source="project")
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",
+        many=True,
+        exclude=[
+            "report",
+        ],
+    )
+    observations = ObservationLinkSerializer(
+        source="reportobservationlink_set",
         many=True,
         exclude=[
             "report",

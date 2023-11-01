@@ -19,7 +19,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.core.files.base import ContentFile
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.http import (
     FileResponse,
     Http404,
@@ -66,6 +66,7 @@ from ghostwriter.reporting.forms import (
     ObservationForm,
     ReportFindingLinkUpdateForm,
     ReportForm,
+    ReportObservationLinkUpdateForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
 )
@@ -79,6 +80,7 @@ from ghostwriter.reporting.models import (
     Observation,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
     Severity,
 )
@@ -842,6 +844,7 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     def get(self, *args, **kwargs):
         obj = self.get_object()
         try:
+
             report_link = ReportFindingLink(
                 title="Blank Template",
                 severity=self.severity,
@@ -2866,7 +2869,7 @@ class ObservationUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:observation_detail")
+        ctx["cancel_link"] = reverse("reporting:observation_detail", args=[str(self.object.id)])
         return ctx
 
     def get_success_url(self):
@@ -2904,3 +2907,177 @@ class ObservationDelete(RoleBasedAccessControlMixin, DeleteView):
         ctx["object_to_be_deleted"] = queryset.title
         ctx["cancel_link"] = reverse("reporting:observations")
         return ctx
+
+
+class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Copy an individual :model:`reporting.Observation` to create a new
+    :model:`reporting.ReportObservationLink` connected to the user's active
+    :model:`reporting.Report`.
+    """
+
+    model = Observation
+
+    def post(self, *args, **kwargs):
+        observation_instance = self.get_object()
+        observation_dict = to_dict(observation_instance, resolve_fk=True)
+
+        # Remove the tags from the observation dict to add them later with the ``taggit`` API
+        del observation_dict["tags"]
+        del observation_dict["tagged_items"]
+
+        # The user must have the ``active_report`` session variable
+        active_report = self.request.session.get("active_report", None)
+        if active_report:
+            try:
+                report = Report.objects.get(pk=active_report["id"])
+                if not verify_access(self.request.user, report.project):
+                    return ForbiddenJsonResponse()
+            except Report.DoesNotExist:
+                message = "Please select a report to edit before trying to assign an observation."
+                data = {"result": "error", "message": message}
+                return JsonResponse(data)
+
+            # Clone the selected object to make a new :model:`reporting.ReportObservationLink`
+            position = ReportObservationLink.objects.filter(report__pk=report.id).aggregate(max=Max('position'))["max"] or 0 + 1
+            report_link = ReportObservationLink(
+                report=report,
+                assigned_to=self.request.user,
+                position=position,
+                added_as_blank=False,
+                **observation_dict,
+            )
+            report_link.save()
+            report_link.tags.add(*observation_instance.tags.all())
+
+            message = "{} successfully added to your active report.".format(observation_instance)
+            data = {"result": "success", "message": message}
+            logger.info(
+                "Copied %s %s to %s %s (%s %s) by request of %s",
+                observation_instance.__class__.__name__,
+                observation_instance.id,
+                report.__class__.__name__,
+                report.id,
+                report_link.__class__.__name__,
+                report_link.id,
+                self.request.user,
+            )
+        else:
+            message = "Please select a report to edit before trying to assign a observation."
+            data = {"result": "error", "message": message}
+        return JsonResponse(data)
+
+
+class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    model = Report
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+        try:
+            position = ReportObservationLink.objects.filter(report__pk=obj.id).aggregate(max=Max('position'))["max"] or 0 + 1
+            report_link = ReportObservationLink(
+                title="Blank Template",
+                report=obj,
+                position=position,
+                added_as_blank=True,
+            )
+            report_link.save()
+
+            logger.info(
+                "Added a blank observation to %s %s by request of %s",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
+
+            messages.success(
+                self.request,
+                "Successfully added a blank observation to the report",
+                extra_tags="alert-success",
+            )
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+
+            messages.error(
+                self.request,
+                "Encountered an error while trying to add a blank observation to your report: {}".format(exception.args),
+                extra_tags="alert-error",
+            )
+
+        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)))
+
+
+class ReportObservationLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`reporting.ReportObservationLink`."""
+
+    model = ReportObservationLink
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().report.project)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        observation = self.get_object()
+        observation.delete()
+        data = {
+            "result": "success",
+            "message": "Successfully deleted {observation} and cleaned up evidence.".format(observation=observation),
+        }
+        logger.info(
+            "Deleted %s %s by request of %s",
+            observation.__class__.__name__,
+            observation.id,
+            self.request.user,
+        )
+
+        return JsonResponse(data)
+
+
+class ReportObservationLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
+    """
+    Update an individual instance of :model:`reporting.ReportObservationLink`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to report's detail page
+
+    **Template**
+
+    :template:`reporting/local_observation_edit.html.html`
+    """
+
+    model = ReportObservationLink
+    form_class = ReportObservationLinkUpdateForm
+    template_name = "reporting/local_observation_edit.html"
+    success_url = reverse_lazy("reporting:reports")
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().report.project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk})
+        return ctx
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Successfully updated {}.".format(self.get_object().title),
+            extra_tags="alert-success",
+        )
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id})

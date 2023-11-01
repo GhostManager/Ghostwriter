@@ -71,6 +71,16 @@ urlpatterns += [
         name="ajax_delete_local_finding",
     ),
     path(
+        "ajax/observation/assign/<int:pk>",
+        views.AssignObservation.as_view(),
+        name="ajax_assign_observation",
+    ),
+    path(
+        "ajax/obseravation/delete/<int:pk>",
+        views.ReportObservationLinkDelete.as_view(),
+        name="ajax_delete_local_observation",
+    ),
+    path(
         "ajax/report/template/swap/<int:pk>",
         views.ReportTemplateSwap.as_view(),
         name="ajax_swap_report_template",
@@ -132,6 +142,11 @@ urlpatterns += [
         name="assign_blank_finding",
     ),
     path(
+        "reports/create/blank-observation/<int:pk>",
+        views.AssignBlankObservation.as_view(),
+        name="assign_blank_observation",
+    ),
+    path(
         "templates/<int:pk>",
         views.ReportTemplateDetailView.as_view(),
         name="template_detail",
@@ -164,6 +179,11 @@ urlpatterns += [
         "reports/findings/update/<int:pk>",
         views.ReportFindingLinkUpdate.as_view(),
         name="local_edit",
+    ),
+    path(
+        "reports/observations/update/<int:pk>",
+        views.ReportObservationLinkUpdate.as_view(),
+        name="local_observation_edit",
     ),
     path(
         "reports/evidence/upload/<int:pk>",
