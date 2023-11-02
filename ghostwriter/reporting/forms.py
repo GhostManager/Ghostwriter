@@ -1000,6 +1000,8 @@ class SeverityForm(forms.ModelForm):
 
 
 class ObservationForm(forms.ModelForm):
+    """Save an individual :model:`reporting.Observation`."""
+
     class Meta:
         model = Observation
         fields = "__all__"

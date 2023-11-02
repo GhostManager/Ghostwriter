@@ -2828,10 +2828,31 @@ class ObservationListView(RoleBasedAccessControlMixin, ListView):
 
 
 class ObservationDetailView(RoleBasedAccessControlMixin, DetailView):
+    """
+    Display an individual :model:`reporting.Observation`.
+
+    **Template**
+
+    :template:`reporting/observation_detail.html`
+    """
+
     model = Observation
 
 
 class ObservationCreate(RoleBasedAccessControlMixin, CreateView):
+    """
+    Create an individual instance of :model:`reporting.Observation`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to the observation list page
+
+    **Template**
+
+    :template:`reporting/observation_form.html`
+    """
+
     model = Observation
     form_class = ObservationForm
 
@@ -2857,6 +2878,19 @@ class ObservationCreate(RoleBasedAccessControlMixin, CreateView):
 
 
 class ObservationUpdate(RoleBasedAccessControlMixin, UpdateView):
+    """
+    Update an individual instance of :model:`reporting.Observation`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to the observations list page
+
+    **Template**
+
+    :template:`reporting/observation_form.html`
+    """
+
     model = Observation
     form_class = ObservationForm
 
@@ -2882,6 +2916,23 @@ class ObservationUpdate(RoleBasedAccessControlMixin, UpdateView):
 
 
 class ObservationDelete(RoleBasedAccessControlMixin, DeleteView):
+    """
+    Delete an individual instance of :model:`reporting.Observation`.
+
+    **Context**
+
+    ``object_type``
+        String describing what is to be deleted
+    ``object_to_be_deleted``
+        To-be-deleted instance of :model:`reporting.Observation`
+    ``cancel_link``
+        Link for the form's Cancel button to return to observation list page
+
+    **Template**
+
+    :template:`confirm_delete.html`
+    """
+
     model = Observation
     template_name = "confirm_delete.html"
 

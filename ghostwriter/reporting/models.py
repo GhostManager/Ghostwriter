@@ -661,7 +661,11 @@ class LocalFindingNote(models.Model):
 
 
 class Observation(models.Model):
-    """A positive observation"""
+    """
+    An observation.
+
+    Similar to a finding, but more generic. Can be used for positive observations or other things.
+    """
 
     title = models.CharField(
         "Title",

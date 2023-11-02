@@ -96,6 +96,12 @@ class FindingFilter(django_filters.FilterSet):
 
 class ObservationFilter(django_filters.FilterSet):
     """
+    Filter :model:`reporting.Observation` model for searching.
+
+    **Fields**
+
+    ``title``
+        Case insensitive search of the title field contents.
     """
 
     title = django_filters.CharFilter(

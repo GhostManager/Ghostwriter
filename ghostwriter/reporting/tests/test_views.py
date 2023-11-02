@@ -33,6 +33,7 @@ from ghostwriter.factories import (
     ReportDocxTemplateFactory,
     ReportFactory,
     ReportFindingLinkFactory,
+    ReportObservationLinkFactory,
     ReportPptxTemplateFactory,
     ReportTemplateFactory,
     SeverityFactory,
@@ -1205,6 +1206,66 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/local_edit.html")
+
+    def test_custom_context_exists(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertIn("cancel_link", response.context)
+        self.assertEqual(
+            response.context["cancel_link"],
+            reverse("reporting:report_detail", kwargs={"pk": self.report.pk}),
+        )
+
+
+# Tests related to :model:`reporting.ReportFindingLink`
+
+
+class ReportObservationLinkUpdateViewTests(TestCase):
+    """Collection of tests for :view:`reporting.ReportObservationLinkUpdate`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.report = ReportFactory(
+            docx_template=ReportDocxTemplateFactory(),
+            pptx_template=ReportPptxTemplateFactory(),
+        )
+
+        cls.high_severity = SeverityFactory(severity="High", weight=1)
+        cls.critical_severity = SeverityFactory(severity="Critical", weight=0)
+
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.new_user = UserFactory(password=PASSWORD)
+
+        cls.num_of_observations = 10
+        cls.observations = []
+        for observation_id in range(cls.num_of_observations):
+            title = f"observation {observation_id}"
+            cls.observations.append(ReportObservationLinkFactory(title=title, report=cls.report))
+
+        cls.uri = reverse("reporting:local_observation_edit", kwargs={"pk": cls.observations[0].pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_uses_correct_template(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "reporting/local_observation_edit.html")
 
     def test_custom_context_exists(self):
         response = self.client_mgr.get(self.uri)
