@@ -2258,6 +2258,10 @@ class TemplateLinter:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): Blockquote"
                         )
+                    if "Table Grid" not in document_styles:
+                        results["errors"].append(
+                            "Template is missing a required style (see documentation): Table Grid"
+                        )
                     if self.template.p_style:
                         if self.template.p_style not in document_styles:
                             results["warnings"].append(
