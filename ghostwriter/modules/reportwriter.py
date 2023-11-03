@@ -1464,18 +1464,28 @@ class Reportwriter:
                     # Pass the contents and new paragraph on to drill down into nested formatting
                     self._process_nested_html_tags(contents, p, finding)
 
-                # TABLE - Table Sections
+                # TABLE - Table
                 elif tag_name == "table":
                     # Get the tag's contents to check for additional formatting
                     tbody = tag.contents[1]
-                    # Strip the '\n' from any lists
+
+                    # Measure the height and width of the table
                     table_rows = [part for part in tbody.contents if part.name is not None]
                     col_no = len([part for part in table_rows[0].contents if part.name is not None])
-                    office_table = self.sacrificial_doc.add_table(rows=len(table_rows), cols=col_no)
+
+                    # Create a table object for powerpoint and for ms word
+                    if self.report_type == "pptx":
+                        office_table = self.finding_slide.shapes.add_table(rows=len(table_rows), cols=col_no, left=Inches(10), top=Inches(5), width=Inches(3), height=Inches(1)).table
+                    else:
+                        office_table = self.sacrificial_doc.add_table(rows=len(table_rows), cols=col_no)
+
+                    # Set the cell html contents using the X and Y coordinates
                     for y, row in enumerate(table_rows):
                         for x, cell in enumerate([part for part in row if part.name is not None]):
-                            # Add the cell contents to the office table if there are nested html tags add their formatting
-                            self._process_nested_html_tags(cell.contents, office_table.rows[y].cells[x].paragraphs[0], finding)
+                            if self.report_type == "pptx":
+                                self._process_nested_html_tags(cell.contents, office_table.cell(y, x).text_frame.paragraphs[0], finding)
+                            else:
+                                self._process_nested_html_tags(cell.contents, office_table.rows[y].cells[x].paragraphs[0], finding)
                 else:
                     if not isinstance(tag, NavigableString):
                         logger.warning(
