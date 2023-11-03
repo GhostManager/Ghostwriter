@@ -1595,10 +1595,11 @@ class Reportwriter:
                 return self.sacrificial_doc
             return None
 
+        p_style = self.report_queryset.docx_template.p_style
+
         # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
-            p_style = self.report_queryset.docx_template.p_style
             # Create ``RichText()`` object for a colored severity category
             finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
             finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
