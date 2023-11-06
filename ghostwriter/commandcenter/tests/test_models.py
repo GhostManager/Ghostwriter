@@ -14,7 +14,7 @@ from ghostwriter.factories import (
     GeneralConfigurationFactory,
     NamecheapConfigurationFactory,
     ReportConfigurationFactory,
-    SlackConfigurationFactory,
+    NotificationsConfigurationFactory,
     VirusTotalConfigurationFactory,
 )
 
@@ -95,46 +95,56 @@ class ReportConfigurationTests(TestCase):
             self.fail("ReportConfiguration model `get_solo` method failed unexpectedly!")
 
 
-class SlackConfigurationTests(TestCase):
-    """Collection of tests for :model:`commandcenter.SlackConfiguration`."""
+class NotificationsConfigurationTests(TestCase):
+    """Collection of tests for :model:`commandcenter.NotificationsConfiguration`."""
 
     @classmethod
     def setUpTestData(cls):
-        cls.SlackConfiguration = SlackConfigurationFactory._meta.model
+        cls.NotificationsConfiguration = NotificationsConfigurationFactory._meta.model
 
     def test_crud_finding(self):
         # Create
-        entry = SlackConfigurationFactory(enable=False)
+        entry = NotificationsConfigurationFactory(slack_enable=False, teams_enable=False)
 
         # Read
-        self.assertEqual(entry.enable, False)
+        self.assertEqual(entry.slack_enable, False)
+        self.assertEqual(entry.teams_enable, False)
         self.assertEqual(entry.pk, 1)
 
         # Update
-        entry.enable = True
+        entry.slack_enable = True
+        entry.teams_enable = True
         entry.save()
         entry.refresh_from_db()
-        self.assertEqual(entry.enable, True)
+        self.assertEqual(entry.slack_enable, True)
+        self.assertEqual(entry.teams_enable, True)
 
         # Delete
         entry.delete()
-        self.assertFalse(self.SlackConfiguration.objects.all().exists())
+        self.assertFalse(self.NotificationsConfiguration.objects.all().exists())
 
     def test_get_solo_method(self):
         try:
-            entry = self.SlackConfiguration.get_solo()
+            entry = self.NotificationsConfiguration.get_solo()
             self.assertEqual(entry.pk, 1)
         except Exception:
-            self.fail("SlackConfiguration model `get_solo` method failed unexpectedly!")
+            self.fail("NotificationsConfiguration model `get_solo` method failed unexpectedly!")
 
-    def test_sanitized_webhook_property(self):
-        entry = self.SlackConfiguration.get_solo()
-        length = len(entry.webhook_url.split("/")[-1])
+    def test_sanitized_slack_webhook_property(self):
+        entry = self.NotificationsConfiguration.get_solo()
+        length = len(entry.slack_webhook_url.split("/")[-1])
         replacement = "\u2717" * (length - 8)
-        sanitized = entry.sanitized_webhook
-        self.assertNotEqual(entry.webhook_url, sanitized)
+        sanitized = entry.sanitized_slack_webhook
+        self.assertNotEqual(entry.slack_webhook_url, sanitized)
         self.assertIn(replacement, sanitized)
 
+    def test_sanitized_teams_webhook_property(self):
+        entry = self.NotificationsConfiguration.get_solo()
+        length = len(entry.teams_webhook_url.split("/")[-1])
+        replacement = "\u2717" * (length - 8)
+        sanitized = entry.sanitized_teams_webhook
+        self.assertNotEqual(entry.teams_webhook_url, sanitized)
+        self.assertIn(replacement, sanitized)
 
 class CompanyInformationTests(TestCase):
     """Collection of tests for :model:`commandcenter.CompanyInformation`."""
