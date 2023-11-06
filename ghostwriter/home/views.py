@@ -95,9 +95,7 @@ class Dashboard(RoleBasedAccessControlMixin, View):
             .order_by("report__project__end_date")[:10]
         )
         # Get active :model:`reporting.ProjectAssignment` for current :model:`users.User`
-        user_projects = ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
-            operator=request.user
-        )
+        user_projects = ProjectAssignment.objects.select_related("project", "project__client")
         # Get future :model:`reporting.ProjectAssignment` for current :model:`users.User`
         active_project = ProjectAssignment.objects.select_related("project", "project__client", "role").filter(
             Q(operator=request.user) & Q(project__complete=False)
@@ -258,11 +256,11 @@ class TestNamecheapConnection(RoleBasedAccessControlMixin, View):
         return JsonResponse(data)
 
 
-class TestSlackConnection(RoleBasedAccessControlMixin, View):
+class TestNotificationsConnection(RoleBasedAccessControlMixin, View):
     """
-    Create an individual :model:`django_q.Task` under group ``Slack Test`` with
-    :task:`shepherd.tasks.test_slack_webhook` to test the Slack Webhook configuration
-    stored in :model:`commandcenter.SlackConfiguration`.
+    Create an individual :model:`django_q.Task` under group ``Notifications Test`` with
+    :task:`shepherd.tasks.test_notifications_webhook` to test the Notifications configuration
+    stored in :model:`commandcenter.NotificationsConfiguration`.
     """
 
     def test_func(self):
@@ -273,18 +271,18 @@ class TestSlackConnection(RoleBasedAccessControlMixin, View):
         return redirect("home:dashboard")
 
     def post(self, request, *args, **kwargs):
-        # Add an async task grouped as ``Slack Test``
+        # Add an async task grouped as ``Notifications Test``
         result = "success"
         try:
             async_task(
-                "ghostwriter.shepherd.tasks.test_slack_webhook",
+                "ghostwriter.shepherd.tasks.test_notifications_webhook",
                 self.request.user,
-                group="Slack Test",
+                group="Notifications Test",
             )
-            message = "Slack Webhook test has been successfully queued."
+            message = "Notifications test has been successfully queued."
         except Exception:  # pragma: no cover
             result = "error"
-            message = "Slack Webhook test could not be queued."
+            message = "Notifications test could not be queued."
 
         data = {
             "result": result,
@@ -297,7 +295,7 @@ class TestVirusTotalConnection(RoleBasedAccessControlMixin, View):
     """
     Create an individual :model:`django_q.Task` under group ``VirusTotal Test`` with
     :task:`shepherd.tasks.test_virustotal` to test the VirusTotal API key stored in
-    :model:`commandcenter.SlackConfiguration`.
+    :model:`commandcenter.VirusTotalConfiguration`.
     """
 
     def test_func(self):
@@ -314,7 +312,7 @@ class TestVirusTotalConnection(RoleBasedAccessControlMixin, View):
             async_task(
                 "ghostwriter.shepherd.tasks.test_virustotal",
                 self.request.user,
-                group="Slack Test",
+                group="Notifications Test",
             )
             message = "VirusTotal API test has been successfully queued."
         except Exception:  # pragma: no cover

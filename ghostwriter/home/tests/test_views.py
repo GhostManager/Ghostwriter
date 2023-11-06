@@ -391,15 +391,15 @@ class TestNamecheapConnectionTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
-class TestSlackConnectionTests(TestCase):
-    """Collection of tests for :view:`home.TestSlackConnection`."""
+class TestNotificationsConnectionTests(TestCase):
+    """Collection of tests for :view:`home.TestNotificationsConnection`."""
 
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
-        cls.uri = reverse("home:ajax_test_slack")
+        cls.uri = reverse("home:ajax_test_notifications")
 
     def setUp(self):
         self.client = Client()
@@ -422,7 +422,7 @@ class TestSlackConnectionTests(TestCase):
 
 
 class TestVirusTotalConnectionTests(TestCase):
-    """Collection of tests for :view:`home.TestSlackConnection`."""
+    """Collection of tests for :view:`home.TestVirusTotalConnection`."""
 
     @classmethod
     def setUpTestData(cls):

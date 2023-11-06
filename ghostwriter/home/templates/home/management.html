@@ -19,7 +19,7 @@
   {% get_solo "commandcenter.CloudServicesConfiguration" as cloud_config %}
   {% get_solo "commandcenter.NamecheapConfiguration" as namecheap_config %}
   {% get_solo "commandcenter.ReportConfiguration" as report_config %}
-  {% get_solo "commandcenter.SlackConfiguration" as slack_config %}
+  {% get_solo "commandcenter.NotificationsConfiguration" as notifications_config %}
   {% get_solo "commandcenter.VirusTotalConfiguration" as vt_config %}
 
   <h2>API & Notification Configurations</h2>
@@ -223,34 +223,49 @@
       <th class="text-left icon notification-icon">Notifications</th>
       <th></th>
     </tr>
-    {% if slack_config.enable %}
+    {% if notifications_config.slack_enable %}
       <tr>
         <td class="text-left icon toggle-on-icon">Slack Enabled</td>
-        <td class="text-justify">{{ slack_config.enable }}</td>
+        <td class="text-justify">{{ notifications_config.slack_enable }}</td>
       </tr>
       <tr>
         <td class="text-left icon slack-icon">Slack WebHook</td>
-        <td class="text-justify">{{ slack_config.sanitized_webhook }}</td>
+        <td class="text-justify">{{ notifications_config.sanitized_slack_webhook }}</td>
       </tr>
       <tr>
         <td class="text-left icon slack-icon">Slack Bot Name</td>
-        <td class="text-justify">{{ slack_config.slack_username }}</td>
+        <td class="text-justify">{{ notifications_config.slack_username }}</td>
       </tr>
       <tr>
         <td class="text-left icon slack-icon">Slack Bot Avatar</td>
-        <td class="text-justify">{{ slack_config.slack_emoji }}</td>
+        <td class="text-justify">{{ notifications_config.slack_emoji }}</td>
       </tr>
       <tr>
         <td class="text-left icon slack-icon">Global Slack Channel</td>
-        <td class="text-justify">{{ slack_config.slack_channel }}</td>
+        <td class="text-justify">{{ notifications_config.slack_channel }}</td>
       </tr>
       <tr>
         <td class="text-left icon slack-icon">Slack Target</td>
-        <td class="text-justify">{{ slack_config.slack_alert_target }}</td>
+        <td class="text-justify">{{ notifications_config.slack_alert_target }}</td>
       </tr>
     {% else %}
       <tr>
         <td class="text-left icon toggle-off-icon">Slack Enabled</td>
+        <td class="text-justify">Disabled</td>
+      </tr>
+    {% endif %}
+    {% if notifications_config.teams_enable %}
+      <tr>
+        <td class="text-left icon toggle-on-icon">Teams Enabled</td>
+        <td class="text-justify">{{ notifications_config.teams_enable }}</td>
+      </tr>
+      <tr>
+        <td class="text-left icon">Teams WebHook</td>
+        <td class="text-justify">{{ notifications_config.sanitized_teams_webhook }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td class="text-left icon toggle-off-icon">Teams Enabled</td>
         <td class="text-justify">Disabled</td>
       </tr>
     {% endif %}
@@ -280,8 +295,8 @@
       </div>
 
       <div class="btn-group" role="group" aria-label="Notification Tests">
-        <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_slack' %}"
-                queue-task-csrf-token="{{ csrf_token }}">Test Slack Webhook
+        <button class="js-queue-task btn btn-primary" queue-task-url="{% url 'home:ajax_test_notifications' %}"
+                queue-task-csrf-token="{{ csrf_token }}">Test Notifications
         </button>
       </div>
     </div>
