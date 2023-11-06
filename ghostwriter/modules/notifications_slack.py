@@ -11,7 +11,7 @@ from django.urls import reverse
 from django_q.models import Task
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import SlackConfiguration
+from ghostwriter.commandcenter.models import NotificationsConfiguration
 
 # Using __name__ resolves to ghostwriter.shepherd.tasks
 logger = logging.getLogger(__name__)
@@ -21,9 +21,9 @@ class SlackNotification:
     """Compose and send Slack messages for notifications."""
 
     def __init__(self):
-        slack_config = SlackConfiguration.get_solo()
-        self.enabled = slack_config.enable
-        self.slack_webhook_url = slack_config.webhook_url
+        slack_config = NotificationsConfiguration.get_solo()
+        self.enabled = slack_config.slack_enable
+        self.slack_webhook_url = slack_config.slack_webhook_url
         self.slack_username = slack_config.slack_username
         self.slack_emoji = slack_config.slack_emoji
         self.slack_channel = slack_config.slack_channel
