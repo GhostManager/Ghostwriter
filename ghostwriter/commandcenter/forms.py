@@ -85,10 +85,12 @@ class ExtraFieldsWidget(forms.Widget):
 
             widget_ctx = widget.get_context(widget_name, widget_value, widget_attrs)["widget"]
 
-            subwidgets.append({
-                "label": spec.display_name,
-                "widget": widget_ctx,
-            })
+            subwidgets.append(
+                {
+                    "label": spec.display_name,
+                    "widget": widget_ctx,
+                }
+            )
 
         context["widget"]["subwidgets"] = subwidgets
         return context
