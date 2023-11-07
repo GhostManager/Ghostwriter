@@ -112,6 +112,7 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["end_date"].initial = make_aware(datetime.utcnow())
         self.fields["end_date"].label = "End Date & Time"
         self.fields["end_date"].help_text = "Date and time the action completed or halted"
+        self.fields["extra_fields"].label = "Custom Extra Fields"
 
         self.fields["command"].widget.attrs["rows"] = 2
         self.fields["output"].widget.attrs["rows"] = 2

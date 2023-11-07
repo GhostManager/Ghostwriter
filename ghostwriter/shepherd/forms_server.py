@@ -215,6 +215,8 @@ class ServerForm(forms.ModelForm):
         self.fields["server_provider"].label = "Server Provider"
         self.fields["note"].widget.attrs["placeholder"] = "This server has 8 GPUs, hashcat installed, and ..."
         self.fields["tags"].widget.attrs["placeholder"] = "hashcat, GPU:8, ..."
+        self.fields["extra_fields"].label = "Custom Extra Fields"
+
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
@@ -239,8 +241,8 @@ class ServerForm(forms.ModelForm):
                         css_class="form-row",
                     ),
                     "tags",
-                    "extra_fields",
                     "note",
+                    "extra_fields",
                     link_css_class="icon server-icon",
                     css_id="server",
                 ),

@@ -191,6 +191,8 @@ class DomainForm(forms.ModelForm):
         self.fields["name"].label = "Domain Name"
         self.fields["whois_status"].label = "WHOIS Status"
         self.fields["health_status"].label = "Health Status"
+        self.fields["extra_fields"].label = "Custom Extra Fields"
+
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
@@ -222,7 +224,6 @@ class DomainForm(forms.ModelForm):
                 Column(SwitchToggle("reset_dns"), css_class="form-group col-md-6 mb-0"),
                 css_class="form-row",
             ),
-            "extra_fields",
             HTML(
                 """
                 <h4 class="icon heartbeat-icon">Health & Category Information</h4>
@@ -241,6 +242,7 @@ class DomainForm(forms.ModelForm):
                 """
             ),
             "note",
+            "extra_fields",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

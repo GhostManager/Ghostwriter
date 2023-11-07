@@ -223,6 +223,8 @@ class ClientForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
         self.fields["note"].label = "Notes"
         self.fields["tags"].label = "Tags"
+        self.fields["extra_fields"].label = "Custom Extra Fields"
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
