@@ -265,6 +265,7 @@
 
       $(document).ready(function () {
         connect()
+        updateColumnInfo(oplog_entry_extra_fields_spec)
         buildColumnsCheckboxes()
         $tableHeader.html(generateTableHeaders(oplog_entry_extra_fields_spec))
       })

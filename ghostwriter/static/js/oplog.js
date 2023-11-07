@@ -21,6 +21,13 @@ columnInfo = [
     ['optionsCheckbox', 'optionsColumn', 'Options', ''],
 ]
 
+// Update `columnInfo` with extra fields
+function updateColumnInfo(extra_field_specs) {
+    extra_field_specs.forEach(spec => {
+        columnInfo.push([`extra-field-${jsEscape(spec.internal_name)}Checkbox`, `extra-field-${jsEscape(spec.internal_name)}Column`, jsEscape(spec.display_name), jsEscape(spec.internal_name)]);
+    });
+}
+
 // Generate a table row based on a log entry
 function generateTableHeaders(extra_field_specs) {
     let html = `<th class="${columnInfo[0][1]} align-middle">${columnInfo[0][2]}</th>
@@ -36,7 +43,7 @@ function generateTableHeaders(extra_field_specs) {
                 <th class="${columnInfo[10][1]} align-middle">${columnInfo[10][2]}</th>
                 <th class="${columnInfo[11][1]} align-middle">${columnInfo[11][2]}</th>`;
     extra_field_specs.forEach(spec => {
-        html += `<th class="align-middle">${jsEscape(spec.display_name)}</th>`;
+        html += `<th class="extra-field-${jsEscape(spec.internal_name)}Column align-middle">${jsEscape(spec.display_name)}</th>`;
     });
     html += `<th class="${columnInfo[12][1]} align-middle">${columnInfo[12][2]}</th>`;
     return html
@@ -113,7 +120,7 @@ function generateRow(extra_field_specs, entry) {
             value = jsEscape("" + raw_value);
         }
 
-        html += `<td class="extra-field-${jsEscape(spec.internal_name)} align-middle">${value}</td>`
+        html += `<td class="extra-field-${jsEscape(spec.internal_name)}Column align-middle">${value}</td>`
     });
 
     html += `<td class="${columnInfo[12][1]} align-middle">
