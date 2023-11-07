@@ -1169,7 +1169,7 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
-        self.fields["extra_fields"].label = "Custom Extra Fields"
+        self.fields["extra_fields"].label = ""
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -1221,6 +1221,12 @@ class ProjectForm(forms.ModelForm):
                     ),
                     SwitchToggle("update_checkouts"),
                     "note",
+                    HTML(
+                        """
+                        <h4 class="icon custom-field-icon">Extra Fields</h4>
+                        <hr />
+                        """
+                    ),
                     "extra_fields",
                     link_css_class="project-icon",
                     css_id="project",

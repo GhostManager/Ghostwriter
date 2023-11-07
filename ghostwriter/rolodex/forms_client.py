@@ -223,7 +223,7 @@ class ClientForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "cybersecurity, industry:infosec, ..."
         self.fields["note"].label = "Notes"
         self.fields["tags"].label = "Tags"
-        self.fields["extra_fields"].label = "Custom Extra Fields"
+        self.fields["extra_fields"].label = ""
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -267,6 +267,12 @@ class ClientForm(forms.ModelForm):
                     ),
                     "address",
                     "note",
+                    HTML(
+                        """
+                        <h4 class="icon custom-field-icon">Extra Fields</h4>
+                        <hr />
+                        """
+                    ),
                     "extra_fields",
                     link_css_class="client-icon",
                     css_id="client",
