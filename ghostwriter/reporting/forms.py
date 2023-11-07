@@ -215,7 +215,6 @@ class FindingForm(forms.ModelForm):
             ),
             Field("description"),
             Field("impact"),
-            Field("extra_fields"),
             HTML(
                 """
                 <h4 class="icon shield-icon">Defense</h4>
@@ -236,7 +235,7 @@ class FindingForm(forms.ModelForm):
             ),
             "references",
             "finding_guidance",
-
+            Field("extra_fields"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
