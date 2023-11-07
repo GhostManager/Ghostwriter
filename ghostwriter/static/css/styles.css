@@ -198,10 +198,6 @@ hr {
     border-right-color: var(--primary-color);
 }
 
-label[for=id_extra_fields] {
-  font-weight: 600;
-}
-
 /* ---------------------------------------------------
     IMAGE STYLES
 ----------------------------------------------------- */
