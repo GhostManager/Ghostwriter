@@ -70,6 +70,8 @@ class FindingForm(forms.ModelForm):
         ] = "When using this finding in a report be sure to include ..."
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["finding_type"].label = "Finding Type"
+        self.fields["extra_fields"].label = ""
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -235,6 +237,12 @@ class FindingForm(forms.ModelForm):
             ),
             "references",
             "finding_guidance",
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            ),
             Field("extra_fields"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),

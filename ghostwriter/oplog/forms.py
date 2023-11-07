@@ -112,7 +112,7 @@ class OplogEntryForm(forms.ModelForm):
         self.fields["end_date"].initial = make_aware(datetime.utcnow())
         self.fields["end_date"].label = "End Date & Time"
         self.fields["end_date"].help_text = "Date and time the action completed or halted"
-        self.fields["extra_fields"].label = "Custom Extra Fields"
+        self.fields["extra_fields"].label = ""
 
         self.fields["command"].widget.attrs["rows"] = 2
         self.fields["output"].widget.attrs["rows"] = 2
@@ -163,6 +163,12 @@ class OplogEntryForm(forms.ModelForm):
                 css_class="form-row",
             ),
             "tags",
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            ),
             "extra_fields",
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),

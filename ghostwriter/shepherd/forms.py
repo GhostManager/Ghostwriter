@@ -191,7 +191,7 @@ class DomainForm(forms.ModelForm):
         self.fields["name"].label = "Domain Name"
         self.fields["whois_status"].label = "WHOIS Status"
         self.fields["health_status"].label = "Health Status"
-        self.fields["extra_fields"].label = "Custom Extra Fields"
+        self.fields["extra_fields"].label = ""
 
         self.helper = FormHelper()
         self.helper.form_method = "post"
@@ -242,6 +242,12 @@ class DomainForm(forms.ModelForm):
                 """
             ),
             "note",
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            ),
             "extra_fields",
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
