@@ -45,6 +45,11 @@
         Infrastructure
     </a>
 </li>
+<li class="nav-item">
+    <a id="id_deconflictions" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#deconflictions">
+        Deconflictions <span class="badge badge-pill badge-light">{{ project.deconfliction_set.all.count }}</span>
+    </a>
+</li>
 {% if project_extra_fields_spec %}
     <li class="nav-item">
         <a id="id_extra_fields" class="nav-link tab-icon info-icon" data-toggle="tab" href="#extra_fields">
@@ -52,11 +57,6 @@
         </a>
     </li>
 {% endif %}
-<li class="nav-item">
-    <a id="id_deconflictions" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#deconflictions">
-        Deconflictions <span class="badge badge-pill badge-light">{{ project.deconfliction_set.all.count }}</span>
-    </a>
-</li>
 <li class="nav-item">
     <a id="id_notes" class="nav-link tab-icon comment-icon" data-toggle="tab" href="#notes">
         Notes <span class="badge badge-pill badge-light">{{ project.projectnote_set.all.count }}</span>
