@@ -78,7 +78,7 @@ class ExtraFieldSpecForm(forms.ModelForm):
     internal_name = forms.RegexField(
         r"^[_a-zA-Z][_a-zA-Z0-9]*$",
         max_length=255,
-        help_text="Name used in templates and storage",
+        help_text="Name used in report templates and storage (no spaces)",
     )
 
     class Meta:
