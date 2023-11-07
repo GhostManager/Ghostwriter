@@ -894,25 +894,6 @@
         {% endif %}
       </div>
 
-      {% comment %} Extra Fields Tab {% endcomment %}
-      {% if project_extra_fields_spec %}
-        <div id="extra_fields" class="tab-pane">
-          <h4>Extra Fields</h4>
-          <hr/>
-
-          <table class="table table-borderless table-centered project-details-table">
-            {% for field_spec in project_extra_fields_spec %}
-              <tr>
-                <td class="text-left bold">{{ field_spec.display_name }}</td>
-                <td class="text-left">
-                    {{ project.extra_fields|display_extra_field:field_spec }}
-                </td>
-              </tr>
-            {% endfor %}
-          </table>
-        </div>
-      {% endif %}
-
       {% comment %} Deconflictions Tab {% endcomment %}
       <div id="deconflictions" class="tab-pane">
         <h4>Deconfliction Events</h4>
@@ -1042,8 +1023,44 @@
             this project.
           </div>
         {% endif %}
-
       </div>
+
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if project_extra_fields_spec %}
+        <div id="extra_fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          <table class="table table-borderless table-centered project-details-table">
+            {% for field_spec in project_extra_fields_spec %}
+              <tr>
+                <td class="text-left bold">{{ field_spec.display_name }}</td>
+                {%  if project.extra_fields|display_extra_field:field_spec %}
+                  {%  if field_spec.type == "checkbox" %}
+                    <td class="text-left icon check-icon healthy"></td>
+                  {%  else %}
+                    <td class="text-left">
+                      {% if field_spec.type == "rich_text" %}
+                        {{ project.extra_fields|display_extra_field:field_spec|bleach }}
+                      {% else %}
+                        {{ project.extra_fields|display_extra_field:field_spec }}
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                {% else %}
+                  {%  if field_spec.type == "checkbox" %}
+                    <td class="text-left icon cross-icon burned"></td>
+                  {%  else %}
+                    <td class="text-left">
+                      Not Set
+                    </td>
+                  {% endif %}
+                {%  endif %}
+              </tr>
+            {% endfor %}
+          </table>
+        </div>
+      {% endif %}
 
       {% comment %} Notes Tab {% endcomment %}
       <div id="notes" class="tab-pane">
