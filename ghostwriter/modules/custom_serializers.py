@@ -476,17 +476,6 @@ class AuxServerAddressSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class DomainSerializer(TaggitSerializer, CustomModelSerializer):
-    """Serialize :model:`shepherd:Domain` entries."""
-
-    tags = TagListSerializerField()
-    extra_fields = ExtraFieldsSerField(Domain._meta.label)
-
-    class Meta:
-        model = Domain
-        fields = "__all__"
-
-
 class DomainServerConnectionSerializer(CustomModelSerializer):
     """Serialize :model:`shepherd:DomainServerConnection` entries."""
 
@@ -515,6 +504,11 @@ class DomainHistorySerializer(CustomModelSerializer):
         source="domainserverconnection_set",
         many=True,
         exclude=["id", "project", "domain"],
+    )
+
+    extra_fields = ExtraFieldsSerField(
+        Domain._meta.label,
+        source="domain.extra_fields"
     )
 
     class Meta:
