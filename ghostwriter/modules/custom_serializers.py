@@ -122,7 +122,6 @@ class ExtraFieldsSerField(serializers.Field):
         self.root_ser = root_ser
 
     def to_representation(self, value):
-        print("DEBUG", self.model_name, repr(value))
         if value is None:
             value = {}
 
