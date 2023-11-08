@@ -344,6 +344,8 @@ class Reportwriter:
         # Set up Jinja2 rendering environment + custom filters
         self.jinja_env = prepare_jinja2_env(debug=False)
 
+        self.extra_fields_spec_cache = {}
+
         logger.info(
             "Generating a report for %s using the template at %s",
             self.report_queryset,
@@ -1569,14 +1571,14 @@ class Reportwriter:
             Pre-defined template context
         """
 
-        def render_subdocument(section, finding, p_style=None):
+        p_style = self.report_queryset.docx_template.p_style
+
+        def render_subdocument(section, finding):
             if section:
                 self.sacrificial_doc = self.word_doc.new_subdoc()
                 self._process_text_xml(section, finding, p_style)
                 return self.sacrificial_doc
             return None
-
-        p_style = self.report_queryset.docx_template.p_style
 
         # Findings
         for finding in context["findings"]:
@@ -1586,51 +1588,55 @@ class Reportwriter:
             finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
             finding["cvss_vector_rt"] = RichText(finding["cvss_vector"], color=finding["severity_color"])
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding, p_style)
-            finding["description_rt"] = render_subdocument(finding["description"], finding, p_style)
-            finding["impact_rt"] = render_subdocument(finding["impact"], finding, p_style)
+            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding)
+            finding["description_rt"] = render_subdocument(finding["description"], finding)
+            finding["impact_rt"] = render_subdocument(finding["impact"], finding)
 
             # Include a copy of ``mitigation`` as ``recommendation`` to match legacy context
-            mitigation_section = render_subdocument(finding["mitigation"], finding, p_style)
+            mitigation_section = render_subdocument(finding["mitigation"], finding)
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding, p_style)
+            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding)
             finding["host_detection_techniques_rt"] = render_subdocument(
-                finding["host_detection_techniques"], finding, p_style
+                finding["host_detection_techniques"], finding
             )
             finding["network_detection_techniques_rt"] = render_subdocument(
-                finding["network_detection_techniques"], finding, p_style
+                finding["network_detection_techniques"], finding
             )
-            finding["references_rt"] = render_subdocument(finding["references"], finding, p_style)
+            finding["references_rt"] = render_subdocument(finding["references"], finding)
 
-        # Client Notes
-        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None, p_style=p_style)
+            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: render_subdocument(v, finding))
+
+        # Client
+        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None)
         context["client"]["address_rt"] = render_subdocument(
-            context["client"]["address"], finding=None, p_style=p_style
+            context["client"]["address"], finding=None
         )
+        self._process_extra_fields(context["client"]["extra_fields"], Client, lambda v: render_subdocument(v, None))
 
-        # Project Notes
-        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None, p_style=p_style)
+        # Project
+        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None)
+        self._process_extra_fields(context["project"]["extra_fields"], Project, lambda v: render_subdocument(v, None))
 
         # Assignments
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = render_subdocument(assignment["note"], finding=None, p_style=p_style)
+                    assignment["note_rt"] = render_subdocument(assignment["note"], finding=None)
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = render_subdocument(contact["note"], finding=None, p_style=p_style)
+                    contact["note_rt"] = render_subdocument(contact["note"], finding=None)
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
                     objective["description_rt"] = render_subdocument(
-                        objective["description"], finding=None, p_style=p_style
+                        objective["description"], finding=None
                     )
 
         # Scope Lists
@@ -1638,35 +1644,55 @@ class Reportwriter:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
                     scope_list["description_rt"] = render_subdocument(
-                        scope_list["description"], finding=None, p_style=p_style
+                        scope_list["description"], finding=None
                     )
 
         # Targets
         for target in context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = render_subdocument(target["note"], finding=None, p_style=p_style)
+                    target["note_rt"] = render_subdocument(target["note"], finding=None)
 
         # Deconfliction Events
         for event in context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = render_subdocument(event["description"], finding=None, p_style=p_style)
+                    event["description_rt"] = render_subdocument(event["description"], finding=None)
 
         # White Cards
         for card in context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = render_subdocument(card["description"], finding=None, p_style=p_style)
+                    card["description_rt"] = render_subdocument(card["description"], finding=None)
 
         # Infrastructure
         for asset_type in context["infrastructure"]:
             for asset in context["infrastructure"][asset_type]:
                 if isinstance(asset, dict):
                     if asset["note"]:
-                        asset["note_rt"] = render_subdocument(asset["note"], finding=None, p_style=p_style)
+                        asset["note_rt"] = render_subdocument(asset["note"], finding=None)
+        for asset in context["infrastructure"]["domains"]:
+            self._process_extra_fields(asset["extra_fields"], Domain, lambda v: render_subdocument(v, None))
+        for asset in context["infrastructure"]["servers"]:
+            self._process_extra_fields(asset["extra_fields"], StaticServer, lambda v: render_subdocument(v, None))
+
+        # Logs
+        for log in context["logs"]:
+            for entry in log:
+                self._process_extra_fields(entry["extra_fields"], OplogEntry, lambda v: render_subdocument(v, None))
 
         return context
+
+    def _process_extra_fields(self, extra_fields, model, render_rich_text):
+        label = model._meta.label
+        if label not in self.extra_fields_spec_cache:
+            self.extra_fields_spec_cache[label] = ExtraFieldSpec.objects.filter(target_model=label)
+
+        for field in self.extra_fields_spec_cache[label]:
+            if field.internal_name not in extra_fields:
+                extra_fields[field.internal_name] = field.default_value()
+            if field.type == "rich_text":
+                extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
 
     def _process_text_xlsx(self, html, finding):
         """
