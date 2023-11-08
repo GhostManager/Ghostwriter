@@ -529,6 +529,7 @@ class ReportFindingLink(models.Model):
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
+    extra_fields = models.JSONField(default=dict)
 
     class Meta:
         ordering = ["report", "severity__weight", "position"]

@@ -251,8 +251,6 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         del finding_dict["tags"]
         del finding_dict["tagged_items"]
 
-        del finding_dict["extra_fields"]
-
         # The user must have the ``active_report`` session variable
         active_report = self.request.session.get("active_report", None)
         if active_report:
