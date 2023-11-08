@@ -1598,9 +1598,7 @@ class Reportwriter:
             finding["recommendation_rt"] = mitigation_section
 
             finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding)
-            finding["host_detection_techniques_rt"] = render_subdocument(
-                finding["host_detection_techniques"], finding
-            )
+            finding["host_detection_techniques_rt"] = render_subdocument(finding["host_detection_techniques"], finding)
             finding["network_detection_techniques_rt"] = render_subdocument(
                 finding["network_detection_techniques"], finding
             )
@@ -1610,9 +1608,7 @@ class Reportwriter:
 
         # Client
         context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None)
-        context["client"]["address_rt"] = render_subdocument(
-            context["client"]["address"], finding=None
-        )
+        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], finding=None)
         self._process_extra_fields(context["client"]["extra_fields"], Client, lambda v: render_subdocument(v, None))
 
         # Project
@@ -1635,17 +1631,13 @@ class Reportwriter:
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = render_subdocument(
-                        objective["description"], finding=None
-                    )
+                    objective["description_rt"] = render_subdocument(objective["description"], finding=None)
 
         # Scope Lists
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = render_subdocument(
-                        scope_list["description"], finding=None
-                    )
+                    scope_list["description_rt"] = render_subdocument(scope_list["description"], finding=None)
 
         # Targets
         for target in context["targets"]:
@@ -1678,7 +1670,7 @@ class Reportwriter:
 
         # Logs
         for log in context["logs"]:
-            for entry in log:
+            for entry in log["entries"]:
                 self._process_extra_fields(entry["extra_fields"], OplogEntry, lambda v: render_subdocument(v, None))
 
         return context
