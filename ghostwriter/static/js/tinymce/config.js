@@ -50,6 +50,7 @@ var default_config = {
     paste_as_text: true,
     paste_data_images: false,
     browser_spellcheck: true,
+    resize: true,
     content_style: `
         .left { text-align: left; }
         img.left { float: left; }
