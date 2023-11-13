@@ -327,7 +327,7 @@
                     <div id="scope-dropdown-menu-{{ list.id }}" class="dropdown-menu"
                          aria-labelledby="assignment-dropdown-btn_{{ list.id }}">
                       <a class="dropdown-item icon edit-icon"
-                         href="{% url 'rolodex:project_update' project.id %}#scopes">Edit Scope</a>
+                         href="{% url 'rolodex:project_component_update' project.id %}#scopes">Edit Scope</a>
                       <a id="scope-export-button-{{ list.id }}"
                          class="dropdown-item js-export-project-scope icon export-icon" href="javascript:void(0);"
                          export-scope-url="{% url 'rolodex:ajax_export_project_scope' list.id %}"
