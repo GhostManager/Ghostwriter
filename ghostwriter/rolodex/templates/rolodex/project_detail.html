@@ -401,7 +401,7 @@
                          compromise-target-url="{% url 'rolodex:ajax_toggle_project_target' target.id %}">Toggle
                         Compromised Status</a>
                       <a class="dropdown-item icon edit-icon"
-                         href="{% url 'rolodex:project_update' project.id %}#targets">Edit Target</a>
+                         href="{% url 'rolodex:project_component_update' project.id %}#targets">Edit Target</a>
                       <a id="target-delete-button-{{ target.id }}"
                          class="dropdown-item js-confirm-delete icon trash-icon" data-toggle="modal"
                          data-target="#confirm-delete-modal" href="javascript:void(0);"
