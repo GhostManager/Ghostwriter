@@ -40,5 +40,12 @@
     "fields": {
       "model_display_name": "Servers"
     }
+  },
+  {
+    "model": "commandcenter.ExtraFieldModel",
+    "pk": "reporting.Report",
+    "fields": {
+      "model_display_name": "Reports"
+    }
   }
 ]

@@ -374,6 +374,7 @@ class Report(models.Model):
     complete = models.BooleanField("Completed", default=False, help_text="Mark the report as complete")
     archived = models.BooleanField("Archived", default=False, help_text="Mark the report as archived")
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
     # Foreign Keys
     project = models.ForeignKey(
         "rolodex.Project",

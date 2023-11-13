@@ -1403,6 +1403,8 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
             self.autocomplete.append(finding.title)
         ctx["autocomplete"] = self.autocomplete
 
+        ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
+
         return ctx
 
 

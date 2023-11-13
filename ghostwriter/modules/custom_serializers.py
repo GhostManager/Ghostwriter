@@ -801,6 +801,7 @@ class ReportDataSerializer(CustomModelSerializer):
     logs = OplogSerializer(source="project.oplog_set", many=True, exclude=["id", "mute_notifications", "project"])
     company = SerializerMethodField("get_company_info")
     tools = SerializerMethodField("get_tools")
+    extra_fields = ExtraFieldsSerField(Report._meta.label)
 
     class Meta:
         model = Report

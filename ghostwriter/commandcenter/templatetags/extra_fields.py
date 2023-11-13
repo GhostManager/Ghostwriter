@@ -8,5 +8,5 @@ register = template.Library()
 
 @register.filter
 def display_extra_field(extra_fields: dict, spec: ExtraFieldSpec):
-    value = extra_fields.get(spec.internal_name, None)
+    value = extra_fields.get(spec.internal_name, None) if extra_fields is not None else None
     return spec.value_to_html_context(value)

@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags report_tags bleach_tags %}
+{% load crispy_forms_tags report_tags bleach_tags extra_fields %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
@@ -100,6 +100,38 @@
       {% endif %}
     </span>
   </h6>
+
+  {% comment %} Extra Fields Sections {% endcomment %}
+  {% if report_extra_fields_spec %}
+  <div>
+    <h4>Extra Fields</h4>
+    <hr/>
+
+    {% for field_spec in report_extra_fields_spec %}
+    <h6 class="row justify-content-md-center">
+      <span class="col-3 text-left">
+        {{ field_spec.display_name }}
+      </span>
+      <span class="col-1">
+        {% if report.extra_fields|display_extra_field:field_spec %}
+          {%  if field_spec.type == "checkbox" %}
+            <span class="text-left icon check-icon healthy"></span>
+          {% else %}
+            {{ report.extra_fields|display_extra_field:field_spec|bleach }}
+          {% endif %}
+        {% else %}
+          {% if field_spec.type == "checkbox" %}
+            <span class="text-left icon cross-icon burned"></span>
+          {% else %}
+            Not Set
+          {% endif %}
+        {% endif %}
+      </span>
+
+    </h6>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- Findings Section -->
   <div>

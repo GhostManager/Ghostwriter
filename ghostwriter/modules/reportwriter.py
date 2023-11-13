@@ -49,7 +49,7 @@ from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec,
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
-from ghostwriter.reporting.models import Evidence, Finding
+from ghostwriter.reporting.models import Evidence, Finding, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
@@ -1580,6 +1580,8 @@ class Reportwriter:
                 return self.sacrificial_doc
             return None
 
+        self._process_extra_fields(context["extra_fields"], Report, lambda v: render_subdocument(v, None))
+
         # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
@@ -2277,6 +2279,8 @@ class TemplateLinter:
 
                     # Step 3: Prepare context
                     context = copy.deepcopy(LINTER_CONTEXT)
+                    for field in ExtraFieldSpec.objects.filter(target_model=Report._meta.label):
+                        context["extra_fields"][field.internal_name] = field.default_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):
                         context["project"]["extra_fields"][field.internal_name] = field.default_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=Client._meta.label):

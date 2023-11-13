@@ -473,4 +473,5 @@ LINTER_CONTEXT = {
         "targets": 1,
     },
     "tools": ["beacon", "covenant", "mythic", "poseidon"],
+    "extra_fields": {},
 }
