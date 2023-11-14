@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * The WYSIWYG editor will now automatically expand the height of the editor to fit the content as you type (up to the height of the browser window) (Closes #344)
 
+### Security
+
+* Updated the TinyMCE WYSIWYG editor to v5.10.8 to incorporate security fixes into Ghostwriter's self-hosted files
+
 ## [4.0.1] - 27 September 2023
 
 ### Added
