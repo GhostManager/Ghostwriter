@@ -188,27 +188,7 @@
       {% for field_spec in finding_extra_fields_spec %}
           <tr>
               <td class="text-left bold">{{ field_spec.display_name }}</td>
-                {%  if finding.extra_fields|display_extra_field:field_spec %}
-                  {%  if field_spec.type == "checkbox" %}
-                    <td class="text-left icon check-icon healthy"></td>
-                  {%  else %}
-                    <td class="text-left">
-                      {% if field_spec.type == "rich_text" %}
-                        {{ finding.extra_fields|display_extra_field:field_spec|bleach }}
-                      {% else %}
-                        {{ finding.extra_fields|display_extra_field:field_spec }}
-                      {% endif %}
-                    </td>
-                  {% endif %}
-                {% else %}
-                {%  if field_spec.type == "checkbox" %}
-                  <td class="text-left icon cross-icon burned"></td>
-                {%  else %}
-                  <td class="text-left">
-                    Not Set
-                  </td>
-                {% endif %}
-              {%  endif %}
+              <td class="text-left">{% include "user_extra_fields/field.html" with extra_fields=finding.extra_fields field_spec=field_spec %}</td>
           </tr>
       {% endfor %}
   </table>

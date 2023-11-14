@@ -5,12 +5,9 @@ from django import forms
 
 # Django Imports
 from django.db import models
-from django.utils.safestring import SafeString
 
 # 3rd Party Libraries
 from timezone_field import TimeZoneField
-from django_bleach.utils import get_bleach_default_options
-from bleach import clean
 
 # Ghostwriter Libraries
 from ghostwriter.singleton.models import SingletonModel
@@ -293,13 +290,6 @@ class ExtraFieldType(NamedTuple):
     form_field: Callable[[], forms.Field]
     # Creates a form widget to use for the field
     form_widget: Callable[[], forms.widgets.Widget]
-    # Converts a value in the database to a value to provide to the context for an HTML page.
-    to_html_context: Callable[[Any], Any] = lambda x: x
-
-
-def _clean_rich_text(value):
-    config = get_bleach_default_options()
-    return SafeString(clean(str(value), **config)) if value else ""
 
 
 EXTRA_FIELD_TYPES = {
@@ -320,7 +310,6 @@ EXTRA_FIELD_TYPES = {
         default_value=str,
         form_field=lambda: forms.CharField(required=False),
         form_widget=forms.widgets.Textarea,
-        to_html_context=_clean_rich_text,
     ),
     "integer": ExtraFieldType(
         display_name="Integer",

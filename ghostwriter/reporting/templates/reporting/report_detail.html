@@ -108,27 +108,14 @@
     <hr/>
 
     {% for field_spec in report_extra_fields_spec %}
-    <h6 class="row justify-content-md-center">
-      <span class="col-3 text-left">
+    <div class="row justify-content-md-center">
+      <h6 class="col-3 text-left">
         {{ field_spec.display_name }}
-      </span>
-      <span class="col-1">
-        {% if report.extra_fields|display_extra_field:field_spec %}
-          {%  if field_spec.type == "checkbox" %}
-            <span class="text-left icon check-icon healthy"></span>
-          {% else %}
-            {{ report.extra_fields|display_extra_field:field_spec|bleach }}
-          {% endif %}
-        {% else %}
-          {% if field_spec.type == "checkbox" %}
-            <span class="text-left icon cross-icon burned"></span>
-          {% else %}
-            Not Set
-          {% endif %}
-        {% endif %}
-      </span>
-
-    </h6>
+      </h6>
+      <div class="col-1 text-left">
+        {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+      </div>
+    </div>
     {% endfor %}
   </div>
   {% endif %}
