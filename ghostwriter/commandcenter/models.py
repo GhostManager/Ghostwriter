@@ -287,40 +287,40 @@ class ExtraFieldType(NamedTuple):
     # Function to get a default value
     default_value: Callable[[], Any]
     # Creates a form field to use for the field
-    form_field: Callable[[], forms.Field]
+    form_field: Callable[..., forms.Field]
     # Creates a form widget to use for the field
-    form_widget: Callable[[], forms.widgets.Widget]
+    form_widget: Callable[..., forms.widgets.Widget]
 
 
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
         display_name="Checkbox",
         default_value=bool,
-        form_field=lambda: forms.BooleanField(required=False),
+        form_field=lambda *args, **kwargs: forms.BooleanField(required=False, *args, **kwargs),
         form_widget=forms.widgets.CheckboxInput,
     ),
     "single_line_text": ExtraFieldType(
         display_name="Single-Line of Text",
         default_value=str,
-        form_field=lambda: forms.CharField(required=False),
+        form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
         form_widget=forms.widgets.TextInput,
     ),
     "rich_text": ExtraFieldType(
         display_name="Formatted Text",
         default_value=str,
-        form_field=lambda: forms.CharField(required=False),
+        form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
         form_widget=forms.widgets.Textarea,
     ),
     "integer": ExtraFieldType(
         display_name="Integer",
         default_value=int,
-        form_field=lambda: forms.IntegerField(required=False),
+        form_field=lambda *args, **kwargs: forms.IntegerField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
     ),
     "float": ExtraFieldType(
         display_name="Number",
         default_value=float,
-        form_field=lambda: forms.FloatField(required=False),
+        form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
     ),
 }
@@ -350,7 +350,7 @@ class ExtraFieldSpec(models.Model):
         return "Extra Field"
 
     def form_field(self, *args, **kwargs):
-        return EXTRA_FIELD_TYPES[self.type].form_field(*args, **kwargs)
+        return EXTRA_FIELD_TYPES[self.type].form_field(label=self.display_name, *args, **kwargs)
 
     def form_widget(self, *args, **kwargs):
         return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)

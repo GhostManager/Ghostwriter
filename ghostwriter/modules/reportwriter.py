@@ -21,7 +21,6 @@ from django.utils.dateformat import format as dateformat
 
 # 3rd Party Libraries
 import docx
-from ghostwriter.oplog.models import OplogEntry
 import jinja2
 import jinja2.sandbox
 import pptx
@@ -49,6 +48,7 @@ from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec,
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
+from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Evidence, Finding, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer

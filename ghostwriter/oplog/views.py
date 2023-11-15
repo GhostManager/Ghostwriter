@@ -13,8 +13,6 @@ from django.urls import reverse
 from django.views.generic import ListView
 from django.views.generic.detail import DetailView, SingleObjectMixin
 from django.views.generic.edit import CreateView, DeleteView, UpdateView, View
-from ghostwriter.commandcenter.models import ExtraFieldSpec
-from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 
 # 3rd Party Libraries
 from tablib import Dataset
@@ -26,6 +24,8 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
+from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry

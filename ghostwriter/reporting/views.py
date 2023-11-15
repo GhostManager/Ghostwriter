@@ -53,6 +53,7 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
     RoleBasedAccessControlMixin,
 )
+from ghostwriter.commandcenter.forms import SingleExtraFieldForm
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import reportwriter
 from ghostwriter.modules.exceptions import MissingTemplate
@@ -1589,6 +1590,42 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
         ctx["object_type"] = "entire report, evidence and all"
         ctx["object_to_be_deleted"] = queryset.title
         return ctx
+
+
+class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    model = Report
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def run(self, request, pk, extra_field_name):
+        report = self.get_object()
+        field_spec = get_object_or_404(ExtraFieldSpec, target_model=Report._meta.label, internal_name=extra_field_name)
+        if request.method == "POST":
+            form = SingleExtraFieldForm(
+                field_spec,
+                request.POST,
+                initial={field_spec.internal_name: report.extra_fields.get(field_spec.internal_name)},
+            )
+            if form.is_valid():
+                report.extra_fields[field_spec.internal_name] = form.cleaned_data[field_spec.internal_name]
+                report.save()
+                return redirect("reporting:report_detail", pk=report.pk)
+        else:
+            form = SingleExtraFieldForm(field_spec)
+
+        return render(request, "reporting/report_extra_field_edit.html", {
+            "form": form,
+            "report": report,
+            "field_spec": field_spec,
+            "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}),
+        })
+
+    def get(self, request, pk, extra_field_name):
+        return self.run(request, pk, extra_field_name)
+
+    def post(self, request, pk, extra_field_name):
+        return self.run(request, pk, extra_field_name)
 
 
 class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):

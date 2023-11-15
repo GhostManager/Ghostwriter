@@ -8,6 +8,9 @@ from django.utils.translation import gettext_lazy as _
 # Ghostwriter Libraries
 from ghostwriter.commandcenter.models import ReportConfiguration, ExtraFieldSpec
 
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Field, ButtonHolder, Submit, HTML
+
 
 class ReportConfigurationForm(forms.ModelForm):
     """Save settings in :model:`commandcenter.ReportConfiguration`."""
@@ -146,3 +149,27 @@ class ExtraFieldsField(forms.Field):
         self.validate(clean_data)
         self.run_validators(clean_data)
         return clean_data
+
+
+class SingleExtraFieldForm(forms.Form):
+    def __init__(self, field_spec: ExtraFieldSpec, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        field = field_spec.form_field()
+        field.widget = field_spec.form_widget()
+        self.fields[field_spec.internal_name] = field
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Field(field_spec.internal_name),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
