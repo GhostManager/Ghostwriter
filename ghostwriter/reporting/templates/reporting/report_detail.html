@@ -220,24 +220,42 @@
                 </td>
                 {% if finding.evidence_set.all %}
                   <td class="align-middle">
-                    {% for evidence_file in finding.evidence_set.all %}
-                      <div class="dropdown">
-                        <button id="evidence-dropdown-btn-{{ evidence.id }}" class="dropdown-menu-btn-evidence"
+                    <div class="card mb-0" id="accordion-{{ finding.id }}" role="tablist">
+                      <div class="card-header collapsed" data-toggle="collapse" data-target="#accordion-evidences-{{ finding.id }}" role="tab" aria-expanded="false">
+                        <h5 class="mb-0"> 
+                          <a data-toggle="collapse" href="#accordion-evidences-{{ finding.id }}" aria-expanded="false" aria-controls="accordion-evidences-{{ finding.id }}" class="collapsed">
+                            Evidences
+                          </a> 
+                        </h5> 
+                      </div> 
+                      <div id="accordion-evidences-{{ finding.id }}" class="collapse" role="tabpanel" aria-labelledby="accordion-evidences-{{ finding.id }}" data-parent="#accordion-{{ finding.id }}" style="">
+                      <div class="card-body">
+                        {% for evidence_file in finding.evidence_set.all %}
+                          <div class="dropdown">
+                            <button id="evidence-dropdown-btn-{{ evidence.id }}" class="dropdown-menu-btn-evidence"
                                 data-toggle="dropdown" aria-haspopup="true"
                                 aria-expanded="false">{{ evidence_file.friendly_name }}</button>
-                        <div id="evidence-dropdown-menu-{{ evidence.id }}" class="dropdown-menu"
-                             aria-labelledby="evidence-dropdown-btn-{{ evidence.id }}">
-                          <a class="dropdown-item icon view-icon"
-                             href="{% url 'reporting:evidence_detail' evidence_file.id %}">View</a>
-                          <a class="dropdown-item icon edit-icon"
-                             href="{% url 'reporting:evidence_update' evidence_file.id %}">Edit</a>
-                          <a class="dropdown-item icon trash-icon"
-                             href="{% url 'reporting:evidence_delete' evidence_file.id %}">Delete</a>
+                            <div id="evidence-dropdown-menu-{{ evidence.id }}" class="dropdown-menu"
+                                aria-labelledby="evidence-dropdown-btn-{{ evidence.id }}">
+                              <a class="dropdown-item icon view-icon"
+                                href="{% url 'reporting:evidence_detail' evidence_file.id %}">View</a>
+                              <a class="dropdown-item icon edit-icon"
+                                href="{% url 'reporting:evidence_update' evidence_file.id %}">Edit</a>
+                              <a class="dropdown-item icon trash-icon"
+                                href="{% url 'reporting:evidence_delete' evidence_file.id %}">Delete</a>
+                            </div>
+                          </div>
+                            <hr>
+                        {% endfor %}
+                          <a
+                            class="icon lg-attach-icon"
+                            href="{% url 'reporting:upload_evidence' finding.id %}"
+                            data-toggle="tooltip"
+                            data-placement="top"
+                            title="Attach a file as evidence"></a>
                         </div>
                       </div>
-                      {% if not forloop.last %}
-                        <hr>{% endif %}
-                    {% endfor %}
+                    </div>
                   </td>
                 {% else %}
                   <td class="align-middle">
