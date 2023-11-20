@@ -537,18 +537,19 @@ class ReportFindingLink(models.Model):
         return f"{self.title}"
 
 
+def set_evidence_upload_destination(this, filename):
+    """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
+    return os.path.join("evidence", str(this.associated_report.id), filename)
+
+
 class Evidence(models.Model):
     """
     Stores an individual evidence file, related to :model:`reporting.ReportFindingLink`
     and :model:`users.User`.
     """
 
-    def set_upload_destination(self, filename):
-        """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
-        return os.path.join("evidence", str(self.finding.report.id), filename)
-
     document = models.FileField(
-        upload_to=set_upload_destination,
+        upload_to=set_evidence_upload_destination,
         validators=[validate_evidence_extension],
         blank=True,
     )
