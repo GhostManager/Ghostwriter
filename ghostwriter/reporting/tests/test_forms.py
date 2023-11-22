@@ -6,7 +6,8 @@ from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
+    EvidenceOnReportFactory,
     FindingFactory,
     FindingNoteFactory,
     LocalFindingNoteFactory,
@@ -241,15 +242,24 @@ class ReportFindingLinkUpdateFormTests(TestCase):
         self.assertTrue(self.complete_finding.complete)
 
 
-class EvidenceFormTests(TestCase):
+class BaseEvidenceFormTests:
     """Collection of tests for :form:`reporting.EvidenceForm`."""
 
     @classmethod
+    def factory(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    def querySet(cls):
+        raise NotImplementedError()
+
+    @classmethod
     def setUpTestData(cls):
-        cls.Evidence = EvidenceFactory._meta.model
-        cls.evidence = EvidenceFactory()
+        cls.Factory = cls.factory()
+        cls.Evidence = cls.Factory._meta.model
+        cls.evidence = cls.Factory()
         cls.evidence_dict = cls.evidence.__dict__
-        cls.evidence_queryset = cls.Evidence.objects.filter(finding=cls.evidence.finding)
+        cls.evidence_queryset = cls.querySet()
 
     def setUp(self):
         pass
@@ -260,8 +270,6 @@ class EvidenceFormTests(TestCase):
         friendly_name=None,
         caption=None,
         description=None,
-        finding_id=None,
-        uploaded_by_id=None,
         evidence_queryset=None,
         modal=False,
         **kwargs,
@@ -274,8 +282,6 @@ class EvidenceFormTests(TestCase):
                 "friendly_name": friendly_name,
                 "caption": caption,
                 "description": description,
-                "finding": finding_id,
-                "uploaded_by": uploaded_by_id,
             },
             files={
                 "document": document,
@@ -303,7 +309,6 @@ class EvidenceFormTests(TestCase):
 
     def test_duplicate_friendly_name(self):
         new_evidence = self.evidence_dict.copy()
-        new_evidence["finding"] = self.evidence.finding
         new_evidence["friendly_name"] = self.evidence.friendly_name
 
         form = self.form_data(**new_evidence)
@@ -324,6 +329,26 @@ class EvidenceFormTests(TestCase):
 
         form = self.form_data(**evidence, evidence_queryset=None)
         self.assertTrue(form.is_valid())
+
+
+class EvidenceFormForFindingTests(BaseEvidenceFormTests, TestCase):
+    @classmethod
+    def factory(cls):
+        return EvidenceOnFindingFactory
+
+    @classmethod
+    def querySet(cls):
+        return cls.Evidence.objects.filter(finding=cls.evidence.finding)
+
+
+class EvidenceFormForReportTests(BaseEvidenceFormTests, TestCase):
+    @classmethod
+    def factory(cls):
+        return EvidenceOnReportFactory
+
+    @classmethod
+    def querySet(cls):
+        return cls.Evidence.objects.filter(report=cls.evidence.report)
 
 
 class FindingNoteFormTests(TestCase):

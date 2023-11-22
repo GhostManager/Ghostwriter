@@ -461,4 +461,17 @@ LINTER_CONTEXT = {
         "targets": 1,
     },
     "tools": ["beacon", "covenant", "mythic", "poseidon"],
+    "evidence": [
+        {
+            "id": 1,
+            "file_path": "evidence/2/ghost.png",
+            "url": "/media/evidence/2/ghost.png",
+            "document": "/media/evidence/2/ghost.png",
+            "friendly_name": "Ghostwriter",
+            "upload_date": "2021-03-22",
+            "caption": "Brief Caption for This Evidence",
+            "description": "",
+            "tags": ["tag1", "tag2", "tag3"],
+        }
+    ],
 }

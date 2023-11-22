@@ -20,7 +20,7 @@ from ghostwriter.factories import (
     ClientFactory,
     DomainFactory,
     DomainStatusFactory,
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
@@ -974,7 +974,7 @@ class GraphqlDeleteEvidenceActionTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.Evidence = EvidenceFactory._meta.model
+        cls.Evidence = EvidenceOnFindingFactory._meta.model
 
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("api:graphql_delete_evidence")
@@ -989,8 +989,8 @@ class GraphqlDeleteEvidenceActionTests(TestCase):
         cls.finding = ReportFindingLinkFactory(report=cls.report)
         cls.other_finding = ReportFindingLinkFactory(report=cls.other_report)
 
-        cls.evidence = EvidenceFactory(finding=cls.finding)
-        cls.other_evidence = EvidenceFactory(finding=cls.other_finding)
+        cls.evidence = EvidenceOnFindingFactory(finding=cls.finding)
+        cls.other_evidence = EvidenceOnFindingFactory(finding=cls.other_finding)
 
     def setUp(self):
         self.client = Client()

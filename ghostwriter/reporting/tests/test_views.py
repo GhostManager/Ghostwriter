@@ -20,7 +20,8 @@ from rest_framework.renderers import JSONRenderer
 from ghostwriter.factories import (
     ClientFactory,
     CompanyInformationFactory,
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
+    EvidenceOnReportFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
@@ -295,7 +296,7 @@ class ReportCloneTests(TestCase):
         cls.report = ReportFactory()
         cls.Report = ReportFactory._meta.model
         cls.ReportFindingLink = ReportFindingLinkFactory._meta.model
-        cls.Evidence = EvidenceFactory._meta.model
+        cls.Evidence = EvidenceOnFindingFactory._meta.model
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
 
@@ -348,11 +349,11 @@ class ReportCloneTests(TestCase):
         copied_findings = self.ReportFindingLink.objects.filter(report=report_copy)
         self.assertEqual(len(copied_findings), self.num_of_findings)
 
-    def test_clone_with_evidence_files(self):
+    def test_clone_with_finding_evidence_files(self):
         self.Evidence.objects.all().delete()
         report = ReportFactory()
         finding = ReportFindingLinkFactory(title="Evidence Finding 1", report=report)
-        evidence = EvidenceFactory(finding=finding)
+        evidence = EvidenceOnFindingFactory(finding=finding)
 
         uri = reverse("reporting:report_clone", kwargs={"pk": report.pk})
         response = self.client_mgr.get(uri)
@@ -367,12 +368,51 @@ class ReportCloneTests(TestCase):
         assert os.path.exists(evidence_copy.document.path)
         self.assertIn(f"ghostwriter/media/evidence/{report_copy.pk}", evidence_copy.document.path)
 
-    def test_clone_with_missing_evidence_file(self):
+    def test_clone_with_missing_finding_evidence_file(self):
         self.Evidence.objects.all().delete()
         report = ReportFactory()
         finding = ReportFindingLinkFactory(title="Evidence Finding 1", report=report)
-        evidence = EvidenceFactory(finding=finding)
-        evidence_missing_file = EvidenceFactory(finding=finding)
+        evidence = EvidenceOnFindingFactory(finding=finding)
+        evidence_missing_file = EvidenceOnFindingFactory(finding=finding)
+
+        # Delete evidence file
+        os.remove(evidence_missing_file.document.path)
+
+        uri = reverse("reporting:report_clone", kwargs={"pk": report.pk})
+        response = self.client_mgr.get(uri)
+        self.assertIn("reporting/reports/", response.url)
+
+        # Check that the evidence with the missing file was not copied
+        evidence_files = self.Evidence.objects.filter(friendly_name=evidence.friendly_name)
+        self.assertEqual(len(evidence_files), 2)
+        evidence_files = self.Evidence.objects.filter(friendly_name=evidence_missing_file.friendly_name)
+        self.assertEqual(len(evidence_files), 1)
+        # Total = 2 from the original report + 1 from the copy
+        self.assertEqual(len(self.Evidence.objects.all()), 3)
+
+    def test_clone_with_report_evidence_file(self):
+        self.Evidence.objects.all().delete()
+        report = ReportFactory()
+        evidence = EvidenceOnReportFactory(report=report)
+
+        uri = reverse("reporting:report_clone", kwargs={"pk": report.pk})
+        response = self.client_mgr.get(uri)
+        self.assertIn("reporting/reports/", response.url)
+
+        evidence_files = self.Evidence.objects.filter(friendly_name=evidence.friendly_name)
+        self.assertEqual(len(evidence_files), 2)
+
+        # Check the evidence file was copied to the new report's directory
+        report_copy = self.Report.objects.latest("id")
+        evidence_copy = evidence_files.latest("id")
+        assert os.path.exists(evidence_copy.document.path)
+        self.assertIn(f"ghostwriter/media/evidence/{report_copy.pk}", evidence_copy.document.path)
+
+    def test_clone_with_missing_report_evidence_file(self):
+        self.Evidence.objects.all().delete()
+        report = ReportFactory()
+        evidence = EvidenceOnReportFactory(report=report)
+        evidence_missing_file = EvidenceOnReportFactory(report=report)
 
         # Delete evidence file
         os.remove(evidence_missing_file.document.path)
@@ -1226,9 +1266,9 @@ class EvidenceDetailViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.img_evidence = EvidenceFactory(img=True)
-        cls.txt_evidence = EvidenceFactory(txt=True)
-        cls.unknown_evidence = EvidenceFactory(unknown=True)
+        cls.img_evidence = EvidenceOnFindingFactory(img=True)
+        cls.txt_evidence = EvidenceOnFindingFactory(txt=True)
+        cls.unknown_evidence = EvidenceOnFindingFactory(unknown=True)
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.img_uri = reverse("reporting:evidence_detail", kwargs={"pk": cls.img_evidence.pk})
@@ -1291,21 +1331,34 @@ class EvidenceDetailViewTests(TestCase):
         )
 
 
-class EvidenceCreateViewTests(TestCase):
-    """Collection of tests for :view:`reporting.EvidenceCreate`."""
+class BaseEvidenceCreateViewTests:
+    """
+    Base collection of tests for :view:`reporting.EvidenceCreate`.
+
+    Does not inherit from TestCase so that this isn't ran as a test case
+    """
+
+    # Set this to "finding" or "report"
+    PARENT_TYPE = None
+
+    @classmethod
+    def setupEvidenceFactory(cls):
+        """Returns a tuple of the evidence factory and the ID of the parent finding or report"""
+        raise NotImplementedError()
 
     @classmethod
     def setUpTestData(cls):
-        cls.finding = ReportFindingLinkFactory()
-        cls.evidence = EvidenceFactory(finding=cls.finding)
+        (evidence, parent_pk) = cls.setupEvidenceFactory()
+        cls.evidence = evidence
+        cls.parent_pk = parent_pk
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
-        cls.uri = reverse("reporting:upload_evidence", kwargs={"pk": cls.finding.pk})
+        cls.uri = reverse("reporting:upload_evidence", kwargs={"parent_type": cls.PARENT_TYPE, "pk": parent_pk})
         cls.modal_uri = reverse(
             "reporting:upload_evidence_modal",
-            kwargs={"pk": cls.finding.pk, "modal": "modal"},
+            kwargs={"parent_type": cls.PARENT_TYPE, "pk": parent_pk, "modal": "modal"},
         )
-        cls.success_uri = reverse("reporting:report_detail", args=(cls.finding.report.pk,))
+        cls.success_uri = reverse("reporting:report_detail", args=(cls.evidence.associated_report.pk,))
         cls.modal_success_uri = reverse("reporting:upload_evidence_modal_success")
 
     def setUp(self):
@@ -1334,7 +1387,7 @@ class EvidenceCreateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            reverse("reporting:report_detail", kwargs={"pk": self.finding.report.pk}),
+            reverse("reporting:report_detail", kwargs={"pk": self.evidence.associated_report.pk}),
         )
 
     # Testing modal form view
@@ -1349,7 +1402,7 @@ class EvidenceCreateViewTests(TestCase):
         response = self.client_auth.get(self.modal_uri)
         self.assertEqual(response.status_code, 302)
 
-        ProjectAssignmentFactory(project=self.finding.report.project, operator=self.user)
+        ProjectAssignmentFactory(project=self.evidence.associated_report.project, operator=self.user)
         response = self.client_auth.get(self.modal_uri)
         self.assertEqual(response.status_code, 200)
 
@@ -1364,7 +1417,7 @@ class EvidenceCreateViewTests(TestCase):
         self.assertIn("used_friendly_names", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            reverse("reporting:report_detail", kwargs={"pk": self.finding.report.pk}),
+            reverse("reporting:report_detail", kwargs={"pk": self.evidence.associated_report.pk}),
         )
 
     # Testing modal success view
@@ -1382,12 +1435,36 @@ class EvidenceCreateViewTests(TestCase):
         self.assertTemplateUsed(response, "reporting/evidence_modal_success.html")
 
 
+class EvidenceForFindingCreateViewTests(BaseEvidenceCreateViewTests, TestCase):
+    """Collection of tests for :view:`reporting.EvidenceCreate`."""
+
+    PARENT_TYPE = "finding"
+
+    @classmethod
+    def setupEvidenceFactory(cls):
+        cls.finding = ReportFindingLinkFactory()
+        evidence = EvidenceOnFindingFactory(finding=cls.finding)
+        return (evidence, evidence.finding.pk)
+
+
+class EvidenceForReportCreateViewTests(BaseEvidenceCreateViewTests, TestCase):
+    """Collection of tests for :view:`reporting.EvidenceCreate`."""
+
+    PARENT_TYPE = "report"
+
+    @classmethod
+    def setupEvidenceFactory(cls):
+        cls.report = ReportFactory()
+        evidence = EvidenceOnReportFactory(report=cls.report)
+        return (evidence, evidence.report.pk)
+
+
 class EvidenceUpdateViewTests(TestCase):
     """Collection of tests for :view:`reporting.EvidenceUpdate`."""
 
     @classmethod
     def setUpTestData(cls):
-        cls.evidence = EvidenceFactory()
+        cls.evidence = EvidenceOnFindingFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:evidence_update", kwargs={"pk": cls.evidence.pk})
@@ -1433,7 +1510,7 @@ class EvidenceDeleteViewTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.evidence = EvidenceFactory()
+        cls.evidence = EvidenceOnFindingFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.uri = reverse("reporting:evidence_delete", kwargs={"pk": cls.evidence.pk})

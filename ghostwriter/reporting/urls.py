@@ -157,12 +157,12 @@ urlpatterns += [
         name="local_edit",
     ),
     path(
-        "reports/evidence/upload/<int:pk>",
+        "reports/evidence/upload/<str:parent_type>/<int:pk>",
         views.EvidenceCreate.as_view(),
         name="upload_evidence",
     ),
     path(
-        "reports/evidence/upload/<int:pk>/<str:modal>",
+        "reports/evidence/upload/<str:parent_type>/<int:pk>/<str:modal>",
         views.EvidenceCreate.as_view(),
         name="upload_evidence_modal",
     ),

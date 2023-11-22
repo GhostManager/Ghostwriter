@@ -8,9 +8,9 @@
     <nav aria-label="breadcrumb">
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home:dashboard' %}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' evidence.finding.report.project.client.id %}">{{ evidence.finding.report.project.client.name }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' evidence.finding.report.project.id %}">{{ evidence.finding.report.project }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' evidence.finding.report.id %}">{{ evidence.finding.report }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:client_detail' evidence.associated_report.project.client.id %}">{{ evidence.associated_report.project.client.name }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rolodex:project_detail' evidence.associated_report.project.id %}">{{ evidence.associated_report.project.start_date }} {{ evidence.associated_report.project.project_type }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reporting:report_detail' evidence.associated_report.id %}">{{ evidence.associated_report }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">Evidence</li>
         </ul>
     </nav>
@@ -26,7 +26,7 @@
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="evidence-dropdown-btn">
             <a class="dropdown-item icon edit-icon" href="{% url 'reporting:evidence_update' evidence.id %}">Edit</a>
             <a class="dropdown-item icon trash-icon" href="{% url 'reporting:evidence_delete' evidence.id %}">Delete</a>
-            <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:report_detail' evidence.finding.report.id %}">Return to Report</a>
+            <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:report_detail' evidence.associated_report.id %}">Return to Report</a>
         </div>
     </div>
 

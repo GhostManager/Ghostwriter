@@ -757,14 +757,15 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         report_to_clone = self.get_object()
-        report_pk = None
+        old_pk = report_to_clone.pk
+        new_pk = None
         try:
             findings = ReportFindingLink.objects.select_related("report").filter(report=report_to_clone.pk)
             report_to_clone.title = report_to_clone.title + " Copy"
             report_to_clone.complete = False
             report_to_clone.pk = None
             report_to_clone.save()
-            report_pk = report_to_clone.pk
+            new_pk = report_to_clone.pk
             for finding in findings:
                 # Get any evidence files attached to the original finding
                 evidences = Evidence.objects.filter(finding=finding.pk)
@@ -792,6 +793,25 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                             extra_tags="alert-warning",
                         )
 
+            for evidence in Evidence.objects.filter(report_id=old_pk):
+                if exists(evidence.document.path):
+                    evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
+                    evidence.report = report_to_clone
+                    evidence._current_evidence = None
+                    evidence.document = evidence_file
+                    evidence.pk = None
+                    evidence.save()
+                else:
+                    logger.warning(
+                        "Evidence file not found: %s",
+                        evidence.document.path,
+                    )
+                    messages.warning(
+                        self.request,
+                        f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
+                        extra_tags="alert-warning",
+                    )
+
             logger.info(
                 "Cloned %s %s by request of %s",
                 report_to_clone.__class__.__name__,
@@ -815,7 +835,7 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 extra_tags="alert-error",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report_pk}))
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": new_pk}))
 
 
 class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -1563,7 +1583,7 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
 
     def get_success_url(self):
         # Clear user's session if deleted report is their active report
-        if self.object.pk == self.request.session["active_report"]["id"]:
+        if self.object.pk == self.request.session.get("active_report", {}).get("id"):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = ""
             self.request.session["active_report"]["title"] = ""
@@ -2392,7 +2412,7 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Evidence
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().associated_report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2448,7 +2468,11 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.finding_instance.report.project)
+        if self.finding_instance:
+            project = self.finding_instance.report.project
+        else:
+            project = self.report_instance.project
+        return verify_access(self.request.user, project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2456,9 +2480,18 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        finding_pk = self.kwargs.get("pk")
-        self.finding_instance = get_object_or_404(ReportFindingLink, pk=finding_pk)
-        self.evidence_queryset = Evidence.objects.filter(finding=self.finding_instance.pk)
+        pk = self.kwargs.get("pk")
+        typ = self.kwargs.get("parent_type")
+        if typ == "report":
+            self.finding_instance = None
+            self.report_instance = get_object_or_404(Report, pk=pk)
+            self.evidence_queryset = Evidence.objects.filter(report=self.report_instance.pk)
+        elif typ == "finding":
+            self.finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
+            self.report_instance = None
+            self.evidence_queryset = Evidence.objects.filter(finding=self.finding_instance.pk)
+        else:
+            raise Http404("Unrecognized evidence parent model type: {!r}".format(typ))
 
     def get_template_names(self):
         if "modal" in self.kwargs:
@@ -2477,7 +2510,11 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.finding_instance.report.pk})
+        if self.finding_instance:
+            report = self.finding_instance.report
+        else:
+            report = self.report_instance
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk})
         if "modal" in self.kwargs:
             friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
             used_friendly_names = []
@@ -2491,7 +2528,10 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     def form_valid(self, form, **kwargs):
         obj = form.save(commit=False)
         obj.uploaded_by = self.request.user
-        obj.finding = self.finding_instance
+        if self.finding_instance:
+            obj.finding = self.finding_instance
+        else:
+            obj.report = self.report_instance
         obj.save()
         form.save_m2m()
         if os.path.isfile(obj.document.path):
@@ -2511,7 +2551,11 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     def get_success_url(self):
         if "modal" in self.kwargs:
             return reverse("reporting:upload_evidence_modal_success")
-        return reverse("reporting:report_detail", args=(self.finding_instance.report.pk,))
+        if self.report_instance:
+            report_pk = self.report_instance.pk
+        else:
+            report_pk = self.finding_instance.report.pk
+        return reverse("reporting:report_detail", args=(report_pk,))
 
 
 class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
@@ -2532,7 +2576,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().associated_report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2540,7 +2584,10 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        evidence_queryset = Evidence.objects.filter(finding=self.object.finding.pk)
+        if self.object.finding:
+            evidence_queryset = Evidence.objects.filter(finding=self.object.finding.pk)
+        else:
+            evidence_queryset = Evidence.objects.filter(report=self.object.report.pk)
         kwargs.update({"evidence_queryset": evidence_queryset})
         return kwargs
 
@@ -2583,7 +2630,7 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().associated_report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2598,7 +2645,7 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
             message,
             extra_tags="alert-success",
         )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.finding.report.pk})
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.associated_report.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
