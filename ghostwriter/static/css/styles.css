@@ -2492,6 +2492,7 @@ h5 a:after {
   color: #000;
   font-weight: 600;
   float: right;
+  margin-top: 4px;
 }
 
 h5 a[aria-expanded=true]:after {
