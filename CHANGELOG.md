@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 14 November 2023
+
+### Fixed
+
+* Fixed a report rendering error when a report had no findings
+* Fixed an issue with search autocomplete and finding titles with single quotes
+* Fixed links for editing scope lists and targets accessed from the project dashboard's dropdown menus
+
+### Changed
+
+* The WYSIWYG editor will now automatically expand the height of the editor to fit the content as you type (up to the height of the browser window) (Closes #344)
+
+### Security
+
+* Updated the TinyMCE WYSIWYG editor to v5.10.8 to incorporate security fixes into Ghostwriter's self-hosted files
+
 ## [4.0.1] - 27 September 2023
 
 ### Added
