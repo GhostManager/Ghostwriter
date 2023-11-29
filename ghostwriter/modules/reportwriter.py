@@ -1606,7 +1606,7 @@ class Reportwriter:
             )
             finding["references_rt"] = render_subdocument(finding["references"], finding)
 
-            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: render_subdocument(v, finding))
+            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: render_subdocument(v, finding))  # pylint: disable=cell-var-from-loop
 
         # Client
         context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None)
