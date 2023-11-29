@@ -353,7 +353,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         evidence_upload_url = reverse(
             "reporting:upload_evidence_modal",
-            kwargs={"pk": self.instance.id, "modal": "modal"},
+            kwargs={"parent_type": "finding", "pk": self.instance.id, "modal": "modal"},
         )
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"

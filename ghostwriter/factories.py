@@ -442,7 +442,7 @@ class BlankReportFindingLinkFactory(factory.django.DjangoModelFactory):
     report = factory.SubFactory(ReportFactory)
 
 
-class EvidenceFactory(factory.django.DjangoModelFactory):
+class BaseEvidenceFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.Evidence"
 
@@ -450,7 +450,6 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
     friendly_name = factory.Sequence(lambda n: "Evidence %s" % n)
     caption = Faker("sentence")
     description = Faker("sentence")
-    finding = factory.SubFactory(ReportFindingLinkFactory)
     uploaded_by = factory.SubFactory(UserFactory)
 
     class Params:
@@ -466,6 +465,14 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
         if extracted:
             for tag in extracted:
                 self.tags.add(tag)
+
+
+class EvidenceOnFindingFactory(BaseEvidenceFactory):
+    finding = factory.SubFactory(ReportFindingLinkFactory)
+
+
+class EvidenceOnReportFactory(BaseEvidenceFactory):
+    report = factory.SubFactory(ReportFactory)
 
 
 class ArchiveFactory(factory.django.DjangoModelFactory):

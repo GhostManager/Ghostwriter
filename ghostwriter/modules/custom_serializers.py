@@ -197,6 +197,7 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
         source="evidence_set",
         many=True,
         exclude=[
+            "report",
             "finding",
             "uploaded_by",
         ],
@@ -739,6 +740,7 @@ class ReportDataSerializer(CustomModelSerializer):
     deconflictions = DeconflictionSerializer(source="project.deconfliction_set", many=True, exclude=["id", "project"])
     whitecards = WhiteCardSerializer(source="project.whitecard_set", many=True, exclude=["id", "project"])
     infrastructure = ProjectInfrastructureSerializer(source="project")
+    evidence = EvidenceSerializer(source="evidence_set", many=True, exclude=["id", "report", "finding"])
     findings = FindingLinkSerializer(
         source="reportfindinglink_set",
         many=True,

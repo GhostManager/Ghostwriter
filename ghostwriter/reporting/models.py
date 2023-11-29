@@ -537,18 +537,19 @@ class ReportFindingLink(models.Model):
         return f"{self.title}"
 
 
+def set_evidence_upload_destination(this, filename):
+    """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
+    return os.path.join("evidence", str(this.associated_report.id), filename)
+
+
 class Evidence(models.Model):
     """
     Stores an individual evidence file, related to :model:`reporting.ReportFindingLink`
     and :model:`users.User`.
     """
 
-    def set_upload_destination(self, filename):
-        """Sets the `upload_to` destination to the evidence folder for the associated report ID."""
-        return os.path.join("evidence", str(self.finding.report.id), filename)
-
     document = models.FileField(
-        upload_to=set_upload_destination,
+        upload_to=set_evidence_upload_destination,
         validators=[validate_evidence_extension],
         blank=True,
     )
@@ -576,16 +577,37 @@ class Evidence(models.Model):
     )
     tags = TaggableManager(blank=True)
     # Foreign Keys
-    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE)
+    finding = models.ForeignKey("ReportFindingLink", on_delete=models.CASCADE, null=True, blank=True)
+    report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True, blank=True)
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
-        ordering = ["finding", "document"]
+        ordering = ["finding", "report", "document"]
         verbose_name = "Evidence"
         verbose_name_plural = "Evidence"
 
+        constraints = [
+            models.CheckConstraint(
+                name="%(app_label)s_%(class)s_finding_or_report",
+                check=(
+                    models.Q(finding__isnull=True, report__isnull=False)
+                    | models.Q(finding__isnull=False, report__isnull=True)
+                )
+            )
+        ]
+
     def get_absolute_url(self):
         return reverse("reporting:evidence_detail", args=[str(self.id)])
+
+    @property
+    def associated_report(self):
+        """
+        The report associated with this evidence, either directly through `self.report` or indirectly through
+        `self.finding.report`.
+        """
+        if self.finding:
+            return self.finding.report
+        return self.report
 
     def __str__(self):
         return f"{self.document.name}"
