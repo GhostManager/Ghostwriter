@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load bleach_tags custom_tags %}
+{% load bleach_tags custom_tags extra_fields %}
 
 {% block pagetitle %}{{ primary_address }}{% endblock %}
 
@@ -201,6 +201,23 @@
           <div class="alert alert-warning offset-md-2 col-md-8 mt-1" role="alert">This server has no history.</div>
         {% endif %}
       </div>
+
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if server_extra_fields_spec %}
+        <div id="extra_fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          <table class="table table-borderless table-centered project-details-table">
+            {% for field_spec in server_extra_fields_spec %}
+              <tr>
+                <td class="text-left bold">{{ field_spec.display_name|title }}</td>
+                <td class="text-left">{% include "user_extra_fields/field.html" with extra_fields=staticserver.extra_fields field_spec=field_spec %}</td>
+              </tr>
+            {% endfor %}
+          </table>
+        </div>
+      {% endif %}
 
       <!-- Notes Tab -->
       <div id="notes" class="tab-pane">

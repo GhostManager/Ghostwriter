@@ -1,0 +1,7 @@
+
+{% for entry in widget.subwidgets %}
+    <label>{{entry.label}}</label>
+    {% with widget=entry.widget %}
+        {% include widget.template_name %}
+    {% endwith %}
+{% endfor %}

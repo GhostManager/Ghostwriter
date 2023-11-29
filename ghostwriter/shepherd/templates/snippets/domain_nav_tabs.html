@@ -28,6 +28,13 @@
         <span class="badge badge-pill badge-light">{{ domain.history_set.all.count }}</span>
     </a>
 </li>
+{% if domain_extra_fields_spec %}
+    <li class="nav-item">
+        <a class="nav-link icon info-icon" data-toggle="tab" href="#extra_fields">
+            Extra Fields
+        </a>
+    </li>
+{% endif %}
 <li class="nav-item">
     <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
         Notes

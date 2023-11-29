@@ -277,6 +277,23 @@ class FindingFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+class ObservationFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "reporting.Observation"
+
+    title = factory.Sequence(lambda n: "Observation %s" % n)
+    description = Faker("paragraph")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
+
 class DocTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.DocType"
@@ -393,6 +410,25 @@ class ReportFindingLinkFactory(factory.django.DjangoModelFactory):
                 self.tags.add(tag)
 
 
+class ReportObservationLinkFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "reporting.ReportObservationLink"
+
+    title = factory.Sequence(lambda n: "Local Observation %s" % n)
+    position = 1
+    description = Faker("paragraph")
+    added_as_blank = Faker("boolean")
+
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            for tag in extracted:
+                self.tags.add(tag)
+
+
 class BlankReportFindingLinkFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.ReportFindingLink"
@@ -406,7 +442,7 @@ class BlankReportFindingLinkFactory(factory.django.DjangoModelFactory):
     report = factory.SubFactory(ReportFactory)
 
 
-class EvidenceFactory(factory.django.DjangoModelFactory):
+class BaseEvidenceFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "reporting.Evidence"
 
@@ -414,7 +450,6 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
     friendly_name = factory.Sequence(lambda n: "Evidence %s" % n)
     caption = Faker("sentence")
     description = Faker("sentence")
-    finding = factory.SubFactory(ReportFindingLinkFactory)
     uploaded_by = factory.SubFactory(UserFactory)
 
     class Params:
@@ -430,6 +465,14 @@ class EvidenceFactory(factory.django.DjangoModelFactory):
         if extracted:
             for tag in extracted:
                 self.tags.add(tag)
+
+
+class EvidenceOnFindingFactory(BaseEvidenceFactory):
+    finding = factory.SubFactory(ReportFindingLinkFactory)
+
+
+class EvidenceOnReportFactory(BaseEvidenceFactory):
+    report = factory.SubFactory(ReportFactory)
 
 
 class ArchiveFactory(factory.django.DjangoModelFactory):

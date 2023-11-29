@@ -11,7 +11,7 @@ from ghostwriter.factories import (
     ClientFactory,
     DomainFactory,
     DomainServerConnectionFactory,
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
@@ -267,7 +267,7 @@ class Command(BaseCommand):
 
                 # Create fake evidence
                 for f in report_findings:
-                    EvidenceFactory(
+                    EvidenceOnFindingFactory(
                         finding=f,
                         uploaded_by=random.choice(assignments).operator,
                     )

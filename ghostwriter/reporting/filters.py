@@ -11,7 +11,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import HTML, ButtonHolder, Column, Div, Layout, Row, Submit
 
 # Ghostwriter Libraries
-from ghostwriter.reporting.models import Archive, Finding, FindingType, Report, Severity
+from ghostwriter.reporting.models import Archive, Finding, FindingType, Observation, Report, Severity
 
 
 class FindingFilter(django_filters.FilterSet):
@@ -86,6 +86,57 @@ class FindingFilter(django_filters.FilterSet):
                     HTML(
                         """
                         <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:findings' %}">Reset</a>
+                        """
+                    ),
+                ),
+                css_class="justify-content-center",
+            ),
+        )
+
+
+class ObservationFilter(django_filters.FilterSet):
+    """
+    Filter :model:`reporting.Observation` model for searching.
+
+    **Fields**
+
+    ``title``
+        Case insensitive search of the title field contents.
+    """
+
+    title = django_filters.CharFilter(
+        lookup_expr="icontains",
+        label="Observation Title Contains",
+        widget=TextInput(attrs={"placeholder": "Observation Title Contains", "autocomplete": "off"}),
+    )
+
+    class Meta:
+        model = Observation
+        fields = ["title"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = "get"
+        self.helper.layout = Layout(
+            Div(
+                Row(
+                    Column(
+                        PrependedText("title", '<i class="fas fa-filter"></i>'),
+                        css_class="form-group col-md-6 offset-md-3 mb-0",
+                    ),
+                    css_class="form-row",
+                ),
+                ButtonHolder(
+                    HTML(
+                        """
+                        <a class="btn btn-info col-md-2" role="button" href="{%  url 'reporting:observation_create' %}">Create</a>
+                        """
+                    ),
+                    Submit("submit_btn", "Filter", css_class="col-md-2"),
+                    HTML(
+                        """
+                        <a class="btn btn-outline-secondary col-md-2" role="button" href="{%  url 'reporting:observations' %}">Reset</a>
                         """
                     ),
                 ),

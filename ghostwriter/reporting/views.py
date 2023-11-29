@@ -19,7 +19,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.files import File
 from django.core.files.base import ContentFile
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.http import (
     FileResponse,
     Http404,
@@ -53,18 +53,21 @@ from ghostwriter.api.utils import (
     verify_user_is_privileged,
     RoleBasedAccessControlMixin,
 )
-from ghostwriter.commandcenter.models import CompanyInformation, ReportConfiguration
+from ghostwriter.commandcenter.forms import SingleExtraFieldForm
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules import reportwriter
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.reporting.filters import ArchiveFilter, FindingFilter, ReportFilter
+from ghostwriter.reporting.filters import ArchiveFilter, FindingFilter, ObservationFilter, ReportFilter
 from ghostwriter.reporting.forms import (
     EvidenceForm,
     FindingForm,
     FindingNoteForm,
     LocalFindingNoteForm,
+    ObservationForm,
     ReportFindingLinkUpdateForm,
     ReportForm,
+    ReportObservationLinkUpdateForm,
     ReportTemplateForm,
     SelectReportTemplateForm,
 )
@@ -75,8 +78,10 @@ from ghostwriter.reporting.models import (
     FindingNote,
     FindingType,
     LocalFindingNote,
+    Observation,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
     Severity,
 )
@@ -757,14 +762,15 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def get(self, *args, **kwargs):
         report_to_clone = self.get_object()
-        report_pk = None
+        old_pk = report_to_clone.pk
+        new_pk = None
         try:
             findings = ReportFindingLink.objects.select_related("report").filter(report=report_to_clone.pk)
             report_to_clone.title = report_to_clone.title + " Copy"
             report_to_clone.complete = False
             report_to_clone.pk = None
             report_to_clone.save()
-            report_pk = report_to_clone.pk
+            new_pk = report_to_clone.pk
             for finding in findings:
                 # Get any evidence files attached to the original finding
                 evidences = Evidence.objects.filter(finding=finding.pk)
@@ -792,6 +798,25 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                             extra_tags="alert-warning",
                         )
 
+            for evidence in Evidence.objects.filter(report_id=old_pk):
+                if exists(evidence.document.path):
+                    evidence_file = File(evidence.document, os.path.basename(evidence.document.name))
+                    evidence.report = report_to_clone
+                    evidence._current_evidence = None
+                    evidence.document = evidence_file
+                    evidence.pk = None
+                    evidence.save()
+                else:
+                    logger.warning(
+                        "Evidence file not found: %s",
+                        evidence.document.path,
+                    )
+                    messages.warning(
+                        self.request,
+                        f"An evidence file was missing and could not be copied: {evidence.friendly_name} ({os.path.basename(evidence.document.name)})",
+                        extra_tags="alert-warning",
+                    )
+
             logger.info(
                 "Cloned %s %s by request of %s",
                 report_to_clone.__class__.__name__,
@@ -815,7 +840,7 @@ class ReportClone(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 extra_tags="alert-error",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": report_pk}))
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": new_pk}))
 
 
 class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -840,6 +865,7 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     def get(self, *args, **kwargs):
         obj = self.get_object()
         try:
+
             report_link = ReportFindingLink(
                 title="Blank Template",
                 severity=self.severity,
@@ -1069,6 +1095,11 @@ class FindingDetailView(RoleBasedAccessControlMixin, DetailView):
     """
 
     model = Finding
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["finding_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Finding._meta.label)
+        return ctx
 
 
 class FindingCreate(RoleBasedAccessControlMixin, CreateView):
@@ -1398,6 +1429,8 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
             self.autocomplete.append(finding.title)
         ctx["autocomplete"] = self.autocomplete
 
+        ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
+
         return ctx
 
 
@@ -1563,7 +1596,7 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
 
     def get_success_url(self):
         # Clear user's session if deleted report is their active report
-        if self.object.pk == self.request.session["active_report"]["id"]:
+        if self.object.pk == self.request.session.get("active_report", {}).get("id"):
             self.request.session["active_report"] = {}
             self.request.session["active_report"]["id"] = ""
             self.request.session["active_report"]["title"] = ""
@@ -1582,6 +1615,42 @@ class ReportDelete(RoleBasedAccessControlMixin, DeleteView):
         ctx["object_type"] = "entire report, evidence and all"
         ctx["object_to_be_deleted"] = queryset.title
         return ctx
+
+
+class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    model = Report
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def run(self, request, pk, extra_field_name):
+        report = self.get_object()
+        field_spec = get_object_or_404(ExtraFieldSpec, target_model=Report._meta.label, internal_name=extra_field_name)
+        if request.method == "POST":
+            form = SingleExtraFieldForm(
+                field_spec,
+                request.POST,
+                initial={field_spec.internal_name: report.extra_fields.get(field_spec.internal_name)},
+            )
+            if form.is_valid():
+                report.extra_fields[field_spec.internal_name] = form.cleaned_data[field_spec.internal_name]
+                report.save()
+                return redirect("reporting:report_detail", pk=report.pk)
+        else:
+            form = SingleExtraFieldForm(field_spec)
+
+        return render(request, "reporting/report_extra_field_edit.html", {
+            "form": form,
+            "report": report,
+            "field_spec": field_spec,
+            "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}),
+        })
+
+    def get(self, request, pk, extra_field_name):
+        return self.run(request, pk, extra_field_name)
+
+    def post(self, request, pk, extra_field_name):
+        return self.run(request, pk, extra_field_name)
 
 
 class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
@@ -2392,7 +2461,7 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
     model = Evidence
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().associated_report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2448,7 +2517,11 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.finding_instance.report.project)
+        if self.finding_instance:
+            project = self.finding_instance.report.project
+        else:
+            project = self.report_instance.project
+        return verify_access(self.request.user, project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2456,9 +2529,18 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
-        finding_pk = self.kwargs.get("pk")
-        self.finding_instance = get_object_or_404(ReportFindingLink, pk=finding_pk)
-        self.evidence_queryset = Evidence.objects.filter(finding=self.finding_instance.pk)
+        pk = self.kwargs.get("pk")
+        typ = self.kwargs.get("parent_type")
+        if typ == "report":
+            self.finding_instance = None
+            self.report_instance = get_object_or_404(Report, pk=pk)
+            self.evidence_queryset = Evidence.objects.filter(report=self.report_instance.pk)
+        elif typ == "finding":
+            self.finding_instance = get_object_or_404(ReportFindingLink, pk=pk)
+            self.report_instance = None
+            self.evidence_queryset = Evidence.objects.filter(finding=self.finding_instance.pk)
+        else:
+            raise Http404("Unrecognized evidence parent model type: {!r}".format(typ))
 
     def get_template_names(self):
         if "modal" in self.kwargs:
@@ -2477,7 +2559,11 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.finding_instance.report.pk})
+        if self.finding_instance:
+            report = self.finding_instance.report
+        else:
+            report = self.report_instance
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk})
         if "modal" in self.kwargs:
             friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
             used_friendly_names = []
@@ -2491,7 +2577,10 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     def form_valid(self, form, **kwargs):
         obj = form.save(commit=False)
         obj.uploaded_by = self.request.user
-        obj.finding = self.finding_instance
+        if self.finding_instance:
+            obj.finding = self.finding_instance
+        else:
+            obj.report = self.report_instance
         obj.save()
         form.save_m2m()
         if os.path.isfile(obj.document.path):
@@ -2511,7 +2600,11 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     def get_success_url(self):
         if "modal" in self.kwargs:
             return reverse("reporting:upload_evidence_modal_success")
-        return reverse("reporting:report_detail", args=(self.finding_instance.report.pk,))
+        if self.report_instance:
+            report_pk = self.report_instance.pk
+        else:
+            report_pk = self.finding_instance.report.pk
+        return reverse("reporting:report_detail", args=(report_pk,))
 
 
 class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
@@ -2532,7 +2625,7 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = EvidenceForm
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().associated_report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2540,7 +2633,10 @@ class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        evidence_queryset = Evidence.objects.filter(finding=self.object.finding.pk)
+        if self.object.finding:
+            evidence_queryset = Evidence.objects.filter(finding=self.object.finding.pk)
+        else:
+            evidence_queryset = Evidence.objects.filter(report=self.object.report.pk)
         kwargs.update({"evidence_queryset": evidence_queryset})
         return kwargs
 
@@ -2583,7 +2679,7 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().associated_report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
@@ -2598,7 +2694,7 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
             message,
             extra_tags="alert-success",
         )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.finding.report.pk})
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.associated_report.pk})
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -2774,3 +2870,356 @@ class LocalFindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     def get_success_url(self):
         messages.success(self.request, "Successfully updated the note.", extra_tags="alert-success")
         return reverse("reporting:local_edit", kwargs={"pk": self.get_object().finding.pk})
+
+
+# CBVs related to :model:`reporting.Observation`
+
+
+class ObservationListView(RoleBasedAccessControlMixin, ListView):
+    """
+    Display a list of all :model:`reporting.Observation`.
+    """
+
+    model = Observation
+    template_name = "reporting/observation_list.html"
+
+    def __init__(self):
+        super().__init__()
+        self.autocomplete = []
+
+    def get_queryset(self):
+        search_term = ""
+        observations = (
+            Observation.objects
+            .all()
+            .order_by("title")
+        )
+
+        # Build autocomplete list
+        for observation in observations:
+            self.autocomplete.append(observation.title)
+
+        search_term = self.request.GET.get("observation", "").strip()
+        if search_term:
+            messages.success(
+                self.request,
+                "Displaying search results for: {}".format(search_term),
+                extra_tags="alert-success",
+            )
+            return observations.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
+                "title"
+            )
+        return observations
+
+    def get(self, request, *args, **kwarg):
+        observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset())
+        return render(
+            request, "reporting/observation_list.html", {"filter": observation_filter, "autocomplete": self.autocomplete}
+        )
+
+
+class ObservationDetailView(RoleBasedAccessControlMixin, DetailView):
+    """
+    Display an individual :model:`reporting.Observation`.
+
+    **Template**
+
+    :template:`reporting/observation_detail.html`
+    """
+
+    model = Observation
+
+
+class ObservationCreate(RoleBasedAccessControlMixin, CreateView):
+    """
+    Create an individual instance of :model:`reporting.Observation`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to the observation list page
+
+    **Template**
+
+    :template:`reporting/observation_form.html`
+    """
+
+    model = Observation
+    form_class = ObservationForm
+
+    def test_func(self):
+        return verify_finding_access(self.request.user, "create")
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have the necessary permission to create new observations.")
+        return redirect("reporting:observations")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:observations")
+        return ctx
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Successfully added {} to the observations library".format(self.object.title),
+            extra_tags="alert-success",
+        )
+        return self.object.get_absolute_url()
+
+
+class ObservationUpdate(RoleBasedAccessControlMixin, UpdateView):
+    """
+    Update an individual instance of :model:`reporting.Observation`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to the observations list page
+
+    **Template**
+
+    :template:`reporting/observation_form.html`
+    """
+
+    model = Observation
+    form_class = ObservationForm
+
+    def test_func(self):
+        return verify_finding_access(self.request.user, "edit")
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have the necessary permission to edit observations.")
+        return self.get_object().get_absolute_url()
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:observation_detail", args=[str(self.object.id)])
+        return ctx
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Observation {} was successfully updated".format(self.object.title),
+            extra_tags="alert-success",
+        )
+        return self.object.get_absolute_url()
+
+
+class ObservationDelete(RoleBasedAccessControlMixin, DeleteView):
+    """
+    Delete an individual instance of :model:`reporting.Observation`.
+
+    **Context**
+
+    ``object_type``
+        String describing what is to be deleted
+    ``object_to_be_deleted``
+        To-be-deleted instance of :model:`reporting.Observation`
+    ``cancel_link``
+        Link for the form's Cancel button to return to observation list page
+
+    **Template**
+
+    :template:`confirm_delete.html`
+    """
+
+    model = Observation
+    template_name = "confirm_delete.html"
+
+    def test_func(self):
+        return verify_finding_access(self.request.user, "delete")
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have the necessary permission to delete observations.")
+        return self.get_object().get_absolute_url()
+
+    def get_success_url(self):
+        messages.warning(
+            self.request,
+            "Observation {} was successfully deleted".format(self.get_object().title),
+            extra_tags="alert-warning",
+        )
+        return reverse_lazy("reporting:observations")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        queryset = kwargs["object"]
+        ctx["object_type"] = "observation"
+        ctx["object_to_be_deleted"] = queryset.title
+        ctx["cancel_link"] = reverse("reporting:observations")
+        return ctx
+
+
+class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Copy an individual :model:`reporting.Observation` to create a new
+    :model:`reporting.ReportObservationLink` connected to the user's active
+    :model:`reporting.Report`.
+    """
+
+    model = Observation
+
+    def post(self, *args, **kwargs):
+        observation_instance = self.get_object()
+        observation_dict = to_dict(observation_instance, resolve_fk=True)
+
+        # Remove the tags from the observation dict to add them later with the ``taggit`` API
+        del observation_dict["tags"]
+        del observation_dict["tagged_items"]
+
+        # The user must have the ``active_report`` session variable
+        active_report = self.request.session.get("active_report", None)
+        if active_report:
+            try:
+                report = Report.objects.get(pk=active_report["id"])
+                if not verify_access(self.request.user, report.project):
+                    return ForbiddenJsonResponse()
+            except Report.DoesNotExist:
+                message = "Please select a report to edit before trying to assign an observation."
+                data = {"result": "error", "message": message}
+                return JsonResponse(data)
+
+            # Clone the selected object to make a new :model:`reporting.ReportObservationLink`
+            position = ReportObservationLink.objects.filter(report__pk=report.id).aggregate(max=Max('position'))["max"] or 0 + 1
+            report_link = ReportObservationLink(
+                report=report,
+                assigned_to=self.request.user,
+                position=position,
+                added_as_blank=False,
+                **observation_dict,
+            )
+            report_link.save()
+            report_link.tags.add(*observation_instance.tags.all())
+
+            message = "{} successfully added to your active report.".format(observation_instance)
+            data = {"result": "success", "message": message}
+            logger.info(
+                "Copied %s %s to %s %s (%s %s) by request of %s",
+                observation_instance.__class__.__name__,
+                observation_instance.id,
+                report.__class__.__name__,
+                report.id,
+                report_link.__class__.__name__,
+                report_link.id,
+                self.request.user,
+            )
+        else:
+            message = "Please select a report to edit before trying to assign a observation."
+            data = {"result": "error", "message": message}
+        return JsonResponse(data)
+
+
+class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    model = Report
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().project)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+        try:
+            position = ReportObservationLink.objects.filter(report__pk=obj.id).aggregate(max=Max('position'))["max"] or 0 + 1
+            report_link = ReportObservationLink(
+                title="Blank Template",
+                report=obj,
+                position=position,
+                added_as_blank=True,
+            )
+            report_link.save()
+
+            logger.info(
+                "Added a blank observation to %s %s by request of %s",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
+
+            messages.success(
+                self.request,
+                "Successfully added a blank observation to the report",
+                extra_tags="alert-success",
+            )
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+
+            messages.error(
+                self.request,
+                "Encountered an error while trying to add a blank observation to your report: {}".format(exception.args),
+                extra_tags="alert-error",
+            )
+
+        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)))
+
+
+class ReportObservationLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Delete an individual :model:`reporting.ReportObservationLink`."""
+
+    model = ReportObservationLink
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().report.project)
+
+    def handle_no_permission(self):
+        return ForbiddenJsonResponse()
+
+    def post(self, *args, **kwargs):
+        observation = self.get_object()
+        observation.delete()
+        data = {
+            "result": "success",
+            "message": "Successfully deleted {observation} and cleaned up evidence.".format(observation=observation),
+        }
+        logger.info(
+            "Deleted %s %s by request of %s",
+            observation.__class__.__name__,
+            observation.id,
+            self.request.user,
+        )
+
+        return JsonResponse(data)
+
+
+class ReportObservationLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
+    """
+    Update an individual instance of :model:`reporting.ReportObservationLink`.
+
+    **Context**
+
+    ``cancel_link``
+        Link for the form's Cancel button to return to report's detail page
+
+    **Template**
+
+    :template:`reporting/local_observation_edit.html.html`
+    """
+
+    model = ReportObservationLink
+    form_class = ReportObservationLinkUpdateForm
+    template_name = "reporting/local_observation_edit.html"
+    success_url = reverse_lazy("reporting:reports")
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().report.project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk})
+        return ctx
+
+    def get_success_url(self):
+        messages.success(
+            self.request,
+            "Successfully updated {}.".format(self.get_object().title),
+            extra_tags="alert-success",
+        )
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id})

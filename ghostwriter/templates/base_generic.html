@@ -214,6 +214,22 @@
               {% endif %}
             </ul>
           </li>
+          <li>
+            <a href="#observationsSubmenu" data-toggle="collapse" aria-expanded="false"
+               class="dropdown-toggle sidebar-dropdown-toggle">Observations</a>
+            <ul class="collapse list-unstyled text-left" id="observationsSubmenu">
+              {% comment %} Search for observations {% endcomment %}
+              <form class="px-6 py-2" action="{% url 'reporting:observations' %}" method="GET">
+                <input type="search" autocomplete="off" class="form-control" id="observation-search" name="title"
+                       placeholder="Search observations..." autofocus="autofocus">
+              </form>
+              {% comment %} observations Submenu Items {% endcomment %}
+              <li><a class="icon list-icon" href="{% url 'reporting:observations' %}">Observation Library</a></li>
+              {% if request.user|can_create_finding %}
+                <li><a class="icon plus-icon" href="{% url 'reporting:observation_create' %}">Add New Observation</a></li>
+              {% endif %}
+            </ul>
+          </li>
         </ul>
 
         <!-- Operations Section -->

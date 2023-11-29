@@ -1,0 +1,17 @@
+{% load bleach_tags extra_fields %}
+
+{% with field_value=extra_fields|get_extra_field:field_spec %}
+  {% if field_spec.type == "checkbox" %}
+    {% if field_value %}
+      <span class="text-left icon check-icon healthy"></span>
+    {% else %}
+      <span class="text-left icon cross-icon burned"></span>
+    {% endif %}
+  {% elif not field_value %}
+    Not Set
+  {% elif field_spec.type == "rich_text" %}
+    {{field_value|bleach}}
+  {% else %}
+    {{field_value}}
+  {% endif %}
+{% endwith %}

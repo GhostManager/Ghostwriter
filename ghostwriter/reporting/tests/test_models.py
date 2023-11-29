@@ -15,7 +15,7 @@ from ghostwriter.factories import (
     ArchiveFactory,
     BlankReportFindingLinkFactory,
     DocTypeFactory,
-    EvidenceFactory,
+    EvidenceOnFindingFactory,
     FindingFactory,
     FindingNoteFactory,
     FindingTypeFactory,
@@ -370,11 +370,11 @@ class EvidenceModelTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.Evidence = EvidenceFactory._meta.model
+        cls.Evidence = EvidenceOnFindingFactory._meta.model
 
     def test_crud_evidence(self):
         # Create
-        evidence = EvidenceFactory(friendly_name="Test Evidence")
+        evidence = EvidenceOnFindingFactory(friendly_name="Test Evidence")
 
         # Read
         self.assertEqual(evidence.friendly_name, "Test Evidence")
@@ -395,18 +395,18 @@ class EvidenceModelTests(TestCase):
         assert not os.path.exists(evidence.document.path)
 
     def test_get_absolute_url(self):
-        evidence = EvidenceFactory()
+        evidence = EvidenceOnFindingFactory()
         try:
             evidence.get_absolute_url()
         except:
             self.fail("Evidence.get_absolute_url() raised an exception")
 
     def test_file_extension_validator(self):
-        evidence = EvidenceFactory(document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum"))
+        evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum"))
         self.assertEqual(evidence.filename, "evidence.PnG")
 
     def test_prop_filename(self):
-        evidence = EvidenceFactory()
+        evidence = EvidenceOnFindingFactory()
         try:
             evidence.filename
         except Exception:
@@ -416,7 +416,7 @@ class EvidenceModelTests(TestCase):
         finding = ReportFindingLinkFactory(
             description="<p>Here is some evidence:</p><p>{{.Evidence}}</p><p>{{.ref Evidence}}</p>"
         )
-        evidence = EvidenceFactory(
+        evidence = EvidenceOnFindingFactory(
             finding=finding,
             friendly_name="Evidence",
             document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"),
@@ -447,7 +447,7 @@ class EvidenceModelTests(TestCase):
 
         # Regression test for this signal updating a finding with blank fields
         blank = BlankReportFindingLinkFactory()
-        evidence = EvidenceFactory(finding=blank, friendly_name="Blank Test")
+        evidence = EvidenceOnFindingFactory(finding=blank, friendly_name="Blank Test")
         evidence.refresh_from_db()
 
         evidence.friendly_name = "New Name"

@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             name="document",
             field=models.FileField(
                 blank=True,
-                upload_to=ghostwriter.reporting.models.Evidence.set_upload_destination,
+                upload_to=ghostwriter.reporting.models.set_evidence_upload_destination,
                 validators=[ghostwriter.reporting.validators.validate_evidence_extension],
             ),
         ),

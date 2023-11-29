@@ -35,7 +35,7 @@ def backup_evidence_values(sender, instance, **kwargs):
 def evidence_update(sender, instance, **kwargs):
     """
     On change, delete the old evidence file in the :model:`reporting.Evidence` instance when a
-    new file is uploaded and update teh related :model:`reporting.ReportFindingLink` instance if
+    new file is uploaded and update the related :model:`reporting.ReportFindingLink` instance if
     the `friendly_name` value changed.
     """
     if hasattr(instance, "_current_evidence"):
@@ -50,7 +50,7 @@ def evidence_update(sender, instance, **kwargs):
                         instance._current_evidence.path,
                     )
 
-    if hasattr(instance, "_current_friendly_name"):
+    if hasattr(instance, "_current_friendly_name") and instance.finding:
         if instance._current_friendly_name != instance.friendly_name:
             ignore = [
                 "id",

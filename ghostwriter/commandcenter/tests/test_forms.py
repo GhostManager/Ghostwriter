@@ -1,11 +1,13 @@
 # Standard Libraries
 import logging
+from django.forms import ValidationError
 
 # Django Imports
 from django.test import TestCase
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.forms import ReportConfigurationForm
+from ghostwriter.commandcenter.models import ExtraFieldModel, ExtraFieldSpec
+from ghostwriter.commandcenter.forms import ExtraFieldsField, ExtraFieldsWidget, ReportConfigurationForm
 from ghostwriter.factories import (
     ReportConfigurationFactory,
     ReportDocxTemplateFactory,
@@ -96,3 +98,132 @@ class ReportConfigurationFormTests(TestCase):
         errors = form.errors["default_pptx_template"].as_data()
         self.assertEqual(len(errors), 1)
         self.assertEqual(errors[0].code, "invalid")
+
+
+class ExtraFieldFormTest(TestCase):
+    """Collection of tests for :form:`commandcenter.ExtraFieldSpec`"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.model = ExtraFieldModel.objects.create(
+            model_internal_name="test.TestModel",
+            model_display_name="Test Model",
+        )
+        ExtraFieldSpec.objects.create(
+            target_model=cls.model,
+            internal_name="test_field_single_line",
+            display_name="Test Field 1",
+            type="single_line_text",
+        )
+        ExtraFieldSpec.objects.create(
+            target_model=cls.model,
+            internal_name="test_field_rich",
+            display_name="Test Field 2",
+            type="rich_text",
+        )
+        ExtraFieldSpec.objects.create(
+            target_model=cls.model,
+            internal_name="test_field_integer",
+            display_name="Test Field 3",
+            type="integer",
+        )
+
+    def test_widget_has_fields(self):
+        widget = ExtraFieldsWidget("test.TestModel")
+        context = widget.get_context("testform", None, {})
+        subwidgets = context["widget"]["subwidgets"]
+        self.assertEqual(len(subwidgets), 3)
+        self.assertEqual(subwidgets[0]["label"], "Test Field 1")
+        self.assertEqual(subwidgets[0]["widget"]["name"], "testform_test_field_single_line")
+        self.assertEqual(subwidgets[0]["widget"]["type"], "text")
+        self.assertEqual(subwidgets[1]["label"], "Test Field 2")
+        self.assertEqual(subwidgets[1]["widget"]["name"], "testform_test_field_rich")
+        self.assertEqual(subwidgets[2]["label"], "Test Field 3")
+        self.assertEqual(subwidgets[2]["widget"]["name"], "testform_test_field_integer")
+        self.assertEqual(subwidgets[2]["widget"]["type"], "number")
+
+    def test_widget_values(self):
+        widget = ExtraFieldsWidget("test.TestModel")
+        input_data = {
+            "testform_test_field_single_line": "Hello world!",
+            "testform_test_field_rich": "<p>Formatted</p><p>Text</p>",
+            "testform_test_field_integer": "123",
+            "unrelated_field": "Should not be in the output!",
+        }
+        output_data = widget.value_from_datadict(input_data, [], "testform")
+        self.assertDictEqual(output_data, {
+            "test_field_single_line": "Hello world!",
+            "test_field_rich": "<p>Formatted</p><p>Text</p>",
+            "test_field_integer": "123",
+        })
+
+    def test_field_clean(self):
+        field = ExtraFieldsField("test.TestModel")
+        input_data = {
+            "test_field_single_line": "Hello world!",
+            "test_field_rich": "<p>Formatted</p><p>Text</p>",
+            "test_field_integer": "123",
+        }
+        output_data = field.clean(input_data)
+        self.assertDictEqual(output_data, {
+            "test_field_single_line": "Hello world!",
+            "test_field_rich": "<p>Formatted</p><p>Text</p>",
+            "test_field_integer": 123,
+        })
+
+    def test_field_clean_errors(self):
+        field = ExtraFieldsField("test.TestModel")
+        input_data = {
+            "test_field_single_line": "Hello world!",
+            "test_field_rich": "<p>Formatted</p><p>Text</p>",
+            "test_field_integer": "this isn't an integer!",
+        }
+        with self.assertRaises(ValidationError):
+            field.clean(input_data)
+
+    def test_field_clean_missing(self):
+        field = ExtraFieldsField("test.TestModel")
+        input_data = {}
+        output_data = field.clean(input_data)
+        self.assertDictEqual(output_data, {
+            "test_field_single_line": "",
+            "test_field_rich": "",
+            "test_field_integer": None,
+        })
+
+    def test_checkbox_true(self):
+        ExtraFieldSpec.objects.create(
+            target_model=self.model,
+            internal_name="test_field_bool",
+            display_name="Test Field 4",
+            type="checkbox",
+        )
+        field = ExtraFieldsField("test.TestModel")
+        field_data = field.widget.value_from_datadict({
+            "testform_test_field_single_line": "Hello world!",
+            "testform_test_field_rich": "<p>Formatted</p><p>Text</p>",
+            "testform_test_field_integer": "123",
+            "testform_test_field_bool": "on",
+            "unrelated_field": "Should not be in the output!",
+        }, [], "testform")
+        self.assertTrue(field_data["test_field_bool"])
+        data = field.clean(field_data)
+        self.assertTrue(data["test_field_bool"])
+
+    def test_checkbox_false(self):
+        ExtraFieldSpec.objects.create(
+            target_model=self.model,
+            internal_name="test_field_bool",
+            display_name="Test Field 4",
+            type="checkbox",
+        )
+        field = ExtraFieldsField("test.TestModel")
+        field_data = field.widget.value_from_datadict({
+            "testform_test_field_single_line": "Hello world!",
+            "testform_test_field_rich": "<p>Formatted</p><p>Text</p>",
+            "testform_test_field_integer": "123",
+            "unrelated_field": "Should not be in the output!",
+        }, [], "testform")
+        self.assertFalse(field_data["test_field_bool"])
+        data = field.clean(field_data)
+        self.assertFalse(data["test_field_bool"])
