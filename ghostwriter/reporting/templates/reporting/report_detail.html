@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags report_tags bleach_tags %}
+{% load crispy_forms_tags report_tags bleach_tags extra_fields %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
@@ -100,6 +100,26 @@
       {% endif %}
     </span>
   </h6>
+
+  {% comment %} Extra Fields Sections {% endcomment %}
+  {% if report_extra_fields_spec %}
+  <div>
+    <h4>Extra Fields</h4>
+    <hr/>
+
+    {% for field_spec in report_extra_fields_spec %}
+    <div class="row justify-content-md-center">
+      <h6 class="col-1 text-left">
+        {{ field_spec.display_name }}
+        <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}" class="icon edit-icon" ></a>
+      </h6>
+      <div class="col-3 text-right">
+        {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <!-- Findings Section -->
   <div>

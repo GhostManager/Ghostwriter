@@ -11,6 +11,13 @@
         <span class="badge badge-pill badge-light">{{ staticserver.serverhistory_set.all.count }}</span>
     </a>
 </li>
+{% if server_extra_fields_spec %}
+    <li class="nav-item">
+        <a id="id_extra_fields" class="nav-link tab-icon info-icon" data-toggle="tab" href="#extra_fields">
+            Extra Fields
+        </a>
+    </li>
+{% endif %}
 <li class="nav-item">
     <a class="nav-link icon comment-icon" data-toggle="tab" href="#notes">
         Notes

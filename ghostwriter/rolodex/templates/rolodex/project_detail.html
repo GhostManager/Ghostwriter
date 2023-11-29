@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags %}
+{% load determine_primary bleach_tags custom_tags extra_fields %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -1023,8 +1023,24 @@
             this project.
           </div>
         {% endif %}
-
       </div>
+
+      {% comment %} Extra Fields Tab {% endcomment %}
+      {% if project_extra_fields_spec %}
+        <div id="extra_fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
+
+          <table class="table table-borderless table-centered project-details-table">
+            {% for field_spec in project_extra_fields_spec %}
+              <tr>
+                <td class="text-left bold">{{ field_spec.display_name }}</td>
+                <td class="text-left">{% include "user_extra_fields/field.html" with extra_fields=project.extra_fields field_spec=field_spec %}</td>
+              </tr>
+            {% endfor %}
+          </table>
+        </div>
+      {% endif %}
 
       {% comment %} Notes Tab {% endcomment %}
       <div id="notes" class="tab-pane">

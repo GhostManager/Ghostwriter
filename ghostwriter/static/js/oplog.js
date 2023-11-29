@@ -21,21 +21,32 @@ columnInfo = [
     ['optionsCheckbox', 'optionsColumn', 'Options', ''],
 ]
 
+// Update `columnInfo` with extra fields
+function updateColumnInfo(extra_field_specs) {
+    extra_field_specs.forEach(spec => {
+        columnInfo.push([`extra-field-${jsEscape(spec.internal_name)}Checkbox`, `extra-field-${jsEscape(spec.internal_name)}Column`, jsEscape(spec.display_name), jsEscape(spec.internal_name)]);
+    });
+}
+
 // Generate a table row based on a log entry
-function generateTableHeaders() {
-    return `<th class="${columnInfo[0][1]} align-middle">${columnInfo[0][2]}</th>
-            <th class="${columnInfo[1][1]} align-middle">${columnInfo[1][2]}</th>
-            <th class="${columnInfo[2][1]} align-middle">${columnInfo[2][2]}</th>
-            <th class="${columnInfo[3][1]} align-middle">${columnInfo[3][2]}</th>
-            <th class="${columnInfo[4][1]} align-middle">${columnInfo[4][2]}</th>
-            <th class="${columnInfo[5][1]} align-middle">${columnInfo[5][2]}</th>
-            <th class="${columnInfo[6][1]} align-middle">${columnInfo[6][2]}</th>
-            <th class="${columnInfo[7][1]} align-middle">${columnInfo[7][2]}</th>
-            <th class="${columnInfo[8][1]} align-middle">${columnInfo[8][2]}</th>
-            <th class="${columnInfo[9][1]} align-middle">${columnInfo[9][2]}</th>
-            <th class="${columnInfo[10][1]} align-middle">${columnInfo[10][2]}</th>
-            <th class="${columnInfo[11][1]} align-middle">${columnInfo[11][2]}</th>
-            <th class="${columnInfo[12][1]} align-middle">${columnInfo[12][2]}</th>`
+function generateTableHeaders(extra_field_specs) {
+    let html = `<th class="${columnInfo[0][1]} align-middle">${columnInfo[0][2]}</th>
+                <th class="${columnInfo[1][1]} align-middle">${columnInfo[1][2]}</th>
+                <th class="${columnInfo[2][1]} align-middle">${columnInfo[2][2]}</th>
+                <th class="${columnInfo[3][1]} align-middle">${columnInfo[3][2]}</th>
+                <th class="${columnInfo[4][1]} align-middle">${columnInfo[4][2]}</th>
+                <th class="${columnInfo[5][1]} align-middle">${columnInfo[5][2]}</th>
+                <th class="${columnInfo[6][1]} align-middle">${columnInfo[6][2]}</th>
+                <th class="${columnInfo[7][1]} align-middle">${columnInfo[7][2]}</th>
+                <th class="${columnInfo[8][1]} align-middle">${columnInfo[8][2]}</th>
+                <th class="${columnInfo[9][1]} align-middle">${columnInfo[9][2]}</th>
+                <th class="${columnInfo[10][1]} align-middle">${columnInfo[10][2]}</th>
+                <th class="${columnInfo[11][1]} align-middle">${columnInfo[11][2]}</th>`;
+    extra_field_specs.forEach(spec => {
+        html += `<th class="extra-field-${jsEscape(spec.internal_name)}Column align-middle">${jsEscape(spec.display_name)}</th>`;
+    });
+    html += `<th class="${columnInfo[12][1]} align-middle">${columnInfo[12][2]}</th>`;
+    return html
 }
 
 // Convert a table row to JSON and copy it to the clipboard
@@ -83,26 +94,42 @@ function convertRowToJSON(row_id) {
 }
 
 // Generate a table row based on a log entry
-function generateRow(entry) {
-    return `<tr id="${entry["id"]}" class="editableRow">
-            <td class="${columnInfo[0][1]} align-middle">${jsEscape(entry["start_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-            <td class="${columnInfo[1][1]} align-middle">${jsEscape(entry["end_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-            <td class="${columnInfo[2][1]} align-middle">${jsEscape(entry["source_ip"])}</td>
-            <td class="${columnInfo[3][1]} align-middle">${jsEscape(entry["dest_ip"])}</td>
-            <td class="${columnInfo[4][1]} align-middle">${jsEscape(entry["tool"])}</td>
-            <td class="${columnInfo[5][1]} align-middle">${jsEscape(entry["user_context"])}</td>
-            <td class="${columnInfo[6][1]} align-middle"><div>${jsEscape(entry["command"])}<div></td>
-            <td class="${columnInfo[7][1]} align-middle"><div>${jsEscape(entry["description"])}</div></td>
-            <td class="${columnInfo[8][1]} align-middle"><div>${jsEscape(entry["output"])}</div></td>
-            <td class="${columnInfo[9][1]} align-middle"><div>${jsEscape(entry["comments"])}</div></td>
-            <td class="${columnInfo[10][1]} align-middle">${jsEscape(entry["operator_name"])}</td>
-            <td class="${columnInfo[11][1]} align-middle">${stylizeTags(jsEscape(entry["tags"]))}</td>
-            <td class="${columnInfo[12][1]} align-middle">
+function generateRow(extra_field_specs, entry) {
+    let html = `<tr id="${entry["id"]}" class="editableRow">
+                <td class="${columnInfo[0][1]} align-middle">${jsEscape(entry["start_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
+                <td class="${columnInfo[1][1]} align-middle">${jsEscape(entry["end_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
+                <td class="${columnInfo[2][1]} align-middle">${jsEscape(entry["source_ip"])}</td>
+                <td class="${columnInfo[3][1]} align-middle">${jsEscape(entry["dest_ip"])}</td>
+                <td class="${columnInfo[4][1]} align-middle">${jsEscape(entry["tool"])}</td>
+                <td class="${columnInfo[5][1]} align-middle">${jsEscape(entry["user_context"])}</td>
+                <td class="${columnInfo[6][1]} align-middle"><div>${jsEscape(entry["command"])}<div></td>
+                <td class="${columnInfo[7][1]} align-middle"><div>${jsEscape(entry["description"])}</div></td>
+                <td class="${columnInfo[8][1]} align-middle"><div>${jsEscape(entry["output"])}</div></td>
+                <td class="${columnInfo[9][1]} align-middle"><div>${jsEscape(entry["comments"])}</div></td>
+                <td class="${columnInfo[10][1]} align-middle">${jsEscape(entry["operator_name"])}</td>
+                <td class="${columnInfo[11][1]} align-middle">${stylizeTags(jsEscape(entry["tags"]))}</td>`
+
+    extra_field_specs.forEach(spec => {
+        let raw_value = entry.extra_fields[spec.internal_name] || "";
+        if(spec.type === "checkbox") {
+            value = raw_value ? `<i class="fas fa-check"></i>` : `<i class="fas fa-times"></i>`;
+        } else if(spec.type === "rich_text") {
+            // Already XSS cleaned by backend
+            value = raw_value;
+        } else {
+            value = jsEscape("" + raw_value);
+        }
+
+        html += `<td class="extra-field-${jsEscape(spec.internal_name)}Column align-middle">${value}</td>`
+    });
+
+    html += `<td class="${columnInfo[12][1]} align-middle">
                 <button class="btn" data-toggle="tooltip" data-placement="left" title="Create a copy of this log entry" onClick="copyEntry(this);" entry-id="${entry['id']}"><i class="fa fa-copy"></i></button>
                 <button class="btn" data-toggle="tooltip" data-placement="left" title="Copy this entry to your clipboard as JSON" onClick="convertRowToJSON(${entry["id"]});"><i class="fas fa-clipboard"></i></button>
                 <button class="btn danger" data-toggle="tooltip" data-placement="left" title="Delete this log entry" onClick="deleteEntry(this);" entry-id="${entry['id']}"><i class="fa fa-trash"></i></button>
             </td>
-            </tr>`
+            </tr>`;
+    return html;
 }
 
 // Add a placeholder row that spans the entire table

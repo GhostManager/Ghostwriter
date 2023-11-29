@@ -28,6 +28,7 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
+from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import to_dict
 from ghostwriter.rolodex.filters import ClientFilter, ProjectFilter
@@ -1087,6 +1088,9 @@ class ClientDetailView(RoleBasedAccessControlMixin, DetailView):
         ctx["domains"] = client_domains
         ctx["servers"] = client_servers
         ctx["vps"] = client_vps
+
+        ctx["client_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Client._meta.label)
+
         return ctx
 
 
@@ -1455,6 +1459,9 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
             ):
                 contacts = contacts.exclude(id=contact.id)
         ctx["client_contacts"] = contacts
+
+        ctx["project_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Project._meta.label)
+
         return ctx
 
 

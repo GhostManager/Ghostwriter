@@ -219,6 +219,8 @@ class Finding(models.Model):
         help_text="Select a finding category that fits",
     )
 
+    extra_fields = models.JSONField(default=dict)
+
     class Meta:
         ordering = ["severity", "-cvss_score", "finding_type", "title"]
         verbose_name = "Finding"
@@ -372,6 +374,7 @@ class Report(models.Model):
     complete = models.BooleanField("Completed", default=False, help_text="Mark the report as complete")
     archived = models.BooleanField("Archived", default=False, help_text="Mark the report as archived")
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
     # Foreign Keys
     project = models.ForeignKey(
         "rolodex.Project",
@@ -527,6 +530,7 @@ class ReportFindingLink(models.Model):
         max_length=54,
         help_text="Set the CVSS vector for this finding",
     )
+    extra_fields = models.JSONField(default=dict)
 
     class Meta:
         ordering = ["report", "severity__weight", "position"]

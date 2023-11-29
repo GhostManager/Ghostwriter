@@ -20,7 +20,7 @@ from taggit.serializers import TaggitSerializer, TagListSerializerField
 from timezone_field.rest_framework import TimeZoneSerializerField
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import CompanyInformation
+from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
@@ -106,6 +106,40 @@ class CloudServerField(RelatedField):
         return value.ip_address
 
 
+class ExtraFieldsSerField(serializers.Field):
+    """Fills out defaults in the `extra_fields` field from the definitions in :model:`commandcenter.ExtraFieldSpec`"""
+
+    def __init__(self, model_name, **kwargs):
+        self.model_name = model_name
+        self.root_ser = None
+        kwargs['read_only'] = True
+        super().__init__(**kwargs)
+
+    def bind(self, field_name, parent):
+        super().bind(field_name, parent)
+        root_ser = parent
+        while getattr(root_ser, "parent", None) is not None:
+            root_ser = root_ser.parent
+        self.root_ser = root_ser
+
+    def to_representation(self, value):
+        if value is None:
+            value = {}
+
+        # Fetch fields, and cache them at the root serializer
+        if not hasattr(self.root_ser, "_extra_fields_specs") or self.root_ser._extra_fields_specs is None:
+            self.root_ser._extra_fields_specs = {}
+        if self.model_name not in self.root_ser._extra_fields_specs:
+            self.root_ser._extra_fields_specs[self.model_name] = ExtraFieldSpec.objects.filter(target_model=self.model_name)
+
+        # Set defaults
+        for field in self.root_ser._extra_fields_specs[self.model_name]:
+            if field.internal_name not in value:
+                value[field.internal_name] = field.default_value()
+
+        return value
+
+
 class UserSerializer(CustomModelSerializer):
     """Serialize :model:`users:User` entries."""
 
@@ -164,6 +198,7 @@ class FindingSerializer(TaggitSerializer, CustomModelSerializer):
     severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(Finding._meta.label)
 
     class Meta:
         model = Finding
@@ -295,6 +330,8 @@ class ClientSerializer(TaggitSerializer, CustomModelSerializer):
     timezone = TimeZoneSerializerField()
 
     tags = TagListSerializerField()
+
+    extra_fields = ExtraFieldsSerField(Client._meta.label)
 
     class Meta:
         model = Client
@@ -452,16 +489,6 @@ class AuxServerAddressSerializer(CustomModelSerializer):
         fields = "__all__"
 
 
-class DomainSerializer(TaggitSerializer, CustomModelSerializer):
-    """Serialize :model:`shepherd:Domain` entries."""
-
-    tags = TagListSerializerField()
-
-    class Meta:
-        model = Domain
-        fields = "__all__"
-
-
 class DomainServerConnectionSerializer(CustomModelSerializer):
     """Serialize :model:`shepherd:DomainServerConnection` entries."""
 
@@ -492,6 +519,11 @@ class DomainHistorySerializer(CustomModelSerializer):
         exclude=["id", "project", "domain"],
     )
 
+    extra_fields = ExtraFieldsSerField(
+        Domain._meta.label,
+        source="domain.extra_fields"
+    )
+
     class Meta:
         model = History
         exclude = [
@@ -515,6 +547,7 @@ class StaticServerSerializer(TaggitSerializer, CustomModelSerializer):
     status = serializers.CharField(source="server_status")
     last_used_by = StringRelatedField()
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(StaticServer._meta.label)
 
     class Meta:
         model = StaticServer
@@ -537,6 +570,11 @@ class ServerHistorySerializer(CustomModelSerializer):
         source="domainserverconnection_set",
         many=True,
         exclude=["id", "project", "static_server", "transient_server"],
+    )
+
+    extra_fields = ExtraFieldsSerField(
+        StaticServer._meta.label,
+        source="server.extra_fields"
     )
 
     class Meta:
@@ -614,6 +652,7 @@ class ProjectSerializer(TaggitSerializer, CustomModelSerializer):
     notes = ProjectNoteSerializer(source="projectnote_set", many=True, exclude=["id", "project"])
 
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(Project._meta.label)
 
     class Meta:
         model = Project
@@ -700,6 +739,7 @@ class OplogEntrySerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`oplog.OplogEntry` entries."""
 
     tags = TagListSerializerField()
+    extra_fields = ExtraFieldsSerField(OplogEntry._meta.label)
 
     class Meta:
         model = OplogEntry
@@ -782,6 +822,7 @@ class ReportDataSerializer(CustomModelSerializer):
     logs = OplogSerializer(source="project.oplog_set", many=True, exclude=["id", "mute_notifications", "project"])
     company = SerializerMethodField("get_company_info")
     tools = SerializerMethodField("get_tools")
+    extra_fields = ExtraFieldsSerField(Report._meta.label)
 
     class Meta:
         model = Report
@@ -865,3 +906,9 @@ class ReportDataSerializer(CustomModelSerializer):
         rep["totals"]["targets"] = total_targets
 
         return rep
+
+
+class ExtraFieldsSpecSerializer(CustomModelSerializer):
+    class Meta:
+        model = ExtraFieldSpec
+        exclude = ["target_model"]

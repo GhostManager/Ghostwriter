@@ -25,6 +25,7 @@ from crispy_forms.layout import (
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import get_client_list, get_project_list
+from ghostwriter.commandcenter.forms import ExtraFieldsField
 from ghostwriter.commandcenter.models import ReportConfiguration
 from ghostwriter.modules.custom_layout_object import SwitchToggle
 from ghostwriter.reporting.models import (
@@ -44,6 +45,8 @@ from ghostwriter.rolodex.models import Project
 
 class FindingForm(forms.ModelForm):
     """Save an individual :model:`reporting.Finding`."""
+
+    extra_fields = ExtraFieldsField(Finding._meta.label)
 
     class Meta:
         model = Finding
@@ -69,6 +72,8 @@ class FindingForm(forms.ModelForm):
         ] = "When using this finding in a report be sure to include ..."
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["finding_type"].label = "Finding Type"
+        self.fields["extra_fields"].label = ""
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -234,6 +239,13 @@ class FindingForm(forms.ModelForm):
             ),
             "references",
             "finding_guidance",
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            ),
+            Field("extra_fields"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -250,6 +262,8 @@ class ReportForm(forms.ModelForm):
     Save an individual :model:`reporting.Report` associated with an individual
     :model:`rolodex.Project`.
     """
+
+    extra_fields = ExtraFieldsField(Report._meta.label)
 
     class Meta:
         model = Report
@@ -289,6 +303,7 @@ class ReportForm(forms.ModelForm):
         self.fields["pptx_template"].required = False
         self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
         self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
+        self.fields["extra_fields"].label = ""
 
         report_config = ReportConfiguration.get_solo()
         self.fields["docx_template"].initial = report_config.default_docx_template
@@ -307,6 +322,13 @@ class ReportForm(forms.ModelForm):
                 css_class="form-row",
             ),
             "project",
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            ),
+            "extra_fields",
             HTML(
                 """
                 <h4 class="icon file-icon">Assign Templates</h4>
@@ -338,6 +360,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
     Update an individual :model:`reporting.ReportFindingLink` associated with an
     individual :model:`reporting.Report`.
     """
+
+    extra_fields = ExtraFieldsField(Finding._meta.label)
 
     class Meta:
         model = ReportFindingLink
@@ -371,6 +395,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["finding_type"].label = "Finding Type"
         self.fields["assigned_to"].label = "Assigned Editor"
+        self.fields["extra_fields"].label = ""
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -545,6 +571,13 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 """
             ),
             Field("references", css_class="enable-evidence-upload"),
+            HTML(
+                """
+                <h4 class="icon custom-field-icon">Extra Fields</h4>
+                <hr />
+                """
+            ),
+            Field("extra_fields"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

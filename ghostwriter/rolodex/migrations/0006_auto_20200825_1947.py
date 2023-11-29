@@ -265,7 +265,7 @@ class Migration(migrations.Migration):
             model_name="projectobjective",
             name="status",
             field=models.ForeignKey(
-                default=ghostwriter.rolodex.models.ProjectObjective.get_status,
+                default=ghostwriter.rolodex.models._get_default_status,
                 help_text="Set the status for this objective",
                 on_delete=django.db.models.deletion.PROTECT,
                 to="rolodex.ObjectiveStatus",

@@ -40,7 +40,6 @@ class Oplog(models.Model):
         return f"{self.name} : {self.project}"
 
 
-# Create your models here.
 class OplogEntry(models.Model):
     """Stores an individual log entry, related to :model:`oplog.Oplog`."""
 
@@ -116,6 +115,8 @@ class OplogEntry(models.Model):
         max_length=255,
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
+
     # Foreign Keys
     oplog_id = models.ForeignKey(
         "Oplog",

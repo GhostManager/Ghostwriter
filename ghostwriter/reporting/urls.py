@@ -147,6 +147,11 @@ urlpatterns += [
         name="assign_blank_observation",
     ),
     path(
+        "reports/<int:pk>/edit-extra-field/<str:extra_field_name>",
+        views.ReportExtraFieldEdit.as_view(),
+        name="report_extra_field_edit"
+    ),
+    path(
         "templates/<int:pk>",
         views.ReportTemplateDetailView.as_view(),
         name="template_detail",

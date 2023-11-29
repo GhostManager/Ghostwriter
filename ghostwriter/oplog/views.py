@@ -24,6 +24,8 @@ from ghostwriter.api.utils import (
     verify_access,
     verify_user_is_privileged,
 )
+from ghostwriter.commandcenter.models import ExtraFieldSpec
+from ghostwriter.modules.custom_serializers import ExtraFieldsSpecSerializer
 from ghostwriter.oplog.admin import OplogEntryResource
 from ghostwriter.oplog.forms import OplogEntryForm, OplogForm
 from ghostwriter.oplog.models import Oplog, OplogEntry
@@ -210,6 +212,14 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("oplog:index")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["oplog_entry_extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
+            ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label),
+            many=True
+        ).data
+        return ctx
 
 
 class OplogCreate(RoleBasedAccessControlMixin, CreateView):
