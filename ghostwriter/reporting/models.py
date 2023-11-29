@@ -658,3 +658,79 @@ class LocalFindingNote(models.Model):
 
     def __str__(self):
         return f"{self.finding} {self.timestamp}: {self.note}"
+
+
+class Observation(models.Model):
+    """
+    An observation.
+
+    Similar to a finding, but more generic. Can be used for positive observations or other things.
+    """
+
+    title = models.CharField(
+        "Title",
+        max_length=255,
+        unique=True,
+        help_text="Enter a title for this finding that will appear in reports",
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a description for this observation that introduces it",
+    )
+    tags = TaggableManager(blank=True)
+
+    class Meta:
+        ordering = ["title"]
+        verbose_name = "Observation"
+        verbose_name_plural = "Observations"
+
+    def __str__(self):
+        return str(self.title)
+
+    def get_absolute_url(self):
+        return reverse("reporting:observation_detail", args=[str(self.id)])
+
+
+class ReportObservationLink(models.Model):
+
+    title = models.CharField(
+        "Title",
+        max_length=255,
+        help_text="Enter a title for this observation that will appear in the reports",
+    )
+    position = models.IntegerField(
+        "Report Position",
+        default=1,
+        validators=[MinValueValidator(1)],
+    )
+    description = models.TextField(
+        "Description",
+        null=True,
+        blank=True,
+        help_text="Provide a description for this observation that introduces it",
+    )
+    added_as_blank = models.BooleanField(
+        "Added as Blank",
+        default=False,
+        help_text="Identify an observation that was created for this report instead of copied from the library",
+    )
+    tags = TaggableManager(blank=True)
+    # Foreign Keys
+    report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True)
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Assign the task of editing this observation to a specific operator - defaults to the operator that added it to the report",
+    )
+
+    class Meta:
+        ordering = ["report", "position"]
+        verbose_name = "Report observation"
+        verbose_name_plural = "Report observations"
+
+    def __str__(self):
+        return str(self.title)

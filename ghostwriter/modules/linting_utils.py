@@ -354,6 +354,13 @@ LINTER_CONTEXT = {
             "tags": ["tag1", "tag2", "tag3"],
         },
     ],
+    "observations": [
+        {
+            "id": 1,
+            "title": "test observation",
+            "description": "",
+        }
+    ],
     "docx_template": {
         "id": 1,
         "document": "/media/template_oxnfkmX.docx",

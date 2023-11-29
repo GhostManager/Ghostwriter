@@ -318,6 +318,90 @@
       <p>No findings have been added to this report yet.</p>
     {% endif %}
 
+    <!-- Observations Section -->
+    <div>
+      <h4>Current Observation</h4>
+      <hr>
+
+      <p>Attach observations by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired
+        observation.</p>
+
+      <!-- Search Section -->
+      <form action="{% url 'reporting:observations' %}" method="GET">
+        <div class="search form-row">
+          <div class="input-group offset-md-4 col-md-4">
+            <div class="input-group-prepend">
+              <span class="input-group-text fa fa-search" id="report-observations-search"></span>
+            </div>
+            <input id="id_search" autocomplete="off" type="text" class="form-control" name="observation"
+                  placeholder="Search Observations..." aria-label="observations" aria-describedby="report-observations-search">
+          </div>
+          <input type="submit" style="display: none"/>
+        </div>
+      </form>
+
+      <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
+                        href="{% url 'reporting:assign_blank_observation' report.id %}" data-toggle="tooltip"
+                        data-placement="top" title="Add a blank observation template to the bottom of the report">Add a Blank
+        Observation</a></p>
+
+      {% if report.reportobservationlink_set.all %}
+        <table id="findings-table" class="table table-sm table-hover">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="align-middle">Observation</th>
+              <th class="align-middle">Options</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for observation in report.reportobservationlink_set.all %}
+              <tr id="observation_{{ observation.id }}" data-id="{{ observation.id }}">
+                <td
+                  class="holdme align-middle"
+                  data-toggle="tooltip"
+                  data-placement="top"
+                  title="Click-n-drag to reposition or categorize"
+                ></td>
+                <td class="align-middle">
+                  <a id="delete-target-content-observation-{{ observation.id }}"
+                    {% if observation.added_as_blank %}
+                     class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
+                     title="Observation started as a blank template, not from the observation library"
+                    {% else %}
+                     class="clickable"
+                    {% endif %}
+                     href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}
+                  </a>
+                </td>
+                <td class="align-middle">
+                  <div class="dropdown dropleft">
+                    <button id="observation-dropdown-btn-{{ observation.id }}" class="dropdown-menu-btn-table"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                    <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
+                         aria-labelledby="dns-dropdown-btn_{{ observation.id }}">
+                      {% comment %}<a class="dropdown-item icon toggle-off-icon js-set-observation-status" href="javascript:void(0);"
+                        set-observation-status-csrftoken="{{ csrf_token }}"
+                        set-observation-status-url="{% url 'reporting:ajax_set_observation_status' observation.id 'edit' %}"
+                        set-observation-status="edit" set-observation-status-id="{{ observation.id }}">Flag for Editing</a>{% endcomment %}
+                      <a id="observation-delete-button-{{ observation.id }}"
+                        class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
+                        data-target="#confirm-delete-modal" href="javascript:void(0);"
+                        delete-target-csrftoken="{{ csrf_token }}"
+                        delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
+                        delete-target-id="{{ observation.id }}" delete-target-type="observation">Delete</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No observations have been added to this report yet.</p>
+      {% endif %}
+    </div>
+
     {% comment %} Generate Report Sections {% endcomment %}
     <h4>Generate Reports</h4>
     <hr>

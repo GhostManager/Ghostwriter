@@ -32,8 +32,10 @@ from ghostwriter.reporting.models import (
     Finding,
     FindingNote,
     LocalFindingNote,
+    Observation,
     Report,
     ReportFindingLink,
+    ReportObservationLink,
     ReportTemplate,
     Severity,
 )
@@ -995,3 +997,83 @@ class SeverityForm(forms.ModelForm):
                 )
 
         return color
+
+
+class ObservationForm(forms.ModelForm):
+    """Save an individual :model:`reporting.Observation`."""
+
+    class Meta:
+        model = Observation
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.layout = Layout(
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column(
+                    "tags",
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                css_class="form-row",
+            ),
+            Field("description"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'" class="btn btn-outline-secondary col-md-4" type="button">Cancel</button>
+                    """
+                ),
+            ),
+        )
+
+
+class ReportObservationLinkUpdateForm(forms.ModelForm):
+    """
+    Update an individual :model:`reporting.ReportObservationLink` associated with an
+    individual :model:`reporting.Report`.
+    """
+
+    class Meta:
+        model = ReportObservationLink
+        exclude = (
+            "report",
+            "position",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["title"].widget.attrs["placeholder"] = "Observation Title"
+        self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+
+        self.helper = FormHelper()
+        self.helper.form_show_labels = True
+        self.helper.form_method = "post"
+        self.helper.form_id = "report-observation-form"
+        self.helper.layout = Layout(
+            Row(
+                Column("title", css_class="form-group col-md-6 mb-0"),
+                Column("tags", css_class="form-group col-md-6 mb-0"),
+                css_class="form-row",
+            ),
+            Field("description", css_class="enable-evidence-upload"),
+            ButtonHolder(
+                Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
+                HTML(
+                    """
+                    <button onclick="window.location.href='{{ cancel_link }}'"
+                    class="btn btn-outline-secondary col-md-4" type="button">Cancel
+                    </button>
+                    """
+                ),
+            ),
+        )
