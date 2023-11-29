@@ -1477,7 +1477,7 @@ class Reportwriter:
                     if self.report_type == "pptx":
                         office_table = self.finding_slide.shapes.add_table(rows=len(table_rows), cols=col_no, left=Inches(10), top=Inches(5), width=Inches(3), height=Inches(1)).table
                     else:
-                        office_table = self.sacrificial_doc.add_table(rows=len(table_rows), cols=col_no)
+                        office_table = self.sacrificial_doc.add_table(rows=len(table_rows), cols=col_no, style="Table Grid")
 
                     # Set the cell html contents using the X and Y coordinates
                     for y, row in enumerate(table_rows):
