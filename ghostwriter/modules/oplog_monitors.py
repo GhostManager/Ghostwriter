@@ -10,7 +10,7 @@ from django.db.models import Q
 from django.utils import dateformat
 
 # Ghostwriter Libraries
-from ghostwriter.modules.notifications_slack import SlackNotification
+from ghostwriter.modules.notifications_all import NotificationsCenter
 from ghostwriter.oplog.models import Oplog, OplogEntry
 
 # Using __name__ resolves to ghostwriter.modules.cloud_monitors
@@ -39,7 +39,7 @@ def review_active_logs(hours: int = 24) -> dict:
 
     # Check if yesterday was a weekend day (5 and 6 are Saturday and Sunday)
     if yesterday.weekday() < 5:
-        slack = SlackNotification()
+        notify = NotificationsCenter()
         active_logs = Oplog.objects.select_related("project").filter(
             Q(project__complete=False)
             & Q(project__end_date__gte=today)
@@ -76,21 +76,16 @@ def review_active_logs(hours: int = 24) -> dict:
                     hours,
                 )
 
-                # If Slack is enabled, send a message to the configured project or global channel
-                if slack.enabled:
+                # If Notificaions are enabled, send a message to the configured project or global channel
+                if notify.enabled:
                     channel = None
                     if log.project.slack_channel:
                         channel = log.project.slack_channel
 
-                    logger.info("Sending Slack notification about inactive log to %s", channel)
-                    blocks = slack.craft_inactive_log_msg(log.name, log.project, hours, last_activity)
-                    err = slack.send_msg(
-                        message=f"This activity log has had no activity in the past {hours} hours",
-                        channel=channel,
-                        blocks=blocks,
-                    )
+                    logger.info("Sending notification about inactive log to %s", channel)
+                    err = notify.send_inactive_log_msg(log.name, log.project, hours, f"This activity log has had no activity in the past {hours} hours", last_activity, channel)
                     if err:
-                        logger.warning("Attempt to send a Slack notification returned an error: %s", err)
+                        logger.warning("Attempt to send a notification returned an error: %s", err)
                         results["errors"].append(err)
             else:
                 if latest_log_entry:

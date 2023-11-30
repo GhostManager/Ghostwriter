@@ -139,9 +139,9 @@ class ReportConfiguration(SingletonModel):
         verbose_name = "Global Report Configuration"
 
 
-class SlackConfiguration(SingletonModel):
-    enable = models.BooleanField(default=False)
-    webhook_url = models.CharField(max_length=255, default="https://hooks.slack.com/services/<your_webhook_url>")
+class NotificationsConfiguration(SingletonModel):
+    slack_enable = models.BooleanField(default=False)
+    slack_webhook_url = models.CharField(max_length=255, default="https://hooks.slack.com/services/<your_webhook_url>")
     slack_emoji = models.CharField(
         max_length=255,
         default=":ghost:",
@@ -163,17 +163,22 @@ class SlackConfiguration(SingletonModel):
         help_text="Alert target for the notifications (e.g., <!here>) – blank for no target",
         blank=True,
     )
+    teams_enable = models.BooleanField(default=False)
+    teams_webhook_url = models.CharField(max_length=255, default="https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook?tabs=dotnet#create-incoming-webhooks-1")
 
     def __str__(self):
-        return "Slack Configuration"
+        return "Notifications Configuration"
 
     class Meta:
-        verbose_name = "Slack Configuration"
+        verbose_name = "Notifications Configuration"
 
     @property
-    def sanitized_webhook(self):
-        return sanitize(self.webhook_url)
+    def sanitized_slack_webhook(self):
+        return sanitize(self.slack_webhook_url)
 
+    @property
+    def sanitized_teams_webhook(self):
+        return sanitize(self.teams_webhook_url)
 
 class CompanyInformation(SingletonModel):
     company_name = models.CharField(

@@ -739,17 +739,18 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
 
 
-class SlackConfigurationFactory(factory.django.DjangoModelFactory):
+class NotificationsConfigurationFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = "commandcenter.SlackConfiguration"
+        model = "commandcenter.NotificationsConfiguration"
 
-    enable = Faker("boolean")
-    webhook_url = Faker("url")
+    slack_enable = Faker("boolean")
+    slack_webhook_url = Faker("url")
     slack_emoji = Faker("word")
     slack_channel = Faker("user_name")
     slack_username = Faker("user_name")
     slack_alert_target = Faker("user_name")
-
+    teams_enable = Faker("boolean")
+    teams_webhook_url = Faker("url")
 
 class CompanyInformationFactory(factory.django.DjangoModelFactory):
     class Meta:

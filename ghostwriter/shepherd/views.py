@@ -254,7 +254,7 @@ class DomainRelease(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                         namecheap_config=namecheap_config,
                         domain=domain_instance,
                         group="Individual Domain Update",
-                        hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
+                        hook="ghostwriter.modules.notifications_all.send_complete_msg",
                     )
         return JsonResponse(data)
 
@@ -323,14 +323,14 @@ class DomainUpdateHealth(RoleBasedAccessControlMixin, View):
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.check_domains",
                     group="Individual Domain Update",
-                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
+                    hook="ghostwriter.modules.notifications_all.send_complete_msg",
                     domain_id=self.domain.id,
                 )
             else:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.check_domains",
                     group="Domain Updates",
-                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
+                    hook="ghostwriter.modules.notifications_all.send_complete_msg",
                 )
             message = "Successfully queued domain category update task (Task ID {task}).".format(task=task_id)
         except Exception:
@@ -367,7 +367,7 @@ class DomainUpdateDNS(RoleBasedAccessControlMixin, View):
             if self.domain:
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.update_dns",
-                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
+                    hook="ghostwriter.modules.notifications_all.send_complete_msg",
                     group="Individual DNS Update",
                     domain=self.domain.id,
                 )
@@ -375,7 +375,7 @@ class DomainUpdateDNS(RoleBasedAccessControlMixin, View):
                 task_id = async_task(
                     "ghostwriter.shepherd.tasks.update_dns",
                     group="DNS Updates",
-                    hook="ghostwriter.modules.notifications_slack.send_slack_complete_msg",
+                    hook="ghostwriter.modules.notifications_all.send_complete_msg",
                 )
             message = "Successfully queued DNS update task (Task ID {task}).".format(task=task_id)
         except Exception:
