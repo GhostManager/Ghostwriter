@@ -2929,6 +2929,11 @@ class ObservationDetailView(RoleBasedAccessControlMixin, DetailView):
 
     model = Observation
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["observation_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=self.model._meta.label)
+        return ctx
+
 
 class ObservationCreate(RoleBasedAccessControlMixin, CreateView):
     """

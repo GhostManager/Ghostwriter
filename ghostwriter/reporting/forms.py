@@ -361,6 +361,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
     individual :model:`reporting.Report`.
     """
 
+    # Note: since ReportFindingLinks are essentialy a finding bound to a report, it uses
+    # the finding's extra field specifications, rather than having its own.
     extra_fields = ExtraFieldsField(Finding._meta.label)
 
     class Meta:
@@ -1035,6 +1037,8 @@ class SeverityForm(forms.ModelForm):
 class ObservationForm(forms.ModelForm):
     """Save an individual :model:`reporting.Observation`."""
 
+    extra_fields = ExtraFieldsField(Observation._meta.label)
+
     class Meta:
         model = Observation
         fields = "__all__"
@@ -1043,6 +1047,8 @@ class ObservationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["extra_fields"].label = ""
+
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
@@ -1056,6 +1062,7 @@ class ObservationForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Field("description"),
+            Field("extra_fields"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -1073,6 +1080,10 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
     individual :model:`reporting.Report`.
     """
 
+    # Note: since ReportObservationLinks are essentialy an observation bound to a report, it uses
+    # the observation's extra field specifications, rather than having its own.
+    extra_fields = ExtraFieldsField(Observation._meta.label)
+
     class Meta:
         model = ReportObservationLink
         exclude = (
@@ -1087,6 +1098,7 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
         self.fields["title"].widget.attrs["placeholder"] = "Observation Title"
         self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
         self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
+        self.fields["extra_fields"].label = ""
 
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -1099,6 +1111,7 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
                 css_class="form-row",
             ),
             Field("description", css_class="enable-evidence-upload"),
+            Field("extra_fields"),
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

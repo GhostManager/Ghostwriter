@@ -367,6 +367,7 @@ LINTER_CONTEXT = {
             "id": 1,
             "title": "test observation",
             "description": "",
+            "extra_fields": {},
         }
     ],
     "docx_template": {

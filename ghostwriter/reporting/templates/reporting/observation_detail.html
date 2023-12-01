@@ -45,6 +45,22 @@
       {% endif %}
     </div>
   </div>
+
+  {% if observation_extra_fields_spec %}
+    <div class="container">
+      <h4 class="icon custom-field-icon">Extra Fields</h4>
+      <hr>
+
+      <table class="table table-borderless table-centered">
+        {% for field_spec in observation_extra_fields_spec %}
+            <tr>
+                <td class="text-left bold">{{ field_spec.display_name }}</td>
+                <td class="text-left">{% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}</td>
+            </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% endif %}
 {% endblock %}
 
 {% block morescripts %}

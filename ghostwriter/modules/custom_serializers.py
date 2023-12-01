@@ -25,6 +25,7 @@ from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
     Finding,
+    Observation,
     Report,
     ReportFindingLink,
     ReportObservationLink,
@@ -223,6 +224,7 @@ class FindingLinkSerializer(TaggitSerializer, CustomModelSerializer):
     severity_color = SerializerMethodField("get_severity_color")
     severity_color_rgb = SerializerMethodField("get_severity_color_rgb")
     severity_color_hex = SerializerMethodField("get_severity_color_hex")
+    extra_fields = ExtraFieldsSerField(Finding._meta.label)
     tags = TagListSerializerField()
 
     # Include a copy of the ``mitigation`` field as ``recommendation`` to match legacy JSON output
@@ -261,6 +263,8 @@ class ObservationLinkSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:ObservationLinkSerializer` entries."""
 
     tags = TagListSerializerField()
+
+    extra_fields = ExtraFieldsSerField(Observation._meta.label)
 
     class Meta:
         model = ReportObservationLink
