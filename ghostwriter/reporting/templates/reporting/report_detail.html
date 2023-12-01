@@ -269,7 +269,7 @@
                         {% endfor %}
                           <a
                             class="icon lg-attach-icon"
-                            href="{% url 'reporting:upload_evidence' finding.id %}"
+                            href="{% url 'reporting:upload_evidence' 'finding' finding.id %}"
                             data-toggle="tooltip"
                             data-placement="top"
                             title="Attach a file as evidence"></a>
