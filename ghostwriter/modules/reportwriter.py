@@ -49,7 +49,7 @@ from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.oplog.models import OplogEntry
-from ghostwriter.reporting.models import Evidence, Finding, Report
+from ghostwriter.reporting.models import Evidence, Finding, Observation, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
 
@@ -2298,6 +2298,9 @@ class TemplateLinter:
                     for field in ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label):
                         for server in context["infrastructure"]["servers"]:
                             server["extra_fields"][field.internal_name] = field.default_value()
+                    for field in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label):
+                        for obs in context["observations"]:
+                            obs["extra_fields"][field.internal_name] = field.default_value()
 
                     # Step 4: Test rendering the document
                     try:

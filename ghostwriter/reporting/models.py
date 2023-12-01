@@ -706,6 +706,7 @@ class Observation(models.Model):
         help_text="Provide a description for this observation that introduces it",
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
 
     class Meta:
         ordering = ["title"]
@@ -743,6 +744,8 @@ class ReportObservationLink(models.Model):
         help_text="Identify an observation that was created for this report instead of copied from the library",
     )
     tags = TaggableManager(blank=True)
+    extra_fields = models.JSONField(default=dict)
+
     # Foreign Keys
     report = models.ForeignKey("Report", on_delete=models.CASCADE, null=True)
     assigned_to = models.ForeignKey(
