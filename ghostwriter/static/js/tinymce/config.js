@@ -44,7 +44,7 @@ var default_config = {
     max_height: window_height,
     autoresize_bottom_margin: 10,
     toolbar_mode: 'floating',
-    plugins: 'autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case',
+    plugins: 'autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table',
     toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table | evidenceUpload | removeformat save',
     contextmenu: 'bold italic link removeformat',
     paste_as_text: true,
