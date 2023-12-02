@@ -1488,10 +1488,10 @@ class Reportwriter:
 
                 # TABLE - Table
                 elif tag_name == "table":
-                    for content in tag.contents:
-                        if content.name == "tbody":
+                    for part in tag.contents:
+                        if part.name is not None:
                             # Get the tag's contents to check for additional formatting
-                            tbody = content
+                            tbody = part
 
                             # Measure the height and width of the table
                             rows, cols = self._get_table_dimensions(tbody)
