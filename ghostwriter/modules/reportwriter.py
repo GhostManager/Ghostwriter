@@ -1325,6 +1325,28 @@ class Reportwriter:
         # Return last paragraph created
         return p
 
+    def _get_table_rows(self, table_body):
+        # Get all the rows for the specified table.
+        return [part for part in table_body.contents if part.name is not None]
+
+    def _get_table_columns(self, row):
+        # Get all columns for the specified row.
+        return [part for part in row if part.name is not None]
+
+    def _get_table_dimensions(self, table_body):
+        # Get rows for the table
+        rows = self._get_table_rows(table_body)
+
+        # Get columns for the table
+        cols = self._get_table_columns(rows[0])
+        # Add colspan calculation column number
+        col_count = 0
+        for col in cols:
+            colspan = col.get('colspan', 1)
+            col_count += int(colspan)
+
+        return len(rows), col_count
+
     def _process_text_xml(self, text, finding=None, p_style=None):
         """
         Process the provided text from the specified finding to parse keywords for
@@ -1472,22 +1494,47 @@ class Reportwriter:
                             tbody = content
 
                             # Measure the height and width of the table
-                            table_rows = [part for part in tbody.contents if part.name is not None]
-                            col_no = len([part for part in table_rows[0].contents if part.name is not None])
+                            rows, cols = self._get_table_dimensions(tbody)
 
                             # Create a table object for powerpoint and for ms word
                             if self.report_type == "pptx":
-                                office_table = self.finding_slide.shapes.add_table(rows=len(table_rows), cols=col_no, left=Inches(10), top=Inches(5), width=Inches(3), height=Inches(1)).table
+                                office_table = self.finding_slide.shapes.add_table(rows=rows, cols=cols, left=Inches(10), top=Inches(5), width=Inches(3), height=Inches(1)).table
                             else:
-                                office_table = self.sacrificial_doc.add_table(rows=len(table_rows), cols=col_no, style="Table Grid")
+                                office_table = self.sacrificial_doc.add_table(rows=rows, cols=cols, style="Table Grid")
 
-                            # Set the cell html contents using the X and Y coordinates
-                            for y, row in enumerate(table_rows):
-                                for x, cell in enumerate([part for part in row if part.name is not None]):
+                            # Start at row 0
+                            rows = self._get_table_rows(tbody)
+                            y = 0
+
+                            for row in rows:
+                                # Get the row cells
+                                cols = self._get_table_columns(row)
+                                x = 0
+                                for col in cols:
+                                    # Get any colspan / rowspan attributes
+                                    colspan = int(col.get('colspan', 1))
+                                    rowspan = int(col.get('rowspan', 1))
+
+                                    # Obtain the oxml cell object
+                                    office_cell = office_table.cell(y, x)
+
+                                    while office_cell.text != '':  # Skip the merged cell
+                                        x += 1
+                                        office_cell = office_table.cell(y, x)
+
+                                    # Merge the cell if required
+                                    cell_to_merge = office_table.cell(y + rowspan - 1, x + colspan - 1)
+                                    if office_cell != cell_to_merge:
+                                        office_cell.merge(cell_to_merge)
+
+                                    # Set the cell html contents using the X and Y coordinates
                                     if self.report_type == "pptx":
-                                        self._process_nested_html_tags(cell.contents, office_table.cell(y, x).text_frame.paragraphs[0], finding)
+                                        self._process_nested_html_tags(col.contents, office_cell.text_frame.paragraphs[0], finding)
                                     else:
-                                        self._process_nested_html_tags(cell.contents, office_table.rows[y].cells[x].paragraphs[0], finding)
+                                        self._process_nested_html_tags(col.contents, office_cell.paragraphs[0], finding)
+
+                                    x += colspan
+                                y += 1
                 else:
                     if not isinstance(tag, NavigableString):
                         logger.warning(
