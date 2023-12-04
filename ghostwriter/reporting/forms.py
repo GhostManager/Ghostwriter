@@ -263,11 +263,9 @@ class ReportForm(forms.ModelForm):
     :model:`rolodex.Project`.
     """
 
-    extra_fields = ExtraFieldsField(Report._meta.label)
-
     class Meta:
         model = Report
-        exclude = ("creation", "last_update", "created_by", "complete")
+        exclude = ("creation", "last_update", "created_by", "complete", "extra_fields")
 
     def __init__(self, user=None, project=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -303,7 +301,6 @@ class ReportForm(forms.ModelForm):
         self.fields["pptx_template"].required = False
         self.fields["tags"].widget.attrs["placeholder"] = "draft, QA2, ..."
         self.fields["title"].widget.attrs["placeholder"] = "Red Team Report for Project Foo"
-        self.fields["extra_fields"].label = ""
 
         report_config = ReportConfiguration.get_solo()
         self.fields["docx_template"].initial = report_config.default_docx_template
@@ -328,7 +325,6 @@ class ReportForm(forms.ModelForm):
                 <hr />
                 """
             ),
-            "extra_fields",
             HTML(
                 """
                 <h4 class="icon file-icon">Assign Templates</h4>
