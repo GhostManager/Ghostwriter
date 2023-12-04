@@ -1630,14 +1630,16 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
             form = SingleExtraFieldForm(
                 field_spec,
                 request.POST,
-                initial={field_spec.internal_name: report.extra_fields.get(field_spec.internal_name)},
             )
             if form.is_valid():
                 report.extra_fields[field_spec.internal_name] = form.cleaned_data[field_spec.internal_name]
                 report.save()
                 return redirect("reporting:report_detail", pk=report.pk)
         else:
-            form = SingleExtraFieldForm(field_spec)
+            form = SingleExtraFieldForm(
+                field_spec,
+                initial={field_spec.internal_name: report.extra_fields.get(field_spec.internal_name)},
+            )
 
         return render(request, "reporting/report_extra_field_edit.html", {
             "form": form,
