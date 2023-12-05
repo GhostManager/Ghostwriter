@@ -69,6 +69,7 @@ def evidence_update(sender, instance, **kwargs):
                 "position",
                 "finding_guidance",
                 "title",
+                "extra_fields",
             ]
             friendly = f"{{{{.{instance.friendly_name}}}}}"
             friendly_ref = f"{{{{.ref {instance.friendly_name}}}}}"

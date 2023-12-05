@@ -242,10 +242,10 @@ def get_item(lst, index):
         return lst[index]
     except TypeError:
         logger.exception("Error getting list index %s from this list: %s", index, lst)
-        raise InvalidFilterValue(f"Invalid list or string passed into the `get_item()` filter")
+        raise InvalidFilterValue("Invalid list or string passed into the `get_item()` filter")
     except IndexError:
         logger.exception("Error getting index %s from this list: %s", index, lst)
-        raise InvalidFilterValue(f"Invalid or unavailable index passed into the `get_item()` filter")
+        raise InvalidFilterValue("Invalid or unavailable index passed into the `get_item()` filter")
 
 
 def prepare_jinja2_env(debug=False):
@@ -874,7 +874,7 @@ class Reportwriter:
             else:
                 font.superscript = styles["superscript"]
 
-    def _replace_and_write(self, text, par, finding, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
+    def _replace_and_write(self, text, par, finding_or_report, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
         """
         Find and replace template keywords in the provided text.
 
@@ -946,18 +946,18 @@ class Reportwriter:
                         return par
 
                     # Handle evidence files
-                    if "evidence" in finding:
+                    if "evidence" in finding_or_report:
                         if (
                             keyword
-                            # and keyword in finding["evidence"]
-                            and any(ev["friendly_name"] == keyword for ev in finding["evidence"])
+                            # and keyword in finding_or_report["evidence"]
+                            and any(ev["friendly_name"] == keyword for ev in finding_or_report["evidence"])
                             and not keyword.startswith("ref ")
                         ):
                             logger.debug(
-                                "Identified `%s` as an evidence file attached to this finding",
+                                "Identified `%s` as an evidence file attached to this finding/report",
                                 keyword,
                             )
-                            for ev in finding["evidence"]:
+                            for ev in finding_or_report["evidence"]:
                                 if ev["friendly_name"] == keyword:
                                     self._process_evidence(ev, par)
                                     return par
@@ -995,7 +995,7 @@ class Reportwriter:
 
         return par
 
-    def _process_nested_html_tags(self, contents, par, finding, styles=None):
+    def _process_nested_html_tags(self, contents, par, finding_or_report, styles=None):
         """
         Process BeautifulSoup4 ``Tag`` objects containing nested HTML tags.
 
@@ -1005,8 +1005,8 @@ class Reportwriter:
             Contents of a BS4 ``Tag``
         ``par`` : Paragraph
             Word docx ``Paragraph`` object
-        ``finding`` : dict
-            Current finding (JSON) being processed
+        ``finding_or_report`` : dict
+            Current finding or report (JSON) being processed
         ``styles`` : dict
             Override default styles with a provided dict
         """
@@ -1136,7 +1136,7 @@ class Reportwriter:
                             merged_styles = merge_styles(run_styles, parent_styles)
 
                             # Recursively process the nested tags
-                            self._process_nested_html_tags(tag_contents, par, finding, styles=merged_styles)
+                            self._process_nested_html_tags(tag_contents, par, finding_or_report, styles=merged_styles)
                     elif tag_name:
                         logger.warning(
                             "Ignoring a nested HTML tag not in the allowlist: %s",
@@ -1150,7 +1150,7 @@ class Reportwriter:
                     merged_styles = merge_styles(run_styles, parent_styles)
 
                     # Write the text for this run
-                    par = self._replace_and_write(content_text, par, finding, merged_styles)
+                    par = self._replace_and_write(content_text, par, finding_or_report, merged_styles)
 
                     # Reset temporary run styles
                     run_styles = ReportConstants.DEFAULT_STYLE_VALUES.copy()
@@ -1158,9 +1158,9 @@ class Reportwriter:
             # There are no tags to process, so write the string
             else:
                 if isinstance(part, NavigableString):
-                    par = self._replace_and_write(part, par, finding, parent_styles)
+                    par = self._replace_and_write(part, par, finding_or_report, parent_styles)
                 else:
-                    par = self._replace_and_write(part.text, par, finding)
+                    par = self._replace_and_write(part.text, par, finding_or_report)
         return par
 
     def _create_list_paragraph(self, prev_p, level, num=False, alignment=WD_ALIGN_PARAGRAPH.LEFT):
@@ -1331,7 +1331,7 @@ class Reportwriter:
         # Return last paragraph created
         return p
 
-    def _process_text_xml(self, text, finding=None, p_style=None):
+    def _process_text_xml(self, text, finding_or_report=None, p_style=None):
         """
         Process the provided text from the specified finding to parse keywords for
         evidence placement and formatting for Office XML.
@@ -1341,7 +1341,7 @@ class Reportwriter:
         ``text``
             Text to convert to Office XML
         ``finding``
-            Current report finding being processed
+            Current finding/report being processed
         """
         if text:
             # Clean text to make it XML compatible for Office XML
@@ -1401,7 +1401,7 @@ class Reportwriter:
                             p.alignment = ALIGNMENT.JUSTIFY
 
                     # Pass the contents and new paragraph on to drill down into nested formatting
-                    self._process_nested_html_tags(contents, p, finding)
+                    self._process_nested_html_tags(contents, p, finding_or_report)
 
                 # PRE – Code Blocks
                 elif tag_name == "pre":
@@ -1453,7 +1453,7 @@ class Reportwriter:
                     # We need to check every list item for formatted and additional lists
                     # While tracking which level of the list we are working with
                     level = 0
-                    prev_p = self._parse_html_lists(tag, prev_p, num, finding, level)
+                    prev_p = self._parse_html_lists(tag, prev_p, num, finding_or_report, level)
 
                 # BLOCKQUOTE – Blockquote Sections
                 elif tag_name == "blockquote":
@@ -1468,7 +1468,7 @@ class Reportwriter:
                         p.style = "Blockquote"
 
                     # Pass the contents and new paragraph on to drill down into nested formatting
-                    self._process_nested_html_tags(contents, p, finding)
+                    self._process_nested_html_tags(contents, p, finding_or_report)
                 else:
                     if not isinstance(tag, NavigableString):
                         logger.warning(
@@ -1573,14 +1573,14 @@ class Reportwriter:
 
         p_style = self.report_queryset.docx_template.p_style
 
-        def render_subdocument(section, finding):
+        def render_subdocument(section, finding_or_report):
             if section:
                 self.sacrificial_doc = self.word_doc.new_subdoc()
-                self._process_text_xml(section, finding, p_style)
+                self._process_text_xml(section, finding_or_report, p_style)
                 return self.sacrificial_doc
             return None
 
-        self._process_extra_fields(context["extra_fields"], Report, lambda v: render_subdocument(v, None))
+        self._process_extra_fields(context["extra_fields"], Report, lambda v: render_subdocument(v, finding_or_report=context))
 
         # Findings
         for finding in context["findings"]:
@@ -1609,62 +1609,62 @@ class Reportwriter:
             self._process_extra_fields(finding["extra_fields"], Finding, lambda v: render_subdocument(v, finding))  # pylint: disable=cell-var-from-loop
 
         # Client
-        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding=None)
-        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], finding=None)
+        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding_or_report=None)
+        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], finding_or_report=None)
         self._process_extra_fields(context["client"]["extra_fields"], Client, lambda v: render_subdocument(v, None))
 
         # Project
-        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding=None)
+        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding_or_report=None)
         self._process_extra_fields(context["project"]["extra_fields"], Project, lambda v: render_subdocument(v, None))
 
         # Assignments
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = render_subdocument(assignment["note"], finding=None)
+                    assignment["note_rt"] = render_subdocument(assignment["note"], finding_or_report=None)
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = render_subdocument(contact["note"], finding=None)
+                    contact["note_rt"] = render_subdocument(contact["note"], finding_or_report=None)
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = render_subdocument(objective["description"], finding=None)
+                    objective["description_rt"] = render_subdocument(objective["description"], finding_or_report=None)
 
         # Scope Lists
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = render_subdocument(scope_list["description"], finding=None)
+                    scope_list["description_rt"] = render_subdocument(scope_list["description"], finding_or_report=None)
 
         # Targets
         for target in context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = render_subdocument(target["note"], finding=None)
+                    target["note_rt"] = render_subdocument(target["note"], finding_or_report=None)
 
         # Deconfliction Events
         for event in context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = render_subdocument(event["description"], finding=None)
+                    event["description_rt"] = render_subdocument(event["description"], finding_or_report=None)
 
         # White Cards
         for card in context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = render_subdocument(card["description"], finding=None)
+                    card["description_rt"] = render_subdocument(card["description"], finding_or_report=None)
 
         # Infrastructure
         for asset_type in context["infrastructure"]:
             for asset in context["infrastructure"][asset_type]:
                 if isinstance(asset, dict):
                     if asset["note"]:
-                        asset["note_rt"] = render_subdocument(asset["note"], finding=None)
+                        asset["note_rt"] = render_subdocument(asset["note"], finding_or_report=None)
         for asset in context["infrastructure"]["domains"]:
             self._process_extra_fields(asset["extra_fields"], Domain, lambda v: render_subdocument(v, None))
         for asset in context["infrastructure"]["servers"]:
@@ -1674,6 +1674,14 @@ class Reportwriter:
         for log in context["logs"]:
             for entry in log["entries"]:
                 self._process_extra_fields(entry["extra_fields"], OplogEntry, lambda v: render_subdocument(v, None))
+
+        # Observations
+        for observation in context["observations"]:
+            self._process_extra_fields(observation["extra_fields"], Observation, lambda v: render_subdocument(v, None))
+
+        # Report Evidence
+        # for evidence in context["evidence"]:
+        #    self._process_extra_fields(evidence["extra_fields"], Report, lambda v: render_subdocument(v, None))
 
         return context
 
