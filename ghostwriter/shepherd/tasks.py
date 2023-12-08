@@ -392,10 +392,19 @@ def check_domains(domain_id=None):
             if lab_results[k]["burned"]:
                 domain_qs.health_status = HealthStatus.objects.get(health_status="Burned")
                 change = "burned"
+                pretty_categories = []
+                for vendor, category in lab_results[k]["categories"].items():
+                    pretty_categories.append(f"{vendor}: {category}")
+
+                scanners = "N/A"
+                if lab_results[k]["scanners"]:
+                    scanners = "\n".join(lab_results[k]["scanners"])
+
                 if slack.enabled:
                     blocks = slack.craft_burned_msg(
                         v["domain"],
-                        lab_results[k]["categories"],
+                        "\n".join(pretty_categories),
+                        scanners,
                         lab_results[k]["burned_explanation"],
                     )
                     if slack.enabled:
