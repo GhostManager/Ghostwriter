@@ -193,8 +193,9 @@ def release_domains(no_action=False):
             # Check if tomorrow is the end date
             if date.today() == warning_date:
                 release_me = False
-                message = "Your domain, {}, will be released tomorrow! Modify the project's end date as needed.".format(
-                    domain.name
+                message = "Reminder: your project is ending soon and your domain, {}, will be released when it does. If your project is still ending after EOB on {}, you don't need to do anything!".format(
+                    domain.name,
+                    release_date,
                 )
                 if slack.enabled:
                     err = slack.send_msg(message, slack_channel)
