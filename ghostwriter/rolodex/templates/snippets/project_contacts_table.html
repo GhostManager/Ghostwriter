@@ -91,3 +91,49 @@
     </div>
   </form>
 </div>
+
+<script>
+  {% comment %} Create a new project point of contact from a client contact {% endcomment %}
+  $(document).ready(function () {
+    $('#id_client_contact').change(function () {
+      let option = $(this).val();
+      if (option === -1) {
+        $('#assign-btn').prop('disabled', true);
+      } else {
+        $('#assign-btn').prop('disabled', false);
+      }
+    });
+    $('#assign-project-contact-form').submit(function (e) {
+      e.preventDefault();
+      let url = $(this).attr('action');
+      let $contact = $('#id_client_contact')
+      let contactId = $contact.val();
+      let csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+      if ($contact.val() === '') {
+        contactId = -1
+      }
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'contact': contactId,
+          'csrfmiddlewaretoken': csrftoken,
+        },
+        success: function (data) {
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Contacts Update'});
+          }
+          update_project_contacts();
+        },
+      });
+    });
+  });
+</script>

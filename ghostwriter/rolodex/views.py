@@ -134,9 +134,22 @@ def update_project_contacts(request, pk):
     if not verify_access(request.user, project_instance):
         return ForbiddenJsonResponse()
 
+    contacts = ClientContact.objects.filter(client=project_instance.client)
+    for contact in contacts:
+        if (
+            ProjectContact.objects.filter(
+                name=contact.name,
+                email=contact.email,
+                phone=contact.phone,
+                project=project_instance,
+            ).count()
+            > 0
+        ):
+            contacts = contacts.exclude(id=contact.id)
+
     html = render_to_string(
         "snippets/project_contacts_table.html",
-        {"project": project_instance},
+        {"project": project_instance, "client_contacts": contacts},
     )
     return HttpResponse(html)
 
@@ -1438,24 +1451,6 @@ class ProjectDetailView(RoleBasedAccessControlMixin, DetailView):
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-
-        contacts = ClientContact.objects.filter(client=self.object.client)
-        for contact in contacts:
-            if (
-                ProjectContact.objects.filter(
-                    name=contact.name,
-                    email=contact.email,
-                    phone=contact.phone,
-                    project=self.object,
-                ).count()
-                > 0
-            ):
-                contacts = contacts.exclude(id=contact.id)
-        ctx["client_contacts"] = contacts
-        return ctx
 
 
 class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
