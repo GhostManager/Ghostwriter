@@ -157,6 +157,7 @@ class OplogEntriesImportTests(TestCase):
     def test_post_data_and_permissions(self):
         filename = "oplog_import_test.csv"
         fieldnames = [
+            "entry_identifier",
             "start_date",
             "end_date",
             "source_ip",
@@ -207,6 +208,7 @@ class OplogEntriesImportTests(TestCase):
         """Test that the ``oplog_id`` field is overridden when importing."""
         filename = "oplog_import_test.csv"
         fieldnames = [
+            "entry_identifier",
             "oplog_id",
             "start_date",
             "end_date",

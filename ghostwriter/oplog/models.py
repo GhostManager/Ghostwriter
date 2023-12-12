@@ -44,6 +44,13 @@ class Oplog(models.Model):
 class OplogEntry(models.Model):
     """Stores an individual log entry, related to :model:`oplog.Oplog`."""
 
+    entry_identifier = models.CharField(
+        "Identifier",
+        null=True,
+        blank=True,
+        help_text="Integrations may use this to track log entries.",
+        max_length=65535,
+    )
     start_date = models.DateTimeField(
         "Start Date",
         null=True,
@@ -135,6 +142,9 @@ class OplogEntry(models.Model):
         ordering = ["-start_date", "-end_date", "oplog_id"]
         verbose_name = "Activity log entry"
         verbose_name_plural = "Activity log entries"
+        indexes = [
+            models.Index(fields=["oplog_id", "entry_identifier"]),
+        ]
 
     def clean(self, *args, **kwargs):
         if isinstance(self.start_date, str):

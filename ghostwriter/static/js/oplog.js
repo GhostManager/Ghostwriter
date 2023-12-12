@@ -6,8 +6,10 @@ let hiddenLogTblColumns = JSON.parse((localStorage.getItem('hiddenLogTblColumns'
 // Assemble the array of column information for the table
 let columnInfo = []
 columnInfo = [
-    ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date'],
-    ['endDateCheckbox', 'endDateColumn', 'End Date', 'end_date'],
+    // [checkBoxID, columnClass, Pretty Name, name_in_json, toHtmlFunc (default `jsescape`), shownByDefault (default true)]
+    ['identifierCheckBox', 'identifierColumn', 'Identifier', 'entry_identifier', undefined, false],
+    ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date', entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")],
+    ['endDateCheckbox', 'endDateColumn', 'End Date', 'end_date', entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")],
     ['sourceIPCheckbox', 'sourceIPColumn', 'Source', 'source_ip'],
     ['destIPCheckbox', 'destIPColumn', 'Destination', 'dest_ip'],
     ['toolNameCheckbox', 'toolNameColumn', 'Tool Name', 'tool'],
@@ -17,25 +19,17 @@ columnInfo = [
     ['outputCheckbox', 'outputColumn', 'Output', 'output'],
     ['commentsCheckbox', 'commentsColumn', 'Comments', 'comments'],
     ['operatorCheckbox', 'operatorColumn', 'Operator', 'operator_name'],
-    ['tagsCheckbox', 'tagsColumn', 'Tags', 'tags'],
+    ['tagsCheckbox', 'tagsColumn', 'Tags', 'tags', entry => stylizeTags(jsEscape(entry))],
     ['optionsCheckbox', 'optionsColumn', 'Options', ''],
 ]
 
 // Generate a table row based on a log entry
 function generateTableHeaders() {
-    return `<th class="${columnInfo[0][1]} align-middle">${columnInfo[0][2]}</th>
-            <th class="${columnInfo[1][1]} align-middle">${columnInfo[1][2]}</th>
-            <th class="${columnInfo[2][1]} align-middle">${columnInfo[2][2]}</th>
-            <th class="${columnInfo[3][1]} align-middle">${columnInfo[3][2]}</th>
-            <th class="${columnInfo[4][1]} align-middle">${columnInfo[4][2]}</th>
-            <th class="${columnInfo[5][1]} align-middle">${columnInfo[5][2]}</th>
-            <th class="${columnInfo[6][1]} align-middle">${columnInfo[6][2]}</th>
-            <th class="${columnInfo[7][1]} align-middle">${columnInfo[7][2]}</th>
-            <th class="${columnInfo[8][1]} align-middle">${columnInfo[8][2]}</th>
-            <th class="${columnInfo[9][1]} align-middle">${columnInfo[9][2]}</th>
-            <th class="${columnInfo[10][1]} align-middle">${columnInfo[10][2]}</th>
-            <th class="${columnInfo[11][1]} align-middle">${columnInfo[11][2]}</th>
-            <th class="${columnInfo[12][1]} align-middle">${columnInfo[12][2]}</th>`
+    let out = "";
+    columnInfo.forEach(column => {
+        out += `<th class="${column[1]} align-middle">${column[2]}</th>`
+    });
+    return out;
 }
 
 // Convert a table row to JSON and copy it to the clipboard
@@ -84,25 +78,21 @@ function convertRowToJSON(row_id) {
 
 // Generate a table row based on a log entry
 function generateRow(entry) {
-    return `<tr id="${entry["id"]}" class="editableRow">
-            <td class="${columnInfo[0][1]} align-middle">${jsEscape(entry["start_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-            <td class="${columnInfo[1][1]} align-middle">${jsEscape(entry["end_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-            <td class="${columnInfo[2][1]} align-middle">${jsEscape(entry["source_ip"])}</td>
-            <td class="${columnInfo[3][1]} align-middle">${jsEscape(entry["dest_ip"])}</td>
-            <td class="${columnInfo[4][1]} align-middle">${jsEscape(entry["tool"])}</td>
-            <td class="${columnInfo[5][1]} align-middle">${jsEscape(entry["user_context"])}</td>
-            <td class="${columnInfo[6][1]} align-middle"><div>${jsEscape(entry["command"])}<div></td>
-            <td class="${columnInfo[7][1]} align-middle"><div>${jsEscape(entry["description"])}</div></td>
-            <td class="${columnInfo[8][1]} align-middle"><div>${jsEscape(entry["output"])}</div></td>
-            <td class="${columnInfo[9][1]} align-middle"><div>${jsEscape(entry["comments"])}</div></td>
-            <td class="${columnInfo[10][1]} align-middle">${jsEscape(entry["operator_name"])}</td>
-            <td class="${columnInfo[11][1]} align-middle">${stylizeTags(jsEscape(entry["tags"]))}</td>
-            <td class="${columnInfo[12][1]} align-middle">
+    let out = `<tr id="${entry["id"]}" class="editableRow">`;
+    columnInfo.forEach(column => {
+        if(column[0] == "optionsCheckbox") {
+            out += `<td class="${column[1]} align-middle">
                 <button class="btn" data-toggle="tooltip" data-placement="left" title="Create a copy of this log entry" onClick="copyEntry(this);" entry-id="${entry['id']}"><i class="fa fa-copy"></i></button>
                 <button class="btn" data-toggle="tooltip" data-placement="left" title="Copy this entry to your clipboard as JSON" onClick="convertRowToJSON(${entry["id"]});"><i class="fas fa-clipboard"></i></button>
                 <button class="btn danger" data-toggle="tooltip" data-placement="left" title="Delete this log entry" onClick="deleteEntry(this);" entry-id="${entry['id']}"><i class="fa fa-trash"></i></button>
-            </td>
-            </tr>`
+            </td>`
+        } else {
+            let value = entry[column[3]];
+            let filter = column[4] ?? jsEscape;
+            out += `<td class="${column[1]} align-middle">${filter(value)}</td>`;
+        }
+    });
+    return out + "</tr>";
 }
 
 // Add a placeholder row that spans the entire table
@@ -156,10 +146,11 @@ function coupleCheckboxColumn(checkboxId, columnClass) {
 // Build the column show/hide checkboxes
 function buildColumnsCheckboxes() {
     columnInfo.forEach(function (value, _, _) {
+        let checked = (value[5] === undefined || value[5]) ? "checked" : "";
         let checkboxEntry = `
         <div class="form-check-inline">
         <div class="custom-control custom-switch">
-        <input type="checkbox" id="${value[0]}" class="form-check-input custom-control-input" checked/>
+        <input type="checkbox" id="${value[0]}" class="form-check-input custom-control-input" ${checked}/>
         <label class="form-check-label custom-control-label" for="${value[0]}">${value[2]}</label>
         </div>
         </div>
