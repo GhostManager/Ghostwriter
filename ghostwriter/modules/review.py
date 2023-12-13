@@ -152,6 +152,7 @@ class DomainReview:
             # Ignore any expired domains because we don't control them anymore
             if domain.is_expired() is False:
                 domain_categories = {}
+                malicious_scans = []
                 bad_categories = []
                 burned_explanations = []
                 lab_results[domain.id] = {}
@@ -216,10 +217,19 @@ class DomainReview:
                     if "last_analysis_stats" in vt_results["data"]:
                         analysis_stats = vt_results["data"]["last_analysis_stats"]
                         if analysis_stats["malicious"] > 0:
+                            for scanner, result in vt_results["data"]["last_analysis_results"].items():
+                                if result["result"] == "malicious":
+                                    malicious_scans.append(scanner)
                             burned = True
-                            burned_explanations.append("A VirusTotal scanner has flagged the domain as malicious.")
+                            burned_explanations.append(
+                                "{} VirusTotal scanner(s) ({}) flagged the domain as malicious.".format(
+                                    analysis_stats["malicious"],
+                                    ", ".join(malicious_scans),
+                                )
+                            )
                             logger.warning(
-                                "A VirusTotal scanner has flagged the %s as malicious",
+                                "%s VirusTotal scanners flagged the %s as malicious",
+                                analysis_stats["malicious"],
                                 domain_name,
                             )
 
@@ -234,17 +244,18 @@ class DomainReview:
                                 )
                             )
                             logger.warning(
-                                "There are %s VirusTotal community votes flagging the the domain as malicious",
+                                "There are %s VirusTotal community votes flagging the the domain as malicious.",
                                 votes["malicious"],
                             )
 
                 else:
                     lab_results[domain.id]["vt_results"] = "none"
-                    logger.warning("Did not receive results for %s from VirusTotal", domain_name)
+                    logger.warning("Did not receive results for %s from VirusTotal.", domain_name)
 
                 # Assemble the dictionary to return for this domain
                 lab_results[domain.id]["burned"] = burned
                 lab_results[domain.id]["categories"] = domain_categories
+                lab_results[domain.id]["scanners"] = malicious_scans
                 lab_results[domain.id]["warnings"]["messages"] = warnings
                 lab_results[domain.id]["warnings"]["total"] = len(warnings)
                 if burned:
