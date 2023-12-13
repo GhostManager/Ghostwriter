@@ -70,13 +70,14 @@ insert_permissions:
         - description
         - dest_ip
         - end_date
+        - entry_identifier
+        - operator_name
         - oplog_id_id
         - output
         - source_ip
         - start_date
         - tool
         - user_context
-        - operator_name
 select_permissions:
   - role: manager
     permission:
@@ -138,13 +139,14 @@ update_permissions:
         - description
         - dest_ip
         - end_date
+        - entry_identifier
+        - operator_name
         - oplog_id_id
         - output
         - source_ip
         - start_date
         - tool
         - user_context
-        - operator_name
       filter:
         log:
           project:
