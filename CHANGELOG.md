@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.3] - 15 December 2023
+
+### Added
+
+* Added tracking for which VirusTotal scanners have flagged a domain as malicious to the health check task
+* Added a new `entry_identifier` field to activity log entries to make it easier to identify entries when using the GraphQL API
+  * The field is an open-ended text field that you can use to track a job ID, UUID, or other identifier for the entry
+  * The field has no unique constraints at this time, so you can use it to track multiple entries with the same identifier
+  * Logging extensions like the `cobalt_sync` project use this field to avoid duplicate entries when re-syncing
+  * The field is hidden by default in the Ghostwriter web UI when viewing log entries
+
+### Fixed
+
+* Fixed client contacts missing from the dropdown menu after assigning a contact (Fixed #175)
+
+### Changed
+
+* Adjusted the wording of the reminder message sent for upcoming domain releases in Slack to make it clear the domain would remain checked out until the end of the project
+* Improved the Slack message sent when domain names go from "healthy" to "burned"
+* Expanded PowerPoint report generation to include new content with information about team members and objectives
+* Removed character limits on log entry fields to allow for longer entries
+  * This change is most useful for fields that track IP addresses
+  * This resolves an issue that could arise when using the `mythic_sync` extension to sync logs with Mythic from a server host with multiple NICs and IPv6 addresses
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.17
+
 ## [4.0.2] - 14 November 2023
 
 ### Fixed
