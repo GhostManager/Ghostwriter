@@ -297,9 +297,9 @@ event_triggers:
         value_from_env: HASURA_ACTION_SECRET
   - name: DeleteReportFinding
     definition:
-      enable_manual: false
       delete:
         columns: '*'
+      enable_manual: false
     retry_conf:
       interval_sec: 10
       num_retries: 0
