@@ -1940,6 +1940,16 @@ class Reportwriter:
                     status = "Achieved"
                 write_bullet(text_frame, f"{obj['objective']} – {status}", 1)
 
+        def prepare_for_pptx(value):
+            """Strip HTML and clear 0x0D characters to prepare text for notes slides."""
+            try:
+                if value:
+                    return BeautifulSoup(value, "lxml").text.replace("\x0D", "")
+                return "N/A"
+            except Exception:
+                logger.exception("Failed parsing this value for PPTX: %s", value)
+                return ""
+
         # Calculate finding stats
         for finding in self.report_json["findings"]:
             findings_stats[finding["severity"]] = 0
@@ -2144,16 +2154,6 @@ class Reportwriter:
             if "evidence" in finding:
                 for ev in finding["evidence"]:
                     self._process_evidence(ev, par=None)
-
-            def prepare_for_pptx(value):
-                """Strip HTML and clear 0x0D characters to prepare text for notes slides."""
-                try:
-                    if value:
-                        return BeautifulSoup(value, "lxml").text.replace("\x0D", "")
-                    return "N/A"
-                except Exception:
-                    logger.exception("Failed parsing this value for PPTX: %s", value)
-                    return ""
 
             # Add all finding data to the notes section for easier reference during edits
             entities = prepare_for_pptx(finding["affected_entities"])
