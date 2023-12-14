@@ -1973,6 +1973,17 @@ class Reportwriter:
         title_shape.text = "Agenda"
         body_shape = shapes.placeholders[1]
         text_frame = get_textframe(body_shape)
+        text_frame.clear()
+        self._delete_paragraph(text_frame.paragraphs[0])
+
+        write_bullet(text_frame, "Introduction", 0)
+        write_bullet(text_frame, "Assessment Details", 0)
+        write_bullet(text_frame, "Methodology", 0)
+        write_bullet(text_frame, "Assessment Timeline", 0)
+        write_bullet(text_frame, "Attack Path Overview", 0)
+        write_bullet(text_frame, "Positive Control Observations", 0)
+        write_bullet(text_frame, "Findings and Recommendations Overview", 0)
+        write_bullet(text_frame, "Next Steps", 0)
 
         # Add Introduction slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
