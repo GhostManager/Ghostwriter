@@ -41,6 +41,7 @@ insert_permissions:
         - description
         - dest_ip
         - end_date
+        - entry_identifier
         - operator_name
         - oplog_id_id
         - output
@@ -82,19 +83,20 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - id
-        - oplog_id_id
-        - operator_name
         - command
         - comments
         - description
         - dest_ip
+        - end_date
+        - entry_identifier
+        - id
+        - operator_name
+        - oplog_id_id
         - output
         - source_ip
+        - start_date
         - tool
         - user_context
-        - end_date
-        - start_date
       filter: {}
   - role: user
     permission:
@@ -122,6 +124,7 @@ update_permissions:
         - description
         - dest_ip
         - end_date
+        - entry_identifier
         - operator_name
         - oplog_id_id
         - output
