@@ -1993,6 +1993,56 @@ class Reportwriter:
         title_shape.text = "Introduction"
         body_shape = shapes.placeholders[1]
         text_frame = get_textframe(body_shape)
+        text_frame.clear()
+        self._delete_paragraph(text_frame.paragraphs[0])
+
+        for member in self.report_json["team"]:
+            write_bullet(text_frame, f"{member['name']} – {member['role']}", 0)
+            write_bullet(text_frame, member["email"], 1)
+
+        # Add Assessment Details slide
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
+        shapes = slide.shapes
+        title_shape = shapes.title
+        title_shape.text = "Assessment Details"
+        body_shape = shapes.placeholders[1]
+        text_frame = get_textframe(body_shape)
+        text_frame.clear()
+        self._delete_paragraph(text_frame.paragraphs[0])
+
+        write_bullet(
+            text_frame, f"{self.report_json['project']['type']} assessment of {self.report_json['client']['name']}", 0
+        )
+        write_bullet(
+            text_frame,
+            f"Testing performed from {self.report_json['project']['start_date']} to {self.report_json['project']['end_date']}",
+            1,
+        )
+
+        if self.report_json["objectives"]:
+            primary_objs = []
+            secondary_objs = []
+            tertiary_objs = []
+            for objective in self.report_json["objectives"]:
+                if objective["priority"] == "Primary":
+                    primary_objs.append(objective)
+                elif objective["priority"] == "Secondary":
+                    secondary_objs.append(objective)
+                elif objective["priority"] == "Tertiary":
+                    tertiary_objs.append(objective)
+
+            if primary_objs:
+                write_bullet(text_frame, "Primary Objectives", 0)
+                write_objective_list(text_frame, primary_objs)
+
+            if secondary_objs:
+                write_bullet(text_frame, "Secondary Objectives", 0)
+                write_objective_list(text_frame, secondary_objs)
+
+            if tertiary_objs:
+                write_bullet(text_frame, "Tertiary Objectives", 0)
+                write_objective_list(text_frame, tertiary_objs)
 
         # Add Methodology slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
