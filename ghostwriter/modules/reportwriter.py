@@ -2030,6 +2030,14 @@ class Reportwriter:
             1,
         )
 
+        # This is required because `_process_text_xml()` expects a `finding` object and a `finding_body_shape` object
+        self.finding_body_shape = shapes.placeholders[1]
+        self._process_text_xml(self.report_json["project"]["note"], 1)
+        # The `_process_text_xml()` method adds a new paragraph, so we need to get the last one to increase the indent level
+        text_frame = get_textframe(self.finding_body_shape)
+        p = text_frame.paragraphs[-1]
+        p.level = 1
+
         if self.report_json["objectives"]:
             primary_objs = []
             secondary_objs = []
