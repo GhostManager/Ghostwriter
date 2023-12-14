@@ -2070,13 +2070,6 @@ class Reportwriter:
         body_shape = shapes.placeholders[1]
         title_shape.text = "Findings Overview"
         text_frame = get_textframe(body_shape)
-        for key, value in findings_stats.items():
-            p = text_frame.add_paragraph()
-            p.text = "{} Findings".format(key)
-            p.level = 0
-            p = text_frame.add_paragraph()
-            p.text = str(value)
-            p.level = 1
 
         # Add Findings Overview Slide 2
         # If there are findings then write a table of findings and severity ratings
@@ -2123,9 +2116,7 @@ class Reportwriter:
                 cell.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
                 cell.vertical_anchor = MSO_ANCHOR.MIDDLE
         else:
-            p = text_frame.add_paragraph()
-            p.text = "No findings"
-            p.level = 0
+            write_bullet(text_frame, "No findings", 0)
 
         # Create slide for each finding
         for finding in self.report_json["findings"]:
