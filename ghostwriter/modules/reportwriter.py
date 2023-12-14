@@ -1926,6 +1926,20 @@ class Reportwriter:
             text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
             return text_frame
 
+        def write_bullet(text_frame, text, level):
+            """Write a bullet to the provided text frame at the specified level."""
+            p = text_frame.add_paragraph()
+            p.text = text
+            p.level = level
+
+        def write_objective_list(text_frame, objectives):
+            """Write a list of objectives to the provided text frame."""
+            for obj in objectives:
+                status = obj["status"]
+                if obj["complete"]:
+                    status = "Achieved"
+                write_bullet(text_frame, f"{obj['objective']} – {status}", 1)
+
         # Calculate finding stats
         for finding in self.report_json["findings"]:
             findings_stats[finding["severity"]] = 0
