@@ -1958,6 +1958,30 @@ class Reportwriter:
             text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
             return text_frame
 
+        def write_bullet(text_frame, text, level):
+            """Write a bullet to the provided text frame at the specified level."""
+            p = text_frame.add_paragraph()
+            p.text = text
+            p.level = level
+
+        def write_objective_list(text_frame, objectives):
+            """Write a list of objectives to the provided text frame."""
+            for obj in objectives:
+                status = obj["status"]
+                if obj["complete"]:
+                    status = "Achieved"
+                write_bullet(text_frame, f"{obj['objective']} – {status}", 1)
+
+        def prepare_for_pptx(value):
+            """Strip HTML and clear 0x0D characters to prepare text for notes slides."""
+            try:
+                if value:
+                    return BeautifulSoup(value, "lxml").text.replace("\x0D", "")
+                return "N/A"
+            except Exception:
+                logger.exception("Failed parsing this value for PPTX: %s", value)
+                return ""
+
         # Calculate finding stats
         for finding in self.report_json["findings"]:
             findings_stats[finding["severity"]] = 0
@@ -1991,6 +2015,17 @@ class Reportwriter:
         title_shape.text = "Agenda"
         body_shape = shapes.placeholders[1]
         text_frame = get_textframe(body_shape)
+        text_frame.clear()
+        self._delete_paragraph(text_frame.paragraphs[0])
+
+        write_bullet(text_frame, "Introduction", 0)
+        write_bullet(text_frame, "Assessment Details", 0)
+        write_bullet(text_frame, "Methodology", 0)
+        write_bullet(text_frame, "Assessment Timeline", 0)
+        write_bullet(text_frame, "Attack Path Overview", 0)
+        write_bullet(text_frame, "Positive Control Observations", 0)
+        write_bullet(text_frame, "Findings and Recommendations Overview", 0)
+        write_bullet(text_frame, "Next Steps", 0)
 
         # Add Introduction slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -2000,6 +2035,64 @@ class Reportwriter:
         title_shape.text = "Introduction"
         body_shape = shapes.placeholders[1]
         text_frame = get_textframe(body_shape)
+        text_frame.clear()
+        self._delete_paragraph(text_frame.paragraphs[0])
+
+        for member in self.report_json["team"]:
+            write_bullet(text_frame, f"{member['name']} – {member['role']}", 0)
+            write_bullet(text_frame, member["email"], 1)
+
+        # Add Assessment Details slide
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
+        shapes = slide.shapes
+        title_shape = shapes.title
+        title_shape.text = "Assessment Details"
+        body_shape = shapes.placeholders[1]
+        text_frame = get_textframe(body_shape)
+        text_frame.clear()
+        self._delete_paragraph(text_frame.paragraphs[0])
+
+        write_bullet(
+            text_frame, f"{self.report_json['project']['type']} assessment of {self.report_json['client']['name']}", 0
+        )
+        write_bullet(
+            text_frame,
+            f"Testing performed from {self.report_json['project']['start_date']} to {self.report_json['project']['end_date']}",
+            1,
+        )
+
+        # This is required because `_process_text_xml()` expects a `finding` object and a `finding_body_shape` object
+        self.finding_body_shape = shapes.placeholders[1]
+        self._process_text_xml(self.report_json["project"]["note"], 1)
+        # The `_process_text_xml()` method adds a new paragraph, so we need to get the last one to increase the indent level
+        text_frame = get_textframe(self.finding_body_shape)
+        p = text_frame.paragraphs[-1]
+        p.level = 1
+
+        if self.report_json["objectives"]:
+            primary_objs = []
+            secondary_objs = []
+            tertiary_objs = []
+            for objective in self.report_json["objectives"]:
+                if objective["priority"] == "Primary":
+                    primary_objs.append(objective)
+                elif objective["priority"] == "Secondary":
+                    secondary_objs.append(objective)
+                elif objective["priority"] == "Tertiary":
+                    tertiary_objs.append(objective)
+
+            if primary_objs:
+                write_bullet(text_frame, "Primary Objectives", 0)
+                write_objective_list(text_frame, primary_objs)
+
+            if secondary_objs:
+                write_bullet(text_frame, "Secondary Objectives", 0)
+                write_objective_list(text_frame, secondary_objs)
+
+            if tertiary_objs:
+                write_bullet(text_frame, "Tertiary Objectives", 0)
+                write_objective_list(text_frame, tertiary_objs)
 
         # Add Methodology slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -2027,13 +2120,6 @@ class Reportwriter:
         body_shape = shapes.placeholders[1]
         title_shape.text = "Findings Overview"
         text_frame = get_textframe(body_shape)
-        for key, value in findings_stats.items():
-            p = text_frame.add_paragraph()
-            p.text = "{} Findings".format(key)
-            p.level = 0
-            p = text_frame.add_paragraph()
-            p.text = str(value)
-            p.level = 1
 
         # Add Findings Overview Slide 2
         # If there are findings then write a table of findings and severity ratings
@@ -2080,9 +2166,7 @@ class Reportwriter:
                 cell.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
                 cell.vertical_anchor = MSO_ANCHOR.MIDDLE
         else:
-            p = text_frame.add_paragraph()
-            p.text = "No findings"
-            p.level = 0
+            write_bullet(text_frame, "No findings", 0)
 
         # Create slide for each finding
         for finding in self.report_json["findings"]:
@@ -2110,16 +2194,6 @@ class Reportwriter:
             if "evidence" in finding:
                 for ev in finding["evidence"]:
                     self._process_evidence(ev, par=None)
-
-            def prepare_for_pptx(value):
-                """Strip HTML and clear 0x0D characters to prepare text for notes slides."""
-                try:
-                    if value:
-                        return BeautifulSoup(value, "lxml").text.replace("\x0D", "")
-                    return "N/A"
-                except Exception:
-                    logger.exception("Failed parsing this value for PPTX: %s", value)
-                    return ""
 
             # Add all finding data to the notes section for easier reference during edits
             entities = prepare_for_pptx(finding["affected_entities"])

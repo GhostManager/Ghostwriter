@@ -193,8 +193,9 @@ def release_domains(no_action=False):
             # Check if tomorrow is the end date
             if date.today() == warning_date:
                 release_me = False
-                message = "Your domain, {}, will be released tomorrow! Modify the project's end date as needed.".format(
-                    domain.name
+                message = "Reminder: your project is ending soon and your domain, {}, will be released when it does. If your project is still ending after EOB on {}, you don't need to do anything!".format(
+                    domain.name,
+                    release_date,
                 )
                 if slack.enabled:
                     err = slack.send_msg(message, slack_channel)
@@ -392,10 +393,19 @@ def check_domains(domain_id=None):
             if lab_results[k]["burned"]:
                 domain_qs.health_status = HealthStatus.objects.get(health_status="Burned")
                 change = "burned"
+                pretty_categories = []
+                for vendor, category in lab_results[k]["categories"].items():
+                    pretty_categories.append(f"{vendor}: {category}")
+
+                scanners = "N/A"
+                if lab_results[k]["scanners"]:
+                    scanners = "\n".join(lab_results[k]["scanners"])
+
                 if slack.enabled:
                     blocks = slack.craft_burned_msg(
                         v["domain"],
-                        lab_results[k]["categories"],
+                        "\n".join(pretty_categories),
+                        scanners,
                         lab_results[k]["burned_explanation"],
                     )
                     if slack.enabled:

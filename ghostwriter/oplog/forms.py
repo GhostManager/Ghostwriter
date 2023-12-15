@@ -137,9 +137,13 @@ class OplogEntryForm(forms.ModelForm):
 
         self.helper.layout = Layout(
             Row(
-                Column(Field("start_date", step=1), css_class="form-group col-4 mb-0"),
-                Column(Field("end_date", step=1), css_class="form-group col-4 mb-0"),
-                Column("operator_name", css_class="form-group col-4 mb-0"),
+                Column(Field("start_date", step=1), css_class="form-group col-6 mb-0"),
+                Column(Field("end_date", step=1), css_class="form-group col-6 mb-0"),
+                css_class="form-row",
+            ),
+            Row(
+                Column("entry_identifier", css_class="form-group col-6 mb-0"),
+                Column("operator_name", css_class="form-group col-6 mb-0"),
                 css_class="form-row",
             ),
             Row(

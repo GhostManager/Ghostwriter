@@ -283,6 +283,7 @@ class SlackNotification:
         self,
         domain: str,
         categories: str,
+        scanners: str,
         burned_explanation: str,
     ) -> list:
         """
@@ -315,6 +316,10 @@ class SlackNotification:
                     {
                         "type": "mrkdwn",
                         "text": f"*Categories:*\n{categories}",
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Flagged as Malicious By:*\n{scanners}",
                     },
                 ],
             },

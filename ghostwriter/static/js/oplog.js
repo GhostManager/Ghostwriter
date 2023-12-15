@@ -4,49 +4,54 @@
 let hiddenLogTblColumns = JSON.parse((localStorage.getItem('hiddenLogTblColumns') !== null ? localStorage.getItem('hiddenLogTblColumns') : JSON.stringify([])));
 
 // Assemble the array of column information for the table
-let columnInfo = []
-columnInfo = [
-    ['startDateCheckBox', 'startDateColumn', 'Start Date', 'start_date'],
-    ['endDateCheckbox', 'endDateColumn', 'End Date', 'end_date'],
-    ['sourceIPCheckbox', 'sourceIPColumn', 'Source', 'source_ip'],
-    ['destIPCheckbox', 'destIPColumn', 'Destination', 'dest_ip'],
-    ['toolNameCheckbox', 'toolNameColumn', 'Tool Name', 'tool'],
-    ['userContextCheckbox', 'userContextColumn', 'User Context', 'user_context'],
-    ['commandCheckbox', 'commandColumn', 'Command', 'command'],
-    ['descriptionCheckbox', 'descriptionColumn', 'Description', 'description'],
-    ['outputCheckbox', 'outputColumn', 'Output', 'output'],
-    ['commentsCheckbox', 'commentsColumn', 'Comments', 'comments'],
-    ['operatorCheckbox', 'operatorColumn', 'Operator', 'operator_name'],
-    ['tagsCheckbox', 'tagsColumn', 'Tags', 'tags'],
-    ['optionsCheckbox', 'optionsColumn', 'Options', ''],
+let columnInfo = [
+    {checkBoxID: 'identifierCheckBox', columnClass: 'identifierColumn', prettyName: 'Identifier', internalName: 'entry_identifier', showByDefault: false},
+    {checkBoxID: 'startDateCheckBox', columnClass: 'startDateColumn', prettyName: 'Start Date', internalName: 'start_date', toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")},
+    {checkBoxID: 'endDateCheckbox', columnClass: 'endDateColumn', prettyName: 'End Date', internalName: 'end_date', toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")},
+    {checkBoxID: 'sourceIPCheckbox', columnClass: 'sourceIPColumn', prettyName: 'Source', internalName: 'source_ip'},
+    {checkBoxID: 'destIPCheckbox', columnClass: 'destIPColumn', prettyName: 'Destination', internalName: 'dest_ip'},
+    {checkBoxID: 'toolNameCheckbox', columnClass: 'toolNameColumn', prettyName: 'Tool Name', internalName: 'tool'},
+    {checkBoxID: 'userContextCheckbox', columnClass: 'userContextColumn', prettyName: 'User Context', internalName: 'user_context'},
+    {checkBoxID: 'commandCheckbox', columnClass: 'commandColumn', prettyName: 'Command', internalName: 'command'},
+    {checkBoxID: 'descriptionCheckbox', columnClass: 'descriptionColumn', prettyName: 'Description', internalName: 'description'},
+    {checkBoxID: 'outputCheckbox', columnClass: 'outputColumn', prettyName: 'Output', internalName: 'output'},
+    {checkBoxID: 'commentsCheckbox', columnClass: 'commentsColumn', prettyName: 'Comments', internalName: 'comments'},
+    {checkBoxID: 'operatorCheckbox', columnClass: 'operatorColumn', prettyName: 'Operator', internalName: 'operator_name'},
+    {checkBoxID: 'tagsCheckbox', columnClass: 'tagsColumn', prettyName: 'Tags', internalName: 'tags', toHtml: entry => stylizeTags(jsEscape(entry))},
 ]
 
 // Update `columnInfo` with extra fields
 function updateColumnInfo(extra_field_specs) {
     extra_field_specs.forEach(spec => {
-        columnInfo.push([`extra-field-${jsEscape(spec.internal_name)}Checkbox`, `extra-field-${jsEscape(spec.internal_name)}Column`, jsEscape(spec.display_name), jsEscape(spec.internal_name)]);
+        let toHtmlFunc;
+        if(spec.type === "checkbox") {
+            toHtmlFunc = v => v ? `<i class="fas fa-check"></i>` : `<i class="fas fa-times"></i>`;
+        } else if(spec.type === "rich_text") {
+            // Already XSS cleaned by backend
+            toHtmlFunc = v => v;
+        } else {
+            toHtmlFunc = jsEscape;
+        }
+
+        columnInfo.push({
+            checkBoxID: `extra-field-${jsEscape(spec.internal_name)}Checkbox`,
+            columnClass: `extra-field-${jsEscape(spec.internal_name)}Column`,
+            prettyName: jsEscape(spec.display_name),
+            internalName: jsEscape(spec.internal_name),
+            toHtml: toHtmlFunc,
+            getValue: entry => entry.extra_fields[spec.internal_name],
+        });
     });
 }
 
 // Generate a table row based on a log entry
-function generateTableHeaders(extra_field_specs) {
-    let html = `<th class="${columnInfo[0][1]} align-middle">${columnInfo[0][2]}</th>
-                <th class="${columnInfo[1][1]} align-middle">${columnInfo[1][2]}</th>
-                <th class="${columnInfo[2][1]} align-middle">${columnInfo[2][2]}</th>
-                <th class="${columnInfo[3][1]} align-middle">${columnInfo[3][2]}</th>
-                <th class="${columnInfo[4][1]} align-middle">${columnInfo[4][2]}</th>
-                <th class="${columnInfo[5][1]} align-middle">${columnInfo[5][2]}</th>
-                <th class="${columnInfo[6][1]} align-middle">${columnInfo[6][2]}</th>
-                <th class="${columnInfo[7][1]} align-middle">${columnInfo[7][2]}</th>
-                <th class="${columnInfo[8][1]} align-middle">${columnInfo[8][2]}</th>
-                <th class="${columnInfo[9][1]} align-middle">${columnInfo[9][2]}</th>
-                <th class="${columnInfo[10][1]} align-middle">${columnInfo[10][2]}</th>
-                <th class="${columnInfo[11][1]} align-middle">${columnInfo[11][2]}</th>`;
-    extra_field_specs.forEach(spec => {
-        html += `<th class="extra-field-${jsEscape(spec.internal_name)}Column align-middle">${jsEscape(spec.display_name)}</th>`;
+function generateTableHeaders() {
+    let out = "";
+    columnInfo.forEach(column => {
+        out += `<th class="${column.columnClass} align-middle">${column.prettyName}</th>\n`
     });
-    html += `<th class="${columnInfo[12][1]} align-middle">${columnInfo[12][2]}</th>`;
-    return html
+    out += `<th class="optionsColumn align-middle">Options</th>`;
+    return out;
 }
 
 // Convert a table row to JSON and copy it to the clipboard
@@ -93,43 +98,20 @@ function convertRowToJSON(row_id) {
     $temp.remove();
 }
 
-// Generate a table row based on a log entry
-function generateRow(extra_field_specs, entry) {
-    let html = `<tr id="${entry["id"]}" class="editableRow">
-                <td class="${columnInfo[0][1]} align-middle">${jsEscape(entry["start_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                <td class="${columnInfo[1][1]} align-middle">${jsEscape(entry["end_date"]).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")}</td>
-                <td class="${columnInfo[2][1]} align-middle">${jsEscape(entry["source_ip"])}</td>
-                <td class="${columnInfo[3][1]} align-middle">${jsEscape(entry["dest_ip"])}</td>
-                <td class="${columnInfo[4][1]} align-middle">${jsEscape(entry["tool"])}</td>
-                <td class="${columnInfo[5][1]} align-middle">${jsEscape(entry["user_context"])}</td>
-                <td class="${columnInfo[6][1]} align-middle"><div>${jsEscape(entry["command"])}<div></td>
-                <td class="${columnInfo[7][1]} align-middle"><div>${jsEscape(entry["description"])}</div></td>
-                <td class="${columnInfo[8][1]} align-middle"><div>${jsEscape(entry["output"])}</div></td>
-                <td class="${columnInfo[9][1]} align-middle"><div>${jsEscape(entry["comments"])}</div></td>
-                <td class="${columnInfo[10][1]} align-middle">${jsEscape(entry["operator_name"])}</td>
-                <td class="${columnInfo[11][1]} align-middle">${stylizeTags(jsEscape(entry["tags"]))}</td>`
-
-    extra_field_specs.forEach(spec => {
-        let raw_value = entry.extra_fields[spec.internal_name] || "";
-        if(spec.type === "checkbox") {
-            value = raw_value ? `<i class="fas fa-check"></i>` : `<i class="fas fa-times"></i>`;
-        } else if(spec.type === "rich_text") {
-            // Already XSS cleaned by backend
-            value = raw_value;
-        } else {
-            value = jsEscape("" + raw_value);
-        }
-
-        html += `<td class="extra-field-${jsEscape(spec.internal_name)}Column align-middle">${value}</td>`
+function generateRow(entry) {
+    let out = `<tr id="${entry["id"]}" class="editableRow">`;
+    columnInfo.forEach(column => {
+        let value = column.getValue ? column.getValue(entry) : entry[column.internalName]
+        let toHtmlFunc = column.toHtml ?? jsEscape;
+        out += `<td class="${column.columnClass} align-middle">${toHtmlFunc(value)}</td>`;
     });
+    out += `<td class="optionsColumn align-middle">
+        <button class="btn" data-toggle="tooltip" data-placement="left" title="Create a copy of this log entry" onClick="copyEntry(this);" entry-id="${entry['id']}"><i class="fa fa-copy"></i></button>
+        <button class="btn" data-toggle="tooltip" data-placement="left" title="Copy this entry to your clipboard as JSON" onClick="convertRowToJSON(${entry["id"]});"><i class="fas fa-clipboard"></i></button>
+        <button class="btn danger" data-toggle="tooltip" data-placement="left" title="Delete this log entry" onClick="deleteEntry(this);" entry-id="${entry['id']}"><i class="fa fa-trash"></i></button>
+    </td></tr>`;
 
-    html += `<td class="${columnInfo[12][1]} align-middle">
-                <button class="btn" data-toggle="tooltip" data-placement="left" title="Create a copy of this log entry" onClick="copyEntry(this);" entry-id="${entry['id']}"><i class="fa fa-copy"></i></button>
-                <button class="btn" data-toggle="tooltip" data-placement="left" title="Copy this entry to your clipboard as JSON" onClick="convertRowToJSON(${entry["id"]});"><i class="fas fa-clipboard"></i></button>
-                <button class="btn danger" data-toggle="tooltip" data-placement="left" title="Delete this log entry" onClick="deleteEntry(this);" entry-id="${entry['id']}"><i class="fa fa-trash"></i></button>
-            </td>
-            </tr>`;
-    return html;
+    return out;
 }
 
 // Add a placeholder row that spans the entire table
@@ -153,15 +135,15 @@ function coupleCheckboxColumn(checkboxId, columnClass) {
         } else {
             $(columnClass).show()
             // Remove column from hiddenLogTblColumns
-            hiddenLogTblColumns = hiddenLogTblColumns.filter(function (value, _, _) {
+            hiddenLogTblColumns = hiddenLogTblColumns.filter(value => {
                 return value != columnClass;
             });
         }
         // Save hiddenLogTblColumns to localStorage
         localStorage.setItem('hiddenLogTblColumns', JSON.stringify(hiddenLogTblColumns));
         // Update classes to round corners of first and last header columns
-        columnInfo.forEach(function (value, _, _) {
-            let $col = $('.' + value[1])
+        columnInfo.forEach(column => {
+            let $col = $('.' + column.columnClass)
             if ($col.hasClass('first-col')) {
                 $col.removeClass('first-col')
             }
@@ -182,34 +164,35 @@ function coupleCheckboxColumn(checkboxId, columnClass) {
 
 // Build the column show/hide checkboxes
 function buildColumnsCheckboxes() {
-    columnInfo.forEach(function (value, _, _) {
+    columnInfo.forEach(column => {
+        let checked = (column.showByDefault === undefined || column.showByDefault) ? "checked" : "";
         let checkboxEntry = `
         <div class="form-check-inline">
         <div class="custom-control custom-switch">
-        <input type="checkbox" id="${value[0]}" class="form-check-input custom-control-input" checked/>
-        <label class="form-check-label custom-control-label" for="${value[0]}">${value[2]}</label>
+        <input type="checkbox" id="${column.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
+        <label class="form-check-label custom-control-label" for="${column.checkBoxID}">${column.prettyName}</label>
         </div>
         </div>
         `
         $checkboxList.append(checkboxEntry)
         let headerColumn = `
-        <th class="${value[1]} align-middle">${value[2]}</th>
+        <th class="${column.columnClass} align-middle">${column.prettyName}</th>
         `
         $tableHeader.append(headerColumn)
-        coupleCheckboxColumn('#' + value[0], '.' + value[1])
+        coupleCheckboxColumn('#' + column.checkBoxID, '.' + column.columnClass)
 
-        if (hiddenLogTblColumns.includes('.' + value[1])) {
-            $('#' + value[0]).prop('checked', false)
+        if (hiddenLogTblColumns.includes('.' + column.columnClass)) {
+            $('#' + column.checkBoxID).prop('checked', false)
         }
     })
 }
 
 // Hide columns based on the "Select Columns" checkboxes
 function hideColumns() {
-    columnInfo.forEach(function (value, _, _) {
-        $checkbox = $('#' + value[0])
+    columnInfo.forEach(column => {
+        $checkbox = $('#' + column.checkBoxID)
         if (!$checkbox.prop('checked')) {
-            $('.' + value[1]).hide()
+            $('.' + column.columnClass).hide()
         }
     })
 }

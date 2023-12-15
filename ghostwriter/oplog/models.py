@@ -7,6 +7,7 @@ from datetime import datetime
 # Django Imports
 from django.core.exceptions import ValidationError
 from django.db import models
+from django import forms
 
 # 3rd Party Libraries
 from taggit.managers import TaggableManager
@@ -15,10 +16,16 @@ from taggit.managers import TaggableManager
 logger = logging.getLogger(__name__)
 
 
+class NoLengthLimitCharField(models.TextField):
+    def formfield(self, **kwargs):
+        kwargs["widget"] = forms.TextInput
+        return super().formfield(**kwargs)
+
+
 class Oplog(models.Model):
     """Stores an individual operation log."""
 
-    name = models.CharField(max_length=255)
+    name = NoLengthLimitCharField()
     project = models.ForeignKey(
         "rolodex.Project",
         on_delete=models.CASCADE,
@@ -43,6 +50,13 @@ class Oplog(models.Model):
 class OplogEntry(models.Model):
     """Stores an individual log entry, related to :model:`oplog.Oplog`."""
 
+    entry_identifier = models.CharField(
+        "Identifier",
+        null=True,
+        blank=True,
+        help_text="Integrations may use this to track log entries.",
+        max_length=65535,
+    )
     start_date = models.DateTimeField(
         "Start Date",
         null=True,
@@ -55,33 +69,29 @@ class OplogEntry(models.Model):
         blank=True,
         help_text="Provide the date and time the action concluded.",
     )
-    source_ip = models.CharField(
+    source_ip = NoLengthLimitCharField(
         "Source IP / Hostname",
         null=True,
         blank=True,
         help_text="Provide the source hostname / IP from which the command originated.",
-        max_length=255,
     )
-    dest_ip = models.CharField(
+    dest_ip = NoLengthLimitCharField(
         "Destination IP / Hostname",
         null=True,
         blank=True,
         help_text="Provide the destination hostname / ip on which the command was ran.",
-        max_length=255,
     )
-    tool = models.CharField(
+    tool = NoLengthLimitCharField(
         "Tool Name",
         null=True,
         blank=True,
         help_text="Name the tool you used to execute the action.",
-        max_length=255,
     )
-    user_context = models.CharField(
+    user_context = NoLengthLimitCharField(
         "User Context",
         null=True,
         blank=True,
         help_text="The user context under which the command executed.",
-        max_length=255,
     )
     command = models.TextField(
         "Command",
@@ -107,12 +117,11 @@ class OplogEntry(models.Model):
         blank=True,
         help_text="Any additional comments or useful information.",
     )
-    operator_name = models.CharField(
+    operator_name = NoLengthLimitCharField(
         "Operator",
         null=True,
         blank=True,
         help_text="The operator that performed the action.",
-        max_length=255,
     )
     tags = TaggableManager(blank=True)
     extra_fields = models.JSONField(default=dict)
@@ -136,6 +145,9 @@ class OplogEntry(models.Model):
         ordering = ["-start_date", "-end_date", "oplog_id"]
         verbose_name = "Activity log entry"
         verbose_name_plural = "Activity log entries"
+        indexes = [
+            models.Index(fields=["oplog_id", "entry_identifier"]),
+        ]
 
     def clean(self, *args, **kwargs):
         if isinstance(self.start_date, str):

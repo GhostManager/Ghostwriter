@@ -170,7 +170,7 @@
 
             if (entries.length !== 0) {
               entries.forEach(element => {
-                let newRow = generateRow(oplog_entry_extra_fields_spec, element)
+                let newRow = generateRow(element)
                 $table.append(newRow)
               })
               pendingResult = false
@@ -191,7 +191,7 @@
             let rowFound = false
             let entry = message['data']
             let entryId = entry['id']
-            let newRow = generateRow(oplog_entry_extra_fields_spec, entry)
+            let newRow = generateRow(entry)
 
             {% comment %} Check if the row already exists {% endcomment %}
             $('#oplogTable tbody tr').each(function() {
@@ -267,7 +267,7 @@
         connect()
         updateColumnInfo(oplog_entry_extra_fields_spec)
         buildColumnsCheckboxes()
-        $tableHeader.html(generateTableHeaders(oplog_entry_extra_fields_spec))
+        $tableHeader.html(generateTableHeaders())
       })
 
       {% comment %} Show or hide the table column select options {% endcomment %}

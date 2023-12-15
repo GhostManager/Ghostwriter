@@ -828,3 +828,38 @@ class AssignProjectContactViewTests(TestCase):
         response = self.client_mgr.post(self.uri, {"contact": -1})
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
+
+
+class ProjectDetailViewTests(TestCase):
+    """Collection of tests for :view:`rolodex.ProjectDetailView`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.user_mgr = UserFactory(password=PASSWORD, role="manager")
+        cls.project = ProjectFactory()
+        cls.uri = reverse("rolodex:project_detail", kwargs={"pk": cls.project.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_mgr = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.assertTrue(self.client_mgr.login(username=self.user_mgr.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+        ProjectAssignmentFactory(project=self.project, operator=self.user)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
