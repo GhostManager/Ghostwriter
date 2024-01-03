@@ -890,7 +890,7 @@
     $(function () {
       let availableTitles = [
         {% for entry in autocomplete %}
-          '{{ entry|bleach }}',
+          '{{ entry|escapejs }}',
         {% endfor %}
       ];
       $("#id_search").autocomplete({
