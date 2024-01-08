@@ -1212,7 +1212,9 @@ class GraphqlDomainUpdateEventTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("api:graphql_domain_update_event")
-        cls.domain = DomainFactory(name="chrismaddalena.com")
+        cls.available_status = DomainStatusFactory(domain_status="Available")
+        cls.expired_status = DomainStatusFactory(domain_status="Expired")
+        cls.domain = DomainFactory(name="chrismaddalena.com", domain_status=cls.expired_status)
         cls.sample_data = {
             "event": {
                 "data": {
@@ -1227,7 +1229,7 @@ class GraphqlDomainUpdateEventTests(TestCase):
                         "vt_permalink": "",
                         "burned_explanation": "",
                         "creation": "2010-03-25",
-                        "domain_status_id": cls.domain.domain_status.id,
+                        "domain_status_id": cls.expired_status.id,
                         "last_used_by_id": "",
                         "name": "Chrismaddalena.com",
                         "categorization": "",
@@ -1256,6 +1258,26 @@ class GraphqlDomainUpdateEventTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.domain.refresh_from_db()
         self.assertEqual(self.domain.name, "chrismaddalena.com")
+        self.assertEqual(self.domain.domain_status, self.expired_status)
+        self.assertTrue(self.domain.expired)
+
+        self.domain.domain_status = self.available_status
+        self.domain.save()
+
+        self.sample_data["event"]["data"]["new"]["domain_status_id"] = self.available_status.id
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.domain.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.domain.domain_status, self.available_status)
+        self.assertFalse(self.domain.expired)
 
 
 class GraphqlOplogEntryEventTests(TestCase):
