@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.4] - 5 January 2024
+
+### Fixed
+
+* Fixed an edge case where a manually edited domain could remain marked as expired on the back end and prevent checkout
+
+### Security
+
+* Resolved a potential XSS vulnerability with autocomplete for finding titles (Closes #374)
+
 ## [4.0.3] - 15 December 2023
 
 ### Added
@@ -17,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-* Fixed client contacts missing from the dropdown menu after assigning a contact (Fixed #175)
+* Fixed client contacts missing from the dropdown menu after assigning a contact (Fixes #175)
 
 ### Changed
 
