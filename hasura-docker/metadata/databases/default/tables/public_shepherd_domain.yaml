@@ -173,6 +173,7 @@ event_triggers:
         columns: '*'
       update:
         columns:
+          - domain_status_id
           - name
     retry_conf:
       interval_sec: 10
