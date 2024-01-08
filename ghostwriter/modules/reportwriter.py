@@ -244,6 +244,23 @@ def get_item(lst, index):
         raise InvalidFilterValue(f"Invalid or unavailable index passed into the `get_item()` filter")
 
 
+def regex_search(text, regex):
+    """
+    Perform a regex search on the provided text and return the first match.
+
+    **Parameters**
+
+    ``regex``
+        Regular expression to search with
+    ``text``
+        Text to search
+    """
+    match = re.search(regex, text)
+    if match:
+        return match.group(0)
+    return None
+
+
 def prepare_jinja2_env(debug=False):
     """Prepare a Jinja2 environment with all custom filters."""
     if debug:
@@ -259,6 +276,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["add_days"] = add_days
     env.filters["format_datetime"] = format_datetime
     env.filters["get_item"] = get_item
+    env.filters["regex_search"] = regex_search
 
     return env
 

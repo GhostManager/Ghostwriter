@@ -47,6 +47,7 @@ from ghostwriter.modules.reportwriter import (
     filter_type,
     format_datetime,
     get_item,
+    regex_search,
     strip_html,
 )
 from ghostwriter.reporting.templatetags import report_tags
@@ -2284,6 +2285,11 @@ class ReportTemplateFilterTests(TestCase):
         test_list = ["a", "b", "c"]
         result = get_item(test_list, 1)
         self.assertEqual(result, "b")
+
+    def test_regex_search(self):
+        test_string = "This is a test string. It contains the word 'test'."
+        result = regex_search(test_string, "^(.*?)\.")
+        self.assertEqual(result, "This is a test string.")
 
 
 class LocalFindingNoteUpdateTests(TestCase):
