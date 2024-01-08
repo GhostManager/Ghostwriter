@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [4.0.4] - 8 January 2024
 
+### Added
+
+* Added a new `regex_search` filter for report templates that allows you to search for a regular expression in a string
+
 ### Fixed
 
 * Fixed an edge case where a manually edited domain could remain marked as expired on the back end and prevent checkout
