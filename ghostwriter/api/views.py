@@ -750,6 +750,9 @@ class GraphqlDomainUpdateEvent(HasuraEventView):
 
     def post(self, request, *args, **kwargs):
         instance = Domain.objects.get(id=self.new_data["id"])
+        instance.expired = False
+        if instance.domain_status.domain_status == "Expired":
+            instance.expired = True
         instance.save()
         return JsonResponse(self.data, status=self.status)
 
