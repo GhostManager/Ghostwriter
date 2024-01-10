@@ -7,8 +7,6 @@
     {% else %}
       <span class="text-left icon cross-icon burned"></span>
     {% endif %}
-  {% elif not field_value %}
-    Not Set
   {% elif field_spec.type == "rich_text" %}
     {{field_value|bleach}}
   {% else %}

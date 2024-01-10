@@ -321,12 +321,6 @@ class ReportForm(forms.ModelForm):
             "project",
             HTML(
                 """
-                <h4 class="icon custom-field-icon">Extra Fields</h4>
-                <hr />
-                """
-            ),
-            HTML(
-                """
                 <h4 class="icon file-icon">Assign Templates</h4>
                 <hr />
                 <p>Select a template to use for the Word and PowerPoint versions of the report.

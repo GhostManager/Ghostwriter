@@ -16,6 +16,7 @@ from ghostwriter.commandcenter.models import (
     ReportConfiguration,
     SlackConfiguration,
     VirusTotalConfiguration,
+    EXTRA_FIELD_TYPES,
 )
 from ghostwriter.singleton.admin import SingletonModelAdmin
 
@@ -81,6 +82,19 @@ class ExtraFieldSpecForm(forms.ModelForm):
         help_text="Name used in report templates and storage (no spaces)",
     )
 
+    user_default_value = forms.CharField(required=False, strip=True)
+
+    def clean_user_default_value(self):
+        field_type = self.cleaned_data.get("type")
+        default_value = self.cleaned_data.get("user_default_value")
+        if field_type is None:
+            return default_value
+        try:
+            EXTRA_FIELD_TYPES[field_type].from_str(default_value)
+        except ValueError:
+            raise forms.ValidationError(f"Invalid default value for a(n) {field_type} extra field")
+        return default_value
+
     class Meta:
         model = ExtraFieldSpec
         exclude = ["target_model"]
@@ -97,6 +111,7 @@ class ExtraFieldModelAdmin(admin.ModelAdmin):
     inlines = [
         ExtraFieldSpecInline,
     ]
+    change_form_template = "user_extra_fields/admin_change_form.html"
 
     # These objects correspond to our app's models, so they should be added/removed only via fixtures
     def has_add_permission(self, request) -> bool:

@@ -284,44 +284,44 @@ class GeneralConfiguration(SingletonModel):
 class ExtraFieldType(NamedTuple):
     # Name displayed to the user
     display_name: str
-    # Function to get a default value
-    default_value: Callable[[], Any]
     # Creates a form field to use for the field
     form_field: Callable[..., forms.Field]
     # Creates a form widget to use for the field
     form_widget: Callable[..., forms.widgets.Widget]
+    # Parse a value from a string
+    from_str: Callable[[str], Any]
 
 
 EXTRA_FIELD_TYPES = {
     "checkbox": ExtraFieldType(
         display_name="Checkbox",
-        default_value=bool,
         form_field=lambda *args, **kwargs: forms.BooleanField(required=False, *args, **kwargs),
         form_widget=forms.widgets.CheckboxInput,
+        from_str=lambda s: bool(s),
     ),
     "single_line_text": ExtraFieldType(
         display_name="Single-Line of Text",
-        default_value=str,
         form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
         form_widget=forms.widgets.TextInput,
+        from_str=lambda s: s,
     ),
     "rich_text": ExtraFieldType(
         display_name="Formatted Text",
-        default_value=str,
         form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
         form_widget=forms.widgets.Textarea,
+        from_str=lambda s: s,
     ),
     "integer": ExtraFieldType(
         display_name="Integer",
-        default_value=int,
         form_field=lambda *args, **kwargs: forms.IntegerField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
+        from_str=lambda s: int(s),
     ),
     "float": ExtraFieldType(
         display_name="Number",
-        default_value=float,
         form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
+        from_str=lambda s: float(s),
     ),
 }
 
@@ -345,9 +345,23 @@ class ExtraFieldSpec(models.Model):
         max_length=255,
         choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
     )
+    user_default_value = models.TextField(
+        verbose_name="Default Value",
+        blank=True,
+        default="",
+    )
 
     def __str__(self):
         return "Extra Field"
+
+    def value_of(self, extra_fields_json):
+        if extra_fields_json is not None and self.internal_name in extra_fields_json:
+            value = extra_fields_json[self.internal_name]
+            # Replace with default for the empty string and None, but not False, since we need to keep
+            # an unchecked checkbox.
+            if value != "" and value is not None:
+                return value
+        return self.default_value()
 
     def form_field(self, *args, **kwargs):
         return EXTRA_FIELD_TYPES[self.type].form_field(label=self.display_name, *args, **kwargs)
@@ -359,7 +373,7 @@ class ExtraFieldSpec(models.Model):
         return EXTRA_FIELD_TYPES[self.type].to_html_context(value)
 
     def default_value(self):
-        return EXTRA_FIELD_TYPES[self.type].default_value()
+        return EXTRA_FIELD_TYPES[self.type].from_str(self.user_default_value)
 
     class Meta:
         verbose_name = "Extra Field"
