@@ -544,7 +544,7 @@
 
   {% comment %} Activate Bootstrap hover tooltips {% endcomment %}
   $(document).ready(function () {
-    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="tooltip"]').tooltip({boundary: "window"});
   });
 
   {% comment %} All of the Toastr JavaScript {% endcomment %}

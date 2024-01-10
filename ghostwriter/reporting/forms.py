@@ -1079,6 +1079,7 @@ class ReportObservationLinkUpdateForm(forms.ModelForm):
         exclude = (
             "report",
             "position",
+            "added_as_blank",
         )
 
     def __init__(self, *args, **kwargs):

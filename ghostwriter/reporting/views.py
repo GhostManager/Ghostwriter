@@ -2445,7 +2445,7 @@ class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
             "Successfully updated {}.".format(self.get_object().title),
             extra_tags="alert-success",
         )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id})
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id}) + "#findings"
 
 
 # CBVs related to :model:`reporting.Evidence`
@@ -3229,4 +3229,4 @@ class ReportObservationLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
             "Successfully updated {}.".format(self.get_object().title),
             extra_tags="alert-success",
         )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id})
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.report.id}) + "#observations"
