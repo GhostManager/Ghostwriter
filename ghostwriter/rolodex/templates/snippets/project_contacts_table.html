@@ -26,8 +26,8 @@
       <tr>
         <td class="align-middle">{% if contact.primary %}<i class="fas fa-check healthy"></i>{% endif %}</td>
         <td class="align-middle">{{ contact.name }}</td>
-        <td class="align-middle">{{ contact.job_title }}</td>
-        <td class="align-middle">{{ contact.email }}</td>
+        <td class="align-middle">{% if contact.job_title %}{{ contact.job_title }}{% else %}--{% endif %}</td>
+        <td class="align-middle">{% if contact.email %}{{ contact.email }}{% else %}--{% endif %}</td>
         <td class="align-middle">
           {% if contact.phone %}
             {{ contact.phone }}
