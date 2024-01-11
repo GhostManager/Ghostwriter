@@ -53,6 +53,10 @@ type Mutation {
 }
 
 type Mutation {
+  generateCodename: codenameResponse
+}
+
+type Mutation {
   generateReport(
     id: Int!
   ): ReportResponse
@@ -97,5 +101,9 @@ type deleteResponse {
 
 type attachFindingResponse {
   id: Int!
+}
+
+type codenameResponse {
+  codename: String!
 }
 
