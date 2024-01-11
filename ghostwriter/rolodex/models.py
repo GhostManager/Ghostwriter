@@ -78,7 +78,7 @@ class Client(models.Model):
 class ClientContact(models.Model):
     """Stores an individual point of contact, related to :model:`rolodex.Client`."""
 
-    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
+    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255)
     job_title = models.CharField(
         "Title or Role",
         max_length=255,
@@ -309,7 +309,7 @@ class ProjectAssignment(models.Model):
 class ProjectContact(models.Model):
     """Stores an individual point of contact, related to :model:`rolodex.Project`."""
 
-    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
+    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255)
     job_title = models.CharField(
         "Title or Role",
         max_length=255,
