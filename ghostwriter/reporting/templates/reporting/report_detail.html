@@ -439,11 +439,21 @@
         <h4>Report Evidence</h4>
         <hr>
 
-        <table id="evidences-table" class="table table-sm table-hover">
+        <table id="evidences-table" class="table table-sm table-hover tablesorter">
+          <thead>
+            <tr>
+              <th class="align-middle">Name</th>
+              <th class="align-middle sorter-false">Options</th>
+            </tr>
+          </thead>
           <tbody>
             {% for evidence_file in report.evidence_set.all %}
               <tr data-id="{{ evidence_file.id }}">
-                <td class="align-middle"><a href="{% url 'reporting:evidence_detail' evidence_file.id %}">{{evidence_file.friendly_name}}</a></td>
+                <td class="align-middle">
+                  <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
+                    {{evidence_file.friendly_name}}
+                  </a>
+                </td>
                 <td class="align-middle">
                   <div class="dropdown dropleft">
                     <button
@@ -915,6 +925,15 @@
       $("#id_search").autocomplete({
         source: availableTitles
       });
+    });
+
+    $(document).ready(function () {
+      $(".tablesorter").tablesorter({
+        cssAsc: ' down',
+        cssDesc: 'up',
+        cssNone: 'none',
+      });
+      $('.tablesorter').trigger('update');
     });
   </script>
 
