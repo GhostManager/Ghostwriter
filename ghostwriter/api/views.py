@@ -740,6 +740,27 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
         return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
+class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):
+    """
+    Endpoint for generating a unique codename that can be used for a :model:`rolodex.Project` or other purposes.
+    """
+
+    required_inputs = []
+
+    def post(self, request, *args, **kwargs):
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            projects = Project.objects.filter(codename__iexact=codename)
+            if not projects:
+                codename_verified = True
+        data = {
+            "codename": codename,
+        }
+        return JsonResponse(data, status=self.status)
+
+
 ##########################
 # Hasura Event Endpoints #
 ##########################
