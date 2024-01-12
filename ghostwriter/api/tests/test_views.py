@@ -1202,6 +1202,27 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertEqual(response.status_code, 401)
 
 
+class GraphqlGenerateCodenameActionTests(TestCase):
+    """Collection of tests for :view:`GraphqlGenerateCodenameAction`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_generate_codename")
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_generating_codename(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+
 # Tests related to Hasura Event Triggers
 
 
