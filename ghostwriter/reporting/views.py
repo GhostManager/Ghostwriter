@@ -900,7 +900,7 @@ class AssignBlankFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 extra_tags="alert-error",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)))
+        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)) + "#findings")
 
 
 class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -923,7 +923,7 @@ class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have the necessary permission to create new findings.")
-        return redirect(reverse("reporting:report_detail", kwargs={"pk": self.get_object().report.pk}))
+        return redirect(reverse("reporting:report_detail", kwargs={"pk": self.get_object().report.pk}) + "#findings")
 
     def get(self, *args, **kwargs):
         finding_instance = self.get_object()
@@ -1634,7 +1634,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
             if form.is_valid():
                 report.extra_fields[field_spec.internal_name] = form.cleaned_data[field_spec.internal_name]
                 report.save()
-                return redirect("reporting:report_detail", pk=report.pk)
+                return redirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields")
         else:
             form = SingleExtraFieldForm(
                 field_spec,
@@ -1645,7 +1645,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
             "form": form,
             "report": report,
             "field_spec": field_spec,
-            "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}),
+            "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields",
         })
 
     def get(self, request, pk, extra_field_name):
@@ -1947,7 +1947,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                     "The selected report template has linting errors and cannot be used to render a DOCX document",
                     extra_tags="alert-danger",
                 )
-                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
+                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
             # Template available and passes linting checks, so proceed with generation
             engine = reportwriter.Reportwriter(obj, template_loc)
@@ -2051,7 +2051,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
 class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -2103,7 +2103,7 @@ class GenerateReportXLSX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 "Encountered an error generating the spreadsheet: {}".format(error),
                 extra_tags="alert-danger",
             )
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
 class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -2149,7 +2149,7 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                     "The selected report template has linting errors and cannot be used to render a PPTX document.",
                     extra_tags="alert-danger",
                 )
-                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
+                return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
             # Template available and passes linting checks, so proceed with generation
             engine = reportwriter.Reportwriter(obj, template_loc)
@@ -2234,7 +2234,7 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
 class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -2331,7 +2331,7 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 extra_tags="alert-danger",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}))
+        return HttpResponseRedirect(reverse("reporting:report_detail", kwargs={"pk": obj.pk}) + "#generate")
 
 
 # CBVs related to :model:`reporting.ReportFindingLink`
@@ -2365,7 +2365,7 @@ class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk})
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#findings"
         return ctx
 
     def form_valid(self, form):
@@ -2565,7 +2565,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
             report = self.finding_instance.report
         else:
             report = self.report_instance
-        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk})
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#evidence"
         if "modal" in self.kwargs:
             friendly_names = self.evidence_queryset.values_list("friendly_name", flat=True)
             used_friendly_names = []
@@ -2606,7 +2606,7 @@ class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
             report_pk = self.report_instance.pk
         else:
             report_pk = self.finding_instance.report.pk
-        return reverse("reporting:report_detail", args=(report_pk,))
+        return reverse("reporting:report_detail", args=(report_pk,)) + "#evidence"
 
 
 class EvidenceUpdate(RoleBasedAccessControlMixin, UpdateView):
@@ -2696,12 +2696,12 @@ class EvidenceDelete(RoleBasedAccessControlMixin, DeleteView):
             message,
             extra_tags="alert-success",
         )
-        return reverse("reporting:report_detail", kwargs={"pk": self.object.associated_report.pk})
+        return reverse("reporting:report_detail", kwargs={"pk": self.object.associated_report.pk}) + "#evidence"
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         queryset = kwargs["object"]
-        ctx["cancel_link"] = reverse("reporting:evidence_detail", kwargs={"pk": queryset.pk})
+        ctx["cancel_link"] = reverse("reporting:evidence_detail", kwargs={"pk": queryset.pk}) + "#evidence"
         ctx["object_type"] = "evidence file (and associated file on disk)"
         ctx["object_to_be_deleted"] = queryset.friendly_name
         return ctx
@@ -3161,7 +3161,7 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
                 extra_tags="alert-error",
             )
 
-        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)))
+        return HttpResponseRedirect(reverse("reporting:report_detail", args=(obj.id,)) + "#observations")
 
 
 class ReportObservationLinkDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
@@ -3220,7 +3220,7 @@ class ReportObservationLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk})
+        ctx["cancel_link"] = reverse("reporting:report_detail", kwargs={"pk": self.object.report.pk}) + "#observations"
         return ctx
 
     def get_success_url(self):
