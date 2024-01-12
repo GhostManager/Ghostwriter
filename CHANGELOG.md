@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### [4.0.5] - 12 January 2024
+
+### Added
+
+* Added project contacts to the GraphQL schema
+* Added user accounts to the GraphQL schema to allow more automation options for project management
+  * Authenticated accounts can query name, username, email, phone number, and timezone
+* Added timezone validation into PostgreSQL to prevent invalid timezones from being saved via the GraphQL API
+* Added a new `generateCodename` mutation to the GraphQL API that generates a unique codename for new projects (or whatever else you want to use it for)
+
+### Fixed
+
+* Fixed client contacts not loading properly in the drop-down on the project dashboard
+
+### Changed
+
+* The `contacts` table is now `clientContact` in the GraphQL API schema for better consistency with other table names
+* Updated the GraphQL schema data in _DOCS_ to reflect the latest changes
+* Updated the pre-built Ghostwriter CLI binaries to v0.2.18
+
 ## [4.0.4] - 8 January 2024
 
 ### Added
