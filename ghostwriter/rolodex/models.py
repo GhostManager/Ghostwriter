@@ -119,6 +119,7 @@ class ClientContact(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
+        unique_together = ["name", "client"]
         ordering = ["client", "id"]
         verbose_name = "Client POC"
         verbose_name_plural = "Client POCs"
@@ -355,6 +356,7 @@ class ProjectContact(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
+        unique_together = ["name", "project"]
         ordering = ["project", "id"]
         verbose_name = "Project POC"
         verbose_name_plural = "Project POCs"
