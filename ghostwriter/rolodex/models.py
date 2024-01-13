@@ -78,7 +78,7 @@ class Client(models.Model):
 class ClientContact(models.Model):
     """Stores an individual point of contact, related to :model:`rolodex.Client`."""
 
-    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
+    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255)
     job_title = models.CharField(
         "Title or Role",
         max_length=255,
@@ -119,6 +119,7 @@ class ClientContact(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
+        unique_together = ["name", "client"]
         ordering = ["client", "id"]
         verbose_name = "Client POC"
         verbose_name_plural = "Client POCs"
@@ -309,7 +310,7 @@ class ProjectAssignment(models.Model):
 class ProjectContact(models.Model):
     """Stores an individual point of contact, related to :model:`rolodex.Project`."""
 
-    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255, null=True)
+    name = models.CharField("Name", help_text="Enter the contact's full name", max_length=255)
     job_title = models.CharField(
         "Title or Role",
         max_length=255,
@@ -355,6 +356,7 @@ class ProjectContact(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=False, blank=False)
 
     class Meta:
+        unique_together = ["name", "project"]
         ordering = ["project", "id"]
         verbose_name = "Project POC"
         verbose_name_plural = "Project POCs"

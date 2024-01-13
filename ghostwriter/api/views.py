@@ -30,6 +30,7 @@ from dateutil.parser._parser import ParserError
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
+from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter import Reportwriter
 from ghostwriter.oplog.models import OplogEntry
@@ -41,7 +42,7 @@ from ghostwriter.reporting.models import (
     ReportTemplate,
 )
 from ghostwriter.reporting.views import get_position
-from ghostwriter.rolodex.models import Project
+from ghostwriter.rolodex.models import Project, ProjectContact
 from ghostwriter.shepherd.models import (
     ActivityType,
     Domain,
@@ -740,6 +741,27 @@ class GraphqlAttachFinding(JwtRequiredMixin, HasuraActionView):
         return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
 
+class GraphqlGenerateCodenameAction(JwtRequiredMixin, HasuraActionView):
+    """
+    Endpoint for generating a unique codename that can be used for a :model:`rolodex.Project` or other purposes.
+    """
+
+    required_inputs = []
+
+    def post(self, request, *args, **kwargs):
+        codename_verified = False
+        codename = ""
+        while not codename_verified:
+            codename = codenames.codename(uppercase=True)
+            projects = Project.objects.filter(codename__iexact=codename)
+            if not projects:
+                codename_verified = True
+        data = {
+            "codename": codename,
+        }
+        return JsonResponse(data, status=self.status)
+
+
 ##########################
 # Hasura Event Endpoints #
 ##########################
@@ -841,6 +863,22 @@ class GraphqlReportFindingDeleteEvent(HasuraEventView):
         except Report.DoesNotExist:  # pragma: no cover
             # Report was deleted, so no need to adjust positions
             pass
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlProjectContactUpdateEvent(HasuraEventView):
+    """Event webhook to clean :model:`rolodex.ProjectContact` entries."""
+
+    def post(self, request, *args, **kwargs):
+        # Proceed if the `primary` field has changed
+        if self.old_data["primary"] != self.new_data["primary"]:
+            instance = ProjectContact.objects.get(id=self.new_data["id"])
+            contacts = ProjectContact.objects.filter(project=instance.project)
+            for contact in contacts:
+                # If the updated contact is the primary, ensure it's the only marked as primary
+                if contact.id != instance.id and contact.primary and instance.primary:
+                    contact.primary = False
+                    contact.save()
         return JsonResponse(self.data, status=self.status)
 
 

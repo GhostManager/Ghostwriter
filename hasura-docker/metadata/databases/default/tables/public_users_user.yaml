@@ -172,3 +172,28 @@ array_relationships:
         table:
           name: shepherd_staticserver
           schema: public
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - email
+        - id
+        - name
+        - phone
+        - timezone
+        - username
+      filter:
+        is_active:
+          _eq: true
+  - role: user
+    permission:
+      columns:
+        - email
+        - id
+        - name
+        - phone
+        - timezone
+        - username
+      filter:
+        is_active:
+          _eq: true
