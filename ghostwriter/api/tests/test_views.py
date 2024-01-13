@@ -24,6 +24,7 @@ from ghostwriter.factories import (
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
+    ProjectContactFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
@@ -1652,6 +1653,72 @@ class GraphqlReportFindingEventTests(TestCase):
         third_finding.refresh_from_db()
         self.assertEqual(first_finding.position, 1)
         self.assertEqual(third_finding.position, 2)
+
+
+class GraphqlProjectContactUpdateEventTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlProjectContactUpdateEvent`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_projectcontact_update_event")
+
+        cls.project = ProjectFactory()
+        cls.primary_contact = ProjectContactFactory(primary=True, project=cls.project)
+        cls.other_contact = ProjectContactFactory(primary=False, project=cls.project)
+        cls.sample_data = {
+            "event": {
+                "data": {
+                    "new": {
+                        "id": cls.other_contact.id,
+                        "name": cls.other_contact.name,
+                        "job_title": cls.other_contact.job_title,
+                        "email": cls.other_contact.email,
+                        "phone": cls.other_contact.phone,
+                        "note": cls.other_contact.note,
+                        "timezone": cls.other_contact.timezone,
+                        "project": cls.project.id,
+                        "primary": True,
+                    },
+                    "old": {
+                        "id": cls.other_contact.id,
+                        "name": cls.other_contact.name,
+                        "job_title": cls.other_contact.job_title,
+                        "email": cls.other_contact.email,
+                        "phone": cls.other_contact.phone,
+                        "note": cls.other_contact.note,
+                        "timezone": cls.other_contact.timezone,
+                        "project": cls.project.id,
+                        "primary": cls.other_contact.primary,
+                    },
+                },
+            }
+        }
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_graphql_projectcontact_update_event(self):
+        self.assertTrue(self.primary_contact.primary)
+        self.assertFalse(self.other_contact.primary)
+
+        self.other_contact.primary = True
+        self.other_contact.save()
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.primary_contact.refresh_from_db()
+        self.assertFalse(self.primary_contact.primary)
+        self.other_contact.refresh_from_db()
+        self.assertTrue(self.other_contact.primary)
 
 
 # Tests related to CBVs for :model:`api:APIKey`
