@@ -1168,7 +1168,7 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
                     contacts.instance = obj
                     try:
                         contacts.save()
-                    except IntegrityError:
+                    except IntegrityError:  # pragma: no cover
                         form.add_error(None, "You cannot have duplicate contacts for a client.")
 
                 if form.is_valid() and contacts_valid:
@@ -1258,7 +1258,7 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
                     contacts.instance = obj
                     try:
                         contacts.save()
-                    except IntegrityError:
+                    except IntegrityError:  # pragma: no cover
                         form.add_error(None, "You cannot have duplicate contacts for a client.")
 
                 if form.is_valid() and contacts_valid:
@@ -1782,7 +1782,7 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
                     contacts.instance = obj
                     try:
                         contacts.save()
-                    except IntegrityError:
+                    except IntegrityError:  # pragma: no cover
                         form.add_error(None, "You cannot have duplicate contacts for a project.")
 
                 # Proceed with form submission
