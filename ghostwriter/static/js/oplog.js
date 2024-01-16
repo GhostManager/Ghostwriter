@@ -70,7 +70,10 @@ function convertRowToJSON(row_id) {
     rows.push($row);
 
     // Convert the array of row values to JSON
-    let json = JSON.stringify(rows)
+    let rawJson = JSON.stringify(rows[0])
+    let jsonObj = JSON.parse(rawJson)
+    delete jsonObj["Identifier"]
+    let json = JSON.stringify(jsonObj, null, 2)
 
     // Create a temporary input element to copy the JSON to the clipboard
     let $temp = $('<input>');

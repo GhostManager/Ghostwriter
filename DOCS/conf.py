@@ -37,7 +37,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Ghostwriter"
-copyright = """2021, Christopher Maddalena"""
+copyright = """2024, Christopher Maddalena"""
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -216,7 +216,7 @@ man_pages = [
         "index",
         "ghostwriter",
         "Ghostwriter Documentation",
-        ["""Chris Maddalena"""],
+        ["""Christopher Maddalena"""],
         1,
     )
 ]
@@ -235,10 +235,10 @@ texinfo_documents = [
         "index",
         "ghostwriter",
         "Ghostwriter Documentation",
-        """Chris Maddalena""",
+        """Christopher Maddalena""",
         "Ghostwriter",
-        """Behold My Awesome Project!""",
-        "Miscellaneous",
+        """The SpecterOps project management and reporting engine""",
+        "reporting",
     )
 ]
 

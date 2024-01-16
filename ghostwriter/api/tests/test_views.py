@@ -24,6 +24,7 @@ from ghostwriter.factories import (
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
+    ProjectContactFactory,
     ProjectAssignmentFactory,
     ProjectFactory,
     ReportFactory,
@@ -1202,6 +1203,27 @@ class GraphqlAttachFindingAction(TestCase):
         self.assertEqual(response.status_code, 401)
 
 
+class GraphqlGenerateCodenameActionTests(TestCase):
+    """Collection of tests for :view:`GraphqlGenerateCodenameAction`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_generate_codename")
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_generating_codename(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+
 # Tests related to Hasura Event Triggers
 
 
@@ -1212,7 +1234,9 @@ class GraphqlDomainUpdateEventTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.uri = reverse("api:graphql_domain_update_event")
-        cls.domain = DomainFactory(name="chrismaddalena.com")
+        cls.available_status = DomainStatusFactory(domain_status="Available")
+        cls.expired_status = DomainStatusFactory(domain_status="Expired")
+        cls.domain = DomainFactory(name="chrismaddalena.com", domain_status=cls.expired_status)
         cls.sample_data = {
             "event": {
                 "data": {
@@ -1227,7 +1251,7 @@ class GraphqlDomainUpdateEventTests(TestCase):
                         "vt_permalink": "",
                         "burned_explanation": "",
                         "creation": "2010-03-25",
-                        "domain_status_id": cls.domain.domain_status.id,
+                        "domain_status_id": cls.expired_status.id,
                         "last_used_by_id": "",
                         "name": "Chrismaddalena.com",
                         "categorization": "",
@@ -1256,6 +1280,26 @@ class GraphqlDomainUpdateEventTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.domain.refresh_from_db()
         self.assertEqual(self.domain.name, "chrismaddalena.com")
+        self.assertEqual(self.domain.domain_status, self.expired_status)
+        self.assertTrue(self.domain.expired)
+
+        self.domain.domain_status = self.available_status
+        self.domain.save()
+
+        self.sample_data["event"]["data"]["new"]["domain_status_id"] = self.available_status.id
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.domain.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.domain.domain_status, self.available_status)
+        self.assertFalse(self.domain.expired)
 
 
 class GraphqlOplogEntryEventTests(TestCase):
@@ -1609,6 +1653,72 @@ class GraphqlReportFindingEventTests(TestCase):
         third_finding.refresh_from_db()
         self.assertEqual(first_finding.position, 1)
         self.assertEqual(third_finding.position, 2)
+
+
+class GraphqlProjectContactUpdateEventTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlProjectContactUpdateEvent`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_projectcontact_update_event")
+
+        cls.project = ProjectFactory()
+        cls.primary_contact = ProjectContactFactory(primary=True, project=cls.project)
+        cls.other_contact = ProjectContactFactory(primary=False, project=cls.project)
+        cls.sample_data = {
+            "event": {
+                "data": {
+                    "new": {
+                        "id": cls.other_contact.id,
+                        "name": cls.other_contact.name,
+                        "job_title": cls.other_contact.job_title,
+                        "email": cls.other_contact.email,
+                        "phone": cls.other_contact.phone,
+                        "note": cls.other_contact.note,
+                        "timezone": cls.other_contact.timezone,
+                        "project": cls.project.id,
+                        "primary": True,
+                    },
+                    "old": {
+                        "id": cls.other_contact.id,
+                        "name": cls.other_contact.name,
+                        "job_title": cls.other_contact.job_title,
+                        "email": cls.other_contact.email,
+                        "phone": cls.other_contact.phone,
+                        "note": cls.other_contact.note,
+                        "timezone": cls.other_contact.timezone,
+                        "project": cls.project.id,
+                        "primary": cls.other_contact.primary,
+                    },
+                },
+            }
+        }
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_graphql_projectcontact_update_event(self):
+        self.assertTrue(self.primary_contact.primary)
+        self.assertFalse(self.other_contact.primary)
+
+        self.other_contact.primary = True
+        self.other_contact.save()
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.sample_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.primary_contact.refresh_from_db()
+        self.assertFalse(self.primary_contact.primary)
+        self.other_contact.refresh_from_db()
+        self.assertTrue(self.other_contact.primary)
 
 
 # Tests related to CBVs for :model:`api:APIKey`

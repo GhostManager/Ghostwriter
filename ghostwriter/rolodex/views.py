@@ -9,7 +9,7 @@ import logging
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -1170,7 +1170,10 @@ class ClientCreate(RoleBasedAccessControlMixin, CreateView):
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
                     contacts.instance = obj
-                    contacts.save()
+                    try:
+                        contacts.save()
+                    except IntegrityError:  # pragma: no cover
+                        form.add_error(None, "You cannot have duplicate contacts for a client.")
 
                 if form.is_valid() and contacts_valid:
                     obj.save()
@@ -1257,7 +1260,10 @@ class ClientUpdate(RoleBasedAccessControlMixin, UpdateView):
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
                     contacts.instance = obj
-                    contacts.save()
+                    try:
+                        contacts.save()
+                    except IntegrityError:  # pragma: no cover
+                        form.add_error(None, "You cannot have duplicate contacts for a client.")
 
                 if form.is_valid() and contacts_valid:
                     obj.save()
@@ -1783,7 +1789,10 @@ class ProjectComponentsUpdate(RoleBasedAccessControlMixin, UpdateView):
                 contacts_valid = contacts.is_valid()
                 if contacts_valid:
                     contacts.instance = obj
-                    contacts.save()
+                    try:
+                        contacts.save()
+                    except IntegrityError:  # pragma: no cover
+                        form.add_error(None, "You cannot have duplicate contacts for a project.")
 
                 # Proceed with form submission
                 if (

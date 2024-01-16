@@ -1,0 +1,166 @@
+table:
+  name: rolodex_projectcontact
+  schema: public
+configuration:
+  column_config:
+    project_id:
+      custom_name: projectId
+  custom_column_names:
+    project_id: projectId
+  custom_name: projectContact
+  custom_root_fields: {}
+object_relationships:
+  - name: project
+    using:
+      foreign_key_constraint_on: project_id
+insert_permissions:
+  - role: manager
+    permission:
+      check: {}
+      columns:
+        - email
+        - job_title
+        - name
+        - note
+        - phone
+        - primary
+        - project_id
+        - timezone
+  - role: user
+    permission:
+      check:
+        project:
+          _or:
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+      columns:
+        - email
+        - job_title
+        - name
+        - note
+        - phone
+        - primary
+        - project_id
+        - timezone
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - id
+        - project_id
+        - primary
+        - email
+        - job_title
+        - name
+        - phone
+        - timezone
+        - note
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - id
+        - project_id
+        - primary
+        - email
+        - job_title
+        - name
+        - phone
+        - timezone
+        - note
+      filter:
+        project:
+          _or:
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+update_permissions:
+  - role: manager
+    permission:
+      columns:
+        - email
+        - job_title
+        - name
+        - note
+        - phone
+        - primary
+        - project_id
+        - timezone
+      filter: {}
+      check: null
+  - role: user
+    permission:
+      columns:
+        - email
+        - job_title
+        - name
+        - note
+        - phone
+        - primary
+        - project_id
+        - timezone
+      filter:
+        project:
+          _or:
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+      check: null
+delete_permissions:
+  - role: manager
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter:
+        project:
+          _or:
+            - client:
+                invites:
+                  user_id:
+                    _eq: X-Hasura-User-Id
+            - assignments:
+                operator_id:
+                  _eq: X-Hasura-User-Id
+            - invites:
+                user_id:
+                  _eq: X-Hasura-User-Id
+event_triggers:
+  - name: UpdateProjectContact
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+      update:
+        columns:
+          - primary
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/projectcontact/update'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET

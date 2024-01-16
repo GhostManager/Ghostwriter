@@ -124,8 +124,8 @@
                         {% for poc in client.clientcontact_set.all %}
                             <tr>
                                 <td class="align-middle" id="delete-target-content-contact-{{ poc.id }}">{{ poc.name }}</td>
-                                <td class="align-middle">{{ poc.job_title }}</td>
-                                <td class="align-middle">{{ poc.email }}</td>
+                                <td class="align-middle">{% if poc.job_title %}{{ poc.job_title }}{% else %}--{% endif %}</td>
+                                <td class="align-middle">{% if poc.email %}{{ poc.email }}{% else %}--{% endif %}</td>
                                 <td class="align-middle">
                                     {% if poc.phone %}
                                         {{ poc.phone }}

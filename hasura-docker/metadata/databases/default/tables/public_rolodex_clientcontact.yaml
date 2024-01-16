@@ -10,7 +10,7 @@ configuration:
   custom_column_names:
     client_id: clientId
     job_title: jobTitle
-  custom_name: contacts
+  custom_name: clientContact
   custom_root_fields: {}
 object_relationships:
   - name: client

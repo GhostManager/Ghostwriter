@@ -15,6 +15,7 @@ from ghostwriter.rolodex.models import (
     ObjectiveStatus,
     Project,
     ProjectAssignment,
+    ProjectContact,
     ProjectInvite,
     ProjectNote,
     ProjectObjective,
@@ -231,4 +232,18 @@ class WhiteCardAdmin(admin.ModelAdmin):
             "White Card",
             {"fields": ("issued", "title", "description")},
         ),
+    )
+
+
+@admin.register(ProjectContact)
+class ProjectContactAdmin(admin.ModelAdmin):
+    list_display = ("name", "job_title", "project", "primary")
+    list_filter = ("project",)
+    list_display_links = ("name", "job_title", "project")
+    fieldsets = (
+        (
+            "Contact Information",
+            {"fields": ("project", "name", "job_title", "email", "phone", "timezone", "primary")},
+        ),
+        ("Misc", {"fields": ("note",)}),
     )

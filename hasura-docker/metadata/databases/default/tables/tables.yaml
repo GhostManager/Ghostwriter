@@ -29,6 +29,7 @@
 - "!include public_rolodex_objectivestatus.yaml"
 - "!include public_rolodex_project.yaml"
 - "!include public_rolodex_projectassignment.yaml"
+- "!include public_rolodex_projectcontact.yaml"
 - "!include public_rolodex_projectinvite.yaml"
 - "!include public_rolodex_projectnote.yaml"
 - "!include public_rolodex_projectobjective.yaml"
