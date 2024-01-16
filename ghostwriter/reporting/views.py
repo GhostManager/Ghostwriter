@@ -218,6 +218,47 @@ def ajax_update_report_findings(request):
     return JsonResponse(data)
 
 
+@login_required
+def ajax_update_report_observations(request):
+    """
+    Update the ``position`` fields of all :model:`reporting.ReportObservationLink`
+    attached to an individual :model:`reporting.Report`.
+    """
+    if request.method != "POST" or not request.is_ajax():
+        return JsonResponse({"result": "error"})
+
+    pos = request.POST.get("positions")
+    report_id = request.POST.get("report")
+    order = json.loads(pos)
+
+    report = get_object_or_404(Report, pk=report_id)
+    if not verify_access(request.user, report.project):
+        logger.error(
+            "AJAX request submitted by user %s without access to report %s",
+            request.user,
+            report_id,
+        )
+        return JsonResponse({"result": "error"})
+
+    logger.info(
+        "Received AJAX POST to update report %s's observations in this order: %s",
+        report_id,
+        ", ".join(order),
+    )
+
+    for (i, observation_id) in enumerate(order):
+        observation_instance = ReportObservationLink.objects.get(report=report, id=observation_id)
+        if observation_instance:
+            observation_instance.position = i + 1
+            observation_instance.save()
+        else:
+            logger.error(
+                "Received an observation ID, %s, that did not match an existing observation",
+                observation_id,
+            )
+    return JsonResponse({"result": "success"})
+
+
 class UpdateTemplateLintResults(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Return an updated version of the template following a request to update linter results

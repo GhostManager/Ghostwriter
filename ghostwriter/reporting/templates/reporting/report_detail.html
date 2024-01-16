@@ -378,7 +378,8 @@
           Observation</a></p>
 
         {% if report.reportobservationlink_set.all %}
-          <table id="findings-table" class="table table-sm table-hover">
+          <table id="observations-table" class="table table-sm table-hover"
+            data-update-url="{% url 'reporting:update_report_observations' %}">
             <thead>
               <tr>
                 <th class="icon ol-list-icon text-center"></th>
@@ -570,11 +571,12 @@
       }, 4000);
     });
 
+    let report_id = '{{ report.id }}';
+    let csrftoken = '{{ csrf_token }}';
+
     {% comment %} Configure table sorting by severity groups {% endcomment %}
     {% if report.reportfindinglink_set.all %}
       let update_url = $('#findings-table').attr('findings-update-url');
-      let report_id = '{{ report.id }}';
-      let csrftoken = '{{ csrf_token }}';
       {% group_by_severity report.reportfindinglink_set.all as severity_groups %}
       {% for group, values in severity_groups.items %}
         let {{ values.tpl_name }}_sortable = Sortable.create({{ values.tpl_name }}_severity, {
@@ -587,7 +589,7 @@
 
           // https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer/setData
           setData: function (dataTransfer, dragEl) {
-            dataTransfer.setData('Text', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
+            dataTransfer.setData('text/plain', dragEl.textContent); // `dataTransfer` object of HTML5 DragEvent
           },
 
           // Element is chosen
@@ -743,6 +745,38 @@
         });
       {% endfor %}
     {% endif %}
+
+    {% comment %} Observation sorting {% endcomment %}
+    let observations_update_url = $("#observations-table").attr("data-update-url");
+    let observations_sortable = Sortable.create(document.querySelector("#observations-table tbody"), {
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      handle: '.holdme',
+
+      setData: (dataTransfer, dragEl) => {
+        dataTransfer.setData('text/plain', dragEl.textContent);
+      },
+      onUpdate: event => {
+        let positions = observations_sortable.toArray();
+        $.ajaxSetup({
+          beforeSend: function (xhr, settings) {
+            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+            }
+          }
+        });
+        $.ajax(observations_update_url, {
+          type: 'POST',
+          data: {
+            'report': report_id,
+            'positions': JSON.stringify(positions),
+          },
+          success: function (data) {
+            console.log(data);
+          }
+        });
+      },
+    });
 
     {% comment %} Set finding status with AJAX {% endcomment %}
     $('.js-set-finding-status').each(function () {

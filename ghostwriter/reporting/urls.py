@@ -31,6 +31,11 @@ urlpatterns += [
         name="update_report_findings",
     ),
     path(
+        "ajax/report/observation/order",
+        views.ajax_update_report_observations,
+        name="update_report_observations",
+    ),
+    path(
         "ajax/report/activate/<int:pk>",
         views.ReportActivate.as_view(),
         name="ajax_activate_report",
