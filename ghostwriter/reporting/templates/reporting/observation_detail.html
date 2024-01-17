@@ -24,6 +24,9 @@
     </div>
     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="observation-dropdown-btn">
       <a class="dropdown-item icon edit-icon" href="{% url 'reporting:observation_update' observation.id %}">Edit</a>
+      <a class="dropdown-item icon add-icon js-assign-observation" assign-observation-id="{{ observation.id }}"
+         href="javascript:void(0);" assign-observation-csrftoken="{{ csrf_token }}"
+         assign-observation-url="{% url 'reporting:ajax_assign_observation' observation.id %}">Add to Report</a>
       <a class="dropdown-item icon back-arrow-icon" href="{% url 'reporting:observations' %}">Return to Observations</a>
       <a class="dropdown-item icon trash-icon" href="{% url 'reporting:observation_delete' observation.id %}">Delete</a>
     </div>
@@ -66,4 +69,35 @@
 {% block morescripts %}
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+
+  <script>
+    $('.js-assign-observation').click(function () {
+      let url = $(this).attr('assign-observation-url');
+      let observationId = $(this).attr('assign-observation-id');
+      let csrftoken = $(this).attr('assign-observation-csrftoken')
+      $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader('X-CSRFToken', csrftoken);
+          }
+        }
+      });
+      $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+          'observation': observationId
+        },
+        success: function (data) {
+          if (data['result'] === 'success') {
+            // Do Something
+          }
+          if (data['message']) {
+            displayToastTop({type: data['result'], string: data['message'], title: 'Observation Assigned'});
+          }
+        }
+      });
+    });
+  </script>
 {% endblock %}
