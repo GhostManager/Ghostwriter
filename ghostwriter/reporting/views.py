@@ -1009,6 +1009,60 @@ class ConvertFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return render(self.request, "reporting/finding_form.html", {"form": form})
 
 
+class ConvertObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Create a copy of an individual :model:`reporting.ReportObservationLink` and prepare
+    it to be saved as a new :model:`reporting.Observation`.
+
+    **Template**
+
+    :template:`reporting/observation_form.html`
+    """
+
+    model = ReportObservationLink
+
+    def test_func(self):
+        if verify_access(self.request.user, self.get_object().report.project):
+            if verify_finding_access(self.request.user, "create"):
+                return True
+        return False
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have the necessary permission to create new findings.")
+        return redirect(reverse("reporting:report_detail", kwargs={"pk": self.get_object().report.pk}) + "#findings")
+
+    def get(self, *args, **kwargs):
+        observation_instance = self.get_object()
+        try:
+            form = ObservationForm(
+                initial={
+                    "title": observation_instance.title,
+                    "description": observation_instance.description,
+                    "tags": observation_instance.tags.all(),
+                }
+            )
+        except Exception as exception:  # pragma: no cover
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+
+            messages.error(
+                self.request,
+                "Encountered an error while trying to convert your finding: {}".format(exception.args),
+                extra_tags="alert-error",
+            )
+            return HttpResponse(status=500)
+
+        return render(self.request, "reporting/observation_form.html", {"form": form})
+
+    def post(self, *args, **kwargs):
+        form = ObservationForm(self.request.POST)
+        if form.is_valid():
+            new_observation = form.save()
+            return HttpResponseRedirect(reverse("reporting:observation_detail", kwargs={"pk": new_observation.pk}))
+        logger.warning(form.errors.as_data())
+        return render(self.request, "reporting/observation_form.html", {"form": form})
+
 ##################
 # View Functions #
 ##################

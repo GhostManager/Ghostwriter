@@ -413,10 +413,8 @@
                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                       <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
                           aria-labelledby="dns-dropdown-btn_{{ observation.id }}">
-                        {% comment %}<a class="dropdown-item icon toggle-off-icon js-set-observation-status" href="javascript:void(0);"
-                          set-observation-status-csrftoken="{{ csrf_token }}"
-                          set-observation-status-url="{% url 'reporting:ajax_set_observation_status' observation.id 'edit' %}"
-                          set-observation-status="edit" set-observation-status-id="{{ observation.id }}">Flag for Editing</a>{% endcomment %}
+                        <a class="dropdown-item icon clone-icon" href="{% url 'reporting:convert_observation' observation.id %}">Clone
+                          to Library</a>
                         <a id="observation-delete-button-{{ observation.id }}"
                           class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
                           data-target="#confirm-delete-modal" href="javascript:void(0);"

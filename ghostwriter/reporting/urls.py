@@ -240,6 +240,11 @@ urlpatterns += [
         views.ConvertFinding.as_view(),
         name="convert_finding",
     ),
+    path(
+        "reports/observations/convert/<int:pk>",
+        views.ConvertObservation.as_view(),
+        name="convert_observation",
+    ),
 ]
 
 # URLs for generating reports
