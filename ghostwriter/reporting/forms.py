@@ -1037,6 +1037,9 @@ class ObservationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["title"].widget.attrs["placeholder"] = "Observation Title"
+        self.fields["description"].widget.attrs["placeholder"] = "What is this ..."
+        self.fields["tags"].widget.attrs["placeholder"] = "ATT&CK:T1555, privesc, ..."
         self.fields["extra_fields"].label = ""
 
         self.helper = FormHelper()
