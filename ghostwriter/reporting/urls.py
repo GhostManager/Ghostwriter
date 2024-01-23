@@ -147,6 +147,11 @@ urlpatterns += [
         views.ReportTemplateDownload.as_view(),
         name="template_download",
     ),
+    path(
+        "evidence/download/<int:pk>",
+        views.EvidenceDownload.as_view(),
+        name="evidence_download",
+    ),
 ]
 
 # URLs for local edits
