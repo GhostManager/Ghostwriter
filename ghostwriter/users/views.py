@@ -1,11 +1,18 @@
 """This contains all the views used by the Users application."""
 
+
+# Standard Libraries
+import os
+
 # Django Imports
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import DetailView, RedirectView, UpdateView
+from django.views.generic import DetailView, RedirectView, UpdateView, View
+from django.views.generic.detail import SingleObjectMixin
 
 # 3rd Party Libraries
 from allauth.account.views import PasswordChangeView, PasswordResetFromKeyView
@@ -206,3 +213,34 @@ class GhostwriterPasswordSetFromKeyView(PasswordResetFromKeyView):  # pragma: no
 
 
 account_reset_password_from_key = GhostwriterPasswordSetFromKeyView.as_view()
+
+
+class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Return the target :model:`users.User` entries avatar file from
+    :model:`home.UserProfile` for download.
+    """
+
+    model = UserProfile
+    slug_field = "username"
+    slug_url_kwarg = "username"
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(UserProfile, user__username=self.kwargs.get("slug"))
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+        try:
+            file_path = os.path.join(settings.MEDIA_ROOT, obj.avatar.path)
+        except ValueError:
+            file_path = os.path.join(settings.STATICFILES_DIRS[0], "images/default_avatar.png")
+        if os.path.exists(file_path):
+            return FileResponse(
+                open(file_path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_path),
+            )
+        raise Http404
+
+
+avatar_download = AvatarDownload.as_view()

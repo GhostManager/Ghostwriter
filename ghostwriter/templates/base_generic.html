@@ -392,7 +392,7 @@
         <a href="{% url 'users:user_detail' request.user.username %}">
           <img class="navbar-avatar"
                data-toggle="tooltip" data-placement="top" title="Logged-in as {{ request.user.username }}"
-               src="{{ request.user.userprofile.avatar_url }}"
+               src="{%  url 'users:avatar_download' slug=request.user.username %}"
                alt="Avatar">
         </a>
       </div>

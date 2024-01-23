@@ -15,7 +15,7 @@
 {% block content %}
   <!-- User's Avatar -->
   <a href="{% url 'users:userprofile_update' request.user.username %}">
-    <img class="avatar" src="{{ user.userprofile.avatar_url }}" alt="Avatar">
+    <img class="avatar" src="{%  url 'users:avatar_download' slug=request.user.username %}" alt="Avatar">
   </a>
 
   <!-- Users Profile Section -->
