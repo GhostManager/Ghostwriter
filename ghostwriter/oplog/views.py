@@ -33,6 +33,28 @@ from ghostwriter.rolodex.models import Project
 logger = logging.getLogger(__name__)
 
 
+def escape_message(message):
+    """
+    Escape single quotes, double quotes, newlines and other characters
+    that may break JavaScript.
+    """
+    # Replace single quotes
+    message = message.replace("'", "\\'")
+    # Replace double quotes
+    message = message.replace('"', '\\"')
+    # Replace newlines
+    message = message.replace("\n", "\\n")
+    # Replace carriage return
+    message = message.replace("\r", "\\r")
+    # Replace horizontal tab
+    message = message.replace("\t", "\\t")
+    # Replace backspace
+    message = message.replace("\b", "\\b")
+    # Replace form feed
+    message = message.replace("\f", "\\f")
+    return message
+
+
 ##################
 #   AJAX Views   #
 ##################
@@ -146,16 +168,22 @@ def oplog_entries_import(request):
         if result.has_errors() or result.has_validation_errors():
             row_errors = result.row_errors()
             for exc in row_errors:
+                error_message = escape_message(f"There was an error in row {exc[0]}: {exc[1][0].error}")
+                logger.error(error_message)
                 messages.error(
                     request,
-                    f"There was an error in row {exc[0]}: {exc[1][0].error}",
+                    error_message,
                     extra_tags="alert-danger",
                 )
             for invalid_row in result.invalid_rows:
                 error = str(invalid_row.error).replace("'", "")
+                error_message = escape_message(
+                    f"There was a validation error in row {invalid_row.number} with these errors: {error}"
+                )
+                logger.error(error_message)
                 messages.error(
                     request,
-                    f"There was a validation error in row {invalid_row.number} with these errors: {error}",
+                    error_message,
                     extra_tags="alert-danger",
                 )
 
