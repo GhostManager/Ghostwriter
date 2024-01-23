@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [4.0.5] - 12 January 2024
+## [Unreleased] - 22 January 2024
+
+### Fixed
+
+* Fixed an issue with timestamps in the activity log that could cause an error when importing a csv file
+
+### Changed
+
+* Activity log imports and exports now include the `entry_identifier` field
+* Activity log imports now check for duplicate entries based on the `entry_identifier` field and update the existing entry instead of creating a new entry
+
+## [4.0.5] - 12 January 2024
 
 ### Added
 
