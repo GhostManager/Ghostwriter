@@ -28,7 +28,7 @@
     </div>
     <div class="input-group input-group-lg mb-3 offset-2 col-8">
       <div class="custom-file">
-        <input type="file" class="custom-file-input" id="csv_file" name="csv_file">
+        <input type="file" class="custom-file-input" id="csv_file" name="csv_file" required>
         <label class="custom-file-label" for="csv_file">Choose csv file...</label>
       </div>
     </div>
@@ -46,9 +46,11 @@
         <h4 class="alert-heading">CSV Headers</h4>
         <p>Your csv file must have these headers:</p>
         <em>
-          start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
+          entry_identifier, start_date, end_date, source_ip, dest_ip, tool, user_context, command, description, output,
           comments, operator_name, tags
         </em>
+        <p>The <em>entry_identifer</em> field can be empty or a unique value for the log entry. If an existing log
+          entry shares the same <em>entry_identifer</em> it will be updated with the imported values.</p>
       </div>
     </div>
 
@@ -56,6 +58,7 @@
       <div class="alert alert-warning offset-md-2 col-md-8 mt-2" role="alert">
         <h4 class="alert-heading">Note on Timestamps</h4>
         <p>Your <em>start_date</em> and <em>end_date</em> values must be in the <em>YYYY-MM-DD HH:MM:SS</em> format.</p>
+        <p>The timestamps should match what you get when exporting a log.</p>
       </div>
     </div>
   </div>

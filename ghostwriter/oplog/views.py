@@ -143,7 +143,7 @@ def oplog_entries_import(request):
         imported_data.append_col([oplog_id] * len(imported_data), header="oplog_id")
 
         result = oplog_entry_resource.import_data(imported_data, dry_run=True)
-        if result.has_errors():
+        if result.has_errors() or result.has_validation_errors():
             row_errors = result.row_errors()
             for exc in row_errors:
                 messages.error(
@@ -151,6 +151,14 @@ def oplog_entries_import(request):
                     f"There was an error in row {exc[0]}: {exc[1][0].error}",
                     extra_tags="alert-danger",
                 )
+            for invalid_row in result.invalid_rows:
+                error = str(invalid_row.error).replace("'", "")
+                messages.error(
+                    request,
+                    f"There was a validation error in row {invalid_row.number} with these errors: {error}",
+                    extra_tags="alert-danger",
+                )
+
             return HttpResponseRedirect(reverse("oplog:oplog_import"))
 
         oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
