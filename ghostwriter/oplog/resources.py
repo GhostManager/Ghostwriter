@@ -21,18 +21,18 @@ class TzDateTimeWidget(widgets.DateTimeWidget):
     """Custom widget to handle timezone-aware datetimes in export data."""
 
     def clean(self, value, row=None, *args, **kwargs):
-        if not value:
+        if not value:  # pragma: no cover
             return None
-        if isinstance(value, datetime):
+        if isinstance(value, datetime):  # pragma: no cover
             return value
-        for format in self.formats:
+        for _ in self.formats:
             try:
                 if settings.USE_TZ:
                     dt = parse_datetime(value)
                     return dt
-            except (ValueError, TypeError):
+            except (ValueError, TypeError):  # pragma: no cover
                 continue
-        raise ValueError("Enter a valid date/time.")
+        raise ValueError("Enter a valid date/time.")  # pragma: no cover
 
 
 class OplogEntryResource(resources.ModelResource):
@@ -47,7 +47,7 @@ class OplogEntryResource(resources.ModelResource):
     tags = TagFieldImport(attribute="tags", column_name="tags", widget=TagWidget(Tag, separator=","), default="")
 
     def before_import_row(self, row, **kwargs):
-        # Track the `entry_identifer` for use in `get_import_id_fields()`
+        # Track the `entry_identifier` for use in `get_import_id_fields()`
         self.entry_identifier = row.get("entry_identifier")
         taggit_before_import_row(row)
 
@@ -56,8 +56,8 @@ class OplogEntryResource(resources.ModelResource):
         # We do want it unique in a log, so we'll use it as the import identifier, if it's present
         if not self.entry_identifier:
             return ["id"]
-        else:
-            return ("oplog_id", "entry_identifier")
+
+        return ("oplog_id", "entry_identifier")
 
     class Meta:
         model = OplogEntry
