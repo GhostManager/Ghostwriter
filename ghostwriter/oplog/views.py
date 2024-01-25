@@ -155,19 +155,21 @@ def import_data(request, oplog_id, new_entries, dry_run=False):
     dataset = Dataset()
     oplog_entry_resource = OplogEntryResource()
     imported_data = dataset.load(new_entries, format="csv")
+
     if "oplog_id" in imported_data.headers:
         del imported_data["oplog_id"]
+
     if validate_headers(imported_data):
         imported_data.append_col([oplog_id] * len(imported_data), header="oplog_id")
         result = oplog_entry_resource.import_data(imported_data, dry_run=dry_run)
         return result
-    else:
-        messages.error(
-            request,
-            "Your log file needs the required header row and at least one entry.",
-            extra_tags="alert-error",
-        )
-        return None
+
+    messages.error(
+        request,
+        "Your log file needs the required header row and at least one entry.",
+        extra_tags="alert-error",
+    )
+    return None
 
 
 def handle_errors(request, result):

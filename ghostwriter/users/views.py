@@ -8,7 +8,7 @@ import os
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.http import FileResponse, Http404
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import DetailView, RedirectView, UpdateView, View
