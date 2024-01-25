@@ -6,6 +6,7 @@ from datetime import datetime
 
 # Django Imports
 from django.test import Client, TestCase
+from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils.encoding import force_str
 
@@ -118,6 +119,25 @@ class OplogListEntriesTests(TestCase):
 class OplogEntriesImportTests(TestCase):
     """Collection of tests for :view:`oplog.OplogEntriesImport`."""
 
+    filename = "oplog_import_test.csv"
+    update_filename = "oplog_import_test_update.csv"
+
+    fieldnames = [
+        "entry_identifier",
+        "start_date",
+        "end_date",
+        "source_ip",
+        "dest_ip",
+        "tool",
+        "user_context",
+        "command",
+        "description",
+        "output",
+        "comments",
+        "operator_name",
+        "oplog_id",
+    ]
+
     @classmethod
     def setUpTestData(cls):
         cls.Oplog = OplogFactory._meta.model
@@ -141,6 +161,13 @@ class OplogEntriesImportTests(TestCase):
         self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
         self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
 
+    def tearDown(self):
+        # Cleanup for CSV files
+        if os.path.exists(self.filename):
+            os.remove(self.filename)
+        if os.path.exists(self.update_filename):
+            os.remove(self.update_filename)
+
     def test_view_uri_exists_at_desired_location(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
@@ -154,99 +181,101 @@ class OplogEntriesImportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "oplog/oplog_import.html")
 
-    def test_post_data_and_permissions(self):
-        filename = "oplog_import_test.csv"
-        fieldnames = [
-            "entry_identifier",
-            "start_date",
-            "end_date",
-            "source_ip",
-            "dest_ip",
-            "tool",
-            "user_context",
-            "command",
-            "description",
-            "output",
-            "comments",
-            "operator_name",
-        ]
-        with open(filename, "w") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_NONE)
+    def test_import_updates_existing_entries_and_adds_new_entries(self):
+        with open(self.filename, "w") as csvfile:
+            writer = csv.DictWriter(
+                csvfile, fieldnames=self.fieldnames, quoting=csv.QUOTE_MINIMAL, escapechar="\\", delimiter=","
+            )
             writer.writeheader()
             for entry in self.OplogEntry.objects.all():
                 row = {}
-                for field in fieldnames:
-                    if field == "start_date":
-                        row[field] = datetime.timestamp(entry.start_date)
-                    elif field == "end_date":
-                        row[field] = datetime.timestamp(entry.end_date)
-                    else:
-                        row[field] = getattr(entry, field)
+                for field in self.fieldnames:
+                    if field == "oplog_id":
+                        row[field] = self.oplog.id
+                    row[field] = getattr(entry, field)
                 writer.writerow(row)
 
-        with open(filename, "r") as csvfile:
+        with open(self.filename, "r") as csvfile:
             response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
             self.assertRedirects(response, self.redirect_uri)
-            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 2)
+            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries)
 
-        with open(filename, "r") as csvfile:
+        with open(self.filename, "r") as csvfile:
             response = self.client_auth.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
             self.assertRedirects(response, self.failure_redirect_uri)
-            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 2)
+            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries)
 
         ProjectAssignmentFactory(operator=self.user, project=self.oplog.project)
-        with open(filename, "r") as csvfile:
+        with open(self.filename, "r") as csvfile:
             response = self.client_auth.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
             self.assertRedirects(response, self.redirect_uri)
-            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries * 3)
-        os.remove(filename)
+            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries)
+
+        with open(self.update_filename, "w") as updatecsv:
+            update_writer = csv.DictWriter(
+                updatecsv, fieldnames=self.fieldnames, quoting=csv.QUOTE_MINIMAL, escapechar="\\", delimiter=","
+            )
+            update_writer.writeheader()
+
+            entry = self.OplogEntry.objects.all().first()
+            row = {}
+            for field in self.fieldnames:
+                if field == "tool":
+                    row[field] = "new_tool"
+                elif field == "oplog_id":
+                    row[field] = self.oplog.id
+                else:
+                    row[field] = getattr(entry, field)
+            update_writer.writerow(row)
+
+            new_entry = OplogEntryFactory.build(oplog_id=self.oplog)
+            row = {}
+            for field in self.fieldnames:
+                row[field] = getattr(new_entry, field)
+            update_writer.writerow(row)
+
+        with open(self.update_filename, "r") as updatecsv:
+            response = self.client_mgr.post(self.uri, {"csv_file": updatecsv, "oplog_id": self.oplog.id})
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(response, self.redirect_uri)
+            self.assertEqual(self.OplogEntry.objects.count(), self.num_of_entries + 1)
+            entry = self.OplogEntry.objects.filter(oplog_id=self.oplog).last()
+            self.assertEqual(entry.tool, "new_tool")
 
     def test_oplog_id_override(self):
         """Test that the ``oplog_id`` field is overridden when importing."""
-        filename = "oplog_import_test.csv"
-        fieldnames = [
-            "entry_identifier",
-            "oplog_id",
-            "start_date",
-            "end_date",
-            "source_ip",
-            "dest_ip",
-            "tool",
-            "user_context",
-            "command",
-            "description",
-            "output",
-            "comments",
-            "operator_name",
-        ]
-        with open(filename, "w") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_NONE)
+        with open(self.filename, "w") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=self.fieldnames, quoting=csv.QUOTE_MINIMAL, escapechar="\\")
             writer.writeheader()
             for entry in self.OplogEntry.objects.all():
                 row = {}
-                for field in fieldnames:
+                for field in self.fieldnames:
                     if field == "oplog_id":
                         row[field] = 9000
-                    elif field == "start_date":
-                        row[field] = datetime.timestamp(entry.start_date)
-                    elif field == "end_date":
-                        row[field] = datetime.timestamp(entry.end_date)
                     else:
                         row[field] = getattr(entry, field)
                 writer.writerow(row)
 
-        with open(filename, "r") as csvfile:
-            starting_entries = self.OplogEntry.objects.filter(oplog_id=self.oplog).count()
+        with open(self.filename, "r") as csvfile:
             response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
             self.assertRedirects(response, self.redirect_uri)
+            self.assertEqual(self.OplogEntry.objects.filter(oplog_id=self.oplog).count(), self.num_of_entries)
+
+    def test_empty_csv_and_file_with_invalid_dimensions(self):
+        """Test that the ``oplog_id`` field is overridden when importing."""
+        with open(self.update_filename, "w+") as csvfile:
+            response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(response, self.failure_redirect_uri)
+            messages = list(get_messages(response.wsgi_request))
             self.assertEqual(
-                self.OplogEntry.objects.filter(oplog_id=self.oplog).count(), starting_entries + self.num_of_entries
+                str(messages[0]),
+                "Your log file is empty.",
             )
-        os.remove(filename)
 
 
 class OplogCreateViewTests(TestCase):
