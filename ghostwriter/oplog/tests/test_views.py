@@ -136,9 +136,11 @@ class OplogEntriesImportTests(TestCase):
         "comments",
         "operator_name",
         "oplog_id",
+        "tags",
     ]
 
     def build_row(self, entry, tool=None, use_entry_identifier=True, entry_identifier=None, oplog_id=None):
+        """Build a row for the simulated CSV file with the option to override certain fields for test cases."""
         row = {}
         for field in self.fieldnames:
             if field == "oplog_id":
@@ -245,9 +247,10 @@ class OplogEntriesImportTests(TestCase):
             row = self.build_row(entry, tool="new_tool")
             update_writer.writerow(row)
 
-            new_entry = OplogEntryFactory.build(oplog_id=self.oplog)
+            new_entry = OplogEntryFactory(oplog_id=self.oplog)
             row = self.build_row(new_entry)
             update_writer.writerow(row)
+            new_entry.delete()
 
         with open(self.update_filename, "r") as updatecsv:
             response = self.client_mgr.post(self.uri, {"csv_file": updatecsv, "oplog_id": self.oplog.id})
@@ -271,18 +274,36 @@ class OplogEntriesImportTests(TestCase):
             self.assertEqual(response.status_code, 302)
             self.assertRedirects(response, self.redirect_uri)
             self.assertEqual(self.OplogEntry.objects.filter(oplog_id=self.oplog).count(), self.num_of_entries)
+            self.assertEqual(self.OplogEntry.objects.filter(oplog_id=9000).count(), 0)
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(str(messages[0]), "Successfully imported log data.")
 
     def test_empty_csv_and_file_with_invalid_dimensions(self):
         """Test an invalid csv file is handled gracefully."""
-        with open(self.update_filename, "w+") as csvfile:
-            response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
+        with open(self.update_filename, "w+") as updatecsv:
+            response = self.client_mgr.post(self.uri, {"csv_file": updatecsv, "oplog_id": self.oplog.id})
             self.assertEqual(response.status_code, 302)
             self.assertRedirects(response, self.failure_redirect_uri)
             messages = list(get_messages(response.wsgi_request))
             self.assertEqual(
                 str(messages[0]),
-                "Your log file is empty.",
+                "Your log file needs the required header row and at least one entry.",
             )
+
+        with open(self.filename, "w") as csvfile:
+            writer = csv.DictWriter(
+                csvfile, fieldnames=self.fieldnames, quoting=csv.QUOTE_MINIMAL, escapechar="\\", delimiter=","
+            )
+            for entry in self.OplogEntry.objects.all():
+                row = self.build_row(entry)
+                writer.writerow(row)
+
+        with open(self.filename, "r") as csvfile:
+            response = self.client_mgr.post(self.uri, {"csv_file": csvfile, "oplog_id": self.oplog.id})
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(response, self.failure_redirect_uri)
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(str(messages[0]), "Your log file needs the required header row and at least one entry.")
 
     def test_handling_entry_identifier(self):
         """Test import happens correctly when the ``entry_identifier`` field is null or a value already in the log."""
