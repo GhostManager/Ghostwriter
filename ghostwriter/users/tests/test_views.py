@@ -1,15 +1,17 @@
 # Standard Libraries
 import logging
 from base64 import b64decode
+from io import BytesIO
 
 # Django Imports
 from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.files.uploadedfile import InMemoryUploadedFile, SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 
 # Ghostwriter Libraries
 from ghostwriter.factories import UserFactory
+from ghostwriter.home.models import UserProfile
 
 logging.disable(logging.CRITICAL)
 
@@ -276,3 +278,54 @@ class Require2FAMiddlewareTests(TestCase):
 
         self.user.require_2fa = False
         self.user.save()
+
+
+class AvatarDownloadTest(TestCase):
+    """Collection of tests for :view:`users.AvatarDownload`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("users:avatar_download", kwargs={"slug": cls.user.username})
+        cls.user_profile = UserProfile.objects.get(user=cls.user)
+
+        image_data = b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        )
+        image_file = ContentFile(image_data, "fake.png")
+
+        image = InMemoryUploadedFile(
+            BytesIO(image_data),
+            field_name="tempfile",
+            name="fake.png",
+            content_type="image/png",
+            size=len(image_data),
+            charset="utf-8",
+        )
+        cls.in_memory_image = image
+
+        cls.uploaded_image_file = SimpleUploadedFile(image_file.name, image_file.read(), content_type="image/png")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+
+    def test_view_requires_login(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+    def test_view_returns_correct_image(self):
+        self.user_profile.avatar = self.uploaded_image_file
+        self.user_profile.save()
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="fake.png"')
+        self.user_profile.avatar = None
+        self.user_profile.save()
