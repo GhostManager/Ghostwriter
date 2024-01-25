@@ -2449,7 +2449,9 @@ class EvidenceDownloadTest(TestCase):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
         cls.evidence_file = EvidenceFactory()
+        cls.deleted_evidence_file = EvidenceFactory()
         cls.uri = reverse("reporting:evidence_download", kwargs={"pk": cls.evidence_file.pk})
+        cls.deleted_uri = reverse("reporting:evidence_download", kwargs={"pk": cls.deleted_evidence_file.pk})
 
     def setUp(self):
         self.client = Client()
@@ -2473,3 +2475,12 @@ class EvidenceDownloadTest(TestCase):
         ProjectAssignmentFactory(operator=self.user, project=self.evidence_file.finding.report.project)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 200)
+
+        if os.path.exists(self.deleted_evidence_file.document.path):
+            os.remove(self.deleted_evidence_file.document.path)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 404)

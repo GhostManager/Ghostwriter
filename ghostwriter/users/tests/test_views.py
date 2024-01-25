@@ -1,5 +1,6 @@
 # Standard Libraries
 import logging
+import os
 from base64 import b64decode
 from io import BytesIO
 
@@ -324,8 +325,21 @@ class AvatarDownloadTest(TestCase):
     def test_view_returns_correct_image(self):
         self.user_profile.avatar = self.uploaded_image_file
         self.user_profile.save()
+
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="fake.png"')
+
+        if os.path.exists(self.user_profile.avatar.path):
+            os.remove(self.user_profile.avatar.path)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
+
         self.user_profile.avatar = None
         self.user_profile.save()
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="default_avatar.png"')
