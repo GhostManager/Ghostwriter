@@ -234,13 +234,15 @@ class AvatarDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             file_path = os.path.join(settings.MEDIA_ROOT, obj.avatar.path)
         except ValueError:
             file_path = os.path.join(settings.STATICFILES_DIRS[0], "images/default_avatar.png")
-        if os.path.exists(file_path):
-            return FileResponse(
-                open(file_path, "rb"),
-                as_attachment=True,
-                filename=os.path.basename(file_path),
-            )
-        raise Http404
+
+        if not os.path.exists(file_path):
+            file_path = os.path.join(settings.STATICFILES_DIRS[0], "images/default_avatar.png")
+
+        return FileResponse(
+            open(file_path, "rb"),
+            as_attachment=True,
+            filename=os.path.basename(file_path),
+        )
 
 
 avatar_download = AvatarDownload.as_view()
