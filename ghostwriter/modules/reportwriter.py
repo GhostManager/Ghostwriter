@@ -12,8 +12,10 @@ import logging
 import os
 import random
 import re
+import html
 from copy import deepcopy
 from datetime import timedelta
+from itertools import chain
 
 # Django Imports
 from django.conf import settings
@@ -23,6 +25,7 @@ from django.utils.dateformat import format as dateformat
 import docx
 import jinja2
 import jinja2.sandbox
+from markupsafe import Markup
 import pptx
 from bs4 import BeautifulSoup, NavigableString
 from dateutil.parser import parse as parse_datetime
@@ -892,7 +895,7 @@ class Reportwriter:
             else:
                 font.superscript = styles["superscript"]
 
-    def _replace_and_write(self, text, par, finding_or_report, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
+    def _replace_and_write(self, text, par, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
         """
         Find and replace template keywords in the provided text.
 
@@ -907,113 +910,10 @@ class Reportwriter:
         """
         # Remove any newlines to avoid creating unwanted blank lines
         text = text.replace("\r\n", "")
-
-        # Perform static text replacements
-        # Do this first so strings are not detected as potential expressions–e.g., ``{{.ref ...}}``
-        if "{{.client}}" in text:
-            if self.report_json["client"]["short_name"]:
-                text = text.replace("{{.client}}", self.report_json["client"]["short_name"])
-            else:
-                text = text.replace("{{.client}}", self.report_json["client"]["name"])
-        if "{{.project_start}}" in text:
-            text = text.replace("{{.project_start}}", self.report_json["project"]["start_date"])
-        if "{{.project_end}}" in text:
-            text = text.replace("{{.project_end}}", self.report_json["project"]["end_date"])
-        if "{{.project_type}}" in text:
-            text = text.replace(
-                "{{.project_type}}",
-                self.report_json["project"]["type"].lower(),
-            )
-
-        # Use regex to search for expressions to process
-        keyword_regex = r"\{\{\.(.*?)\}\}"
-        # Find all strings like ``{{. foo}}``
-        match = re.findall(keyword_regex, text)
-
-        # Loop over all regex matches to determine if they are expressions
-        cross_refs = []
-        if match:
-            for var in match:
-                # Check for and track cross-references separately for later action
-                if var.startswith("ref "):
-                    # Track reference with the curly braces restored for later
-                    cross_refs.append("{{.%s}}" % var)
-                # Process anything that is not a cross-reference now in the match loop
-                else:
-                    keyword = var.replace("}}", "").replace("{{.", "").strip()
-
-                    # Transform caption placeholders into figures
-                    if keyword.startswith("caption"):
-                        ref_name = keyword.lstrip("caption ")
-                        ref_name = re.sub("[^A-Za-z0-9]+", "", ref_name)
-                        text = text.replace("{{.%s}}" % keyword, "")
-                        if self.report_type == "pptx":
-                            if ref_name:
-                                run = par.add_run()
-                                run.text = f"See {ref_name}"
-                                font = run.font
-                                font.italic = True
-                        else:
-                            par.style = "Caption"
-                            if ref_name:
-                                self._make_figure(par, ref_name)
-                            else:
-                                self._make_figure(par)
-                            par.add_run(self.prefix_figure + text)
-                        # Captions are on their own line so return
-                        return par
-
-                    # Handle evidence files
-                    if "evidence" in finding_or_report:
-                        if (
-                            keyword
-                            # and keyword in finding_or_report["evidence"]
-                            and any(ev["friendly_name"] == keyword for ev in finding_or_report["evidence"])
-                            and not keyword.startswith("ref ")
-                        ):
-                            logger.debug(
-                                "Identified `%s` as an evidence file attached to this finding/report",
-                                keyword,
-                            )
-                            for ev in finding_or_report["evidence"]:
-                                if ev["friendly_name"] == keyword:
-                                    self._process_evidence(ev, par)
-                                    return par
-                        else:
-                            self._write_xml(text, par, styles)
-                    else:
-                        self._write_xml(text, par, styles)
-        else:
-            self._write_xml(text, par, styles)
-
-        # Transform any cross-references into bookmarks
-        if cross_refs:
-            # Split-up line while keeping cross-references intact
-            cross_ref_regex = r"({{.ref.*?}})"
-            exploded_text = re.split(cross_ref_regex, text)
-            # Loop over the text to replace cross-reference expressions with OXML bookmarks
-            for part in exploded_text:
-                if part in cross_refs:
-                    # Assemble an alphanumeric (no spaces) bookmark name from the tag
-                    part = part.replace("}}", "").replace("{{.", "").strip()
-                    ref_name = re.sub("[^A-Za-z0-9]+", "", part.lstrip("ref "))
-                    if self.report_type == "pptx":
-                        run = par.add_run()
-                        run.text = f"See {ref_name}"
-                        font = run.font
-                        font.italic = True
-                    else:
-                        self._make_cross_ref(
-                            par,
-                            ref_name,
-                        )
-                else:
-                    self._write_xml(part, par, styles)
-            # return par
-
+        self._write_xml(text, par, styles)
         return par
 
-    def _process_nested_html_tags(self, contents, par, finding_or_report, styles=None):
+    def _process_nested_html_tags(self, contents, par, styles=None):
         """
         Process BeautifulSoup4 ``Tag`` objects containing nested HTML tags.
 
@@ -1023,8 +923,6 @@ class Reportwriter:
             Contents of a BS4 ``Tag``
         ``par`` : Paragraph
             Word docx ``Paragraph`` object
-        ``finding_or_report`` : dict
-            Current finding or report (JSON) being processed
         ``styles`` : dict
             Override default styles with a provided dict
         """
@@ -1120,8 +1018,45 @@ class Reportwriter:
             # A plain string will return ``None`` - no HTML tag
             part_name = part.name
 
-            # Get the top-level's styles first as it applies to all future runs
-            if part_name:
+            if part_name == "span" and "data-gw-evidence" in part.attrs:
+                # Replace evidence placeholder
+                report_evidence = self.report_json["evidence"]
+                if "finding" in self.rich_text_vars and "evidence" in self.rich_text_vars["finding"]:
+                    instance_evidence = self.rich_text_vars["finding"]["evidence"]
+                else:
+                    instance_evidence = []
+                evidence = next((evi for evi in chain(instance_evidence, report_evidence) if evi["friendly_name"] == part.attrs["data-gw-evidence"]), None)
+                if not evidence:
+                    continue
+                self._process_evidence(evidence, par)
+            elif part_name == "span" and "data-gw-caption" in part.attrs:
+                # Replace caption placeholder
+                ref_name = part.attrs["data-gw-caption"]
+                if self.report_type == "pptx":
+                    if ref_name:
+                        run = par.add_run()
+                        run.text = f"See {ref_name}"
+                        font = run.font
+                        font.italic = True
+                else:
+                    par.style = "Caption"
+                    if ref_name:
+                        self._make_figure(par, ref_name)
+                    else:
+                        self._make_figure(par)
+            elif part_name == "span" and "data-gw-ref" in part.attrs:
+                # Replace reference holder
+                ref_name = part.attrs["data-gw-ref"]
+                if self.report_type == "pptx":
+                    run = par.add_run()
+                    run.text = f"See {ref_name}"
+                    font = run.font
+                    font.italic = True
+                else:
+                    self._make_cross_ref(par, ref_name)
+            elif part_name:
+                # Get the top-level's styles first as it applies to all future runs
+
                 # Update styles based on the tag and properties
                 parent_styles = check_tags(part, parent_styles)
 
@@ -1154,7 +1089,7 @@ class Reportwriter:
                             merged_styles = merge_styles(run_styles, parent_styles)
 
                             # Recursively process the nested tags
-                            self._process_nested_html_tags(tag_contents, par, finding_or_report, styles=merged_styles)
+                            self._process_nested_html_tags(tag_contents, par, styles=merged_styles)
                     elif tag_name:
                         logger.warning(
                             "Ignoring a nested HTML tag not in the allowlist: %s",
@@ -1168,7 +1103,7 @@ class Reportwriter:
                     merged_styles = merge_styles(run_styles, parent_styles)
 
                     # Write the text for this run
-                    par = self._replace_and_write(content_text, par, finding_or_report, merged_styles)
+                    par = self._replace_and_write(content_text, par, merged_styles)
 
                     # Reset temporary run styles
                     run_styles = ReportConstants.DEFAULT_STYLE_VALUES.copy()
@@ -1176,9 +1111,9 @@ class Reportwriter:
             # There are no tags to process, so write the string
             else:
                 if isinstance(part, NavigableString):
-                    par = self._replace_and_write(part, par, finding_or_report, parent_styles)
+                    par = self._replace_and_write(part, par, parent_styles)
                 else:
-                    par = self._replace_and_write(part.text, par, finding_or_report)
+                    par = self._replace_and_write(part.text, par)
         return par
 
     def _create_list_paragraph(self, prev_p, level, num=False, alignment=WD_ALIGN_PARAGRAPH.LEFT):
@@ -1218,7 +1153,7 @@ class Reportwriter:
             p.alignment = alignment
         return p
 
-    def _parse_nested_html_lists(self, tag, prev_p, num, finding, level=0):
+    def _parse_nested_html_lists(self, tag, prev_p, num, level=0):
         """
         Recursively parse deeply nested lists. This checks for ``<ol>`` or ``<ul>`` tags
         and keeps parsing until all nested lists are found and processed.
@@ -1233,8 +1168,6 @@ class Reportwriter:
             Previous paragraph to link the next list item
         ``num``
             Boolean to determine if the line item will be numbered
-        ``finding``
-            Report finding currently being processed
         ``level``
             Indentation level for the list item (Defaults to 0)
         """
@@ -1264,27 +1197,27 @@ class Reportwriter:
                 if len(temp) == 1:
                     # If the first list item is a ``Tag`` process for styling
                     if temp[0].name:
-                        self._process_nested_html_tags(temp, p, finding)
+                        self._process_nested_html_tags(temp, p)
                     # Otherwise, just write the XML
                     else:
-                        self._replace_and_write(temp[0], p, finding)
+                        self._replace_and_write(temp[0], p)
                 else:
-                    self._process_nested_html_tags(temp, p, finding)
+                    self._process_nested_html_tags(temp, p)
 
             # If we have nested list(s), recursively process them by re-entering ``_parse_html_lists``
             if nested_list:
                 # Increment the indentation level
                 if not li_contents[0] == "\n":
                     level += 1
-                p = self._parse_html_lists(nested_list, p, num, finding, level)
+                p = self._parse_html_lists(nested_list, p, num, level)
         # No nested list items, proceed as normal
         # This is where we catch ``li`` tags with nested tags like hyperlinks
         else:
             p = self._create_list_paragraph(prev_p, level, num)
-            self._process_nested_html_tags(tag.contents, p, finding)
+            self._process_nested_html_tags(tag.contents, p)
         return p
 
-    def _parse_html_lists(self, tag, prev_p, num, finding, level=0):
+    def _parse_html_lists(self, tag, prev_p, num, level):
         """
         Recursively parse deeply nested lists. This checks for ``<ol>`` or ``<ul>`` tags
         and keeps parsing until all nested lists are found and processed.
@@ -1299,8 +1232,6 @@ class Reportwriter:
             Previous paragraph to link the next list item
         ``num``
             Boolean to determine if the line item will be numbered
-        ``finding``
-            Report finding currently being processed
         ``level``
             Indentation level for the list item (Defaults to 0)
         """
@@ -1317,27 +1248,27 @@ class Reportwriter:
                 if len(li_contents) == 1:
                     p = self._create_list_paragraph(prev_p, level, num)
                     if li_contents[0].name:
-                        self._process_nested_html_tags(li_contents, p, finding)
+                        self._process_nested_html_tags(li_contents, p)
                     else:
-                        self._replace_and_write(part.text, p, finding)
+                        self._replace_and_write(part.text, p)
                 # Bigger lists mean more tags, so process nested tags
                 else:
                     # Handle nested lists
-                    p = self._parse_nested_html_lists(part, prev_p, num, finding, level)
+                    p = self._parse_nested_html_lists(part, prev_p, num, level)
                 # Track the paragraph used for this list item to link subsequent list paragraphs
                 prev_p = p
             # If ``ol`` tag encountered, increment ``level`` and switch to numbered list
             elif part.name == "ol":
                 level += 1
-                p = self._parse_html_lists(part, prev_p, True, finding, level)
+                p = self._parse_html_lists(part, prev_p, True, level)
             # If ``ul`` tag encountered, increment ``level`` and switch to bulleted list
             elif part.name == "ul":
                 level += 1
-                p = self._parse_html_lists(part, prev_p, False, finding, level)
+                p = self._parse_html_lists(part, prev_p, False, level)
             # No change in list type, so proceed with writing the line
             elif part.name:
                 p = self._create_list_paragraph(prev_p, level, num)
-                self._process_nested_html_tags(part, p, finding)
+                self._process_nested_html_tags(part, p)
             # Handle tags that are not handled above
             else:
                 if not isinstance(part, NavigableString):
@@ -1345,11 +1276,11 @@ class Reportwriter:
                 else:
                     if part.strip() != "":
                         p = self._create_list_paragraph(prev_p, level, num)
-                        self._replace_and_write(part.strip(), p, finding)
+                        self._replace_and_write(part.strip(), p)
         # Return last paragraph created
         return p
 
-    def _process_text_xml(self, text, finding_or_report=None, p_style=None):
+    def _process_text_xml(self, text, template_vars=None, p_style=None):
         """
         Process the provided text from the specified finding to parse keywords for
         evidence placement and formatting for Office XML.
@@ -1361,138 +1292,158 @@ class Reportwriter:
         ``finding``
             Current finding/report being processed
         """
-        if text:
-            # Clean text to make it XML compatible for Office XML
-            text = "".join(c for c in text if self._valid_xml_char_ordinal(c))
 
-            # Parse the HTML into a BS4 soup object
-            soup = BeautifulSoup(text, "lxml")
+        if not text:
+            return
 
-            # Each WYSIWYG field begins with ``<html><body>`` so get the contents of ``body``
-            body = soup.find("body")
-            contents_list = body.contents
+        self.rich_text_vars = template_vars
 
-            # Loop over all strings and ``bs4.element.Tag`` objects
-            for tag in contents_list:
-                # Get the HTML tag's name to determine next steps
-                tag_name = tag.name
+        # Replace old `{{.item}}`` syntax with jinja templates or elements to replace
+        def replace_old_tag(match):
+            contents = match.group(1).strip()
+            # These will be swapped out when parsing the HTML
+            if contents.startswith("ref "):
+                return _jinja_ref(contents[4:].strip())
+            elif contents.startswith("caption "):
+                return _jinja_caption(contents[8:].strip())
+            else:
+                return "{{ _old_dot_vars." + contents.strip() + "}}"
+        text_old_dot_subbed = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
 
-                # Hn – Headings
-                if tag_name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-                    if self.report_type == "pptx":
-                        # No headings in PPTX, so add a new line and bold it as a pseudo-heading
-                        p = self.finding_body_shape.text_frame.add_paragraph()
-                        run = p.add_run()
-                        run.text = tag.text
-                        font = run.font
-                        font.bold = True
-                    else:
-                        heading_num = int(tag_name[1])
-                        # Add the heading to the document
-                        # This discards any inline formatting, but that should be managed
-                        # by editing the style in the template
-                        p = self.sacrificial_doc.add_heading(tag.text, heading_num)
+        # Run template
+        template = self.jinja_env.from_string(text_old_dot_subbed)
+        text_rendered = template.render(template_vars)
 
-                # P – Paragraphs
-                elif tag_name == "p":
-                    # Get the tag's contents to check for additional formatting
-                    contents = tag.contents
+        # Filter out XML-incompatible characters
+        text_char_filtered = "".join(c for c in text_rendered if self._valid_xml_char_ordinal(c))
 
-                    # Add a paragraph to the document based on doc type
-                    if self.report_type == "pptx":
-                        p = self.finding_body_shape.text_frame.add_paragraph()
-                        ALIGNMENT = PP_ALIGN
-                    else:
-                        p = self.sacrificial_doc.add_paragraph(style=p_style)
-                        ALIGNMENT = WD_ALIGN_PARAGRAPH
+        # Parse the HTML into a BS4 soup object
+        soup = BeautifulSoup(text_char_filtered, "lxml")
 
-                    # Check for alignment classes on the ``p`` tag
-                    if "class" in tag.attrs:
-                        tag_attrs = tag.attrs["class"]
-                        if "left" in tag_attrs:
-                            p.alignment = ALIGNMENT.LEFT
-                        if "center" in tag_attrs:
-                            p.alignment = ALIGNMENT.CENTER
-                        if "right" in tag_attrs:
-                            p.alignment = ALIGNMENT.RIGHT
-                        if "justify" in tag_attrs:
-                            p.alignment = ALIGNMENT.JUSTIFY
+        # Each WYSIWYG field begins with ``<html><body>`` so get the contents of ``body``
+        body = soup.find("body")
+        contents_list = body.contents
 
-                    # Pass the contents and new paragraph on to drill down into nested formatting
-                    self._process_nested_html_tags(contents, p, finding_or_report)
+        # Loop over all strings and ``bs4.element.Tag`` objects
+        for tag in contents_list:
+            # Get the HTML tag's name to determine next steps
+            tag_name = tag.name
 
-                # PRE – Code Blocks
-                elif tag_name == "pre":
-                    # Get the list of pre-formatted strings
-                    contents = tag.contents
-
-                    # We do not style any text inside a code block, so we just write the XML
-                    # The only content should be one ``code`` block and a long line of text broken up by ``\r\n``
-                    if self.report_type == "pptx":
-                        # Place new textbox to the mid-right to keep it out of the way
-                        if contents:
-                            top = Inches(1.65)
-                            left = Inches(8)
-                            width = Inches(4.5)
-                            height = Inches(3)
-                            # Create new textbox, textframe, paragraph, and run
-                            textbox = self.finding_slide.shapes.add_textbox(left, top, width, height)
-                            text_frame = textbox.text_frame
-                            for content in contents:
-                                for code in content:
-                                    parts = code.split("\r\n")
-                                    for code_line in parts:
-                                        p = text_frame.add_paragraph()
-                                        # Align left to anticipate a monospaced font for code
-                                        p.alignment = PP_ALIGN.LEFT
-                                        run = p.add_run()
-                                        # Insert code block and apply formatting
-                                        run.text = code_line
-                                        font = run.font
-                                        font.size = Pt(11)
-                                        font.name = "Courier New"
-                    else:
-                        if contents:
-                            for content in contents:
-                                for code in content:
-                                    parts = code.split("\r\n")
-                                    for code_line in parts:
-                                        # Create paragraph and apply the ``CodeBlock`` style
-                                        p = self.sacrificial_doc.add_paragraph(code_line)
-                                        p.style = "CodeBlock"
-                                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-
-                # OL & UL – Ordered/Numbered & Unordered Lists
-                elif tag_name in ("ol", "ul"):
-                    # Ordered/numbered lists need numbers and linked paragraphs
-                    prev_p = None
-                    num = bool(tag_name == "ol")
-                    # In HTML, sub-items in a list are nested HTML lists
-                    # We need to check every list item for formatted and additional lists
-                    # While tracking which level of the list we are working with
-                    level = 0
-                    prev_p = self._parse_html_lists(tag, prev_p, num, finding_or_report, level)
-
-                # BLOCKQUOTE – Blockquote Sections
-                elif tag_name == "blockquote":
-                    # Get the tag's contents to check for additional formatting
-                    contents = tag.contents
-
-                    # PowerPoint lacks a blockquote style, so we just add a basic paragraph
-                    if self.report_type == "pptx":
-                        p = self.finding_body_shape.text_frame.add_paragraph()
-                    else:
-                        p = self.sacrificial_doc.add_paragraph()
-                        p.style = "Blockquote"
-
-                    # Pass the contents and new paragraph on to drill down into nested formatting
-                    self._process_nested_html_tags(contents, p, finding_or_report)
+            # Hn – Headings
+            if tag_name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+                if self.report_type == "pptx":
+                    # No headings in PPTX, so add a new line and bold it as a pseudo-heading
+                    p = self.finding_body_shape.text_frame.add_paragraph()
+                    run = p.add_run()
+                    run.text = tag.text
+                    font = run.font
+                    font.bold = True
                 else:
-                    if not isinstance(tag, NavigableString):
-                        logger.warning(
-                            "Encountered an unknown tag inside of the finding HTML: %s",
-                            tag_name,
-                        )
+                    heading_num = int(tag_name[1])
+                    # Add the heading to the document
+                    # This discards any inline formatting, but that should be managed
+                    # by editing the style in the template
+                    p = self.sacrificial_doc.add_heading(tag.text, heading_num)
+
+            # P – Paragraphs
+            elif tag_name == "p":
+                # Get the tag's contents to check for additional formatting
+                contents = tag.contents
+
+                # Add a paragraph to the document based on doc type
+                if self.report_type == "pptx":
+                    p = self.finding_body_shape.text_frame.add_paragraph()
+                    ALIGNMENT = PP_ALIGN
+                else:
+                    p = self.sacrificial_doc.add_paragraph(style=p_style)
+                    ALIGNMENT = WD_ALIGN_PARAGRAPH
+
+                # Check for alignment classes on the ``p`` tag
+                if "class" in tag.attrs:
+                    tag_attrs = tag.attrs["class"]
+                    if "left" in tag_attrs:
+                        p.alignment = ALIGNMENT.LEFT
+                    if "center" in tag_attrs:
+                        p.alignment = ALIGNMENT.CENTER
+                    if "right" in tag_attrs:
+                        p.alignment = ALIGNMENT.RIGHT
+                    if "justify" in tag_attrs:
+                        p.alignment = ALIGNMENT.JUSTIFY
+
+                # Pass the contents and new paragraph on to drill down into nested formatting
+                self._process_nested_html_tags(contents, p)
+
+            # PRE – Code Blocks
+            elif tag_name == "pre":
+                # Get the list of pre-formatted strings
+                contents = tag.contents
+
+                # We do not style any text inside a code block, so we just write the XML
+                # The only content should be one ``code`` block and a long line of text broken up by ``\r\n``
+                if self.report_type == "pptx":
+                    # Place new textbox to the mid-right to keep it out of the way
+                    if contents:
+                        top = Inches(1.65)
+                        left = Inches(8)
+                        width = Inches(4.5)
+                        height = Inches(3)
+                        # Create new textbox, textframe, paragraph, and run
+                        textbox = self.finding_slide.shapes.add_textbox(left, top, width, height)
+                        text_frame = textbox.text_frame
+                        for content in contents:
+                            for code in content:
+                                parts = code.split("\r\n")
+                                for code_line in parts:
+                                    p = text_frame.add_paragraph()
+                                    # Align left to anticipate a monospaced font for code
+                                    p.alignment = PP_ALIGN.LEFT
+                                    run = p.add_run()
+                                    # Insert code block and apply formatting
+                                    run.text = code_line
+                                    font = run.font
+                                    font.size = Pt(11)
+                                    font.name = "Courier New"
+                else:
+                    if contents:
+                        for content in contents:
+                            for code in content:
+                                parts = code.split("\r\n")
+                                for code_line in parts:
+                                    # Create paragraph and apply the ``CodeBlock`` style
+                                    p = self.sacrificial_doc.add_paragraph(code_line)
+                                    p.style = "CodeBlock"
+                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+            # OL & UL - Ordered/Numbered & Unordered Lists
+            elif tag_name in ("ol", "ul"):
+                # Ordered/numbered lists need numbers and linked paragraphs
+                prev_p = None
+                num = bool(tag_name == "ol")
+                # In HTML, sub-items in a list are nested HTML lists
+                # We need to check every list item for formatted and additional lists
+                # While tracking which level of the list we are working with
+                prev_p = self._parse_html_lists(tag, prev_p, num, 0)
+
+            # BLOCKQUOTE - Blockquote Sections
+            elif tag_name == "blockquote":
+                # Get the tag's contents to check for additional formatting
+                contents = tag.contents
+
+                # PowerPoint lacks a blockquote style, so we just add a basic paragraph
+                if self.report_type == "pptx":
+                    p = self.finding_body_shape.text_frame.add_paragraph()
+                else:
+                    p = self.sacrificial_doc.add_paragraph()
+                    p.style = "Blockquote"
+
+                # Pass the contents and new paragraph on to drill down into nested formatting
+                self._process_nested_html_tags(contents, p)
+            else:
+                if not isinstance(tag, NavigableString):
+                    logger.warning(
+                        "Encountered an unknown tag inside of the finding HTML: %s",
+                        tag_name,
+                    )
 
     def generate_word_docx(self):
         """Generate a complete Word document for the current report."""
@@ -1591,115 +1542,142 @@ class Reportwriter:
 
         p_style = self.report_queryset.docx_template.p_style
 
-        def render_subdocument(section, finding_or_report):
+        def render_subdocument(section, vars):
             if section:
                 self.sacrificial_doc = self.word_doc.new_subdoc()
-                self._process_text_xml(section, finding_or_report, p_style)
+                self._process_text_xml(section, vars, p_style)
                 return self.sacrificial_doc
             return None
 
-        self._process_extra_fields(context["extra_fields"], Report, lambda v: render_subdocument(v, finding_or_report=context))
+        base_context = {
+            # `{{.foo}}` converts to `{{obsolete.foo}}`
+            "_old_dot_vars": {
+                "client": self.report_json["client"]["short_name"] or self.report_json["client"]["name"],
+                "project_start": self.report_json["project"]["start_date"],
+                "project_end": self.report_json["project"]["end_date"],
+                "project_type": self.report_json["project"]["type"].lower(),
+            },
+            "report": self.report_json,
+
+            "evidence": _jinja_evidence,
+            "caption": _jinja_caption,
+            "ref": _jinja_ref,
+        }
+
+        self._process_extra_fields(context["extra_fields"], Report, lambda v: render_subdocument(v, base_context))
 
         # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
+
+            finding_context = base_context.copy()
+            finding_context.update({
+                "finding": finding,
+                "_old_dot_vars": base_context["_old_dot_vars"].copy(),
+            })
+            for evidence in finding["evidence"]:
+                if evidence.get("friendly_name"):
+                    finding_context["_old_dot_vars"][evidence["friendly_name"]] = _jinja_evidence(evidence["friendly_name"])
+
             # Create ``RichText()`` object for a colored severity category
             finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
             finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
             finding["cvss_vector_rt"] = RichText(finding["cvss_vector"], color=finding["severity_color"])
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding)
-            finding["description_rt"] = render_subdocument(finding["description"], finding)
-            finding["impact_rt"] = render_subdocument(finding["impact"], finding)
+            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding_context)
+            finding["description_rt"] = render_subdocument(finding["description"], finding_context)
+            finding["impact_rt"] = render_subdocument(finding["impact"], finding_context)
 
             # Include a copy of ``mitigation`` as ``recommendation`` to match legacy context
-            mitigation_section = render_subdocument(finding["mitigation"], finding)
+            mitigation_section = render_subdocument(finding["mitigation"], finding_context)
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding)
-            finding["host_detection_techniques_rt"] = render_subdocument(finding["host_detection_techniques"], finding)
+            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding_context)
+            finding["host_detection_techniques_rt"] = render_subdocument(finding["host_detection_techniques"], finding_context)
             finding["network_detection_techniques_rt"] = render_subdocument(
-                finding["network_detection_techniques"], finding
+                finding["network_detection_techniques"], finding_context
             )
-            finding["references_rt"] = render_subdocument(finding["references"], finding)
+            finding["references_rt"] = render_subdocument(finding["references"], finding_context)
 
-            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: render_subdocument(v, finding))  # pylint: disable=cell-var-from-loop
+            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: render_subdocument(v, finding_context))  # pylint: disable=cell-var-from-loop
 
         # Client
-        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], finding_or_report=None)
-        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], finding_or_report=None)
-        self._process_extra_fields(context["client"]["extra_fields"], Client, lambda v: render_subdocument(v, None))
+        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], base_context)
+        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], base_context)
+        self._process_extra_fields(context["client"]["extra_fields"], Client, lambda v: render_subdocument(v, base_context))
 
         # Project
-        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], finding_or_report=None)
-        self._process_extra_fields(context["project"]["extra_fields"], Project, lambda v: render_subdocument(v, None))
+        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], base_context)
+        self._process_extra_fields(context["project"]["extra_fields"], Project, lambda v: render_subdocument(v, base_context))
 
         # Assignments
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = render_subdocument(assignment["note"], finding_or_report=None)
+                    assignment["note_rt"] = render_subdocument(assignment["note"], base_context)
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = render_subdocument(contact["note"], finding_or_report=None)
+                    contact["note_rt"] = render_subdocument(contact["note"], base_context)
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = render_subdocument(objective["description"], finding_or_report=None)
+                    objective["description_rt"] = render_subdocument(objective["description"], base_context)
 
         # Scope Lists
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = render_subdocument(scope_list["description"], finding_or_report=None)
+                    scope_list["description_rt"] = render_subdocument(scope_list["description"], base_context)
 
         # Targets
         for target in context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = render_subdocument(target["note"], finding_or_report=None)
+                    target["note_rt"] = render_subdocument(target["note"], base_context)
 
         # Deconfliction Events
         for event in context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = render_subdocument(event["description"], finding_or_report=None)
+                    event["description_rt"] = render_subdocument(event["description"], base_context)
 
         # White Cards
         for card in context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = render_subdocument(card["description"], finding_or_report=None)
+                    card["description_rt"] = render_subdocument(card["description"], base_context)
 
         # Infrastructure
         for asset_type in context["infrastructure"]:
             for asset in context["infrastructure"][asset_type]:
                 if isinstance(asset, dict):
                     if asset["note"]:
-                        asset["note_rt"] = render_subdocument(asset["note"], finding_or_report=None)
+                        asset["note_rt"] = render_subdocument(asset["note"], base_context)
         for asset in context["infrastructure"]["domains"]:
-            self._process_extra_fields(asset["extra_fields"], Domain, lambda v: render_subdocument(v, None))
+            self._process_extra_fields(asset["extra_fields"], Domain, lambda v: render_subdocument(v, base_context))
         for asset in context["infrastructure"]["servers"]:
-            self._process_extra_fields(asset["extra_fields"], StaticServer, lambda v: render_subdocument(v, None))
+            self._process_extra_fields(asset["extra_fields"], StaticServer, lambda v: render_subdocument(v, base_context))
 
         # Logs
         for log in context["logs"]:
             for entry in log["entries"]:
-                self._process_extra_fields(entry["extra_fields"], OplogEntry, lambda v: render_subdocument(v, None))
+                self._process_extra_fields(entry["extra_fields"], OplogEntry, lambda v: render_subdocument(v, base_context))
 
         # Observations
         for observation in context["observations"]:
-            self._process_extra_fields(observation["extra_fields"], Observation, lambda v: render_subdocument(v, None))
+            if observation["description"]:
+                observation["description_rt"] = render_subdocument(observation["description"], base_context)
+            self._process_extra_fields(observation["extra_fields"], Observation, lambda v: render_subdocument(v, base_context))
 
         # Report Evidence
         # for evidence in context["evidence"]:
-        #    self._process_extra_fields(evidence["extra_fields"], Report, lambda v: render_subdocument(v, None))
+        #    self._process_extra_fields(evidence["extra_fields"], Report, lambda v: render_subdocument(v, base_context))
 
         return context
 
@@ -2521,3 +2499,19 @@ class TemplateLinter:
 
         logger.info("Template linting completed")
         return results
+
+
+def _jinja_evidence(evidence_name):
+    """
+    `{{evidence(name)}}` function in jinja.
+    """
+    return Markup("<span data-gw-evidence=\"" + html.escape(evidence_name) + "\"></span>")
+
+
+def _jinja_caption(caption_name):
+    return Markup("<span data-gw-caption=\"" + html.escape(caption_name) + "\"></span>")
+
+
+def _jinja_ref(ref_name):
+    return Markup("<span data-gw-ref=\"" + html.escape(ref_name) + "\"></span>")
+
