@@ -18,6 +18,10 @@ fake = PyFaker()
 # Factories select a choice from this list instead of using ``random.choice(TIMEZONES)``
 TIMEZONES = pytz.common_timezones
 
+# Manually remove timezones not present in PostgreSQL 11.12's `pg_timezone_names` table
+TIMEZONES.remove("Pacific/Kanton")
+TIMEZONES.remove("Europe/Kyiv")
+
 
 # Users Factories
 
