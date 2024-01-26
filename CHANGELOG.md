@@ -4,7 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### [4.0.5] - 12 January 2024
+## [4.0.6] - 25 January 2024
+
+### Fixed
+
+* Fixed an issue with timestamps in the activity log that could cause an error when importing a csv file
+
+### Changed
+
+* Activity log imports and exports now include the `entry_identifier` field
+* Activity log imports now check for duplicate entries based on the `entry_identifier` field and update the existing entry instead of creating a new entry
+
+### Security
+
+* Removed the /media location from the Nginx configuration to remove the potential for unauthorized access to uploaded files
+  * Please see security advisory for details: [https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-p796-9863-mwx8](https://github.com/GhostManager/Ghostwriter/security/advisories/GHSA-p796-9863-mwx8)
+* Updated Jinja2 to v3.1.3 to address CVE-2024-22195 (Reference [CVE-2024-22195](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-22195))
+
+## [4.0.5] - 12 January 2024
 
 ### Added
 

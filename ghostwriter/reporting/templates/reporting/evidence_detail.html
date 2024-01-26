@@ -80,7 +80,7 @@
 
     {% load static %}
     {% if filetype == 'image' %}
-        <img width=70% src="{{ evidence.document.url }}"/ >
+        <img width=70% src="{% url 'reporting:evidence_download' evidence.id %}" />
     {% elif filetype == 'text' %}
         {% if file_content %}
             {% for line in file_content %}

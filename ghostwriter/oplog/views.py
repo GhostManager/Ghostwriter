@@ -1,6 +1,7 @@
 """This contains all the views used by the Oplog application."""
 
 # Standard Libraries
+import collections
 import csv
 import logging
 
@@ -31,6 +32,28 @@ from ghostwriter.rolodex.models import Project
 
 # Using __name__ resolves to ghostwriter.oplog.views
 logger = logging.getLogger(__name__)
+
+
+def escape_message(message):
+    """
+    Escape single quotes, double quotes, newlines and other characters
+    that may break JavaScript.
+    """
+    # Replace single quotes
+    message = message.replace("'", "")
+    # Replace double quotes
+    message = message.replace('"', "")
+    # Replace newlines
+    message = message.replace("\n", "\\n")
+    # Replace carriage return
+    message = message.replace("\r", "\\r")
+    # Replace horizontal tab
+    message = message.replace("\t", "\\t")
+    # Replace backspace
+    message = message.replace("\b", "\\b")
+    # Replace form feed
+    message = message.replace("\f", "\\f")
+    return message
 
 
 ##################
@@ -89,6 +112,90 @@ class OplogMuteToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 ##################
 
 
+def validate_headers(imported_data):
+    """Validate the headers of the CSV file for an activity log import."""
+    headers = [
+        "entry_identifier",
+        "start_date",
+        "end_date",
+        "source_ip",
+        "dest_ip",
+        "tool",
+        "user_context",
+        "command",
+        "description",
+        "output",
+        "comments",
+        "operator_name",
+        "tags",
+    ]
+    return collections.Counter(imported_data.headers) == collections.Counter(headers)
+
+
+def validate_log_selection(user, oplog_id):
+    """Validate the log selection for an activity log import."""
+    bad_selection = False
+    if isinstance(oplog_id, str):
+        if oplog_id.isdigit():
+            oplog_id = int(oplog_id)
+    if oplog_id and isinstance(oplog_id, int):
+        try:
+            oplog = Oplog.objects.get(id=oplog_id)
+            if not verify_access(user, oplog.project):
+                bad_selection = True
+        except Oplog.DoesNotExist:
+            bad_selection = True
+    else:
+        bad_selection = True
+    return not bad_selection
+
+
+def import_data(request, oplog_id, new_entries, dry_run=False):
+    """Import the data into a dataset for validation and import."""
+    dataset = Dataset()
+    oplog_entry_resource = OplogEntryResource()
+    imported_data = dataset.load(new_entries, format="csv")
+
+    if "oplog_id" in imported_data.headers:
+        del imported_data["oplog_id"]
+
+    if validate_headers(imported_data):
+        imported_data.append_col([oplog_id] * len(imported_data), header="oplog_id")
+        result = oplog_entry_resource.import_data(imported_data, dry_run=dry_run)
+        return result
+
+    messages.error(
+        request,
+        "Your log file needs the required header row and at least one entry.",
+        extra_tags="alert-error",
+    )
+    return None
+
+
+def handle_errors(request, result):
+    """Handle errors from a dry run of an activity log import."""
+    row_errors = result.row_errors()
+    for exc in row_errors:
+        error_message = escape_message(f"There was an error in row {exc[0]}: {exc[1][0].error}")
+        logger.error(error_message)
+        messages.error(
+            request,
+            error_message,
+            extra_tags="alert-danger",
+        )
+    for invalid_row in result.invalid_rows:
+        error = str(invalid_row.error).replace("'", "")
+        error_message = escape_message(
+            f"There was a validation error in row {invalid_row.number} with these errors: {error}"
+        )
+        logger.error(error_message)
+        messages.error(
+            request,
+            error_message,
+            extra_tags="alert-danger",
+        )
+
+
 @login_required
 def oplog_entries_import(request):
     """
@@ -99,66 +206,29 @@ def oplog_entries_import(request):
 
     :template:`oplog/oplog_import.html`
     """
+
     logs = get_logs_list(request.user)
     if request.method == "POST":
-        bad_selection = False
         oplog_id = request.POST.get("oplog_id")
-        oplog_entry_resource = OplogEntryResource()
-
-        if isinstance(oplog_id, str):
-            if oplog_id.isdigit():
-                oplog_id = int(oplog_id)
-        if oplog_id and isinstance(oplog_id, int):
-            try:
-                oplog = Oplog.objects.get(id=oplog_id)
-                if not verify_access(request.user, oplog.project):
-                    bad_selection = True
-            except Oplog.DoesNotExist:
-                bad_selection = True
-        else:
-            bad_selection = True
-
-        if bad_selection:
-            messages.error(
-                request,
-                "You selected an invalid log.",
-                extra_tags="alert-error",
-            )
-            return HttpResponseRedirect(reverse("oplog:oplog_import"))
-
         new_entries = request.FILES["csv_file"].read().decode("iso-8859-1")
-        dataset = Dataset()
 
-        imported_data = dataset.load(new_entries, format="csv")
-        if not imported_data.headers:
+        if not new_entries or not validate_log_selection(request.user, oplog_id):
             messages.error(
-                request,
-                "Your log file is missing the header row.",
-                extra_tags="alert-error",
+                request, "Your log file needs the required header row and at least one entry.", extra_tags="alert-error"
             )
             return HttpResponseRedirect(reverse("oplog:oplog_import"))
 
-        if "oplog_id" in imported_data.headers:
-            del imported_data["oplog_id"]
-        imported_data.append_col([oplog_id] * len(imported_data), header="oplog_id")
+        imported_data = import_data(request, oplog_id, new_entries, dry_run=True)
 
-        result = oplog_entry_resource.import_data(imported_data, dry_run=True)
-        if result.has_errors():
-            row_errors = result.row_errors()
-            for exc in row_errors:
-                messages.error(
-                    request,
-                    f"There was an error in row {exc[0]}: {exc[1][0].error}",
-                    extra_tags="alert-danger",
-                )
+        if imported_data is None:
             return HttpResponseRedirect(reverse("oplog:oplog_import"))
 
-        oplog_entry_resource.import_data(imported_data, format="csv", dry_run=False)
-        messages.success(
-            request,
-            "Successfully imported log data",
-            extra_tags="alert-success",
-        )
+        if imported_data.has_errors() or imported_data.has_validation_errors():
+            handle_errors(request, imported_data)
+            return HttpResponseRedirect(reverse("oplog:oplog_import"))
+
+        import_data(request, oplog_id, new_entries)
+        messages.success(request, "Successfully imported log data.", extra_tags="alert-success")
         return HttpResponseRedirect(reverse("oplog:oplog_entries", kwargs={"pk": oplog_id}))
 
     return render(request, "oplog/oplog_import.html", context={"logs": logs})

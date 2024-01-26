@@ -1805,6 +1805,30 @@ class ReportTemplateDownload(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
         raise Http404
 
 
+class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """Return the target :model:`reporting.Evidence` file for download."""
+
+    model = Evidence
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().finding.report.project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+        file_path = os.path.join(settings.MEDIA_ROOT, obj.document.path)
+        if os.path.exists(file_path):
+            return FileResponse(
+                open(file_path, "rb"),
+                as_attachment=True,
+                filename=os.path.basename(file_path),
+            )
+        raise Http404
+
+
 class GenerateReportJSON(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """Generate a JSON report for an individual :model:`reporting.Report`."""
 
