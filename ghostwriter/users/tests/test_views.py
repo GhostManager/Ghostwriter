@@ -287,8 +287,11 @@ class AvatarDownloadTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
+        cls.username_with_period = UserFactory(username="first.last", password=PASSWORD)
         cls.uri = reverse("users:avatar_download", kwargs={"slug": cls.user.username})
         cls.user_profile = UserProfile.objects.get(user=cls.user)
+        cls.missing_user_uri = reverse("users:avatar_download", kwargs={"slug": "missing_user"})
+        cls.period_uri = reverse("users:avatar_download", kwargs={"slug": cls.username_with_period.username})
 
         image_data = b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
@@ -321,6 +324,14 @@ class AvatarDownloadTest(TestCase):
     def test_view_requires_login(self):
         response = self.client.get(self.uri)
         self.assertEqual(response.status_code, 302)
+
+    def test_non_existent_user(self):
+        response = self.client_auth.get(self.missing_user_uri)
+        self.assertEqual(response.status_code, 404)
+
+    def test_username_with_period(self):
+        response = self.client_auth.get(self.period_uri)
+        self.assertEqual(response.status_code, 200)
 
     def test_view_returns_correct_image(self):
         self.user_profile.avatar = self.uploaded_image_file
