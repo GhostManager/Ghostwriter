@@ -1280,7 +1280,7 @@ class Reportwriter:
         # Return last paragraph created
         return p
 
-    def _process_text_xml(self, text, template_vars=None, p_style=None):
+    def _process_text_xml(self, text, template_vars={}, p_style=None):
         """
         Process the provided text from the specified finding to parse keywords for
         evidence placement and formatting for Office XML.
@@ -1529,26 +1529,17 @@ class Reportwriter:
         # Return the final rendered document
         return self.word_doc
 
-    def _process_richtext(self, context: dict) -> dict:
+    def _render_subdocument(self, section, vars, p_style):
+        if section:
+            self.sacrificial_doc = self.word_doc.new_subdoc()
+            self._process_text_xml(section, vars, p_style)
+            return self.sacrificial_doc
+        return None
+
+    def _jinja_richtext_base_context(self) -> dict:
         """
-        Update the document context with ``RichText`` and ``Subdocument`` objects for
-        each finding and any other values editable with a WYSIWYG editor.
-
-        **Parameters**
-
-        ``context``
-            Pre-defined template context
+        Generates a Jinja context for use in rich text fields
         """
-
-        p_style = self.report_queryset.docx_template.p_style
-
-        def render_subdocument(section, vars):
-            if section:
-                self.sacrificial_doc = self.word_doc.new_subdoc()
-                self._process_text_xml(section, vars, p_style)
-                return self.sacrificial_doc
-            return None
-
         base_context = {
             # `{{.foo}}` converts to `{{obsolete.foo}}`
             "_old_dot_vars": {
@@ -1563,21 +1554,49 @@ class Reportwriter:
             "caption": _jinja_caption,
             "ref": _jinja_ref,
         }
+        return base_context
 
-        self._process_extra_fields(context["extra_fields"], Report, lambda v: render_subdocument(v, base_context))
+    def _jinja_richtext_finding_context(self, base_context: dict, finding) -> dict:
+        """
+        Generates a Jinja context for use in finding-related rich text fields
+        """
+        finding_context = base_context.copy()
+        finding_context.update({
+            "finding": finding,
+            "_old_dot_vars": base_context["_old_dot_vars"].copy(),
+        })
+        for evidence in finding["evidence"]:
+            if evidence.get("friendly_name"):
+                finding_context["_old_dot_vars"][evidence["friendly_name"]] = _jinja_evidence(evidence["friendly_name"])
+        return finding_context
+
+    def _process_richtext(self, context: dict) -> dict:
+        """
+        Update the document context with ``RichText`` and ``Subdocument`` objects for
+        each finding and any other values editable with a WYSIWYG editor.
+
+        **Parameters**
+
+        ``context``
+            Pre-defined template context
+        """
+
+        p_style = self.report_queryset.docx_template.p_style
+
+        def render_subdocument(section, vars):
+            return self._render_subdocument(section, vars, p_style)
+
+        base_context = self._jinja_richtext_base_context()
+
+        self._process_extra_fields(context["extra_fields"], Report, lambda v: self._render_subdocument(v, base_context, p_style))
 
         # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
 
-            finding_context = base_context.copy()
-            finding_context.update({
-                "finding": finding,
-                "_old_dot_vars": base_context["_old_dot_vars"].copy(),
-            })
-            for evidence in finding["evidence"]:
-                if evidence.get("friendly_name"):
-                    finding_context["_old_dot_vars"][evidence["friendly_name"]] = _jinja_evidence(evidence["friendly_name"])
+            finding_context = self._jinja_richtext_finding_context(base_context, finding)
+
+            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: self._render_subdocument(v, finding_context, p_style))  # pylint: disable=cell-var-from-loop
 
             # Create ``RichText()`` object for a colored severity category
             finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
@@ -1599,8 +1618,6 @@ class Reportwriter:
                 finding["network_detection_techniques"], finding_context
             )
             finding["references_rt"] = render_subdocument(finding["references"], finding_context)
-
-            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: render_subdocument(v, finding_context))  # pylint: disable=cell-var-from-loop
 
         # Client
         context["client"]["note_rt"] = render_subdocument(context["client"]["note"], base_context)
@@ -1921,6 +1938,8 @@ class Reportwriter:
 
         self.report_type = "pptx"
 
+        base_context = self._jinja_richtext_base_context()
+
         # Create document writer using the specified template
         try:
             self.ppt_presentation = Presentation(self.template_loc)
@@ -2061,9 +2080,8 @@ class Reportwriter:
             1,
         )
 
-        # This is required because `_process_text_xml()` expects a `finding` object and a `finding_body_shape` object
         self.finding_body_shape = shapes.placeholders[1]
-        self._process_text_xml(self.report_json["project"]["note"], 1)
+        self._process_text_xml(self.report_json["project"]["note"], base_context)
         # The `_process_text_xml()` method adds a new paragraph, so we need to get the last one to increase the indent level
         text_frame = get_textframe(self.finding_body_shape)
         p = text_frame.paragraphs[-1]
@@ -2180,19 +2198,25 @@ class Reportwriter:
                 text_frame = get_textframe(self.finding_body_shape)
                 text_frame.clear()
                 self._delete_paragraph(text_frame.paragraphs[0])
+            else:
+                text_frame = None
 
             # Set slide title to title + [severity]
             title_shape.text = f'{finding["title"]} [{finding["severity"]}]'
 
             # Add description to the slide body (other sections will appear in the notes)
-            if finding["description"]:
-                self._process_text_xml(finding["description"], finding)
+            if finding.get("description", "").strip():
+                finding_context = self._jinja_richtext_finding_context(base_context, finding)
+                self._process_text_xml(finding["description"], finding_context)
             else:
-                self._process_text_xml("<p>No description provided</p>", finding)
+                self._process_text_xml("<p>No description provided</p>", {})
 
-            if "evidence" in finding:
-                for ev in finding["evidence"]:
-                    self._process_evidence(ev, par=None)
+            for ev in finding.get("evidence", []):
+                self._process_evidence(ev, par=None)
+
+            # Ensure there is at least one paragraph, as required by the spec
+            if text_frame is not None and not text_frame.paragraphs:
+                text_frame.add_paragraph()
 
             # Add all finding data to the notes section for easier reference during edits
             entities = prepare_for_pptx(finding["affected_entities"])
