@@ -2032,11 +2032,14 @@ class Reportwriter:
         body_shape = shapes.placeholders[1]
         text_frame = get_textframe(body_shape)
         text_frame.clear()
-        self._delete_paragraph(text_frame.paragraphs[0])
 
-        for member in self.report_json["team"]:
-            write_bullet(text_frame, f"{member['name']} – {member['role']}", 0)
-            write_bullet(text_frame, member["email"], 1)
+        if self.report_json["team"]:
+            # Frame needs at least one paragraph to be valid, so don't delete the paragraph
+            # if there are no team members
+            self._delete_paragraph(text_frame.paragraphs[0])
+            for member in self.report_json["team"]:
+                write_bullet(text_frame, f"{member['name']} – {member['role']}", 0)
+                write_bullet(text_frame, member["email"], 1)
 
         # Add Assessment Details slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -2514,4 +2517,3 @@ def _jinja_caption(caption_name):
 
 def _jinja_ref(ref_name):
     return Markup("<span data-gw-ref=\"" + html.escape(ref_name) + "\"></span>")
-
