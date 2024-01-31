@@ -36,3 +36,22 @@
 
     {% crispy form form.helper %}
 {% endblock %}
+
+{% block morescripts %}
+    <script>
+        let evidenceFiles = [
+            {text: '\{\{.client\}\}', value: '\{\{.client\}\}'},
+            {text: '\{\{.caption\}\}', value: '\{\{.caption\}\}'},
+            {text: '\{\{.project_start\}\}', value: '\{\{.project_start\}\}'},
+            {text: '\{\{.project_end\}\}', value: '\{\{.project_end\}\}'},
+            {text: '\{\{.project_type\}\}', value: '\{\{.project_type\}\}'},
+            {% for evidence in report.evidence_set.all %}
+                {
+                text: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}',
+                value: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}'
+                },
+            {% endfor %}
+        ];
+        window.upload_url = "{{ evidence_upload_url|escapejs }}";
+    </script>
+{% endblock %}

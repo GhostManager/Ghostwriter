@@ -152,7 +152,7 @@ class ExtraFieldsField(forms.Field):
 
 
 class SingleExtraFieldForm(forms.Form):
-    def __init__(self, field_spec: ExtraFieldSpec, *args, **kwargs):
+    def __init__(self, field_spec: ExtraFieldSpec, *args, create_crispy_field=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         field = field_spec.form_field()
@@ -162,8 +162,14 @@ class SingleExtraFieldForm(forms.Form):
         self.helper = FormHelper()
         self.helper.form_show_labels = True
         self.helper.form_method = "post"
+
+        if create_crispy_field is not None:
+            crispy_field = create_crispy_field(field_spec)
+        else:
+            crispy_field = Field(field_spec.internal_name)
+
         self.helper.layout = Layout(
-            Field(field_spec.internal_name),
+            crispy_field,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

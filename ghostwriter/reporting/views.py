@@ -41,6 +41,7 @@ from channels.layers import get_channel_layer
 from docx.image.exceptions import UnrecognizedImageError
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
+from crispy_forms.layout import Field
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -1721,26 +1722,30 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
     def run(self, request, pk, extra_field_name):
         report = self.get_object()
         field_spec = get_object_or_404(ExtraFieldSpec, target_model=Report._meta.label, internal_name=extra_field_name)
+        form = SingleExtraFieldForm(
+            field_spec,
+            request.POST if request.method == "POST" else None,
+            initial={field_spec.internal_name: report.extra_fields.get(field_spec.internal_name)},
+            create_crispy_field=self._create_crispy_field,
+        )
         if request.method == "POST":
-            form = SingleExtraFieldForm(
-                field_spec,
-                request.POST,
-            )
             if form.is_valid():
                 report.extra_fields[field_spec.internal_name] = form.cleaned_data[field_spec.internal_name]
                 report.save()
                 return redirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields")
-        else:
-            form = SingleExtraFieldForm(
-                field_spec,
-                initial={field_spec.internal_name: report.extra_fields.get(field_spec.internal_name)},
-            )
 
         return render(request, "reporting/report_extra_field_edit.html", {
             "form": form,
             "report": report,
             "field_spec": field_spec,
-            "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields",
+            "evidence_upload_url": reverse(
+                "reporting:upload_evidence_modal",
+                kwargs={"parent_type": "report", "pk": report.id, "modal": "modal"},
+            ),
+            "cancel_link": reverse(
+                "reporting:report_detail",
+                kwargs={"pk": report.pk}
+            ) + "#extra-fields",
         })
 
     def get(self, request, pk, extra_field_name):
@@ -1748,6 +1753,13 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
 
     def post(self, request, pk, extra_field_name):
         return self.run(request, pk, extra_field_name)
+
+    @staticmethod
+    def _create_crispy_field(spec):
+        if spec.type == "rich_text":
+            return Field(spec.internal_name, css_class="enable-evidence-upload")
+        else:
+            return Field(spec.internal_name)
 
 
 class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
