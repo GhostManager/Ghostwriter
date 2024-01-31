@@ -1307,7 +1307,7 @@ class Reportwriter:
             elif contents.startswith("caption "):
                 return _jinja_caption(contents[8:].strip())
             else:
-                return "{{ _old_dot_vars." + contents.strip() + "}}"
+                return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
         text_old_dot_subbed = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
 
         # Run template
