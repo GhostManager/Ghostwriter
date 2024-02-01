@@ -2,6 +2,7 @@
 
 # Django Imports
 from django import forms
+from django.db.models import Q
 from django.forms.widgets import TextInput
 
 # 3rd Party Libraries
@@ -29,9 +30,9 @@ class FindingFilter(django_filters.FilterSet):
     """
 
     title = django_filters.CharFilter(
-        lookup_expr="icontains",
+        method="search_titles_and_tags",
         label="Finding Title Contains",
-        widget=TextInput(attrs={"placeholder": "Partial Finding Title", "autocomplete": "off"}),
+        widget=TextInput(attrs={"placeholder": "Partial Finding Title or Tag", "autocomplete": "off"}),
     )
     severity = django_filters.ModelMultipleChoiceFilter(
         queryset=Severity.objects.all().order_by("weight"),
@@ -92,6 +93,10 @@ class FindingFilter(django_filters.FilterSet):
                 css_class="justify-content-center",
             ),
         )
+
+    def search_titles_and_tags(self, queryset, name, value):
+        """Search all the finding names and tags."""
+        return queryset.filter(Q(title__icontains=value) | Q(tags__name__in=[value])).distinct()
 
 
 class ObservationFilter(django_filters.FilterSet):
