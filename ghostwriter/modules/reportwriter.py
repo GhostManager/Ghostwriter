@@ -1554,6 +1554,9 @@ class Reportwriter:
             "caption": _jinja_caption,
             "ref": _jinja_ref,
         }
+        for evidence in self.report_json["evidence"]:
+            if evidence.get("friendly_name"):
+                base_context["_old_dot_vars"][evidence["friendly_name"]] = _jinja_evidence(evidence["friendly_name"])
         return base_context
 
     def _jinja_richtext_finding_context(self, base_context: dict, finding) -> dict:
