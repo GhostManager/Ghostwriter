@@ -109,6 +109,23 @@ class TemplateTagTests(TestCase):
         for group in severity_dict:
             self.assertEqual(report_tags.get_item(severity_dict, group), severity_dict.get(group))
 
+    def test_file_filers(self):
+        img_evidence = EvidenceOnFindingFactory(img=True)
+        txt_evidence = EvidenceOnFindingFactory(txt=True)
+        unknown_evidence = EvidenceOnFindingFactory(unknown=True)
+        deleted_evidence = EvidenceOnFindingFactory()
+        os.remove(deleted_evidence.document.path)
+
+        self.assertTrue(report_tags.get_file_type(img_evidence) == "image")
+        self.assertTrue(report_tags.get_file_type(txt_evidence) == "text")
+        self.assertTrue(report_tags.get_file_type(unknown_evidence) == "unknown")
+        self.assertTrue(report_tags.get_file_type(deleted_evidence) == "missing")
+
+        self.assertEqual(report_tags.get_file_content(txt_evidence), ["lorem ipsum"])
+        self.assertEqual(report_tags.get_file_content(deleted_evidence), ["FILE NOT FOUND"])
+
+        self.assertEqual(report_tags.get_file_basename(txt_evidence), "evidence.txt")
+
 
 # Tests related to report modification actions
 
@@ -1363,34 +1380,6 @@ class EvidenceDetailViewTests(TestCase):
         response = self.client_mgr.get(self.img_uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/evidence_detail.html")
-
-    def test_custom_context_exists_img(self):
-        response = self.client_mgr.get(self.img_uri)
-        self.assertIn("filetype", response.context)
-        self.assertIn("evidence", response.context)
-        self.assertIn("file_content", response.context)
-        self.assertEqual(
-            response.context["filetype"],
-            "image",
-        )
-        self.assertEqual(
-            response.context["evidence"],
-            self.img_evidence,
-        )
-
-    def test_custom_context_exists_txt(self):
-        response = self.client_mgr.get(self.txt_uri)
-        self.assertEqual(
-            response.context["filetype"],
-            "text",
-        )
-
-    def test_custom_context_exists_unknown(self):
-        response = self.client_mgr.get(self.unknown_uri)
-        self.assertEqual(
-            response.context["filetype"],
-            "unknown",
-        )
 
 
 class BaseEvidenceCreateViewTests:
