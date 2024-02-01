@@ -280,7 +280,7 @@ class Command(BaseCommand):
                 for _ in range(ENTRIES_PER_OPLOG):
                     OplogEntryFactory(
                         oplog_id=log,
-                        operator_name=random.choice(assignments).operator,
+                        operator_name=random.choice(assignments).operator.username,
                         source_ip=random.choice(targets).ip_address,
                         dest_ip=random.choice(targets).ip_address,
                     )
