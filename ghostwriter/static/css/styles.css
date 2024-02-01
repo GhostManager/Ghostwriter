@@ -1989,6 +1989,10 @@ th.icon {
   content: '\f044';
 }
 
+.edit-icon-right:after {
+  content: '\f044';
+}
+
 .redo-icon:before {
   content: '\f01e';
 }
