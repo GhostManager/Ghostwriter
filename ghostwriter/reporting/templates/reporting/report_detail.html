@@ -76,14 +76,15 @@
           <span class="col-1">
             {% if report.complete %}
               <a title="Mark report as incomplete" data-toggle="tooltip" href="javascript:void(0)"
-                class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
-                toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
-                toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-on"></i></a>
+                 class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
+                 toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
+                 toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon"
+                                                              class="fas fa-toggle-on"></i></a>
             {% else %}
               <a title="Mark report as complete" data-toggle="tooltip" href="javascript:void(0)"
-                class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
-                toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
-                toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
+                 class="clickable-link js-toggle-report-status" toggle-report-status-csrftoken="{{ csrf_token }}"
+                 toggle-report-status-url="{% url 'reporting:ajax_toggle_report_status' report.id %}"
+                 toggle-report-status-id="{{ report.id }}"><i id="js-report-status-icon" class="fas fa-toggle-off"></i></a>
             {% endif %}
           </span>
         </h6>
@@ -100,14 +101,15 @@
           <span class="col-1">
             {% if report.delivered %}
               <a title="Mark report as not delivered" data-toggle="tooltip" href="javascript:void(0)"
-                class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
-                toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
-                toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon" class="fas fa-toggle-on"></i></a>
+                 class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
+                 toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
+                 toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon"
+                                                                class="fas fa-toggle-on"></i></a>
             {% else %}
               <a title="Mark report as delivered" data-toggle="tooltip" href="javascript:void(0)"
-                class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
-                toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
-                toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon"
+                 class="clickable-link js-toggle-delivery-status" toggle-delivery-status-csrftoken="{{ csrf_token }}"
+                 toggle-delivery-status-url="{% url 'reporting:ajax_toggle_report_delivery' report.id %}"
+                 toggle-delivery-status-id="{{ report.id }}"><i id="js-delivery-status-icon"
                                                                 class="fas fa-toggle-off"></i></a>
             {% endif %}
           </span>
@@ -119,7 +121,8 @@
         <h4>Current Findings</h4>
         <hr>
 
-        <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired
+        <p>Attach findings by searching and then clicking the <span class="p-1 add-icon"></span> button next to your
+          desired
           finding.</p>
 
         <!-- Search Section -->
@@ -130,21 +133,22 @@
                 <span class="input-group-text fa fa-search" id="report-findings-search"></span>
               </div>
               <input id="id_search" autocomplete="off" type="text" class="form-control" name="finding"
-                    placeholder="Search Findings..." aria-label="findings" aria-describedby="report-findings-search">
+                     placeholder="Search Findings..." aria-label="findings" aria-describedby="report-findings-search">
             </div>
             <input type="submit" style="display: none"/>
           </div>
         </form>
 
         <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
-                          href="{% url 'reporting:assign_blank_finding' report.id %}" data-toggle="tooltip"
-                          data-placement="top" title="Add a blank finding template to the bottom of the report">Add a Blank
+                           href="{% url 'reporting:assign_blank_finding' report.id %}" data-toggle="tooltip"
+                           data-placement="top" title="Add a blank finding template to the bottom of the report">Add a
+          Blank
           Finding</a></p>
 
         <!-- Finding Table Section -->
         {% if report.reportfindinglink_set.all %}
           <table id="findings-table" class="table table-sm table-hover"
-                findings-update-url="{% url 'reporting:update_report_findings' %}">
+                 findings-update-url="{% url 'reporting:update_report_findings' %}">
             <tr>
               <th class="icon ol-list-icon text-center"></th>
               <th class="align-middle">Finding</th>
@@ -153,8 +157,10 @@
                 <div class="dropdown dropleft">
                   <span id="evidence-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                         aria-expanded="false">Evidence</span>
-                  <div id="evidence-info" class="dropdown-menu dropdown-info-content" aria-labelledby="evidence-info-btn">
-                    <p>Attach evidence to findings - such as text files, log files, script snippets, and screenshots - to
+                  <div id="evidence-info" class="dropdown-menu dropdown-info-content"
+                       aria-labelledby="evidence-info-btn">
+                    <p>Attach evidence to findings - such as text files, log files, script snippets, and screenshots -
+                      to
                       have them included with the finding in the generated reports.</p>
                   </div>
                 </div>
@@ -164,7 +170,8 @@
                   <span id="owner-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                         aria-expanded="false">Owner</span>
                   <div id="owner-info" class="dropdown-menu dropdown-info-content" aria-labelledby="owner-info-btn">
-                    <p>The assigned user is the person responsible for writing this finding. The assigned individual will
+                    <p>The assigned user is the person responsible for writing this finding. The assigned individual
+                      will
                       have a link to the finding on their dashboard.</p>
                   </div>
                 </div>
@@ -174,7 +181,8 @@
                   <span id="status-info-btn" class="dropdown-info" data-toggle="dropdown" aria-haspopup="true"
                         aria-expanded="false">Status</span>
                   <div id="status-info" class="dropdown-menu dropdown-info-content" aria-labelledby="status-info-btn">
-                    <p>Mark a finding as ready or in need of editing. Findings marked as in need of editing will appear on
+                    <p>Mark a finding as ready or in need of editing. Findings marked as in need of editing will appear
+                      on
                       the assigned user's dashboard.</p>
                   </div>
                 </div>
@@ -188,7 +196,8 @@
               <th id="{{ values.tpl_name }}_header" class="severity-header {{ values.tpl_name }}" colspan="7"
                   scope="colgroup">{{ group }}</th>
               </tbody>
-              <tbody id="{{ values.tpl_name }}_severity" class="sortable_list connected_sortable" severity-weight="{{ values.weight }}">
+              <tbody id="{{ values.tpl_name }}_severity" class="sortable_list connected_sortable"
+                     severity-weight="{{ values.weight }}">
               {% if values.findings %}
                 {% for finding in values.findings %}
                   <tr id="finding_{{ finding.id }}" data-id="{{ finding.id }}" class="severity_row">
@@ -201,12 +210,12 @@
                     <td class="align-middle">
                       <a id="delete-target-content-finding-{{ finding.id }}"
                         {% if finding.added_as_blank %}
-                        class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
-                        title="Finding started as a blank template, not from the finding library"
+                         class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
+                         title="Finding started as a blank template, not from the finding library"
                         {% else %}
-                        class="clickable"
+                         class="clickable"
                         {% endif %}
-                        href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
+                         href="{% url 'reporting:local_edit' finding.id %}">{{ finding.title }}
                       </a>
                     </td>
                     <td class="neutral align-middle
@@ -234,32 +243,38 @@
                     {% if finding.evidence_set.all %}
                       <td class="align-middle">
                         <div class="card mb-0" id="accordion-{{ finding.id }}" role="tablist">
-                          <div class="card-header collapsed" data-toggle="collapse" data-target="#accordion-evidences-{{ finding.id }}" role="tab" aria-expanded="false">
+                          <div class="card-header collapsed" data-toggle="collapse"
+                               data-target="#accordion-evidences-{{ finding.id }}" role="tab" aria-expanded="false">
                             <h5 class="mb-0">
-                              <a data-toggle="collapse" href="#accordion-evidences-{{ finding.id }}" aria-expanded="false" aria-controls="accordion-evidences-{{ finding.id }}" class="collapsed">
+                              <a data-toggle="collapse" href="#accordion-evidences-{{ finding.id }}"
+                                 aria-expanded="false" aria-controls="accordion-evidences-{{ finding.id }}"
+                                 class="collapsed">
                                 Evidence Files
                               </a>
                             </h5>
                           </div>
-                          <div id="accordion-evidences-{{ finding.id }}" class="collapse" role="tabpanel" aria-labelledby="accordion-evidences-{{ finding.id }}" data-parent="#accordion-{{ finding.id }}" style="">
-                          <div class="card-body">
-                            {% for evidence_file in finding.evidence_set.all %}
-                              <div class="dropdown">
-                                <button id="evidence-dropdown-btn-{{ evidence.id }}" class="dropdown-menu-btn-evidence"
-                                    data-toggle="dropdown" aria-haspopup="true"
-                                    aria-expanded="false">{{ evidence_file.friendly_name }}</button>
-                                <div id="evidence-dropdown-menu-{{ evidence.id }}" class="dropdown-menu"
-                                    aria-labelledby="evidence-dropdown-btn-{{ evidence.id }}">
-                                  <a class="dropdown-item icon view-icon"
-                                    href="{% url 'reporting:evidence_detail' evidence_file.id %}">View</a>
-                                  <a class="dropdown-item icon edit-icon"
-                                    href="{% url 'reporting:evidence_update' evidence_file.id %}">Edit</a>
-                                  <a class="dropdown-item icon trash-icon"
-                                    href="{% url 'reporting:evidence_delete' evidence_file.id %}">Delete</a>
+                          <div id="accordion-evidences-{{ finding.id }}" class="collapse" role="tabpanel"
+                               aria-labelledby="accordion-evidences-{{ finding.id }}"
+                               data-parent="#accordion-{{ finding.id }}" style="">
+                            <div class="card-body">
+                              {% for evidence_file in finding.evidence_set.all %}
+                                <div class="dropdown">
+                                  <button id="evidence-dropdown-btn-{{ evidence.id }}"
+                                          class="dropdown-menu-btn-evidence"
+                                          data-toggle="dropdown" aria-haspopup="true"
+                                          aria-expanded="false">{{ evidence_file.friendly_name }}</button>
+                                  <div id="evidence-dropdown-menu-{{ evidence.id }}" class="dropdown-menu"
+                                       aria-labelledby="evidence-dropdown-btn-{{ evidence.id }}">
+                                    <a class="dropdown-item icon view-icon"
+                                       href="{% url 'reporting:evidence_detail' evidence_file.id %}">View</a>
+                                    <a class="dropdown-item icon edit-icon"
+                                       href="{% url 'reporting:evidence_update' evidence_file.id %}">Edit</a>
+                                    <a class="dropdown-item icon trash-icon"
+                                       href="{% url 'reporting:evidence_delete' evidence_file.id %}">Delete</a>
+                                  </div>
                                 </div>
-                              </div>
                                 <hr>
-                            {% endfor %}
+                              {% endfor %}
                               <a
                                 class="icon lg-attach-icon"
                                 href="{% url 'reporting:upload_evidence' 'finding' finding.id %}"
@@ -298,9 +313,9 @@
                       <span id="finding-status-{{ finding.id }}" class="
                         {% if finding.complete %}
                           healthy">Ready
-                        {% else %}
-                          burned"> Needs Editing
-                        {% endif %}
+                      {% else %}
+                        burned"> Needs Editing
+                      {% endif %}
                       </span>
                     </td>
                     <td class="align-middle">
@@ -308,27 +323,29 @@
                         <button id="finding-dropdown-btn-{{ finding.id }}" class="dropdown-menu-btn-table"
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                         <div id="finding-dropdown-menu-{{ finding.id }}" class="dropdown-menu"
-                            aria-labelledby="dns-dropdown-btn_{{ finding.id }}">
-                          <a class="dropdown-item icon attach-icon" href="{% url 'reporting:upload_evidence' 'finding' finding.id %}">Attach
+                             aria-labelledby="dns-dropdown-btn_{{ finding.id }}">
+                          <a class="dropdown-item icon attach-icon"
+                             href="{% url 'reporting:upload_evidence' 'finding' finding.id %}">Attach
                             Evidence</a>
                           <a class="dropdown-item icon edit-icon"
-                            href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
+                             href="{% url 'reporting:local_edit' finding.id %}">Edit</a>
                           <a class="dropdown-item icon toggle-off-icon js-set-finding-status" href="javascript:void(0);"
-                            set-finding-status-csrftoken="{{ csrf_token }}"
-                            set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"
-                            set-finding-status="edit" set-finding-status-id="{{ finding.id }}">Flag for Editing</a>
+                             set-finding-status-csrftoken="{{ csrf_token }}"
+                             set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'edit' %}"
+                             set-finding-status="edit" set-finding-status-id="{{ finding.id }}">Flag for Editing</a>
                           <a class="dropdown-item icon toggle-on-icon js-set-finding-status" href="javascript:void(0);"
-                            set-finding-status-csrftoken="{{ csrf_token }}"
-                            set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
-                            set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
-                          <a class="dropdown-item icon clone-icon" href="{% url 'reporting:convert_finding' finding.id %}">Clone
+                             set-finding-status-csrftoken="{{ csrf_token }}"
+                             set-finding-status-url="{% url 'reporting:ajax_set_finding_status' finding.id 'complete' %}"
+                             set-finding-status="complete" set-finding-status-id="{{ finding.id }}">Mark as Complete</a>
+                          <a class="dropdown-item icon clone-icon"
+                             href="{% url 'reporting:convert_finding' finding.id %}">Clone
                             to Library</a>
                           <a id="finding-delete-button-{{ finding.id }}"
-                            class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
-                            data-target="#confirm-delete-modal" href="javascript:void(0);"
-                            delete-target-csrftoken="{{ csrf_token }}"
-                            delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id %}"
-                            delete-target-id="{{ finding.id }}" delete-target-type="finding">Delete</a>
+                             class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
+                             data-target="#confirm-delete-modal" href="javascript:void(0);"
+                             delete-target-csrftoken="{{ csrf_token }}"
+                             delete-target-url="{% url 'reporting:ajax_delete_local_finding' finding.id %}"
+                             delete-target-id="{{ finding.id }}" delete-target-type="finding">Delete</a>
                         </div>
                       </div>
                     </td>
@@ -337,7 +354,8 @@
               {% else %}
                 <tr id="{{ group|lower }}_placeholder" data-id="{{ group|lower }}_placeholder"
                     class="severity-row-placeholder">
-                  <td colspan="7" scope="colgroup">Add {{ group }} findings or drag-and-drop a finding here to update its
+                  <td colspan="7" scope="colgroup">Add {{ group }} findings or drag-and-drop a finding here to update
+                    its
                     severity.
                   </td>
                 </tr>
@@ -355,7 +373,8 @@
         <h4>Current Observation</h4>
         <hr>
 
-        <p>Attach observations by searching and then clicking the <span class="p-1 add-icon"></span> button next to your desired
+        <p>Attach observations by searching and then clicking the <span class="p-1 add-icon"></span> button next to your
+          desired
           observation.</p>
 
         <!-- Search Section -->
@@ -366,27 +385,30 @@
                 <span class="input-group-text fa fa-search" id="report-observations-search"></span>
               </div>
               <input id="id_search" autocomplete="off" type="text" class="form-control" name="observation"
-                    placeholder="Search Observations..." aria-label="observations" aria-describedby="report-observations-search">
+                     placeholder="Search Observations..." aria-label="observations"
+                     aria-describedby="report-observations-search">
             </div>
             <input type="submit" style="display: none"/>
           </div>
         </form>
 
         <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
-                          href="{% url 'reporting:assign_blank_observation' report.id %}" data-toggle="tooltip"
-                          data-placement="top" title="Add a blank observation template to the bottom of the report">Add a Blank
+                           href="{% url 'reporting:assign_blank_observation' report.id %}" data-toggle="tooltip"
+                           data-placement="top" title="Add a blank observation template to the bottom of the report">Add
+          a Blank
           Observation</a></p>
 
-        <table id="observations-table" class="table table-sm table-hover"
-          data-update-url="{% url 'reporting:update_report_observations' %}">
-          <thead>
+        {% if report.reportobservationlink_set.all %}
+          <table id="observations-table" class="table table-sm table-hover"
+                 data-update-url="{% url 'reporting:update_report_observations' %}">
+            <thead>
             <tr>
               <th class="icon ol-list-icon text-center"></th>
               <th class="align-middle">Observation</th>
               <th class="align-middle">Options</th>
             </tr>
-          </thead>
-          <tbody>
+            </thead>
+            <tbody>
             {% for observation in report.reportobservationlink_set.all %}
               <tr id="observation_{{ observation.id }}" data-id="{{ observation.id }}">
                 <td
@@ -398,12 +420,12 @@
                 <td class="align-middle">
                   <a id="delete-target-content-observation-{{ observation.id }}"
                     {% if observation.added_as_blank %}
-                    class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
-                    title="Observation started as a blank template, not from the observation library"
+                     class="clickable icon flag-icon" data-toggle="tooltip" data-placement="top"
+                     title="Observation started as a blank template, not from the observation library"
                     {% else %}
-                    class="clickable"
+                     class="clickable"
                     {% endif %}
-                    href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}
+                     href="{% url 'reporting:local_observation_edit' observation.id %}">{{ observation.title }}
                   </a>
                 </td>
                 <td class="align-middle">
@@ -411,90 +433,101 @@
                     <button id="observation-dropdown-btn-{{ observation.id }}" class="dropdown-menu-btn-table"
                             data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
                     <div id="observation-dropdown-menu-{{ observation.id }}" class="dropdown-menu"
-                        aria-labelledby="dns-dropdown-btn_{{ observation.id }}">
-                      <a class="dropdown-item icon clone-icon" href="{% url 'reporting:convert_observation' observation.id %}">Clone
+                         aria-labelledby="dns-dropdown-btn_{{ observation.id }}">
+                      <a class="dropdown-item icon clone-icon"
+                         href="{% url 'reporting:convert_observation' observation.id %}">Clone
                         to Library</a>
                       <a id="observation-delete-button-{{ observation.id }}"
-                        class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
-                        data-target="#confirm-delete-modal" href="javascript:void(0);"
-                        delete-target-csrftoken="{{ csrf_token }}"
-                        delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
-                        delete-target-id="{{ observation.id }}" delete-target-type="observation">Delete</a>
+                         class="dropdown-item icon trash-icon js-confirm-delete" data-toggle="modal"
+                         data-target="#confirm-delete-modal" href="javascript:void(0);"
+                         delete-target-csrftoken="{{ csrf_token }}"
+                         delete-target-url="{% url 'reporting:ajax_delete_local_observation' observation.id %}"
+                         delete-target-id="{{ observation.id }}" delete-target-type="observation">Delete</a>
                     </div>
                   </div>
                 </td>
               </tr>
             {% endfor %}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        {% else %}
+          <p>No observations have been added to this report yet.</p>
+        {% endif %}
       </div>
 
       {% comment %} Report Evidence Tab {% endcomment %}
       <div id="evidence" class="tab-pane">
         <h4>Report Evidence</h4>
         <hr>
+        <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
+                           href="{% url 'reporting:upload_evidence' 'report' report.id %}" data-toggle="tooltip"
+                           data-placement="top" title="Upload evidence, attaching to a report">Upload Evidence</a></p>
 
         <table id="evidences-table" class="table table-sm table-hover tablesorter">
           <thead>
-            <tr>
-              <th class="align-middle">Name</th>
-              <th class="align-middle sorter-false">Options</th>
-            </tr>
+          <tr>
+            <th class="align-middle">Name</th>
+            <th class="align-middle sorter-false">Options</th>
+          </tr>
           </thead>
           <tbody>
-            {% for evidence_file in report.evidence_set.all %}
-              <tr data-id="{{ evidence_file.id }}">
-                <td class="align-middle">
-                  <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
-                    {{evidence_file.friendly_name}}
-                  </a>
-                </td>
-                <td class="align-middle">
-                  <div class="dropdown dropleft">
-                    <button
-                      id="evidence-dropdown-btn-{{ evidence_file.id }}"
-                      class="dropdown-menu-btn-table"
-                      data-toggle="dropdown"
-                      aria-haspopup="true"
-                      aria-expanded="false"
-                    ></button>
-                    <div
-                      id="evidence-dropdown-menu-{{ evidence_file.id }}"
-                      class="dropdown-menu"
-                      aria-labelledby="evidence-dropdown-btn_{{ evidence_file.id }}"
-                    >
-                      <a href="{% url 'reporting:evidence_update' evidence_file.id %}" class="dropdown-item icon edit-icon">Edit</a>
-                      <a href="{% url 'reporting:evidence_delete' evidence_file.id %}" class="dropdown-item icon trash-icon">Delete</a>
-                    </div>
-                </td>
-              </tr>
-            {% endfor %}
+          {% for evidence_file in report.evidence_set.all %}
+            <tr data-id="{{ evidence_file.id }}">
+              <td class="align-middle icon {% if evidence_file|get_file_type == "image" %}avatar-upload-icon{% else %}code-icon{% endif %}">
+                <a href="{% url 'reporting:evidence_detail' evidence_file.id %}" class="clickable">
+                  {{ evidence_file.friendly_name|bleach }} ({{ evidence_file|get_file_basename|bleach }})
+                </a>
+              </td>
+              <td class="align-middle">
+                <div class="dropdown dropleft">
+                  <button
+                    id="evidence-dropdown-btn-{{ evidence_file.id }}"
+                    class="dropdown-menu-btn-table"
+                    data-toggle="dropdown"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                  ></button>
+                  <div
+                    id="evidence-dropdown-menu-{{ evidence_file.id }}"
+                    class="dropdown-menu"
+                    aria-labelledby="evidence-dropdown-btn_{{ evidence_file.id }}"
+                  >
+                    <a href="{% url 'reporting:evidence_update' evidence_file.id %}"
+                       class="dropdown-item icon edit-icon">Edit</a>
+                    <a href="{% url 'reporting:evidence_delete' evidence_file.id %}"
+                       class="dropdown-item icon trash-icon">Delete</a>
+                  </div>
+              </td>
+            </tr>
+          {% endfor %}
           </tbody>
         </table>
-
-        <p class="mt-3"><a class="icon add-icon btn btn-primary col-md-4"
-          href="{% url 'reporting:upload_evidence' 'report' report.id %}" data-toggle="tooltip"
-          data-placement="top" title="Upload evidence, attaching to a report">Upload Evidence</a></p>
       </div>
 
       {% if report_extra_fields_spec %}
-      {% comment %} Extra Fields Tab {% endcomment %}
-      <div id="extra-fields" class="tab-pane">
-        <h4>Extra Fields</h4>
-        <hr/>
+        {% comment %} Extra Fields Tab {% endcomment %}
+        <div id="extra-fields" class="tab-pane">
+          <h4>Extra Fields</h4>
+          <hr/>
 
-        {% for field_spec in report_extra_fields_spec %}
-        <div class="row justify-content-md-center">
-          <h6 class="col-1 text-left">
-            {{ field_spec.display_name }}
-            <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}" class="icon edit-icon" ></a>
-          </h6>
-          <div class="col-3 text-right">
-            {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
-          </div>
+          {% for field_spec in report_extra_fields_spec %}
+            <div class="row justify-content-md-center">
+              <h6 class="col-3 text-left">
+                <a href="{% url 'reporting:report_extra_field_edit' report.id field_spec.internal_name %}"
+                   class="icon edit-icon-right">{{ field_spec.display_name }}</a>
+              </h6>
+              {% if field_spec.type == "rich_text" %}
+                <button type="button" class="btn btn-primary col-3 offset-2 icon view-icon" data-toggle="modal"
+                        data-target="#field_spec_{{ field_spec.internal_name|bleach }}">Preview
+                </button>
+              {% else %}
+                <div class="mt-2 col-3 text-md-center align-middle offset-2">
+                  {% include "user_extra_fields/field.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+                </div>
+              {% endif %}
+            </div>
+          {% endfor %}
         </div>
-        {% endfor %}
-      </div>
       {% endif %}
 
       {% comment %} Generate Report Tab {% endcomment %}
@@ -539,7 +572,7 @@
     {% comment %} Connect to channel for report-specific notifications {% endcomment %}
     let ws_report = new WebSocket(
       protocol + window.location.host +
-      '/ws/reports/' + {{ report.id }} +'/');
+      '/ws/reports/' + {{ report.id }} + '/');
 
     {% comment %} Handle receiving report-specific messages {% endcomment %}
     ws_report.onmessage = function (e) {
@@ -547,7 +580,7 @@
       if (data.message['status'] == 'success') {
         console.log('Completed report generation');
         setTimeout(() => {
-         $spinnerModal.modal('hide');
+          $spinnerModal.modal('hide');
         }, 1000);
       }
     };
@@ -741,36 +774,38 @@
     {% endif %}
 
     {% comment %} Observation sorting {% endcomment %}
-    let observations_update_url = $("#observations-table").attr("data-update-url");
-    let observations_sortable = Sortable.create(document.querySelector("#observations-table tbody"), {
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      handle: '.holdme',
+    if ($("#observations-table").length) {
+      let observations_update_url = $("#observations-table").attr("data-update-url");
+      let observations_sortable = Sortable.create(document.querySelector("#observations-table tbody"), {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        handle: '.holdme',
 
-      setData: (dataTransfer, dragEl) => {
-        dataTransfer.setData('text/plain', dragEl.textContent);
-      },
-      onUpdate: event => {
-        let positions = observations_sortable.toArray();
-        $.ajaxSetup({
-          beforeSend: function (xhr, settings) {
-            if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-              xhr.setRequestHeader('X-CSRFToken', csrftoken);
+        setData: (dataTransfer, dragEl) => {
+          dataTransfer.setData('text/plain', dragEl.textContent);
+        },
+        onUpdate: event => {
+          let positions = observations_sortable.toArray();
+          $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+              if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader('X-CSRFToken', csrftoken);
+              }
             }
-          }
-        });
-        $.ajax(observations_update_url, {
-          type: 'POST',
-          data: {
-            'report': report_id,
-            'positions': JSON.stringify(positions),
-          },
-          success: function (data) {
-            console.log(data);
-          }
-        });
-      },
-    });
+          });
+          $.ajax(observations_update_url, {
+            type: 'POST',
+            data: {
+              'report': report_id,
+              'positions': JSON.stringify(positions),
+            },
+            success: function (data) {
+              console.log(data);
+            }
+          });
+        },
+      });
+    }
 
     {% comment %} Set finding status with AJAX {% endcomment %}
     $('.js-set-finding-status').each(function () {
@@ -967,4 +1002,11 @@
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
   {% include "confirm_delete_modal.html" %}
+
+  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% if report_extra_fields_spec %}
+    {% for field_spec in report_extra_fields_spec %}
+      {% include "extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec %}
+    {% endfor %}
+  {% endif %}
 {% endblock %}
