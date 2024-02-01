@@ -1064,6 +1064,7 @@ class ConvertObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         logger.warning(form.errors.as_data())
         return render(self.request, "reporting/observation_form.html", {"form": form})
 
+
 ##################
 # View Functions #
 ##################
@@ -1734,19 +1735,20 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                 report.save()
                 return redirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields")
 
-        return render(request, "reporting/report_extra_field_edit.html", {
-            "form": form,
-            "report": report,
-            "field_spec": field_spec,
-            "evidence_upload_url": reverse(
-                "reporting:upload_evidence_modal",
-                kwargs={"parent_type": "report", "pk": report.id, "modal": "modal"},
-            ),
-            "cancel_link": reverse(
-                "reporting:report_detail",
-                kwargs={"pk": report.pk}
-            ) + "#extra-fields",
-        })
+        return render(
+            request,
+            "reporting/report_extra_field_edit.html",
+            {
+                "form": form,
+                "report": report,
+                "field_spec": field_spec,
+                "evidence_upload_url": reverse(
+                    "reporting:upload_evidence_modal",
+                    kwargs={"parent_type": "report", "pk": report.id, "modal": "modal"},
+                ),
+                "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields",
+            },
+        )
 
     def get(self, request, pk, extra_field_name):
         return self.run(request, pk, extra_field_name)
@@ -2576,41 +2578,6 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
         messages.error(self.request, "You do not have permission to access that.")
         return redirect("home:dashboard")
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        file_content = None
-        if os.path.isfile(self.object.document.path):
-            if (
-                self.object.document.name.lower().endswith(".txt")
-                or self.object.document.name.lower().endswith(".log")
-                or self.object.document.name.lower().endswith(".md")
-            ):
-                filetype = "text"
-                file_content = []
-                temp = self.object.document.read().splitlines()
-                for line in temp:
-                    try:
-                        file_content.append(line.decode("utf-8", errors="replace"))
-                    except UnicodeError:
-                        file_content.append(line)
-            elif (
-                self.object.document.name.lower().endswith(".jpg")
-                or self.object.document.name.lower().endswith(".png")
-                or self.object.document.name.lower().endswith(".jpeg")
-            ):
-                filetype = "image"
-            else:
-                filetype = "unknown"
-        else:
-            filetype = "text"
-            file_content = ["FILE NOT FOUND"]
-
-        ctx["filetype"] = filetype
-        ctx["evidence"] = self.object
-        ctx["file_content"] = file_content
-
-        return ctx
-
 
 class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     """
@@ -2998,11 +2965,7 @@ class ObservationListView(RoleBasedAccessControlMixin, ListView):
 
     def get_queryset(self):
         search_term = ""
-        observations = (
-            Observation.objects
-            .all()
-            .order_by("title")
-        )
+        observations = Observation.objects.all().order_by("title")
 
         # Build autocomplete list
         for observation in observations:
@@ -3015,15 +2978,17 @@ class ObservationListView(RoleBasedAccessControlMixin, ListView):
                 "Displaying search results for: {}".format(search_term),
                 extra_tags="alert-success",
             )
-            return observations.filter(Q(title__icontains=search_term) | Q(description__icontains=search_term)).order_by(
-                "title"
-            )
+            return observations.filter(
+                Q(title__icontains=search_term) | Q(description__icontains=search_term)
+            ).order_by("title")
         return observations
 
     def get(self, request, *args, **kwarg):
         observation_filter = ObservationFilter(request.GET, queryset=self.get_queryset())
         return render(
-            request, "reporting/observation_list.html", {"filter": observation_filter, "autocomplete": self.autocomplete}
+            request,
+            "reporting/observation_list.html",
+            {"filter": observation_filter, "autocomplete": self.autocomplete},
         )
 
 
@@ -3195,7 +3160,10 @@ class AssignObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 return JsonResponse(data)
 
             # Clone the selected object to make a new :model:`reporting.ReportObservationLink`
-            position = ReportObservationLink.objects.filter(report__pk=report.id).aggregate(max=Max('position'))["max"] or 0 + 1
+            position = (
+                ReportObservationLink.objects.filter(report__pk=report.id).aggregate(max=Max("position"))["max"]
+                or 0 + 1
+            )
             report_link = ReportObservationLink(
                 report=report,
                 assigned_to=self.request.user,
@@ -3236,7 +3204,9 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     def get(self, *args, **kwargs):
         obj = self.get_object()
         try:
-            position = ReportObservationLink.objects.filter(report__pk=obj.id).aggregate(max=Max('position'))["max"] or 0 + 1
+            position = (
+                ReportObservationLink.objects.filter(report__pk=obj.id).aggregate(max=Max("position"))["max"] or 0 + 1
+            )
             report_link = ReportObservationLink(
                 title="Blank Template",
                 report=obj,
@@ -3264,7 +3234,9 @@ class AssignBlankObservation(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
 
             messages.error(
                 self.request,
-                "Encountered an error while trying to add a blank observation to your report: {}".format(exception.args),
+                "Encountered an error while trying to add a blank observation to your report: {}".format(
+                    exception.args
+                ),
                 extra_tags="alert-error",
             )
 
