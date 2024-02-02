@@ -1732,6 +1732,10 @@ th.icon {
   content: '\f0d0';
 }
 
+.clean-icon:before {
+  content: '\e06e';
+}
+
 .2fa-icon:before {
   content: '\f577';
 }
