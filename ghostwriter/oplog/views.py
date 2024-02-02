@@ -86,6 +86,57 @@ class OplogMuteToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
+class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Sanitize all :model:`oplog.OplogEntry` objects associated with an individual :model:`oplog.Oplog`.
+
+    Sanitization nullifies the `source_ip`, `dest_ip`, `description`, `output`, `user_context` and `comments` fields.
+    It also removes everything after the first space in the `command` field. This action keeps the command while
+    removing any arguments or options that may be sensitive (e.g., hashes, keys).
+    """
+
+    model = Oplog
+
+    def test_func(self):
+        return verify_user_is_privileged(self.request.user)
+
+    def handle_no_permission(self):
+        data = {"result": "error", "message": "Only a manager or admin can choose to sanitize a log."}
+        return JsonResponse(data, status=403)
+
+    def post(self, *args, **kwargs):
+        obj = self.get_object()
+        entries = obj.entries.all()
+        logger.info(
+            "Sanitizing log entries for %s %s by request of %s", obj.__class__.__name__, obj.id, self.request.user
+        )
+        data = {
+            "result": "success",
+            "message": "Successfully sanitized log entries.",
+        }
+        try:
+            for entry in entries:
+                entry.source_ip = None
+                entry.dest_ip = None
+                entry.user_context = None
+                entry.description = None
+                entry.output = None
+                entry.comments = None
+                if entry.command:
+                    entry.command = entry.command.split(" ")[0]
+                entry.save()
+        except Exception as exception:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            log_message = template.format(type(exception).__name__, exception.args)
+            logger.error(log_message)
+            data = {
+                "result": "failed",
+                "message": "An error occurred while sanitizing log entries.",
+            }
+
+        return JsonResponse(data)
+
+
 ##################
 # View Functions #
 ##################
@@ -216,8 +267,7 @@ class OplogListEntries(RoleBasedAccessControlMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["oplog_entry_extra_fields_spec_ser"] = ExtraFieldsSpecSerializer(
-            ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label),
-            many=True
+            ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
         ).data
         return ctx
 
