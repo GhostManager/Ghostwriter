@@ -211,7 +211,7 @@ class FindingForm(forms.ModelForm):
                             HTML(
                                 format_html(
                                     """
-                                    <iframe style="width: 100%; height: 500px; border: none;" src="{}"></iframe>
+                                    <iframe id="cvsscalc40" style="width: 100%; height: 500px; border: none;" src="{}" onload="cvsscalc40_ui()"></iframe>
                                     """, static('cvss/cvsscalc40/index.html')
                                 )
                             ),
@@ -531,7 +531,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                             HTML(
                                 format_html(
                                     """
-                                    <iframe style="width: 100%; height: 500px; border: none;" src="{}"></iframe>
+                                    <iframe id="cvsscalc40" style="width: 100%; height: 500px; border: none;" src="{}" onload="cvsscalc40_ui()"></iframe>
                                     """, static('cvss/cvsscalc40/index.html')
                                 )
                             ),
