@@ -1,0 +1,129 @@
+/*
+Copyright FIRST, Red Hat, and contributors
+SPDX-License-Identifier: BSD-2-Clause
+*/
+
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 0.4rem;
+}
+
+h5.text-center {
+    padding-bottom: 0.2rem;
+}
+
+h4.text-center {
+    background: #666666;
+    color: #ffffff;
+    padding: 0.2rem;
+    margin-bottom: 0.3rem;
+    border-radius: 0.3rem;
+}
+
+h5.score-line {
+    padding-top: 0.5rem;
+}
+
+h4.page-title {
+  color: #00400d;
+  padding: 0 0 0.5rem 0;
+}
+
+mark {
+  overflow-wrap: break-word;
+  background: #090;
+  border: 0.05rem solid #090;
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: large;
+  padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  width: 100%;
+  background-color: white;
+  z-index: 1;
+  border-bottom: 1px solid lightgray;
+}
+
+.metric-type {
+  background-color: #f2f2f2;
+  border-radius: 0.3rem;
+  padding: 0rem 0rem 0rem 0rem;
+  margin: 0rem  0rem 1rem 0rem;
+  border-bottom: 0.05rem solid #666666;
+  border-right: 0.05rem solid #666666;
+  border-left: 0.05rem solid #666666;
+}
+
+.metric-group {
+  background-color: #f2f2f2;
+  padding: 10px;
+  padding-top: 2px;
+  border-radius: 0.3rem;
+}
+
+.btn-m {
+    width:100%;
+    display:block;
+    border-radius: 0.3rem;
+}
+
+/*
+If we want to edit buttons, there are two options:
+1) We have to override these class colors, or build our own version
+   of Spectre.css framework by modifying
+   https://github.com/picturepan2/spectre/blob/master/src/_variables.scss
+2) We can override class colors below, they are copy/paste from Spectre.css framework
+
+Useful tools:
+  https://sassme.jim-nielsen.com/
+  https://www.rapidtables.com/convert/color/hex-to-rgb.html
+*/
+
+.btn {
+  background: #f2f2f2;
+  border:.05rem solid #999999;                  
+  border-radius: 0.2rem;
+  color: #666666;                                
+}
+
+.btn:focus,
+.btn:hover {
+  background: #666666;                           
+  border-color: #666666;                         
+  color: #ffffff;
+} 
+
+.btn.active,
+.btn:active {
+  background: #060;                           
+  border-color: #060;                         
+  color: #fff;
+}
+
+.btn.btn-primary {
+  background: #090;                           
+  border-color: #090;                         
+  border: 0.05rem solid #060;
+  border-radius: 0.2rem;
+  color: #fff
+}
+
+.btn.btn-primary:focus,
+.btn.btn-primary:hover {
+  background: #060;                           
+  border-color: #060;                         
+  color: #fff
+}
+
+.btn.btn-primary.active,
+.btn.btn-primary:active {
+  background:#060;                           
+  border-color:#060;                         
+  color:#fff
+}
