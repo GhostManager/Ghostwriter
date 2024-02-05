@@ -32,7 +32,7 @@
                     <a id="sanitize-button-{{ oplog.id }}" class="dropdown-item icon clean-icon js-confirm-sanitize" data-toggle="modal"
                        data-target="#confirm-sanitize-modal" href="javascript:void(0);"
                        sanitize-target-csrftoken="{{ csrf_token }}" sanitize-target-url="{% url 'oplog:ajax_oplog_sanitize' oplog.id %}"
-                       sanitize-target-id="{{ key.id }}">
+                       sanitize-target-id="{{ oplog.id }}">
                       Sanitize Entries
                     </a>
                     <a
@@ -147,6 +147,7 @@
       const $spinnerModal = $('#spinner-modal')
       const $checkboxList = $('#checkboxList')
       const $connectionStatus = $('#connectionStatus')
+      const $sanitizeCheckboxList = $('#sanitize-checklist-form')
 
       let socket = null;
       let emptyTable = true;
@@ -276,6 +277,7 @@
         updateColumnInfo(oplog_entry_extra_fields_spec)
         buildColumnsCheckboxes()
         $tableHeader.html(generateTableHeaders())
+        buildSanitizeCheckboxes()
       })
 
       {% comment %} Show or hide the table column select options {% endcomment %}
