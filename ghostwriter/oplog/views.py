@@ -2,11 +2,13 @@
 
 # Standard Libraries
 import csv
+import json
 import logging
 
 # Django Imports
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -86,6 +88,29 @@ class OplogMuteToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         return JsonResponse(data)
 
 
+def parse_fields(data: dict, entry_field_specs: dict) -> tuple:
+    """
+    Parse a dictionary of fields and return a list of fields and extra fields.
+
+    **Parameters**
+
+    ``data`` (dict)
+        Dictionary of fields
+    ``entry_field_specs`` (dict)
+        Dictionary of field specifications
+    """
+    fields = [field["name"] for field in data]
+    extra_fields = []
+    # Remove any extra fields from the list of fields
+    for field_spec in entry_field_specs:
+        if field_spec["internal_name"] in fields:
+            fields.pop(fields.index(field_spec["internal_name"]))
+            extra_fields.append(field_spec["internal_name"])
+    if extra_fields:
+        fields.append("extra_fields")
+    return fields, extra_fields
+
+
 class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     """
     Sanitize all :model:`oplog.OplogEntry` objects associated with an individual :model:`oplog.Oplog`.
@@ -106,34 +131,61 @@ class OplogSanitize(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
-        entries = obj.entries.all()
-        logger.info(
-            "Sanitizing log entries for %s %s by request of %s", obj.__class__.__name__, obj.id, self.request.user
-        )
-        data = {
-            "result": "success",
-            "message": "Successfully sanitized log entries.",
-        }
+        data = self.request.POST.get("fields", None)
         try:
-            for entry in entries:
-                entry.source_ip = None
-                entry.dest_ip = None
-                entry.user_context = None
-                entry.description = None
-                entry.output = None
-                entry.comments = None
-                if entry.command:
-                    entry.command = entry.command.split(" ")[0]
-                entry.save()
-        except Exception as exception:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-            log_message = template.format(type(exception).__name__, exception.args)
-            logger.error(log_message)
+            json_data = json.loads(data)
+        except (json.JSONDecodeError, TypeError):
+            json_data = None
+
+        if json_data and len(json_data) > 0:
+            entries = obj.entries.all()
+            entry_field_specs = ExtraFieldsSpecSerializer(
+                ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label), many=True
+            ).data
+            fields, extra_fields = parse_fields(json_data, entry_field_specs)
+
+            logger.info(
+                "Sanitizing log entries for %s %s by request of %s", obj.__class__.__name__, obj.id, self.request.user
+            )
+            data = {
+                "result": "success",
+                "message": "Successfully sanitized log entries.",
+            }
+            try:
+                for entry in entries:
+                    extra_fields_data = entry.extra_fields
+                    for field in json_data:
+                        for field_spec in entry_field_specs:
+                            if field_spec["internal_name"] == field["name"]:
+                                extra_fields_data[field["name"]] = None
+                            else:
+                                if field["name"] == "command":
+                                    if entry.command:
+                                        setattr(entry, field["name"], entry.command.split(" ")[0])
+                                else:
+                                    setattr(entry, field["name"], None)
+                    entry.extra_fields = extra_fields_data
+                try:
+                    OplogEntry.objects.bulk_update(entries, fields)
+                except FieldDoesNotExist as exception:
+                    logger.error("One of the fields submitted for sanitization does not exist: %s", exception)
+                    data = {
+                        "result": "failed",
+                        "message": "One of the fields submitted for sanitization does not exist.",
+                    }
+            except Exception as exception:  # pragma: no cover
+                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                log_message = template.format(type(exception).__name__, exception.args)
+                logger.error(log_message)
+                data = {
+                    "result": "failed",
+                    "message": "An error occurred while sanitizing log entries.",
+                }
+        else:
             data = {
                 "result": "failed",
-                "message": "An error occurred while sanitizing log entries.",
+                "message": "No fields selected for sanitization.",
             }
-
         return JsonResponse(data)
 
 
