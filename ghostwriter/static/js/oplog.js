@@ -5,19 +5,19 @@ let hiddenLogTblColumns = JSON.parse((localStorage.getItem('hiddenLogTblColumns'
 
 // Assemble the array of column information for the table
 let columnInfo = [
-    {checkBoxID: 'identifierCheckBox', columnClass: 'identifierColumn', prettyName: 'Identifier', internalName: 'entry_identifier', showByDefault: false},
-    {checkBoxID: 'startDateCheckBox', columnClass: 'startDateColumn', prettyName: 'Start Date', internalName: 'start_date', toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")},
-    {checkBoxID: 'endDateCheckbox', columnClass: 'endDateColumn', prettyName: 'End Date', internalName: 'end_date', toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " ")},
-    {checkBoxID: 'sourceIPCheckbox', columnClass: 'sourceIPColumn', prettyName: 'Source', internalName: 'source_ip'},
-    {checkBoxID: 'destIPCheckbox', columnClass: 'destIPColumn', prettyName: 'Destination', internalName: 'dest_ip'},
-    {checkBoxID: 'toolNameCheckbox', columnClass: 'toolNameColumn', prettyName: 'Tool Name', internalName: 'tool'},
-    {checkBoxID: 'userContextCheckbox', columnClass: 'userContextColumn', prettyName: 'User Context', internalName: 'user_context'},
-    {checkBoxID: 'commandCheckbox', columnClass: 'commandColumn', prettyName: 'Command', internalName: 'command'},
-    {checkBoxID: 'descriptionCheckbox', columnClass: 'descriptionColumn', prettyName: 'Description', internalName: 'description'},
-    {checkBoxID: 'outputCheckbox', columnClass: 'outputColumn', prettyName: 'Output', internalName: 'output'},
-    {checkBoxID: 'commentsCheckbox', columnClass: 'commentsColumn', prettyName: 'Comments', internalName: 'comments'},
-    {checkBoxID: 'operatorCheckbox', columnClass: 'operatorColumn', prettyName: 'Operator', internalName: 'operator_name'},
-    {checkBoxID: 'tagsCheckbox', columnClass: 'tagsColumn', prettyName: 'Tags', internalName: 'tags', toHtml: entry => stylizeTags(jsEscape(entry))},
+    {checkBoxID: 'identifierCheckBox', columnClass: 'identifierColumn', prettyName: 'Identifier', internalName: 'entry_identifier', showByDefault: false, sanitizeByDefault: false},
+    {checkBoxID: 'startDateCheckBox', columnClass: 'startDateColumn', prettyName: 'Start Date', internalName: 'start_date', toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " "), sanitizeByDefault: false},
+    {checkBoxID: 'endDateCheckbox', columnClass: 'endDateColumn', prettyName: 'End Date', internalName: 'end_date', toHtml: entry => jsEscape(entry).replace(/\.\d+/, "").replace("Z", "").replace("T", " "), sanitizeByDefault: false},
+    {checkBoxID: 'sourceIPCheckbox', columnClass: 'sourceIPColumn', prettyName: 'Source', internalName: 'source_ip', sanitizeByDefault: true},
+    {checkBoxID: 'destIPCheckbox', columnClass: 'destIPColumn', prettyName: 'Destination', internalName: 'dest_ip', sanitizeByDefault: true},
+    {checkBoxID: 'toolNameCheckbox', columnClass: 'toolNameColumn', prettyName: 'Tool Name', internalName: 'tool', sanitizeByDefault: false},
+    {checkBoxID: 'userContextCheckbox', columnClass: 'userContextColumn', prettyName: 'User Context', internalName: 'user_context', sanitizeByDefault: true},
+    {checkBoxID: 'commandCheckbox', columnClass: 'commandColumn', prettyName: 'Command', internalName: 'command', sanitizeByDefault: true},
+    {checkBoxID: 'descriptionCheckbox', columnClass: 'descriptionColumn', prettyName: 'Description', internalName: 'description', sanitizeByDefault: true},
+    {checkBoxID: 'outputCheckbox', columnClass: 'outputColumn', prettyName: 'Output', internalName: 'output', sanitizeByDefault: true},
+    {checkBoxID: 'commentsCheckbox', columnClass: 'commentsColumn', prettyName: 'Comments', internalName: 'comments', sanitizeByDefault: true},
+    {checkBoxID: 'operatorCheckbox', columnClass: 'operatorColumn', prettyName: 'Operator', internalName: 'operator_name', sanitizeByDefault: false},
+    {checkBoxID: 'tagsCheckbox', columnClass: 'tagsColumn', prettyName: 'Tags', internalName: 'tags', toHtml: entry => stylizeTags(jsEscape(entry)), sanitizeByDefault: false},
 ]
 
 // Update `columnInfo` with extra fields
@@ -44,7 +44,7 @@ function updateColumnInfo(extra_field_specs) {
     });
 }
 
-// Generate a table row based on a log entry
+// Generate table headers
 function generateTableHeaders() {
     let out = "";
     columnInfo.forEach(column => {
@@ -187,6 +187,22 @@ function buildColumnsCheckboxes() {
         if (hiddenLogTblColumns.includes('.' + column.columnClass)) {
             $('#' + column.checkBoxID).prop('checked', false)
         }
+    })
+}
+
+// Generate checkboxes for the sanitize confirmation modal
+function buildSanitizeCheckboxes() {
+    columnInfo.forEach(column => {
+        let checked = (column.sanitizeByDefault === undefined || column.sanitizeByDefault) ? "checked" : "";
+        let checkboxEntry = `
+        <div class="form-check-inline">
+        <div class="custom-control custom-switch">
+        <input type="checkbox" name="${column.internalName}" id="sanitize_${column.checkBoxID}" class="form-check-input custom-control-input" ${checked}/>
+        <label class="form-check-label custom-control-label" for="sanitize_${column.checkBoxID}">${column.prettyName}</label>
+        </div>
+        </div>
+        `
+        $sanitizeCheckboxList.append(checkboxEntry)
     })
 }
 
