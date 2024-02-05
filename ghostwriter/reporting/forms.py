@@ -351,7 +351,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
     individual :model:`reporting.Report`.
     """
 
-    # Note: since ReportFindingLinks are essentialy a finding bound to a report, it uses
+    # Note: since ReportFindingLinks are essentially a finding bound to a report, it uses
     # the finding's extra field specifications, rather than having its own.
     extra_fields = ExtraFieldsField(Finding._meta.label)
 
