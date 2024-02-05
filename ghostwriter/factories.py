@@ -17,6 +17,13 @@ fake = PyFaker()
 # ``TimezoneFields`` use the "common" timezones, which excludes a few timezones like "Asia\Saigon"
 # Factories select a choice from this list instead of using ``random.choice(TIMEZONES)``
 TIMEZONES = pytz.common_timezones
+EXTRA_FIELD_TYPES = [
+    "checkbox",
+    "single_line_text",
+    "rich_text",
+    "integer",
+    "float",
+]
 
 
 # Users Factories
@@ -49,6 +56,18 @@ class UserFactory(factory.django.DjangoModelFactory):
         if extracted:
             for group in extracted:
                 self.groups.add(group)
+
+
+class MgrFactory(UserFactory):
+    role = "manager"
+    is_staff = True
+    is_superuser = False
+
+
+class AdminFactory(UserFactory):
+    role = "admin"
+    is_staff = True
+    is_superuser = True
 
 
 class GroupFactory(factory.django.DjangoModelFactory):
@@ -860,6 +879,33 @@ class WhiteCardFactory(factory.django.DjangoModelFactory):
     title = Faker("user_name")
     description = Faker("paragraph")
     project = factory.SubFactory(ProjectFactory)
+
+
+class ExtraFieldModelFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.ExtraFieldModel"
+
+    @factory.lazy_attribute
+    def model_internal_name(self):
+        raise ValueError("Value for `model_internal_name` is required")
+
+    @factory.lazy_attribute
+    def model_display_name(self):
+        raise ValueError("Value for `model_display_name` is required")
+
+
+class ExtraFieldSpecFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "commandcenter.ExtraFieldSpec"
+
+    internal_name = Faker("username")
+    display_name = Faker("word")
+    type = random.choice(EXTRA_FIELD_TYPES)
+    user_default_value = Faker("sentence")
+
+    @factory.lazy_attribute
+    def target_model(self):
+        raise ValueError("Value for `target_model` (instance of `ExtraFieldModelFactory`) is required")
 
 
 def GenerateMockProject(
