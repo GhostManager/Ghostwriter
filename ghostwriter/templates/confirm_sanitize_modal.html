@@ -6,20 +6,16 @@
       <div class="modal-body confirm-sanitize">
         Are you sure you want to sanitize this log and all log entries?
         <p class="bold mt-3">This action cannot be reversed!</p>
-        <p class="mt-3">Sanitizing will delete the contents of these fields:</p>
-        <ul>
-          <li>Source</li>
-          <li>Destination</li>
-          <li>User Context</li>
-          <li>Description</li>
-          <li>Output</li>
-          <li>Comments</li>
-        </ul>
-        <p class="mt-3">Sanitizing will also clean the <em>Command</em> field by deleting everything after the first space to remove potentially sensitive information (e.g., hashes, keys).</p>
+        <p class="mt-3">Select the fields to sanitize below:</p>
+
+        <form id="sanitize-checklist-form">
+        </form>
+
+        <p class="mt-3">If sanitizing the <em>Command</em> field, Ghostwriter will delete everything after the first space (the tool/command name) to remove potentially sensitive information in arguments and parameters (e.g., hashes, keys).</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" data-dismiss="modal" id="confirm-sanitize-button-modal">Sanitize
+        <button type="submit" class="btn btn-danger" data-dismiss="modal" id="confirm-sanitize-button-modal">Sanitize
         </button>
       </div>
     </div>
@@ -59,6 +55,10 @@
     let targetId = $target.attr('sanitize-target-id');
     let csrftoken = $target.attr('sanitize-target-csrftoken');
 
+    let formData = $('#sanitize-checklist-form').serializeArray();
+    formData = JSON.stringify(formData);
+    console.log(formData)
+
     $.ajaxSetup({
       beforeSend: function (xhr, settings) {
         if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -71,7 +71,8 @@
       type: 'POST',
       dataType: 'json',
       data: {
-        '$target': targetId,
+        'target': targetId,
+        'fields': formData,
       },
       success: function (data) {
           if (data['message']) {
