@@ -20,6 +20,7 @@ from rest_framework.renderers import JSONRenderer
 from ghostwriter.factories import (
     ClientFactory,
     CompanyInformationFactory,
+    DocTypeFactory,
     EvidenceOnFindingFactory,
     EvidenceOnReportFactory,
     FindingFactory,
@@ -147,7 +148,7 @@ class AssignBlankFindingTests(TestCase):
         cls.finding_type = FindingTypeFactory(finding_type="Network")
 
         cls.uri = reverse("reporting:assign_blank_finding", kwargs={"pk": cls.report.pk})
-        cls.redirect_uri = reverse("reporting:report_detail", kwargs={"pk": cls.report.pk})
+        cls.redirect_uri = f"{reverse('reporting:report_detail', kwargs={'pk': cls.report.pk})}#findings"
 
     def setUp(self):
         self.client = Client()
@@ -188,7 +189,9 @@ class ConvertFindingTests(TestCase):
 
         cls.uri = reverse("reporting:convert_finding", kwargs={"pk": cls.finding.pk})
         cls.redirect_uri = reverse("reporting:finding_detail", kwargs={"pk": cls.finding.pk})
-        cls.failure_redirect_uri = reverse("reporting:report_detail", kwargs={"pk": cls.finding.report.pk})
+        cls.failure_redirect_uri = (
+            f"{reverse('reporting:report_detail', kwargs={'pk': cls.finding.report.pk})}#findings"
+        )
 
         ProjectAssignmentFactory(operator=cls.user, project=cls.finding.report.project)
 
@@ -1270,7 +1273,7 @@ class ReportFindingLinkUpdateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            reverse("reporting:report_detail", kwargs={"pk": self.report.pk}),
+            f"{reverse('reporting:report_detail', kwargs={'pk': self.report.pk})}#findings",
         )
 
 
@@ -1330,7 +1333,7 @@ class ReportObservationLinkUpdateViewTests(TestCase):
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            reverse("reporting:report_detail", kwargs={"pk": self.report.pk}),
+            f"{reverse('reporting:report_detail', kwargs={'pk': self.report.pk})}#observations",
         )
 
 
@@ -1438,7 +1441,7 @@ class BaseEvidenceCreateViewTests:
         self.assertIn("cancel_link", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            reverse("reporting:report_detail", kwargs={"pk": self.evidence.associated_report.pk}),
+            f"{reverse('reporting:report_detail', kwargs={'pk': self.evidence.associated_report.pk})}#evidence",
         )
 
     # Testing modal form view
@@ -1468,7 +1471,7 @@ class BaseEvidenceCreateViewTests:
         self.assertIn("used_friendly_names", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            reverse("reporting:report_detail", kwargs={"pk": self.evidence.associated_report.pk}),
+            f"{reverse('reporting:report_detail', kwargs={'pk': self.evidence.associated_report.pk})}#evidence",
         )
 
     # Testing modal success view
@@ -1564,7 +1567,7 @@ class EvidenceDeleteViewTests(TestCase):
         cls.evidence = EvidenceOnFindingFactory()
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
-        cls.uri = reverse("reporting:evidence_delete", kwargs={"pk": cls.evidence.pk})
+        cls.uri = f"{reverse('reporting:evidence_delete', kwargs={'pk': cls.evidence.pk})}#evidence"
 
     def setUp(self):
         self.client = Client()
@@ -1600,7 +1603,7 @@ class EvidenceDeleteViewTests(TestCase):
         self.assertIn("object_to_be_deleted", response.context)
         self.assertEqual(
             response.context["cancel_link"],
-            reverse("reporting:evidence_detail", kwargs={"pk": self.evidence.pk}),
+            f"{reverse('reporting:evidence_detail', kwargs={'pk': self.evidence.pk})}#evidence",
         )
         self.assertEqual(
             response.context["object_type"],
@@ -1619,13 +1622,25 @@ class ReportTemplateListViewTests(TestCase):
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
-        cls.client = ClientFactory()
+        cls.template_client = ClientFactory(name="SpecterOps")
 
-        cls.num_of_templates = 10
+        cls.DocType = DocTypeFactory._meta.model
+        cls.ReportTemplate = ReportTemplateFactory._meta.model
+
+        cls.ReportTemplate.objects.all().delete()
+        cls.DocType.objects.all().delete()
+
+        docx_type = DocTypeFactory(doc_type="docx", id=1)
+        pptx_type = DocTypeFactory(doc_type="pptx", id=2)
+
+        cls.num_of_templates = 5
         cls.templates = []
         for template_id in range(cls.num_of_templates):
-            cls.templates.append(ReportTemplateFactory())
-        cls.templates.append(ReportTemplateFactory(client=cls.client))
+            cls.templates.append(ReportTemplateFactory(docx=True, doc_type=docx_type))
+            cls.templates.append(ReportTemplateFactory(pptx=True, doc_type=pptx_type))
+        cls.templates.append(
+            ReportTemplateFactory(client=cls.template_client, tags=["tag1"], name="Filtered", doc_type=docx_type)
+        )
 
         cls.uri = reverse("reporting:templates")
 
@@ -1646,16 +1661,49 @@ class ReportTemplateListViewTests(TestCase):
 
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["reporttemplate_list"]), self.num_of_templates)
+        self.assertTrue(len(response.context["filter"].qs), self.num_of_templates)
 
         response = self.client_mgr.get(self.uri)
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(len(response.context["reporttemplate_list"]), self.num_of_templates + 1)
+        self.assertTrue(len(response.context["filter"].qs), self.num_of_templates + 1)
 
     def test_view_uses_correct_template(self):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "reporting/report_templates_list.html")
+
+    def test_template_filtering(self):
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 10)
+
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 11)
+
+        response = self.client_mgr.get(f"{self.uri}?name=filtered")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+
+        response = self.client_auth.get(f"{self.uri}?doc_type=1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 5)
+
+        response = self.client_auth.get(f"{self.uri}?doc_type=2")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 5)
+
+        response = self.client_auth.get(f"{self.uri}?client=spec")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 0)
+
+        response = self.client_mgr.get(f"{self.uri}?client=spec")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
+
+        response = self.client_mgr.get(f"{self.uri}?tags=tag1")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["filter"].qs), 1)
 
 
 class ReportTemplateDownloadTests(TestCase):
