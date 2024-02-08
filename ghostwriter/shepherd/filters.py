@@ -38,12 +38,24 @@ class DomainFilter(django_filters.FilterSet):
         Checkbox choice filter using :model:`shepherd.DomainStatus`
     ``exclude_expired``
         Checkbox to exclude expired domains from search results
+    ``tags``
+        Search of the `tags` field
     """
 
     domain = django_filters.CharFilter(
         method="search_name_and_category",
         label="Domain Name or Category Contains",
         widget=TextInput(attrs={"placeholder": "Partial Domain Name or Category", "autocomplete": "off"}),
+    )
+    tags = django_filters.CharFilter(
+        method="search_tags",
+        label="Domain Tags Contain",
+        widget=TextInput(
+            attrs={
+                "placeholder": "Domain Tag",
+                "autocomplete": "off",
+            }
+        ),
     )
     health_status = django_filters.ModelMultipleChoiceFilter(
         queryset=HealthStatus.objects.all(),
@@ -76,7 +88,11 @@ class DomainFilter(django_filters.FilterSet):
             Row(
                 Column(
                     PrependedText("domain", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-12",
+                    css_class="col-md-6",
+                ),
+                Column(
+                    PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                    css_class="form-group col-md-6 mb-0",
                 ),
                 css_class="form-row",
             ),
@@ -99,6 +115,10 @@ class DomainFilter(django_filters.FilterSet):
                 css_class="mt-3",
             ),
         )
+
+    def search_tags(self, queryset, name, value):
+        """Filter reports by tags."""
+        return queryset.filter(tags__name__in=[value]).distinct()
 
     def filter_expired(self, queryset, name, value):
         """
@@ -126,12 +146,24 @@ class ServerFilter(django_filters.FilterSet):
         :model:`shepherd.StaticServer` and :model:`shepherd.AuxServerAddress`
     ``server_status``
         Checkbox choice filter using :model:`shepherd.ServerStatus`
+    ``tags``
+        Search of the `tags` field
     """
 
     server = django_filters.CharFilter(
         method="search_name_and_address",
         label="IP Address or Hostname Contains",
         widget=TextInput(attrs={"placeholder": "Partial IP Address or Hostname", "autocomplete": "off"}),
+    )
+    tags = django_filters.CharFilter(
+        method="search_tags",
+        label="Server Tags Contain",
+        widget=TextInput(
+            attrs={
+                "placeholder": "Server Tag",
+                "autocomplete": "off",
+            }
+        ),
     )
     server_status = django_filters.ModelMultipleChoiceFilter(
         queryset=ServerStatus.objects.all(),
@@ -153,7 +185,11 @@ class ServerFilter(django_filters.FilterSet):
             Row(
                 Column(
                     PrependedText("server", '<i class="fas fa-filter"></i>'),
-                    css_class="col-md-12",
+                    css_class="form-group col-md-6 mb-0",
+                ),
+                Column(
+                    PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                    css_class="form-group col-md-6 mb-0",
                 ),
                 css_class="form-row",
             ),
@@ -175,6 +211,10 @@ class ServerFilter(django_filters.FilterSet):
                 css_class="mt-3",
             ),
         )
+
+    def search_tags(self, queryset, name, value):
+        """Filter reports by tags."""
+        return queryset.filter(tags__name__in=[value]).distinct()
 
     def search_name_and_address(self, queryset, name, value):
         """
