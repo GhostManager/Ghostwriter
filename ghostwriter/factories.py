@@ -333,6 +333,16 @@ class ReportTemplateFactory(factory.django.DjangoModelFactory):
     doc_type = factory.SubFactory(DocTypeFactory, doc_type="docx")
     uploaded_by = factory.SubFactory(UserFactory)
 
+    class Params:
+        docx = factory.Trait(
+            document=factory.django.FileField(from_path="DOCS/sample_reports/template.docx"),
+            doc_type=factory.SubFactory(DocTypeFactory, doc_type="docx"),
+        )
+        pptx = factory.Trait(
+            document=factory.django.FileField(from_path="DOCS/sample_reports/template.pptx"),
+            doc_type=factory.SubFactory(DocTypeFactory, doc_type="pptx"),
+        )
+
     @factory.post_generation
     def tags(self, create, extracted, **kwargs):
         if not create:
