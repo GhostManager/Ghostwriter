@@ -59,7 +59,13 @@ from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec,
 from ghostwriter.modules import reportwriter
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.reporting.filters import ArchiveFilter, FindingFilter, ObservationFilter, ReportFilter
+from ghostwriter.reporting.filters import (
+    ArchiveFilter,
+    FindingFilter,
+    ObservationFilter,
+    ReportFilter,
+    ReportTemplateFilter,
+)
 from ghostwriter.reporting.forms import (
     EvidenceForm,
     FindingForm,
@@ -1780,6 +1786,10 @@ class ReportTemplateListView(RoleBasedAccessControlMixin, generic.ListView):
         user = self.request.user
         queryset = get_templates_list(user)
         return queryset
+
+    def get(self, request, *args, **kwarg):
+        templates_filter = ReportTemplateFilter(request.GET, queryset=self.get_queryset())
+        return render(request, "reporting/report_templates_list.html", {"filter": templates_filter})
 
 
 class ReportTemplateDetailView(RoleBasedAccessControlMixin, DetailView):
