@@ -331,6 +331,12 @@ class ReportTemplateFilter(django_filters.FilterSet):
         label="Report Title Contains",
         widget=TextInput(attrs={"placeholder": "Partial Report Title", "autocomplete": "off"}),
     )
+    client = django_filters.CharFilter(
+        field_name="client__name",
+        label="Client Name Contains",
+        lookup_expr="icontains",
+        widget=TextInput(attrs={"placeholder": "Partial Client Name", "autocomplete": "off"}),
+    )
     tags = django_filters.CharFilter(
         method="search_tags",
         label="Template Tags Contain",
@@ -372,18 +378,25 @@ class ReportTemplateFilter(django_filters.FilterSet):
                 Row(
                     Column(
                         PrependedText("name", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-4",
+                        css_class="col-md-6",
                     ),
                     Column(
                         PrependedText(
                             "doc_type",
                             '<i class="fas fa-file-alt"></i>',
                         ),
-                        css_class="col-md-4 mb-0",
+                        css_class="col-md-6 mb-0",
+                    ),
+                    css_class="form-row",
+                ),
+                Row(
+                    Column(
+                        PrependedText("client", '<i class="fas fa-filter"></i>'),
+                        css_class="col-md-6",
                     ),
                     Column(
                         PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="col-md-4 mb-0",
+                        css_class="col-md-6 mb-0",
                     ),
                     css_class="form-row",
                 ),
