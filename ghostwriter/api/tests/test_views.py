@@ -26,6 +26,7 @@ from ghostwriter.factories import (
     OplogEntryFactory,
     ProjectContactFactory,
     ProjectAssignmentFactory,
+    ProjectObjectiveFactory,
     ProjectFactory,
     ReportFactory,
     ReportFindingLinkFactory,
@@ -36,6 +37,7 @@ from ghostwriter.factories import (
     SeverityFactory,
     StaticServerFactory,
     UserFactory,
+    ProjectSubtaskFactory,
 )
 
 logging.disable(logging.CRITICAL)
@@ -1719,6 +1721,153 @@ class GraphqlProjectContactUpdateEventTests(TestCase):
         self.assertFalse(self.primary_contact.primary)
         self.other_contact.refresh_from_db()
         self.assertTrue(self.other_contact.primary)
+
+
+class GraphqlProjectObjectiveUpdateEventTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlProjectObjectiveUpdateEvent`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_projectobjective_update_event")
+
+        cls.project = ProjectFactory()
+        cls.objective = ProjectObjectiveFactory(project=cls.project, complete=False)
+        cls.complete_data = {
+            "event": {
+                "data": {
+                    "new": {"id": cls.objective.id, "complete": False, "deadline": cls.objective.deadline},
+                    "old": {"id": cls.objective.id, "complete": True, "deadline": cls.objective.deadline},
+                },
+            }
+        }
+        cls.incomplete_data = {
+            "event": {
+                "data": {
+                    "new": {"id": cls.objective.id, "complete": True, "deadline": cls.objective.deadline},
+                    "old": {"id": cls.objective.id, "complete": False, "deadline": cls.objective.deadline},
+                },
+            }
+        }
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_graphql_projectobjective_update_event(self):
+        self.objective.complete = True
+        self.objective.save()
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.complete_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.objective.refresh_from_db()
+        self.assertTrue(self.objective.complete)
+        self.assertEqual(self.objective.marked_complete, date.today())
+
+        self.objective.complete = False
+        self.objective.save()
+
+        subtask = ProjectSubtaskFactory(
+            complete=False,
+            parent=self.objective,
+            deadline=self.objective.deadline + timedelta(days=1),
+        )
+        self.assertEqual(subtask.deadline, self.objective.deadline + timedelta(days=1))
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.incomplete_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.objective.refresh_from_db()
+        self.assertFalse(self.objective.complete)
+        self.assertFalse(self.objective.marked_complete)
+
+        subtask.refresh_from_db()
+        self.assertEqual(subtask.deadline, self.objective.deadline)
+
+
+class GraphqlProjectSubTaskUpdateEventTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlProjectSubTaskUpdateEvent`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_projectsubtaske_update_event")
+
+        cls.task = ProjectSubtaskFactory(complete=False)
+        cls.complete_data = {
+            "event": {
+                "data": {
+                    "new": {"id": cls.task.id, "complete": False, "deadline": cls.task.deadline},
+                    "old": {"id": cls.task.id, "complete": True, "deadline": cls.task.deadline},
+                },
+            }
+        }
+        cls.incomplete_data = {
+            "event": {
+                "data": {
+                    "new": {"id": cls.task.id, "complete": True, "deadline": cls.task.deadline},
+                    "old": {"id": cls.task.id, "complete": False, "deadline": cls.task.deadline},
+                },
+            }
+        }
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_graphql_projectsubtask_update_event(self):
+        self.task.complete = True
+        self.task.deadline = self.task.parent.deadline + timedelta(days=1)
+        self.task.save()
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.complete_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.task.refresh_from_db()
+        self.assertTrue(self.task.complete)
+        self.assertEqual(self.task.marked_complete, date.today())
+        self.assertEqual(self.task.deadline, self.task.parent.deadline)
+
+        self.task.complete = False
+        self.task.save()
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data=self.incomplete_data,
+            **{
+                "HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.task.refresh_from_db()
+        self.assertFalse(self.task.complete)
+        self.assertFalse(self.task.marked_complete)
 
 
 # Tests related to CBVs for :model:`api:APIKey`
