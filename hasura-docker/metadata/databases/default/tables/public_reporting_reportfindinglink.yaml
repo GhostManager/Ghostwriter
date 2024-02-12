@@ -31,6 +31,9 @@ configuration:
   custom_name: reportedFinding
   custom_root_fields: {}
 object_relationships:
+  - name: assignedTo
+    using:
+      foreign_key_constraint_on: assigned_to_id
   - name: findingType
     using:
       foreign_key_constraint_on: finding_type_id
@@ -40,9 +43,6 @@ object_relationships:
   - name: severity
     using:
       foreign_key_constraint_on: severity_id
-  - name: user
-    using:
-      foreign_key_constraint_on: assigned_to_id
 array_relationships:
   - name: comments
     using:
