@@ -10,7 +10,7 @@ from django.dispatch import receiver
 
 # Ghostwriter Libraries
 from ghostwriter.modules.notifications_slack import SlackNotification
-from ghostwriter.rolodex.models import Project, ProjectObjective, ProjectSubTask
+from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import History, ServerHistory
 
 # Using __name__ resolves to ghostwriter.rolodex.signals
