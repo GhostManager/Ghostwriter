@@ -54,9 +54,40 @@ logger = logging.getLogger(__name__)
 
 
 # Custom Jinja2 filters for DOCX templates
+def filter_tags(objects, allowlist):
+    """
+    Filter a list of objects to return only those with a tag in the allowlist.
+
+    **Parameters**
+
+    ``objects``
+        List of dictionary objects (JSON) for findings
+    ``allowlist``
+        List of strings matching severity categories to allow through filter
+    """
+    filtered_values = []
+    if isinstance(allowlist, list):
+        allowlist = [tag for tag in allowlist]
+    else:
+        raise InvalidFilterValue(
+            f'Allowlist passed into `filter_tags()` filter is not a list ("{allowlist}"); must be like `["xss", "T1651"]`'
+        )
+    try:
+        for obj in objects:
+            common_tags = set(obj["tags"]) & set(allowlist)
+            if common_tags:
+                filtered_values.append(obj)
+    except (KeyError, TypeError):
+        logger.exception("Error parsing object as a list of dictionaries: %s", object)
+        raise InvalidFilterValue(
+            "Invalid list of objects passed into `filter_tags()` filter; must be an object with a `tags` key"
+        )
+    return filtered_values
+
+
 def filter_severity(findings, allowlist):
     """
-    Filter list of findings to return only those with a severity in the allowlist.
+    Filter a list of findings to return only those with a severity in the allowlist.
 
     **Parameters**
 
@@ -86,7 +117,7 @@ def filter_severity(findings, allowlist):
 
 def filter_type(findings, allowlist):
     """
-    Filter list of findings to return only those with a type in the allowlist.
+    Filter a list of findings to return only those with a type in the allowlist.
 
     **Parameters**
 
@@ -136,7 +167,7 @@ def strip_html(s):
 
 def compromised(targets):
     """
-    Filter list of targets to return only those marked as compromised.
+    Filter a list of targets to return only those marked as compromised.
 
     **Parameters**
 
@@ -277,6 +308,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["format_datetime"] = format_datetime
     env.filters["get_item"] = get_item
     env.filters["regex_search"] = regex_search
+    env.filters["filter_tags"] = filter_tags
 
     return env
 
