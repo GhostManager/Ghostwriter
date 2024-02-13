@@ -66,9 +66,7 @@ def filter_tags(objects, allowlist):
         List of strings matching severity categories to allow through filter
     """
     filtered_values = []
-    if isinstance(allowlist, list):
-        allowlist = [tag for tag in allowlist]
-    else:
+    if not isinstance(allowlist, list):
         raise InvalidFilterValue(
             f'Allowlist passed into `filter_tags()` filter is not a list ("{allowlist}"); must be like `["xss", "T1651"]`'
         )
