@@ -49,6 +49,7 @@ from ghostwriter.modules.reportwriter import (
     get_item,
     regex_search,
     strip_html,
+    filter_tags,
 )
 from ghostwriter.reporting.templatetags import report_tags
 from ghostwriter.reporting.views import generate_report_name
@@ -2180,6 +2181,7 @@ class ReportTemplateFilterTests(TestCase):
             report=cls.report,
             severity=cls.critical_sev,
             finding_type=cls.network_type,
+            tags=["xss", "T1659"],
         )
         ReportFindingLinkFactory.create_batch(
             2,
@@ -2290,6 +2292,15 @@ class ReportTemplateFilterTests(TestCase):
         test_string = "This is a test string. It contains the word 'test'."
         result = regex_search(test_string, "^(.*?)\.")
         self.assertEqual(result, "This is a test string.")
+
+    def test_filter_tags(self):
+        filtered_list = filter_tags(self.findings, ["xss", "T1659"])
+        self.assertEqual(len(filtered_list), 2)
+
+    def test_filter_tags_with_invalid_dict(self):
+        findings = "Not a Dict"
+        with self.assertRaises(InvalidFilterValue):
+            filter_tags(findings, ["xss", "T1659"])
 
 
 class LocalFindingNoteUpdateTests(TestCase):

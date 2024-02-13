@@ -59,6 +59,7 @@ select_permissions:
         - complete
         - deadline
         - id
+        - marked_complete
         - parent_id
         - status_id
         - task
@@ -147,3 +148,21 @@ delete_permissions:
                   invites:
                     user_id:
                       _eq: X-Hasura-User-Id
+event_triggers:
+  - name: UpdateProjectSubTask
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+      update:
+        columns:
+          - deadline
+          - complete
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/projetsubtask/update'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET

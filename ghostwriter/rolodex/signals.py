@@ -10,7 +10,7 @@ from django.dispatch import receiver
 
 # Ghostwriter Libraries
 from ghostwriter.modules.notifications_slack import SlackNotification
-from ghostwriter.rolodex.models import Project, ProjectObjective, ProjectSubTask
+from ghostwriter.rolodex.models import Project
 from ghostwriter.shepherd.models import History, ServerHistory
 
 # Using __name__ resolves to ghostwriter.rolodex.signals
@@ -171,28 +171,3 @@ the start date and {abs(end_date_delta)} days for the end date.",
                     if end_date_delta != 0:
                         entry.end_date = entry.end_date - timedelta(days=end_date_delta)
                     entry.save()
-
-
-@receiver(pre_save, sender=ProjectObjective)
-def memorize_project_objective(sender, instance, **kwargs):
-    """
-    Memorize the deadline of a :model:`rolodex.ProjectObjective` entry
-    prior to saving changes.
-    """
-    if instance.pk:
-        initial_objective = ProjectObjective.objects.get(pk=instance.pk)
-        instance.initial_deadline = initial_objective.deadline
-
-
-@receiver(post_save, sender=ProjectObjective)
-def update_project_objective(sender, instance, **kwargs):
-    """
-    Updates dates for :model:`rolodex.ProjectSubTask` whenever
-    :model:`rolodex.ProjectObjective` is updated.
-    """
-
-    subtasks = ProjectSubTask.objects.filter(parent=instance)
-    for task in subtasks:
-        if task.deadline > instance.deadline or task.deadline == instance.initial_deadline:
-            task.deadline = instance.deadline
-            task.save()

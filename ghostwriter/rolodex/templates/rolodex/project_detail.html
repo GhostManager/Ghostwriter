@@ -560,7 +560,11 @@
                         <td class="high align-middle">You</td>
                       {% endif %}
                     {% else %}
-                      <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+                      {% if finding.assigned_to %}
+                        <td class="neutral align-middle">{{ finding.assigned_to }}</td>
+                      {% else %}
+                        <td class="medium align-middle">TBD</td>
+                      {% endif %}
                     {% endif %}
                     {% if finding.complete %}
                       <td class="low align-middle">Ready for Review</td>
