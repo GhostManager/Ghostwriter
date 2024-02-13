@@ -4,11 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.8] - 12 February 2024
+## [4.0.8] - 13 February 2024
 
 ### Added
 
 * Added GraphQL events to update `deadline` and `markedComplete` fields for project objectives and tasks when these objects are updated via the GraphQL API
+* Added a `filter_tags` filter to the reporting engine to allow for filtering findings and other models by their tags
+
+### Fixed
+
+* Fixed an issue with the template linter that could cause an error when retrieving undeclared variables under certain conditions
 
 ### Changed
 
