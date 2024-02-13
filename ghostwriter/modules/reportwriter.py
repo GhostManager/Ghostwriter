@@ -2345,8 +2345,6 @@ class TemplateLinter:
                         for variable in undefined_vars:
                             if variable not in LINTER_CONTEXT:
                                 results["warnings"].append(f"Potential undefined variable: {variable}")
-                    if results["warnings"]:
-                        results["result"] = "warning"
 
                     # Step 2: Check document's styles
                     document_styles = template_document.styles
@@ -2383,6 +2381,10 @@ class TemplateLinter:
                             results["warnings"].append(
                                 f"Template is missing your configured default paragraph style: {self.template.p_style}"
                             )
+
+                    if results["warnings"]:
+                        results["result"] = "warning"
+
                     logger.info("Completed Word style checks")
 
                     # Step 3: Test rendering the document
