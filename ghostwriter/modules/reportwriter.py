@@ -2340,6 +2340,14 @@ class TemplateLinter:
                     template_document = DocxTemplate(self.template_loc)
                     logger.info("Template loaded for linting")
 
+                    undefined_vars = template_document.get_undeclared_template_variables(self.jinja_template_env)
+                    if undefined_vars:
+                        for variable in undefined_vars:
+                            if variable not in LINTER_CONTEXT:
+                                results["warnings"].append(f"Potential undefined variable: {variable}")
+                    if results["warnings"]:
+                        results["result"] = "warning"
+
                     # Step 2: Check document's styles
                     document_styles = template_document.styles
                     if "Bullet List" not in document_styles:
@@ -2380,12 +2388,6 @@ class TemplateLinter:
                     # Step 3: Test rendering the document
                     try:
                         template_document.render(LINTER_CONTEXT, self.jinja_template_env, autoescape=True)
-                        undefined_vars = template_document.undeclared_template_variables
-                        if undefined_vars:
-                            for variable in undefined_vars:
-                                results["warnings"].append(f"Undefined variable: {variable}")
-                        if results["warnings"]:
-                            results["result"] = "warning"
                         logger.info("Completed document rendering test")
                     except TemplateSyntaxError as error:
                         logger.exception("Template syntax error: %s", error)
