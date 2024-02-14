@@ -17,7 +17,7 @@
 {% block content %}
   <div class="dropdown">
     <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-        onclick="hamburger(this)">
+         onclick="hamburger(this)">
       <div class="bar1"></div>
       <div class="bar2"></div>
       <div class="bar3"></div>
@@ -37,7 +37,7 @@
   </div>
 
   <div id="descriptionCard" class="card mb-3">
-    <div class="card-header observation-header icon writing-icon">
+    <div class="card-header finding-header icon writing-icon">
       Description
     </div>
     <div class="card-body observation-content">
@@ -50,19 +50,33 @@
   </div>
 
   {% if observation_extra_fields_spec %}
-    <div class="container">
-      <h4 class="icon custom-field-icon">Extra Fields</h4>
-      <hr>
+    <h4 class="icon custom-field-icon">Extra Fields</h4>
+    <hr>
 
-      <table class="table table-borderless table-centered">
-        {% for field_spec in observation_extra_fields_spec %}
-            <tr>
-                <td class="text-left bold">{{ field_spec.display_name }}</td>
-                <td class="text-left">{% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}</td>
-            </tr>
-        {% endfor %}
-      </table>
-    </div>
+    {% for field_spec in observation_extra_fields_spec %}
+      {% if field_spec.type == "rich_text" %}
+        <div id="extraFieldCard_{{ field_spec.internal_name|bleach }}" class="card mb-3">
+          <div class="card-header finding-header icon custom-field-icon">
+            {{ field_spec.display_name|bleach }}
+          </div>
+          <div class="card-body finding-content">
+            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+    {% for field_spec in observation_extra_fields_spec %}
+      {% if field_spec.type != "rich_text" %}
+        <div class="row justify-content-md-center">
+          <h6 class="col-3 text-left">
+            {{ field_spec.display_name|bleach }}
+          </h6>
+          <div class="mt-2 col-3 text-md-center align-middle offset-2">
+            {% include "user_extra_fields/field.html" with extra_fields=observation.extra_fields field_spec=field_spec %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
   {% endif %}
 {% endblock %}
 
