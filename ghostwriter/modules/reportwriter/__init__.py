@@ -10,12 +10,10 @@ import io
 import json
 import logging
 import os
-import random
 import re
 import html
 from copy import deepcopy
 from datetime import timedelta
-from itertools import chain
 
 # Django Imports
 from django.conf import settings
@@ -27,20 +25,16 @@ import jinja2
 import jinja2.sandbox
 from markupsafe import Markup
 import pptx
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 from dateutil.parser._parser import ParserError
-from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.style import WD_STYLE_TYPE
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
-from docx.image.exceptions import UnrecognizedImageError
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
-from docx.oxml.shared import OxmlElement, qn
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Inches, Pt
 from docxtpl import DocxTemplate, RichText
 from jinja2.exceptions import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
 from pptx import Presentation
-from pptx.dml.color import RGBColor as PptxRGBColor
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
 from rest_framework.renderers import JSONRenderer
@@ -51,10 +45,14 @@ from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec,
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
+from ghostwriter.modules.reportwriter.html_to_docx import HtmlToDocxWithEvidence
+from ghostwriter.modules.reportwriter.html_to_pptx import HtmlToPptxWithEvidence
+from ghostwriter.modules.reportwriter.extensions import TEXT_EXTENSIONS, IMAGE_EXTENSIONS
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Evidence, Finding, Observation, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
+
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -331,10 +329,6 @@ class Reportwriter:
         "blockquote",
     ]
 
-    # Allowlist for evidence file extensions / filetypes
-    image_extensions = ["png", "jpeg", "jpg"]
-    text_extensions = ["txt", "ps1", "py", "md", "log"]
-
     def __init__(self, report_queryset, template_loc=None):
         self.template_loc = template_loc
         self.report_queryset = report_queryset
@@ -359,8 +353,6 @@ class Reportwriter:
         self.prefix_figure = f" {prefix_figure} "
         label_figure = global_report_config.label_figure.strip()
         self.label_figure = f"{label_figure} "
-        label_table = global_report_config.label_table.strip()
-        self.label_table = f"{label_table} "
 
         # Set up Jinja2 rendering environment + custom filters
         self.jinja_env = prepare_jinja2_env(debug=False)
@@ -414,889 +406,14 @@ class Reportwriter:
 
         return output
 
-    def _make_figure(self, par, ref=None):
+    def _preprocess_rich_text(self, text, template_vars):
         """
-        Append a text run configured as an auto-incrementing figure to the provided
-        paragraph. The label and number are wrapped in ``w:bookmarkStart`` and
-        ``w:bookmarkEnd``.
-
-        Source:
-            https://github.com/python-openxml/python-docx/issues/359
-
-        **Parameters**
-
-        ``par`` : docx.paragraph.Paragraph
-            Paragraph to alter
-        ``ref`` : string
-            String to use as the ``w:name`` value for the bookmark
-        """
-
-        def generate_ref():
-            """Generate a random eight character reference ID."""
-            return random.randint(10000000, 99999999)
-
-        if ref:
-            ref = f"_Ref{ref}"
-        else:
-            ref = f"_Ref{generate_ref()}"
-        # Start a bookmark run with the figure label
-        p = par._p
-        bookmark_start = OxmlElement("w:bookmarkStart")
-        bookmark_start.set(qn("w:name"), ref)
-        bookmark_start.set(qn("w:id"), "0")
-        p.append(bookmark_start)
-
-        # Add the figure label
-        run = par.add_run(self.label_figure)
-
-        # Append XML for a new field character run
-        run = par.add_run()
-        r = run._r
-        fldChar = OxmlElement("w:fldChar")
-        fldChar.set(qn("w:fldCharType"), "begin")
-        r.append(fldChar)
-
-        # Add field code instructions with ``instrText``
-        run = par.add_run()
-        r = run._r
-        instrText = OxmlElement("w:instrText")
-        # Sequential figure with arabic numbers
-        instrText.text = " SEQ Figure \\* ARABIC"
-        r.append(instrText)
-
-        # An optional ``separate`` value to enforce a space between label and number
-        run = par.add_run()
-        r = run._r
-        fldChar = OxmlElement("w:fldChar")
-        fldChar.set(qn("w:fldCharType"), "separate")
-        r.append(fldChar)
-
-        # Include ``#`` as a placeholder for the number when Word updates fields
-        run = par.add_run("#")
-        r = run._r
-        # Close the field character run
-        fldChar = OxmlElement("w:fldChar")
-        fldChar.set(qn("w:fldCharType"), "end")
-        r.append(fldChar)
-
-        # End the bookmark after the number
-        p = par._p
-        bookmark_end = OxmlElement("w:bookmarkEnd")
-        bookmark_end.set(qn("w:id"), "0")
-        p.append(bookmark_end)
-
-    def _make_cross_ref(self, par, ref):
-        """
-        Append a text run configured as a cross-reference to the provided paragraph.
-
-        **Parameters**
-
-        ``par`` : docx.paragraph.Paragraph
-            Paragraph to alter
-        ``ref`` : string
-            The ``w:name`` value of the target bookmark
-        """
-        # Start the field character run for the label and number
-        run = par.add_run()
-        r = run._r
-        fldChar = OxmlElement("w:fldChar")
-        fldChar.set(qn("w:fldCharType"), "begin")
-        r.append(fldChar)
-
-        # Add field code instructions with ``instrText`` that points to the target bookmark
-        run = par.add_run()
-        r = run._r
-        instrText = OxmlElement("w:instrText")
-        instrText.text = f" REF _Ref{ref} \\h "
-        r.append(instrText)
-
-        # An optional ``separate`` value to enforce a space between label and number
-        run = par.add_run()
-        r = run._r
-        fldChar = OxmlElement("w:fldChar")
-        fldChar.set(qn("w:fldCharType"), "separate")
-        r.append(fldChar)
-
-        # Add runs for the figure label and number
-        run = par.add_run(self.label_figure)
-        # This ``#`` is a placeholder Word will replace with the figure's number
-        run = par.add_run("#")
-
-        # Close the  field character run
-        run = par.add_run()
-        r = run._r
-        fldChar = OxmlElement("w:fldChar")
-        fldChar.set(qn("w:fldCharType"), "end")
-        r.append(fldChar)
-
-        return par
-
-    def _list_number(self, par, prev=None, level=None, num=True):
-        """
-        Makes the specified paragraph a list item with a specific level and optional restart.
-
-        An attempt will be made to retrieve an abstract numbering style that corresponds
-        to the style of the paragraph. If that is not possible, the default numbering or
-        bullet style will be used based on the ``num`` parameter.
-
-        Source:
-            https://github.com/python-openxml/python-docx/issues/25#issuecomment-400787031
-
-        **Parameters**
-
-        ``par`` : docx.paragraph.Paragraph
-            The docx paragraph to turn into a list item.
-        ``prev`` : docx.paragraph.Paragraph or None
-            The previous paragraph in the list. If specified, the numbering and styles will
-            be taken as a continuation of this paragraph. If omitted, a new numbering scheme
-            will be started.
-        ``level`` : int or None
-            The level of the paragraph within the outline. If ``prev`` is set, defaults
-            to the same level as in ``prev``. Otherwise, defaults to zero.
-        ``num`` : bool
-            If ``prev`` is :py:obj:`None` and the style of the paragraph does not correspond
-            to an existing numbering style, this will determine whether the list will
-            be numbered or bulleted. The result is not guaranteed, but is fairly safe for
-            most Word templates.
-        """
-        xpath_options = {
-            True: {"single": "count(w:lvl)=1 and ", "level": 0},
-            False: {"single": "", "level": level},
-        }
-
-        def style_xpath(prefer_single=True):
-            """The style comes from the outer-scope variable ``par.style.name``."""
-            style = par.style.style_id
-            return (
-                "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]' "]/@w:abstractNumId"
-            ).format(style=style, **xpath_options[prefer_single])
-
-        def type_xpath(prefer_single=True):
-            """The type is from the outer-scope variable ``num``."""
-            t = "decimal" if num else "bullet"
-            return (
-                "w:abstractNum[" '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]' "]/@w:abstractNumId"
-            ).format(type=t, **xpath_options[prefer_single])
-
-        def get_abstract_id():
-            """
-            Select as follows:
-
-            1. Match single-level by style (get min ID)
-            2. Match exact style and level (get min ID)
-            3. Match single-level decimal/bullet types (get min ID)
-            4. Match decimal/bullet in requested level (get min ID)
-            """
-            for fn in (style_xpath, type_xpath):
-                for prefer_single in (True, False):
-                    xpath = fn(prefer_single)
-                    ids = numbering.xpath(xpath)
-                    if ids:
-                        return min(int(x) for x in ids)
-            return 0
-
-        if prev is None or prev._p.pPr is None or prev._p.pPr.numPr is None or prev._p.pPr.numPr.numId is None:
-            if level is None:
-                level = 0
-            numbering = self.sacrificial_doc.part.numbering_part.numbering_definitions._numbering
-            # Compute the abstract ID first by style, then by ``num``
-            abstract = get_abstract_id()
-            # Set the concrete numbering based on the abstract numbering ID
-            num = numbering.add_num(abstract)
-            # Make sure to override the abstract continuation property
-            num.add_lvlOverride(ilvl=level).add_startOverride(1)
-            # Extract the newly-allocated concrete numbering ID
-            num = num.numId
-        else:
-            if level is None:
-                level = prev._p.pPr.numPr.ilvl.val
-            # Get the previous concrete numbering ID
-            num = prev._p.pPr.numPr.numId.val
-        par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = num
-        par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
-
-        return par
-
-    def _get_styles(self, tag):
-        """
-        Get styles from an BS4 ``Tag`` object's ``styles`` attribute and convert
-        the string to a dictionary.
-
-        **Parameters**
-
-        ``tag`` : Tag
-            BS4 ``Tag`` with a ``styles`` attribute
-        """
-        tag_styles = {}
-        style_str = tag.attrs["style"]
-        # Filter any blanks from the split
-        style_list = list(filter(None, style_str.split(";")))
-        for style in style_list:
-            temp = style.split(":")
-            key = temp[0].strip()
-            value = temp[1].strip()
-            try:
-                if key == "font-size":
-                    # Remove the "pt" from the font size and convert it to a ``Pt`` object
-                    value = value.replace("pt", "")
-                    value = float(value)
-                    value = Pt(value)
-                if key == "font-family":
-                    # Some fonts include a list of values – get just the first one
-                    font_list = value.split(",")
-                    priority_font = font_list[0].replace("'", "").replace('"', "").strip()
-                    value = priority_font
-                if key == "color":
-                    # Convert the color hex value to an ``RGBColor`` object
-                    value = value.replace("#", "")
-                    n = 2
-                    hex_color = [hex(int(value[i : i + n], 16)) for i in range(0, len(value), n)]
-                    if self.report_type == "pptx":
-                        value = PptxRGBColor(*map(lambda v: int(v, 16), hex_color))
-                    else:
-                        value = RGBColor(*map(lambda v: int(v, 16), hex_color))
-                tag_styles[key] = value
-            except Exception:
-                logger.exception("Failed to convert one of the inline styles for a text run")
-        return tag_styles
-
-    def _process_evidence(self, evidence, par):
-        """
-        Process the specified evidence file for the named finding to add it to the Word document.
-
-        **Parameters**
-
-        ``evidence`` : dict
-            Evidence to be processed
-        ``par`` : Paragraph
-            Paragraph meant to hold the evidence
-        """
-        file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
-        extension = file_path.split(".")[-1].lower()
-
-        # First, check if the file still exists on disk
-        if os.path.exists(file_path):
-            # Next, check if the file is approved and handle as either text or image
-            if extension in self.text_extensions:
-                with open(file_path, "r") as evidence_contents:
-                    # Read in evidence text
-                    evidence_text = evidence_contents.read()
-                    if self.report_type == "pptx":
-                        if par:
-                            self._delete_paragraph(par)
-                        top = Inches(1.65)
-                        left = Inches(8)
-                        width = Inches(4.5)
-                        height = Inches(3)
-                        # Create new textbox, textframe, paragraph, and run
-                        textbox = self.finding_slide.shapes.add_textbox(left, top, width, height)
-                        text_frame = textbox.text_frame
-                        p = text_frame.paragraphs[0]
-                        run = p.add_run()
-                        # Insert evidence and apply formatting
-                        run.text = evidence_text
-                        font = run.font
-                        font.size = Pt(11)
-                        font.name = "Courier New"
-                    else:
-                        # Drop in text evidence using the ``CodeBlock`` style
-                        par.text = evidence_text
-                        par.style = "CodeBlock"
-                        par.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        # Add a caption paragraph below the evidence
-                        p = self.sacrificial_doc.add_paragraph(style="Caption")
-                        ref_name = re.sub(
-                            "[^A-Za-z0-9]+",
-                            "",
-                            evidence["friendly_name"],
-                        )
-                        self._make_figure(p, ref_name)
-                        run = p.add_run(self.prefix_figure + evidence["caption"])
-            elif extension in self.image_extensions:
-                # Drop in the image at the full 6.5" width and add the caption
-                if self.report_type == "pptx":
-                    if par:
-                        self._delete_paragraph(par)
-                    # Place new textbox to the mid-right
-                    top = Inches(1.65)
-                    left = Inches(8)
-                    width = Inches(4.5)
-                    self.finding_slide.shapes.add_picture(file_path, left, top, width=width)
-                else:
-                    par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    run = par.add_run()
-                    try:
-                        # Add the picture to the document and then add a border
-                        run.add_picture(file_path, width=Inches(6.5))
-                    except docx.image.exceptions.UnrecognizedImageError:
-                        logger.exception(
-                            "Evidence file known as %s (%s) was not recognized as a %s file.",
-                            evidence["friendly_name"],
-                            file_path,
-                            extension,
-                        )
-                        error_msg = (
-                            f'The evidence file, `{evidence["friendly_name"]},` was not recognized as a {extension} file. '
-                            "Try opening it, exporting as desired type, and re-uploading it."
-                        )
-                        raise UnrecognizedImageError(error_msg) from docx.image.exceptions.UnrecognizedImageError
-
-                    if self.enable_borders:
-                        # Add the border – see Ghostwriter Wiki for documentation
-                        inline_class = run._r.xpath("//wp:inline")[-1]
-                        inline_class.attrib["distT"] = "0"
-                        inline_class.attrib["distB"] = "0"
-                        inline_class.attrib["distL"] = "0"
-                        inline_class.attrib["distR"] = "0"
-
-                        # Set the shape's "effect extent" attributes to the border weight
-                        effect_extent = OxmlElement("wp:effectExtent")
-                        effect_extent.set("l", str(self.border_weight))
-                        effect_extent.set("t", str(self.border_weight))
-                        effect_extent.set("r", str(self.border_weight))
-                        effect_extent.set("b", str(self.border_weight))
-                        # Insert just below ``<wp:extent>`` or it will not work
-                        inline_class.insert(1, effect_extent)
-
-                        # Find inline shape properties – ``pic:spPr``
-                        pic_data = run._r.xpath("//pic:spPr")[-1]
-                        # Assemble OXML for a solid border
-                        ln_xml = OxmlElement("a:ln")
-                        ln_xml.set("w", str(self.border_weight))
-                        solidfill_xml = OxmlElement("a:solidFill")
-                        color_xml = OxmlElement("a:srgbClr")
-                        color_xml.set("val", self.border_color)
-                        solidfill_xml.append(color_xml)
-                        ln_xml.append(solidfill_xml)
-                        pic_data.append(ln_xml)
-
-                    # Create the caption for the image
-                    p = self.sacrificial_doc.add_paragraph(style="Caption")
-                    ref_name = re.sub("[^A-Za-z0-9]+", "", evidence["friendly_name"])
-                    self._make_figure(p, ref_name)
-                    run = p.add_run(self.prefix_figure + evidence["caption"])
-            # Skip unapproved files
-            else:
-                par = None
-        else:
-            raise FileNotFoundError(file_path)
-
-    def _delete_paragraph(self, par):
-        """
-        Delete the specified paragraph.
-
-        **Parameter**
-
-        ``par``
-            Paragraph to delete from the document
-        """
-        p = par._p
-        parent_element = p.getparent()
-        if parent_element is not None:
-            parent_element.remove(p)
-        else:
-            logger.warning("Could not delete paragraph in because it had no parent element")
-
-    def _write_xml(self, text, par, styles):
-        """
-        Write the provided text to Office XML.
-
-        **Parameters**
-
-        ``text`` : string
-            Text to check for keywords
-        ``par`` : Paragraph
-            Paragraph for the processed text
-        ``styles`` : dict
-            Copy of ``ReportConstants.DEFAULT_STYLE_VALUES`` with styles for the text
-        """
-        # Handle hyperlinks based on Office report type
-        # Easy with ``python-pptx`` API, but custom work required for ``python-docx``
-        if styles["hyperlink"] and styles["hyperlink_url"]:
-            if self.report_type == "pptx":
-                run = par.add_run()
-                run.text = text
-                run.hyperlink.address = styles["hyperlink_url"]
-            else:
-                # For Word, this code is modified from this issue:
-                #   https://github.com/python-openxml/python-docx/issues/384
-                # Get an ID from the ``document.xml.rels`` file
-                part = par.part
-                r_id = part.relate_to(
-                    styles["hyperlink_url"],
-                    docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK,
-                    is_external=True,
-                )
-                # Create the ``w:hyperlink`` tag and add needed values
-                hyperlink = docx.oxml.shared.OxmlElement("w:hyperlink")
-                hyperlink.set(
-                    docx.oxml.shared.qn("r:id"),
-                    r_id,
-                )
-                # Create the ``w:r`` and ``w:rPr`` elements
-                new_run = docx.oxml.shared.OxmlElement("w:r")
-                rPr = docx.oxml.shared.OxmlElement("w:rPr")
-                new_run.append(rPr)
-                new_run.text = text
-                hyperlink.append(new_run)
-                # Create a new Run object and add the hyperlink into it
-                run = par.add_run()
-                run._r.append(hyperlink)
-                # A workaround for the lack of a hyperlink style
-                if "Hyperlink" in self.sacrificial_doc.styles:
-                    run.style = "Hyperlink"
-                else:
-                    run.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
-                    run.font.underline = True
-        else:
-            run = par.add_run()
-            run.text = text
-
-        # Apply font-based styles that work for both APIs
-        font = run.font
-        font.bold = styles["bold"]
-        font.italic = styles["italic"]
-        font.underline = styles["underline"]
-        if styles["font_color"]:
-            font.color.rgb = styles["font_color"]
-        font.name = styles["font_family"]
-        font.size = styles["font_size"]
-        if styles["inline_code"]:
-            if self.report_type == "pptx":
-                font.name = "Courier New"
-            else:
-                run.style = "CodeInline"
-                font.no_proof = True
-
-        # These styles require extra work due to limitations of the ``python-pptx`` API
-        if styles["highlight"]:
-            if self.report_type == "pptx":
-                rPr = run._r.get_or_add_rPr()
-                highlight = OxmlElement("a:highlight")
-                srgbClr = OxmlElement("a:srgbClr")
-                srgbClr.set("val", "FFFF00")
-                highlight.append(srgbClr)
-                rPr.append(highlight)
-            else:
-                font.highlight_color = WD_COLOR_INDEX.YELLOW
-        if styles["strikethrough"]:
-            if self.report_type == "pptx":
-                font._element.set("strike", "sngStrike")
-            else:
-                font.strike = styles["strikethrough"]
-        if styles["subscript"]:
-            if self.report_type == "pptx":
-                font._element.set("baseline", "-25000")
-            else:
-                font.subscript = styles["subscript"]
-        if styles["superscript"]:
-            if self.report_type == "pptx":
-                font._element.set("baseline", "30000")
-            else:
-                font.superscript = styles["superscript"]
-
-    def _replace_and_write(self, text, par, styles=ReportConstants.DEFAULT_STYLE_VALUES.copy()):
-        """
-        Find and replace template keywords in the provided text.
-
-        **Parameters**
-
-        ``text`` : string
-            Text to check for keywords
-        ``par`` : Paragraph
-            Paragraph for the processed text
-        ``styles`` : dict
-            Copy of ``ReportConstants.DEFAULT_STYLE_VALUES`` with styles for the text
-        """
-        # Remove any newlines to avoid creating unwanted blank lines
-        text = text.replace("\r\n", "")
-        self._write_xml(text, par, styles)
-        return par
-
-    def _process_nested_html_tags(self, contents, par, styles=None):
-        """
-        Process BeautifulSoup4 ``Tag`` objects containing nested HTML tags.
-
-        **Parameters**
-
-        ``contents`` : Tag.contents
-            Contents of a BS4 ``Tag``
-        ``par`` : Paragraph
-            Word docx ``Paragraph`` object
-        ``styles`` : dict
-            Override default styles with a provided dict
-        """
-
-        def merge_styles(run_styles, parent_styles):
-            """Merge the two style dictionaries, keeping the ``run_styles`` values."""
-            for key in parent_styles:
-                # Same values in both dicts
-                if run_styles[key] == parent_styles[key]:
-                    pass
-                else:
-                    # Run has no value but parent has one
-                    if not run_styles[key] and parent_styles[key]:
-                        run_styles[key] = parent_styles[key]
-            return run_styles
-
-        def check_tags(tag, styles_dict):
-            """Check the tag name and update the provided styles dictionary as needed."""
-            tag_name = tag.name
-
-            # A ``code`` tag here is inline code inside a ``p`` tag
-            if tag_name == "code":
-                styles_dict["inline_code"] = True
-
-            # These tags apply italic, bold, and underline styles but appear rarely
-            elif tag_name == "em":
-                styles_dict["italic"] = True
-            elif tag_name in ("strong", "b"):
-                styles_dict["bold"] = True
-            elif tag_name == "u":
-                styles_dict["underline"] = True
-
-            # The ``sub`` and ``sup`` tags designates subscript and superscript
-            elif tag_name == "sub":
-                styles_dict["subscript"] = True
-            elif tag_name == "sup":
-                styles_dict["superscript"] = True
-
-            # The ``del`` tag applies a strikethrough style
-            elif tag_name == "del":
-                styles_dict["strikethrough"] = True
-
-            # A ``span`` tag will usually contain one or more classes for formatting
-            # Empty spans usually only appear in place of a non-breaking spaces
-            elif tag_name == "span":
-                # Check existence of supported classes for run styles
-                if "class" in tag.attrs:
-                    tag_attrs = tag.attrs["class"]
-                    if "italic" in tag_attrs:
-                        styles_dict["italic"] = True
-                    if "bold" in tag_attrs:
-                        styles_dict["bold"] = True
-                    if "underline" in tag_attrs:
-                        styles_dict["underline"] = True
-                    if "highlight" in tag_attrs:
-                        styles_dict["highlight"] = True
-
-                # Check existence of supported character styles
-                if "style" in tag.attrs:
-                    tag_style = self._get_styles(tag)
-                    if "font-size" in tag_style:
-                        styles_dict["font_size"] = tag_style["font-size"]
-                    if "font-family" in tag_style:
-                        styles_dict["font_family"] = tag_style["font-family"]
-                    if "color" in tag_style:
-                        styles_dict["font_color"] = tag_style["color"]
-                    if "background-color" in tag_style:
-                        styles_dict["highlight"] = tag_style["background-color"]
-
-            # An ``a`` tag is a hyperlink
-            elif tag_name == "a":
-                styles_dict["hyperlink"] = True
-                styles_dict["hyperlink_url"] = tag["href"]
-
-            # Any other tags are unexpected and ignored
-            else:
-                if tag_name not in self.tag_allowlist:
-                    logger.warning("Encountered an unexpected nested HTML tag: %s", tag_name)
-
-            return styles_dict
-
-        # Begin with HTML that could have indefinitely nested tags
-        for part in contents:
-            # Track the styles for this first parent tag or use the defaults if none
-            if styles:
-                parent_styles = styles.copy()
-                run_styles = styles.copy()
-            else:
-                parent_styles = ReportConstants.DEFAULT_STYLE_VALUES.copy()
-                run_styles = ReportConstants.DEFAULT_STYLE_VALUES.copy()
-
-            # Get each part's ``name`` to check if it's a ``Tag`` object
-            # A plain string will return ``None`` - no HTML tag
-            part_name = part.name
-
-            if part_name == "span" and "data-gw-evidence" in part.attrs:
-                # Replace evidence placeholder
-                report_evidence = self.report_json["evidence"]
-                if "finding" in self.rich_text_vars and "evidence" in self.rich_text_vars["finding"]:
-                    instance_evidence = self.rich_text_vars["finding"]["evidence"]
-                else:
-                    instance_evidence = []
-                evidence = next((evi for evi in chain(instance_evidence, report_evidence) if evi["friendly_name"] == part.attrs["data-gw-evidence"]), None)
-                if not evidence:
-                    continue
-                self._process_evidence(evidence, par)
-            elif part_name == "span" and "data-gw-caption" in part.attrs:
-                # Replace caption placeholder
-                ref_name = part.attrs["data-gw-caption"]
-                if self.report_type == "pptx":
-                    if ref_name:
-                        run = par.add_run()
-                        run.text = f"See {ref_name}"
-                        font = run.font
-                        font.italic = True
-                else:
-                    par.style = "Caption"
-                    if ref_name:
-                        self._make_figure(par, ref_name)
-                    else:
-                        self._make_figure(par)
-            elif part_name == "span" and "data-gw-ref" in part.attrs:
-                # Replace reference holder
-                ref_name = part.attrs["data-gw-ref"]
-                if self.report_type == "pptx":
-                    run = par.add_run()
-                    run.text = f"See {ref_name}"
-                    font = run.font
-                    font.italic = True
-                else:
-                    self._make_cross_ref(par, ref_name)
-            elif part_name:
-                # Get the top-level's styles first as it applies to all future runs
-
-                # Update styles based on the tag and properties
-                parent_styles = check_tags(part, parent_styles)
-
-                # Split part into list of text and ``Tag`` objects
-                part_contents = part.contents
-
-                # With parent styles recorded, process each child same as above
-                for tag in part_contents:
-                    tag_name = tag.name
-
-                    if tag_name and tag_name in self.tag_allowlist:
-                        # Construct text to be written as part of this run
-                        content_text = ""
-
-                        # Split part into list of text and ``Tag`` objects
-                        tag_contents = tag.contents
-
-                        if len(tag_contents) >= 1:
-                            # Update styles based on the tag and properties
-                            run_styles = check_tags(tag, run_styles)
-
-                            # Check for a hyperlink formatted with additional styles
-                            if tag_contents[0].name:
-                                if tag_contents[0].name == "a":
-                                    run_styles["hyperlink"] = True
-                                    run_styles["hyperlink_url"] = tag_contents[0]["href"]
-                                    content_text = tag_contents[0].text
-
-                            # Combine the styles to carry them over to the next loop
-                            merged_styles = merge_styles(run_styles, parent_styles)
-
-                            # Recursively process the nested tags
-                            self._process_nested_html_tags(tag_contents, par, styles=merged_styles)
-                    elif tag_name:
-                        logger.warning(
-                            "Ignoring a nested HTML tag not in the allowlist: %s",
-                            tag_name,
-                        )
-                        continue
-                    else:
-                        content_text = tag
-
-                    # Combine the parent's and run's styles, favoring the run's
-                    merged_styles = merge_styles(run_styles, parent_styles)
-
-                    # Write the text for this run
-                    par = self._replace_and_write(content_text, par, merged_styles)
-
-                    # Reset temporary run styles
-                    run_styles = ReportConstants.DEFAULT_STYLE_VALUES.copy()
-
-            # There are no tags to process, so write the string
-            else:
-                if isinstance(part, NavigableString):
-                    par = self._replace_and_write(part, par, parent_styles)
-                else:
-                    par = self._replace_and_write(part.text, par)
-        return par
-
-    def _create_list_paragraph(self, prev_p, level, num=False, alignment=WD_ALIGN_PARAGRAPH.LEFT):
-        """
-        Create a new paragraph in the document for a list.
-
-        **Parameters**
-
-        ``prev_p``
-            Previous paragraph to link the next list item
-        ``level``
-            Indentation level for the list item
-        ``num``
-            Boolean to determine if the line item will be numbered (Default: False)
-        """
-        if self.report_type == "pptx":
-            # Move to new paragraph/line and indent bullets based on level
-            p = self.finding_body_shape.text_frame.add_paragraph()
-            p.level = level
-        else:
-            make_list = True
-            styles = self.sacrificial_doc.styles
-            try:
-                if num:
-                    list_style = styles["Number List"]
-                else:
-                    list_style = styles["Bullet List"]
-            except Exception:
-                if "List Paragraph" in styles:
-                    list_style = styles["List Paragraph"]
-                else:
-                    list_style = styles["Normal"]
-                    make_list = False
-            p = self.sacrificial_doc.add_paragraph(style=list_style)
-            if make_list:
-                p = self._list_number(p, prev=prev_p, level=level, num=num)
-            p.alignment = alignment
-        return p
-
-    def _parse_nested_html_lists(self, tag, prev_p, num, level=0):
-        """
-        Recursively parse deeply nested lists. This checks for ``<ol>`` or ``<ul>`` tags
-        and keeps parsing until all nested lists are found and processed.
-
-        Returns the last paragraph object created.
-
-        **Parameters**
-
-        ``part``
-            BeautifulSoup 4 Tag object to parse
-        ``prev_p``
-            Previous paragraph to link the next list item
-        ``num``
-            Boolean to determine if the line item will be numbered
-        ``level``
-            Indentation level for the list item (Defaults to 0)
-        """
-        # Check if this element has any ``ul`` or ``ol`` tags anywhere in its contents
-        if tag.ol or tag.ul:
-            temp = []
-            nested_list = None
-            li_contents = tag.contents
-            # Loop over the contents of the list item to find the nested lists
-            for part in tag:
-                # Newlines will appear between elements, ignore them
-                if part != "\n":
-                    # If the tag name is ``ul`` or ``ol``, tack it as a nested list
-                    if part.name in ("ol", "ul"):
-                        num = bool(part.name == "ol")
-                        nested_list = part
-                    # Put everything else in a temporary list to be processed later
-                    else:
-                        temp.append(part)
-
-            # Make the list paragraph here to pick up any changes to the list style (e.g, ``num``)
-            p = self._create_list_paragraph(prev_p, level, num)
-
-            # If ``temp`` isn't empty, process it like any other line
-            if temp:
-                # A length of ``1`` means no nested tags
-                if len(temp) == 1:
-                    # If the first list item is a ``Tag`` process for styling
-                    if temp[0].name:
-                        self._process_nested_html_tags(temp, p)
-                    # Otherwise, just write the XML
-                    else:
-                        self._replace_and_write(temp[0], p)
-                else:
-                    self._process_nested_html_tags(temp, p)
-
-            # If we have nested list(s), recursively process them by re-entering ``_parse_html_lists``
-            if nested_list:
-                # Increment the indentation level
-                if not li_contents[0] == "\n":
-                    level += 1
-                p = self._parse_html_lists(nested_list, p, num, level)
-        # No nested list items, proceed as normal
-        # This is where we catch ``li`` tags with nested tags like hyperlinks
-        else:
-            p = self._create_list_paragraph(prev_p, level, num)
-            self._process_nested_html_tags(tag.contents, p)
-        return p
-
-    def _parse_html_lists(self, tag, prev_p, num, level):
-        """
-        Recursively parse deeply nested lists. This checks for ``<ol>`` or ``<ul>`` tags
-        and keeps parsing until all nested lists are found and processed.
-
-        Returns the last paragraph object created.
-
-        **Parameters**
-
-        ``tag``
-            BeautifulSoup 4 Tag object to parse
-        ``prev_p``
-            Previous paragraph to link the next list item
-        ``num``
-            Boolean to determine if the line item will be numbered
-        ``level``
-            Indentation level for the list item (Defaults to 0)
-        """
-        p = prev_p
-        # Get the individuals contents of the tag
-        contents = tag.contents
-        # Loop over the contents to find nested lists
-        # Nested lists are ``ol`` or ``ul`` tags inside ``li`` tags
-        for part in contents:
-            # Handle ``li`` tags which might contain more lists
-            if part.name == "li":
-                li_contents = part.contents
-                # A length of ``1`` means there are no nested tags
-                if len(li_contents) == 1:
-                    p = self._create_list_paragraph(prev_p, level, num)
-                    if li_contents[0].name:
-                        self._process_nested_html_tags(li_contents, p)
-                    else:
-                        self._replace_and_write(part.text, p)
-                # Bigger lists mean more tags, so process nested tags
-                else:
-                    # Handle nested lists
-                    p = self._parse_nested_html_lists(part, prev_p, num, level)
-                # Track the paragraph used for this list item to link subsequent list paragraphs
-                prev_p = p
-            # If ``ol`` tag encountered, increment ``level`` and switch to numbered list
-            elif part.name == "ol":
-                level += 1
-                p = self._parse_html_lists(part, prev_p, True, level)
-            # If ``ul`` tag encountered, increment ``level`` and switch to bulleted list
-            elif part.name == "ul":
-                level += 1
-                p = self._parse_html_lists(part, prev_p, False, level)
-            # No change in list type, so proceed with writing the line
-            elif part.name:
-                p = self._create_list_paragraph(prev_p, level, num)
-                self._process_nested_html_tags(part, p)
-            # Handle tags that are not handled above
-            else:
-                if not isinstance(part, NavigableString):
-                    logger.warning("Encountered an unknown tag for a list: %s", part.name)
-                else:
-                    if part.strip() != "":
-                        p = self._create_list_paragraph(prev_p, level, num)
-                        self._replace_and_write(part.strip(), p)
-        # Return last paragraph created
-        return p
-
-    def _process_text_xml(self, text, template_vars={}, p_style=None):
-        """
-        Process the provided text from the specified finding to parse keywords for
-        evidence placement and formatting for Office XML.
-
-        **Parameters**
-
-        ``text``
-            Text to convert to Office XML
-        ``finding``
-            Current finding/report being processed
+        Does jinja and `{{.item}}` substitutions on rich text, in preparation for feeding into the
+        `BaseHtmlToOOXML` subclass.
         """
 
         if not text:
-            return
-
-        self.rich_text_vars = template_vars
+            return ""
 
         # Replace old `{{.item}}`` syntax with jinja templates or elements to replace
         def replace_old_tag(match):
@@ -1316,134 +433,46 @@ class Reportwriter:
 
         # Filter out XML-incompatible characters
         text_char_filtered = "".join(c for c in text_rendered if self._valid_xml_char_ordinal(c))
+        return text_char_filtered
 
-        # Parse the HTML into a BS4 soup object
-        soup = BeautifulSoup(text_char_filtered, "lxml")
+    def _process_rich_text_docx(self, text, template_vars, evidences, p_style=None):
+        """
+        Converts HTML from the TinyMCE rich text editor to a Word subdoc.
+        """
+        text = self._preprocess_rich_text(text, template_vars)
+        doc = self.word_doc.new_subdoc()
+        try:
+            HtmlToDocxWithEvidence.run(
+                text,
+                doc=doc,
+                p_style=p_style,
+                evidences=evidences,
+                figure_label=self.label_figure,
+                figure_prefix=self.prefix_figure,
+                border_color_width=(self.border_color, self.border_weight) if self.enable_borders else None,
+            )
+        except:
+            # Log input text to help diagnose errors
+            logger.warn("Input text: %r", text)
+            raise
+        return doc
 
-        # Each WYSIWYG field begins with ``<html><body>`` so get the contents of ``body``
-        body = soup.find("body")
-        contents_list = body.contents
-
-        # Loop over all strings and ``bs4.element.Tag`` objects
-        for tag in contents_list:
-            # Get the HTML tag's name to determine next steps
-            tag_name = tag.name
-
-            # Hn – Headings
-            if tag_name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-                if self.report_type == "pptx":
-                    # No headings in PPTX, so add a new line and bold it as a pseudo-heading
-                    p = self.finding_body_shape.text_frame.add_paragraph()
-                    run = p.add_run()
-                    run.text = tag.text
-                    font = run.font
-                    font.bold = True
-                else:
-                    heading_num = int(tag_name[1])
-                    # Add the heading to the document
-                    # This discards any inline formatting, but that should be managed
-                    # by editing the style in the template
-                    p = self.sacrificial_doc.add_heading(tag.text, heading_num)
-
-            # P – Paragraphs
-            elif tag_name == "p":
-                # Get the tag's contents to check for additional formatting
-                contents = tag.contents
-
-                # Add a paragraph to the document based on doc type
-                if self.report_type == "pptx":
-                    p = self.finding_body_shape.text_frame.add_paragraph()
-                    ALIGNMENT = PP_ALIGN
-                else:
-                    p = self.sacrificial_doc.add_paragraph(style=p_style)
-                    ALIGNMENT = WD_ALIGN_PARAGRAPH
-
-                # Check for alignment classes on the ``p`` tag
-                if "class" in tag.attrs:
-                    tag_attrs = tag.attrs["class"]
-                    if "left" in tag_attrs:
-                        p.alignment = ALIGNMENT.LEFT
-                    if "center" in tag_attrs:
-                        p.alignment = ALIGNMENT.CENTER
-                    if "right" in tag_attrs:
-                        p.alignment = ALIGNMENT.RIGHT
-                    if "justify" in tag_attrs:
-                        p.alignment = ALIGNMENT.JUSTIFY
-
-                # Pass the contents and new paragraph on to drill down into nested formatting
-                self._process_nested_html_tags(contents, p)
-
-            # PRE – Code Blocks
-            elif tag_name == "pre":
-                # Get the list of pre-formatted strings
-                contents = tag.contents
-
-                # We do not style any text inside a code block, so we just write the XML
-                # The only content should be one ``code`` block and a long line of text broken up by ``\r\n``
-                if self.report_type == "pptx":
-                    # Place new textbox to the mid-right to keep it out of the way
-                    if contents:
-                        top = Inches(1.65)
-                        left = Inches(8)
-                        width = Inches(4.5)
-                        height = Inches(3)
-                        # Create new textbox, textframe, paragraph, and run
-                        textbox = self.finding_slide.shapes.add_textbox(left, top, width, height)
-                        text_frame = textbox.text_frame
-                        for content in contents:
-                            for code in content:
-                                parts = code.split("\r\n")
-                                for code_line in parts:
-                                    p = text_frame.add_paragraph()
-                                    # Align left to anticipate a monospaced font for code
-                                    p.alignment = PP_ALIGN.LEFT
-                                    run = p.add_run()
-                                    # Insert code block and apply formatting
-                                    run.text = code_line
-                                    font = run.font
-                                    font.size = Pt(11)
-                                    font.name = "Courier New"
-                else:
-                    if contents:
-                        for content in contents:
-                            for code in content:
-                                parts = code.split("\r\n")
-                                for code_line in parts:
-                                    # Create paragraph and apply the ``CodeBlock`` style
-                                    p = self.sacrificial_doc.add_paragraph(code_line)
-                                    p.style = "CodeBlock"
-                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-
-            # OL & UL - Ordered/Numbered & Unordered Lists
-            elif tag_name in ("ol", "ul"):
-                # Ordered/numbered lists need numbers and linked paragraphs
-                prev_p = None
-                num = bool(tag_name == "ol")
-                # In HTML, sub-items in a list are nested HTML lists
-                # We need to check every list item for formatted and additional lists
-                # While tracking which level of the list we are working with
-                prev_p = self._parse_html_lists(tag, prev_p, num, 0)
-
-            # BLOCKQUOTE - Blockquote Sections
-            elif tag_name == "blockquote":
-                # Get the tag's contents to check for additional formatting
-                contents = tag.contents
-
-                # PowerPoint lacks a blockquote style, so we just add a basic paragraph
-                if self.report_type == "pptx":
-                    p = self.finding_body_shape.text_frame.add_paragraph()
-                else:
-                    p = self.sacrificial_doc.add_paragraph()
-                    p.style = "Blockquote"
-
-                # Pass the contents and new paragraph on to drill down into nested formatting
-                self._process_nested_html_tags(contents, p)
-            else:
-                if not isinstance(tag, NavigableString):
-                    logger.warning(
-                        "Encountered an unknown tag inside of the finding HTML: %s",
-                        tag_name,
-                    )
+    def _process_rich_text_pptx(self, text, slide, shape, template_vars, evidences):
+        """
+        Converts HTML from the TinyMCE rich text editor and inserts it into the passed in slide and shape
+        """
+        text = self._preprocess_rich_text(text, template_vars)
+        try:
+            HtmlToPptxWithEvidence.run(
+                text,
+                slide=slide,
+                shape=shape,
+                evidences=evidences,
+            )
+        except:
+            # Log input text to help diagnose errors
+            logger.warn("Input text: %r", text)
+            raise
 
     def generate_word_docx(self):
         """Generate a complete Word document for the current report."""
@@ -1529,13 +558,6 @@ class Reportwriter:
         # Return the final rendered document
         return self.word_doc
 
-    def _render_subdocument(self, section, vars, p_style):
-        if section:
-            self.sacrificial_doc = self.word_doc.new_subdoc()
-            self._process_text_xml(section, vars, p_style)
-            return self.sacrificial_doc
-        return None
-
     def _jinja_richtext_base_context(self) -> dict:
         """
         Generates a Jinja context for use in rich text fields
@@ -1586,118 +608,121 @@ class Reportwriter:
 
         p_style = self.report_queryset.docx_template.p_style
 
-        def render_subdocument(section, vars):
-            return self._render_subdocument(section, vars, p_style)
-
         base_context = self._jinja_richtext_base_context()
+        base_evidences = {e["friendly_name"] : e for e in context["evidence"]}
 
-        self._process_extra_fields(context["extra_fields"], Report, lambda v: self._render_subdocument(v, base_context, p_style))
+        def base_render(text):
+            return self._process_rich_text_docx(text, base_context, base_evidences, p_style)
+
+        self._process_extra_fields(context["extra_fields"], Report, base_render)
 
         # Findings
         for finding in context["findings"]:
             logger.info("Processing %s", finding["title"])
 
             finding_context = self._jinja_richtext_finding_context(base_context, finding)
+            finding_evidences = base_evidences | {e["friendly_name"] : e for e in finding["evidence"]}
 
-            self._process_extra_fields(finding["extra_fields"], Finding, lambda v: self._render_subdocument(v, finding_context, p_style))  # pylint: disable=cell-var-from-loop
+            def finding_render(text):
+                return self._process_rich_text_docx(text, finding_context, finding_evidences, p_style)
+
+            self._process_extra_fields(finding["extra_fields"], Finding, finding_render)
 
             # Create ``RichText()`` object for a colored severity category
             finding["severity_rt"] = RichText(finding["severity"], color=finding["severity_color"])
             finding["cvss_score_rt"] = RichText(finding["cvss_score"], color=finding["severity_color"])
             finding["cvss_vector_rt"] = RichText(finding["cvss_vector"], color=finding["severity_color"])
             # Create subdocuments for each finding section
-            finding["affected_entities_rt"] = render_subdocument(finding["affected_entities"], finding_context)
-            finding["description_rt"] = render_subdocument(finding["description"], finding_context)
-            finding["impact_rt"] = render_subdocument(finding["impact"], finding_context)
+            finding["affected_entities_rt"] = finding_render(finding["affected_entities"])
+            finding["description_rt"] = finding_render(finding["description"])
+            finding["impact_rt"] = finding_render(finding["impact"])
 
             # Include a copy of ``mitigation`` as ``recommendation`` to match legacy context
-            mitigation_section = render_subdocument(finding["mitigation"], finding_context)
+            mitigation_section = finding_render(finding["mitigation"])
             finding["mitigation_rt"] = mitigation_section
             finding["recommendation_rt"] = mitigation_section
 
-            finding["replication_steps_rt"] = render_subdocument(finding["replication_steps"], finding_context)
-            finding["host_detection_techniques_rt"] = render_subdocument(finding["host_detection_techniques"], finding_context)
-            finding["network_detection_techniques_rt"] = render_subdocument(
-                finding["network_detection_techniques"], finding_context
-            )
-            finding["references_rt"] = render_subdocument(finding["references"], finding_context)
+            finding["replication_steps_rt"] = finding_render(finding["replication_steps"])
+            finding["host_detection_techniques_rt"] = finding_render(finding["host_detection_techniques"])
+            finding["network_detection_techniques_rt"] = finding_render(finding["network_detection_techniques"])
+            finding["references_rt"] = finding_render(finding["references"])
 
         # Client
-        context["client"]["note_rt"] = render_subdocument(context["client"]["note"], base_context)
-        context["client"]["address_rt"] = render_subdocument(context["client"]["address"], base_context)
-        self._process_extra_fields(context["client"]["extra_fields"], Client, lambda v: render_subdocument(v, base_context))
+        context["client"]["note_rt"] = base_render(context["client"]["note"])
+        context["client"]["address_rt"] = base_render(context["client"]["address"])
+        self._process_extra_fields(context["client"]["extra_fields"], Client, base_render)
 
         # Project
-        context["project"]["note_rt"] = render_subdocument(context["project"]["note"], base_context)
-        self._process_extra_fields(context["project"]["extra_fields"], Project, lambda v: render_subdocument(v, base_context))
+        context["project"]["note_rt"] = base_render(context["project"]["note"])
+        self._process_extra_fields(context["project"]["extra_fields"], Project, base_render)
 
         # Assignments
         for assignment in context["team"]:
             if isinstance(assignment, dict):
                 if assignment["note"]:
-                    assignment["note_rt"] = render_subdocument(assignment["note"], base_context)
+                    assignment["note_rt"] = base_render(assignment["note"])
 
         # Contacts
         for contact in context["client"]["contacts"]:
             if isinstance(contact, dict):
                 if contact["note"]:
-                    contact["note_rt"] = render_subdocument(contact["note"], base_context)
+                    contact["note_rt"] = base_render(contact["note"])
 
         # Objectives
         for objective in context["objectives"]:
             if isinstance(objective, dict):
                 if objective["description"]:
-                    objective["description_rt"] = render_subdocument(objective["description"], base_context)
+                    objective["description_rt"] = base_render(objective["description"])
 
         # Scope Lists
         for scope_list in context["scope"]:
             if isinstance(scope_list, dict):
                 if scope_list["description"]:
-                    scope_list["description_rt"] = render_subdocument(scope_list["description"], base_context)
+                    scope_list["description_rt"] = base_render(scope_list["description"])
 
         # Targets
         for target in context["targets"]:
             if isinstance(target, dict):
                 if target["note"]:
-                    target["note_rt"] = render_subdocument(target["note"], base_context)
+                    target["note_rt"] = base_render(target["note"])
 
         # Deconfliction Events
         for event in context["deconflictions"]:
             if isinstance(event, dict):
                 if event["description"]:
-                    event["description_rt"] = render_subdocument(event["description"], base_context)
+                    event["description_rt"] = base_render(event["description"])
 
         # White Cards
         for card in context["whitecards"]:
             if isinstance(card, dict):
                 if card["description"]:
-                    card["description_rt"] = render_subdocument(card["description"], base_context)
+                    card["description_rt"] = base_render(card["description"])
 
         # Infrastructure
         for asset_type in context["infrastructure"]:
             for asset in context["infrastructure"][asset_type]:
                 if isinstance(asset, dict):
                     if asset["note"]:
-                        asset["note_rt"] = render_subdocument(asset["note"], base_context)
+                        asset["note_rt"] = base_render(asset["note"])
         for asset in context["infrastructure"]["domains"]:
-            self._process_extra_fields(asset["extra_fields"], Domain, lambda v: render_subdocument(v, base_context))
+            self._process_extra_fields(asset["extra_fields"], Domain, base_render)
         for asset in context["infrastructure"]["servers"]:
-            self._process_extra_fields(asset["extra_fields"], StaticServer, lambda v: render_subdocument(v, base_context))
+            self._process_extra_fields(asset["extra_fields"], StaticServer, base_render)
 
         # Logs
         for log in context["logs"]:
             for entry in log["entries"]:
-                self._process_extra_fields(entry["extra_fields"], OplogEntry, lambda v: render_subdocument(v, base_context))
+                self._process_extra_fields(entry["extra_fields"], OplogEntry, base_render)
 
         # Observations
         for observation in context["observations"]:
             if observation["description"]:
-                observation["description_rt"] = render_subdocument(observation["description"], base_context)
-            self._process_extra_fields(observation["extra_fields"], Observation, lambda v: render_subdocument(v, base_context))
+                observation["description_rt"] = base_render(observation["description"])
+            self._process_extra_fields(observation["extra_fields"], Observation, base_render)
 
         # Report Evidence
         # for evidence in context["evidence"]:
-        #    self._process_extra_fields(evidence["extra_fields"], Report, lambda v: render_subdocument(v, base_context))
+        #    self._process_extra_fields(evidence["extra_fields"], Report, base_render)
 
         return context
 
@@ -1917,7 +942,7 @@ class Reportwriter:
             except Exception:
                 logger.exception("Query for evidence failed for finding %s", finding["id"])
                 evidence_queryset = []
-            evidence = [f.filename for f in evidence_queryset if f in self.image_extensions or self.text_extensions]
+            evidence = [f.filename for f in evidence_queryset if f in TEXT_EXTENSIONS or f in IMAGE_EXTENSIONS]
             finding_evidence_names = "\r\n".join(map(str, evidence))
             worksheet.write_string(row, col, self._process_text_xlsx(finding_evidence_names, finding), wrap_format)
             col += 1
@@ -1942,6 +967,7 @@ class Reportwriter:
         self.report_type = "pptx"
 
         base_context = self._jinja_richtext_base_context()
+        base_evidences = {e["friendly_name"] : e for e in self.report_json["evidence"]}
 
         # Create document writer using the specified template
         try:
@@ -2083,10 +1109,16 @@ class Reportwriter:
             1,
         )
 
-        self.finding_body_shape = shapes.placeholders[1]
-        self._process_text_xml(self.report_json["project"]["note"], base_context)
-        # The `_process_text_xml()` method adds a new paragraph, so we need to get the last one to increase the indent level
-        text_frame = get_textframe(self.finding_body_shape)
+        finding_body_shape = shapes.placeholders[1]
+        self._process_rich_text_pptx(
+            self.report_json["project"]["note"],
+            slide=slide,
+            shape=finding_body_shape,
+            template_vars=base_context,
+            evidences=base_evidences,
+        )
+        # The  method adds a new paragraph, so we need to get the last one to increase the indent level
+        text_frame = get_textframe(finding_body_shape)
         p = text_frame.paragraphs[-1]
         p.level = 1
 
@@ -2191,14 +1223,14 @@ class Reportwriter:
         # Create slide for each finding
         for finding in self.report_json["findings"]:
             slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-            self.finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
-            shapes = self.finding_slide.shapes
+            finding_slide = self.ppt_presentation.slides.add_slide(slide_layout)
+            shapes = finding_slide.shapes
             title_shape = shapes.title
 
             # Prepare text frame
-            self.finding_body_shape = shapes.placeholders[1]
-            if self.finding_body_shape.has_text_frame:
-                text_frame = get_textframe(self.finding_body_shape)
+            finding_body_shape = shapes.placeholders[1]
+            if finding_body_shape.has_text_frame:
+                text_frame = get_textframe(finding_body_shape)
                 text_frame.clear()
                 self._delete_paragraph(text_frame.paragraphs[0])
             else:
@@ -2210,12 +1242,21 @@ class Reportwriter:
             # Add description to the slide body (other sections will appear in the notes)
             if finding.get("description", "").strip():
                 finding_context = self._jinja_richtext_finding_context(base_context, finding)
-                self._process_text_xml(finding["description"], finding_context)
+                finding_evidences = base_evidences | {e["friendly_name"] : e for e in finding["evidence"]}
+                self._process_rich_text_pptx(
+                    finding["description"],
+                    slide=finding_slide,
+                    shape=finding_body_shape,
+                    template_vars=finding_context,
+                    evidences=finding_evidences,
+                )
             else:
-                self._process_text_xml("<p>No description provided</p>", {})
+                par = finding_body_shape.add_paragraph()
+                run = par.add_run()
+                run.text = "No description provided"
 
             for ev in finding.get("evidence", []):
-                self._process_evidence(ev, par=None)
+                HtmlToPptxWithEvidence.make_evidence(finding_slide, ev)
 
             # Ensure there is at least one paragraph, as required by the spec
             if text_frame is not None and not text_frame.paragraphs:
@@ -2229,7 +1270,7 @@ class Reportwriter:
             recommendation = prepare_for_pptx(finding["recommendation"])
             replication = prepare_for_pptx(finding["replication_steps"])
             references = prepare_for_pptx(finding["references"])
-            notes_slide = self.finding_slide.notes_slide
+            notes_slide = finding_slide.notes_slide
             text_frame = notes_slide.notes_text_frame
             p = text_frame.add_paragraph()
             p.text = f"""
@@ -2325,6 +1366,22 @@ class Reportwriter:
         ppt_doc.save(ppt_stream)
         # Return each memory object
         return json.dumps(self.report_json, indent=4), word_stream, excel_stream, ppt_stream
+
+    def _delete_paragraph(self, par):
+        """
+        Delete the specified paragraph.
+
+        **Parameter**
+
+        ``par``
+            Paragraph to delete from the document
+        """
+        p = par._p
+        parent_element = p.getparent()
+        if parent_element is not None:
+            parent_element.remove(p)
+        else:
+            logger.warning("Could not delete paragraph in because it had no parent element")
 
 
 class TemplateLinter:
