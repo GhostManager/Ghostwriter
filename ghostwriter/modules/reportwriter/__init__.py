@@ -570,12 +570,11 @@ class Reportwriter:
                 "project_end": self.report_json["project"]["end_date"],
                 "project_type": self.report_json["project"]["type"].lower(),
             },
-            "report": self.report_json,
-
-            "evidence": _jinja_evidence,
-            "caption": _jinja_caption,
-            "ref": _jinja_ref,
+            "mk_evidence": _jinja_evidence,
+            "mk_caption": _jinja_caption,
+            "mk_ref": _jinja_ref,
         }
+        base_context.update(self.report_json)
         for evidence in self.report_json["evidence"]:
             if evidence.get("friendly_name"):
                 base_context["_old_dot_vars"][evidence["friendly_name"]] = _jinja_evidence(evidence["friendly_name"])
