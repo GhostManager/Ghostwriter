@@ -52,6 +52,92 @@ function Availability(){
   else {return null;}
 }
 
+function ModifiedAttackVector(){
+  if (MAV_X.checked) {return "X";}
+  else if (MAV_N.checked) {return "N";}
+  else if (MAV_A.checked) {return "A";}
+  else if (MAV_L.checked) {return "L";}
+  else if (MAV_P.checked) {return "P";}
+  else {return null;}
+}
+
+function ModifiedAttackComplexity(){
+  if (MAC_X.checked) {return "X";}
+  else if (MAC_L.checked) {return "L";}
+  else if (MAC_H.checked) {return "H";}
+  else {return null;}
+}
+
+function ModifiedPrivilegesRequired(){
+  if (MPR_X.checked) {return "X";}
+  else if (MPR_N.checked) {return "N";}
+  else if (MPR_L.checked) {return "L";}
+  else if (MPR_H.checked) {return "H";}
+  else {return null;}
+}
+
+function ModifiedUserInteraction(){
+  if (MUI_X.checked) {return "X";}
+  else if (MUI_N.checked) {return "N";}
+  else if (MUI_R.checked) {return "R";}
+  else {return null;}
+}
+
+function ModifiedScope(){
+  if (MS_X.checked) {return "X";}
+  else if (MS_U.checked) {return "U";}
+  else if (MS_C.checked) {return "C";}
+  else {return null;}
+}
+
+function ModifiedConfidentiality(){
+  if (MC_X.checked) {return "X";}
+  else if (MC_N.checked) {return "N";}
+  else if (MC_L.checked) {return "L";}
+  else if (MC_H.checked) {return "H";}
+  else {return null;}
+}
+
+function ModifiedIntegrity (){
+  if (MI_X.checked) {return "X";}
+  else if (MI_N.checked) {return "N";}
+  else if (MI_L.checked) {return "L";}
+  else if (MI_H.checked) {return "H";}
+  else {return null;}
+}
+
+function ModifiedAvailability(){
+  if (MA_X.checked) {return "X";}
+  else if (MA_N.checked) {return "N";}
+  else if (MA_L.checked) {return "L";}
+  else if (MA_H.checked) {return "H";}
+  else {return null;}
+}
+
+function ConfidentialityRequirement(){
+  if (CR_X.checked) {return "X";}
+  else if (CR_L.checked) {return "L";}
+  else if (CR_M.checked) {return "M";}
+  else if (CR_H.checked) {return "H";}
+  else {return null;}
+}
+
+function IntegrityRequirement(){
+  if (IR_X.checked) {return "X";}
+  else if (IR_L.checked) {return "L";}
+  else if (IR_M.checked) {return "M";}
+  else if (IR_H.checked) {return "H";}
+  else {return null;}
+}
+
+function AvailabilityRequirement(){
+  if (IR_X.checked) {return "X";}
+  else if (IR_L.checked) {return "L";}
+  else if (IR_M.checked) {return "M";}
+  else if (IR_H.checked) {return "H";}
+  else {return null;}
+}
+
 // JS function to check cvss fields on page load
 function ParseVector(vectorString){
   var metricValues = {
@@ -155,6 +241,165 @@ function ParseVector(vectorString){
       A_H.checked = true;
       break;
     }
+  switch (metricValues.MAV) {
+    case 'N':
+      MAV_N.checked = true;
+      break;
+    case 'A':
+      MAV_A.checked = true;
+      break;
+    case 'L':
+      MAV_L.checked = true;
+      break;
+    case 'P':
+      MAV_P.checked = true;
+      break;
+    case 'X':
+    default:
+        MAV_X.checked = true;
+        break;
+    }
+  switch (metricValues.MAC) {
+    case 'L':
+      MAC_L.checked = true;
+      break;
+    case 'H':
+      MAC_H.checked = true;
+      break;
+    case 'X':
+    default:
+        MAC_X.checked = true;
+        break;
+    }
+  switch (metricValues.MPR) {
+    case 'N':
+      MPR_N.checked = true;
+      break;
+    case 'L':
+      MPR_L.checked = true;
+      break;
+    case 'H':
+      MPR_H.checked = true;
+      break;
+    case 'X':
+    default:
+        MPR_X.checked = true;
+        break;
+    }
+  switch (metricValues.MUI) {
+    case 'R':
+      MUI_R.checked = true;
+      break;
+    case 'N':
+      MUI_N.checked = true;
+      break;
+    case 'X':
+    default:
+        MUI_X.checked = true;
+        break;
+    }
+  switch (metricValues.MS) {
+    case 'U':
+      MS_U.checked = true;
+      break;
+    case 'C':
+      MS_C.checked = true;
+      break;
+    case 'X':
+    default:
+        MS_X.checked = true;
+        break;
+    }
+  switch (metricValues.MC) {
+    case 'N':
+      MC_N.checked = true;
+      break;
+    case 'L':
+      MC_L.checked = true;
+      break;
+    case 'H':
+      MC_H.checked = true;
+      break;
+    case 'X':
+    default:
+        MC_X.checked = true;
+        break;
+    }
+  switch (metricValues.MI) {
+    case 'N':
+      MI_N.checked = true;
+      break;
+    case 'L':
+      MI_L.checked = true;
+      break;
+    case 'H':
+      MI_H.checked = true;
+      break;
+    case 'X':
+    default:
+        MI_X.checked = true;
+        break;
+    }
+  switch (metricValues.MA) {
+    case 'N':
+      MA_N.checked = true;
+      break;
+    case 'L':
+      MA_L.checked = true;
+      break;
+    case 'H':
+      MA_H.checked = true;
+      break;
+    case 'X':
+    default:
+        MA_X.checked = true;
+        break;
+    }
+  switch (metricValues.CR) {
+    case 'L':
+      CR_L.checked = true;
+      break;
+    case 'M':
+      CR_M.checked = true;
+      break;
+    case 'H':
+      CR_H.checked = true;
+      break;
+    case 'X':
+    default:
+        CR_X.checked = true;
+        break;
+    }
+  switch (metricValues.IR) {
+    case 'L':
+      IR_L.checked = true;
+      break;
+    case 'M':
+      IR_M.checked = true;
+      break;
+    case 'H':
+      IR_H.checked = true;
+      break;
+    case 'X':
+    default:
+        IR_X.checked = true;
+        break;
+    }
+  switch (metricValues.AR) {
+    case 'L':
+      AR_L.checked = true;
+      break;
+    case 'M':
+      AR_M.checked = true;
+      break;
+    case 'H':
+      AR_H.checked = true;
+      break;
+    case 'X':
+    default:
+        AR_X.checked = true;
+        break;
+  }
 }
 function CVSSAutoCalc(){
   var count = 0
@@ -167,26 +412,29 @@ function CVSSAutoCalc(){
   if (count == 8){CVSSScore();};
 }
 function CVSSScore(){
-    var output  = CVSS.calculateCVSSFromMetrics(AttackVector(),AttackComplexity(),PrivilegesRequired(),UserInteraction(),Scope(),Confidentiality(),Integrity(),Availability());
+    var output  = CVSS.calculateCVSSFromMetrics(AttackVector(),AttackComplexity(),PrivilegesRequired(),UserInteraction(),Scope(),Confidentiality(),Integrity(),Availability(),
+      undefined,undefined,undefined,ConfidentialityRequirement(),IntegrityRequirement(),AvailabilityRequirement(),ModifiedAttackVector(),ModifiedAttackComplexity(),
+      ModifiedPrivilegesRequired(),ModifiedUserInteraction(),ModifiedScope(),ModifiedConfidentiality(),ModifiedIntegrity(),ModifiedAvailability());
     var result;
       if (output.success === true) {
     result =
       "Base score is " + output.baseMetricScore + ". " +
       "Base severity is " + output.baseSeverity + ". " +
       "Vector string is " + output.vectorString + ". ";
-      document.getElementById('id_cvss_score').value = output.baseMetricScore;
+      var score = output.environmentalMetricScore != undefined ? output.environmentalMetricScore : output.baseMetricScore;
+      document.getElementById('id_cvss_score').value = score;
       document.getElementById('id_cvss_vector').value = output.vectorString;
 
-      if (output.baseMetricScore >= 9.0){
+      if (score >= 9.0){
           document.getElementById('id_severity').value = 5;
       }
-      else if(output.baseMetricScore >= 7.0){
+      else if(score >= 7.0){
         document.getElementById('id_severity').value = 4;
       }
-      else if(output.baseMetricScore >= 4.0){
+      else if(score >= 4.0){
         document.getElementById('id_severity').value = 3;
       }
-      else if(output.baseMetricScore >= 0.1){
+      else if(score >= 0.1){
         document.getElementById('id_severity').value = 2;
       }
       else{
@@ -195,6 +443,9 @@ function CVSSScore(){
       document.getElementById("scoreRating").className = "scoreRating " + output.baseSeverity.toLowerCase();
       document.getElementById("baseMetricScore").textContent = output.baseMetricScore;
       document.getElementById("baseSeverity").textContent = "("+output.baseSeverity+")";
+      document.getElementById("environmentalScoreRating").className = "scoreRating " + output.environmentalSeverity.toLowerCase();
+      document.getElementById("environmentalMetricScore").textContent = output.environmentalMetricScore;
+      document.getElementById("environmentalSeverity").textContent = "("+output.environmentalSeverity+")";
 
 
   } else {
