@@ -1739,7 +1739,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
             if form.is_valid():
                 report.extra_fields[field_spec.internal_name] = form.cleaned_data[field_spec.internal_name]
                 report.save()
-                return redirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra_fields")
+                return redirect(reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields")
 
         return render(
             request,
@@ -1752,7 +1752,7 @@ class ReportExtraFieldEdit(RoleBasedAccessControlMixin, SingleObjectMixin, View)
                     "reporting:upload_evidence_modal",
                     kwargs={"parent_type": "report", "pk": report.id, "modal": "modal"},
                 ),
-                "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra_fields",
+                "cancel_link": reverse("reporting:report_detail", kwargs={"pk": report.pk}) + "#extra-fields",
             },
         )
 
