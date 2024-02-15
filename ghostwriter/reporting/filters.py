@@ -139,6 +139,16 @@ class ObservationFilter(django_filters.FilterSet):
         label="Observation Title Contains",
         widget=TextInput(attrs={"placeholder": "Observation Title Contains", "autocomplete": "off"}),
     )
+    tags = django_filters.CharFilter(
+        method="search_tags",
+        label="Observation Tags Contain",
+        widget=TextInput(
+            attrs={
+                "placeholder": "Observation Tag",
+                "autocomplete": "off",
+            }
+        ),
+    )
 
     class Meta:
         model = Observation
@@ -153,7 +163,11 @@ class ObservationFilter(django_filters.FilterSet):
                 Row(
                     Column(
                         PrependedText("title", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-6 offset-md-3 mb-0",
+                        css_class="col-md-6",
+                    ),
+                    Column(
+                        PrependedText("tags", '<i class="fas fa-tag"></i>'),
+                        css_class="col-md-6 mb-0",
                     ),
                     css_class="form-row",
                 ),
@@ -173,6 +187,10 @@ class ObservationFilter(django_filters.FilterSet):
                 css_class="justify-content-center",
             ),
         )
+
+    def search_tags(self, queryset, name, value):
+        """Filter observation by tags."""
+        return queryset.filter(tags__name__in=[value]).distinct()
 
 
 class ReportFilter(django_filters.FilterSet):
