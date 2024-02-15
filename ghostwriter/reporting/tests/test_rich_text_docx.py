@@ -50,8 +50,8 @@ def mk_test_docx(name, input, expected_output, p_style=None):
         doc.part.save(out)
 
         # Uncomment to write generates docx files for manual inspection
-        with open(name + ".docx", "wb") as f:
-            f.write(out.getvalue())
+        # with open(name + ".docx", "wb") as f:
+        #     f.write(out.getvalue())
 
         with ZipFile(out) as zip:
             with zip.open("word/document.xml") as file:
@@ -433,6 +433,135 @@ class RichTextToDocxTests(TestCase):
                     <w:tc>
                         <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
                         <w:p><w:r><w:t>Cell six</w:t></w:r></w:p>
+                    </w:tc>
+                </w:tr>
+            </w:tbl>
+        """
+    )
+
+    test_table_spans = mk_test_docx(
+        "test_table_spans",
+        """
+        <table>
+            <tbody>
+                <tr>
+                    <td>Cell one</td>
+                    <td colspan="2">Wide cell</td>
+                </tr>
+                <tr>
+                    <td rowspan="2" colspan = "2">Big cell</td>
+                    <td>Cell two</td>
+                </tr>
+                <tr>
+                    <td>Cell three</td>
+                </tr>
+            </tbody>
+        </table>
+        """,
+        """
+            <w:tbl>
+                <w:tblPr>
+                    <w:tblStyle w:val="TableGrid"/>
+                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
+                </w:tblPr>
+                <w:tblGrid>
+                    <w:gridCol w:w="2880"/>
+                    <w:gridCol w:w="2880"/>
+                    <w:gridCol w:w="2880"/>
+                </w:tblGrid>
+                <w:tr>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell one</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="5760"/><w:gridSpan w:val="2"/></w:tcPr>
+                        <w:p><w:r><w:t>Wide cell</w:t></w:r></w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:type="dxa" w:w="5760"/>
+                            <w:gridSpan w:val="2"/>
+                            <w:vMerge w:val="restart"/>
+                        </w:tcPr>
+                        <w:p><w:r><w:t>Big cell</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell two</w:t></w:r></w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:type="dxa" w:w="5760"/>
+                            <w:gridSpan w:val="2"/>
+                            <w:vMerge/>
+                        </w:tcPr>
+                        <w:p/>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell three</w:t></w:r></w:p>
+                    </w:tc>
+                </w:tr>
+            </w:tbl>
+        """
+    )
+
+    test_table_spans_2 = mk_test_docx(
+        "test_table_spans_2",
+        """
+        <table>
+            <tbody>
+                <tr>
+                    <td>a</td>
+                    <td rowspan="2">bcd</td>
+                </tr>
+                <tr>
+                    <td>e</td>
+                </tr>
+            </tbody>
+        </table>
+        """,
+        """
+            <w:tbl>
+                <w:tblPr>
+                    <w:tblStyle w:val="TableGrid"/>
+                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
+                </w:tblPr>
+                <w:tblGrid>
+                    <w:gridCol w:w="4320"/>
+                    <w:gridCol w:w="4320"/>
+                </w:tblGrid>
+                <w:tr>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="4320"/></w:tcPr>
+                        <w:p><w:r><w:t>a</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:type="dxa" w:w="4320"/>
+                            <w:vMerge w:val="restart"/>
+                        </w:tcPr>
+                        <w:p><w:r><w:t>bcd</w:t></w:r></w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="4320"/></w:tcPr>
+                        <w:p><w:r><w:t>e</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr>
+                            <w:tcW w:type="dxa" w:w="4320"/>
+                            <w:vMerge/>
+                        </w:tcPr>
+                        <w:p/>
                     </w:tc>
                 </w:tr>
             </w:tbl>

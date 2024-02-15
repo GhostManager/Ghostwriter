@@ -89,6 +89,10 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = DocxRgbColor(*style["font_color"])
 
+    def tag_br(self, el, par, **kwargs):
+        run = par.add_run()
+        run.add_break()
+
     def _tag_h(self, el, **kwargs):
         heading_num = int(el.name[1:])
         self.doc.add_heading(el.text, heading_num)

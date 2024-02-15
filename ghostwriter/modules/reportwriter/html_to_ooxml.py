@@ -148,31 +148,54 @@ class BaseHtmlToOOXML:
 
         self.process_children(el.children, style=style, **kwargs)
 
-    def tag_br(self, el, par, **kwargs):
-        run = par.add_run()
-        run.add_break()
-
     def tag_table(self, el, **kwargs):
-        table_cells = [[cell for cell in self._table_row_columns(row)] for row in self._table_rows(el)]
-        table_width = max((len(row) for row in table_cells), default=0)
-        docx_table = self.create_table(rows=len(table_cells), cols=table_width, **kwargs)
-        # Set table and cells to autofit
-        docx_table.autofit = True
-        for row in docx_table.rows:
+        table_width, table_height = self._table_size(el)
+        ooxml_table = self.create_table(rows=table_height, cols=table_width, **kwargs)
+
+        ooxml_table.autofit = True
+        for row in ooxml_table.rows:
             for cell in row.cells:
                 tc = cell._tc
                 tcPr = tc.get_or_add_tcPr()
                 tcW = tcPr.get_or_add_tcW()
                 tcW.type = "auto"
-        for row_i, row in enumerate(table_cells):
-            for col_i, cell_el in enumerate(row):
-                cell = docx_table.cell(row_i, col_i)
+
+        merged_cells = set()
+        row_el_iter = self._table_rows(el)
+        for row_i in range(table_height):
+            # Get next row, if any. May not have any if the rowspan of a cell exceeds the number of specified rows.
+            row_el = next(row_el_iter, None)
+            col_el_iter = self._table_row_columns(row_el) if row_el is not None else iter([])
+
+            for col_i in range(table_width):
+                if (row_i, col_i) in merged_cells:
+                    # Part of another cell, skip
+                    continue
+
+                cell_el = next(col_el_iter, None)
+                if cell_el is None:
+                    # No td for this cell, ignore
+                    continue
+
+                cell = ooxml_table.cell(row_i, col_i)
+
+                rowspan = max(1, int(cell_el.attrs.get("rowspan", 1)))
+                colspan = max(1, int(cell_el.attrs.get("colspan", 1)))
+
+                if rowspan > 1 or colspan > 1:
+                    # Merged cell, merge it in the document and mark that those cells have been merged
+                    corner_cell = ooxml_table.cell(row_i + rowspan - 1, col_i + colspan - 1)
+                    cell.merge(corner_cell)
+                    for row_j in range(rowspan):
+                        for col_j in range(colspan):
+                            merged_cells.add((row_i + row_j, col_i + col_j))
+
                 par = self.paragraph_for_table_cell(cell)
                 self.process_children(cell_el.children, par=par, **kwargs)
 
     @staticmethod
     def _table_rows(table_el):
-        for item in table_el:
+        for item in table_el.children:
             if item.name == "tr":
                 yield item
             elif item.name is not None:
@@ -183,7 +206,21 @@ class BaseHtmlToOOXML:
 
     @staticmethod
     def _table_row_columns(table_el):
-        return (item for item in table_el if item.name in ("td", "th"))
+        return (item for item in table_el.children if item.name in ("td", "th"))
+
+    @staticmethod
+    def _table_size(table_el):
+        max_width = 0
+        max_height = 0
+        for row_i, row in enumerate(BaseHtmlToOOXML._table_rows(table_el)):
+            row_width = 0
+            row_height = 1
+            for col in BaseHtmlToOOXML._table_row_columns(row):
+                row_width += max(1, int(col.attrs.get("colspan", "1")))
+                row_height = max(row_height, int(col.attrs.get("rowspan", "1")))
+            max_width = max(max_width, row_width)
+            max_height = max(max_height, row_i + row_height)
+        return (max_width, max_height)
 
     def create_table(self, rows, cols, **kwargs):
         raise NotImplementedError()

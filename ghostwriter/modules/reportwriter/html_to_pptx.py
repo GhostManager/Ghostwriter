@@ -21,6 +21,19 @@ class HtmlToPptx(BaseHtmlToOOXML):
     Converts HTML to a powerpoint document
     """
 
+    @staticmethod
+    def delete_extra_paragraph(shape):
+        """
+        Shapes are created with an empty paragraph at the start, since they need at least one paragraph to be valid.
+        The conversion code ignores it and simply appends.
+
+        So remove it.
+        """
+        if len(shape.text_frame.paragraphs) <= 1:
+            return
+        prefix_par = shape.text_frame.paragraphs[0]._p
+        prefix_par.getparent().remove(prefix_par)
+
     def __init__(self, slide, shape):
         self.slide = slide
         self.shape = shape
@@ -48,6 +61,9 @@ class HtmlToPptx(BaseHtmlToOOXML):
             pass  # TODO: what's the pptx equivalent?
         if "font_color" in style:
             run.font.color.rgb = PptxRGBColor(*style["font_color"])
+
+    def tag_br(self, el, par, **kwargs):
+        par.add_line_break()
 
     def _tag_h(self, el, **kwargs):
         par = self.shape.text_frame.add_paragraph()

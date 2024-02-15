@@ -53,7 +53,7 @@ PPTX_PREFIX = """<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
                     <a:lstStyle/>
 """
 PPTX_SUFFIX = """
-    </p:txBody>
+                </p:txBody>
             </p:sp>
         </p:spTree>
     </p:cSld>
@@ -65,8 +65,8 @@ PPTX_SUFFIX = """
 SLD_LAYOUT_TITLE_AND_CONTENT = 1
 
 
-def mk_test_pptx(name, input, expected_output):
-    expected_output = clean_xml(PPTX_PREFIX + expected_output + PPTX_SUFFIX)
+def mk_test_pptx(name, input, expected_output, add_suffix=True):
+    expected_output = clean_xml(PPTX_PREFIX + expected_output + (PPTX_SUFFIX if add_suffix else ""))
 
     def test_func(self):
         ppt = pptx.Presentation()
@@ -74,17 +74,14 @@ def mk_test_pptx(name, input, expected_output):
         shape = slide.shapes.placeholders[1]
         shape.text_frame.clear()
         HtmlToPptx.run(input, slide, shape)
-
-        # pptx leaves an annoying empty paragraph at the start, remove it
-        prefix_par = shape.text_frame.paragraphs[0]._p
-        prefix_par.getparent().remove(prefix_par)
+        HtmlToPptx.delete_extra_paragraph(shape)
 
         out = BytesIO()
         ppt.part.save(out)
 
         # Uncomment to write generates pptx files for manual inspection
-        with open(name + ".pptx", "wb") as f:
-            f.write(out.getvalue())
+        # with open(name + ".pptx", "wb") as f:
+        #     f.write(out.getvalue())
 
         with ZipFile(out) as zip:
             with zip.open("ppt/slides/slide1.xml") as file:
@@ -309,4 +306,254 @@ class RichTextToPptxTests(TestCase):
                         </a:r>
                     </a:p>
         """,
+    )
+
+    test_table = mk_test_pptx(
+        "test_table",
+        """
+        <table>
+            <tbody>
+                <tr>
+                    <td>Cell one</td>
+                    <td>Cell two</td>
+                    <td>Cell three</td>
+                </tr>
+                <tr>
+                    <td>Cell four</td>
+                    <td>Cell five</td>
+                    <td>Cell six</td>
+                </tr>
+            </tbody>
+        </table>
+        """,
+        """
+                    <a:p/>
+                </p:txBody>
+            </p:sp>
+            <p:graphicFrame>
+                <p:nvGraphicFramePr>
+                    <p:cNvPr id="4" name="Table 3"/>
+                    <p:cNvGraphicFramePr>
+                        <a:graphicFrameLocks noGrp="1"/>
+                    </p:cNvGraphicFramePr>
+                    <p:nvPr/>
+                </p:nvGraphicFramePr>
+                <p:xfrm>
+                    <a:off x="9144000" y="4572000"/>
+                    <a:ext cx="2743200" cy="914400"/>
+                </p:xfrm>
+                <a:graphic>
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">
+                        <a:tbl>
+                            <a:tblPr firstRow="1" bandRow="1">
+                                <a:tableStyleId>{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}</a:tableStyleId>
+                            </a:tblPr>
+                            <a:tblGrid>
+                                <a:gridCol w="914400"/>
+                                <a:gridCol w="914400"/>
+                                <a:gridCol w="914400"/>
+                            </a:tblGrid>
+                            <a:tr h="457200">
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell one</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell two</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell three</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                            </a:tr>
+                            <a:tr h="457200">
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell four</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell five</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell six</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                            </a:tr>
+                        </a:tbl>
+                    </a:graphicData>
+                </a:graphic>
+            </p:graphicFrame>
+        </p:spTree>
+    </p:cSld>
+    <p:clrMapOvr>
+        <a:masterClrMapping/>
+    </p:clrMapOvr>
+</p:sld>
+        """,
+        add_suffix=False,
+    )
+
+    test_table_spans = mk_test_pptx(
+        "test_table_spans",
+        """
+        <table>
+            <tbody>
+                <tr>
+                    <td>Cell one</td>
+                    <td colspan="2">Wide cell</td>
+                </tr>
+                <tr>
+                    <td rowspan="2" colspan = "2">Big cell</td>
+                    <td>Cell two</td>
+                </tr>
+                <tr>
+                    <td>Cell three</td>
+                </tr>
+            </tbody>
+        </table>
+        """,
+        """
+<a:p/>
+                </p:txBody>
+            </p:sp>
+            <p:graphicFrame>
+                <p:nvGraphicFramePr>
+                    <p:cNvPr id="4" name="Table 3"/>
+                    <p:cNvGraphicFramePr>
+                        <a:graphicFrameLocks noGrp="1"/>
+                    </p:cNvGraphicFramePr>
+                    <p:nvPr/>
+                </p:nvGraphicFramePr>
+                <p:xfrm>
+                    <a:off x="9144000" y="4572000"/>
+                    <a:ext cx="2743200" cy="914400"/>
+                </p:xfrm>
+                <a:graphic>
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table">
+                        <a:tbl>
+                            <a:tblPr firstRow="1" bandRow="1">
+                                <a:tableStyleId>{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}</a:tableStyleId>
+                            </a:tblPr>
+                            <a:tblGrid>
+                                <a:gridCol w="914400"/>
+                                <a:gridCol w="914400"/>
+                                <a:gridCol w="914400"/>
+                            </a:tblGrid>
+                            <a:tr h="304800">
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell one</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc gridSpan="2">
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Wide cell</a:t></a:r>
+                                        </a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc hMerge="1">
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p/>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                            </a:tr>
+                            <a:tr h="304800">
+                                <a:tc rowSpan="2" gridSpan="2">
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Big cell</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc rowSpan="2" hMerge="1">
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p/>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell two</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                            </a:tr>
+                            <a:tr h="304800">
+                                <a:tc gridSpan="2" vMerge="1">
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p/>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc hMerge="1" vMerge="1">
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p/>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                                <a:tc>
+                                    <a:txBody>
+                                        <a:bodyPr/>
+                                        <a:lstStyle/>
+                                        <a:p><a:r><a:t>Cell three</a:t></a:r></a:p>
+                                    </a:txBody>
+                                    <a:tcPr/>
+                                </a:tc>
+                            </a:tr>
+                        </a:tbl>
+                    </a:graphicData>
+                </a:graphic>
+            </p:graphicFrame>
+        </p:spTree>
+    </p:cSld>
+    <p:clrMapOvr>
+        <a:masterClrMapping/>
+    </p:clrMapOvr>
+</p:sld>
+        """,
+        add_suffix=False,
     )
