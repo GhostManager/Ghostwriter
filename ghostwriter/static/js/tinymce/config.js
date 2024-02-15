@@ -30,7 +30,8 @@
         skin: 'Ghostwriter',
         selector: 'textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)',
         content_css: '/static/css/wysiwyg_styles.css',
-        menubar: 'file edit insert view format tools',
+        menubar: 'file edit insert view format table tools',
+        toolbar_sticky: true,
         visualchars_default_state: false,
         menu: {
             file: {title: 'File', items: 'newdocument restoredraft'},
@@ -41,14 +42,14 @@
                 title: 'Format',
                 items: 'bold italic underline strikethrough superscript subscript codeformat case | formats fontformats fontsizes align | forecolor | removeformat'
             },
-            table: {title: 'Table', items: 'inserttable | cell row column | tableprops deletetable'},
+            table: {title: 'Table', items: 'inserttable | row column | tablecellprops tableprops deletetable'},
             tools: {title: 'Tools', items: 'code wordcount'},
         },
         max_height: window_height - 250,
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
-        plugins: 'autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table',
-        toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | removeformat save',
+        plugins: 'searchreplace importcss autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table',
+        toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save',
         contextmenu: 'formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
@@ -158,8 +159,9 @@
             },
         ],
         font_formats: "Andale Mono=andale mono,times; Arial=arial,helvetica,sans-serif; Arial Black=arial black,avant garde; Book Antiqua=book antiqua,palatino; Calibri=calibri; Courier New=courier new,courier; Georgia=georgia,palatino; Helvetica=helvetica; Impact=impact,chicago; Symbol=symbol; Tahoma=tahoma,arial,helvetica,sans-serif; Terminal=terminal,monaco; Times New Roman=times new roman,times; Trebuchet MS=trebuchet ms,geneva; Verdana=verdana,geneva;",
-        table_default_styles: {'border-collapse': 'collapse', 'width': '100%'},
-        table_default_attributes: {class: 'table table-sm table-hover'},
+        table_default_styles: {'border-collapse': 'collapse', 'width': '100%', 'border-style': 'solid', 'border-width': '1px'},
+        table_default_attributes: {class: 'table table-sm table-striped table-bordered'},
+        table_header_type: 'sectionCells',
     };
 
     // TinyMCE config for most fields
