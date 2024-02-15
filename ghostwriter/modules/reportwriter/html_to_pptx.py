@@ -1,12 +1,17 @@
 
+# Standard Libraries
 import os
 
+# Django Imports
 from django.conf import settings
+
+# 3rd Party Libraries
 from pptx.dml.color import RGBColor as PptxRGBColor
-from pptx.oxml.xmlchemy import OxmlElement
 from pptx.enum.text import PP_ALIGN
+from pptx.oxml.xmlchemy import OxmlElement
 from pptx.util import Inches, Pt
 
+# Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML
 

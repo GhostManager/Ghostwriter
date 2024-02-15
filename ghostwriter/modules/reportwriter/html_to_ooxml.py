@@ -1,7 +1,9 @@
 
-import re
+# Standard Libraries
 import logging
+import re
 
+# 3rd Party Libraries
 import bs4
 
 logger = logging.getLogger(__name__)

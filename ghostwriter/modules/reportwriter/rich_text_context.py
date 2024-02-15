@@ -1,9 +1,13 @@
 
-from typing import Callable, Any, Iterable
+# Standard Libraries
 import html
 import logging
 import re
+from typing import Any, Callable, Iterable
 
+# 3rd Party Libraries
+import docx
+import jinja2
 from bs4 import BeautifulSoup, NavigableString, Tag
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
@@ -12,8 +16,6 @@ from docx.shared import Inches, Pt, RGBColor
 from markupsafe import Markup
 from pptx.dml.color import RGBColor as PptxRGBColor
 from pptx.enum.text import PP_ALIGN
-import docx
-import jinja2
 
 logger = logging.getLogger(__name__)
 
