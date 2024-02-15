@@ -1,4 +1,3 @@
-
 # Standard Libraries
 import logging
 import re
@@ -14,10 +13,12 @@ def set_style_method(tag_name, style_key, style_value=True):
     Creates and returns a `tag_*` method that sets a value in the `styles` dict
     and then recurses into its children.
     """
+
     def tag_style(self, el, style={}, **kwargs):
         style = style.copy()
         style[style_key] = style_value
         self.process_children(el.children, style=style, **kwargs)
+
     tag_style.__name__ = "tag_" + tag_name
     return tag_style
 
@@ -61,7 +62,9 @@ class BaseHtmlToOOXML:
             # Text without a paragraph. If this is just some trailing whitespace, ignore it, otherwise
             # report an error.
             if el.text.strip():
-                raise ValueError("found text node that was not enclosed in a paragraph or other block item: {!r}".format(el.text))
+                raise ValueError(
+                    "found text node that was not enclosed in a paragraph or other block item: {!r}".format(el.text)
+                )
             else:
                 return
         text = self.strip_text_whitespace(el.text)
@@ -153,6 +156,14 @@ class BaseHtmlToOOXML:
         table_cells = [[cell for cell in self._table_row_columns(row)] for row in self._table_rows(el)]
         table_width = max((len(row) for row in table_cells), default=0)
         docx_table = self.create_table(rows=len(table_cells), cols=table_width, **kwargs)
+        # Set table and cells to autofit
+        docx_table.autofit = True
+        for row in docx_table.rows:
+            for cell in row.cells:
+                tc = cell._tc
+                tcPr = tc.get_or_add_tcPr()
+                tcW = tcPr.get_or_add_tcW()
+                tcW.type = "auto"
         for row_i, row in enumerate(table_cells):
             for col_i, cell_el in enumerate(row):
                 cell = docx_table.cell(row_i, col_i)
