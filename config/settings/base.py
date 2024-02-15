@@ -433,7 +433,7 @@ BLEACH_ALLOWED_TAGS = [
     "tfoot",
 ]
 # Which HTML attributes are allowed
-BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src"]
+BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"]
 # Which CSS properties are allowed in 'style' attributes (assuming style is an allowed attribute)
 BLEACH_ALLOWED_STYLES = [
     "color",

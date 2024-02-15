@@ -42,7 +42,7 @@
                 title: 'Format',
                 items: 'bold italic underline strikethrough superscript subscript codeformat case | formats fontformats fontsizes align | forecolor | removeformat'
             },
-            table: {title: 'Table', items: 'inserttable | row column | tablecellprops tableprops deletetable'},
+            table: {title: 'Table', items: 'inserttable | cell row column | tableprops deletetable'},
             tools: {title: 'Tools', items: 'code wordcount'},
         },
         max_height: window_height - 250,
