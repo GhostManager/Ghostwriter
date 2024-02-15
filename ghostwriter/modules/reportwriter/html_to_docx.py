@@ -1,21 +1,26 @@
 
+# Standard Libraries
+import logging
 import os
 import random
 import re
-import logging
 
+# Django Imports
 from django.conf import settings
+
+# 3rd Party Libraries
+import docx
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
-from docx.oxml.shared import OxmlElement, qn
-from docx.shared import Inches, Pt, RGBColor as DocxRgbColor
 from docx.image.exceptions import UnrecognizedImageError
-import docx
+from docx.oxml.shared import OxmlElement, qn
+from docx.shared import Inches, Pt
+from docx.shared import RGBColor as DocxRgbColor
 from lxml import etree
 
+# Ghostwriter Libraries
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.modules.reportwriter.html_to_ooxml import BaseHtmlToOOXML
-
 
 logger = logging.getLogger(__name__)
 
