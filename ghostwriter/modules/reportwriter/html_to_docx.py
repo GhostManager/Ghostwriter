@@ -156,6 +156,13 @@ class HtmlToDocx(BaseHtmlToOOXML):
             pass
         self.process_children(el.children, par=par, **kwargs)
 
+    def create_table(self, rows, cols, **kwargs):
+        return self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
+
+    def paragraph_for_table_cell(self, cell):
+        # Each cell starts with a paragraph, so use it
+        return next(iter(cell.paragraphs))
+
 
 class HtmlToDocxWithEvidence(HtmlToDocx):
     """

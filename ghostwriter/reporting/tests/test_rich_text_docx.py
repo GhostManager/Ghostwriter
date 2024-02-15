@@ -50,8 +50,8 @@ def mk_test_docx(name, input, expected_output, p_style=None):
         doc.part.save(out)
 
         # Uncomment to write generates docx files for manual inspection
-        # with open(name + ".docx", "wb") as f:
-        #     f.write(out.getvalue())
+        with open(name + ".docx", "wb") as f:
+            f.write(out.getvalue())
 
         with ZipFile(out) as zip:
             with zip.open("word/document.xml") as file:
@@ -375,4 +375,66 @@ class RichTextToDocxTests(TestCase):
                 </w:r>
             </w:p>
         """,
+    )
+
+    test_table = mk_test_docx(
+        "test_table",
+        """
+        <table>
+            <tbody>
+                <tr>
+                    <td>Cell one</td>
+                    <td>Cell two</td>
+                    <td>Cell three</td>
+                </tr>
+                <tr>
+                    <td>Cell four</td>
+                    <td>Cell five</td>
+                    <td>Cell six</td>
+                </tr>
+            </tbody>
+        </table>
+        """,
+        """
+            <w:tbl>
+                <w:tblPr>
+                    <w:tblStyle w:val="TableGrid"/>
+                    <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
+                </w:tblPr>
+                <w:tblGrid>
+                    <w:gridCol w:w="2880"/>
+                    <w:gridCol w:w="2880"/>
+                    <w:gridCol w:w="2880"/>
+                </w:tblGrid>
+                <w:tr>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell one</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell two</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell three</w:t></w:r></w:p>
+                    </w:tc>
+                </w:tr>
+                <w:tr>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell four</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell five</w:t></w:r></w:p>
+                    </w:tc>
+                    <w:tc>
+                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:p><w:r><w:t>Cell six</w:t></w:r></w:p>
+                    </w:tc>
+                </w:tr>
+            </w:tbl>
+        """
     )

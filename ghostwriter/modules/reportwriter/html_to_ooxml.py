@@ -146,3 +146,34 @@ class BaseHtmlToOOXML:
     def tag_br(self, el, par, **kwargs):
         run = par.add_run()
         run.add_break()
+
+    def tag_table(self, el, **kwargs):
+        table_cells = [[cell for cell in self._table_row_columns(row)] for row in self._table_rows(el)]
+        table_width = max((len(row) for row in table_cells), default=0)
+        docx_table = self.create_table(rows=len(table_cells), cols=table_width, **kwargs)
+        for row_i, row in enumerate(table_cells):
+            for col_i, cell_el in enumerate(row):
+                cell = docx_table.cell(row_i, col_i)
+                par = self.paragraph_for_table_cell(cell)
+                self.process_children(cell_el.children, par=par, **kwargs)
+
+    @staticmethod
+    def _table_rows(table_el):
+        for item in table_el:
+            if item.name == "tr":
+                yield item
+            elif item.name is not None:
+                # thead, tbody, tfoot
+                for subitem in item:
+                    if subitem.name == "tr":
+                        yield subitem
+
+    @staticmethod
+    def _table_row_columns(table_el):
+        return (item for item in table_el if item.name in ("td", "th"))
+
+    def create_table(self, rows, cols, **kwargs):
+        raise NotImplementedError()
+
+    def paragraph_for_table_cell(self, cell):
+        raise NotImplementedError()
