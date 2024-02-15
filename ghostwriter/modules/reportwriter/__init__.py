@@ -6,12 +6,12 @@ and json using the provided data.
 
 # Standard Libraries
 import copy
+import html
 import io
 import json
 import logging
 import os
 import re
-import html
 from copy import deepcopy
 from datetime import timedelta
 
@@ -23,7 +23,6 @@ from django.utils.dateformat import format as dateformat
 import docx
 import jinja2
 import jinja2.sandbox
-from markupsafe import Markup
 import pptx
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
@@ -34,6 +33,7 @@ from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
 from docx.shared import Inches, Pt
 from docxtpl import DocxTemplate, RichText
 from jinja2.exceptions import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
+from markupsafe import Markup
 from pptx import Presentation
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
@@ -41,18 +41,21 @@ from rest_framework.renderers import JSONRenderer
 from xlsxwriter.workbook import Workbook
 
 # Ghostwriter Libraries
-from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
+from ghostwriter.commandcenter.models import (
+    CompanyInformation,
+    ExtraFieldSpec,
+    ReportConfiguration,
+)
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
+from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.modules.reportwriter.html_to_docx import HtmlToDocxWithEvidence
 from ghostwriter.modules.reportwriter.html_to_pptx import HtmlToPptxWithEvidence
-from ghostwriter.modules.reportwriter.extensions import TEXT_EXTENSIONS, IMAGE_EXTENSIONS
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Evidence, Finding, Observation, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
-
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
@@ -266,6 +269,35 @@ def regex_search(text, regex):
     return None
 
 
+def filter_tags(objects, allowlist):
+    """
+    Filter a list of objects to return only those with a tag in the allowlist.
+
+    **Parameters**
+
+    ``objects``
+        List of dictionary objects (JSON) for findings
+    ``allowlist``
+        List of strings matching severity categories to allow through filter
+    """
+    filtered_values = []
+    if not isinstance(allowlist, list):
+        raise InvalidFilterValue(
+            f'Allowlist passed into `filter_tags()` filter is not a list ("{allowlist}"); must be like `["xss", "T1651"]`'
+        )
+    try:
+        for obj in objects:
+            common_tags = set(obj["tags"]) & set(allowlist)
+            if common_tags:
+                filtered_values.append(obj)
+    except (KeyError, TypeError):
+        logger.exception("Error parsing object as a list of dictionaries: %s", object)
+        raise InvalidFilterValue(
+            "Invalid list of objects passed into `filter_tags()` filter; must be an object with a `tags` key"
+        )
+    return filtered_values
+
+
 def prepare_jinja2_env(debug=False):
     """Prepare a Jinja2 environment with all custom filters."""
     if debug:
@@ -282,6 +314,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["format_datetime"] = format_datetime
     env.filters["get_item"] = get_item
     env.filters["regex_search"] = regex_search
+    env.filters["filter_tags"] = filter_tags
 
     return env
 
@@ -425,6 +458,7 @@ class Reportwriter:
                 return _jinja_caption(contents[8:].strip())
             else:
                 return "{{ _old_dot_vars[" + repr(contents.strip()) + "]}}"
+
         text_old_dot_subbed = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
 
         # Run template
@@ -453,7 +487,7 @@ class Reportwriter:
             )
         except:
             # Log input text to help diagnose errors
-            logger.warn("Input text: %r", text)
+            logger.warning("Input text: %r", text)
             raise
         return doc
 
@@ -471,7 +505,7 @@ class Reportwriter:
             )
         except:
             # Log input text to help diagnose errors
-            logger.warn("Input text: %r", text)
+            logger.warning("Input text: %r", text)
             raise
 
     def generate_word_docx(self):
@@ -585,10 +619,12 @@ class Reportwriter:
         Generates a Jinja context for use in finding-related rich text fields
         """
         finding_context = base_context.copy()
-        finding_context.update({
-            "finding": finding,
-            "_old_dot_vars": base_context["_old_dot_vars"].copy(),
-        })
+        finding_context.update(
+            {
+                "finding": finding,
+                "_old_dot_vars": base_context["_old_dot_vars"].copy(),
+            }
+        )
         for evidence in finding["evidence"]:
             if evidence.get("friendly_name"):
                 finding_context["_old_dot_vars"][evidence["friendly_name"]] = _jinja_evidence(evidence["friendly_name"])
@@ -608,7 +644,7 @@ class Reportwriter:
         p_style = self.report_queryset.docx_template.p_style
 
         base_context = self._jinja_richtext_base_context()
-        base_evidences = {e["friendly_name"] : e for e in context["evidence"]}
+        base_evidences = {e["friendly_name"]: e for e in context["evidence"]}
 
         def base_render(text):
             return self._process_rich_text_docx(text, base_context, base_evidences, p_style)
@@ -620,7 +656,7 @@ class Reportwriter:
             logger.info("Processing %s", finding["title"])
 
             finding_context = self._jinja_richtext_finding_context(base_context, finding)
-            finding_evidences = base_evidences | {e["friendly_name"] : e for e in finding["evidence"]}
+            finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
 
             def finding_render(text):
                 return self._process_rich_text_docx(text, finding_context, finding_evidences, p_style)
@@ -966,7 +1002,7 @@ class Reportwriter:
         self.report_type = "pptx"
 
         base_context = self._jinja_richtext_base_context()
-        base_evidences = {e["friendly_name"] : e for e in self.report_json["evidence"]}
+        base_evidences = {e["friendly_name"]: e for e in self.report_json["evidence"]}
 
         # Create document writer using the specified template
         try:
@@ -1241,7 +1277,7 @@ class Reportwriter:
             # Add description to the slide body (other sections will appear in the notes)
             if finding.get("description", "").strip():
                 finding_context = self._jinja_richtext_finding_context(base_context, finding)
-                finding_evidences = base_evidences | {e["friendly_name"] : e for e in finding["evidence"]}
+                finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
                 self._process_rich_text_pptx(
                     finding["description"],
                     slide=finding_slide,
@@ -1434,6 +1470,12 @@ class TemplateLinter:
                         results["warnings"].append(
                             "Template is missing a recommended style (see documentation): Blockquote"
                         )
+                    if "Blockquote" not in document_styles:
+                        results["warnings"].append(
+                            "Template is missing a recommended style (see documentation): Blockquote"
+                        )
+                    if "Table Grid" not in document_styles:
+                        results["errors"].append("Template is missing a required style (see documentation): Table Grid")
                     if self.template.p_style:
                         if self.template.p_style not in document_styles:
                             results["warnings"].append(
@@ -1591,12 +1633,12 @@ def _jinja_evidence(evidence_name):
     """
     `{{evidence(name)}}` function in jinja.
     """
-    return Markup("<span data-gw-evidence=\"" + html.escape(evidence_name) + "\"></span>")
+    return Markup('<span data-gw-evidence="' + html.escape(evidence_name) + '"></span>')
 
 
 def _jinja_caption(caption_name):
-    return Markup("<span data-gw-caption=\"" + html.escape(caption_name) + "\"></span>")
+    return Markup('<span data-gw-caption="' + html.escape(caption_name) + '"></span>')
 
 
 def _jinja_ref(ref_name):
-    return Markup("<span data-gw-ref=\"" + html.escape(ref_name) + "\"></span>")
+    return Markup('<span data-gw-ref="' + html.escape(ref_name) + '"></span>')
