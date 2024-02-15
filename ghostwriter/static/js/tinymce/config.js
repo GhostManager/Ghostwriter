@@ -1,4 +1,4 @@
-(function() {
+(function () {
     // TinyMCE OpenURL dialog config only accepts height/width in pixels
     // Get browser windows width and height and calculate pixels from a percentage to avoid overflow
     var dialog_percentage = .7
@@ -7,7 +7,7 @@
     var dialog_width = window_width * dialog_percentage;
     var dialog_height = window_height * dialog_percentage;
     // Monitor for window resizing and adjust dialog as needed
-    window.addEventListener("resize", function() {
+    window.addEventListener("resize", function () {
         var window_width = window.innerWidth;
         var window_height = window.innerHeight;
         var dialog_width = window_width * dialog_percentage;
@@ -18,7 +18,8 @@
             tinyMCE.DOM.setStyle(tinyMCE.DOM.get(dialog_box), 'width', dialog_width + 'px');
             tinyMCE.DOM.setStyle(tinyMCE.DOM.get(dialog_box), 'max-height', dialog_height + 'px');
             tinyMCE.DOM.setStyle(tinyMCE.DOM.get(dialog_box), 'max-width', dialog_width + 'px');
-        };
+        }
+
     });
 
     GW_TINYMCE_DEFAULT_CONFIG = {
@@ -32,19 +33,23 @@
         menubar: 'file edit insert view format tools',
         visualchars_default_state: false,
         menu: {
-            file: { title: 'File', items: 'newdocument restoredraft' },
-            edit: { title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace' },
-            view: { title: 'View', items: 'code | visualchars visualblocks | preview' },
-            insert: { title: 'Insert', items: 'evidenceUpload codesample link' },
-            format: { title: 'Format', items: 'bold italic underline strikethrough superscript subscript codeformat case | formats fontformats fontsizes align | forecolor | removeformat' },
-            tools: { title: 'Tools', items: 'code wordcount' },
+            file: {title: 'File', items: 'newdocument restoredraft'},
+            edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace'},
+            view: {title: 'View', items: 'code | visualchars visualblocks | preview'},
+            insert: {title: 'Insert', items: 'table evidenceUpload codesample link'},
+            format: {
+                title: 'Format',
+                items: 'bold italic underline strikethrough superscript subscript codeformat case | formats fontformats fontsizes align | forecolor | removeformat'
+            },
+            table: {title: 'Table', items: 'inserttable | cell row column | tableprops deletetable'},
+            tools: {title: 'Tools', items: 'code wordcount'},
         },
-        max_height: window_height,
+        max_height: window_height - 250,
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
-        plugins: 'autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case',
-        toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | evidenceUpload | removeformat save',
-        contextmenu: 'bold italic link removeformat',
+        plugins: 'autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table',
+        toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | removeformat save',
+        contextmenu: 'formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
         browser_spellcheck: true,
@@ -108,10 +113,10 @@
                 inline: 'sup'
             },
             highlight: {
-                inline : 'span',
-                classes : 'highlight',
-                styles : {
-                    backgroundColor : 'yellow'
+                inline: 'span',
+                classes: 'highlight',
+                styles: {
+                    backgroundColor: 'yellow'
                 }
             },
             blockquote: {
@@ -120,33 +125,41 @@
             }
         },
         style_formats: [
-            { title: 'Headings', items: [
-            { title: 'Heading 1', format: 'h1' },
-            { title: 'Heading 2', format: 'h2' },
-            { title: 'Heading 3', format: 'h3' },
-            { title: 'Heading 4', format: 'h4' },
-            { title: 'Heading 5', format: 'h5' },
-            { title: 'Heading 6', format: 'h6' }
-            ]},
-            { title: 'Inline', items: [
-            { title: 'Bold', format: 'bold' },
-            { title: 'Italic', format: 'italic' },
-            { title: 'Underline', format: 'underline' },
-            { title: 'Strikethrough', format: 'strikethrough' },
-            { title: 'Superscript', format: 'superscript' },
-            { title: 'Subscript', format: 'subscript' },
-            { title: 'Code', format: 'code' },
-            { title: 'Highlight', format: 'highlight' },
-            { title: 'Blockquote', format: 'blockquote' }
-            ]},
-            { title: 'Align', items: [
-            { title: 'Left', format: 'alignleft' },
-            { title: 'Center', format: 'aligncenter' },
-            { title: 'Right', format: 'alignright' },
-            { title: 'Justify', format: 'alignjustify' }
-            ]}
+            {
+                title: 'Headings', items: [
+                    {title: 'Heading 1', format: 'h1'},
+                    {title: 'Heading 2', format: 'h2'},
+                    {title: 'Heading 3', format: 'h3'},
+                    {title: 'Heading 4', format: 'h4'},
+                    {title: 'Heading 5', format: 'h5'},
+                    {title: 'Heading 6', format: 'h6'}
+                ]
+            },
+            {
+                title: 'Inline', items: [
+                    {title: 'Bold', format: 'bold'},
+                    {title: 'Italic', format: 'italic'},
+                    {title: 'Underline', format: 'underline'},
+                    {title: 'Strikethrough', format: 'strikethrough'},
+                    {title: 'Superscript', format: 'superscript'},
+                    {title: 'Subscript', format: 'subscript'},
+                    {title: 'Code', format: 'code'},
+                    {title: 'Highlight', format: 'highlight'},
+                    {title: 'Blockquote', format: 'blockquote'}
+                ]
+            },
+            {
+                title: 'Align', items: [
+                    {title: 'Left', format: 'alignleft'},
+                    {title: 'Center', format: 'aligncenter'},
+                    {title: 'Right', format: 'alignright'},
+                    {title: 'Justify', format: 'alignjustify'}
+                ]
+            },
         ],
         font_formats: "Andale Mono=andale mono,times; Arial=arial,helvetica,sans-serif; Arial Black=arial black,avant garde; Book Antiqua=book antiqua,palatino; Calibri=calibri; Courier New=courier new,courier; Georgia=georgia,palatino; Helvetica=helvetica; Impact=impact,chicago; Symbol=symbol; Tahoma=tahoma,arial,helvetica,sans-serif; Terminal=terminal,monaco; Times New Roman=times new roman,times; Trebuchet MS=trebuchet ms,geneva; Verdana=verdana,geneva;",
+        table_default_styles: {'border-collapse': 'collapse', 'width': '100%'},
+        table_default_attributes: {class: 'table table-sm table-hover'},
     };
 
     // TinyMCE config for most fields
@@ -154,6 +167,7 @@
         ...GW_TINYMCE_DEFAULT_CONFIG,
         setup: function (editor) {
             editor.ui.registry.addButton('codeInline', {
+                context: 'format',
                 icon: 'sourcecode',
                 text: '',
                 tooltip: 'Format selected text as inline code',
@@ -170,6 +184,7 @@
         selector: "textarea.enable-evidence-upload",
         setup: function (editor) {
             editor.ui.registry.addButton('codeInline', {
+                context: 'format',
                 icon: 'sourcecode',
                 text: 'Inline Code',
                 tooltip: 'Format selected text as inline code',
@@ -190,11 +205,11 @@
                         height: dialog_height,
                         width: dialog_width,
                         buttons: [{
-                                type: 'custom',
-                                name: 'action',
-                                text: 'Upload & Insert Evidence',
-                                primary: true,
-                            },
+                            type: 'custom',
+                            name: 'action',
+                            text: 'Upload & Insert Evidence',
+                            primary: true,
+                        },
                             {
                                 type: 'cancel',
                                 name: 'cancel',
@@ -282,7 +297,7 @@
 
     function tinyInit() {
         tinymce.init(GW_TINYMCE_BASIC_CONFIG);
-    };
+    }
     $(tinyInit);
 
 })();
