@@ -163,11 +163,11 @@ class ObservationFilter(django_filters.FilterSet):
                 Row(
                     Column(
                         PrependedText("title", '<i class="fas fa-filter"></i>'),
-                        css_class="col-md-6",
+                        css_class="col-md-4 offset-md-2 mb-0",
                     ),
                     Column(
                         PrependedText("tags", '<i class="fas fa-tag"></i>'),
-                        css_class="col-md-6 mb-0",
+                        css_class="col-md-4 mb-0",
                     ),
                     css_class="form-row",
                 ),
