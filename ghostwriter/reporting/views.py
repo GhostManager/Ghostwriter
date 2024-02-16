@@ -1534,6 +1534,8 @@ class ReportDetailView(RoleBasedAccessControlMixin, DetailView):
 
         ctx["report_extra_fields_spec"] = ExtraFieldSpec.objects.filter(target_model=Report._meta.label)
 
+        ctx["report_config"] = ReportConfiguration.get_solo()
+
         return ctx
 
 
