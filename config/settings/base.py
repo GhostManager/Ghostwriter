@@ -431,6 +431,7 @@ BLEACH_ALLOWED_TAGS = [
     "td",
     "thead",
     "tfoot",
+    "caption",
 ]
 # Which HTML attributes are allowed
 BLEACH_ALLOWED_ATTRIBUTES = ["href", "title", "style", "class", "src", "colspan"]
@@ -441,6 +442,7 @@ BLEACH_ALLOWED_STYLES = [
     "font-weight",
     "text-decoration",
     "font-variant",
+    "border",
 ]
 # Which protocols (and pseudo-protocols) are allowed in 'src' attributes (assuming src is an allowed attribute)
 BLEACH_ALLOWED_PROTOCOLS = ["http", "https", "data"]
