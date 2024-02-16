@@ -31,7 +31,6 @@
         selector: 'textarea:not(.empty-form textarea, .empty-form, .no-auto-tinymce)',
         content_css: '/static/css/wysiwyg_styles.css',
         menubar: 'file edit insert view format table tools',
-        toolbar_sticky: true,
         visualchars_default_state: false,
         menu: {
             file: {title: 'File', items: 'newdocument restoredraft'},
@@ -48,7 +47,7 @@
         max_height: window_height - 250,
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
-        plugins: 'searchreplace importcss autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table',
+        plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table',
         toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save',
         contextmenu: 'table formats bold italic underline link removeformat',
         paste_as_text: true,
