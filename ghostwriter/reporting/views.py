@@ -2001,7 +2001,7 @@ class EvidenceDownload(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = Evidence
 
     def test_func(self):
-        return verify_access(self.request.user, self.get_object().finding.report.project)
+        return verify_access(self.request.user, self.get_object().associated_report.project)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
