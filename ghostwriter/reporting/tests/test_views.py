@@ -52,6 +52,7 @@ from ghostwriter.modules.reportwriter import (
     get_item,
     regex_search,
     strip_html,
+    filter_tags,
 )
 from ghostwriter.reporting.templatetags import report_tags
 from ghostwriter.reporting.views import generate_report_name
@@ -2355,6 +2356,7 @@ class ReportTemplateFilterTests(TestCase):
             report=cls.report,
             severity=cls.critical_sev,
             finding_type=cls.network_type,
+            tags=["xss", "T1659"],
         )
         ReportFindingLinkFactory.create_batch(
             2,
@@ -2465,6 +2467,15 @@ class ReportTemplateFilterTests(TestCase):
         test_string = "This is a test string. It contains the word 'test'."
         result = regex_search(test_string, "^(.*?)\.")
         self.assertEqual(result, "This is a test string.")
+
+    def test_filter_tags(self):
+        filtered_list = filter_tags(self.findings, ["xss", "T1659"])
+        self.assertEqual(len(filtered_list), 2)
+
+    def test_filter_tags_with_invalid_dict(self):
+        findings = "Not a Dict"
+        with self.assertRaises(InvalidFilterValue):
+            filter_tags(findings, ["xss", "T1659"])
 
 
 class LocalFindingNoteUpdateTests(TestCase):
@@ -2614,3 +2625,48 @@ class FindingNoteDeleteTests(TestCase):
 
         response = self.client.post(uri)
         self.assertEqual(response.status_code, 302)
+
+
+class EvidenceDownloadTest(TestCase):
+    """Collection of tests for :view:`reporting.EvidenceDownload`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.evidence_file = EvidenceFactory()
+        cls.deleted_evidence_file = EvidenceFactory()
+        cls.uri = reverse("reporting:evidence_download", kwargs={"pk": cls.evidence_file.pk})
+        cls.deleted_uri = reverse("reporting:evidence_download", kwargs={"pk": cls.deleted_evidence_file.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.get("Content-Disposition"), 'attachment; filename="evidence.png"')
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.evidence_file.finding.report.project)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 200)
+
+        if os.path.exists(self.deleted_evidence_file.document.path):
+            os.remove(self.deleted_evidence_file.document.path)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 404)

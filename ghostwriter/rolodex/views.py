@@ -655,7 +655,6 @@ class ProjectTaskToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
         try:
             if obj.complete:
                 obj.complete = False
-                obj.marked_complete = None
                 data = {
                     "result": "success",
                     "message": "Task successfully marked as incomplete.",
@@ -663,7 +662,6 @@ class ProjectTaskToggle(RoleBasedAccessControlMixin, SingleObjectMixin, View):
                 }
             else:
                 obj.complete = True
-                obj.marked_complete = datetime.date.today()
                 data = {
                     "result": "success",
                     "message": "Task successfully marked as complete.",
@@ -703,7 +701,6 @@ class ProjectObjectiveToggle(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
         try:
             if obj.complete:
                 obj.complete = False
-                obj.marked_complete = None
                 data = {
                     "result": "success",
                     "message": "Objective successfully marked as incomplete.",
@@ -711,7 +708,6 @@ class ProjectObjectiveToggle(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
                 }
             else:
                 obj.complete = True
-                obj.marked_complete = datetime.date.today()
                 data = {
                     "result": "success",
                     "message": "Objective successfully marked as complete.",

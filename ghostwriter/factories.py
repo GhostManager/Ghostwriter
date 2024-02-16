@@ -25,6 +25,10 @@ EXTRA_FIELD_TYPES = [
     "float",
 ]
 
+# Manually remove timezones not present in PostgreSQL 11.12's `pg_timezone_names` table
+TIMEZONES.remove("Pacific/Kanton")
+TIMEZONES.remove("Europe/Kyiv")
+
 
 # Users Factories
 
@@ -581,6 +585,7 @@ class OplogEntryFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = "oplog.OplogEntry"
 
+    entry_identifier = factory.Sequence(lambda n: "%s" % n)
     start_date = timezone.now()
     end_date = timezone.now()
     source_ip = Faker("ipv4")

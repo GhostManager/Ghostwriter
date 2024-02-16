@@ -365,16 +365,6 @@ class ProjectSubTaskModelTests(TestCase):
         task.delete()
         assert not self.ProjectSubtask.objects.all().exists()
 
-    def test_deadline_adjustment(self):
-        objective = ProjectObjectiveFactory(deadline=date.today() + timedelta(days=7))
-        task = ProjectSubtaskFactory(
-            task="Get an account", parent=objective, deadline=date.today() + timedelta(days=14)
-        )
-        objective.save()
-        task.refresh_from_db()
-        self.assertEqual(task.deadline, objective.deadline)
-        self.assertEqual(task.deadline, date.today() + timedelta(days=7))
-
 
 class ClientNoteModelTests(TestCase):
     """Collection of tests for :model:`rolodex.ClientNote`."""

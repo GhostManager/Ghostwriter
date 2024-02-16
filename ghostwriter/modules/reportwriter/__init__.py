@@ -64,7 +64,7 @@ logger = logging.getLogger(__name__)
 # Custom Jinja2 filters for DOCX templates
 def filter_severity(findings, allowlist):
     """
-    Filter list of findings to return only those with a severity in the allowlist.
+    Filter a list of findings to return only those with a severity in the allowlist.
 
     **Parameters**
 
@@ -94,7 +94,7 @@ def filter_severity(findings, allowlist):
 
 def filter_type(findings, allowlist):
     """
-    Filter list of findings to return only those with a type in the allowlist.
+    Filter a list of findings to return only those with a type in the allowlist.
 
     **Parameters**
 
@@ -144,7 +144,7 @@ def strip_html(s):
 
 def compromised(targets):
     """
-    Filter list of targets to return only those marked as compromised.
+    Filter a list of targets to return only those marked as compromised.
 
     **Parameters**
 
@@ -1440,6 +1440,12 @@ class TemplateLinter:
                     template_document = DocxTemplate(self.template_loc)
                     logger.info("Template loaded for linting")
 
+                    undefined_vars = template_document.get_undeclared_template_variables(self.jinja_template_env)
+                    if undefined_vars:
+                        for variable in undefined_vars:
+                            if variable not in LINTER_CONTEXT:
+                                results["warnings"].append(f"Potential undefined variable: {variable}")
+
                     # Step 2: Check document's styles
                     document_styles = template_document.styles
                     if "Bullet List" not in document_styles:
@@ -1481,6 +1487,10 @@ class TemplateLinter:
                             results["warnings"].append(
                                 f"Template is missing your configured default paragraph style: {self.template.p_style}"
                             )
+
+                    if results["warnings"]:
+                        results["result"] = "warning"
+
                     logger.info("Completed Word style checks")
 
                     # Step 3: Prepare context

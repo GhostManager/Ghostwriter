@@ -174,20 +174,14 @@ class EvidenceSerializer(TaggitSerializer, CustomModelSerializer):
     """Serialize :model:`reporting:Evidence` entries."""
 
     path = SerializerMethodField("get_path")
-    url = SerializerMethodField("get_url")
     tags = TagListSerializerField()
 
     class Meta:
         model = Evidence
-        exclude = [
-            "document",
-        ]
+        exclude = ["document"]
 
     def get_path(self, obj):
         return str(obj.document)
-
-    def get_url(self, obj):
-        return obj.document.url
 
 
 class FindingSerializer(TaggitSerializer, CustomModelSerializer):

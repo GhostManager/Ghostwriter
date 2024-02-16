@@ -89,7 +89,7 @@
   {% load static %}
   {% with evidence|get_file_type as file_type %}
     {% if file_type == "image" %}
-      <img width=50% src="{{ evidence.document.url }}"/>
+      <img width=50% src="{% url 'reporting:evidence_download' evidence.id %}"/>
     {% elif evidence|get_file_type == "text" %}
       {% with evidence|get_file_content as file_content %}
         {% if file_content %}

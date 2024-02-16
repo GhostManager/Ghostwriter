@@ -41,6 +41,7 @@ insert_permissions:
     permission:
       check: {}
       columns:
+        - complete
         - deadline
         - description
         - objective
@@ -64,6 +65,7 @@ insert_permissions:
                   user_id:
                     _eq: X-Hasura-User-Id
       columns:
+        - complete
         - deadline
         - description
         - objective
@@ -172,3 +174,21 @@ delete_permissions:
                 invites:
                   user_id:
                     _eq: X-Hasura-User-Id
+event_triggers:
+  - name: UpdateProjectObjective
+    definition:
+      enable_manual: false
+      insert:
+        columns: '*'
+      update:
+        columns:
+          - deadline
+          - complete
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/projetobjective/update'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET
