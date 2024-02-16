@@ -68,14 +68,30 @@ hr {
   margin-top: 10px;
 }
 
+/* Images and code blocks will be 6.5" wide in a Word document, so width is 6.5" in these next two classes. */
 .text-evidence {
-  margin-left: 15%;
   text-align: left;
-  max-width: 70%;
+  max-width: 80%;
   word-wrap: break-word;
   line-height: 20px;
   font-family: 'Roboto Mono';
   font-weight: 300;
+  margin: auto;
+  overflow: auto;
+  border: 1pt solid var(--secondary-color);
+}
+
+.img-evidence {
+  height: auto;
+  width: 6.5in;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.evidence-caption {
+  color: var(--secondary-color);
+  text-align: center;
 }
 
 .hidden-element:before {
