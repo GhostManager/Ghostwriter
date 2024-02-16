@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags report_tags bleach_tags extra_fields %}
+{% load crispy_forms_tags report_tags bleach_tags custom_tags extra_fields %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
@@ -114,6 +114,48 @@
             {% endif %}
           </span>
         </h6>
+
+        <h4>Report Configuration</h4>
+        <hr>
+
+        <table class="table table-responsive-lg table-borderless table-config center">
+          <tr>
+            <td class="text-left icon tag-icon">Figure Label & Prefix</td>
+            <td class="text-justify">{{ report_config.label_figure }} {{ report_config.prefix_figure }}</td>
+          </tr>
+          <tr>
+            <td class="text-left icon tag-icon">Table Label & Prefix</td>
+            <td class="text-justify">{{ report_config.label_table }} {{ report_config.prefix_table }}</td>
+          </tr>
+          <tr>
+            <td class="text-left icon toggle-on-icon">Image Borders</td>
+            <td class="text-justify">
+              {% if report_config.enable_borders %}
+                <span class="align-middle healthy"><i class="fas fa-check"></i></span>
+              {% else %}
+                <span class="align-middle burned"><i class="fas fa-times"></i></span>
+              {% endif %}
+            </td>
+          </tr>
+          {% if report_config.enable_borders %}
+            <tr>
+              <td class="text-left icon border-icon">Image Border Weight</td>
+              <td class="text-justify">{{ report_config.border_weight }} EMUs ({{ report_config.border_weight|divide:12700 }}
+                pt)
+              </td>
+            </tr>
+            <tr>
+              <td class="text-left icon border-icon">Image Border Color</td>
+              <td class="text-justify">#{{ report_config.border_color }} <i class="fas fa-tint"
+                                                                           style="color:#{{ report_config.border_color }}"></i>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-left icon signature-icon">Report Download Filename</td>
+              <td class="text-justify"> {{ report_config.report_filename }}</td>
+            </tr>
+          {% endif %}
+        </table>
       </div>
 
       {% comment %} Findings Tab {% endcomment %}
