@@ -1,6 +1,6 @@
 {% extends 'base_generic.html' %}
 
-{% load bleach_tags report_tags %}
+{% load bleach_tags report_tags settings_tags %}
 
 {% block pagetitle %}Evidence Detail{% endblock %}
 
@@ -23,6 +23,8 @@
 {% endblock %}
 
 {% block content %}
+  {% get_solo "commandcenter.ReportConfiguration" as report_config %}
+
   <div class="dropdown">
     <div class="dropdown-menu-btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
          onclick="hamburger(this)">
@@ -86,34 +88,14 @@
   <h4 class="icon file-icon">File Contents</h4>
   <hr>
 
+  <p>This is a preview of what your evidence file will look like in a report.
+    It may not look exactly like this (depending on your template's styles),
+    but it will give you an idea of what to expect.</p>
+  <p>If you have borders enabled for reports, images will include a border with your configured color and width.</p>
+  <p>Previews also show you what captions will look like with your caption and configured labelling for figures.</p>
+
   {% load static %}
-  {% with evidence|get_file_type as file_type %}
-    {% if file_type == "image" %}
-      <img width=50% src="{% url 'reporting:evidence_download' evidence.id %}"/>
-    {% elif evidence|get_file_type == "text" %}
-      {% with evidence|get_file_content as file_content %}
-        {% if file_content %}
-          {% for line in file_content %}
-            {% if line == "FILE NOT FOUND" %}
-              <p class="text-center">{{ line }}</p>
-            {% else %}
-              <p class="text-evidence">
-                {{ line }}
-              </p>
-            {% endif %}
-          {% endfor %}
-        {% else %}
-          <p>No file content to display.</p>
-        {% endif %}
-      {% endwith %}
-    {% else %}
-      {% if file_type == "missing" %}
-        <p>FILE NOT FOUND</p>
-      {% else %}
-        <p>Evidence file type cannot be displayed.</p>
-      {% endif %}
-    {% endif %}
-  {% endwith %}
+  {% include "snippets/evidence_display.html" with evidence=evidence report_config=report_config %}
 {% endblock %}
 
 {% block morescripts %}
