@@ -1057,6 +1057,18 @@
       });
       $('.tablesorter').trigger('update');
     });
+
+    let evidenceFiles = [
+    {text: '\{\{.caption\}\}', value: '<p class="evidence-caption">{{ report_config.label_figure }} # {{ report_config.prefix_figure }} '},
+    {% if report.evidence_set.all  %}
+      {% for evidence in report.evidence_set.all %}
+        {
+          text: '\{\{.{{ evidence.friendly_name|escapejs }}\}\}',
+          value: '{% url 'reporting:evidence_preview' evidence.id %}'
+        },
+      {% endfor %}
+    {% endif %}
+    ];
   </script>
 
   {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
@@ -1067,5 +1079,55 @@
     {% for field_spec in report_extra_fields_spec %}
       {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec %}
     {% endfor %}
+  {% endif %}
+
+  {% comment %} Include the reusable delete confirmation modal and related scripts {% endcomment %}
+  {% include "confirm_delete_modal.html" %}
+
+  {% comment %} Insert modals for RichText previews on extra fields {% endcomment %}
+  {% if report_extra_fields_spec %}
+    {% for field_spec in report_extra_fields_spec %}
+      {% if field_spec == "rich_text" %}
+        {% include "user_extra_fields/extra_field_modal.html" with extra_fields=report.extra_fields field_spec=field_spec report_config=report_config %}
+      {% endif %}
+    {% endfor %}
+
+    <script>
+      $('.extra-field-modal-content').each(function (e) {
+        let text = $(this).html();
+        let $previewModal = $(this);
+        for (let i = 0; i < evidenceFiles.length; i++) {
+          if (text.includes(evidenceFiles[i].text)) {
+            if (evidenceFiles[i].text.includes('caption')) {
+              console.log(evidenceFiles[i].text)
+              let re = new RegExp('<p>' + evidenceFiles[i].text, 'g');
+              text = text.replace(re, evidenceFiles[i].value);
+              console.log(text)
+              $previewModal.html(text);
+            } else {
+              $.ajaxSetup({
+                beforeSend: function (xhr, settings) {
+                  if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                  }
+                }
+              });
+              // Send AJAX POST request
+              $.ajax({
+                url: evidenceFiles[i].value,
+                type: 'GET',
+                success: function (data) {
+                  if (data) {
+                    let re = new RegExp('<p>' + evidenceFiles[i].text + '</p>', 'g');
+                    text = text.replace(re, data);
+                    $previewModal.html(text);
+                  }
+                }
+              });
+            }
+          }
+        }
+      });
+    </script>
   {% endif %}
 {% endblock %}
