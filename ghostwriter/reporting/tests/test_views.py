@@ -123,8 +123,8 @@ class TemplateTagTests(TestCase):
         self.assertTrue(report_tags.get_file_type(unknown_evidence) == "unknown")
         self.assertTrue(report_tags.get_file_type(deleted_evidence) == "missing")
 
-        self.assertEqual(report_tags.get_file_content(txt_evidence), ["lorem ipsum"])
-        self.assertEqual(report_tags.get_file_content(deleted_evidence), ["FILE NOT FOUND"])
+        self.assertEqual(report_tags.get_file_content(txt_evidence), "lorem ipsum")
+        self.assertEqual(report_tags.get_file_content(deleted_evidence), "FILE NOT FOUND")
 
         self.assertEqual(report_tags.get_file_basename(txt_evidence), "evidence.txt")
 

@@ -114,14 +114,10 @@ def get_file_content(file):
                 or file.document.name.lower().endswith(".md")
             ):
                 with open(file.document.path, "r", encoding="utf-8") as f:
-                    temp = f.read().splitlines()
-                    for line in temp:
-                        try:
-                            file_content.append(line)
-                        except UnicodeError:
-                            file_content.append(line)
+                    file_content = f.read()
+                    file_content.strip()
         else:
-            file_content.append("FILE NOT FOUND")
+            file_content = "FILE NOT FOUND"
 
     return file_content
 
