@@ -2658,7 +2658,7 @@ class EvidenceDownloadTests(TestCase):
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 302)
 
-        ProjectAssignmentFactory(operator=self.user, project=self.evidence_file.finding.report.project)
+        ProjectAssignmentFactory(operator=self.user, project=self.evidence_file.report.project)
         response = self.client_auth.get(self.uri)
         self.assertEqual(response.status_code, 200)
 
