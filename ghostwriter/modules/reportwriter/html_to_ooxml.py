@@ -152,14 +152,6 @@ class BaseHtmlToOOXML:
         table_width, table_height = self._table_size(el)
         ooxml_table = self.create_table(rows=table_height, cols=table_width, **kwargs)
 
-        ooxml_table.autofit = True
-        for row in ooxml_table.rows:
-            for cell in row.cells:
-                tc = cell._tc
-                tcPr = tc.get_or_add_tcPr()
-                tcW = tcPr.get_or_add_tcW()
-                tcW.type = "auto"
-
         merged_cells = set()
         row_el_iter = self._table_rows(el)
         for row_i in range(table_height):

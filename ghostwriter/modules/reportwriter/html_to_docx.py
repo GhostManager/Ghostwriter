@@ -1,4 +1,3 @@
-
 # Standard Libraries
 import logging
 import os
@@ -96,6 +95,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
     def _tag_h(self, el, **kwargs):
         heading_num = int(el.name[1:])
         self.doc.add_heading(el.text, heading_num)
+
     tag_h1 = _tag_h
     tag_h2 = _tag_h
     tag_h3 = _tag_h
@@ -148,7 +148,9 @@ class HtmlToDocx(BaseHtmlToOOXML):
                 continue
             par = self.doc.add_paragraph()
             list_tracking.add_paragraph(par, this_list_level, is_ordered)
-            self.process_children(child.children, par=par, list_level=this_list_level, list_tracking=list_tracking, **kwargs)
+            self.process_children(
+                child.children, par=par, list_level=this_list_level, list_tracking=list_tracking, **kwargs
+            )
 
         if this_list_level == 0:
             list_tracking.create(self.doc, self.list_styles_cache)
@@ -166,11 +168,32 @@ class HtmlToDocx(BaseHtmlToOOXML):
         self.process_children(el.children, par=par, **kwargs)
 
     def create_table(self, rows, cols, **kwargs):
-        return self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
+        table = self.doc.add_table(rows=rows, cols=cols, style="Table Grid")
+        self.set_autofit()
+
+        return table
 
     def paragraph_for_table_cell(self, cell):
         # Each cell starts with a paragraph, so use it
         return next(iter(cell.paragraphs))
+
+    def set_autofit(self):
+        """
+        Hotfix for lack of full autofit support for tables in `python-docx`.
+
+        Ref: https://github.com/python-openxml/python-docx/issues/209
+        """
+        for t_idx, table in enumerate(self.doc.tables):
+            self.doc.tables[t_idx].autofit = True
+            self.doc.tables[t_idx].allow_autofit = True
+            self.doc.tables[t_idx]._tblPr.xpath("./w:tblW")[0].attrib[
+                "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type"
+            ] = "auto"
+            for row_idx, r_val in enumerate(self.doc.tables[t_idx].rows):
+                for cell_idx, c_val in enumerate(self.doc.tables[t_idx].rows[row_idx].cells):
+                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.type = "auto"
+                    self.doc.tables[t_idx].rows[row_idx].cells[cell_idx]._tc.tcPr.tcW.w = 0
+        return self.doc
 
 
 class HtmlToDocxWithEvidence(HtmlToDocx):
@@ -178,6 +201,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
     Augments `HtmlToDocx`, replacing marked spans with evidence figures, captions,
     and references.
     """
+
     def __init__(
         self,
         doc,
@@ -378,6 +402,7 @@ class ListTracking:
     """
     Tracks a list being created, and creates the abstract and concrete ooxml numbering for it
     """
+
     def __init__(self):
         self.paragraphs = []
         self.level_list_is_ordered = []
@@ -391,7 +416,9 @@ class ListTracking:
         Adds a paragraph to the list, tracking the list level and ordered/unordered type
         """
         if level > len(self.level_list_is_ordered):
-            raise Exception("Tried to add level {} to a list with {} existing levels".format(level, len(self.level_list_is_ordered)))
+            raise Exception(
+                "Tried to add level {} to a list with {} existing levels".format(level, len(self.level_list_is_ordered))
+            )
         elif level == len(self.level_list_is_ordered):
             self.level_list_is_ordered.append(is_ordered)
         self.paragraphs.append((pg, level))

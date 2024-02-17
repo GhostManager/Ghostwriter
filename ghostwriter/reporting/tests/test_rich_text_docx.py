@@ -1,4 +1,3 @@
-
 from io import BytesIO
 from zipfile import ZipFile
 from lxml import etree
@@ -58,6 +57,7 @@ def mk_test_docx(name, input, expected_output, p_style=None):
                 contents = file.read()
         contents = clean_xml(contents)
         self.assertEqual(contents, expected_output)
+
     test_func.__name__ = name
     return test_func
 
@@ -80,7 +80,7 @@ class RichTextToDocxTests(TestCase):
                 <w:r><w:rPr><w:b/></w:rPr><w:t>World</w:t></w:r>
                 <w:r><w:t>!</w:t></w:r>
             </w:p>
-        """
+        """,
     )
 
     test_headers = mk_test_docx(
@@ -102,7 +102,7 @@ class RichTextToDocxTests(TestCase):
             <w:p>
                 <w:r><w:t>Paragraph</w:t></w:r>
             </w:p>
-        """
+        """,
     )
 
     test_colors = mk_test_docx(
@@ -113,7 +113,7 @@ class RichTextToDocxTests(TestCase):
                 <w:r><w:rPr><w:color w:val="FF0000"/></w:rPr><w:t>Red</w:t></w:r>
                 <w:r><w:t>Text</w:t></w:r>
             </w:p>
-        """
+        """,
     )
 
     test_formatting = mk_test_docx(
@@ -162,7 +162,7 @@ class RichTextToDocxTests(TestCase):
                 <w:r><w:rPr><w:highlight w:val="yellow"/></w:rPr><w:t>Highlight class</w:t></w:r>
                 <w:r><w:t xml:space="preserve"> </w:t></w:r>
             </w:p>
-        """
+        """,
     )
 
     test_unordered_list = mk_test_docx(
@@ -400,6 +400,7 @@ class RichTextToDocxTests(TestCase):
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
                     <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
                 <w:tblGrid>
@@ -409,34 +410,34 @@ class RichTextToDocxTests(TestCase):
                 </w:tblGrid>
                 <w:tr>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell one</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell two</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell three</w:t></w:r></w:p>
                     </w:tc>
                 </w:tr>
                 <w:tr>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell four</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell five</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell six</w:t></w:r></w:p>
                     </w:tc>
                 </w:tr>
             </w:tbl>
-        """
+        """,
     )
 
     test_table_spans = mk_test_docx(
@@ -463,6 +464,7 @@ class RichTextToDocxTests(TestCase):
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
                     <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
                 <w:tblGrid>
@@ -472,44 +474,44 @@ class RichTextToDocxTests(TestCase):
                 </w:tblGrid>
                 <w:tr>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell one</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="5760"/><w:gridSpan w:val="2"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/><w:gridSpan w:val="2"/></w:tcPr>
                         <w:p><w:r><w:t>Wide cell</w:t></w:r></w:p>
                     </w:tc>
                 </w:tr>
                 <w:tr>
                     <w:tc>
                         <w:tcPr>
-                            <w:tcW w:type="dxa" w:w="5760"/>
+                            <w:tcW w:type="auto" w:w="0"/>
                             <w:gridSpan w:val="2"/>
                             <w:vMerge w:val="restart"/>
                         </w:tcPr>
                         <w:p><w:r><w:t>Big cell</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell two</w:t></w:r></w:p>
                     </w:tc>
                 </w:tr>
                 <w:tr>
                     <w:tc>
                         <w:tcPr>
-                            <w:tcW w:type="dxa" w:w="5760"/>
+                            <w:tcW w:type="auto" w:w="0"/>
                             <w:gridSpan w:val="2"/>
                             <w:vMerge/>
                         </w:tcPr>
                         <w:p/>
                     </w:tc>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="2880"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>Cell three</w:t></w:r></w:p>
                     </w:tc>
                 </w:tr>
             </w:tbl>
-        """
+        """,
     )
 
     test_table_spans_2 = mk_test_docx(
@@ -532,6 +534,7 @@ class RichTextToDocxTests(TestCase):
                 <w:tblPr>
                     <w:tblStyle w:val="TableGrid"/>
                     <w:tblW w:type="auto" w:w="0"/>
+                    <w:tblLayout w:type="autofit"/>
                     <w:tblLook w:firstColumn="1" w:firstRow="1" w:lastColumn="0" w:lastRow="0" w:noHBand="0" w:noVBand="1" w:val="04A0"/>
                 </w:tblPr>
                 <w:tblGrid>
@@ -540,12 +543,12 @@ class RichTextToDocxTests(TestCase):
                 </w:tblGrid>
                 <w:tr>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="4320"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>a</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
                         <w:tcPr>
-                            <w:tcW w:type="dxa" w:w="4320"/>
+                            <w:tcW w:type="auto" w:w="0"/>
                             <w:vMerge w:val="restart"/>
                         </w:tcPr>
                         <w:p><w:r><w:t>bcd</w:t></w:r></w:p>
@@ -553,17 +556,17 @@ class RichTextToDocxTests(TestCase):
                 </w:tr>
                 <w:tr>
                     <w:tc>
-                        <w:tcPr><w:tcW w:type="dxa" w:w="4320"/></w:tcPr>
+                        <w:tcPr><w:tcW w:type="auto" w:w="0"/></w:tcPr>
                         <w:p><w:r><w:t>e</w:t></w:r></w:p>
                     </w:tc>
                     <w:tc>
                         <w:tcPr>
-                            <w:tcW w:type="dxa" w:w="4320"/>
+                            <w:tcW w:type="auto" w:w="0"/>
                             <w:vMerge/>
                         </w:tcPr>
                         <w:p/>
                     </w:tc>
                 </w:tr>
             </w:tbl>
-        """
+        """,
     )
