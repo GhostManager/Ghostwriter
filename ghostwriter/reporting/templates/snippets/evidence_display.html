@@ -2,11 +2,7 @@
 
 {% with evidence|get_file_type as file_type %}
   {% if file_type == "image" %}
-    <img
-      class="img-evidence"
-      {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}
-      src="{% url 'reporting:evidence_download' evidence.id %}"
-    />
+    <img class="img-evidence" {% if report_config.enable_borders %}style="border: {{ report_config.border_weight|divide:9525 }}px solid #{{ report_config.border_color }};"{% endif %}src="{% url 'reporting:evidence_download' evidence.id %}"/>
   {% elif evidence|get_file_type == "text" %}
     {% with evidence|get_file_content as file_content %}
       {% if file_content %}
