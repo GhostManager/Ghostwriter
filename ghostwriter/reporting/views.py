@@ -2615,6 +2615,29 @@ class EvidenceDetailView(RoleBasedAccessControlMixin, DetailView):
         return redirect("home:dashboard")
 
 
+class EvidencePreview(RoleBasedAccessControlMixin, SingleObjectMixin, View):
+    """
+    Return HTML for displaying a preview of a file in an individual instance of :model:`reporting.Evidence`.
+    """
+
+    model = Evidence
+
+    def test_func(self):
+        return verify_access(self.request.user, self.get_object().associated_report.project)
+
+    def handle_no_permission(self):
+        messages.error(self.request, "You do not have permission to access that.")
+        return redirect("home:dashboard")
+
+    def get(self, *args, **kwargs):
+        obj = self.get_object()
+        html = render_to_string(
+            "snippets/evidence_display.html",
+            {"evidence": obj, "report_config": ReportConfiguration.get_solo()},
+        )
+        return HttpResponse(html)
+
+
 class EvidenceCreate(RoleBasedAccessControlMixin, CreateView):
     """
     Create an individual :model:`reporting.Evidence` entry linked to an individual

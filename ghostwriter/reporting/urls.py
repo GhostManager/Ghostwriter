@@ -154,7 +154,7 @@ urlpatterns += [
     path(
         "reports/<int:pk>/edit-extra-field/<str:extra_field_name>",
         views.ReportExtraFieldEdit.as_view(),
-        name="report_extra_field_edit"
+        name="report_extra_field_edit",
     ),
     path(
         "templates/<int:pk>",
@@ -185,6 +185,11 @@ urlpatterns += [
         "evidence/download/<int:pk>",
         views.EvidenceDownload.as_view(),
         name="evidence_download",
+    ),
+    path(
+        "evidence/preview/<int:pk>",
+        views.EvidencePreview.as_view(),
+        name="evidence_preview",
     ),
 ]
 

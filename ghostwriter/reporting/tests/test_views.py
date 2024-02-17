@@ -2627,15 +2627,15 @@ class FindingNoteDeleteTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
 
-class EvidenceDownloadTest(TestCase):
+class EvidenceDownloadTests(TestCase):
     """Collection of tests for :view:`reporting.EvidenceDownload`."""
 
     @classmethod
     def setUpTestData(cls):
         cls.user = UserFactory(password=PASSWORD)
         cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
-        cls.evidence_file = EvidenceFactory()
-        cls.deleted_evidence_file = EvidenceFactory()
+        cls.evidence_file = EvidenceOnReportFactory()
+        cls.deleted_evidence_file = EvidenceOnReportFactory()
         cls.uri = reverse("reporting:evidence_download", kwargs={"pk": cls.evidence_file.pk})
         cls.deleted_uri = reverse("reporting:evidence_download", kwargs={"pk": cls.deleted_evidence_file.pk})
 
@@ -2670,3 +2670,59 @@ class EvidenceDownloadTest(TestCase):
 
         response = self.client_mgr.get(self.deleted_uri)
         self.assertEqual(response.status_code, 404)
+
+
+class EvidencePreviewTests(TestCase):
+    """Collection of tests for :view:`reporting.EvidencePreview`."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = UserFactory(password=PASSWORD)
+        cls.mgr_user = UserFactory(password=PASSWORD, role="manager")
+        cls.evidence_file = EvidenceOnReportFactory()
+        cls.deleted_evidence_file = EvidenceOnReportFactory()
+        cls.unknown_evidence = EvidenceOnReportFactory(unknown=True)
+        cls.uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.evidence_file.pk})
+        cls.download_uri = reverse("reporting:evidence_download", kwargs={"pk": cls.evidence_file.pk})
+        cls.unknown_uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.unknown_evidence.pk})
+        cls.deleted_uri = reverse("reporting:evidence_preview", kwargs={"pk": cls.deleted_evidence_file.pk})
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+        self.client_mgr = Client()
+        self.assertTrue(self.client_mgr.login(username=self.mgr_user.username, password=PASSWORD))
+
+    def test_view_uri_exists_at_desired_location(self):
+        response = self.client_mgr.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertInHTML(
+            f'<img class="img-evidence" src="{self.download_uri}"/>',
+            response.content.decode(),
+        )
+
+    def test_view_requires_login_and_permissions(self):
+        response = self.client.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 302)
+
+        ProjectAssignmentFactory(operator=self.user, project=self.evidence_file.report.project)
+        response = self.client_auth.get(self.uri)
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 200)
+
+        if os.path.exists(self.deleted_evidence_file.document.path):
+            os.remove(self.deleted_evidence_file.document.path)
+
+        response = self.client_mgr.get(self.deleted_uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertInHTML("<p>FILE NOT FOUND</p>", response.content.decode())
+
+        response = self.client_mgr.get(self.unknown_uri)
+        self.assertEqual(response.status_code, 200)
+        self.assertInHTML("<p>Evidence file type cannot be displayed.</p>", response.content.decode())
