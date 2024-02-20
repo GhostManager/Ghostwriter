@@ -53,6 +53,7 @@ from ghostwriter.modules.exceptions import InvalidFilterValue
 from ghostwriter.modules.linting_utils import LINTER_CONTEXT
 from ghostwriter.modules.reportwriter.extensions import IMAGE_EXTENSIONS, TEXT_EXTENSIONS
 from ghostwriter.modules.reportwriter.html_to_docx import HtmlToDocxWithEvidence
+from ghostwriter.modules.reportwriter.html_to_plain_text import html_to_plain_text
 from ghostwriter.modules.reportwriter.html_to_pptx import HtmlToPptxWithEvidence
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Evidence, Finding, Observation, Report
@@ -463,8 +464,10 @@ class Reportwriter:
 
         text_old_dot_subbed = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
 
+        text_pagebrea_subbed = text_old_dot_subbed.replace("<p><!-- pagebreak --></p>", "<br data-gw-pagebreak=\"true\" />")
+
         # Run template
-        template = self.jinja_env.from_string(text_old_dot_subbed)
+        template = self.jinja_env.from_string(text_pagebrea_subbed)
         text_rendered = template.render(template_vars)
 
         # Filter out XML-incompatible characters
@@ -509,6 +512,13 @@ class Reportwriter:
             # Log input text to help diagnose errors
             logger.warning("Input text: %r", text)
             raise
+
+    def _process_rich_text_xlsx(self, html, template_vars, evidences) -> str:
+        """
+        Converts HTML from the TinyMCE rich text editor and returns a plain string
+        """
+        text = self._preprocess_rich_text(html, template_vars)
+        return html_to_plain_text(text, evidences)
 
     def generate_word_docx(self):
         """Generate a complete Word document for the current report."""
@@ -763,83 +773,25 @@ class Reportwriter:
 
         return context
 
-    def _process_extra_fields(self, extra_fields, model, render_rich_text):
+    def _extra_field_specs_for(self, model):
+        """
+        Gets (and caches) the set of extra fields for a model class.
+        """
         label = model._meta.label
-        if label not in self.extra_fields_spec_cache:
-            self.extra_fields_spec_cache[label] = ExtraFieldSpec.objects.filter(target_model=label)
+        if label in self.extra_fields_spec_cache:
+            return self.extra_fields_spec_cache[label]
+        else:
+            specs = ExtraFieldSpec.objects.filter(target_model=label)
+            self.extra_fields_spec_cache[label] = specs
+            return specs
 
-        for field in self.extra_fields_spec_cache[label]:
+    def _process_extra_fields(self, extra_fields, model, render_rich_text):
+        specs = self._extra_field_specs_for(model)
+        for field in specs:
             if field.internal_name not in extra_fields:
                 extra_fields[field.internal_name] = field.default_value()
             if field.type == "rich_text":
                 extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
-
-    def _process_text_xlsx(self, html, finding):
-        """
-        Process the provided text from the specified finding to parse keywords for
-        evidence placement and formatting in xlsx documents.
-
-        **Parameters**
-
-        ``html``
-            HTML content to parse with BeautifulSoup 4
-        ``finding``
-            Current report finding being processed
-        """
-        # Regex for searching for bracketed template placeholders, e.g. {{.client}}
-        keyword_regex = r"\{\{\.(.*?)\}\}"
-
-        # Strip out all HTML tags because we can't format text runs for XLSX
-        text = ""
-        if html:
-            text = BeautifulSoup(html, "lxml").text
-
-        # Perform the necessary replacements
-        if "{{.client}}" in text:
-            if self.report_json["client"]["short_name"]:
-                text = text.replace("{{.client}}", self.report_json["client"]["short_name"])
-            else:
-                text = text.replace("{{.client}}", self.report_json["client"]["name"])
-        if "{{.project_start}}" in text:
-            text = text.replace("{{.project_start}}", self.report_json["project"]["start_date"])
-        if "{{.project_end}}" in text:
-            text = text.replace("{{.project_end}}", self.report_json["project"]["end_date"])
-        if "{{.project_type}}" in text:
-            text = text.replace("{{.project_type}}", self.report_json["project"]["type"].lower())
-
-        # No evidence or captions in workbook cells
-        text = text.replace("{{.caption}}", "Caption \u2013 ")
-
-        # Find/replace evidence keywords to make everything human-readable
-        match = re.findall(keyword_regex, text)
-        if match:
-            for keyword in match:
-                if "evidence" in finding:
-                    if (
-                        keyword
-                        and any(ev["friendly_name"] == keyword for ev in finding["evidence"])
-                        and not keyword.startswith("ref ")
-                    ):
-                        for ev in finding["evidence"]:
-                            if ev["friendly_name"] == keyword:
-                                text = text.replace(
-                                    "{{." + keyword + "}}",
-                                    "\n<See Report for Evidence File: {}>\nCaption \u2013 {}".format(
-                                        ev["friendly_name"],
-                                        ev["caption"],
-                                    ),
-                                )
-                # Ignore any other non-keyword string that happens to be inside braces
-                else:
-                    pass
-
-        # Sanitize text to prevent command injection
-        bad_chars = ["=", "+", "-", "@", "\t", "\r", "{"]
-        for char in bad_chars:
-            if text.startswith(char):
-                text = text.replace(char, f"'{char}")
-
-        return text
 
     def generate_excel_xlsx(self, memory_object):
         """
@@ -897,9 +849,15 @@ class Reportwriter:
             "Tags",
         ]
 
+        findings_extra_field_specs = self._extra_field_specs_for(Finding)
+        base_evidences = {e["friendly_name"]: e for e in self.report_json["evidence"]}
+
         # Create 30 width columns and then shrink severity to 10
         for header in headers:
             worksheet.write_string(0, col, header, bold_format)
+            col += 1
+        for field in findings_extra_field_specs:
+            worksheet.write_string(0, col, field.display_name, bold_format)
             col += 1
         worksheet.set_column(0, 13, 30)
         worksheet.set_column(1, 1, 10)
@@ -909,66 +867,70 @@ class Reportwriter:
         # Loop through the findings to create the rest of the worksheet
         col = 0
         row = 1
+        base_context = self._jinja_richtext_base_context()
         for finding in self.report_json["findings"]:
+            finding_context = self._jinja_richtext_finding_context(base_context, finding)
+            finding_evidences = base_evidences | {e["friendly_name"]: e for e in finding["evidence"]}
+
             # Finding Name
-            worksheet.write_string(row, col, self._process_text_xlsx(finding["title"], finding), bold_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding["title"], finding_context, finding_evidences), bold_format)
             col += 1
 
             # Update severity format bg color with the finding's severity color
             severity_format.set_bg_color(finding["severity_color"])
 
             # Severity and CVSS information
-            worksheet.write_string(row, col, self._process_text_xlsx(finding["severity"], finding), severity_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding["severity"], finding_context, finding_evidences), severity_format)
             col += 1
             if isinstance(finding["cvss_score"], float):
                 worksheet.write_number(row, col, finding["cvss_score"], severity_format)
             else:
                 worksheet.write_string(
-                    row, col, self._process_text_xlsx(finding["cvss_score"], finding), severity_format
+                    row, col, self._process_rich_text_xlsx(finding["cvss_score"], finding_context, finding_evidences), severity_format
                 )
             col += 1
-            worksheet.write_string(row, col, self._process_text_xlsx(finding["cvss_vector"], finding), severity_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding["cvss_vector"], finding_context, finding_evidences), severity_format)
             col += 1
 
             # Affected Entities
             if finding["affected_entities"]:
                 worksheet.write_string(
-                    row, col, self._process_text_xlsx(finding["affected_entities"], finding), asset_format
+                    row, col, self._process_rich_text_xlsx(finding["affected_entities"], finding_context, finding_evidences), asset_format
                 )
             else:
                 worksheet.write_string(row, col, "N/A", asset_format)
             col += 1
 
             # Description
-            worksheet.write_string(row, col, self._process_text_xlsx(finding["description"], finding), wrap_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding["description"], finding_context, finding_evidences), wrap_format)
             col += 1
 
             # Impact
-            worksheet.write_string(row, col, self._process_text_xlsx(finding["impact"], finding), wrap_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding["impact"], finding_context, finding_evidences), wrap_format)
             col += 1
 
             # Recommendation
-            worksheet.write_string(row, col, self._process_text_xlsx(finding["recommendation"], finding), wrap_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding["recommendation"], finding_context, finding_evidences), wrap_format)
             col += 1
 
             # Replication
             worksheet.write_string(
-                row, col, self._process_text_xlsx(finding["replication_steps"], finding), wrap_format
+                row, col, self._process_rich_text_xlsx(finding["replication_steps"], finding_context, finding_evidences), wrap_format
             )
             col += 1
 
             # Detection
             worksheet.write_string(
-                row, col, self._process_text_xlsx(finding["host_detection_techniques"], finding), wrap_format
+                row, col, self._process_rich_text_xlsx(finding["host_detection_techniques"], finding_context, finding_evidences), wrap_format
             )
             col += 1
             worksheet.write_string(
-                row, col, self._process_text_xlsx(finding["network_detection_techniques"], finding), wrap_format
+                row, col, self._process_rich_text_xlsx(finding["network_detection_techniques"], finding_context, finding_evidences), wrap_format
             )
             col += 1
 
             # References
-            worksheet.write_string(row, col, self._process_text_xlsx(finding["references"], finding), wrap_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding["references"], finding_context, finding_evidences), wrap_format)
             col += 1
 
             # Collect the evidence, if any, from the finding's folder and insert inline with description
@@ -981,11 +943,22 @@ class Reportwriter:
                 evidence_queryset = []
             evidence = [f.filename for f in evidence_queryset if f in TEXT_EXTENSIONS or f in IMAGE_EXTENSIONS]
             finding_evidence_names = "\r\n".join(map(str, evidence))
-            worksheet.write_string(row, col, self._process_text_xlsx(finding_evidence_names, finding), wrap_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(finding_evidence_names, finding_context, finding_evidences), wrap_format)
             col += 1
 
             # Tags
-            worksheet.write_string(row, col, self._process_text_xlsx(", ".join(finding["tags"]), finding), wrap_format)
+            worksheet.write_string(row, col, self._process_rich_text_xlsx(", ".join(finding["tags"]), finding_context, finding_evidences), wrap_format)
+            col += 1
+
+            # Extra fields
+            for field_spec in findings_extra_field_specs:
+                field_value = field_spec.value_of(finding["extra_fields"])
+                if field_spec.type == "rich_text":
+                    field_value = self._process_rich_text_xlsx(field_value, finding_context, finding_evidences)
+                else:
+                    field_value = str(field_value)
+                worksheet.write_string(row, col, field_value, wrap_format)
+                col += 1
 
             # Increment row counter and reset columns before moving on to next finding
             row += 1

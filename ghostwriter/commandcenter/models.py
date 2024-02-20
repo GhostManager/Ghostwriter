@@ -369,9 +369,6 @@ class ExtraFieldSpec(models.Model):
     def form_widget(self, *args, **kwargs):
         return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)
 
-    def value_to_html_context(self, value):
-        return EXTRA_FIELD_TYPES[self.type].to_html_context(value)
-
     def default_value(self):
         return EXTRA_FIELD_TYPES[self.type].from_str(self.user_default_value)
 
