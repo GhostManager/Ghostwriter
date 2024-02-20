@@ -7,6 +7,10 @@ configuration:
       custom_name: destIp
     end_date:
       custom_name: endDate
+    entry_identifier:
+      custom_name: entryIdentifier
+    extra_fields:
+      custom_name: extraFields
     operator_name:
       custom_name: operatorName
     oplog_id_id:
@@ -20,6 +24,8 @@ configuration:
   custom_column_names:
     dest_ip: destIp
     end_date: endDate
+    entry_identifier: entryIdentifier
+    extra_fields: extraFields
     operator_name: operatorName
     oplog_id_id: oplog
     source_ip: sourceIp
@@ -42,6 +48,7 @@ insert_permissions:
         - dest_ip
         - end_date
         - entry_identifier
+        - extra_fields
         - operator_name
         - oplog_id_id
         - output
@@ -72,6 +79,7 @@ insert_permissions:
         - dest_ip
         - end_date
         - entry_identifier
+        - extra_fields
         - operator_name
         - oplog_id_id
         - output
@@ -89,6 +97,7 @@ select_permissions:
         - dest_ip
         - end_date
         - entry_identifier
+        - extra_fields
         - id
         - operator_name
         - oplog_id_id
@@ -125,6 +134,7 @@ update_permissions:
         - dest_ip
         - end_date
         - entry_identifier
+        - extra_fields
         - operator_name
         - oplog_id_id
         - output
@@ -143,6 +153,7 @@ update_permissions:
         - dest_ip
         - end_date
         - entry_identifier
+        - extra_fields
         - operator_name
         - oplog_id_id
         - output

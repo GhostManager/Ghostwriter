@@ -3,9 +3,12 @@ table:
   schema: public
 configuration:
   column_config:
+    extra_fields:
+      custom_name: extraFields
     short_name:
       custom_name: shortName
   custom_column_names:
+    extra_fields: extraFields
     short_name: shortName
   custom_name: client
   custom_root_fields: {}
@@ -66,6 +69,7 @@ insert_permissions:
       columns:
         - address
         - codename
+        - extra_fields
         - name
         - note
         - short_name
@@ -74,12 +78,13 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - address
+        - codename
+        - extra_fields
         - id
         - name
-        - short_name
-        - codename
         - note
-        - address
+        - short_name
         - timezone
       filter: {}
   - role: user
@@ -104,6 +109,7 @@ update_permissions:
       columns:
         - address
         - codename
+        - extra_fields
         - name
         - note
         - short_name

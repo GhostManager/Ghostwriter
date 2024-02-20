@@ -3,6 +3,8 @@ table:
   schema: public
 configuration:
   column_config:
+    extra_fields:
+      custom_name: extraFields
     ip_address:
       custom_name: ipAddress
     last_used_by_id:
@@ -12,6 +14,7 @@ configuration:
     server_status_id:
       custom_name: serverStatusId
   custom_column_names:
+    extra_fields: extraFields
     ip_address: ipAddress
     last_used_by_id: lastUsedById
     server_provider_id: serverProviderId
@@ -55,6 +58,7 @@ insert_permissions:
     permission:
       check: {}
       columns:
+        - extra_fields
         - ip_address
         - name
         - note
@@ -64,6 +68,7 @@ insert_permissions:
     permission:
       check: {}
       columns:
+        - extra_fields
         - ip_address
         - name
         - note
@@ -73,6 +78,7 @@ select_permissions:
   - role: manager
     permission:
       columns:
+        - extra_fields
         - id
         - ip_address
         - last_used_by_id
@@ -89,6 +95,7 @@ update_permissions:
   - role: manager
     permission:
       columns:
+        - extra_fields
         - ip_address
         - name
         - note
@@ -99,6 +106,7 @@ update_permissions:
   - role: user
     permission:
       columns:
+        - extra_fields
         - ip_address
         - name
         - note

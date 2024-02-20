@@ -7,6 +7,8 @@ configuration:
       custom_name: createdById
     docx_template_id:
       custom_name: docxTemplateId
+    extra_fields:
+      custom_name: extraFields
     pptx_template_id:
       custom_name: pptxTemplateId
     project_id:
@@ -14,6 +16,7 @@ configuration:
   custom_column_names:
     created_by_id: createdById
     docx_template_id: docxTemplateId
+    extra_fields: extraFields
     pptx_template_id: pptxTemplateId
     project_id: projectId
   custom_name: report
@@ -47,6 +50,7 @@ insert_permissions:
         created_by_id: x-hasura-User-Id
       columns:
         - docx_template_id
+        - extra_fields
         - pptx_template_id
         - project_id
         - title
@@ -69,6 +73,7 @@ insert_permissions:
         created_by_id: x-hasura-User-Id
       columns:
         - docx_template_id
+        - extra_fields
         - pptx_template_id
         - project_id
         - title
@@ -76,17 +81,18 @@ select_permissions:
   - role: manager
     permission:
       columns:
-        - id
-        - title
-        - creation
-        - last_update
-        - complete
         - archived
+        - complete
         - created_by_id
-        - project_id
+        - creation
         - delivered
         - docx_template_id
+        - extra_fields
+        - id
+        - last_update
         - pptx_template_id
+        - project_id
+        - title
       filter: {}
   - role: user
     permission:
@@ -112,6 +118,7 @@ update_permissions:
         - complete
         - delivered
         - docx_template_id
+        - extra_fields
         - pptx_template_id
         - project_id
         - title
@@ -123,6 +130,7 @@ update_permissions:
         - complete
         - delivered
         - docx_template_id
+        - extra_fields
         - pptx_template_id
         - project_id
         - title
