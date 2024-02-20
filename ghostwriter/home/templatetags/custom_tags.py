@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from ghostwriter.api.utils import (
     verify_access,
     verify_finding_access,
+    verify_observation_access,
     verify_user_is_privileged,
 )
 from ghostwriter.reporting.models import Report, ReportFindingLink
@@ -123,6 +124,12 @@ def has_access(project, user):
 def can_create_finding(user):
     """Check if the user has the permission to create a finding."""
     return verify_finding_access(user, "create")
+
+
+@register.filter
+def can_create_observation(user):
+    """Check if the user has the permission to create a finding."""
+    return verify_observation_access(user, "create")
 
 
 @register.filter

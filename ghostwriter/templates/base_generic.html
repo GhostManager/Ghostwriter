@@ -225,7 +225,7 @@
               </form>
               {% comment %} observations Submenu Items {% endcomment %}
               <li><a class="icon list-icon" href="{% url 'reporting:observations' %}">Observation Library</a></li>
-              {% if request.user|can_create_finding %}
+              {% if request.user|can_create_observation %}
                 <li><a class="icon plus-icon" href="{% url 'reporting:observation_create' %}">Add New Observation</a></li>
               {% endif %}
             </ul>

@@ -141,6 +141,19 @@ class TemplateTagTests(TestCase):
         self.user.save()
         self.assertTrue(custom_tags.can_create_finding(self.user))
 
+        self.user.role = "user"
+        self.user.save()
+
+        self.assertFalse(custom_tags.can_create_observation(self.user))
+        self.user.enable_observation_create = True
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_observation(self.user))
+
+        self.assertFalse(custom_tags.is_privileged(self.user))
+        self.user.role = "manager"
+        self.user.save()
+        self.assertTrue(custom_tags.can_create_observation(self.user))
+
         self.assertFalse(custom_tags.has_2fa(self.user))
         self.user.totpdevice_set.create()
         static_model = self.user.staticdevice_set.create()
