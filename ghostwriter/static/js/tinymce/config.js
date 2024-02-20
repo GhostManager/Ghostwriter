@@ -36,7 +36,7 @@
             file: {title: 'File', items: 'newdocument restoredraft'},
             edit: {title: 'Edit', items: 'undo redo | cut copy paste | selectall | searchreplace'},
             view: {title: 'View', items: 'code | visualchars visualblocks | preview'},
-            insert: {title: 'Insert', items: 'table evidenceUpload codesample link'},
+            insert: {title: 'Insert', items: 'table evidenceUpload codesample link pagebreak'},
             format: {
                 title: 'Format',
                 items: 'bold italic underline strikethrough superscript subscript codeformat case | formats fontformats fontsizes align | forecolor | removeformat'
@@ -47,7 +47,7 @@
         max_height: window_height - 250,
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
-        plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table',
+        plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
         toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save',
         contextmenu: 'table formats bold italic underline link removeformat',
         paste_as_text: true,

@@ -462,8 +462,10 @@ class Reportwriter:
 
         text_old_dot_subbed = re.sub(r"\{\{\.(.*?)\}\}", replace_old_tag, text)
 
+        text_pagebrea_subbed = text_old_dot_subbed.replace("<p><!-- pagebreak --></p>", "<br data-gw-pagebreak=\"true\" />")
+
         # Run template
-        template = self.jinja_env.from_string(text_old_dot_subbed)
+        template = self.jinja_env.from_string(text_pagebrea_subbed)
         text_rendered = template.render(template_vars)
 
         # Filter out XML-incompatible characters

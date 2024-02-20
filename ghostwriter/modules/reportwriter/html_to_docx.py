@@ -88,9 +88,12 @@ class HtmlToDocx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = DocxRgbColor(*style["font_color"])
 
-    def tag_br(self, el, par, **kwargs):
-        run = par.add_run()
-        run.add_break()
+    def tag_br(self, el, par=None, **kwargs):
+        if "data-gw-pagebreak" in el.attrs:
+            self.doc.add_page_break()
+        else:
+            run = par.add_run()
+            run.add_break()
 
     def _tag_h(self, el, **kwargs):
         heading_num = int(el.name[1:])

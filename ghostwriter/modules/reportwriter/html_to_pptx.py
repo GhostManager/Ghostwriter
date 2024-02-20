@@ -62,8 +62,9 @@ class HtmlToPptx(BaseHtmlToOOXML):
         if "font_color" in style:
             run.font.color.rgb = PptxRGBColor(*style["font_color"])
 
-    def tag_br(self, el, par, **kwargs):
-        par.add_line_break()
+    def tag_br(self, el, par=None, **kwargs):
+        if par is not None:
+            par.add_line_break()
 
     def _tag_h(self, el, **kwargs):
         par = self.shape.text_frame.add_paragraph()
