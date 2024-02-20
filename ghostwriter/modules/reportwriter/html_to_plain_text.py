@@ -1,4 +1,3 @@
-
 import bs4
 from io import StringIO
 
@@ -31,14 +30,16 @@ def _build_html_str(node, evidences, out: StringIO):
     if node.name == "span" and "data-gw-evidence" in node.attrs:
         evidence = evidences.get(node.attrs["data-gw-evidence"])
         if evidence is not None:
-            out.write(f"\n<See Report for Evidence File: {evidence['friendly_name']}>\nCaption \u2013 {evidence['caption']}")
+            out.write(
+                f"\n<See Report for Evidence File: {evidence['friendly_name']}>\nCaption \u2013 {evidence['caption']}"
+            )
             return
     elif node.name == "span" and "data-gw-caption" in node.attrs:
         ref_name = node.attrs["data-gw-caption"]
         if ref_name:
             out.write(f"See {ref_name}")
             return
-    elif node.name == "span" and "data-gw-ref":
+    elif node.name == "span" and "data-gw-ref" in node.attrs:
         ref_name = node.attrs["data-gw-ref"]
         if ref_name:
             out.write(f"See {ref_name}")
