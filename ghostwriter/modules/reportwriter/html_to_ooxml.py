@@ -67,7 +67,7 @@ class BaseHtmlToOOXML:
                 )
             else:
                 return
-        text = self.strip_text_whitespace(el.text)
+        text = strip_text_whitespace(el.text)
         if not text:
             return
         run = par.add_run()
@@ -89,12 +89,6 @@ class BaseHtmlToOOXML:
             run.font.name = style["font_family"]
         if style.get("font_size"):
             run.font.size = "font_size"
-
-    def strip_text_whitespace(self, text):
-        """
-        Consolidates adjacent whitespace into one space, similar to how browsers display it
-        """
-        return re.sub(r"\s+", " ", text)
 
     tag_code = set_style_method("code", "inline_code")
     tag_b = set_style_method("b", "bold")
@@ -219,3 +213,10 @@ class BaseHtmlToOOXML:
 
     def paragraph_for_table_cell(self, cell):
         raise NotImplementedError()
+
+
+def strip_text_whitespace(text):
+    """
+    Consolidates adjacent whitespace into one space, similar to how browsers display it
+    """
+    return re.sub(r"\s+", " ", text)
