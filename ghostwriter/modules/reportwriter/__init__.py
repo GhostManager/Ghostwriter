@@ -13,7 +13,7 @@ import logging
 import os
 import re
 from copy import deepcopy
-from datetime import timedelta
+from datetime import date, timedelta
 
 # Django Imports
 from django.conf import settings
@@ -37,6 +37,8 @@ from markupsafe import Markup
 from pptx import Presentation
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.exc import PackageNotFoundError as PptxPackageNotFoundError
+from pptx.oxml import parse_xml
+from pptx.oxml.ns import nsdecls
 from rest_framework.renderers import JSONRenderer
 from xlsxwriter.workbook import Workbook
 
@@ -1061,6 +1063,37 @@ class Reportwriter:
                 logger.exception("Failed parsing this value for PPTX: %s", value)
                 return ""
 
+        def add_slide_number(txtbox):
+            """
+            Add a slide number to the provided textbox. Ideally, the textbox should be the slide layout's slide
+            number placeholder to match the template.
+
+            Ref: https://stackoverflow.com/a/55816723
+            """
+            # Get a textbox's paragraph element
+            par = txtbox.text_frame.paragraphs[0]._p
+
+            # The slide number is actually a field, so we add a `fld` element to the paragraph
+            # The number enclosed in the `a:t` element is the slide number and should auto-update on load/shuffle
+            fld_xml = (
+                '<a:fld %s id="{1F4E2DE4-8ADA-4D4E-9951-90A1D26586E7}" type="slidenum">\n'
+                '  <a:rPr lang="en-US" smtClean="0"/>\n'
+                "  <a:t>2</a:t>\n"
+                "</a:fld>\n" % nsdecls("a")
+            )
+            fld = parse_xml(fld_xml)
+            par.append(fld)
+
+        def clone_placeholder(slide, slide_layout, placeholder_idx):
+            """
+            Clone a placeholder from the slide master and return the layout and the new shape.
+            """
+            layout_placeholder = slide_layout.placeholders[placeholder_idx]
+            slide.shapes.clone_placeholder(layout_placeholder)
+
+            # The cloned placeholder is now the last shape in the slide
+            return layout_placeholder, slide.shapes[-1]
+
         # Calculate finding stats
         for finding in self.report_json["findings"]:
             findings_stats[finding["severity"]] = 0
@@ -1079,12 +1112,12 @@ class Reportwriter:
         shapes = slide.shapes
         title_shape = shapes.title
         body_shape = shapes.placeholders[1]
-        title_shape.text = self.company_config.company_name
+        title_shape.text = f'{self.report_json["client"]["name"]} {self.report_json["project"]["type"]}'
         text_frame = get_textframe(body_shape)
         # Use ``text_frame.text`` for first line/paragraph or ``text_frame.paragraphs[0]``
-        text_frame.text = f'{self.report_json["project"]["type"]} Debrief'
+        text_frame.text = "Technical Outbrief"
         p = text_frame.add_paragraph()
-        p.text = self.report_json["client"]["name"]
+        p.text = dateformat(date.today(), settings.DATE_FORMAT)
 
         # Add Agenda slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -1187,8 +1220,54 @@ class Reportwriter:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Methodology"
-        body_shape = shapes.placeholders[1]
-        text_frame = get_textframe(body_shape)
+
+        # Add Timeline slide
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
+        shapes = slide.shapes
+        title_shape = shapes.title
+        title_shape.text = "Assessment Timeline"
+
+        # Delete the default text placeholder
+        textbox = shapes[1]
+        sp = textbox.element
+        sp.getparent().remove(sp)
+        # Add a table
+        rows = 4
+        columns = 2
+        left = Inches(1.5)
+        top = Inches(2)
+        width = Inches(8)
+        height = Inches(0.8)
+        table = shapes.add_table(rows, columns, left, top, width, height).table
+        # Set column width
+        table.columns[0].width = Inches(2.0)
+        table.columns[1].width = Inches(8.5)
+        # Write table headers
+        cell = table.cell(0, 0)
+        cell.text = "Date"
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = pptx.dml.color.RGBColor(0x2D, 0x28, 0x69)
+        cell = table.cell(0, 1)
+        cell.text = "Action Item"
+        cell.fill.solid()
+        cell.fill.fore_color.rgb = pptx.dml.color.RGBColor(0x2D, 0x28, 0x69)
+
+        # Write date rows
+        row_iter = 1
+        table.cell(row_iter, 0).text = self.report_json["project"]["start_date"]
+        table.cell(row_iter, 1).text = "Assessment execution began"
+        row_iter += 1
+        table.cell(row_iter, 0).text = self.report_json["project"]["end_date"]
+        table.cell(row_iter, 1).text = "Assessment execution completed"
+        row_iter += 1
+        table.cell(row_iter, 0).text = self.report_json["project"]["end_date"]
+        table.cell(row_iter, 1).text = "Draft report delivery"
+
+        # Set all cells alignment to center and vertical center
+        for cell in table.iter_cells():
+            cell.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
 
         # Add Attack Path Overview slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -1196,8 +1275,89 @@ class Reportwriter:
         shapes = slide.shapes
         title_shape = shapes.title
         title_shape.text = "Attack Path Overview"
+
+        # Add Observations slide
+        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+        slide = self.ppt_presentation.slides.add_slide(slide_layout)
+        shapes = slide.shapes
+        title_shape = shapes.title
         body_shape = shapes.placeholders[1]
+        title_shape.text = "Positive Observations"
         text_frame = get_textframe(body_shape)
+
+        # If there are observations then write a table
+        if len(self.report_json["observations"]) > 0:
+            # Delete the default text placeholder
+            textbox = shapes[1]
+            sp = textbox.element
+            sp.getparent().remove(sp)
+            # Add a table
+            rows = len(self.report_json["observations"]) + 1
+            columns = 1
+            left = Inches(1.5)
+            top = Inches(2)
+            width = Inches(8)
+            height = Inches(0.8)
+            table = shapes.add_table(rows, columns, left, top, width, height).table
+            # Set column width
+            table.columns[0].width = Inches(10.5)
+            # Write table headers
+            cell = table.cell(0, 0)
+            cell.text = "Observation"
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = pptx.dml.color.RGBColor(0x2D, 0x28, 0x69)
+            # Write findings rows
+            row_iter = 1
+            for observation in self.report_json["observations"]:
+                table.cell(row_iter, 0).text = observation["title"]
+                row_iter += 1
+            # Set all cells alignment to center and vertical center
+            for cell in table.iter_cells():
+                cell.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+                cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+        else:
+            write_bullet(text_frame, "No observations", 0)
+
+        # Create slide for each observation
+        for observation in self.report_json["observations"]:
+            slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
+            observation_slide = self.ppt_presentation.slides.add_slide(slide_layout)
+            shapes = observation_slide.shapes
+            title_shape = shapes.title
+
+            # Prepare text frame
+            observation_body_shape = shapes.placeholders[1]
+            if observation_body_shape.has_text_frame:
+                text_frame = get_textframe(observation_body_shape)
+                text_frame.clear()
+                self._delete_paragraph(text_frame.paragraphs[0])
+            else:
+                text_frame = None
+
+            # Set slide title to title + [severity]
+            title_shape.text = f'{observation["title"]}'
+
+            # Add description to the slide body (other sections will appear in the notes)
+            if observation.get("description", "").strip():
+                observation_context = self._jinja_richtext_base_context()
+                self._process_rich_text_pptx(
+                    observation["description"],
+                    slide=observation_slide,
+                    shape=observation_body_shape,
+                    template_vars=observation_context,
+                    evidences=base_evidences,
+                )
+            else:
+                par = observation_body_shape.add_paragraph()
+                run = par.add_run()
+                run.text = "No description provided"
+
+            for ev in observation.get("evidence", []):
+                HtmlToPptxWithEvidence.make_evidence(observation_slide, ev)
+
+            # Ensure there is at least one paragraph, as required by the spec
+            if text_frame is not None and not text_frame.paragraphs:
+                text_frame.add_paragraph()
 
         # Add Findings Overview Slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
@@ -1208,7 +1368,6 @@ class Reportwriter:
         title_shape.text = "Findings Overview"
         text_frame = get_textframe(body_shape)
 
-        # Add Findings Overview Slide 2
         # If there are findings then write a table of findings and severity ratings
         if len(self.report_json["findings"]) > 0:
             # Delete the default text placeholder
@@ -1336,32 +1495,19 @@ class Reportwriter:
                 "                ", ""
             )
 
-        # Add Observations slide
-        slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
-        slide = self.ppt_presentation.slides.add_slide(slide_layout)
-        shapes = slide.shapes
-        title_shape = shapes.title
-        body_shape = shapes.placeholders[1]
-        title_shape.text = "Positive Observations"
-        text_frame = get_textframe(body_shape)
-
         # Add Recommendations slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
-        body_shape = shapes.placeholders[1]
         title_shape.text = "Recommendations"
-        text_frame = get_textframe(body_shape)
 
-        # Add Conclusion slide
+        # Add Next Steps slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_TITLE_AND_CONTENT]
         slide = self.ppt_presentation.slides.add_slide(slide_layout)
         shapes = slide.shapes
         title_shape = shapes.title
-        body_shape = shapes.placeholders[1]
-        title_shape.text = "Conclusion"
-        text_frame = get_textframe(body_shape)
+        title_shape.text = "Next Steps"
 
         # Add final slide
         slide_layout = self.ppt_presentation.slide_layouts[SLD_LAYOUT_FINAL]
@@ -1379,6 +1525,39 @@ class Reportwriter:
         p = text_frame.add_paragraph()
         p.text = self.company_config.company_email
         p.line_spacing = 0.7
+
+        # Add footer elements (if there is one) to all slides based on the footer placeholder in the template
+        for idx, slide in enumerate(self.ppt_presentation.slides):
+            date_placeholder_idx = -1
+            footer_placeholder_idx = -1
+            slide_number_placeholder_idx = -1
+            slide_layout = slide.slide_layout
+
+            for idx, place in enumerate(slide_layout.placeholders):
+                if "Footer" in place.name:
+                    footer_placeholder_idx = idx
+                if "Slide Number" in place.name:
+                    slide_number_placeholder_idx = idx
+                if "Date" in place.name:
+                    date_placeholder_idx = idx
+
+            # Skip the title slide at index 0
+            if idx > 0:
+                if footer_placeholder_idx > 0:
+                    footer_layout_placeholder, footer_placeholder = clone_placeholder(
+                        slide, slide_layout, footer_placeholder_idx
+                    )
+                    footer_placeholder.text = footer_layout_placeholder.text
+                if slide_number_placeholder_idx > 0:
+                    slide_number_layout_placeholder, slide_number_placeholder = clone_placeholder(
+                        slide, slide_layout, slide_number_placeholder_idx
+                    )
+                    add_slide_number(slide_number_placeholder)
+                if date_placeholder_idx > 0:
+                    date_layout_placeholder, date_placeholder = clone_placeholder(
+                        slide, slide_layout, date_placeholder_idx
+                    )
+                    date_placeholder.text = dateformat(date.today(), settings.DATE_FORMAT)
 
         # Finalize document and return it for an HTTP response
         return self.ppt_presentation
