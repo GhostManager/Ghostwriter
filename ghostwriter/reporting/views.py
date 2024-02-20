@@ -50,6 +50,7 @@ from ghostwriter.api.utils import (
     get_reports_list,
     get_templates_list,
     verify_finding_access,
+    verify_observation_access,
     verify_access,
     verify_user_is_privileged,
     RoleBasedAccessControlMixin,
@@ -1030,7 +1031,7 @@ class ConvertObservation(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         if verify_access(self.request.user, self.get_object().report.project):
-            if verify_finding_access(self.request.user, "create"):
+            if verify_observation_access(self.request.user, "create"):
                 return True
         return False
 
@@ -3086,7 +3087,7 @@ class ObservationCreate(RoleBasedAccessControlMixin, CreateView):
     form_class = ObservationForm
 
     def test_func(self):
-        return verify_finding_access(self.request.user, "create")
+        return verify_observation_access(self.request.user, "create")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have the necessary permission to create new observations.")
@@ -3124,7 +3125,7 @@ class ObservationUpdate(RoleBasedAccessControlMixin, UpdateView):
     form_class = ObservationForm
 
     def test_func(self):
-        return verify_finding_access(self.request.user, "edit")
+        return verify_observation_access(self.request.user, "edit")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have the necessary permission to edit observations.")
@@ -3166,7 +3167,7 @@ class ObservationDelete(RoleBasedAccessControlMixin, DeleteView):
     template_name = "confirm_delete.html"
 
     def test_func(self):
-        return verify_finding_access(self.request.user, "delete")
+        return verify_observation_access(self.request.user, "delete")
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have the necessary permission to delete observations.")

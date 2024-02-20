@@ -63,6 +63,21 @@ class User(AbstractUser):
         help_text="Allow the user to delete findings in the library (only applies to accounts with the User role)",
         verbose_name="Allow Finding Deleting",
     )
+    enable_observation_create = BooleanField(
+        default=False,
+        help_text="Allow the user to create new observations in the library (only applies to account with the User role)",
+        verbose_name="Allow Observation Creation",
+    )
+    enable_observation_edit = BooleanField(
+        default=False,
+        help_text="Allow the user to edit observations in the library (only applies to accounts with the User role)",
+        verbose_name="Allow Observation Editing",
+    )
+    enable_observation_delete = BooleanField(
+        default=False,
+        help_text="Allow the user to delete observations in the library (only applies to accounts with the User role)",
+        verbose_name="Allow Observation Deleting",
+    )
     require_2fa = BooleanField(
         default=False,
         help_text="Require the user to set up two-factor authentication",

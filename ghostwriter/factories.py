@@ -51,6 +51,9 @@ class UserFactory(factory.django.DjangoModelFactory):
     enable_finding_create = False
     enable_finding_edit = False
     enable_finding_delete = False
+    enable_observation_create = False
+    enable_observation_edit = False
+    enable_observation_delete = False
 
     @factory.post_generation
     def groups(self, create, extracted, **kwargs):
