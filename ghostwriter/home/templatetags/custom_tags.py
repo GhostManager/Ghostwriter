@@ -1,14 +1,20 @@
 """This contains the custom template tags used by the Home application."""
 
+# Standard Libraries
+from datetime import timedelta
+
 # Django Imports
 from django import template
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
+from django.utils.dateformat import format as dateformat
 
 # 3rd Party Libraries
 from allauth_2fa.utils import user_has_valid_totp_device
 from bs4 import BeautifulSoup
+from dateutil.parser import parse as parse_datetime
+from dateutil.parser._parser import ParserError
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import (
@@ -142,3 +148,41 @@ def is_privileged(user):
 def has_2fa(user):
     """Check if the user has a valid TOTP method configured."""
     return user_has_valid_totp_device(user)
+
+
+@register.filter
+def add_days(date, days):
+    """Add business days to a date. Days can be negative to subtract."""
+    new_date = date
+    try:
+        date_obj = parse_datetime(str(date))
+        # Loop until all days added
+        if days > 0:
+            while days > 0:
+                # Add one day to the date
+                date_obj += timedelta(days=1)
+                # Check if the day is a business day
+                weekday = date_obj.weekday()
+                if weekday >= 5:
+                    # Return to the top (Sunday is 6)
+                    continue
+                # Decrement the number of days to add
+                days -= 1
+        else:
+            # Same as above but in reverse for negative days
+            while days < 0:
+                date_obj -= timedelta(days=1)
+                weekday = date_obj.weekday()
+                if weekday >= 5:
+                    continue
+                days += 1
+        new_date = dateformat(date_obj, settings.DATE_FORMAT)
+    except ParserError:
+        pass
+    return new_date
+
+
+@register.filter
+def split_and_join(value, delimiter):
+    """Split a string with the delimiter and return a comma-separated string."""
+    return ", ".join(value.split(delimiter))

@@ -160,6 +160,16 @@ class TemplateTagTests(TestCase):
         static_model.token_set.create(token=StaticToken.random_token())
         self.assertTrue(custom_tags.has_2fa(self.user))
 
+        test_string = "test,example,sample"
+        result = custom_tags.split_and_join(test_string, ",")
+        self.assertEqual(result, "test, example, sample")
+
+        test_date = "20 February 2024"
+        result = custom_tags.add_days(test_date, 5)
+        self.assertEqual(result, "27 Feb 2024")
+        result = custom_tags.add_days(test_date, -5)
+        self.assertEqual(result, "13 Feb 2024")
+
 
 class DashboardTests(TestCase):
     """Collection of tests for :view:`home.dashboard`."""
