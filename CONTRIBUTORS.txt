@@ -16,5 +16,8 @@ Various enhancements and bug fixes:
 Support for alternate default paragraph styles:
     @federicodotta
 
+Support for custom fields, refactored report writer, and more:
+    Alex Parrill (@ColonelThirtyTwo)
+
 Support for HTML tables:
     @domwhewell
