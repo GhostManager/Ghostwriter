@@ -52,6 +52,9 @@ class ReportConfigurationFormTests(TestCase):
         report_filename=None,
         default_docx_template_id=None,
         default_pptx_template_id=None,
+        title_case_captions=None,
+        title_case_exceptions=None,
+        target_delivery_date=None,
         **kwargs,
     ):
         return ReportConfigurationForm(
@@ -66,6 +69,9 @@ class ReportConfigurationFormTests(TestCase):
                 "report_filename": report_filename,
                 "default_docx_template": default_docx_template_id,
                 "default_pptx_template": default_pptx_template_id,
+                "title_case_captions": title_case_captions,
+                "title_case_exceptions": title_case_exceptions,
+                "target_delivery_date": target_delivery_date,
             },
         )
 
@@ -151,11 +157,14 @@ class ExtraFieldFormTest(TestCase):
             "unrelated_field": "Should not be in the output!",
         }
         output_data = widget.value_from_datadict(input_data, [], "testform")
-        self.assertDictEqual(output_data, {
-            "test_field_single_line": "Hello world!",
-            "test_field_rich": "<p>Formatted</p><p>Text</p>",
-            "test_field_integer": "123",
-        })
+        self.assertDictEqual(
+            output_data,
+            {
+                "test_field_single_line": "Hello world!",
+                "test_field_rich": "<p>Formatted</p><p>Text</p>",
+                "test_field_integer": "123",
+            },
+        )
 
     def test_field_clean(self):
         field = ExtraFieldsField("test.TestModel")
@@ -165,11 +174,14 @@ class ExtraFieldFormTest(TestCase):
             "test_field_integer": "123",
         }
         output_data = field.clean(input_data)
-        self.assertDictEqual(output_data, {
-            "test_field_single_line": "Hello world!",
-            "test_field_rich": "<p>Formatted</p><p>Text</p>",
-            "test_field_integer": 123,
-        })
+        self.assertDictEqual(
+            output_data,
+            {
+                "test_field_single_line": "Hello world!",
+                "test_field_rich": "<p>Formatted</p><p>Text</p>",
+                "test_field_integer": 123,
+            },
+        )
 
     def test_field_clean_errors(self):
         field = ExtraFieldsField("test.TestModel")
@@ -185,11 +197,14 @@ class ExtraFieldFormTest(TestCase):
         field = ExtraFieldsField("test.TestModel")
         input_data = {}
         output_data = field.clean(input_data)
-        self.assertDictEqual(output_data, {
-            "test_field_single_line": "",
-            "test_field_rich": "",
-            "test_field_integer": None,
-        })
+        self.assertDictEqual(
+            output_data,
+            {
+                "test_field_single_line": "",
+                "test_field_rich": "",
+                "test_field_integer": None,
+            },
+        )
 
     def test_checkbox_true(self):
         ExtraFieldSpec.objects.create(
@@ -199,13 +214,17 @@ class ExtraFieldFormTest(TestCase):
             type="checkbox",
         )
         field = ExtraFieldsField("test.TestModel")
-        field_data = field.widget.value_from_datadict({
-            "testform_test_field_single_line": "Hello world!",
-            "testform_test_field_rich": "<p>Formatted</p><p>Text</p>",
-            "testform_test_field_integer": "123",
-            "testform_test_field_bool": "on",
-            "unrelated_field": "Should not be in the output!",
-        }, [], "testform")
+        field_data = field.widget.value_from_datadict(
+            {
+                "testform_test_field_single_line": "Hello world!",
+                "testform_test_field_rich": "<p>Formatted</p><p>Text</p>",
+                "testform_test_field_integer": "123",
+                "testform_test_field_bool": "on",
+                "unrelated_field": "Should not be in the output!",
+            },
+            [],
+            "testform",
+        )
         self.assertTrue(field_data["test_field_bool"])
         data = field.clean(field_data)
         self.assertTrue(data["test_field_bool"])
@@ -218,12 +237,16 @@ class ExtraFieldFormTest(TestCase):
             type="checkbox",
         )
         field = ExtraFieldsField("test.TestModel")
-        field_data = field.widget.value_from_datadict({
-            "testform_test_field_single_line": "Hello world!",
-            "testform_test_field_rich": "<p>Formatted</p><p>Text</p>",
-            "testform_test_field_integer": "123",
-            "unrelated_field": "Should not be in the output!",
-        }, [], "testform")
+        field_data = field.widget.value_from_datadict(
+            {
+                "testform_test_field_single_line": "Hello world!",
+                "testform_test_field_rich": "<p>Formatted</p><p>Text</p>",
+                "testform_test_field_integer": "123",
+                "unrelated_field": "Should not be in the output!",
+            },
+            [],
+            "testform",
+        )
         self.assertFalse(field_data["test_field_bool"])
         data = field.clean(field_data)
         self.assertFalse(data["test_field_bool"])

@@ -815,6 +815,9 @@ class ReportConfigurationFactory(factory.django.DjangoModelFactory):
     prefix_table = Faker("word")
     label_table = Faker("word")
     report_filename = "{Y-m-d}_{His} {company} - {client} {assessment_type} Report"
+    title_case_captions = Faker("boolean")
+    title_case_exceptions = str(Faker("csv"))[:255]
+    target_delivery_date = Faker("pyint")
     default_docx_template = factory.SubFactory(ReportDocxTemplateFactory)
     default_pptx_template = factory.SubFactory(ReportPptxTemplateFactory)
 
