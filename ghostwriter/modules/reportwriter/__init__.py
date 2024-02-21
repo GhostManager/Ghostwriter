@@ -460,6 +460,8 @@ class Reportwriter:
             # These will be swapped out when parsing the HTML
             if contents.startswith("ref "):
                 return _jinja_ref(contents[4:].strip())
+            elif contents == "caption":
+                return _jinja_caption("")
             elif contents.startswith("caption "):
                 return _jinja_caption(contents[8:].strip())
             else:

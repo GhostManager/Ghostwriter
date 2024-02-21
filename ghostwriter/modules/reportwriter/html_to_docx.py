@@ -56,7 +56,7 @@ class HtmlToDocx(BaseHtmlToOOXML):
             new_run = docx.oxml.shared.OxmlElement("w:r")
             rPr = docx.oxml.shared.OxmlElement("w:rPr")
             new_run.append(rPr)
-            new_run.text = el.text
+            new_run.text = str(el)
             hyperlink.append(new_run)
             # Create a new Run object and add the hyperlink into it
             run = par.add_run()
@@ -224,6 +224,11 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
 
+    def text(self, el, par=None, **kwargs):
+        if par is not None and getattr(par, "_gw_is_caption", False):
+            el = self.title_except(el)
+        return super().text(el, par=par, **kwargs)
+
     def tag_span(self, el, par, **kwargs):
         if "data-gw-evidence" in el.attrs:
             evidence = self.evidences.get(el.attrs["data-gw-evidence"])
@@ -234,6 +239,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         elif "data-gw-caption" in el.attrs:
             ref_name = el.attrs["data-gw-caption"]
             par.style = "Caption"
+            par._gw_is_caption = True
             self.make_figure(par, ref_name or None)
         elif "data-gw-ref" in el.attrs:
             ref_name = el.attrs["data-gw-ref"]

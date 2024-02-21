@@ -67,7 +67,7 @@ class BaseHtmlToOOXML:
                 )
             else:
                 return
-        text = strip_text_whitespace(el.text)
+        text = strip_text_whitespace(str(el))
         if not text:
             return
         run = par.add_run()
