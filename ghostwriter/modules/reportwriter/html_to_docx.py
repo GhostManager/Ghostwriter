@@ -212,12 +212,16 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         evidences,
         figure_label: str,
         figure_prefix: str,
+        title_case_captions: bool,
+        title_case_exceptions: list[str],
         border_color_width: tuple[str, float] | None,
     ):
         super().__init__(doc, p_style)
         self.evidences = evidences
         self.figure_label = figure_label
         self.figure_prefix = figure_prefix
+        self.title_case_captions = title_case_captions
+        self.title_case_exceptions = title_case_exceptions
         self.border_color_width = border_color_width
 
     def tag_span(self, el, par, **kwargs):
@@ -236,6 +240,20 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             self.make_cross_ref(par, ref_name)
         else:
             return super().tag_span(el, par=par, **kwargs)
+
+    def title_except(self, str):
+        """
+        Title case the given string except for articles and words in the provided exceptions list.
+
+        Ref: https://stackoverflow.com/a/3729957
+        """
+        if self.title_case_captions:
+            word_list = re.split(" ", str)  # re.split behaves as expected
+            final = [word_list[0].capitalize()]
+            for word in word_list[1:]:
+                final.append(word if word in self.title_case_exceptions else word.capitalize())
+            str = " ".join(final)
+        return str
 
     def make_figure(self, par, ref: str | None = None):
         if ref:
@@ -311,7 +329,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 evidence["friendly_name"],
             )
             self.make_figure(par_caption, ref_name)
-            par_caption.add_run(self.figure_prefix + evidence["caption"])
+            par_caption.add_run(self.figure_prefix + self.title_except(evidence["caption"]))
         elif extension in IMAGE_EXTENSIONS:
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = par.add_run()
@@ -364,7 +382,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             p = self.doc.add_paragraph(style="Caption")
             ref_name = re.sub("[^A-Za-z0-9]+", "", evidence["friendly_name"])
             self.make_figure(p, ref_name)
-            run = p.add_run(self.figure_prefix + evidence["caption"])
+            run = p.add_run(self.figure_prefix + self.title_except(evidence["caption"]))
 
     def make_cross_ref(self, par, ref: str):
         # Start the field character run for the label and number
