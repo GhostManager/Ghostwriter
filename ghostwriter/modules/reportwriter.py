@@ -54,9 +54,38 @@ logger = logging.getLogger(__name__)
 
 
 # Custom Jinja2 filters for DOCX templates
+def filter_tags(objects, allowlist):
+    """
+    Filter a list of objects to return only those with a tag in the allowlist.
+
+    **Parameters**
+
+    ``objects``
+        List of dictionary objects (JSON) for findings
+    ``allowlist``
+        List of strings matching severity categories to allow through filter
+    """
+    filtered_values = []
+    if not isinstance(allowlist, list):
+        raise InvalidFilterValue(
+            f'Allowlist passed into `filter_tags()` filter is not a list ("{allowlist}"); must be like `["xss", "T1651"]`'
+        )
+    try:
+        for obj in objects:
+            common_tags = set(obj["tags"]) & set(allowlist)
+            if common_tags:
+                filtered_values.append(obj)
+    except (KeyError, TypeError):
+        logger.exception("Error parsing object as a list of dictionaries: %s", object)
+        raise InvalidFilterValue(
+            "Invalid list of objects passed into `filter_tags()` filter; must be an object with a `tags` key"
+        )
+    return filtered_values
+
+
 def filter_severity(findings, allowlist):
     """
-    Filter list of findings to return only those with a severity in the allowlist.
+    Filter a list of findings to return only those with a severity in the allowlist.
 
     **Parameters**
 
@@ -86,7 +115,7 @@ def filter_severity(findings, allowlist):
 
 def filter_type(findings, allowlist):
     """
-    Filter list of findings to return only those with a type in the allowlist.
+    Filter a list of findings to return only those with a type in the allowlist.
 
     **Parameters**
 
@@ -136,7 +165,7 @@ def strip_html(s):
 
 def compromised(targets):
     """
-    Filter list of targets to return only those marked as compromised.
+    Filter a list of targets to return only those marked as compromised.
 
     **Parameters**
 
@@ -277,6 +306,7 @@ def prepare_jinja2_env(debug=False):
     env.filters["format_datetime"] = format_datetime
     env.filters["get_item"] = get_item
     env.filters["regex_search"] = regex_search
+    env.filters["filter_tags"] = filter_tags
 
     return env
 
@@ -2308,6 +2338,12 @@ class TemplateLinter:
                     template_document = DocxTemplate(self.template_loc)
                     logger.info("Template loaded for linting")
 
+                    undefined_vars = template_document.get_undeclared_template_variables(self.jinja_template_env)
+                    if undefined_vars:
+                        for variable in undefined_vars:
+                            if variable not in LINTER_CONTEXT:
+                                results["warnings"].append(f"Potential undefined variable: {variable}")
+
                     # Step 2: Check document's styles
                     document_styles = template_document.styles
                     if "Bullet List" not in document_styles:
@@ -2343,17 +2379,15 @@ class TemplateLinter:
                             results["warnings"].append(
                                 f"Template is missing your configured default paragraph style: {self.template.p_style}"
                             )
+
+                    if results["warnings"]:
+                        results["result"] = "warning"
+
                     logger.info("Completed Word style checks")
 
                     # Step 3: Test rendering the document
                     try:
                         template_document.render(LINTER_CONTEXT, self.jinja_template_env, autoescape=True)
-                        undefined_vars = template_document.undeclared_template_variables
-                        if undefined_vars:
-                            for variable in undefined_vars:
-                                results["warnings"].append(f"Undefined variable: {variable}")
-                        if results["warnings"]:
-                            results["result"] = "warning"
                         logger.info("Completed document rendering test")
                     except TemplateSyntaxError as error:
                         logger.exception("Template syntax error: %s", error)

@@ -42,7 +42,12 @@ from ghostwriter.reporting.models import (
     ReportTemplate,
 )
 from ghostwriter.reporting.views import get_position
-from ghostwriter.rolodex.models import Project, ProjectContact
+from ghostwriter.rolodex.models import (
+    Project,
+    ProjectContact,
+    ProjectObjective,
+    ProjectSubTask,
+)
 from ghostwriter.shepherd.models import (
     ActivityType,
     Domain,
@@ -879,6 +884,52 @@ class GraphqlProjectContactUpdateEvent(HasuraEventView):
                 if contact.id != instance.id and contact.primary and instance.primary:
                     contact.primary = False
                     contact.save()
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlProjectObjectiveUpdateEvent(HasuraEventView):
+    """
+    Event webhook to make database updates when :model:`rolodex.ProjectObjective`
+    entries change.
+    """
+
+    def post(self, request, *args, **kwargs):
+        initial_deadline = self.old_data["deadline"]
+        instance = ProjectObjective.objects.get(id=self.new_data["id"])
+
+        subtasks = ProjectSubTask.objects.filter(parent=instance)
+        for task in subtasks:
+            if task.deadline > instance.deadline or task.deadline == initial_deadline:
+                task.deadline = instance.deadline
+                task.save()
+
+        if instance.complete:
+            instance.marked_complete = date.today()
+        else:
+            instance.marked_complete = None
+        instance.save()
+
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlProjectSubTaskUpdateEvent(HasuraEventView):
+    """
+    Event webhook to make database updates when :model:`rolodex.ProjectSubTask`
+    entries change.
+    """
+
+    def post(self, request, *args, **kwargs):
+        instance = ProjectSubTask.objects.select_related("parent").get(id=self.new_data["id"])
+        if instance.deadline > instance.parent.deadline:
+            instance.deadline = instance.parent.deadline
+            instance.save()
+
+        if instance.complete:
+            instance.marked_complete = date.today()
+        else:
+            instance.marked_complete = None
+        instance.save()
+
         return JsonResponse(self.data, status=self.status)
 
 
