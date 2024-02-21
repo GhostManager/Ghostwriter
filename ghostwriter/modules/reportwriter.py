@@ -1488,6 +1488,34 @@ class Reportwriter:
                             tag_name,
                         )
 
+    def _add_office_properties(self, core_properties):
+        """
+        Render the properties of the document.
+
+        **Parameters**
+
+        ``core_properties``
+            Core properties of the document
+        """
+        # Avaliable properties https://python-docx.readthedocs.io/en/latest/dev/analysis/features/coreprops.html
+        properties = {
+            "author": core_properties.author,
+            "category": core_properties.category,
+            "comments": core_properties.comments,
+            "content_status": core_properties.content_status,
+            "identifier": core_properties.identifier,
+            "keywords": core_properties.keywords,
+            "language": core_properties.language,
+            "subject": core_properties.subject,
+            "title": core_properties.title,
+            "version": core_properties.version
+        }
+        for key, value in properties.items():
+            template = jinja2.Template(value)
+            rendered_value = template.render(self.report_json)
+            if rendered_value:
+                setattr(core_properties, key, rendered_value)
+
     def generate_word_docx(self):
         """Generate a complete Word document for the current report."""
 
@@ -1568,6 +1596,9 @@ class Reportwriter:
 
         # Render the Word document + auto-escape any unsafe XML/HTML
         self.word_doc.render(context, self.jinja_env, autoescape=True)
+
+        # Add any properties to the rendered document
+        self._add_office_properties(self.word_doc.core_properties)
 
         # Return the final rendered document
         return self.word_doc
@@ -2263,6 +2294,9 @@ class Reportwriter:
         p = text_frame.add_paragraph()
         p.text = self.company_config.company_email
         p.line_spacing = 0.7
+
+        # Add any properties to the rendered document
+        self._add_office_properties(self.ppt_presentation.core_properties)
 
         # Finalize document and return it for an HTTP response
         return self.ppt_presentation
