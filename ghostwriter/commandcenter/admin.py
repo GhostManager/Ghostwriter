@@ -47,6 +47,8 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
                 "fields": (
                     "prefix_figure",
                     "label_figure",
+                    "title_case_captions",
+                    "title_case_exceptions",
                 )
             },
         ),
@@ -64,6 +66,7 @@ class ReportConfigurationAdmin(SingletonModelAdmin):
             {
                 "fields": (
                     "report_filename",
+                    "target_delivery_date",
                     "default_docx_template",
                     "default_pptx_template",
                 )

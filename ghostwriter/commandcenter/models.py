@@ -111,6 +111,22 @@ class ReportConfiguration(SingletonModel):
         default="{Y-m-d}_{His} {company} - {client} {assessment_type} Report",
         help_text="Name of the report file when downloaded that can include the following variables: title, date, company, client, assessment_type, and date format string values",
     )
+    title_case_captions = models.BooleanField(
+        default=True,
+        help_text="Capitalize the first letter of each word in figure and table captions",
+    )
+    title_case_exceptions = models.CharField(
+        "Title Case Exceptions",
+        default="a,as,at,an,and,of,the,is,to,by,for,in,on,but,or",
+        help_text="Comma-separated list of words to exclude from title case conversion",
+        blank=True,
+        max_length=255,
+    )
+    target_delivery_date = models.IntegerField(
+        "Target Delivery Date",
+        default=5,
+        help_text="Number of business days from the project's end date to set as the default target delivery date",
+    )
     # Foreign Keys
     default_docx_template = models.ForeignKey(
         "reporting.reporttemplate",
@@ -342,8 +358,7 @@ class ExtraFieldSpec(models.Model):
     internal_name = models.CharField(max_length=255)
     display_name = models.CharField(max_length=255)
     type = models.CharField(
-        max_length=255,
-        choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
+        max_length=255, choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
     )
     user_default_value = models.TextField(
         verbose_name="Default Value",
