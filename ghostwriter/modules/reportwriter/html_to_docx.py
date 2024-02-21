@@ -313,6 +313,9 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
         bookmark_end.set(qn("w:id"), "0")
         p.append(bookmark_end)
 
+        # Add prefix
+        par.add_run(self.figure_prefix)
+
     def make_evidence(self, par, evidence):
         file_path = settings.MEDIA_ROOT + "/" + evidence["path"]
         if not os.path.exists(file_path):
@@ -335,7 +338,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
                 evidence["friendly_name"],
             )
             self.make_figure(par_caption, ref_name)
-            par_caption.add_run(self.figure_prefix + self.title_except(evidence["caption"]))
+            par_caption.add_run(self.title_except(evidence["caption"]))
         elif extension in IMAGE_EXTENSIONS:
             par.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = par.add_run()
@@ -388,7 +391,7 @@ class HtmlToDocxWithEvidence(HtmlToDocx):
             p = self.doc.add_paragraph(style="Caption")
             ref_name = re.sub("[^A-Za-z0-9]+", "", evidence["friendly_name"])
             self.make_figure(p, ref_name)
-            run = p.add_run(self.figure_prefix + self.title_except(evidence["caption"]))
+            run = p.add_run(self.title_except(evidence["caption"]))
 
     def make_cross_ref(self, par, ref: str):
         # Start the field character run for the label and number
