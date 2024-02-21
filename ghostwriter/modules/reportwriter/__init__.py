@@ -391,7 +391,6 @@ class Reportwriter:
         self.label_figure = f"{label_figure} "
         self.title_case_captions = global_report_config.title_case_captions
         self.title_case_exceptions = global_report_config.title_case_exceptions.split(",")
-        print(self.title_case_exceptions)
 
         # Set up Jinja2 rendering environment + custom filters
         self.jinja_env = prepare_jinja2_env(debug=False)
