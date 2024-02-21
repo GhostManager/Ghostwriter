@@ -188,8 +188,20 @@
       <td class="text-justify">{{ report_config.label_table }} {{ report_config.prefix_table }}</td>
     </tr>
     <tr>
+      <td class="text-left icon tag-icon">Title Case Captions</td>
+      <td class="text-justify"> {{ report_config.title_case_captions }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon tag-icon">Title Case Exceptions</td>
+      <td class="text-justify"> {{ report_config.title_case_exceptions|split_and_join:"," }}</td>
+    </tr>
+    <tr>
       <td class="text-left icon signature-icon">Report Download Filename</td>
       <td class="text-justify"> {{ report_config.report_filename }}</td>
+    </tr>
+    <tr>
+      <td class="text-left icon calendar-icon">Delivery Date</td>
+      <td class="text-justify">{% if report_config.target_delivery_date > 0 %}+{% endif %}{{ report_config.target_delivery_date }} business days</td>
     </tr>
     <tr>
       <td class="text-left icon word-icon">Default DOCX Template</td>

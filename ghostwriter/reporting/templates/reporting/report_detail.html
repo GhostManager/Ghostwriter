@@ -115,6 +115,14 @@
           </span>
         </h6>
 
+        <h6 class="row justify-content-md-center">
+          <span class="col-4 text-left">
+            Target Delivery Date:
+            {{ report.project.end_date|add_days:report_config.target_delivery_date }}
+          </span>
+
+        </h6>
+
         <h4>Report Configuration</h4>
         <hr>
 
@@ -126,6 +134,20 @@
           <tr>
             <td class="text-left icon tag-icon">Table Label & Prefix</td>
             <td class="text-justify">{{ report_config.label_table }} {{ report_config.prefix_table }}</td>
+          </tr>
+          <tr>
+            <td class="text-left icon tag-icon">Title Case Captions</td>
+            <td class="text-justify">
+              {% if report_config.title_case_captions %}
+                <span class="align-middle healthy"><i class="fas fa-check"></i></span>
+              {% else %}
+                <span class="align-middle burned"><i class="fas fa-times"></i></span>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="text-left icon tag-icon">Title Case Exceptions</td>
+            <td class="text-justify"> {{ report_config.title_case_exceptions|split_and_join:"," }}</td>
           </tr>
           <tr>
             <td class="text-left icon toggle-on-icon">Image Borders</td>
@@ -153,6 +175,10 @@
             <tr>
               <td class="text-left icon signature-icon">Report Download Filename</td>
               <td class="text-justify"> {{ report_config.report_filename }}</td>
+            </tr>
+            <tr>
+              <td class="text-left icon calendar-icon">Delivery Date</td>
+              <td class="text-justify">{% if report_config.target_delivery_date > 0 %}+{% endif %}{{ report_config.target_delivery_date }} business days</td>
             </tr>
           {% endif %}
         </table>
