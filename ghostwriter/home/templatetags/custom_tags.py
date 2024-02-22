@@ -8,7 +8,6 @@ from django import template
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.db.models import Q
-from django.utils.dateformat import format as dateformat
 
 # 3rd Party Libraries
 from allauth_2fa.utils import user_has_valid_totp_device
@@ -176,7 +175,7 @@ def add_days(date, days):
                 if weekday >= 5:
                     continue
                 days += 1
-        new_date = dateformat(date_obj, settings.DATE_FORMAT)
+        new_date = date_obj
     except ParserError:
         pass
     return new_date
