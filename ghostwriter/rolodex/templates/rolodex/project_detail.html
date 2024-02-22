@@ -1,6 +1,6 @@
 {% extends "base_generic.html" %}
 
-{% load determine_primary bleach_tags custom_tags extra_fields %}
+{% load determine_primary bleach_tags custom_tags extra_fields settings_tags %}
 
 {% block pagetitle %}{{ project.client }} {{ project.project_type }} Details{% endblock %}
 
@@ -1089,6 +1089,8 @@
 {% endblock %}
 
 {% block morescripts %}
+  {% get_solo "commandcenter.ReportConfiguration" as report_config %}
+
   <script>
     const $projectDescription = $('#projectDescription')
     const $projectDescDropdown = $('#projectDescriptionDropdown')
@@ -1563,6 +1565,17 @@
         className: 'calendar-exec-icon'
       };
       calendar.addEvent(execWindows);
+
+      let reportingWindows = {
+        title: 'Reporting',
+        allDay: true,
+        start: '{{ project.end_date|plus_days:1|date:"Y-m-d" }}',
+        end: '{{ project.end_date|add_days:report_config.target_delivery_date|plus_days:1|date:"Y-m-d" }}',
+        color: 'var(--secondary-color)',
+        className: 'calendar-report-icon'
+      };
+      console.log(reportingWindows)
+      calendar.addEvent(reportingWindows);
 
       {% comment %} Add project assignments {% endcomment %}
       {% for operator in project.projectassignment_set.all %}

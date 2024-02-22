@@ -1,5 +1,5 @@
 {% extends "base_generic.html" %}
-{% load crispy_forms_tags report_tags bleach_tags custom_tags extra_fields %}
+{% load crispy_forms_tags report_tags bleach_tags custom_tags extra_fields determine_primary %}
 
 {% block pagetitle %}{{ report.title }}{% endblock %}
 
@@ -64,6 +64,14 @@
         <h4>Report Status</h4>
         <hr/>
 
+        {% with report.project.end_date|add_days:report_config.target_delivery_date|date:"DATE_FORMAT" as delivery_date %}
+          <h6>Target Due Date:
+            <span class="{% if delivery_date|days_left <= 1 %}task-imminent{% elif delivery_date|days_left <= 5 %}task-due-soon{% else %}task-future{% endif %}">
+              {{ delivery_date }}
+            </span>
+          </h6>
+        {% endwith %}
+
         <h6 class="row justify-content-md-center">
           <span class="col-3 text-left">
             Report Status:
@@ -113,14 +121,6 @@
                                                                 class="fas fa-toggle-off"></i></a>
             {% endif %}
           </span>
-        </h6>
-
-        <h6 class="row justify-content-md-center">
-          <span class="col-4 text-left">
-            Target Delivery Date:
-            {{ report.project.end_date|add_days:report_config.target_delivery_date }}
-          </span>
-
         </h6>
 
         <h4>Report Configuration</h4>
