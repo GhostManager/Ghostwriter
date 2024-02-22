@@ -1362,6 +1362,17 @@ fc-hover {
   content: '\f70c';
 }
 
+.calendar-report-icon .fc-event-title:before,
+.calendar-report-icon .fc-list-event-title:before {
+  font-family: 'Font Awesome 5 Free';
+  display: inline-block;
+  padding-right: 5px;
+  padding-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+  content: '\f5ad';
+}
+
 .calendar-exec-complete .fc-event-title,
 .calendar-exec-complete .fc-list-event-title {
   text-decoration: line-through;
