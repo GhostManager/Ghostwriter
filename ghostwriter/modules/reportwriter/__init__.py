@@ -13,7 +13,7 @@ import logging
 import os
 import re
 from copy import deepcopy
-from datetime import date, timedelta
+from datetime import date
 
 # Django Imports
 from django.conf import settings
@@ -25,8 +25,6 @@ import jinja2
 import jinja2.sandbox
 import pptx
 from bs4 import BeautifulSoup
-from dateutil.parser import parse as parse_datetime
-from dateutil.parser._parser import ParserError
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.opc.exceptions import PackageNotFoundError as DocxPackageNotFoundError
@@ -59,246 +57,10 @@ from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import Evidence, Finding, Observation, Report
 from ghostwriter.rolodex.models import Client, Project
 from ghostwriter.shepherd.models import Domain, StaticServer
+from ghostwriter.modules.reportwriter import filters
 
 # Using __name__ resolves to ghostwriter.modules.reporting
 logger = logging.getLogger(__name__)
-
-
-# Custom Jinja2 filters for DOCX templates
-def filter_severity(findings, allowlist):
-    """
-    Filter a list of findings to return only those with a severity in the allowlist.
-
-    **Parameters**
-
-    ``findings``
-        List of dictionary objects (JSON) for findings
-    ``allowlist``
-        List of strings matching severity categories to allow through filter
-    """
-    filtered_values = []
-    if isinstance(allowlist, list):
-        allowlist = [severity.lower() for severity in allowlist]
-    else:
-        raise InvalidFilterValue(
-            f'Allowlist passed into `filter_severity()` filter is not a list ("{allowlist}"); must be like `["Critical", "High"]`'
-        )
-    try:
-        for finding in findings:
-            if finding["severity"].lower() in allowlist:
-                filtered_values.append(finding)
-    except (KeyError, TypeError):
-        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
-        raise InvalidFilterValue(
-            "Invalid list of findings passed into `filter_severity()` filter; must be the `{{ findings }}` object"
-        )
-    return filtered_values
-
-
-def filter_type(findings, allowlist):
-    """
-    Filter a list of findings to return only those with a type in the allowlist.
-
-    **Parameters**
-
-    ``findings``
-        List of dictionary objects (JSON) for findings
-    ``allowlist``
-        List of strings matching severity categories to allow through filter
-    """
-    filtered_values = []
-    if isinstance(allowlist, list):
-        allowlist = [t.lower() for t in allowlist]
-    else:
-        raise InvalidFilterValue(
-            f'Allowlist passed into `filter_type()` filter is not a list ("{allowlist}"); must be like `["Network", "Web"]`'
-        )
-    try:
-        for finding in findings:
-            if finding["finding_type"].lower() in allowlist:
-                filtered_values.append(finding)
-    except (KeyError, TypeError):
-        logger.exception("Error parsing ``findings`` as a list of dictionaries: %s", findings)
-        raise InvalidFilterValue(
-            "Invalid list of findings passed into `filter_type()` filter; must be the `{{ findings }}` object"
-        )
-    return filtered_values
-
-
-def strip_html(s):
-    """
-    Strip HTML tags from the provided HTML while preserving newlines created by
-    ``<br />`` and ``<p>`` tags and spaces.
-
-    **Parameters**
-
-    ``s``
-        String of HTML text to strip down
-    """
-    html = BeautifulSoup(s, "lxml")
-    output = ""
-    for tag in html.descendants:
-        if isinstance(tag, str):
-            output += tag
-        elif tag.name in ("br", "p"):
-            output += "\n"
-    return output.strip()
-
-
-def compromised(targets):
-    """
-    Filter a list of targets to return only those marked as compromised.
-
-    **Parameters**
-
-    ``targets``
-        List of dictionary objects (JSON) for targets
-    """
-    filtered_targets = []
-    try:
-        for target in targets:
-            if target["compromised"]:
-                filtered_targets.append(target)
-    except (KeyError, TypeError):
-        logger.exception("Error parsing ``targets`` as a list of dictionaries: %s", targets)
-        raise InvalidFilterValue(
-            "Invalid list of targets passed into `compromised()` filter; must be the `{{ targets }}` object"
-        )
-    return filtered_targets
-
-
-def add_days(date, days):
-    """
-    Add a number of business days to a date.
-
-    **Parameters**
-
-    ``date``
-        Date string to add business days to
-    ``days``
-        Number of business days to add to the date
-    """
-    new_date = None
-    try:
-        days = int(days)
-    except ValueError:
-        logger.exception("Error parsing ``days`` as an integer: %s", days)
-        raise InvalidFilterValue(f'Invalid integer ("{days}") passed into the `add_days()` filter')
-
-    try:
-        date_obj = parse_datetime(date)
-        # Loop until all days added
-        if days > 0:
-            while days > 0:
-                # Add one day to the date
-                date_obj += timedelta(days=1)
-                # Check if the day is a business day
-                weekday = date_obj.weekday()
-                if weekday >= 5:
-                    # Return to the top (Sunday is 6)
-                    continue
-                # Decrement the number of days to add
-                days -= 1
-        else:
-            # Same as above but in reverse for negative days
-            while days < 0:
-                date_obj -= timedelta(days=1)
-                weekday = date_obj.weekday()
-                if weekday >= 5:
-                    continue
-                days += 1
-        new_date = dateformat(date_obj, settings.DATE_FORMAT)
-    except ParserError:
-        logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `add_days()` filter')
-    return new_date
-
-
-def format_datetime(date, new_format):
-    """
-    Change the format of a given date string.
-
-    **Parameters**
-
-    ``date``
-        Date string to modify
-    ``format_str``
-        The format of the provided date
-    """
-    try:
-        date_obj = parse_datetime(date)
-        formatted_date = dateformat(date_obj, new_format)
-    except ParserError:
-        logger.exception("Error parsing ``date`` as a date: %s", date)
-        raise InvalidFilterValue(f'Invalid date string ("{date}") passed into the `format_datetime()` filter')
-    return formatted_date
-
-
-def get_item(lst, index):
-    """
-    Get the item at the specified index in a list.
-
-    **Parameters**
-
-    ``list``
-        List to get item from
-    ``index``
-        Index of item to get
-    """
-    try:
-        return lst[index]
-    except TypeError:
-        logger.exception("Error getting list index %s from this list: %s", index, lst)
-        raise InvalidFilterValue("Invalid list or string passed into the `get_item()` filter")
-    except IndexError:
-        logger.exception("Error getting index %s from this list: %s", index, lst)
-        raise InvalidFilterValue("Invalid or unavailable index passed into the `get_item()` filter")
-
-
-def regex_search(text, regex):
-    """
-    Perform a regex search on the provided text and return the first match.
-
-    **Parameters**
-
-    ``regex``
-        Regular expression to search with
-    ``text``
-        Text to search
-    """
-    match = re.search(regex, text)
-    if match:
-        return match.group(0)
-    return None
-
-
-def filter_tags(objects, allowlist):
-    """
-    Filter a list of objects to return only those with a tag in the allowlist.
-
-    **Parameters**
-
-    ``objects``
-        List of dictionary objects (JSON) for findings
-    ``allowlist``
-        List of strings matching severity categories to allow through filter
-    """
-    filtered_values = []
-    if not isinstance(allowlist, list):
-        raise InvalidFilterValue(
-            f'Allowlist passed into `filter_tags()` filter is not a list ("{allowlist}"); must be like `["xss", "T1651"]`'
-        )
-    try:
-        for obj in objects:
-            common_tags = set(obj["tags"]) & set(allowlist)
-            if common_tags:
-                filtered_values.append(obj)
-    except (KeyError, TypeError):
-        logger.exception("Error parsing object as a list of dictionaries: %s", object)
-        raise InvalidFilterValue(
-            "Invalid list of objects passed into `filter_tags()` filter; must be an object with a `tags` key"
-        )
-    return filtered_values
 
 
 def prepare_jinja2_env(debug=False):
@@ -309,15 +71,15 @@ def prepare_jinja2_env(debug=False):
         undefined = jinja2.make_logging_undefined(logger=logger, base=jinja2.Undefined)
 
     env = jinja2.sandbox.SandboxedEnvironment(undefined=undefined, extensions=["jinja2.ext.debug"], autoescape=True)
-    env.filters["filter_severity"] = filter_severity
-    env.filters["filter_type"] = filter_type
-    env.filters["strip_html"] = strip_html
-    env.filters["compromised"] = compromised
-    env.filters["add_days"] = add_days
-    env.filters["format_datetime"] = format_datetime
-    env.filters["get_item"] = get_item
-    env.filters["regex_search"] = regex_search
-    env.filters["filter_tags"] = filter_tags
+    env.filters["filter_severity"] = filters.filter_severity
+    env.filters["filter_type"] = filters.filter_type
+    env.filters["strip_html"] = filters.strip_html
+    env.filters["compromised"] = filters.compromised
+    env.filters["add_days"] = filters.add_days
+    env.filters["format_datetime"] = filters.format_datetime
+    env.filters["get_item"] = filters.get_item
+    env.filters["regex_search"] = filters.regex_search
+    env.filters["filter_tags"] = filters.filter_tags
 
     return env
 
