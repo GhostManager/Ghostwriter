@@ -107,26 +107,6 @@ class ReportConstants:
 class Reportwriter:
     """Generate report documents in Microsoft Office formats and JSON."""
 
-    # Allowlist for HTML tags expected to come from the WYSIWYG
-    tag_allowlist = [
-        "code",
-        "span",
-        "p",
-        "ul",
-        "ol",
-        "li",
-        "a",
-        "em",
-        "strong",
-        "u",
-        "b",
-        "pre",
-        "sub",
-        "sup",
-        "del",
-        "blockquote",
-    ]
-
     def __init__(self, report_queryset, template_loc=None):
         self.template_loc = template_loc
         self.report_queryset = report_queryset
