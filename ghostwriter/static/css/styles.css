@@ -281,6 +281,8 @@ hr {
   font-size: var(--main-font-size);
 }
 
+.tox-toolbar__group:last-child { margin-left: auto!important; }
+
 /* ---------------------------------------------------
     HEADER STYLES
 ----------------------------------------------------- */

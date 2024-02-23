@@ -48,7 +48,7 @@
         autoresize_bottom_margin: 10,
         toolbar_mode: 'floating',
         plugins: 'searchreplace autoresize visualchars visualblocks save preview lists image hr autosave advlist code wordcount codesample searchreplace paste link case table pagebreak',
-        toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save',
+        toolbar: 'subscript superscript bold italic underline link blockquote case | bullist numlist | codesample codeInline | table tablerowheader | evidenceUpload | searchreplace removeformat save | editorsHints',
         contextmenu: 'table formats bold italic underline link removeformat',
         paste_as_text: true,
         paste_data_images: false,
@@ -276,6 +276,14 @@
                     editor.insertContent(value);
                     autocompleteApi.hide();
                 }
+            });
+
+            editor.ui.registry.addButton('editorsHints', {
+              icon: 'info',
+              text: 'CTRL+Right Click to access browser context menu',
+              disabled: true,
+              onAction: function (_) {},
+              onSetup: function (buttonApi) {}
             });
         },
     };
