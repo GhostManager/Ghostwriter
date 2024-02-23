@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * The "Observations" slide(s) are similar to the findings slides but for the new observations 
 * Reworked the reporting engine to reduce complexity and pave the way for future enhancements
   * This is mentioned here primarily for developers and integrators who may be working with the reporting engine
+* Clicking the toast notification after adding a finding to a report will now take you to the report's findings tab
 
 ### Deprecated
 
