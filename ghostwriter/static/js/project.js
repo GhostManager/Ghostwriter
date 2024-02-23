@@ -8,6 +8,7 @@ function displayToastTop({
                              delay = 3,
                              escapeHTML = true,
                              context = null,
+                             url = '',
                          }) {
     if (context !== null) {
         if (context === 'form') {
@@ -20,6 +21,11 @@ function displayToastTop({
     toastr.options.escapeHtml = escapeHTML;
     toastr.options.progressBar = true;
     toastr.options.closeButton = true;
+    if (url !== '') {
+        toastr.options.onclick = function () {
+            window.location.href = url;
+        }
+    }
     let msg;
     if (type === 'success') {
         if (title === '') {
