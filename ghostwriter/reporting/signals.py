@@ -9,7 +9,7 @@ from django.db.models.signals import post_delete, post_init, post_save, pre_save
 from django.dispatch import receiver
 
 # Ghostwriter Libraries
-from ghostwriter.modules.reportwriter import TemplateLinter
+from ghostwriter.modules.reportwriter.lint import TemplateLinter
 from ghostwriter.reporting.models import (
     Evidence,
     ReportFindingLink,

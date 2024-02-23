@@ -32,7 +32,7 @@ from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
-from ghostwriter.modules.reportwriter import Reportwriter
+from ghostwriter.modules.reportwriter.export_json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Evidence,
@@ -486,9 +486,7 @@ class GraphqlGenerateReport(JwtRequiredMixin, HasuraActionView):
             return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
 
         if utils.verify_access(self.user_obj, report.project):
-            engine = Reportwriter(report, template_loc=None)
-            json_report = engine.generate_json()
-            report_bytes = json.dumps(json_report).encode("utf-8")
+            report_bytes = ExportReportJson(report).run().getvalue().encode("utf-8")
             base64_bytes = b64encode(report_bytes)
             base64_string = base64_bytes.decode("utf-8")
             data = {

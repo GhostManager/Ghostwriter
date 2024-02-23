@@ -3,11 +3,13 @@ Jinja filters that ghostwriter exposes
 """
 
 from datetime import timedelta
+import html
 import logging
 import re
 
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
+from markupsafe import Markup
 from dateutil.parser._parser import ParserError
 from django.conf import settings
 from django.utils.dateformat import format as dateformat
@@ -252,3 +254,18 @@ def filter_tags(objects, allowlist):
             "Invalid list of objects passed into `filter_tags()` filter; must be an object with a `tags` key"
         )
     return filtered_values
+
+
+def evidence(evidence_name):
+    """
+    `{{evidence(name)}}` function in jinja.
+    """
+    return Markup('<span data-gw-evidence="' + html.escape(evidence_name) + '"></span>')
+
+
+def caption(caption_name):
+    return Markup('<span data-gw-caption="' + html.escape(caption_name) + '"></span>')
+
+
+def ref(ref_name):
+    return Markup('<span data-gw-ref="' + html.escape(ref_name) + '"></span>')
