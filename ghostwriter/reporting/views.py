@@ -331,8 +331,10 @@ class AssignFinding(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             report_link.save()
             report_link.tags.add(*finding_instance.tags.all())
 
-            message = "{} successfully added to your active report.".format(finding_instance)
-            data = {"result": "success", "message": message}
+            message = "{} successfully added to your active report. Click here to return to your report.".format(
+                finding_instance
+            )
+            data = {"result": "success", "message": message, "url": f"{report.get_absolute_url()}#findings"}
             logger.info(
                 "Copied %s %s to %s %s (%s %s) by request of %s",
                 finding_instance.__class__.__name__,
@@ -2104,8 +2106,7 @@ class GenerateReportDOCX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             docx = ExportReportDocx(obj, template_loc).run()
 
             response = HttpResponse(
-                docx.getvalue(),
-                content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                docx.getvalue(), content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
             response["Content-Disposition"] = f'attachment; filename="{report_name}.docx"'
 
@@ -2301,7 +2302,7 @@ class GenerateReportPPTX(RoleBasedAccessControlMixin, SingleObjectMixin, View):
             pptx = ExportReportPptx(obj, template_loc).run()
             response = HttpResponse(
                 pptx.getvalue(),
-                content_type="application/application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                content_type="application/application/vnd.openxmlformats-officedocument.presentationml.presentation",
             )
             response["Content-Disposition"] = f'attachment; filename="{report_name}.pptx"'
 
