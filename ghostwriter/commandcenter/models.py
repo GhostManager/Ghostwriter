@@ -306,6 +306,8 @@ class ExtraFieldType(NamedTuple):
     form_widget: Callable[..., forms.widgets.Widget]
     # Parse a value from a string
     from_str: Callable[[str], Any]
+    # Returns an "empty" value
+    empty_value: Callable[[], Any]
 
 
 EXTRA_FIELD_TYPES = {
@@ -314,30 +316,35 @@ EXTRA_FIELD_TYPES = {
         form_field=lambda *args, **kwargs: forms.BooleanField(required=False, *args, **kwargs),
         form_widget=forms.widgets.CheckboxInput,
         from_str=lambda s: bool(s),
+        empty_value=lambda: False,
     ),
     "single_line_text": ExtraFieldType(
         display_name="Single-Line of Text",
         form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
         form_widget=forms.widgets.TextInput,
         from_str=lambda s: s,
+        empty_value=lambda: "",
     ),
     "rich_text": ExtraFieldType(
         display_name="Formatted Text",
         form_field=lambda *args, **kwargs: forms.CharField(required=False, *args, **kwargs),
         form_widget=forms.widgets.Textarea,
         from_str=lambda s: s,
+        empty_value=lambda: "",
     ),
     "integer": ExtraFieldType(
         display_name="Integer",
         form_field=lambda *args, **kwargs: forms.IntegerField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
         from_str=lambda s: int(s),
+        empty_value=lambda: 0,
     ),
     "float": ExtraFieldType(
         display_name="Number",
         form_field=lambda *args, **kwargs: forms.FloatField(required=False, *args, **kwargs),
         form_widget=forms.widgets.NumberInput,
         from_str=lambda s: float(s),
+        empty_value=lambda: 0.0,
     ),
 }
 
@@ -371,12 +378,8 @@ class ExtraFieldSpec(models.Model):
 
     def value_of(self, extra_fields_json):
         if extra_fields_json is not None and self.internal_name in extra_fields_json:
-            value = extra_fields_json[self.internal_name]
-            # Replace with default for the empty string and None, but not False, since we need to keep
-            # an unchecked checkbox.
-            if value != "" and value is not None:
-                return value
-        return self.default_value()
+            return extra_fields_json[self.internal_name]
+        return EXTRA_FIELD_TYPES[self.type].empty_value()
 
     def form_field(self, *args, **kwargs):
         return EXTRA_FIELD_TYPES[self.type].form_field(label=self.display_name, *args, **kwargs)
@@ -384,7 +387,7 @@ class ExtraFieldSpec(models.Model):
     def form_widget(self, *args, **kwargs):
         return EXTRA_FIELD_TYPES[self.type].form_widget(*args, **kwargs)
 
-    def default_value(self):
+    def initial_value(self):
         return EXTRA_FIELD_TYPES[self.type].from_str(self.user_default_value)
 
     class Meta:

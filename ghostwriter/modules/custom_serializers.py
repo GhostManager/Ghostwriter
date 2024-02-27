@@ -124,21 +124,18 @@ class ExtraFieldsSerField(serializers.Field):
         self.root_ser = root_ser
 
     def to_representation(self, value):
-        if value is None:
-            value = {}
+        out = dict()
 
-        # Fetch fields, and cache them at the root serializer
+        # Fetch field specs, and cache them at the root serializer
         if not hasattr(self.root_ser, "_extra_fields_specs") or self.root_ser._extra_fields_specs is None:
             self.root_ser._extra_fields_specs = {}
         if self.model_name not in self.root_ser._extra_fields_specs:
             self.root_ser._extra_fields_specs[self.model_name] = ExtraFieldSpec.objects.filter(target_model=self.model_name)
 
-        # Set defaults
+        # Populate output
         for field in self.root_ser._extra_fields_specs[self.model_name]:
-            if field.internal_name not in value:
-                value[field.internal_name] = field.default_value()
-
-        return value
+            out[field.internal_name] = field.value_of(value)
+        return out
 
 
 class UserSerializer(CustomModelSerializer):

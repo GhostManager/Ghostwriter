@@ -1,6 +1,7 @@
 """This contains all the forms used by the CommandCenter application."""
 
 # Django Imports
+from typing import Iterable, Iterator, Tuple
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -42,23 +43,40 @@ class ReportConfigurationForm(forms.ModelForm):
         return pptx_template
 
 
+# Marker object to signal ExtraFieldsWidget to use the admin-configured defaults in the DB rather than loading from a value.
+#
+# Ideally, we'd load those and set them as the field's initial value. But Django throws an error if we try to access the DB
+# in the field's __init__ method. So instead, pass this object as initial - if the form is unbound, Django will pass this
+# to the widget's get_context method and the widget detects that.
+EXTRA_FIELDS_USE_DB_INITIAL = object()
+
+
 class ExtraFieldsWidget(forms.Widget):
     template_name = "user_extra_fields/widget.html"
     use_fieldset = True
 
+    model_label: str
+    _fields_specs_cache: Iterable[ExtraFieldSpec] | None
+
     def __init__(self, model_label: str, attrs=None):
         super().__init__(attrs)
         self.model_label = model_label
-        self._fields_spec_var = None
+        self._fields_specs_cache = None
 
-    def _field_specs(self):
-        if self._fields_spec_var is not None:
-            return self._fields_spec_var
+    def _field_specs(self) -> Iterable[ExtraFieldSpec]:
+        """
+        Gets and caches the field specifications for the field
+        """
+        if self._fields_specs_cache is not None:
+            return self._fields_specs_cache
         fields_spec = ExtraFieldSpec.objects.filter(target_model=self.model_label)
-        self._fields_spec_var = fields_spec
+        self._fields_specs_cache = fields_spec
         return fields_spec
 
-    def _widgets(self, name):
+    def _widgets(self, name: str) -> Iterator[Tuple[str, forms.Widget, ExtraFieldSpec]]:
+        """
+        Creates widgets for the field
+        """
         for spec in self._field_specs():
             widget = spec.form_widget()
             widget_name = "{}_{}".format(name, spec.internal_name)
@@ -66,6 +84,7 @@ class ExtraFieldsWidget(forms.Widget):
 
     @property
     def is_hidden(self):
+        # Hide field if there are no extra fields
         fields = self._field_specs()
         return not fields
 
@@ -79,7 +98,10 @@ class ExtraFieldsWidget(forms.Widget):
         id_ = final_attrs.get("id")
 
         for widget_name, widget, spec in self._widgets(name):
-            widget_value = value.get(spec.internal_name)
+            if value is EXTRA_FIELDS_USE_DB_INITIAL:
+                widget_value = spec.initial_value()
+            else:
+                widget_value = value.get(spec.internal_name)
             if id_:
                 widget_attrs = final_attrs.copy()
                 widget_attrs["id"] = "{}_{}".format(id_, spec.internal_name)
@@ -119,11 +141,15 @@ class ExtraFieldsWidget(forms.Widget):
 class ExtraFieldsField(forms.Field):
     widget = ExtraFieldsWidget
 
+    model_label: str
+
     def __init__(self, model_label: str, *args, **kwargs) -> None:
         if "widget" not in kwargs:
             kwargs["widget"] = ExtraFieldsWidget(model_label)
         if "required" not in kwargs:
             kwargs["required"] = False
+        if "initial" not in kwargs:
+            kwargs["initial"] = EXTRA_FIELDS_USE_DB_INITIAL
         super().__init__(*args, **kwargs)
         self.model_label = model_label
 
@@ -134,10 +160,9 @@ class ExtraFieldsField(forms.Field):
         if value is None:
             value = {}
 
-        field_specs = ExtraFieldSpec.objects.filter(target_model=self.model_label)
         errors = []
         clean_data = {}
-        for field_spec in field_specs:
+        for field_spec in ExtraFieldSpec.objects.filter(target_model=self.model_label):
             field_obj = field_spec.form_field()
             try:
                 clean_data[field_spec.internal_name] = field_obj.clean(value.get(field_spec.internal_name))
@@ -152,10 +177,13 @@ class ExtraFieldsField(forms.Field):
 
 
 class SingleExtraFieldForm(forms.Form):
+    extra_field_spec: ExtraFieldSpec
+
     def __init__(self, field_spec: ExtraFieldSpec, *args, create_crispy_field=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.extra_field_spec = field_spec
 
-        field = field_spec.form_field()
+        field = field_spec.form_field(initial=field_spec.default_value())
         field.widget = field_spec.form_widget()
         self.fields[field_spec.internal_name] = field
 
