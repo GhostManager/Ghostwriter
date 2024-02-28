@@ -183,7 +183,7 @@ class SingleExtraFieldForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.extra_field_spec = field_spec
 
-        field = field_spec.form_field(initial=field_spec.default_value())
+        field = field_spec.form_field(initial=field_spec.initial_value())
         field.widget = field_spec.form_widget()
         self.fields[field_spec.internal_name] = field
 

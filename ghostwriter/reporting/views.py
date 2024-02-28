@@ -1612,6 +1612,11 @@ class ReportCreate(RoleBasedAccessControlMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+
+        # Add defaults for extra fields
+        for spec in ExtraFieldSpec.objects.filter(target_model=Report._meta.label):
+            form.instance.extra_fields[spec.internal_name] = spec.initial_value()
+
         self.request.session["active_report"] = {}
         self.request.session["active_report"]["title"] = form.instance.title
         return super().form_valid(form)

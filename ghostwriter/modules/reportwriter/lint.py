@@ -96,27 +96,27 @@ class TemplateLinter:
                     # Step 3: Prepare context
                     context = copy.deepcopy(LINTER_CONTEXT)
                     for field in ExtraFieldSpec.objects.filter(target_model=Report._meta.label):
-                        context["extra_fields"][field.internal_name] = field.default_value()
+                        context["extra_fields"][field.internal_name] = field.initial_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=Project._meta.label):
-                        context["project"]["extra_fields"][field.internal_name] = field.default_value()
+                        context["project"]["extra_fields"][field.internal_name] = field.initial_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=Client._meta.label):
-                        context["client"]["extra_fields"][field.internal_name] = field.default_value()
+                        context["client"]["extra_fields"][field.internal_name] = field.initial_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=Finding._meta.label):
                         for finding in context["findings"]:
-                            finding["extra_fields"][field.internal_name] = field.default_value()
+                            finding["extra_fields"][field.internal_name] = field.initial_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=OplogEntry._meta.label):
                         for log in context["logs"]:
                             for entry in log["entries"]:
-                                entry["extra_fields"][field.internal_name] = field.default_value()
+                                entry["extra_fields"][field.internal_name] = field.initial_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=Domain._meta.label):
                         for domain in context["infrastructure"]["domains"]:
-                            domain["extra_fields"][field.internal_name] = field.default_value()
+                            domain["extra_fields"][field.internal_name] = field.initial_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=StaticServer._meta.label):
                         for server in context["infrastructure"]["servers"]:
-                            server["extra_fields"][field.internal_name] = field.default_value()
+                            server["extra_fields"][field.internal_name] = field.initial_value()
                     for field in ExtraFieldSpec.objects.filter(target_model=Observation._meta.label):
                         for obs in context["observations"]:
-                            obs["extra_fields"][field.internal_name] = field.default_value()
+                            obs["extra_fields"][field.internal_name] = field.initial_value()
 
                     # Step 4: Test rendering the document
                     try:

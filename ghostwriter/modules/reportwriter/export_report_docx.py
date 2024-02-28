@@ -59,7 +59,7 @@ class ExportReportDocx(ExportReportBase):
         specs = self.extra_field_specs_for(model)
         for field in specs:
             if field.internal_name not in extra_fields:
-                extra_fields[field.internal_name] = field.default_value()
+                extra_fields[field.internal_name] = field.initial_value()
             if field.type == "rich_text":
                 extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
 
@@ -91,7 +91,7 @@ class ExportReportDocx(ExportReportBase):
         specs = self.extra_field_specs_for(model)
         for field in specs:
             if field.internal_name not in extra_fields:
-                extra_fields[field.internal_name] = field.default_value()
+                extra_fields[field.internal_name] = field.initial_value()
             if field.type == "rich_text":
                 extra_fields[field.internal_name] = render_rich_text(str(extra_fields[field.internal_name]))
 
