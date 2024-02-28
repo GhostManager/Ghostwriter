@@ -368,7 +368,7 @@ class ExtraFieldSpec(models.Model):
         max_length=255, choices=[(key, typ.display_name) for (key, typ) in EXTRA_FIELD_TYPES.items()]
     )
     user_default_value = models.TextField(
-        verbose_name="Default Value",
+        verbose_name="Value for New Objects",
         blank=True,
         default="",
     )

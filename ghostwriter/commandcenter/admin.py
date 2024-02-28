@@ -85,7 +85,11 @@ class ExtraFieldSpecForm(forms.ModelForm):
         help_text="Name used in report templates and storage (no spaces)",
     )
 
-    user_default_value = forms.CharField(required=False, strip=True)
+    user_default_value = forms.CharField(
+        required=False,
+        strip=True,
+        help_text="Value used in newly created objects. Changing this will not change existing objects, and newly created fields will be set to blank on existing objects."
+    )
 
     def clean_user_default_value(self):
         field_type = self.cleaned_data.get("type")
