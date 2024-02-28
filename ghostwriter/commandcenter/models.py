@@ -112,6 +112,7 @@ class ReportConfiguration(SingletonModel):
         help_text="Name of the report file when downloaded that can include the following variables: title, date, company, client, assessment_type, and date format string values",
     )
     title_case_captions = models.BooleanField(
+        "Title Case Captions",
         default=True,
         help_text="Capitalize the first letter of each word in figure and table captions",
     )
