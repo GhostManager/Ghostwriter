@@ -20,6 +20,8 @@ class UserConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
         if self.user.is_active:
             self.username = self.scope["url_route"]["kwargs"]["username"]
+            if self.username != "all":
+                self.username = self.user.get_clean_username()
             self.user_group_name = "notify_%s" % self.username
             await self.channel_layer.group_add(self.user_group_name, self.channel_name)
             await self.accept()

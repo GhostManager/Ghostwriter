@@ -2549,7 +2549,7 @@ class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
                     try:
                         # Send a message to the assigned user
                         async_to_sync(channel_layer.group_send)(
-                            "notify_{}".format(self.object.assigned_to),
+                            f"notify_{self.object.assigned_to.get_clean_username()}",
                             {
                                 "type": "message",
                                 "message": {
@@ -2568,7 +2568,7 @@ class ReportFindingLinkUpdate(RoleBasedAccessControlMixin, UpdateView):
                     try:
                         # Send a message to the unassigned user
                         async_to_sync(channel_layer.group_send)(
-                            "notify_{}".format(old_assignee),
+                            f"notify_{old_assignee.get_clean_username()}",
                             {
                                 "type": "message",
                                 "message": {

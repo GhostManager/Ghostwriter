@@ -286,7 +286,7 @@
       ws_proto = 'wss://'
     }
     const protocol = ws_proto
-    const username = '{{ user }}';
+    const username = '{{ user.get_clean_username }}';
 
     {% comment %} Connect to channel for individual notifications {% endcomment %}
     const ws_user = new WebSocket(

@@ -107,6 +107,10 @@ class User(AbstractUser):
         """
         return self.name
 
+    def get_clean_username(self):
+        """Return a clean username with special characters replaced for WebSockets."""
+        return self.username.replace("@", "").replace(".", "")
+
     def save(self, *args, **kwargs):
         # Align Django's permissions flags with the chosen role
         if self.role == "user":

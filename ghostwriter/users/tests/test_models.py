@@ -51,3 +51,7 @@ class UserModelTests(TestCase):
     def test_get_full_name_property(self):
         user = UserFactory(name="Christopher Maddalena", username="cmaddalena")
         self.assertEqual(user.get_full_name(), "Christopher Maddalena")
+
+    def test_get_clean_username_property(self):
+        user = UserFactory(username="benny@ghostwriter.wiki")
+        self.assertEqual(user.get_clean_username(), "bennyghostwriterwiki")
