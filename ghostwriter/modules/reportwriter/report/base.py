@@ -1,21 +1,22 @@
 
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.reportwriter import jinja_funcs
-from ghostwriter.modules.reportwriter.export_base import ExportBase
-from ghostwriter.reporting.models import Report
+from ghostwriter.modules.reportwriter.base.base import ExportBase
 
 
 class ExportReportBase(ExportBase):
-    report: Report
+    """
+    Mixin class for exporting reports.
 
-    def __init__(self, report):
-        data = ReportDataSerializer(
+    Provides a `serialize_object` implementation for serializing the `Report` database object,
+    and helper functions for creating Jinja contexts.
+    """
+
+    def serialize_object(self, report):
+        return ReportDataSerializer(
             report,
             exclude=["id"],
         ).data
-        super().__init__(data)
-
-        self.report = report
 
     def jinja_richtext_base_context(self) -> dict:
         """

@@ -1,7 +1,7 @@
 import bs4
 from io import StringIO
 
-from ghostwriter.modules.reportwriter.html_to_ooxml import strip_text_whitespace
+from ghostwriter.modules.reportwriter.richtext.ooxml import strip_text_whitespace
 
 
 def html_to_plain_text(text: str, evidences) -> str:

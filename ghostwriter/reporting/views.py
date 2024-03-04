@@ -58,10 +58,10 @@ from ghostwriter.commandcenter.forms import SingleExtraFieldForm
 from ghostwriter.commandcenter.models import CompanyInformation, ExtraFieldSpec, ReportConfiguration
 from ghostwriter.modules.exceptions import MissingTemplate
 from ghostwriter.modules.model_utils import to_dict
-from ghostwriter.modules.reportwriter.export_json import ExportReportJson
-from ghostwriter.modules.reportwriter.export_report_docx import ExportReportDocx
-from ghostwriter.modules.reportwriter.export_report_pptx import ExportReportPptx
-from ghostwriter.modules.reportwriter.export_report_xlsx import ExportReportXlsx
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
+from ghostwriter.modules.reportwriter.report.docx import ExportReportDocx
+from ghostwriter.modules.reportwriter.report.pptx import ExportReportPptx
+from ghostwriter.modules.reportwriter.report.xlsx import ExportReportXlsx
 from ghostwriter.modules.reportwriter.lint import TemplateLinter
 from ghostwriter.reporting.filters import (
     ArchiveFilter,
@@ -2452,31 +2452,60 @@ class GenerateReportAll(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
             return response
         except MissingTemplate:
+            logger.error(
+                "All report generation failed for %s %s and user %s because no template was configured",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "You do not have a PowerPoint template selected and have not configured a default template.",
                 extra_tags="alert-danger",
             )
         except ValueError as exception:
+            logger.exception(
+                "All report generation failed unexpectedly for %s %s and user %s",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 f"Your selected template could not be loaded as a PowerPoint template: {exception}",
                 extra_tags="alert-danger",
             )
         except DocxPackageNotFoundError:
+            logger.exception(
+                "DOCX generation failed for %s %s and user %s because the template file was missing.",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "Your selected Word template could not be found on the server – try uploading it again.",
                 extra_tags="alert-danger",
             )
         except PptxPackageNotFoundError:
+            logger.exception(
+                "PPTX generation failed for %s %s and user %s because the template file was missing",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "Your selected PowerPoint template could not be found on the server – try uploading it again.",
                 extra_tags="alert-danger",
             )
         except Exception as error:
-            logger.exception("Could not generate all reports")
+            logger.exception(
+                "All report generation failed unexpectedly for %s %s and user %s",
+                obj.__class__.__name__,
+                obj.id,
+                self.request.user,
+            )
             messages.error(
                 self.request,
                 "Encountered an error generating the document: {}".format(error),

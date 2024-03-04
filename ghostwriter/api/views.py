@@ -35,7 +35,7 @@ from ghostwriter.api.models import APIKey
 from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
-from ghostwriter.modules.reportwriter.export_json import ExportReportJson
+from ghostwriter.modules.reportwriter.report.json import ExportReportJson
 from ghostwriter.oplog.models import OplogEntry
 from ghostwriter.reporting.models import (
     Finding,

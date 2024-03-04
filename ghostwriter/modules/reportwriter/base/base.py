@@ -1,4 +1,5 @@
 
+import io
 from typing import Any, Iterable
 import re
 
@@ -10,14 +11,38 @@ from ghostwriter.modules.reportwriter import jinja_funcs, prepare_jinja2_env
 
 
 class ExportBase:
+    """
+    Base class for exporting things.
+
+    Subclasses should prove a `run` method, and optionally `serialize_object`.
+
+    Users should instantiate the object then call `run` to generate a `BytesIO` containing the exported
+    file. Instances should not be re-used.
+
+    Fields:
+
+    * `input_object`: The object passed into `__init__`, unchanged
+    * `data`: The object passed into `__init__` ran through `serialize_object`, usually a dict, for passing into a Jinja env
+    * `jinja_env`: Jinja2 environment for templating
+    """
+    input_object: Any
     data: Any
     jinja_env: jinja2.Environment
     extra_fields_spec_cache: dict[str, Iterable[ExtraFieldSpec]]
 
-    def __init__(self, data: Any):
+    def __init__(self, input_object: Any):
         self.jinja_env = prepare_jinja2_env(debug=False)
-        self.data = data
+        self.input_object = input_object
+        self.data = self.serialize_object(input_object)
         self.extra_fields_spec_cache = {}
+
+    def serialize_object(self, object: Any) -> Any:
+        """
+        Serializes the input object to a format appropriate for use in a jinja environment.
+
+        By default returns it as `object`.
+        """
+        return object
 
     def extra_field_specs_for(self, model: Model) -> Iterable[ExtraFieldSpec]:
         """
@@ -64,6 +89,9 @@ class ExportBase:
         # Filter out XML-incompatible characters
         text_char_filtered = "".join(c for c in text_rendered if _valid_xml_char_ordinal(c))
         return text_char_filtered
+
+    def run(self) -> io.BytesIO:
+        raise NotImplementedError()
 
 
 def _valid_xml_char_ordinal(c):
