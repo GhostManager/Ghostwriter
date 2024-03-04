@@ -62,6 +62,12 @@ type Mutation {
   ): ReportResponse
 }
 
+type Query {
+  getExtraFieldSpec(
+    model: String!
+  ): ExtraFieldSpecOutput
+}
+
 type Mutation {
   login(
     username: String!
@@ -105,5 +111,9 @@ type attachFindingResponse {
 
 type codenameResponse {
   codename: String!
+}
+
+type ExtraFieldSpecOutput {
+  extraFieldSpec: String!
 }
 

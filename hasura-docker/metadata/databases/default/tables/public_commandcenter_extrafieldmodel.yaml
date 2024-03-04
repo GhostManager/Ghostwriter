@@ -1,0 +1,27 @@
+table:
+  name: commandcenter_extrafieldmodel
+  schema: public
+configuration:
+  column_config:
+    model_display_name:
+      custom_name: modelDisplayName
+    model_internal_name:
+      custom_name: modelInternalName
+  custom_column_names:
+    model_display_name: modelDisplayName
+    model_internal_name: modelInternalName
+  custom_name: extraFieldModel
+  custom_root_fields: {}
+select_permissions:
+  - role: manager
+    permission:
+      columns:
+        - model_display_name
+        - model_internal_name
+      filter: {}
+  - role: user
+    permission:
+      columns:
+        - model_display_name
+        - model_internal_name
+      filter: {}

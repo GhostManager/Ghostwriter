@@ -19,6 +19,7 @@ from ghostwriter.api.views import (
     GraphqlEventTestView,
     GraphqlGenerateCodenameAction,
     GraphqlGenerateReport,
+    GraphqlGetExtraFieldSpecAction,
     GraphqlLoginAction,
     GraphqlOplogEntryCreateEvent,
     GraphqlOplogEntryDeleteEvent,
@@ -43,6 +44,9 @@ urlpatterns = [
     path("login", csrf_exempt(GraphqlLoginAction.as_view()), name="graphql_login"),
     path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
     path("whoami", csrf_exempt(GraphqlWhoami.as_view()), name="graphql_whoami"),
+    path(
+        "getExtraFieldSpec", csrf_exempt(GraphqlGetExtraFieldSpecAction.as_view()), name="graphql_get_extra_field_spec"
+    ),
     path("generateReport", csrf_exempt(GraphqlGenerateReport.as_view()), name="graphql_generate_report"),
     path("checkoutDomain", csrf_exempt(GraphqlCheckoutDomain.as_view()), name="graphql_checkout_domain"),
     path("checkoutServer", csrf_exempt(GraphqlCheckoutServer.as_view()), name="graphql_checkout_server"),

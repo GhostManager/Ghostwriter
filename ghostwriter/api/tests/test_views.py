@@ -21,6 +21,8 @@ from ghostwriter.factories import (
     DomainFactory,
     DomainStatusFactory,
     EvidenceOnFindingFactory,
+    ExtraFieldModelFactory,
+    ExtraFieldSpecFactory,
     FindingFactory,
     HistoryFactory,
     OplogEntryFactory,
@@ -1224,6 +1226,76 @@ class GraphqlGenerateCodenameActionTests(TestCase):
             **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
         )
         self.assertEqual(response.status_code, 200)
+
+
+class GraphqlGetExtraFieldSpecActionTests(TestCase):
+    """Collection of tests for :view:`api:GraphqlGetExtraFieldSpecAction`."""
+
+    fixtures = ["ghostwriter/commandcenter/fixtures/initial.json"]
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ExtraFieldModel = ExtraFieldModelFactory._meta.model
+        cls.user = UserFactory(password=PASSWORD)
+        cls.uri = reverse("api:graphql_get_extra_field_spec")
+
+    def setUp(self):
+        self.client = Client()
+        self.client_auth = Client()
+        self.client_auth.login(username=self.user.username, password=PASSWORD)
+        self.assertTrue(self.client_auth.login(username=self.user.username, password=PASSWORD))
+
+    def test_graphql_get_extra_field_spec(self):
+        _, token = utils.generate_jwt(self.user)
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "Finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "Reporting.Finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+        extra_field_model = self.ExtraFieldModel.objects.get(pk="reporting.Finding")
+        ExtraFieldSpecFactory(
+            internal_name="test_field",
+            display_name="Test Field",
+            type="single_line_text",
+            target_model=extra_field_model,
+        )
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "finding"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["extraFieldSpec"]["test_field"]["internalName"], "test_field")
+
+        response = self.client.post(
+            self.uri,
+            content_type="application/json",
+            data={"input": {"model": "bad_model_name"}},
+            **{"HTTP_HASURA_ACTION_SECRET": f"{ACTION_SECRET}", "HTTP_AUTHORIZATION": f"Bearer {token}"},
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["message"], "Model does not exist")
 
 
 # Tests related to Hasura Event Triggers

@@ -30,6 +30,7 @@ from dateutil.parser._parser import ParserError
 from ghostwriter.api import utils
 from ghostwriter.api.forms import ApiKeyForm
 from ghostwriter.api.models import APIKey
+from ghostwriter.commandcenter.models import ExtraFieldModel
 from ghostwriter.modules import codenames
 from ghostwriter.modules.model_utils import set_finding_positions, to_dict
 from ghostwriter.modules.reportwriter.export_json import ExportReportJson
@@ -447,6 +448,8 @@ class GraphqlLoginAction(HasuraActionView):
 
 
 class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for retrieving user data with the ``whoami`` action."""
+
     def post(self, request, *args, **kwargs):
         # Use :model:`api:APIKey` object if the token is an API key
         if APIKey.objects.filter(token=self.encoded_token):
@@ -468,6 +471,69 @@ class GraphqlWhoami(JwtRequiredMixin, HasuraActionView):
                 "role": f"{self.user_obj.role}",
                 "expires": datetime.fromtimestamp(payload["exp"]),
             }
+        return JsonResponse(data, status=self.status)
+
+
+class GraphqlGetExtraFieldSpecAction(JwtRequiredMixin, HasuraActionView):
+    """Endpoint for retrieving a model's field specification with the ``getFieldSpec`` action."""
+
+    required_inputs = [
+        "model",
+    ]
+
+    # Mapping for the two different ways a user might provide a model name
+    # First, the internal model name (used in the database as the `pk`)
+    models = {
+        "project": "rolodex.Project",
+        "domain": "shepherd.Domain",
+        "staticserver": "shepherd.StaticServer",
+        "observation": "reporting.Observation",
+        "finding": "reporting.Finding",
+        "client": "rolodex.Client",
+        "report": "reporting.Report",
+        "oplogentry": "oplog.OplogEntry",
+    }
+    # Second, the model name as it appears in the GraphQL schema
+    internal_models = {
+        "rolodex.project": "rolodex.Project",
+        "shepherd.domain": "shepherd.Domain",
+        "shepherd.staticserver": "shepherd.StaticServer",
+        "reporting.observation": "reporting.Observation",
+        "reporting.finding": "reporting.Finding",
+        "rolodex.client": "rolodex.Client",
+        "reporting.report": "reporting.Report",
+        "oplog.oplogentry": "oplog.OplogEntry",
+    }
+
+    def post(self, request, *args, **kwargs):
+        extra_field_spec = {}
+
+        # Set the model name to all lowercase to remove any chance of user error
+        model = self.input["model"].lower()
+        # Check if the model name is in the mapping, and if not, return an error response
+        if model in self.models:
+            model = self.models[model]
+        elif model in self.internal_models:
+            model = self.internal_models[model]
+        else:
+            return JsonResponse(
+                utils.generate_hasura_error_payload("Model does not exist", "ModelDoesNotExist"), status=400
+            )
+
+        # Get the extra field model and its extra field specs to return to Hasura
+        extra_field_model = ExtraFieldModel.objects.get(model_internal_name=model)
+        extra_field_spec_set = extra_field_model.extrafieldspec_set.all()
+
+        for spec in extra_field_spec_set:
+            extra_field_spec[spec.internal_name] = {
+                "internalName": spec.internal_name,
+                "displayName": spec.display_name,
+                "type": spec.type,
+                "default": spec.user_default_value,
+            }
+        data = {
+            "extraFieldSpec": extra_field_spec,
+        }
         return JsonResponse(data, status=self.status)
 
 
