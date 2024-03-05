@@ -142,6 +142,7 @@ class ExtraFieldsField(forms.Field):
     widget = ExtraFieldsWidget
 
     model_label: str
+    _field_spec_cache: Iterable[ExtraFieldSpec] | None
 
     def __init__(self, model_label: str, *args, **kwargs) -> None:
         if "widget" not in kwargs:
@@ -152,6 +153,13 @@ class ExtraFieldsField(forms.Field):
             kwargs["initial"] = EXTRA_FIELDS_USE_DB_INITIAL
         super().__init__(*args, **kwargs)
         self.model_label = model_label
+        self._field_spec_cache = None
+
+    @property
+    def specs(self):
+        if self._field_spec_cache is None:
+            self._field_spec_cache = ExtraFieldSpec.objects.filter(target_model=self.model_label)
+        return self._field_spec_cache
 
     def validate(self, value):
         pass
