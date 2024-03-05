@@ -16,6 +16,7 @@ from rest_framework.utils.serializer_helpers import ReturnList
 
 # Ghostwriter Libraries
 from ghostwriter.api.utils import verify_access
+from ghostwriter.commandcenter.models import ExtraFieldSpec
 from ghostwriter.modules.custom_serializers import OplogEntrySerializer
 from ghostwriter.oplog.models import Oplog, OplogEntry
 from ghostwriter.users.models import User
@@ -34,7 +35,11 @@ def create_oplog_entry(oplog_id, user):
         return
 
     if verify_access(user, oplog.project):
-        OplogEntry.objects.create(oplog_id_id=oplog_id, operator_name=user.username)
+        OplogEntry.objects.create(
+            oplog_id_id=oplog_id,
+            operator_name=user.username,
+            extra_fields=ExtraFieldSpec.initial_json(OplogEntry)
+        )
     else:
         logger.warning(
             "User %s attempted to create a log entry for log ID %s without permission.", user.username, oplog_id

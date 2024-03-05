@@ -391,6 +391,13 @@ class ExtraFieldSpec(models.Model):
     def initial_value(self):
         return EXTRA_FIELD_TYPES[self.type].from_str(self.user_default_value)
 
+    @classmethod
+    def initial_json(cls, model):
+        obj = dict()
+        for spec in cls.objects.filter(target_model=model._meta.label):
+            obj[spec.internal_name] = spec.initial_value()
+        return obj
+
     class Meta:
         verbose_name = "Extra Field"
         order_with_respect_to = "target_model"

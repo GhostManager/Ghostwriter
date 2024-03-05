@@ -543,6 +543,11 @@ class OplogEntryCreate(RoleBasedAccessControlMixin, AjaxTemplateMixin, CreateVie
     def get_success_url(self):
         return reverse("oplog:oplog_entries", args=(self.object.oplog_id.id,))
 
+    def form_valid(self, form):
+        # Add defaults for extra fields
+        form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
+        return super().form_valid(self, form)
+
 
 class OplogEntryUpdate(RoleBasedAccessControlMixin, AjaxTemplateMixin, UpdateView):
     """
