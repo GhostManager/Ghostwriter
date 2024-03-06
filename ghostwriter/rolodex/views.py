@@ -407,11 +407,11 @@ class ProjectNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -434,11 +434,11 @@ class ClientNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
 
     def post(self, *args, **kwargs):
         obj = self.get_object()
@@ -1387,11 +1387,11 @@ class ClientNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:client_detail", kwargs={"pk": self.get_object().client.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")
@@ -1893,11 +1893,11 @@ class ProjectNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
 
     def test_func(self):
         obj = self.get_object()
-        return obj.operator.id == self.request.user.id
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("rolodex:project_detail", kwargs={"pk": self.get_object().project.pk}) + "#notes")
 
     def get_success_url(self):
         messages.success(self.request, "Note successfully updated.", extra_tags="alert-success")

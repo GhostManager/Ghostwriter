@@ -144,7 +144,7 @@
                 </div>
               </div>
 
-              {% if request.user == note.operator or request.user.is_staff %}
+              {% if request.user == note.operator or request.user|is_privileged %}
                 <div class="pb-3">
                   <a class="note-link" href="{% url 'reporting:local_finding_note_edit' note.id %}">Edit</a> |
                   <a id="note-delete-button-{{ note.id }}" class="js-confirm-delete note-link" data-toggle="modal"

@@ -357,12 +357,12 @@ class LocalFindingNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, Vie
     model = LocalFindingNote
 
     def test_func(self):
-        note = self.get_object()
-        return note.operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("reporting:local_edit", kwargs={"pk": self.get_object().finding.pk}))
 
     def post(self, *args, **kwargs):
         note = self.get_object()
@@ -383,12 +383,12 @@ class FindingNoteDelete(RoleBasedAccessControlMixin, SingleObjectMixin, View):
     model = FindingNote
 
     def test_func(self):
-        note = self.get_object()
-        return note.operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("reporting:finding_detail", kwargs={"pk": self.get_object().finding.pk}))
 
     def post(self, *args, **kwargs):
         note = self.get_object()
@@ -2911,11 +2911,12 @@ class FindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return self.get_object().operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("reporting:finding_detail", kwargs={"pk": self.get_object().finding.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -2999,11 +3000,12 @@ class LocalFindingNoteUpdate(RoleBasedAccessControlMixin, UpdateView):
     template_name = "note_form.html"
 
     def test_func(self):
-        return self.get_object().operator.id == self.request.user.id
+        obj = self.get_object()
+        return obj.operator.id == self.request.user.id or verify_user_is_privileged(self.request.user)
 
     def handle_no_permission(self):
         messages.error(self.request, "You do not have permission to access that.")
-        return redirect("home:dashboard")
+        return redirect(reverse("reporting:local_edit", kwargs={"pk": self.get_object().finding.pk}))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
