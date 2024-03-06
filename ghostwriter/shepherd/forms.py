@@ -193,6 +193,8 @@ class DomainForm(forms.ModelForm):
         self.fields["health_status"].label = "Health Status"
         self.fields["extra_fields"].label = ""
 
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         self.helper = FormHelper()
         self.helper.form_method = "post"
         self.helper.form_show_errors = False
@@ -247,8 +249,8 @@ class DomainForm(forms.ModelForm):
                 <h4 class="icon custom-field-icon">Extra Fields</h4>
                 <hr />
                 """
-            ),
-            "extra_fields",
+            ) if has_extra_fields else None,
+            "extra_fields" if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

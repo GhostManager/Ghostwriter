@@ -74,6 +74,8 @@ class FindingForm(forms.ModelForm):
         self.fields["finding_type"].label = "Finding Type"
         self.fields["extra_fields"].label = ""
 
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         self.helper.form_show_labels = True
@@ -244,8 +246,8 @@ class FindingForm(forms.ModelForm):
                 <h4 class="icon custom-field-icon">Extra Fields</h4>
                 <hr />
                 """
-            ),
-            Field("extra_fields"),
+            ) if has_extra_fields else None,
+            Field("extra_fields") if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(
@@ -388,6 +390,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["finding_type"].label = "Finding Type"
         self.fields["assigned_to"].label = "Assigned Editor"
         self.fields["extra_fields"].label = ""
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -568,8 +572,8 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 <h4 class="icon custom-field-icon">Extra Fields</h4>
                 <hr />
                 """
-            ),
-            Field("extra_fields"),
+            ) if has_extra_fields else None,
+            Field("extra_fields") if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

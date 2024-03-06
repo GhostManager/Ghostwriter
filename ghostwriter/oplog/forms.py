@@ -135,6 +135,8 @@ class OplogEntryForm(forms.ModelForm):
         if post_url:
             self.helper.form_action = post_url
 
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         self.helper.layout = Layout(
             Row(
                 Column(Field("start_date", step=1), css_class="form-group col-6 mb-0"),
@@ -172,8 +174,8 @@ class OplogEntryForm(forms.ModelForm):
                 <h4 class="icon custom-field-icon">Extra Fields</h4>
                 <hr />
                 """
-            ),
-            "extra_fields",
+            ) if has_extra_fields else None,
+            "extra_fields" if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
                 HTML(

@@ -225,6 +225,8 @@ class ClientForm(forms.ModelForm):
         self.fields["tags"].label = "Tags"
         self.fields["extra_fields"].label = ""
 
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -272,8 +274,8 @@ class ClientForm(forms.ModelForm):
                         <h4 class="icon custom-field-icon">Extra Fields</h4>
                         <hr />
                         """
-                    ),
-                    "extra_fields",
+                    ) if has_extra_fields else None,
+                    "extra_fields" if has_extra_fields else None,
                     link_css_class="client-icon",
                     css_id="client",
                 ),

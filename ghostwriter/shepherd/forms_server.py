@@ -217,6 +217,8 @@ class ServerForm(forms.ModelForm):
         self.fields["tags"].widget.attrs["placeholder"] = "hashcat, GPU:8, ..."
         self.fields["extra_fields"].label = ""
 
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
         self.helper.form_tag = True
@@ -247,8 +249,8 @@ class ServerForm(forms.ModelForm):
                         <h4 class="icon custom-field-icon">Extra Fields</h4>
                         <hr />
                         """
-                    ),
-                    "extra_fields",
+                    ) if has_extra_fields else None,
+                    "extra_fields" if has_extra_fields else None,
                     link_css_class="icon server-icon",
                     css_id="server",
                 ),
