@@ -246,7 +246,9 @@ class FindingForm(forms.ModelForm):
                 <h4 class="icon custom-field-icon">Extra Fields</h4>
                 <hr />
                 """
-            ) if has_extra_fields else None,
+            )
+            if has_extra_fields
+            else None,
             Field("extra_fields") if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
@@ -364,7 +366,6 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
             "position",
             "finding_guidance",
             "added_as_blank",
-            "complete",
         )
 
     def __init__(self, *args, **kwargs):
@@ -390,6 +391,7 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.fields["finding_type"].label = "Finding Type"
         self.fields["assigned_to"].label = "Assigned Editor"
         self.fields["extra_fields"].label = ""
+        self.fields["complete"].help_text = ""
 
         has_extra_fields = bool(self.fields["extra_fields"].specs)
 
@@ -400,6 +402,12 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
         self.helper.form_id = "report-finding-form"
         self.helper.attrs = {"evidence-upload-modal-url": evidence_upload_url}
         self.helper.layout = Layout(
+            Column(
+                SwitchToggle(
+                    "complete",
+                ),
+                css_class="form-group offset-3 col-md-6 mb-0",
+            ),
             HTML(
                 """
                 <h4 class="icon search-icon">Categorization</h4>
@@ -572,7 +580,9 @@ class ReportFindingLinkUpdateForm(forms.ModelForm):
                 <h4 class="icon custom-field-icon">Extra Fields</h4>
                 <hr />
                 """
-            ) if has_extra_fields else None,
+            )
+            if has_extra_fields
+            else None,
             Field("extra_fields") if has_extra_fields else None,
             ButtonHolder(
                 Submit("submit_btn", "Submit", css_class="btn btn-primary col-md-4"),
