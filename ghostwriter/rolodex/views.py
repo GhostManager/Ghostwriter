@@ -1530,6 +1530,11 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
             ctx["assignments"] = assignments
         return ctx
 
+    def form_invalid(self, form):
+        # DEBUG DO NOT COMMIT
+        logger.error("DEBUG: %r", form.errors)
+        return super().form_invalid(form)
+
     def form_valid(self, form):
         # Get form context data – used for validation of inline forms
         ctx = self.get_context_data()
@@ -1539,6 +1544,8 @@ class ProjectCreate(RoleBasedAccessControlMixin, CreateView):
         # Validation is largely handled by the custom base formset, ``BaseProjectInlineFormSet``
         try:
             with transaction.atomic():
+                form.instance.extra_fields = ExtraFieldSpec.initial_json(self.model)
+
                 # Save the parent form – will rollback if a child fails validation
                 obj = form.save()
 

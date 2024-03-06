@@ -1139,11 +1139,9 @@ class ProjectForm(forms.ModelForm):
         initial=True,
     )
 
-    extra_fields = ExtraFieldsField(Project._meta.label)
-
     class Meta:
         model = Project
-        exclude = ("operator", "complete")
+        exclude = ("operator", "complete", "extra_fields")
         widgets = {
             "start_date": forms.DateInput(
                 format="%Y-%m-%d",
@@ -1169,9 +1167,6 @@ class ProjectForm(forms.ModelForm):
         self.fields["project_type"].label = "Project Type"
         self.fields["client"].empty_label = "-- Select a Client --"
         self.fields["project_type"].empty_label = "-- Select a Project Type --"
-        self.fields["extra_fields"].label = ""
-
-        has_extra_fields = bool(self.fields["extra_fields"].specs)
 
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
@@ -1223,13 +1218,6 @@ class ProjectForm(forms.ModelForm):
                     ),
                     SwitchToggle("update_checkouts"),
                     "note",
-                    HTML(
-                        """
-                        <h4 class="icon custom-field-icon">Extra Fields</h4>
-                        <hr />
-                        """
-                    ) if has_extra_fields else None,
-                    "extra_fields" if has_extra_fields else None,
                     link_css_class="project-icon",
                     css_id="project",
                 ),
@@ -1433,14 +1421,20 @@ class ProjectComponentForm(forms.ModelForm):
     with an individual :model:`rolodex.Client`.
     """
 
+    extra_fields = ExtraFieldsField(Project._meta.label)
+
     class Meta:
         model = Project
-        fields = ("id",)
+        fields = ("id", "extra_fields")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields:
             self.fields[field].widget.attrs["autocomplete"] = "off"
+        self.fields["extra_fields"].label = ""
+
+        has_extra_fields = bool(self.fields["extra_fields"].specs)
+
         # Design form layout with Crispy FormHelper
         self.helper = FormHelper()
         # Turn on <form> tags for this parent form
@@ -1503,6 +1497,12 @@ class ProjectComponentForm(forms.ModelForm):
                     link_css_class="tab-icon list-icon",
                     css_id="targets",
                 ),
+                CustomTab(
+                    "Extra Fields",
+                    "extra_fields",
+                    link_css_class="tab-icon custom-field-icon",
+                    css_id="extra-fields",
+                ) if has_extra_fields else None,
                 template="tab.html",
                 css_class="nav-justified",
             ),

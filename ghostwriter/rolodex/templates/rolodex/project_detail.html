@@ -1035,7 +1035,11 @@
           <h4>Extra Fields</h4>
           <hr/>
 
+          <a class="icon edit-icon btn btn-primary mb-1 col-3"
+            href="{% url 'rolodex:project_component_update' project.id %}#extra-fields">Edit Extra Fields</a>
+
           {% include "user_extra_fields/field_preview_display.html" with object=project object_extra_fields_spec=project_extra_fields_spec %}
+
         </div>
       {% endif %}
 
