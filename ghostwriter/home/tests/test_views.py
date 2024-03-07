@@ -1,6 +1,6 @@
 # Standard Libraries
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from io import StringIO
 
 # Django Imports
@@ -164,11 +164,11 @@ class TemplateTagTests(TestCase):
         result = custom_tags.split_and_join(test_string, ",")
         self.assertEqual(result, "test, example, sample")
 
-        test_date = "20 February 2024"
+        test_date = datetime(2024, 2, 20)
         result = custom_tags.add_days(test_date, 5)
-        self.assertEqual(result, "27 Feb 2024")
+        self.assertEqual(result, datetime(2024, 2, 27))
         result = custom_tags.add_days(test_date, -5)
-        self.assertEqual(result, "13 Feb 2024")
+        self.assertEqual(result, datetime(2024, 2, 13))
 
 
 class DashboardTests(TestCase):

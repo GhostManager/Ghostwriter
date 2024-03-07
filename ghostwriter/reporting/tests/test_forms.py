@@ -220,6 +220,7 @@ class ReportFindingLinkUpdateFormTests(TestCase):
         network_detection_techniques=None,
         references=None,
         finding_guidance=None,
+        complete=None,
         **kwargs,
     ):
         return ReportFindingLinkUpdateForm(
@@ -239,6 +240,7 @@ class ReportFindingLinkUpdateFormTests(TestCase):
                 "network_detection_techniques": network_detection_techniques,
                 "references": references,
                 "finding_guidance": finding_guidance,
+                "complete": complete,
             },
             instance=instance,
         )

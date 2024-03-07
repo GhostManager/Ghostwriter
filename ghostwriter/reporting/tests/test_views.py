@@ -43,7 +43,7 @@ from ghostwriter.factories import (
 )
 from ghostwriter.modules.custom_serializers import ReportDataSerializer
 from ghostwriter.modules.exceptions import InvalidFilterValue
-from ghostwriter.modules.reportwriter import (
+from ghostwriter.modules.reportwriter.jinja_funcs import (
     add_days,
     compromised,
     filter_severity,
@@ -274,8 +274,14 @@ class AssignFindingTests(TestCase):
         ProjectAssignmentFactory(operator=self.user, project=self.report.project)
 
         response = self.client_auth.post(self.uri)
-        message = "{} successfully added to your active report.".format(self.finding)
-        data = {"result": "success", "message": message}
+        message = "{} successfully added to your active report. Click here to return to your report.".format(
+            self.finding
+        )
+        data = {
+            "result": "success",
+            "message": message,
+            "url": f'{reverse("reporting:report_detail", kwargs={"pk": self.report.id})}#findings',
+        }
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(force_str(response.content), data)
 
