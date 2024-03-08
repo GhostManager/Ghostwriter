@@ -692,37 +692,6 @@ class GraphqlServerCheckoutDelete(HasuraCheckoutDeleteView):
     model = ServerHistory
 
 
-class GraphqlDeleteEvidenceAction(JwtRequiredMixin, HasuraActionView):
-    """
-    Endpoint for deleting an individual :model:`reporting.Evidence` with the
-    ``delete_evidence`` action. This is preferable to Hasura's standard delete
-    mutation because it ensures Django's ``pre_delete`` and ``post_delete`` signals
-    for filesystem clean-up.
-    """
-
-    required_inputs = [
-        "evidenceId",
-    ]
-
-    def post(self, request, *args, **kwargs):
-        evidence_id = self.input["evidenceId"]
-        try:
-            evidence = Evidence.objects.get(id=evidence_id)
-        except Evidence.DoesNotExist:
-            return JsonResponse(
-                utils.generate_hasura_error_payload("Evidence does not exist", "EvidenceDoesNotExist"), status=400
-            )
-
-        if utils.verify_access(self.user_obj, evidence.finding.report.project):
-            evidence.delete()
-            data = {
-                "result": "success",
-            }
-            return JsonResponse(data, status=self.status)
-
-        return JsonResponse(utils.generate_hasura_error_payload("Unauthorized access", "Unauthorized"), status=401)
-
-
 class GraphqlDeleteReportTemplateAction(JwtRequiredMixin, HasuraActionView):
     """
     Endpoint for deleting an individual :model:`reporting.ReportTemplate` with the
