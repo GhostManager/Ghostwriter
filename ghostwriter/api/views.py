@@ -3,6 +3,7 @@
 # Standard Libraries
 import json
 import logging
+import os
 from asgiref.sync import async_to_sync
 from base64 import b64encode
 from datetime import date, datetime
@@ -10,6 +11,7 @@ from json import JSONDecodeError
 from socket import gaierror
 
 # Django Imports
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
@@ -954,10 +956,7 @@ class GraphqlProjectContactUpdateEvent(HasuraEventView):
 
 
 class GraphqlProjectObjectiveUpdateEvent(HasuraEventView):
-    """
-    Event webhook to make database updates when :model:`rolodex.ProjectObjective`
-    entries change.
-    """
+    """Event webhook to make database updates when :model:`rolodex.ProjectObjective` entries change."""
 
     def post(self, request, *args, **kwargs):
         initial_deadline = self.old_data["deadline"]
@@ -979,10 +978,7 @@ class GraphqlProjectObjectiveUpdateEvent(HasuraEventView):
 
 
 class GraphqlProjectSubTaskUpdateEvent(HasuraEventView):
-    """
-    Event webhook to make database updates when :model:`rolodex.ProjectSubTask`
-    entries change.
-    """
+    """Event webhook to make database updates when :model:`rolodex.ProjectSubTask` entries change."""
 
     def post(self, request, *args, **kwargs):
         instance = ProjectSubTask.objects.select_related("parent").get(id=self.new_data["id"])
@@ -995,6 +991,99 @@ class GraphqlProjectSubTaskUpdateEvent(HasuraEventView):
         else:
             instance.marked_complete = None
         instance.save()
+
+        return JsonResponse(self.data, status=self.status)
+
+
+class GraphqlEvidenceUpdateEvent(HasuraEventView):
+    """
+    Event webhook to delete changed files and update references when an instance of
+    :model:`reporting.Evidence` is updated or deleted.
+    """
+
+    def post(self, request, *args, **kwargs):
+        delete_old_evidence = True
+        if self.event["op"] == "UPDATE":
+            if self.old_data["document"] == self.new_data["document"]:
+                logger.debug("Evidence file did not change, no need to delete old file")
+                delete_old_evidence = False
+        if self.event["op"] == "DELETE":
+            delete_old_evidence = True
+
+        if delete_old_evidence:
+            path = os.path.join(settings.MEDIA_ROOT, self.old_data["document"])
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                    logger.info("Deleted old evidence file %s", self.old_data["document"])
+                except Exception:  # pragma: no cover
+                    logger.exception(
+                        "Failed deleting old evidence file for %s event: %s",
+                        self.event["op"],
+                        self.old_data["document"],
+                    )
+
+        update_references = True
+        if self.event["op"] == "UPDATE":
+            if self.old_data["friendly_name"] == self.new_data["friendly_name"]:
+                update_references = False
+
+        if update_references:
+            field_allowlist = [
+                "title",
+                "affected_entities",
+                "description",
+                "impact",
+                "mitigation",
+                "replication_steps",
+                "host_detection_techniques",
+                "network_detection_techniques",
+                "references",
+            ]
+
+            # Track friendly name if this is an UPDATE event (new data is not present for DELETE events)
+            friendly = None
+            friendly_ref = None
+            if self.event["op"] == "UPDATE":
+                friendly = f"{{{{.{self.new_data['friendly_name']}}}}}"
+                friendly_ref = f"{{{{.ref {self.new_data['friendly_name']}}}}}"
+
+            # Track previous friendly name and reference
+            prev_friendly = f"{{{{.{self.old_data['friendly_name']}}}}}"
+            prev_friendly_ref = f"{{{{.ref {self.old_data['friendly_name']}}}}}"
+
+            logger.info(
+                "Updating content of ReportFindingLink instances with updated name for Evidence %s", self.old_data["id"]
+            )
+
+            update_instances = []
+            if self.old_data["finding_id"]:
+                finding_instance = ReportFindingLink.objects.select_related("report").get(
+                    id=self.old_data["finding_id"]
+                )
+                update_instances.append(finding_instance)
+
+            if self.old_data["report_id"]:
+                report_instance = Report.objects.get(id=self.old_data["report_id"])
+                for finding in report_instance.reportfindinglink_set.all():
+                    update_instances.append(finding)
+
+            for instance in update_instances:
+                try:
+                    for field in instance._meta.get_fields():
+                        if field.name in field_allowlist:
+                            current = getattr(instance, field.name)
+                            if current:
+                                if self.event["op"] == "DELETE":
+                                    new = current.replace(f"<p>{prev_friendly}</p>", "")
+                                    new = new.replace(prev_friendly_ref, "")
+                                else:
+                                    new = current.replace(prev_friendly, friendly)
+                                    new = new.replace(prev_friendly_ref, friendly_ref)
+                                setattr(instance, field.name, new)
+                    instance.save()
+                except ReportFindingLink.DoesNotExist:
+                    logger.exception("Could not find ReportFindingLink for Evidence %s", self.data["id"])
 
         return JsonResponse(self.data, status=self.status)
 

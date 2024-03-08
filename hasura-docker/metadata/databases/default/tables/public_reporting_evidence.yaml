@@ -148,3 +148,42 @@ update_permissions:
                     invites:
                       user_id:
                         _eq: X-Hasura-User-Id
+delete_permissions:
+  - role: manager
+    permission:
+      filter: {}
+  - role: user
+    permission:
+      filter:
+        finding:
+          report:
+            project:
+              _or:
+                - invites:
+                    user_id:
+                      _eq: X-Hasura-User-Id
+                - assignments:
+                    operator_id:
+                      _eq: X-Hasura-User-Id
+                - client:
+                    invites:
+                      user_id:
+                        _eq: X-Hasura-User-Id
+event_triggers:
+  - name: EvidenceUpdate
+    definition:
+      delete:
+        columns: '*'
+      enable_manual: false
+      update:
+        columns:
+          - document
+          - friendly_name
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: '{{ACTIONS_URL_BASE}}/event/evidence/update'
+    headers:
+      - name: Hasura-Action-Secret
+        value_from_env: HASURA_ACTION_SECRET

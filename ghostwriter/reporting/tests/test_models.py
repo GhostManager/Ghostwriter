@@ -6,14 +6,12 @@ import os
 import factory
 
 # Django Imports
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.test import TestCase
 
 # Ghostwriter Libraries
 from ghostwriter.factories import (
     ArchiveFactory,
-    BlankReportFindingLinkFactory,
     DocTypeFactory,
     EvidenceOnFindingFactory,
     FindingFactory,
@@ -392,7 +390,6 @@ class EvidenceModelTests(TestCase):
         # Delete
         evidence.delete()
         assert not self.Evidence.objects.all().exists()
-        assert not os.path.exists(evidence.document.path)
 
     def test_get_absolute_url(self):
         evidence = EvidenceOnFindingFactory()
@@ -402,7 +399,9 @@ class EvidenceModelTests(TestCase):
             self.fail("Evidence.get_absolute_url() raised an exception")
 
     def test_file_extension_validator(self):
-        evidence = EvidenceOnFindingFactory(document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum"))
+        evidence = EvidenceOnFindingFactory(
+            document=factory.django.FileField(filename="evidence.PnG", data=b"lorem ipsum")
+        )
         self.assertEqual(evidence.filename, "evidence.PnG")
 
     def test_prop_filename(self):
@@ -411,48 +410,6 @@ class EvidenceModelTests(TestCase):
             evidence.filename
         except Exception:
             self.fail("Evidence model `filename` property failed unexpectedly!")
-
-    def test_evidence_update_signal(self):
-        finding = ReportFindingLinkFactory(
-            description="<p>Here is some evidence:</p><p>{{.Evidence}}</p><p>{{.ref Evidence}}</p>"
-        )
-        evidence = EvidenceOnFindingFactory(
-            finding=finding,
-            friendly_name="Evidence",
-            document=factory.django.FileField(filename="evidence.txt", data=b"lorem ipsum"),
-        )
-
-        self.assertEqual(f"evidence/{finding.report.id}/evidence.txt", evidence.document.name)
-
-        evidence.document = SimpleUploadedFile("new_evidence.txt", b"lorem ipsum")
-        evidence.save()
-        evidence.refresh_from_db()
-
-        self.assertTrue(hasattr(evidence, "_current_evidence"))
-        self.assertTrue(evidence._current_evidence.path not in evidence.document.path)
-        self.assertFalse(os.path.exists(evidence._current_evidence.path))
-        self.assertTrue(os.path.exists(evidence.document.path))
-
-        evidence.friendly_name = "New Name"
-        evidence.save()
-        evidence.refresh_from_db()
-        finding.refresh_from_db()
-
-        self.assertTrue(hasattr(evidence, "_current_friendly_name"))
-        self.assertEqual(evidence._current_friendly_name, "Evidence")
-        self.assertEqual(evidence.friendly_name, "New Name")
-        self.assertEqual(
-            finding.description, "<p>Here is some evidence:</p><p>{{.New Name}}</p><p>{{.ref New Name}}</p>"
-        )
-
-        # Regression test for this signal updating a finding with blank fields
-        blank = BlankReportFindingLinkFactory()
-        evidence = EvidenceOnFindingFactory(finding=blank, friendly_name="Blank Test")
-        evidence.refresh_from_db()
-
-        evidence.friendly_name = "New Name"
-        evidence.save()
-        evidence.refresh_from_db()
 
 
 class FindingNoteModelTests(TestCase):
